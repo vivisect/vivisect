@@ -251,6 +251,7 @@ forms = (
     'FORM_GOOGOL',
     'FORM_SCCND',
     'FORM_BMCND',
+    'FORM_IMM1',
     'FORM_AD',
     'FORM_A_RS2_RS',
     'FORM_MOV_RI_RB',

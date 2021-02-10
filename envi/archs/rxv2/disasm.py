@@ -180,6 +180,7 @@ class RxDisasm:
 
         self.HANDLERS = [None for x in range(len(formconsts))]
         self.HANDLERS[FORM_AD] = self.form_AD
+        self.HANDLERS[FORM_IMM1] = self.form_IMM1
         self.HANDLERS[FORM_PCDSP] = self.form_PCDSP
         self.HANDLERS[FORM_RD_LI] = self.form_RD_LI
         self.HANDLERS[FORM_RD_IMM] = self.form_RD_IMM
@@ -676,6 +677,17 @@ class RxDisasm:
                 RxRegOper(rs, va),
                 RxRegIncOper(rd, add, tsize, va),
                 )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
+
+    def form_IMM1(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        imm = fields.get(O_IMM)
+        acc = fields.get(O_A)
+
+        opers = (
+            RxImmOper(imm + 1, va),     # special encoding.  for imm:1, add 1
+            RxRegOper(regs.REG_ACC0 + acc, va),
+            )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 

@@ -300,6 +300,12 @@ def getForm(mnem, operdefs, operands):
         return 'FORM_GOOGOL'
     if 'ad' in nms:
         return 'FORM_AD'
+    if 'imm' in nms:
+        imm = operdefs.get('imm')
+        if len(imm) == 1:
+            startb, stopb = imm.values()[0] 
+            if startb - stopb == 0:
+                return 'FORM_IMM1'
 
     return 'None'
 
