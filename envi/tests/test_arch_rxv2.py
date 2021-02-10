@@ -136,6 +136,35 @@ instrs = [
         ('fd2a34', 0x4560, 'mov.l [r3+],r4', 0, ()),             # FORM_
         ('fd2e34', 0x4560, 'mov.l [-r3],r4', 0, ()),             # FORM_
         ('fd2c34', 0x4560, 'mov.b [-r3],r4', 0, ()),             # FORM_
+        ('fd2f34', 0x4560, 'movli r3,r4', 0, ()),             # FORM_
+        ('bf34', 0x4560, 'movu.w 0x1c[r3],r4', 0, ()),             # FORM_
+        ('5e341780', 0x4560, 'movu.w 0x1780[r3],r4', 0, ()),             # FORM_
+        ('fed234', 0x4560, 'movu.w [r3, r2],r4', 0, ()),             # FORM_
+        ('fd3934', 0x4560, 'movu.w [r3+],r4', 0, ()),             # FORM_
+        ('fd4c34', 0x4560, 'msbhi r3,r4,acc1', 0, ()),             # FORM_
+        ('fd4634', 0x4560, 'msblh r3,r4,acc0', 0, ()),             # FORM_
+        ('fd4d34', 0x4560, 'msblo r3,r4,acc1', 0, ()),             # FORM_
+        ('6334', 0x4560, 'mul 0x3,r4', 0, ()),             # FORM_
+        ('76131780', 0x4560, 'mul 0x1780,r3', 0, ()),             # FORM_
+        ('4e341780', 0x4560, 'mul 0x1780[r3].ub,r4', 0, ()),             # FORM_
+        ('068e341780', 0x4560, 'mul 0x1780[r3].l,r4', 0, ()),             # FORM_
+        ('fd0834', 0x4560, 'mulhi r3,r4,acc1', 0, ()),             # FORM_
+        ('fd0a34', 0x4560, 'mullh r3,r4,acc1', 0, ()),             # FORM_
+        ('fd0934', 0x4560, 'mullo r3,r4,acc1', 0, ()),             # FORM_
+        ('fd1ff4', 0x4560, 'mvfacgu 0x3,acc1,r4', 0, ()),             # FORM_
+        ('fd1fc4', 0x4560, 'mvfachi 0x3,acc1,r4', 0, ()),             # FORM_
+        ('fd1fd4', 0x4560, 'mvfaclo 0x3,acc1,r4', 0, ()),             # FORM_
+        ('fd1fe4', 0x4560, 'mvfacmi 0x3,acc1,r4', 0, ()),             # FORM_
+        ('fd6a34', 0x4560, 'mvfc fpsw,r4', 0, ()),             # FORM_
+        ('fd17b4', 0x4560, 'mvtacgu r4,acc1', 0, ()),             # FORM_
+        ('fd1784', 0x4560, 'mvtachi r4,acc1', 0, ()),             # FORM_
+        ('fd1794', 0x4560, 'mvtaclo r4,acc1', 0, ()),             # FORM_
+        ('fd7b031780', 0x4560, 'mvtc 0x1780,fpsw', 0, ()),             # FORM_
+        ('fd6833', 0x4560, 'mvtc r3,fpsw', 0, ()),             # FORM_
+        ('757004', 0x4560, 'mvtipl 0x4', 0, ()),             # FORM_
+        ('7e14', 0x4560, 'neg r4', 0, ()),             # FORM_
+        ('fc0734', 0x4560, 'neg r3,r4', 0, ()),             # FORM_
+        ('03', 0x4560, 'nop', 0, ()),             # FORM_
 
 ]
 

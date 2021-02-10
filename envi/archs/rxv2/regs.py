@@ -5,7 +5,22 @@ from envi.archs.rxv2.const import *
 regs32 = [
     'sp','r1','r2','r3','r4','r5','r6','r7',
     'r8','r9','r10','r11','r12','r13','r14','r15',
-    'isp','usp','intb','pc','psw','bpc','bpsw','fintv','fpsw','extb',
+    #'isp','usp','intb','pc','psw','bpc','bpsw','fintv','fpsw','extb',
+    'psw',
+    'pc',
+    'usp',
+    'fpsw',
+    'reserved0',
+    'reserved1',
+    'reserved2',
+    'reserved3',
+    'bpsw',
+    'bpc',
+    'isp',
+    'fintv',
+    'intb',
+    'extb',
+    'reserved4',
 ]
 
 regs_acc = [ 'acc0', 'acc1' ]

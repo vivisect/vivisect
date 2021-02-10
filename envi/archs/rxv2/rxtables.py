@@ -413,6 +413,7 @@ tbl_fb = (\
 
 tbl_fc = (\
     (None, None, 0xffff00, 0xfc0f00, INS_ABS, 'abs', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, None, 0xffff00, 0xfc0700, INS_NEG, 'neg', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc3b00, INS_NOT, 'not', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc4b00, INS_STNZ, 'stnz', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc4b00, INS_STZ, 'stz', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),

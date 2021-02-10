@@ -324,14 +324,17 @@ class RxDisasm:
 
                 # check all the registers (and not quite)
                 #print([nms[x] for x,y in fields.items()])
-                for const in O_UIMM, O_IMM, O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
-                    val = fields.get(const)
-                    print("  loop: %r = %r" % (nms[const], val))
+                for regconst in O_UIMM, O_IMM, O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
+                    val = fields.get(regconst)
+                    print("  loop: %r = %r" % (nms[regconst], val))
                     if val is not None:
-                        if const in (O_IMM, O_UIMM):
+                        if regconst in (O_IMM, O_UIMM):
                             opers.append(RxImmOper(val, va=va))
 
-                        elif const == O_CR:
+                        elif regconst == O_A:
+                            opers.append(RxRegOper(regs.REG_ACC0 + val, va))
+
+                        elif regconst == O_CR:
                             opers.append(RxCRRegOper(val, va=va))
 
                         else:
@@ -359,12 +362,12 @@ class RxDisasm:
                     opers.append(RxImmOper(imm, va=va))
                     offset += li
 
-                elif fields.get(O_IMM):
+                elif O_IMM in operkeys:
                     imm = fields.get(O_IMM)
                     print("   imm: %x" % imm)
                     opers.append(RxImmOper(imm, va))
 
-                elif fields.get(O_UIMM):
+                elif O_UIMM in operkeys:
                     imm = fields.get(O_UIMM)
                     print("   imm: %x" % imm)
                     opers.append(RxUImmOper(imm, va))
@@ -378,7 +381,7 @@ class RxDisasm:
                             opers.append(RxCRRegOper(reg, va=va))
 
                         elif regconst == O_A:
-                            opers.append(RxRegOper(REG_ACC0 + reg, va))
+                            opers.append(RxRegOper(regs.REG_ACC0 + reg, va))
 
                         elif regconst == O_RD:
                             if ldd in (1,2):
@@ -737,7 +740,10 @@ class RxCBRegOper(RxRegOper):
 
 
 class RxCRRegOper(RxRegOper):
-    pass
+    def __init__(self, reg, va):
+        self.reg = regs.REG_PSW + reg
+        self.va = va
+
 
 class RxImmOper(envi.ImmedOper):
     def __init__(self, val, va):
