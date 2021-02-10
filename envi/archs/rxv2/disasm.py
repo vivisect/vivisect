@@ -337,6 +337,21 @@ class RxDisasm:
                         elif regconst == O_CR:
                             opers.append(RxCRRegOper(val, va=va))
 
+                        elif regconst == O_RS:
+                            if O_LDS in operkeys:
+                                lds = fields.get(O_LDS)
+                                dsp = e_bits.parsebytes(bytez, offset, lds, sign=False, bigend=True)
+                                opers.append(RxDspOper(val, dsp, tsize=tsize, oflags=oflags, va=va))
+                                offset += lds
+                                isize += lds
+
+                            elif O_DSPS in operkeys:
+                                dsp = fields.get(O_DSPS)
+                                opers.append(RxDspOper(val, dsp, va))
+
+                            else:
+                                opers.append(RxRegOper(val, va=va))
+
                         else:
                             opers.append(RxRegOper(val, va=va))
 

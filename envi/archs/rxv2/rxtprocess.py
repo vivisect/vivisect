@@ -369,8 +369,6 @@ def convertOpers(opers, opsz):
 
             print "%-20s %-20s %-10s \t %50s" % (rstup, rdtup, nm, opers)
 
-            #import envi.interactive as ei; ei.dbg_interact(locals(), globals()) 
-
         operands.append((nm, tuple(nparts)))
 
     return operands
