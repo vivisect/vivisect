@@ -183,6 +183,16 @@ instrs = [
         ('fd1890', 0x4560, 'racw 0x2,acc1', 0, ()),             # FORM_
         ('fd19d0', 0x4560, 'rdacl 0x2,acc1', 0, ()),             # FORM_
         ('fd18d0', 0x4560, 'rdacw 0x2,acc1', 0, ()),             # FORM_
+        ('fd6734', 0x4560, 'revl r3,r4', 0, ()),             # FORM_
+        ('fd6534', 0x4560, 'revw r3,r4', 0, ()),             # FORM_
+        ('7f8e', 0x4560, 'rmpa.l', 0, ()),             # FORM_
+        ('7e54', 0x4560, 'rolc r4', 0, ()),             # FORM_
+        ('7e44', 0x4560, 'rorc r4', 0, ()),             # FORM_
+        ('fd6fc4', 0x4560, 'rotl 0x1c,r4', 0, ()),             # FORM_
+        ('fd6634', 0x4560, 'rotl r3,r4', 0, ()),             # FORM_
+        ('fd6dc4', 0x4560, 'rotr 0x1c,r4', 0, ()),             # FORM_
+        ('fd6434', 0x4560, 'rotr r3,r4', 0, ()),             # FORM_
+        ('fc9a341780', 0x4560, 'round 0x1780[r3].l,r4', 0, ()),             # FORM_
 
 ]
 
