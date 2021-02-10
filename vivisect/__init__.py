@@ -2033,7 +2033,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             modified = False
             pva, psize, ptype, pinfo = ploc
             if ptype not in (LOC_STRING, LOC_UNI):
-                return va, subs
+                return va, size, subs
             if (va, size) not in pinfo:
                 modified = True
                 pinfo.append((va, size))

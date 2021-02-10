@@ -304,6 +304,10 @@ i386MultiByteOpcodes = [
     ('VMPTRST', '0fc73d41414141', 0x40, 'vmptrst qword [0x41414141]', 'vmptrst qword [0x41414141]'),
     ('VMCLEAR', '0fc73541414141', 0x40, 'vmptrld qword [0x41414141]', 'vmptrld qword [0x41414141]'),
     ('CMPXCHG', '0fb0d0', 0x40, 'cmpxchg al,dl', 'cmpxchg al,dl'),
+    ('ADOX', 'F30F38f6c2', 0x40, 'adox eax,edx', 'adox eax,edx'),
+    ('ADOX MEM', 'F30F38F6042541414141', 0x40, 'adox eax,dword [0x41414141]', 'adox eax,dword [0x41414141]'),
+    ('ADCX', '660f38f6e5', 0x40, 'adcx esp,ebp', 'adcx esp,ebp'),
+    ('ADCX MEM', '660f38f6242541414141', 0x40, 'adcx esp,dword [0x41414141]', 'adcx esp,dword [0x41414141]'),
 ]
 
 
