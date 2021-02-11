@@ -23,7 +23,8 @@ loglevels = (
     logging.ERROR,
     logging.WARN,
     logging.INFO,
-    logging.DEBUG
+    logging.DEBUG,
+    e_common.EMULOG
 )
 
 
