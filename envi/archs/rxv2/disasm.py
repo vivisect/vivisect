@@ -279,19 +279,24 @@ class RxDisasm:
 
 
         # first things first... parse out the O_SZ field and apply it to iflags and tsize
-        osz = fields.get(O_SZ)
-        if osz is not None:
+        operkeys = fields.keys()
+        if O_SZ in operkeys:
+            osz = fields.pop(O_SZ)
             flag, tsize = SZ[osz]
             iflags |= flag
-            fields.pop(O_SZ)
+            operkeys = fields.keys()
             oflags = 0
+
+        elif O_MI in operkeys:
+            mi = fields.pop(O_MI)
+            operkeys = fields.keys()
+            oflags, tsize = MI_FLAGS[mi]
 
         else:
             tsize = 1
             oflags = OF_B
 
         # deciding key fields and build operand tuple
-        operkeys = fields.keys()
         opercnt = len(fields)
         if opercnt == 0:
             opers = ()
@@ -513,7 +518,7 @@ class RxDisasm:
         iflags |= IF_COND | szflags
 
         rd = fields.get(O_RD)
-        ld = fields.get(O_LD)
+        ld = fields.get(O_LDD)
         if ld == 3: # treated as just a register operand
             opers = (RxRegOper(rd, va), )
 

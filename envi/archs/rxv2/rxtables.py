@@ -18,6 +18,7 @@ tbl_6 = (\
     (None, FORM_RD_LD_MI_RS, 0xff3c00, 0x60400, INS_CMP, 'cmp', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_MI, ((14, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_MI_RS, 0xff3c00, 0x60c00, INS_MUL, 'mul', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_MI, ((14, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_MI_RS, 0xff3c00, 0x61400, INS_OR, 'or', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_MI, ((14, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, FORM_RD_LD_MI_RS, 0xff3c00, 0x60000, INS_SUB, 'sub', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_MI, ((14, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
 )
 
 
