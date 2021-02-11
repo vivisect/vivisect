@@ -392,7 +392,8 @@ satr
 0 1 1 1 1 1 1 1 1 0 0 1 0 0 1 1
 
 sbb
-1 1 1 1 1 1 0 0 0 0 0 0 0 0 ld[1:0] rs[3:0] rd[3:0]
+#1 1 1 1 1 1 0 0 0 0 0 0 0 0 ld[1:0] rs[3:0] rd[3:0]
+1 1 1 1 1 1 0 0 0 0 0 0 0 0 1 1 rs[3:0] rd[3:0]     # this is what the docs say is the only LDS encoding
 0 0 0 0 0 1 1 0 1 0 1 0 0 0 ld[1:0] 0 0 0 0 0 0 0 0 rs[3:0] rd[3:0]
 
 sccnd

@@ -1,6 +1,6 @@
 from const import *
 tbl_6 = (\
-    (None, FORM_RD_LD_RS, 0xfffcff00, 0x6a00000, INS_SBB, 'sbb', ((O_RD, ((0, 0xf),)), (O_LDS, ((16, 0x3),)), (O_RS, ((4, 0xf),)), ), 4, IF_NONE),
+    (None, FORM_RD_LD_RS_L, 0xfffcff00, 0x6a00000, INS_SBB, 'sbb', ((O_RD, ((0, 0xf),)), (O_LDS, ((16, 0x3),)), (O_RS, ((4, 0xf),)), ), 4, IF_NONE),
     (None, FORM_RD_LD_MI_RS, 0xff3cff00, 0x6200200, INS_ADC, 'adc', ((O_RD, ((0, 0xf),)), (O_LDS, ((16, 0x3),)), (O_MI, ((22, 0x3),)), (O_RS, ((4, 0xf),)), ), 4, IF_NONE),
     (None, FORM_RD_LD_MI_RS, 0xff3cff00, 0x6200800, INS_DIV, 'div', ((O_RD, ((0, 0xf),)), (O_LDS, ((16, 0x3),)), (O_MI, ((22, 0x3),)), (O_RS, ((4, 0xf),)), ), 4, IF_NONE),
     (None, FORM_RD_LD_MI_RS, 0xff3cff00, 0x6200900, INS_DIVU, 'divu', ((O_RD, ((0, 0xf),)), (O_LDS, ((16, 0x3),)), (O_MI, ((22, 0x3),)), (O_RS, ((4, 0xf),)), ), 4, IF_NONE),
@@ -30,7 +30,7 @@ tbl_3f = (\
 
 tbl_74 = (\
     (None, FORM_RD_LI, 0xfcf0, 0x7420, INS_AND, 'and', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
-    (None, None, 0xfcf0, 0x7400, INS_CMP, 'cmp', ((O_RS2, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
+    (None, FORM_RS2_LI, 0xfcf0, 0x7400, INS_CMP, 'cmp', ((O_RS2, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7410, INS_MUL, 'mul', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7430, INS_OR, 'or', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
 )
@@ -42,7 +42,7 @@ tbl_75 = (\
     (None, None, 0xfff000, 0x755000, INS_CMP, 'cmp', ((O_UIMM, ((0, 0xff),)), (O_RS2, ((8, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xfff000, 0x754000, INS_MOV, 'mov', ((O_RD, ((8, 0xf),)), (O_UIMM, ((0, 0xff),)), ), 3, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7420, INS_AND, 'and', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
-    (None, None, 0xfcf0, 0x7400, INS_CMP, 'cmp', ((O_RS2, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
+    (None, FORM_RS2_LI, 0xfcf0, 0x7400, INS_CMP, 'cmp', ((O_RS2, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7410, INS_MUL, 'mul', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7430, INS_OR, 'or', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
 )
@@ -50,7 +50,7 @@ tbl_75 = (\
 
 tbl_76 = (\
     (None, FORM_RD_LI, 0xfcf0, 0x7420, INS_AND, 'and', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
-    (None, None, 0xfcf0, 0x7400, INS_CMP, 'cmp', ((O_RS2, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
+    (None, FORM_RS2_LI, 0xfcf0, 0x7400, INS_CMP, 'cmp', ((O_RS2, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7410, INS_MUL, 'mul', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7430, INS_OR, 'or', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
 )
@@ -58,7 +58,7 @@ tbl_76 = (\
 
 tbl_77 = (\
     (None, FORM_RD_LI, 0xfcf0, 0x7420, INS_AND, 'and', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
-    (None, None, 0xfcf0, 0x7400, INS_CMP, 'cmp', ((O_RS2, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
+    (None, FORM_RS2_LI, 0xfcf0, 0x7400, INS_CMP, 'cmp', ((O_RS2, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7410, INS_MUL, 'mul', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7430, INS_OR, 'or', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
 )
@@ -416,6 +416,7 @@ tbl_fc = (\
     (None, None, 0xffff00, 0xfc0f00, INS_ABS, 'abs', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc0700, INS_NEG, 'neg', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc3b00, INS_NOT, 'not', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, None, 0xffff00, 0xfc0300, INS_SBB, 'sbb', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc4b00, INS_STNZ, 'stnz', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfc4b00, INS_STZ, 'stz', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc0800, INS_ADC, 'adc', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
@@ -432,7 +433,7 @@ tbl_fc = (\
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc1800, INS_EMUL, 'emul', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc1c00, INS_EMULU, 'emulu', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc8800, INS_FADD, 'fadd', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
-    (None, None, 0xfffc00, 0xfc8400, INS_FCMP, 'fcmp', ((O_LDS, ((8, 0x3),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, FORM_LD_RS2_RS_L, 0xfffc00, 0xfc8400, INS_FCMP, 'fcmp', ((O_LDS, ((8, 0x3),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc9000, INS_FDIV, 'fdiv', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc8c00, INS_FMUL, 'fmul', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfca000, INS_FSQRT, 'fsqrt', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
@@ -442,9 +443,8 @@ tbl_fc = (\
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc4400, INS_ITOF, 'itof', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc1000, INS_MAX, 'max', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc1400, INS_MIN, 'min', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
-    (None, FORM_RD_LD_RS, 0xfffc00, 0xfc9800, INS_ROUND, 'round', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
-    (None, FORM_RD_LD_RS, 0xfffc00, 0xfc0000, INS_SBB, 'sbb', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
-    (None, None, 0xfffc00, 0xfc3000, INS_TST, 'tst', ((O_LDS, ((8, 0x3),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, FORM_RD_LD_RS_L, 0xfffc00, 0xfc9800, INS_ROUND, 'round', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, FORM_LD_RS2_RS_UB, 0xfffc00, 0xfc3000, INS_TST, 'tst', ((O_LDS, ((8, 0x3),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc5400, INS_UTOF, 'utof', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc4000, INS_XCHG, 'xchg', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_RD_LD_RS, 0xfffc00, 0xfc3400, INS_XOR, 'xor', ((O_RD, ((0, 0xf),)), (O_LDS, ((8, 0x3),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
@@ -498,7 +498,7 @@ tbl_fd = (\
     (None, None, 0xfff3f0, 0xfd7300, INS_MVTC, 'mvtc', ((O_CR, ((0, 0xf),)), (O_LI, ((10, 0x3),)), ), 3, IF_NONE),
     (None, FORM_RD_LI, 0xfff3f0, 0xfd70f0, INS_STNZ, 'stnz', ((O_RD, ((0, 0xf),)), (O_LI, ((10, 0x3),)), ), 3, IF_NONE),
     (None, FORM_RD_LI, 0xfff3f0, 0xfd70e0, INS_STZ, 'stz', ((O_RD, ((0, 0xf),)), (O_LI, ((10, 0x3),)), ), 3, IF_NONE),
-    (None, None, 0xfff3f0, 0xfd70c0, INS_TST, 'tst', ((O_RS2, ((0, 0xf),)), (O_LI, ((10, 0x3),)), ), 3, IF_NONE),
+    (None, FORM_RS2_LI, 0xfff3f0, 0xfd70c0, INS_TST, 'tst', ((O_RS2, ((0, 0xf),)), (O_LI, ((10, 0x3),)), ), 3, IF_NONE),
     (None, FORM_RD_LI, 0xfff3f0, 0xfd70d0, INS_XOR, 'xor', ((O_RD, ((0, 0xf),)), (O_LI, ((10, 0x3),)), ), 3, IF_NONE),
     (None, FORM_A_RS2_RS, 0xfff700, 0xfd0700, INS_EMACA, 'emaca', ((O_A, ((11, 0x1),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, FORM_A_RS2_RS, 0xfff700, 0xfd4700, INS_EMSBA, 'emsba', ((O_A, ((11, 0x1),)), (O_RS2, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),

@@ -281,11 +281,20 @@ def getForm(mnem, operdefs, operands):
     if nms == ['rd', 'ld', 'mi', 'rs']:
         return 'FORM_RD_LD_MI_RS'
     if nms == ['rd', 'ld', 'rs']:
+        if mnem in ('round', 'sbb'):
+            return 'FORM_RD_LD_RS_L'
         return 'FORM_RD_LD_RS'
     if nms == ['a', 'rs2', 'rs']:
         return 'FORM_A_RS2_RS'
     if nms == ['rd', 'li']:
         return 'FORM_RD_LI'
+    if nms == ['rs2', 'li']:
+        return 'FORM_RS2_LI'
+    if nms == ['ld','rs2',  'rs']:
+        if mnem == 'fcmp':
+            return 'FORM_LD_RS2_RS_L'
+        elif mnem == 'tst':
+            return 'FORM_LD_RS2_RS_UB'
     if nms == ['rd', 'imm']:
         return 'FORM_RD_IMM'
     if nms == ['pcdsp']:
