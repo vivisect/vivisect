@@ -30,8 +30,11 @@ class TestReduceCase(unittest.TestCase):
         self.assertReduce('foo & 0', '0')
         self.assertReduce('0 & foo', '0')
 
-        # reduce & with 0 regarless of width
-        self.assertReduce('foo[1] & 0', '0')
+        # reduce & with 0 regardless of width
+        self.assertReduce('foo[5] & 0', '0')
+        # we only support slices on memory
+        # self.assertReduce('foo[2:4] & 0', '0')
+        self.assertReduce('mem[2:4] & 0', '0')
         self.assertReduce('0[1] & foo', '0')
 
         # reduce & umax of foo to just foo

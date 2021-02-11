@@ -1,5 +1,5 @@
 from envi.archs.i386.opconst import *
-import regs as e_i386_regs
+import envi.archs.i386.regs as e_i386_regs
 """
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
@@ -994,10 +994,10 @@ tbl32_0F3A = [
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_660F3A = [(0, 0, 0, 0, 0, 0, 0, 0, 0, 0) for x in range(256)]
+tbl32_660F3A[0x0f] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "palignr", 0, 0, 0)
 tbl32_660F3A[0x14] = (0, INS_OTHER, ADDRMETH_E | OPTYPE_d | OP_W | OP_MEM_B, ADDRMETH_V | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTMMX, "pextrb", 0, 0, 0)
 tbl32_660F3A[0x16] = (0, INS_OTHER, ADDRMETH_E | OPTYPE_d | OP_W, ADDRMETH_V | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTMMX, "pextrd", 0, 0, 0)
-
-tbl32_660F3A[0x0f] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTIUM2, "palignr", 0, 0, 0)
+tbl32_660F3A[0x20] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_y | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTMMX, "pinsrb", 0, 0, 0)
 tbl32_660F3A[0x44] = (0, INS_CRYPT, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_AESNI, "pclmulqdq", 0, 0, 0)
 tbl32_660F3A[0x63] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_R, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_PENTMMX, "pcmpistri", 0, 0, 0)
 tbl32_660F3A[0xdf] = (0, INS_CRYPT, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, cpu_AESNI, "aeskeygenassist", 0, 0, 0)

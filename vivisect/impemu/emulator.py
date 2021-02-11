@@ -66,8 +66,7 @@ class WorkspaceEmulator:
             self.addMemoryMap(va, perms, fname, bytes)
 
         for regidx in self.taintregs:
-            rname = self.getRegisterName(regidx)
-            regval = self.setVivTaint( 'uninitreg', regidx )
+            regval = self.setVivTaint('uninitreg', regidx)
             self.setRegister(regidx, regval)
 
         for name in dir(self):
@@ -75,7 +74,7 @@ class WorkspaceEmulator:
             if val is None:
                 continue
 
-            impname = getattr(val, '__imphook__',None)
+            impname = getattr(val, '__imphook__', None)
             if impname is None:
                 continue
 
@@ -109,8 +108,8 @@ class WorkspaceEmulator:
 
             # Create some pre-made taints for positive stack indexes
             # NOTE: This is *ugly* for speed....
-            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in range(20) ]
-            taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
+            taints = [self.setVivTaint('funcstack', i * self.psize) for i in range(20)]
+            taintbytes = b''.join([e_bits.buildbytes(taint, self.psize) for taint in taints])
 
             self.writeMemory(self.stack_pointer, taintbytes)
         else:
@@ -122,8 +121,7 @@ class WorkspaceEmulator:
             new_map_top = self.stack_map_base
             new_map_base = new_map_top - new_map_size
 
-            stack_map = ''.join([struct.pack('<I', new_map_base+(i*4))
-                                    for i in range(new_map_size)])
+            stack_map = b''.join([struct.pack('<I', new_map_base+(i*4)) for i in range(new_map_size)])
 
             self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
             self.stack_map_base = new_map_base
@@ -263,7 +261,7 @@ class WorkspaceEmulator:
         if len(blist) > 1:
             for bva, bflags in blist:
                 if bva is None:
-                    logger.warn("Unresolved branch even WITH an emulator?")
+                    logger.warning("Unresolved branch even WITH an emulator?")
                     continue
                 if bva in paths:
                     continue
@@ -374,9 +372,10 @@ class WorkspaceEmulator:
                         except v_exc.BadOpBytes as e:
                             logger.debug(str(e))
                             break
+                        except v_exc.BadOutInstruction:
+                            pass
                         except Exception as e:
-                            if not self.getMeta('silent'):
-                                logger.warn("Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
+                            logger.warning("Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
 
                         if self.emustop:
                             return
@@ -392,9 +391,10 @@ class WorkspaceEmulator:
                         except v_exc.BadOpBytes as e:
                             logger.debug(str(e))
                             break
+                        except v_exc.BadOutInstruction:
+                            pass
                         except Exception as e:
-                            if not self.getMeta('silent'):
-                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
+                            logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
 
                         if self.emustop:
                             return
@@ -433,6 +433,8 @@ class WorkspaceEmulator:
                     else:
                         logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va + e.op.size)
+                except v_exc.BadOutInstruction:
+                    break
                 except Exception as e:
                     if self.emumon is not None and not isinstance(e, e_exc.BreakpointHit):
                         self.emumon.logAnomaly(self, starteip, str(e))
@@ -476,7 +478,7 @@ class WorkspaceEmulator:
 
     def nextVivTaint(self):
         # One page into the new taint range
-        return self.taintva.next() + self.taintoffset
+        return next(self.taintva) + self.taintoffset
 
     def setVivTaint(self, typename, taint):
         '''
@@ -591,9 +593,9 @@ class WorkspaceEmulator:
         """
         if self.logwrite:
             wlog = vg_path.getNodeProp(self.curpath, 'writelog')
-            wlog.append((self.getProgramCounter(),va,bytes))
+            wlog.append((self.getProgramCounter(), va, bytes))
 
-        self._useVirtAddr( va )
+        self._useVirtAddr(va)
 
         # It's totally ok to write to invalid memory during the
         # emulation pass (as long as safe_mem is true...)
@@ -607,18 +609,18 @@ class WorkspaceEmulator:
         self.uninit_use[regid] = True
 
     def getUninitRegUse(self):
-        return self.uninit_use.keys()
+        return list(self.uninit_use.keys())
 
     def readMemory(self, va, size):
         if self.logread:
             rlog = vg_path.getNodeProp(self.curpath, 'readlog')
-            rlog.append((self.getProgramCounter(),va,size))
+            rlog.append((self.getProgramCounter(), va, size))
 
         # If they read an import entry, start a taint...
         loc = self.vw.getLocation(va)
         if loc is not None:
             lva, lsize, ltype, ltinfo = loc
-            if ltype == LOC_IMPORT and lsize == size: # They just read an import.
+            if ltype == LOC_IMPORT and lsize == size:  # They just read an import.
                 ret = self.setVivTaint('import', loc)
                 return e_bits.buildbytes(ret, lsize)
 
@@ -627,7 +629,7 @@ class WorkspaceEmulator:
         # Read from the emulator's pages if we havent resolved it yet
         probeok = self.probeMemory(va, size, e_mem.MM_READ)
         if self._safe_mem and not probeok:
-            return 'A' * size
+            return b'A' * size
 
         return e_mem.MemoryObject.readMemory(self, va, size)
 
@@ -638,7 +640,7 @@ class WorkspaceEmulator:
         If val is a numerical value in the same memory page
         as the un-initialized stack values return True
         """
-        #NOTE: If uninit_stack_byte changes, so must this!
+        # NOTE: If uninit_stack_byte changes, so must this!
         if (val & 0xfffff000) == 0xfefef000:
             return True
         return False
@@ -649,4 +651,3 @@ class WorkspaceEmulator:
     def getStackOffset(self, va):
         if (va & self.stack_map_mask) == self.stack_map_base:
             return va - self.stack_pointer
-

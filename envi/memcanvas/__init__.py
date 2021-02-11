@@ -5,7 +5,6 @@ MemoryCanvas objects.
 
 import sys
 import logging
-import binascii
 import traceback
 
 import envi.symstore.resolver as e_resolv
@@ -31,10 +30,11 @@ class MemoryRenderer(object):
 
     def rendChars(self, mcanv, bytez):
         for b in bytez:
-            val = ord(b)
-            bstr = "%.2x" % val
-            if val < 0x20 or val > 0x7e:
+            bstr = "%.2x" % b
+            if b < 0x20 or b > 0x7e:
                 b = "."
+            else:
+                b = chr(b)
             mcanv.addNameText(b, bstr)
 
     def render(self, mcanv, va):
@@ -92,7 +92,7 @@ class MemoryCanvas(object):
         return self.renderers.get(name)
 
     def getRendererNames(self):
-        ret = self.renderers.keys()
+        ret = list(self.renderers.keys())
         ret.sort()
         return ret
 
@@ -115,7 +115,7 @@ class MemoryCanvas(object):
         Retrieve a "tag" object for a name.  "Name" tags will
         (if possible) be highlighted in the rendered interface
         """
-        return None # No highlighting in plain text
+        return None  # No highlighting in plain text
 
     def getVaTag(self, va):
         """
@@ -123,7 +123,7 @@ class MemoryCanvas(object):
         added with this tag should link through to the specified
         virtual address in the memory canvas.
         """
-        return None # No linking in plain text
+        return None  # No linking in plain text
 
     def addText(self, text, tag=None):
         """
@@ -132,13 +132,13 @@ class MemoryCanvas(object):
         NOTE: Implementors should probably check _canv_scrolled to
         decide if they should scroll to the end of the view...
         """
-        if sys.stdout.encoding:
-            text = text.encode(sys.stdout.encoding, 'replace')
         sys.stdout.write(text)
 
     def addNameText(self, text, name=None, typename='name'):
         if name is None:
-            name = binascii.hexlify(text)
+            name = bytes([ord(x) for x in text])
+        else:
+            name = bytes([ord(x) for x in name])
         tag = self.getNameTag(name, typename=typename)
         self.addText(text, tag=tag)
 
@@ -147,7 +147,7 @@ class MemoryCanvas(object):
         self.addText(text, tag=tag)
 
     def render(self, va, size, rend=None):
-        raise Exception('Depricated!  use renderMemory!')
+        raise Exception('Deprecated!  use renderMemory!')
 
     def clearCanvas(self):
         pass
@@ -165,19 +165,19 @@ class MemoryCanvas(object):
         pass
 
     def _beginUpdateVas(self, valist):
-        raise Exception('Default canvas cant update!')
+        raise Exception("Default canvas can't update!")
 
     def _endUpdateVas(self):
         pass
 
     def _beginRenderAppend(self):
-        raise Exception('Default canvas cant append!')
+        raise Exception("Default canvas can't append!")
 
     def _endRenderAppend(self):
         pass
 
     def _beginRenderPrepend(self):
-        raise Exception('Default canvas cant prepend!')
+        raise Exception("Default canvas can't prepend!")
 
     def _endRenderPrepend(self):
         pass
@@ -207,7 +207,7 @@ class MemoryCanvas(object):
         '''
         return (va, 0)
 
-    def renderMemoryUpdate(self, va, size):
+    def renderMemoryUpdate(self, va, size, init=None, fini=None):
 
         maxva = va + size
         if not self._isRendered(va, maxva):
@@ -216,7 +216,7 @@ class MemoryCanvas(object):
         # Find the index of the first and last change
         iend = None
         ibegin = None
-        for i,(rendva,rendsize) in enumerate(self._canv_rendvas):
+        for i, (rendva, rendsize) in enumerate(self._canv_rendvas):
 
             if ibegin is None and va <= rendva:
                 ibegin = i
@@ -227,9 +227,9 @@ class MemoryCanvas(object):
             if ibegin is not None and iend is not None:
                 break
 
-        saved_last  = self._canv_rendvas[iend:]
+        saved_last = self._canv_rendvas[iend:]
         saved_first = self._canv_rendvas[:ibegin]
-        updatedvas  = self._canv_rendvas[ibegin:iend]
+        updatedvas = self._canv_rendvas[ibegin:iend]
 
         # We must actually start rendering from the beginning
         # of the first updated VA index
@@ -240,25 +240,25 @@ class MemoryCanvas(object):
 
         newrendvas = []
 
-        self._beginUpdateVas(updatedvas)
+        self._beginUpdateVas(updatedvas, init)
         try:
 
             while startva < endva:
                 self._beginRenderVa(startva)
                 rsize = self.currend.render(self, startva)
-                newrendvas.append((startva,rsize))
+                newrendvas.append((startva, rsize))
                 self._endRenderVa(startva)
                 startva += rsize
 
-        except Exception as e:
+        except Exception:
             s = traceback.format_exc()
-            self.addText("\nException At %s: %s\n" % (hex(va),s))
+            self.addText("\nException At %s: %s\n" % (hex(va), s))
 
         self._canv_rendvas = saved_first + newrendvas + saved_last
 
-        self._endUpdateVas()
+        self._endUpdateVas(fini)
 
-    def renderMemoryPrepend(self, size):
+    def renderMemoryPrepend(self, size, cb=None):
         firstva, firstsize = self._canv_rendvas[0]
 
         va, szdiff = self._loc_helper(firstva - size)
@@ -277,19 +277,19 @@ class MemoryCanvas(object):
             while va < firstva:
                 self._beginRenderVa(va)
                 rsize = rend.render(self, va)
-                self._canv_rendvas.append((va,rsize))
+                self._canv_rendvas.append((va, rsize))
                 self._endRenderVa(va)
                 va += rsize
 
             self._canv_rendvas.extend(savedrendvas)
 
-        except Exception as e:
+        except Exception:
             s = traceback.format_exc()
-            self.addText("\nException At %s: %s\n" % (hex(va),s))
+            self.addText("\nException At %s: %s\n" % (hex(va), s))
 
-        self._endRenderPrepend()
+        self._endRenderPrepend(cb)
 
-    def renderMemoryAppend(self, size):
+    def renderMemoryAppend(self, size, cb=None):
         lastva, lastsize = self._canv_rendvas[-1]
 
         va = lastva + lastsize
@@ -302,19 +302,19 @@ class MemoryCanvas(object):
             while va < maxva:
                 self._beginRenderVa(va)
                 rsize = rend.render(self, va)
-                self._canv_rendvas.append((va,rsize))
+                self._canv_rendvas.append((va, rsize))
                 self._endRenderVa(va)
                 va += rsize
 
             self._canv_endva = maxva
 
-        except Exception as e:
+        except Exception:
             s = traceback.format_exc()
-            self.addText("\nException At %s: %s\n" % (hex(va),s))
+            self.addText("\nException At %s: %s\n" % (hex(va), s))
 
-        self._endRenderAppend()
+        self._endRenderAppend(cb)
 
-    def renderMemory(self, va, size, rend=None):
+    def renderMemory(self, va, size, rend=None, cb=None):
 
         # if this is not a "scrolled" canvas, clear it.
         if not self._canv_scrolled:
@@ -352,7 +352,7 @@ class MemoryCanvas(object):
             self.addText("\nException At %s: %s\n" % (hex(va), str(e)))
 
         # Canvas callback for render completion (or error...)
-        self._endRenderMemory(va, size, rend)
+        self._endRenderMemory(va, size, rend, cb)
 
 
 class StringMemoryCanvas(MemoryCanvas):

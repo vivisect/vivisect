@@ -26,13 +26,12 @@ class TestArchind(unittest.TestCase):
         op = mem + vsc.Var('edx', 4)
         final = op * vsc.Var('edx', 4)
         wiped = vsym_archind.wipeAstArch(symctx, [final])
-        self.assertEquals(1, len(wiped))
-        self.assertEquals('((mem[(arg0 + 1indreg()):4] + 0indreg) * 0indreg)', str(wiped[0]))
+        self.assertEqual(1, len(wiped))
+        self.assertEqual('((mem[(arg0 + 1indreg()):4] + 0indreg) * 0indreg)', str(wiped[0]))
 
     def test_wipeAstArch_wipeva(self):
         vw = viv.VivWorkspace()
-        vw.addMemoryMap(0x410000, e_mem.MM_RWX, 'code',
-                        [0 for x in range(0x10000)])
+        vw.addMemoryMap(0x410000, e_mem.MM_RWX, 'code', [0 for x in range(0x10000)])
         vw.addLocation(0x41b2ac, 47, viv_const.LOC_POINTER)
         vw.addLocation(0x4149b3, 28, viv_const.LOC_POINTER)
         vw.addLocation(0x41ac93, 83, viv_const.LOC_POINTER)
@@ -46,13 +45,13 @@ class TestArchind(unittest.TestCase):
         func3 = vsc.Call(vsc.Const(0x41ac93, 4), 4, argsyms=[
                          vsc.Const(0, 4), vsc.Var('ecx', 4)])
         wiped = vsym_archind.wipeAstArch(symctx, [func1 + func2, func3], wipeva=True)
-        self.assertEquals(2, len(wiped))
-        self.assertEquals('(2archindva(1indreg) + 1archindva(0,1,2archindva))', str(wiped[0]))
-        self.assertEquals('0archindva(0,0indreg)', str(wiped[1]))
+        self.assertEqual(2, len(wiped))
+        self.assertEqual('(2archindva(1indreg) + 1archindva(0,1,2archindva))', str(wiped[0]))
+        self.assertEqual('0archindva(0,0indreg)', str(wiped[1]))
 
     def test_basic(self):
         vw = viv.VivWorkspace()
-        vw.addMemoryMap(0x56560000, 7, 'woot', 'A'*8192)
+        vw.addMemoryMap(0x56560000, 7, 'woot', b'A'*8192)
         vw.setMeta('Architecture', 'i386')
         symctx = vsym_analysis.getSymbolikAnalysisContext(vw)
 
@@ -84,7 +83,7 @@ class TestArchind(unittest.TestCase):
             '((mem[0archindva:4] - ((1indreg + arg1) * (0indreg + arg0))) + 0x0000270f)',
             '((mem[0archindva:4] - ((arg0 + 0indreg) * (1indreg + 1indreg))) + 0x000022b8)',
             '((mem[0archindva:4] - ((arg0 + 0indreg) * (1indreg + 1indreg))) + 0archindva)',
-            '((mem[1archindva:4] - ((arg0 + 0indreg) * (1indreg + 1indreg))) + 0archindva)',
+            '((mem[0archindva:4] - ((arg0 + 0indreg) * (1indreg + 1indreg))) + 1archindva)',
         ]
 
         for i in range(len(post_eqs)):

@@ -556,17 +556,13 @@ class H8InstrTest(unittest.TestCase):
         #archmod = envi.getArchModule("h8")
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "h8")
-        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
-        vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
+        vw.addMemoryMap(0, 7, 'firmware', b'\xff' * 16384*1024)
+        vw.addMemoryMap(0x400000, 7, 'firmware', b'\xff' * 16384*1024)
         emu = vw.getEmulator()
         emu.logread = emu.logwrite = True
 
         badcount = 0
         goodcount = 0
-
-        #emu = archmod.getEmulator()
-        #emu.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
-        #emu.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
 
         for bytez, va, reprOp, iflags, emutests in instrs:
             op = vw.arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
@@ -641,7 +637,7 @@ class H8InstrTest(unittest.TestCase):
                 if type(tgt) == str and tgt.startswith("CCR_"):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     # limited to 1-byte writes currently
                     emu.writeMemValue(tgt, val, 1)
@@ -674,7 +670,7 @@ class H8InstrTest(unittest.TestCase):
                     raise Exception(
                         "FAILED(flag): %s  !=  0x%x (observed: 0x%x)" % (tgt, val, testval))
 
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
@@ -700,7 +696,7 @@ class H8InstrTest(unittest.TestCase):
 
         return not success
 
-    def test_parsers_rudimentary(self, buf='ABCDEFGHIJKLMNOP', off=3, va=0x2544):
+    def test_parsers_rudimentary(self, buf=b'ABCDEFGHIJKLMNOP', off=3, va=0x2544):
         val, = struct.unpack_from('>H', buf, off)
 
         for tsize in (1, 2, 4):

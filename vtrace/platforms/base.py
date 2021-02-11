@@ -3,15 +3,11 @@ Tracer Platform Base
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
+import queue
 import logging
 import platform
 import traceback
 import threading
-
-try:
-    from queue import Queue
-except:
-    from Queue import Queue
 
 import vtrace
 import envi.memory as e_mem
@@ -108,9 +104,11 @@ class TracerBase(vtrace.Notifier):
 
     def getResolverForFile(self, filename):
         res = self.resbynorm.get(filename, None)
-        if res: return res
+        if res:
+            return res
         res = self.resbyfile.get(filename, None)
-        if res: return res
+        if res:
+            return res
         return None
 
     def steploop(self):
@@ -199,7 +197,7 @@ class TracerBase(vtrace.Notifier):
         Cleanup all breakpoints (if the current bp is "fastbreak" this routine
         will not be called...
         '''
-        for bp in self.breakpoints.itervalues():
+        for bp in self.breakpoints.values():
             if bp.active:
                 # only effects active breaks
                 bp.deactivate(self)
@@ -412,7 +410,7 @@ class TracerBase(vtrace.Notifier):
         """
         faultaddr,faultperm = self.platformGetMemFault()
 
-        #FIXME this is some AWESOME but intel specific nonsense
+        # FIXME this is some AWESOME but intel specific nonsense
         if faultaddr is None:
             return False
         faultpage = faultaddr & 0xfffff000
@@ -586,8 +584,8 @@ class TracerBase(vtrace.Notifier):
                     done[fname] = True
                     self.addLibraryBase(fname, addr, always=always)
 
-            except:
-                pass # *never* do this... except this once...
+            except Exception as e:
+                logger.warning('findLibraryMaps(0x%x, %d, %s, %s) hit exception: %s', addr, size, perms, fname, e)
 
     def _loadBinaryNorm(self, normname):
         if not self.libloaded.get(normname, False):
@@ -719,7 +717,7 @@ class TracerBase(vtrace.Notifier):
 
     def archCheckWatchpoints(self):
         """
-        If the current register state indicates that a watchpoint was hit, 
+        If the current register state indicates that a watchpoint was hit,
         return the address of the watchpoint and clear the event.  Otherwise
         return None
         """
@@ -880,7 +878,7 @@ def threadwrap(func):
         if threading.currentThread().__class__ == TracerThread:
             return func(self, *args, **kwargs)
         # Proxy the call through a single thread
-        q = Queue()
+        q = queue.Queue()
         # FIXME change calling convention!
         args = (self, ) + args
         self.thread.queue.put((func, args, kwargs, q))
@@ -904,7 +902,7 @@ class TracerThread(threading.Thread):
     """
     def __init__(self):
         threading.Thread.__init__(self)
-        self.queue = Queue()
+        self.queue = queue.Queue()
         self.setDaemon(True)
         self.start()
 

@@ -25,10 +25,9 @@ class H8Module(envi.ArchitectureModule):
 
     def archGetBreakInstr(self):
         raise Exception("weird... what are you trying to do here?  h8 has a complex breakpoint instruction")
-        return
 
     def archGetNopInstr(self):
-        return '\x00\x00'
+        return b'\x00\x00'
 
     def getPointerSize(self):
         return 4    # 24 bits encoded in the 3 LSB of 32bit.  addresses must be even

@@ -1,5 +1,5 @@
 from envi.archs.i386.opconst import *
-import regs as e_amd64_regs
+import envi.archs.amd64.regs as e_amd64_regs
 
 # in order to be included, table name must be listed here.
 tablenames = [  None,           # nexttable index 0 means NO TABLE!
@@ -921,7 +921,7 @@ tbl32_0F01_rest = [
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+( 0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "rdpkru", 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, INS_SYSTEM, ADDRMETH_E | OPTYPE_w | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "lmsw", 0, 0, 0),  
 ( 0, INS_SYSTEM, ADDRMETH_E | OPTYPE_w | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "lmsw", 0, 0, 0),  

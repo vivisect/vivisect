@@ -1,7 +1,7 @@
-import cPickle as pickle
+import pickle
 import vivisect
 
-vivsig_cpickle = 'VIV'.ljust(8,'\x00')
+vivsig_cpickle = b'VIV'.ljust(8, b'\x00')
 
 
 def saveWorkspaceChanges(vw, filename):

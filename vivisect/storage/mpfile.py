@@ -5,7 +5,7 @@ import msgpack
 
 logger = logging.getLogger(__name__)
 
-loadargs = {'use_list': False, 'raw': False}
+loadargs = {'use_list': False, 'raw': False, 'max_buffer_size': 2**32 -1}
 if msgpack.version < (1, 0, 0):
     loadargs['encoding'] = 'utf-8'
 else:

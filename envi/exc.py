@@ -1,5 +1,33 @@
 import binascii
 
+
+class ConfigNoAssignment(Exception):
+    def __init__(self, optstr):
+        Exception.__init__(self)
+        self.optstr = optstr
+
+    def __str__(self):
+        return "No value given in option %s" % self.optstr
+
+
+class ConfigInvalidName(Exception):
+    def __init__(self, optpath):
+        Exception.__init__(self)
+        self.optpath = optpath
+
+    def __str__(self):
+        return 'Invalid Config Name: %s' % self.optpath
+
+
+class ConfigInvalidOption(Exception):
+    def __init__(self, optname):
+        Exception.__init__(self)
+        self.optname = optname
+
+    def __str__(self):
+        return 'Invalid Config Option: %s' % self.optname
+
+
 class InvalidRegisterName(Exception):
     pass
 
@@ -29,7 +57,7 @@ class InvalidInstruction(EnviException):
             msg = [mesg]
 
         if bytez is not None:
-            msg.append("'" + binascii.hexlify(bytez) + "'")
+            msg.append("'" + binascii.hexlify(bytez).decode('utf-8') + "'")
 
         if va != 0:
             msg.append('at ' + hex(va))
@@ -168,3 +196,4 @@ class InvalidOperand(Exception):
 
     def __repr__(self):
         return "%s at %s" % (self.__class__.__name__, str(self.valu))
+

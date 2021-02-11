@@ -209,7 +209,7 @@ def muldiv(v, m, d):
         return v
 
     if m % d == 0:
-        return v * Const(m/d, vwidth)
+        return v * Const(int(m/d), vwidth)
 
 def xpandrules(rules):
     reducers = []
@@ -339,6 +339,6 @@ def reduceoper(sym,emu=None):
         if m is not None:
             ret = reducer(m, emu=emu)
             # do this to much simplify reducers...
-            if type(ret) in (int, long):
+            if type(ret) is int:
                 ret = Const(ret,sym.getWidth())
             return ret
