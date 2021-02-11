@@ -6,6 +6,10 @@ class Msp430WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_msp430e.Msp430Em
     taintregs = [ x for x in range(2, 16) ]
 
     def __init__(self, vw, **kwargs):
+        '''
+        Please see the base emulator class in vivisect/impemu/emulator.py for the parameters
+        that can be passed through kwargs
+        '''
         e_msp430e.Msp430Emulator.__init__(self)
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
 

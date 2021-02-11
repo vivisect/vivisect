@@ -155,6 +155,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
             page.runJavaScript(js)
 
     def _endUpdateVas(self, cb=None):
+        self._canv_cache = self._canv_cache.replace('`', r'\`')
         js = f'''
         var node = document.querySelector('update#updatetmp');
         node.outerHTML = `{self._canv_cache}` + node.outerHTML;
@@ -172,6 +173,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     def _endRenderPrepend(self, cb=None):
         selector = 'viv:0x%.8x' % self._canv_ppjump
+        self._canv_cache = self._canv_cache.replace('`', r'\`')
         js = f'''
         var node = document.querySelector("{self._canv_rendtagid}");
         node.innerHTML = `{self._canv_cache}` + node.innerHTML
@@ -192,6 +194,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     def _endRenderAppend(self, cb=None):
         page = self.page()
+        self._canv_cache = self._canv_cache.replace('`', r'\`')
         js = f'''
         document.querySelector("{self._canv_rendtagid}").innerHTML += `{self._canv_cache}`;
         '''

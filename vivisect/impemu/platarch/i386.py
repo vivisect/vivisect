@@ -15,6 +15,10 @@ class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator
     ]
 
     def __init__(self, vw, **kwargs):
+        '''
+        Please see the base emulator class in vivisect/impemu/emulator.py for the parameters
+        that can be passed through kwargs
+        '''
         e_i386.IntelEmulator.__init__(self)
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setEmuOpt('i386:reponce', True)

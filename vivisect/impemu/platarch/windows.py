@@ -103,6 +103,10 @@ class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
     ]
 
     def __init__(self, vw, **kwargs):
+        '''
+        Please see the base emulator class in vivisect/impemu/emulator.py for the parameters
+        that can be passed through kwargs
+        '''
         v_i_i386.i386WorkspaceEmulator.__init__(self, vw, **kwargs)
         WindowsMixin.__init__(self)
 

@@ -16,6 +16,10 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
     taintregs = [x for x in range(13)]
 
     def __init__(self, vw, **kwargs):
+        '''
+        Please see the base emulator class in vivisect/impemu/emulator.py for the parameters
+        that can be passed through kwargs
+        '''
         e_arm.ArmEmulator.__init__(self)
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setMemArchitecture(envi.ARCH_ARMV7)

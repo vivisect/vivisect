@@ -46,7 +46,7 @@ def loadExtensions(vw, vwgui):
             spec.loader.exec_module(module)
 
             try:
-                with open(fname, 'r') as fd:
+                with open(modpath, 'r') as fd:
                     filebytes = fd.read()
                 exec(filebytes, module.__dict__)
                 module.vivExtension(vw, vwgui)

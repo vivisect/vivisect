@@ -72,6 +72,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         inner = ''
         for va, color in cmap.items():
             inner += '.envi-va-0x%.8x { color: #000000; background-color: %s }\n' % (va, color)
+        inner = inner.replace('`', r'\`')
         js = 'var node = document.querySelector("#cmapstyle"); node.innerHTML = `%s`;' % inner
         page.runJavaScript(js)
 

@@ -622,10 +622,10 @@ class v_zstr(v_prim):
 
     _vs_builder = True
 
-    def __init__(self, val='', align=1):
+    def __init__(self, val=b'', align=1):
         v_prim.__init__(self)
         self._vs_align = align
-        self.vsParse(val + '\x00')
+        self.vsParse(val + b'\x00')
 
     def vsParse(self, fbytes, offset=0):
         nulloff = fbytes.find(b'\x00', offset)
@@ -642,7 +642,7 @@ class v_zstr(v_prim):
         return nulloff
 
     def vsParseFd(self, fd):
-        ret = ''
+        ret = b''
         while not ret.endswith(b'\x00'):
             y = fd.read(1)
             if not y:
@@ -654,7 +654,7 @@ class v_zstr(v_prim):
         return self._vs_value
 
     def vsGetValue(self):
-        return self._vs_value[:-self._vs_align_pad]
+        return self._vs_value[:-self._vs_align_pad].decode('utf-8')
 
     def vsSetValue(self, val):
         # FIXME: just call vsParse?
@@ -676,9 +676,9 @@ class v_wstr(v_str):
 
     _vs_builder = True
 
-    def __init__(self, size=4, encode='utf-16le', val=''):
+    def __init__(self, size=4, encode='utf-16le', val=b''):
         v_str.__init__(self)
-        b = val.ljust(size, '\x00').encode(encode)
+        b = val.ljust(size, b'\x00')
         self._vs_length = len(b)
         self._vs_value = b
         self._vs_encode = encode
@@ -698,7 +698,7 @@ class v_wstr(v_str):
 
     def vsGetValue(self):
         s = self._vs_value.decode(self._vs_encode, errors='replace')
-        return s.split(b"\x00")[0]
+        return s.split("\x00")[0]
 
 class v_zwstr(v_str):
     '''
