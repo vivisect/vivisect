@@ -1,4 +1,4 @@
-from const import *
+from .const import *
 tbl_6 = (\
     (None, FORM_RD_LD_RS_L, 0xfffcff00, 0x6a00000, INS_SBB, 'sbb', ((O_RD, ((0, 0xf),)), (O_LDS, ((16, 0x3),)), (O_RS, ((4, 0xf),)), ), 4, IF_NONE),
     (None, FORM_RD_LD_MI_RS, 0xff3cff00, 0x6200200, INS_ADC, 'adc', ((O_RD, ((0, 0xf),)), (O_LDS, ((16, 0x3),)), (O_MI, ((22, 0x3),)), (O_RS, ((4, 0xf),)), ), 4, IF_NONE),

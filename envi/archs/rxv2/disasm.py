@@ -9,7 +9,7 @@ import envi.bits as e_bits
 import envi.memory as e_mem
 
 from . import regs, rxtables
-from const import *
+from .const import *
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +261,7 @@ class RxDisasm:
         if not found:
             raise e_exc.InvalidInstruction(bytez[off:off+opsize], "Couldn't find a opcode match in the table")
 
-        logger.warning("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, opsz, iflags)
+        logger.debug("PARSE MATCH FOUND: val: %x\n\t%x %x %x %r %r  %r  %x", val, mask, endval, opcode, mnem, operdefs, opsz, iflags)
 
 
         # we've found a match, parse it!
