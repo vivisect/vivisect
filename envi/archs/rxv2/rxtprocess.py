@@ -32,6 +32,24 @@ rets = [
         'rtsd',
         ]
 
+conds = [
+        'stz',
+        'stnz',
+        ]
+
+repeats = [
+        'smovb',
+        'smovf',
+        'smovu',
+        'sstr',
+        'suntil',
+        'swhile',
+        ]
+
+privs = [
+        'wait',
+        ]
+
 def process(fbytes):
     flines = fbytes.split('\n')
 
@@ -331,6 +349,15 @@ def getIflags(mnem):
     elif mnem in rets:
         return 'IF_RET | IF_NOFALL'
 
+    elif mnem in conds:
+        return 'IF_COND'
+
+    elif mnem in repeats:
+        return 'IF_REPEAT'
+
+    elif mnem in privs:
+        return 'IF_PRIV'
+
     return 'IF_NONE'
 
 def convertOpers(opers, opsz):
@@ -533,7 +560,7 @@ def createRxTablesModule():
     tables, nmconsts, forms = genTables(data)
 
     out = []
-    out.append('from const import *')
+    out.append('from .const import *')
     out.append(reprTables(tables))
 
     open('rxtables.py','w').write('\n'.join(out))
