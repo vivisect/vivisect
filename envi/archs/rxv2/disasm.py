@@ -329,14 +329,11 @@ class RxDisasm:
                 #'li' gives a size for an extra IMM:#
                 li = fields.get(O_LI)
                 if li is not None:
-                    if li == 3:
-                        imm = e_bits.slowparsebytes(bytez, off, 3, sign=True, bigend=True)
-                    else:
-                        if li == 0:
-                            li = 4
-
-                        fmt = e_bits.getFormat(li, big_endian=True, signed=True)
-                        imm, = struct.unpack_from(fmt, bytez, off)
+                    if li == 0:
+                        li = 4
+                    imm = e_bits.parsebytes(bytez, off, li, sign=True, bigend=True)
+                    off += li
+                    opsz += li
 
                     opers.append(RxImmOper(imm, va=va))
 
@@ -383,17 +380,13 @@ class RxDisasm:
 
                 if li is not None:
                     #print("  li: %x" % li)
-                    if li == 3:
-                        imm = e_bits.slowparsebytes(bytez, off, 3, sign=True, bigend=True)
-                    else:
-                        if li == 0:
-                            li = 4
-
-                        fmt = e_bits.getFormat(li, big_endian=True, signed=True)
-                        imm, = struct.unpack_from(fmt, bytez, off)
+                    if li == 0:
+                        li = 4
+                    imm = e_bits.parsebytes(bytez, off, li, sign=True, bigend=True)
+                    off += li
+                    opsz += li
 
                     opers.append(RxImmOper(imm, va=va))
-                    off += li
 
                 elif O_IMM in operkeys:
                     imm = fields.get(O_IMM)
