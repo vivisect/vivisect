@@ -184,4 +184,3 @@ class HotKeyEditor(vqt.tree.VQTreeView):
             model.append((targname, lookup.get(targname, '')))
 
         self.setWindowTitle('Hotkey Editor')
-

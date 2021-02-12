@@ -23,7 +23,7 @@ from vqt.common import *
 class LoggerPage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, msg, line, source):
         print('------------------------------------------------------------------')
-        print(f'console message = {msg}; line: {line}')
+        print(f'JSconsole message = {msg}; line: {line}')
         print('------------------------------------------------------------------')
 
 
@@ -140,13 +140,16 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         selector = 'a#a_%.8x' % valist[0][0]
         js = f'''
         node = document.querySelector("{selector}");
-        node.outerHTML = '<update id="updatetmp"></update>' + `node.outerHTML`;
+        node.outerHTML = '<update id="updatetmp"></update>' + node.outerHTML;
         '''
 
         for va, size in valist:
             selector = 'a#a_%.8x' % va
             js += f'''
-            document.querySelector("{selector}").remove();
+            var node = document.querySelector("{selector}");
+            if (node != null) {{
+                node.remove();
+            }}
             '''
 
         if cb:

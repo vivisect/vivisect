@@ -225,7 +225,7 @@ class EnviConfig:
                 logger.warning('FIXME - invalid homedir, playing along... (%s)', err)
 
         cfgdict = self.getConfigPrimitive()
-        with open(filename, 'w') as fd:
+        with open(filename, encoding='utf-8', mode='wt') as fd:
             json.dump(cfgdict, fd, indent=2)
 
     def loadConfigFile(self, filename=None):
@@ -234,7 +234,7 @@ class EnviConfig:
         '''
         if filename is None:
             filename = self.filename
-        with open(filename, 'r') as fd:
+        with open(filename, encoding='utf-8', mode='rt') as fd:
             cfgdict = json.load(fd)
         self.setConfigPrimitive(cfgdict)
 

@@ -685,7 +685,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         elif ltype == LOC_UNI:
             # FIXME super ghetto "simple" unicode handling for now
             bytes = b''.join(self.readMemory(lva, lsize).split(b'\x00'))
-            return f"u'%s'" % bytes.decode('utf-8')
+            try:
+                return f"u'%s'" % bytes.decode('utf-8')
+            except:
+                return bytes.hex()
 
         elif ltype == LOC_STRUCT:
             lstruct = self.getStructure(lva, tinfo)
