@@ -549,7 +549,7 @@ tbl_ff = (\
 
 
 tblmain = (\
-    (None, None, 0xff, 0x0, INS_BRK, 'brk', (), 1, IF_NOFALL),
+    (None, None, 0xff, 0x0, INS_BRK, 'brk', (), 1, IF_NONE),
     None,
     (None, None, 0xff, 0x2, INS_RTS, 'rts', (), 1, IF_RET | IF_NOFALL),
     (None, None, 0xff, 0x3, INS_NOP, 'nop', (), 1, IF_NONE),

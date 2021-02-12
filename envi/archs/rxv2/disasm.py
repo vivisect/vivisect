@@ -331,7 +331,8 @@ class RxDisasm:
                 if li is not None:
                     if li == 0:
                         li = 4
-                    imm = e_bits.parsebytes(bytez, off, li, sign=True, bigend=True)
+                    imm = e_bits.parsebytes(bytez, off, li, sign=False, bigend=True)
+                    imm = e_bits.sign_extend(imm, li, 4)
                     off += li
                     opsz += li
 
@@ -382,7 +383,8 @@ class RxDisasm:
                     #print("  li: %x" % li)
                     if li == 0:
                         li = 4
-                    imm = e_bits.parsebytes(bytez, off, li, sign=True, bigend=True)
+                    imm = e_bits.parsebytes(bytez, off, li, sign=False, bigend=True)
+                    imm = e_bits.sign_extend(imm, li, 4)
                     off += li
                     opsz += li
 
@@ -649,7 +651,9 @@ class RxDisasm:
         rd = fields.get(O_RD)
         li = fields.get(O_LI)
         badd = (li, 4)[li==0]
-        imm = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
+        imm = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
+        imm = e_bits.sign_extend(imm, badd, 4)
+
         opers = (
                 RxImmOper(imm, va),
                 RxRegOper(rd, va), 
@@ -662,7 +666,8 @@ class RxDisasm:
         rs2 = fields.get(O_RS2)
         li = fields.get(O_LI)
         badd = (li, 4)[li==0]
-        imm = e_bits.parsebytes(bytez, off, badd, sign=True, bigend=True)
+        imm = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
+        imm = e_bits.sign_extend(imm, badd, 4)
         opers = (
                 RxImmOper(imm, va),
                 RxRegOper(rs2, va), 
@@ -871,7 +876,7 @@ class RxImmOper(envi.ImmedOper):
         self.va = va
 
     def getOperValue(self, op, emu=None):
-        return self.val
+        return e_bits.signed(self.val, 4)
 
     def setOperValue(self, op, emu, val):
         logger.warning("%s needs to implement setOperAddr!" % self.__class__.__name__)
@@ -895,7 +900,8 @@ class RxImmOper(envi.ImmedOper):
         return True
 
 class RxUImmOper(RxImmOper):
-    pass
+    def getOperValue(self, op, emu=None):
+        return self.val, 4
 
 class RxPcdspOper(envi.ImmedOper):
     def __init__(self, val, va, relative=True):
@@ -978,7 +984,7 @@ class RxDspOper(envi.RegisterOper):
         szl = SIZE_BYTES[self.oflags]
         rname = regs.rctx.getRegisterName(self.reg)
         if self.dsp != 0:
-            mcanv.addNameText(self.dsp, typename='offset')
+            mcanv.addNameText(hex(self.dsp), typename='offset')
 
         mcanv.addText('[')
         mcanv.addNameText(rname, typename='registers')

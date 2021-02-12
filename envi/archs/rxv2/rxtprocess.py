@@ -51,7 +51,6 @@ privs = [
         ]
 
 nofalls = [
-        'brk',
         ]
 
 def process(fbytes):
