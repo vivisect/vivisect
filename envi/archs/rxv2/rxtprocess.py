@@ -50,6 +50,10 @@ privs = [
         'wait',
         ]
 
+nofalls = [
+        'brk',
+        ]
+
 def process(fbytes):
     flines = fbytes.split('\n')
 
@@ -357,6 +361,9 @@ def getIflags(mnem):
 
     elif mnem in privs:
         return 'IF_PRIV'
+
+    elif mnem in nofalls:
+        return 'IF_NOFALL'
 
     return 'IF_NONE'
 

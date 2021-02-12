@@ -16,13 +16,9 @@ logger = logging.getLogger(__name__)
 
 class RxOpcode(envi.Opcode):
 
-    def __init__(self, va, opcode, mnem, opers, iflags=0, size=0):
-        self.va = va
-        self.opcode = opcode
-        self.mnem = mnem
-        self.opers = opers
+    def __init__(self, va, opcode, mnem, operands, iflags=0, size=0):
         self.iflags = iflags | envi.ARCH_RXV2
-        self.size = size
+        envi.Opcode.__init__(self, va, opcode, mnem, 0, size, operands, iflags)
 
     def __len__(self):
         return self.size
@@ -156,7 +152,7 @@ class RxRegDirectOper(envi.RegisterOper):
         return self.reg == regs.REG_PC
 
     def getWidth(self):
-        return regs.rctx.getRegisterWidth(self.reg) / 8
+        return regs.rctx.getRegisterWidth(self.reg) // 8
 
     def getOperValue(self, op, emu=None, codeflow=False):
         if self.reg == regs.REG_PC and not codeflow:
@@ -170,6 +166,15 @@ class RxRegDirectOper(envi.RegisterOper):
         if emu is None:
             return None
         emu.setRegister(self.reg, val)
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if not self.reg == oper.reg:
+            return False
+        if not self.oflags == oper.oflags:
+            return False
+        return True
 
 
 
@@ -413,6 +418,7 @@ class RxDisasm:
 
                         elif regconst == O_RD:
                             if ldd in (1,2):
+                                #print(mnem, [nms[key] for key in operkeys])
                                 dsp = e_bits.parsebytes(bytez, off, ldd, sign=False, bigend=True)
                                 opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
                                 off += ldd
@@ -801,7 +807,7 @@ class RxRegOper(envi.RegisterOper):
 
     def getOperValue(self, op, emu=None):
         if emu is None:
-            if self.reg == REG_PC:
+            if self.reg == regs.REG_PC:
                 return op.va
             return
         return emu.getRegister(self.reg)
@@ -813,7 +819,7 @@ class RxRegOper(envi.RegisterOper):
         pass
 
     def getWidth(self):
-        return regs.rctx.getRegisterWidth(self.reg) / 8
+        return regs.rctx.getRegisterWidth(self.reg) // 8
 
     def repr(self, op):
         return regs.rctx.getRegisterName(self.reg)
@@ -821,6 +827,13 @@ class RxRegOper(envi.RegisterOper):
     def render(self, mcanv, op, idx):
         rname = regs.rctx.getRegisterName(self.reg)
         mcanv.addNameText(rname, typename='registers')
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if not self.reg == oper.reg:
+            return False
+        return True
 
 class RxCBRegOper(RxRegOper):
     def __init__(self, flag, va):
@@ -842,6 +855,15 @@ class RxCBRegOper(RxRegOper):
             name = regs.rctx.getRegisterName(self.reg)
             rname = regs.rctx.getRegisterName(self.reg&RMETA_NMASK)
             mcanv.addNameText(name, name=rname, typename="registers")
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if not self.reg == oper.reg:
+            return False
+        if not self.flag == oper.flag:
+            return False
+        return True
 
 
 class RxCRRegOper(RxRegOper):
@@ -870,7 +892,14 @@ class RxImmOper(envi.ImmedOper):
     def render(self, mcanv, op, idx):
         val = self.getOperValue(op)
         mcanv.addText('#')
-        mcanv.addNameText('0x%.2x' % (val))
+        mcanv.addNameText(hex(val))
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if not self.val == oper.val:
+            return False
+        return True
 
 class RxUImmOper(RxImmOper):
     pass
@@ -900,6 +929,15 @@ class RxPcdspOper(envi.ImmedOper):
         val = self.getOperValue(op)
         mcanv.addText('#')
         mcanv.addNameText('0x%.2x' % (val))
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if not self.val == oper.val:
+            return False
+        if not self.rel == oper.rel:
+            return False
+        return True
 
 class RxDspOper(envi.RegisterOper):
     def __init__(self, reg, dsp, tsize=1, oflags=0, va=None):
@@ -956,6 +994,19 @@ class RxDspOper(envi.RegisterOper):
         else:
             mcanv.addText('].%s' % szl)
 
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if not self.oflags == oper.oflags:
+            return False
+        if not self.reg == oper.reg:
+            return False
+        if not self.tsize == oper.tsize:
+            return False
+        if not self.dsp == oper.dsp:
+            return False
+        return True
+
 class RxRegIdxOper(envi.RegisterOper):
     def __init__(self, reg, idx, tsize=1, oflags=0, va=None):
         self.oflags = oflags
@@ -1008,6 +1059,19 @@ class RxRegIdxOper(envi.RegisterOper):
             mcanv.addText(']')
         else:
             mcanv.addText('].%s' % szl)
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if not self.oflags == oper.oflags:
+            return False
+        if not self.reg == oper.reg:
+            return False
+        if not self.tsize == oper.tsize:
+            return False
+        if not self.idx == oper.idx:
+            return False
+        return True
 
 class RxRegIncOper(envi.RegisterOper):
     '''
@@ -1070,6 +1134,17 @@ class RxRegIncOper(envi.RegisterOper):
             mcanv.addNameText(rname, typename='registers')
             mcanv.addText('+')
         mcanv.addText(']')
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        if not self.reg == oper.reg:
+            return False
+        if not self.tsize == oper.tsize:
+            return False
+        if not self.ad == oper.ad:
+            return False
+        return True
 
 
 
