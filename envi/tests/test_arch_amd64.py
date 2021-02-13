@@ -511,9 +511,47 @@ amd64MultiByteOpcodes = [
     ('RDFSBASE', 'F3480FAEC0', 'rdfsbase rax', 'rdfsbase rax'),
 
     ('WAIT', '9b', 'wait ', 'wait '),  # TODO: this needs to be able to change the opcode too
+    ('ADOX 1', 'F30F38f6c2', 'adox eax,edx', 'adox eax,edx'),
+    ('ADOX 2', 'f3480f38f6c2', 'adox rax,rdx', 'adox rax,rdx'),
+    ('ADOX 3', 'F30F38F6042541414141', 'adox eax,dword [0x41414141]', 'adox eax,dword [0x41414141]'),
+    ('ADOX 4', 'F3480F38F6042541414141', 'adox rax,qword [0x41414141]', 'adox rax,qword [0x41414141]'),
+    ('ADCX 1', '660f38f6e5', 'adcx esp,ebp', 'adcx esp,ebp'),
+    ('ADCX 2', '66480f38f6e5', 'adcx rsp,rbp', 'adcx rsp,rbp'),
+    ('ADCX 3', '660f38f6242541414141', 'adcx esp,dword [0x41414141]', 'adcx esp,dword [0x41414141]'),
+    ('ADCX 4', '664c0f38f6242541414141', 'adcx r12,qword [0x41414141]', 'adcx r12,qword [0x41414141]'),
 ]
 
 amd64VexOpcodes = [
+    ('SARX 1', 'c4e272f7c3', 'sarx eax,ebx,ecx', 'sarx eax,ebx,ecx'),
+    ('SARX 2', 'c4e2f2f7c3', 'sarx rax,rbx,rcx', 'sarx rax,rbx,rcx'),
+    ('SARX 3', 'c4e262f7042541414141', 'sarx eax,dword [0x41414141],ebx', 'sarx eax,dword [0x41414141],ebx'),
+    ('SARX 4', 'c4e2f2f7042541414141', 'sarx rax,qword [0x41414141],rcx', 'sarx rax,qword [0x41414141],rcx'),
+
+    ('SHLX 1', 'c4e261f7c3', 'shlx eax,ebx,ebx', 'shlx eax,ebx,ebx'),
+    ('SHLX 2', 'c4e2e1f7c4', 'shlx rax,rsp,rbx', 'shlx rax,rsp,rbx'),
+    ('SHLX 3', 'c4e261f7042541414141', 'shlx eax,dword [0x41414141],ebx', 'shlx eax,dword [0x41414141],ebx'),
+    ('SHLX 4', 'c4e2e1f7042541414141', 'shlx rax,qword [0x41414141],rbx', 'shlx rax,qword [0x41414141],rbx'),
+
+    ('SHRX 1', 'C4E273F7C3', 'shrx eax,ebx,ecx', 'shrx eax,ebx,ecx'),
+    ('SHRX 2', 'C4E2F3F7C3', 'shrx rax,rbx,rcx', 'shrx rax,rbx,rcx'),
+    ('SHRX 3', 'C4E273F7042541414141', 'shrx eax,dword [0x41414141],ecx', 'shrx eax,dword [0x41414141],ecx'),
+    ('SHRX 4', 'C4E2f3F7042541414141', 'shrx rax,qword [0x41414141],rcx', 'shrx rax,qword [0x41414141],rcx'),
+    ('MULX 1', 'C4E273f6c3', 'mulx eax,ecx,edx,ebx', 'mulx eax,ecx,edx,ebx'),
+    ('MULX 2', 'C4E2f3f6c3', 'mulx rax,rcx,rdx,rbx', 'mulx rax,rcx,rdx,rbx'),
+    ('MULX 3', 'C4E263F60C2541414141', 'mulx ecx,ebx,edx,dword [0x41414141]', 'mulx ecx,ebx,edx,dword [0x41414141]'),
+    ('MULX 4', 'C4E2E3F60C2541414141', 'mulx rcx,rbx,rdx,qword [0x41414141]', 'mulx rcx,rbx,rdx,qword [0x41414141]'),
+    ('PDEP 1', 'C4E263F5C1', 'pdep eax,ebx,ecx', 'pdep eax,ebx,ecx'),
+    ('PDEP 2', 'C4E2E3F5C1', 'pdep rax,rbx,rcx', 'pdep rax,rbx,rcx'),
+    ('PDEP 3', 'C4E263F5042541414141', 'pdep eax,ebx,dword [0x41414141]', 'pdep eax,ebx,dword [0x41414141]'),
+    ('PDEP 4', 'C4E2E3F5042541414141', 'pdep rax,rbx,qword [0x41414141]', 'pdep rax,rbx,qword [0x41414141]'),
+    ('PEXT 1', 'c4e272f5d3', 'pext edx,ecx,ebx', 'pext edx,ecx,ebx'),
+    ('PEXT 2', 'c4e2f2f5d3', 'pext rdx,rcx,rbx', 'pext rdx,rcx,rbx'),
+    ('PEXT 3', 'c4e272f5142541414141', 'pext edx,ecx,dword [0x41414141]', 'pext edx,ecx,dword [0x41414141]'),
+    ('PEXT 4', 'c4e2f2f5142541414141', 'pext rdx,rcx,qword [0x41414141]', 'pext rdx,rcx,qword [0x41414141]'),
+
+    ('PBLENDW', '660f3a0ef411', 'pblendw xmm6,xmm4,17', 'pblendw xmm6,xmm4,17'),
+    ('VBROADCASTI', 'c4627d5a1d8decffff', 'vpbroadcasti128 ymm11,oword [rip + -4979]', 'vpbroadcasti128 ymm11,oword [rip - 4979]'),
+
     ('PSRLW (VEX)', 'C5E9D1CB', 'vpsrlw xmm1,xmm2,xmm3', 'vpsrlw xmm1,xmm2,xmm3'),
     ('PSRLW (VEX) 1', 'C5F171D208', 'vpsrlw xmm1,xmm2,8', 'vpsrlw xmm1,xmm2,8'),
     ('PSRLW (VEX) 2', 'C5E9D10C2541414141', 'vpsrlw xmm1,xmm2,oword [0x41414141]', 'vpsrlw xmm1,xmm2,oword [0x41414141]'),

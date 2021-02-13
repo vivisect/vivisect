@@ -50,7 +50,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         if evt.type() == Qt.QEvent.MouseMove:
             self._mouseMoveEvent(evt)
             return True
-        return False
+        return vq_memory.VivCanvasBase.eventFilter(self, src, evt)
 
     def _wheelEvent(self, event):
         mods = QApplication.keyboardModifiers()

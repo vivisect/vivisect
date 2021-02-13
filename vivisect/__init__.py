@@ -22,7 +22,6 @@ import collections
 import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
-import envi.common as e_common
 import envi.config as e_config
 import envi.bytesig as e_bytesig
 import envi.symstore.resolver as e_resolv
@@ -85,7 +84,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._ext_ctxmenu_hooks = {}
         self._extensions = {}
 
-        self.saved = True  # TODO: where is this used?
+        self.saved = False  # TODO: Have a warning when we try to close the UI if the workspace hasn't been saved
         self.rchan = None
         self.server = None
         self.chanids = itertools.count()
@@ -285,7 +284,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return self.frefs.get((va, idx))
 
-    def getEmulator(self, logwrite=False, logread=False):
+    def getEmulator(self, **kwargs):
         """
         Get an instance of a WorkspaceEmulator for this workspace.
 
@@ -301,7 +300,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if eclass is None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
-        emu = eclass(self, logwrite=logwrite, logread=logread)
+        emu = eclass(self, **kwargs)
         emu.setEndian(self.getEndian())
 
         return emu
@@ -692,7 +691,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         elif ltype == LOC_UNI:
             # FIXME super ghetto "simple" unicode handling for now
             bytes = b''.join(self.readMemory(lva, lsize).split(b'\x00'))
-            return f"u'%s'" % bytes.decode('utf-8')
+            try:
+                return f"u'%s'" % bytes.decode('utf-8')
+            except:
+                return bytes.hex()
 
         elif ltype == LOC_STRUCT:
             lstruct = self.getStructure(lva, tinfo)
@@ -1033,7 +1035,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     if loc[L_LTYPE] == LOC_UNI:
                         if loc[L_VA] == va:
                             return loc[L_SIZE]
-                        if ord(bytes[offset+count]) != 0:
+                        if bytes[offset+count] != 0:
                             # same thing as in the string case, a binary can ref into a string
                             # only part of the full string.
                             return count + loc[L_SIZE]
@@ -1070,7 +1072,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
         return False
 
-    def isProbablyCode(self, va, rerun=False):
+    def isProbablyCode(self, va, **kwargs):
         """
         Most of the time, absolute pointers which point to code
         point to the function entry, so test it for the sig.
@@ -1081,12 +1083,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if ret:
             return ret
 
+        rerun = kwargs.pop('rerun', False)
         if va in self.iscode and not rerun:
             return self.iscode[va]
 
         self.iscode[va] = True
-        emu = self.getEmulator()
-        emu.setMeta('silent', True)
+        emu = self.getEmulator(**kwargs)
         wat = v_emucode.watcher(self, va)
         emu.setEmulationMonitor(wat)
         try:
@@ -1139,6 +1141,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         rdest = self.readMemValue(ptrbase, step)
         if rebase and rdest < imgbase:
             rdest += imgbase
+
         while self.isValidPointer(rdest) and self.isProbablyCode(rdest):
             if self.analyzePointer(ptrbase) in STOP_LOCS:
                 break
@@ -2084,7 +2087,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             modified = False
             pva, psize, ptype, pinfo = ploc
             if ptype not in (LOC_STRING, LOC_UNI):
-                return va, subs
+                return va, size, subs
             if (va, size) not in pinfo:
                 modified = True
                 pinfo.append((va, size))
@@ -2153,7 +2156,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if self.getName(va) is None:
             m = self.readMemory(va, size-1).replace(b'\n', b'').replace(b'\0', b'')
-            self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
+            try:
+                self.makeName(va, "wstr_%s_%.8x" % (m[:16].decode('utf-8'), va))
+            except:
+                self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
         return self.addLocation(pva, psize, LOC_UNI, tinfo=tinfo)
 
     def addConstModule(self, modname):
