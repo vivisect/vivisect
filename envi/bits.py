@@ -319,7 +319,7 @@ def parsebits(bytes, offset, bitoff, bitsize):
     while cnt < bitsize:
 
         addbit = bitoff + cnt
-        addoff = offset + (addbit / 8)
+        addoff = offset + (addbit >> 3)
 
         modoff = addbit % 8
 

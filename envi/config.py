@@ -217,9 +217,15 @@ class EnviConfig:
         '''
         if filename is None:
             filename = self.filename
+        base = os.path.dirname(filename)
+        if not os.path.exists(base):
+            try:
+                os.makedirs(base)
+            except Exception as err:
+                logger.warning('FIXME - invalid homedir, playing along... (%s)', err)
 
         cfgdict = self.getConfigPrimitive()
-        with open(filename, 'wb') as fd:
+        with open(filename, encoding='utf-8', mode='wt') as fd:
             json.dump(cfgdict, fd, indent=2)
 
     def loadConfigFile(self, filename=None):
@@ -228,7 +234,7 @@ class EnviConfig:
         '''
         if filename is None:
             filename = self.filename
-        with open(filename, 'rb') as fd:
+        with open(filename, encoding='utf-8', mode='rt') as fd:
             cfgdict = json.load(fd)
         self.setConfigPrimitive(cfgdict)
 
