@@ -428,7 +428,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     # Beginning of Instruction methods
 
-    def i_adc(self, op):
+    def i_adc(self, op, isDX=False):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
@@ -453,16 +453,22 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         tsize = op.opers[0].tsize
 
-        self.setFlag(EFLAGS_CF, e_bits.is_unsigned_carry(res, tsize))
-        self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
-        self.setFlag(EFLAGS_AF, e_bits.is_aux_carry(src, dst))
-        self.setFlag(EFLAGS_ZF, not res)
-        self.setFlag(EFLAGS_SF, e_bits.is_signed(res, tsize))
-        self.setFlag(EFLAGS_OF, e_bits.is_signed_overflow(sres, dsize))
+        if isDX:
+            self.setFlag(EFLAGS_CF, e_bits.is_unsigned_carry(res, tsize))
+        else:
+            self.setFlag(EFLAGS_CF, e_bits.is_unsigned_carry(res, tsize))
+            self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
+            self.setFlag(EFLAGS_AF, e_bits.is_aux_carry(src, dst))
+            self.setFlag(EFLAGS_ZF, not res)
+            self.setFlag(EFLAGS_SF, e_bits.is_signed(res, tsize))
+            self.setFlag(EFLAGS_OF, e_bits.is_signed_overflow(sres, dsize))
 
         self.setOperValue(op, 0, res)
 
-    def i_add(self, op):
+    def i_adcx(self, op):
+        self.i_adc(op, isDX=True)
+
+    def i_add(self, op, isDOX=False):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
@@ -481,6 +487,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ures = udst + usrc
         sres = sdst + ssrc
 
+        if isDOX:
+            cf = self.getFlag(EFLAGS_CF)
+            ures = ures + cf
+
         self.setFlag(EFLAGS_CF, e_bits.is_unsigned_carry(ures, dsize))
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(ures))
         self.setFlag(EFLAGS_AF, e_bits.is_aux_carry(src, dst))
@@ -489,6 +499,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_OF, e_bits.is_signed_overflow(sres, dsize))
 
         self.setOperValue(op, 0, ures)
+
+    def i_adox(self, op):
+        self.i_add(op, isDOX=True)
 
     def i_paddb(self, op, width=1, off=0):
         tsize = op.opers[0].tsize
@@ -1686,6 +1699,33 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, ret)
 
+    def i_shlx(self, op):
+        base = self.getOperValue(op, 1)
+        shft = self.getOperValue(op, 2)
+        base <<= shft
+        self.setOperValue(op, 0, base)
+
+    def i_shrx(self, op):
+        base = self.getOperValue(op, 1)
+        shft = self.getOperValue(op, 2)
+        base >>= shft
+        self.setOperValue(op, 0, base)
+
+    def i_sarx(self, op):
+        base = self.getOperValue(op, 1)
+        shft = self.getOperValue(op, 2)
+
+        dsize = op.opers[1].tsize
+        msb = e_bits.msb(res, dsize)
+
+        base >>= shft
+        if msb:
+            # propagate the MSB down
+            for i in range(shft):
+                base |= (2 ** (32-shft))
+
+        self.setOperValue(op, 0, base)
+
     def i_scasb(self, op):
         al = self.getRegister(REG_AL)
         edi = self.getRegister(REG_EDI)
@@ -2079,6 +2119,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         res = 0
         values = zip(yieldPacked(dst, tsize, width),
                      yieldPacked(src, tsize, width))
+        values = list(values)
         values = values[(len(values) >> 1):]
         for i, (dst, src) in enumerate(values):
             res |= dst << (8 * width * i)

@@ -85,7 +85,7 @@ def isValidScript(scriptpath):
 
 def getRelScriptsFromPath(scriptpaths):
     '''
-    Takes in a list of base paths (eg. ENVI_SCRIPT_PATH list) and recurses the 
+    Takes in a list of base paths (eg. ENVI_SCRIPT_PATH list) and recurses the
     directories looking for valid python files (ie. they don't throw errors
     on import).
 
@@ -599,7 +599,7 @@ class EnviCli(Cmd):
                 pname = e_mem.reprPerms(perm)
                 totsize += size
                 self.canvas.addVaText("0x%.8x" % addr, addr)
-                sizestr = ("%dK" % (size/1024,)).rjust(8)
+                sizestr = ("%dK" % (size//1024,)).rjust(8)
                 self.canvas.addText("%s\t%s\t%s\n" % (sizestr,pname,fname))
             self.vprint("Total Virtual Memory: %.2f MB" % ((float(totsize)/1024)/1024))
 

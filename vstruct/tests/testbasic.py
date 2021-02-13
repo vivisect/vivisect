@@ -99,8 +99,7 @@ class VStructTest(unittest.TestCase):
         v.strfield = 'wootwoot!'
         v.unifield = 'bazbaz'
 
-        answer = binascii.unhexlify('776f6f74776f6f7421000000000000000000000000000000000000000000620061007a00620061007a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')
-
+        answer = binascii.unhexlify('776f6f74776f6f7421000000000000000000000000000000000000000000620061007a00620061007a00000000000000000000000000000000000000')
         self.assertEqual(v.vsEmit(), answer)
 
     def test_vstruct_lengthcallback(self):
@@ -242,3 +241,61 @@ class VStructTest(unittest.TestCase):
         self.assertEqual(2, v.pad3)
 
         self.assertEqual(b'asdfghj', v.vsEmit())
+
+    def test_guid(self):
+        guid = GUID()
+        self.assertEqual(guid.vsGetValue(), '{00000000-0000-0000-0000-000000000000}')
+
+        othr = '{ae03101c-b34a-19cf-9ef3-6d1d62b299a2}'
+        guid.vsSetValue(othr)
+        self.assertEqual(guid.vsGetValue(), othr)
+
+        gstr = '{59e22249-ffff-0123-f15d-9582e708191e}'
+        guid = GUID(guidstr=gstr)
+        self.assertEqual(guid.vsGetValue(), gstr)
+
+        bytez = b'I"\xe2Y\xb3\xdb\xa8\x1c\xf1]\x95\x82\xe7\x08\x19\x1e'
+        guid.vsParse(bytez)
+        self.assertEqual(guid.vsGetValue(), '{59e22249-dbb3-1ca8-f15d-9582e708191e}')
+        self.assertEqual(guid.vsEmit(), bytez)
+
+    def test_str(self):
+        bytez = b'aquickbrowndog\x00didnotgetfooledbyafox'
+        s = v_str(size=100)
+        s.vsParse(bytez)
+        self.assertEqual(s.vsGetValue(), 'aquickbrowndog')
+
+        s.vsSetLength(128)
+        self.assertEqual(s.vsGetValue(), 'aquickbrowndog')
+        self.assertEqual(s.vsEmit(), bytez + b'\x00' * (128-len(bytez)))
+
+        s.vsSetLength('6')
+        self.assertEqual(s.vsGetValue(), 'aquick')
+        self.assertEqual(s.vsEmit(), b'aquick')
+        # it doesn't come back
+        s.vsSetLength(64)
+        self.assertEqual(s.vsGetValue(), 'aquick')
+        self.assertEqual(s.vsEmit(), b'aquick' + b'\x00' * 58)
+
+    def test_zstr(self):
+        bytez = b'swish\x00\x00swoosh'
+        s = v_zstr()
+        s.vsParse(bytez)
+        self.assertEqual(s.vsGetValue(), 'swish')
+
+        self.assertEqual(s.vsEmit(), b'swish\x00')
+
+    def test_wstr(self):
+        bytez = b'a\x00c\x00c\x00e\x00l\x00e\x00r\x00a\x00t\x00o\x00r\x00.\x00d\x00l\x00l\x00\x00\x00'
+        s = v_wstr(size=100)
+        s.vsParse(bytez)
+        self.assertEqual(s.vsGetValue(), "accelerator.dll")
+        self.assertEqual(s.vsEmit(), bytez)
+
+    def test_zwstr(self):
+        # Very similar to the above, but with slight tweaks to show the use case differences
+        bytez = b'a\x00c\x00c\x00e\x00l\x00e\x00r\x00a\x00t\x00o\x00r\x00.\x00d\x00l\x00l\x00\x00\x00y\x00e\x00e\x00t\x00\x00'
+        s = v_zwstr()
+        s.vsParse(bytez)
+        self.assertEqual(s.vsGetValue(), "accelerator.dll")
+        self.assertEqual(s.vsEmit(), b'a\x00c\x00c\x00e\x00l\x00e\x00r\x00a\x00t\x00o\x00r\x00.\x00d\x00l\x00l\x00\x00\x00')

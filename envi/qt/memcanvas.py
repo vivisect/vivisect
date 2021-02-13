@@ -23,7 +23,7 @@ from vqt.common import *
 class LoggerPage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, msg, line, source):
         print('------------------------------------------------------------------')
-        print(f'console message = {msg}')
+        print(f'JSconsole message = {msg}; line: {line}')
         print('------------------------------------------------------------------')
 
 
@@ -40,8 +40,8 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._canv_rend_middle = False
         self.fname = None
 
-        # DEV: DO NOT DELETE THIS REFERENCE TO THESE 
-        # Otherwise they'll get garbage collected and things like double click 
+        # DEV: DO NOT DELETE THIS REFERENCE TO THESE
+        # Otherwise they'll get garbage collected and things like double click
         # to navigate and logging won't work
         # (but pyqt5 won't throw an exception, because ugh).
         self._log_page = LoggerPage()
@@ -96,7 +96,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     @idlethread
     def _scrollToVa(self, va, cb=None):
-        vq_main.eatevents()  # Let all render events go first
+        # vq_main.eatevents()  # Let all render events go first
         page = self.page()
         selector = 'viv:0x%.8x' % va
         js = f'''
@@ -117,7 +117,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         selectva("0x%.8x");
         scrolltoid("a_%.8x");
         ''' % (va, va)
-        page.runJavaSript(js, cb)
+        page.runJavaScript(js, cb)
 
     def _beginRenderMemory(self, va, size, rend):
         self._canv_cache = ''
@@ -146,7 +146,10 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         for va, size in valist:
             selector = 'a#a_%.8x' % va
             js += f'''
-            document.querySelector("{selector}").remove();
+            var node = document.querySelector("{selector}");
+            if (node != null) {{
+                node.remove();
+            }}
             '''
 
         if cb:
@@ -155,8 +158,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
             page.runJavaScript(js)
 
     def _endUpdateVas(self, cb=None):
+        self._canv_cache = self._canv_cache.replace('`', r'\`')
         js = f'''
-        node = document.querySelector('update#updatetmp');
+        var node = document.querySelector('update#updatetmp');
         node.outerHTML = `{self._canv_cache}` + node.outerHTML;
         '''
         if cb:
@@ -172,6 +176,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     def _endRenderPrepend(self, cb=None):
         selector = 'viv:0x%.8x' % self._canv_ppjump
+        self._canv_cache = self._canv_cache.replace('`', r'\`')
         js = f'''
         var node = document.querySelector("{self._canv_rendtagid}");
         node.innerHTML = `{self._canv_cache}` + node.innerHTML
@@ -192,7 +197,10 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     def _endRenderAppend(self, cb=None):
         page = self.page()
-        js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += `{self._canv_cache}`;'
+        self._canv_cache = self._canv_cache.replace('`', r'\`')
+        js = f'''
+        document.querySelector("{self._canv_rendtagid}").innerHTML += `{self._canv_cache}`;
+        '''
         self._canv_cache = None
         if cb:
             page.runJavaScript(js, cb)
@@ -227,7 +235,10 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     @idlethread
     def _appendInside(self, text, cb=None):
         page = self.page()
-        js = f'document.querySelector("{self._canv_rendtagid}").innerHTML += `{text}`;'
+        text = text.replace('`', r'\`')
+        js = f'''
+        document.querySelector("{self._canv_rendtagid}").innerHTML += `{text}`;
+        '''
         if cb:
             page.runJavaScript(js, cb)
         else:
@@ -250,14 +261,18 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._add_raw(text, cb)
 
     @idlethreadsync
-    def clearCanvas(self):
+    def clearCanvas(self, cb=None):
         page = self.page()
-        page.runJavaScript(f'''
+        js = f'''
         var node = document.querySelector("{self._canv_rendtagid}");
         if (node != null) {{
             node.innerHTML = "";
         }}
-        ''')
+        '''
+        if cb:
+            page.runJavaScript(js, cb)
+        else:
+            page.runJavaScript(js)
 
     def contextMenuEvent(self, event):
         va = self._canv_curva

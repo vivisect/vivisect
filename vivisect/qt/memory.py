@@ -1,5 +1,6 @@
 import logging
 
+from PyQt5 import Qt
 from PyQt5.QtWidgets import *
 
 import envi.qt.memory as e_mem_qt
@@ -47,6 +48,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('U', 'viv:undefine')
         self.addHotKey('ctrl+p', 'viv:preview:instr')
         self.addHotKey('B', 'viv:bookmark')
+
         self.addHotKey('ctrl+1', 'viv:make:number:one')
         self.addHotKey('ctrl+2', 'viv:make:number:two')
         self.addHotKey('ctrl+4', 'viv:make:number:four')
@@ -63,6 +65,18 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         # All extenders must implement vivColorMap
         vqtconnect(self.vivColorMap, 'viv:colormap')
 
+    def event(self, evt):
+        if evt.type() == Qt.QEvent.ChildAdded:
+            evt.child().installEventFilter(self)
+        elif evt.type() == Qt.QEvent.ChildRemoved:
+            evt.child().removeEventFilter(self)
+        return e_mem_canvas.VQMemoryCanvas.event(self, evt)
+
+    def eventFilter(self, src, evt):
+        if evt.type() == Qt.QEvent.KeyPress:
+            return self.eatKeyPressEvent(evt)
+        return False
+
     def vivColorMap(self, event, einfo):
         self._applyColorMap(einfo)
 
@@ -72,6 +86,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         inner = ''
         for va, color in cmap.items():
             inner += '.envi-va-0x%.8x { color: #000000; background-color: %s }\n' % (va, color)
+        inner = inner.replace('`', r'\`')
         js = 'var node = document.querySelector("#cmapstyle"); node.innerHTML = `%s`;' % inner
         page.runJavaScript(js)
 
@@ -291,6 +306,8 @@ class VQVivMemoryCanvas(VivCanvasBase):
         the function finishing (and being able to get a value outta js) is via this callback
         mechanism they set up.
         '''
+        if not data:
+            return
         smin = data[0]
         spos = data[1]
         smax = data[2]

@@ -1,8 +1,6 @@
 import logging
 import unittest
 
-import Elf
-import envi
 import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
 
@@ -11,9 +9,9 @@ logger = logging.getLogger(__name__)
 path = ('raw', 'msp430', 'blink.srec')
 
 
-class IHexTests(unittest.TestCase):
+class SrecTests(unittest.TestCase):
 
-    def test_ihex(self):
+    def test_srec(self):
         fn = helpers.getTestPath(*path)
         vw = viv_cli.VivCli()
         vw.config.viv.parsers.srec.arch = 'msp430'
@@ -25,4 +23,3 @@ class IHexTests(unittest.TestCase):
         self.assertEqual(vw.getFunction(0x4050), 0x4000)
         self.assertEqual(vw.getFunction(0x4060), 0x405e)
         self.assertEqual(vw.getFunction(0x4068), 0x405e)
-
