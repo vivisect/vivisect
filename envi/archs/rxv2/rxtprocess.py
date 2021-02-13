@@ -319,6 +319,8 @@ def getForm(mnem, operdefs, operands):
     if nms == ['rd', 'imm']:
         return 'FORM_RD_IMM'
     if nms == ['pcdsp']:
+        if operands[0][1][0][1] == 0xffffff:
+            return 'FORM_PCDSPA'
         return 'FORM_PCDSP'
     if nms == ['rd', 'ld', 'imm', 'cd']:
         return 'FORM_BMCND' 
@@ -482,7 +484,7 @@ CNDS = (
 def reprConsts(mnems, nmconsts, forms):
     out = []
     out.append('''from envi.const import *
-from envi import IF_NOFALL, IF_PRIV, IF_CALL, IF_BRANCH, IF_RET, IF_COND
+from envi import IF_NOFALL, IF_PRIV, IF_CALL, IF_BRANCH, IF_RET, IF_COND, IF_REPEAT
 
 MODE_USER = 0
 MODE_SUPV = 1

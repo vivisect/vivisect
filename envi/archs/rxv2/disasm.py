@@ -187,6 +187,7 @@ class RxDisasm:
         self.HANDLERS[FORM_AD] = self.form_AD
         self.HANDLERS[FORM_IMM1] = self.form_IMM1
         self.HANDLERS[FORM_PCDSP] = self.form_PCDSP
+        self.HANDLERS[FORM_PCDSPA] = self.form_PCDSPA
         self.HANDLERS[FORM_RD_LI] = self.form_RD_LI
         self.HANDLERS[FORM_RS2_LI] = self.form_RS2_LI
         self.HANDLERS[FORM_RD_IMM] = self.form_RD_IMM
@@ -447,6 +448,15 @@ class RxDisasm:
         #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz)
 
+
+    def form_PCDSPA(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        pcdsp = fields[O_PCDSP]
+
+        opers = (
+                RxPcdspOper(pcdsp, va, relative=False),
+                )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
     def form_PCDSP(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         pcdsp = fields[O_PCDSP]

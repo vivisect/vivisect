@@ -243,9 +243,10 @@ globals().update(nmconsts)
 
 
 forms = (
-    'FORM_PCDSP',
+    'FORM_PCDSPA',
     'FORM_RD_LD_RS_L',
     'FORM_RD_LD_MI_RS',
+    'FORM_PCDSP',
     'FORM_RD_LD_RS',
     'FORM_RD_IMM',
     'FORM_RD_LI',

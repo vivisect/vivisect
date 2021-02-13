@@ -62,7 +62,7 @@ instrs = [
         ('7934', 0x4560, 'bset 0x13,r4', 0, ()),             # FORM_BMCND
         ('fc6334', 0x4560, 'bset r4,r3', 0, ()),             # FORM_BMCND
         ('394568', 0x4560, 'bsr 0x8ac8', 0, ()),             # FORM_BMCND
-        ('05456800', 0x4560, 'bsr 0x45ad60', 0, ()),             # FORM_BMCND
+        ('05456800', 0x4560, 'bsr 0x456800', 0, ()),             # FORM_BMCND
         ('7f53', 0x4560, 'bsr r3', 0, ()),             # FORM_BMCND
         ('f6334568', 0x4560, 'btst 0x3,0x4568[r3].b', 0, ()),             # FORM_BMCND
         ('fc6aab4568', 0x4560, 'btst 0x4568[r11].b,r10', 0, ()),             # FORM_BMCND
