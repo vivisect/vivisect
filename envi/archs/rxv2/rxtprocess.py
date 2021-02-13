@@ -319,8 +319,6 @@ def getForm(mnem, operdefs, operands):
     if nms == ['rd', 'imm']:
         return 'FORM_RD_IMM'
     if nms == ['pcdsp']:
-        if operands[0][1][0][1] == 0xffffff:
-            return 'FORM_PCDSPA'
         return 'FORM_PCDSP'
     if nms == ['rd', 'ld', 'imm', 'cd']:
         return 'FORM_BMCND' 
