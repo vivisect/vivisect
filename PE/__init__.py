@@ -1,7 +1,7 @@
+import io
 import os
 import struct
 
-from io import StringIO
 
 import vstruct
 import vstruct.defs.pe as vs_pe
@@ -1214,6 +1214,6 @@ def peFromFileName(fname):
     return PE(open(fname, 'rb'))
 
 def peFromBytes(fbytes):
-    fd = StringIO(fbytes)
+    fd = io.BytesIO(fbytes)
     return PE(fd)
 

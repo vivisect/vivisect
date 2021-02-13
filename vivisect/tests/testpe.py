@@ -14,6 +14,7 @@ class PETests(unittest.TestCase):
     def setUpClass(cls):
         super(PETests, cls).setUpClass()
         cls.psexec_fn = helpers.getTestPath('windows', 'i386', 'PsExec.exe')
+
         cls.vw_psexec = helpers.getTestWorkspace('windows', 'i386', 'PsExec.exe')
         cls.vw_sphinx = helpers.getTestWorkspace('windows', 'i386', 'sphinx_livepretend.exe')
 

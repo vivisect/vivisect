@@ -31,8 +31,54 @@ class WorkspaceEmulator:
 
     taintregs = []
 
-    def __init__(self, vw, logwrite=False, logread=False):
+    def __init__(self, vw, **kwargs):
+        '''
+        Base Emulator Class that other, more platform specific emulators inherit from/mixin.
 
+        Since there's a fair number of knobs that can be turned on the emulator and several
+        descendants of the base WorkspaceEmulator, these kwargs apply not only to the base class,
+        but most children like the ArmWorkspaceEmulator and any others that live in vivisect/impemu/platarm/
+
+        Current Keyword Arguments:
+        * logwrite
+            - Type: Boolean
+            - Default: False
+            - Desc: Enable tracking of all memory writes along the exeuction path. Any results are stored on
+                    the path object as a node property at WorkspaceEmulator.curpath
+        * logread
+            - Type: Boolean
+            - Default: False
+            - Desc: Enable tracking of all memory writes along the exeuction path. Any results are stored on
+                    the path object as a node property at WorkspaceEmulator.curpath
+        * safemem
+            - Type: Boolean
+            - Default: True
+            - Desc: Since we're not a real CPU, and since we also do a lot of partial emulation, we can't
+                    always be sure we're reading from/writing to a valid memory location. So if safemem is
+                    set to True, this enables several addition safety rails in the emulator in terms of
+                    where memory can be read from/written to, and where execution flow can be read from
+        * funconly
+            - Type: Boolean
+            - Default: True
+            - Desc: When emulating, by default when a call/branch to other function instruction happens,
+                    instead of emulating down into the called function, we push the return value onto our
+                    emulated stack, and then using the detected calling convention of the subfunction, try
+                    and detect where to go. Set this value to False to instead, when a call instruction is
+                    hit, emulate down into that subfunction.
+                    Please note that since there's not "Stop when you hit X" condition, disabling this
+                    can have a massive impact on performance.
+        * strictops
+            - Type: Boolean
+            - Default: True
+            - Desc: Due to development time constraints, or plain inability to emulate, not all instructions
+                    on every platform we support is emulated. It may be properly decoded, but if it's not
+                    not supported, by default when emulating, the emulator will bail out of the paths that
+                    contain the unsupported instruction. Set this parameter to false if you want to continue
+                    down those paths even when encountering unsupported instructions
+                    Please note that since any possible effects the unsupported instruction are not
+                    propagated, any possible flags or execution state are most likely misaligned from what
+                    a real CPU might experience.
+        '''
         self.vw = vw
         self.funcva = None # Set if using runFunction
         self.emustop = False
@@ -45,8 +91,8 @@ class WorkspaceEmulator:
         self.taintrepr = {}
 
         self.uninit_use = {}
-        self.logwrite = logwrite
-        self.logread = logread
+        self.logwrite = kwargs.get('logwrite', False)
+        self.logread = kwargs.get('logread', False)
         self.path = self.newCodePathNode()
         self.curpath = self.path
         self.op = None
@@ -55,10 +101,12 @@ class WorkspaceEmulator:
         self.psize = self.getPointerSize()
 
         # Possibly need an "options" API?
-        self._safe_mem = True   # Should we be forgiving about memory accesses?
-        self._func_only = True  # is this emulator meant to stay in one function scope?
-
-        self.strictops = True   # should we bail on emulation if unsupported instruction encountered
+        # Should we be forgiving about memory accesses?
+        self._safe_mem = kwargs.get("safemem", True)
+        # Is this emulator meant to stay in one function scope?
+        self._func_only = kwargs.get("funconly", True)
+        # Should we bail on emulation if unsupported instruction encountered?
+        self.strictops = kwargs.get('strictops', True)
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -193,7 +241,18 @@ class WorkspaceEmulator:
             elif self._func_only:
                 if ret is None:
                     ret = self.setVivTaint('apicall', (op, endeip, api, argv))
+                retn = self.getProgramCounter()
                 callconv.execCallReturn(self, ret, len(funcargs))
+                newaddr = self.getProgramCounter()
+                # So....sometimes, mostly when we're called into an emulator via isProbablyCode, we don't
+                # get the initial function setups, which include a couple pushes onto the stack. Normally,
+                # this isn't that much of a problem, but when we hit the last codeblock that includes pops
+                # before calling any last few functions, the stack pointer gets throw off by those last few
+                # pops, which leads us to say that code path isn't a function since we miss the ret instruction.
+                # So we have here a fix for that. Added some rails so we don'y always just punch it in
+                if self._safe_mem:
+                    if not self.vw.isValidPointer(newaddr) and self.isValidPointer(retn):
+                        self.setProgramCounter(retn)
             # no else since we'll emulate into the function
 
         return iscall

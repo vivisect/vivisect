@@ -570,7 +570,7 @@ class MiniDump(object):
                 stream = vars(self)[sclass.__name__] = sclass()
                 stream.vsParse(bytez, offset=soffset)
             else:
-                logging.info('unknown stream type')
+                logging.info('Unknown stream type of %d', header.StreamType)
 
     def tree(self):
         txt = []
