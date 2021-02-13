@@ -476,8 +476,13 @@ class RxDisasm:
                     )
 
         else:
-            fmt = e_bits.getFormat(lds, big_endian=True, signed=False)
-            dsp, = struct.unpack_from(fmt, bytez, off)
+            if lds == 0:
+                dsp = 0
+            else:
+                fmt = e_bits.getFormat(lds, big_endian=True, signed=False)
+                dsp, = struct.unpack_from(fmt, bytez, off)
+                opsz += lds
+                off += lds
 
             oflags, tsize = MI_FLAGS[mi]
 
@@ -653,6 +658,7 @@ class RxDisasm:
         badd = (li, 4)[li==0]
         imm = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
         imm = e_bits.sign_extend(imm, badd, 4)
+        opsz += badd
 
         opers = (
                 RxImmOper(imm, va),
@@ -668,6 +674,8 @@ class RxDisasm:
         badd = (li, 4)[li==0]
         imm = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
         imm = e_bits.sign_extend(imm, badd, 4)
+        opsz += badd
+
         opers = (
                 RxImmOper(imm, va),
                 RxRegOper(rs2, va), 

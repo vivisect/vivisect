@@ -18,7 +18,7 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 227
+GOOD_TESTS = 228
 GOOD_EMU_TESTS = 0
 
 
@@ -28,16 +28,17 @@ instrs = [
         ('06e102f441', 0x4560, 'adc 0x41[r15].uw,r4', 0, ()),       # FORM_RD_LD_MI_RS
         ('06a102f441', 0x4560, 'adc 0x41[r15].l,r4', 0, ()),        # FORM_RD_LD_MI_RS
         ('fd7c24414243', 0x4560, 'adc 0x414243,r4', 0, ()),         # FORM_RD_LI
-        ('fda432f44141', 0x4560, 'shar 0x4,r3,r2', 0, ()),          # DFLT-3/4
+        ('fda432', 0x4560, 'shar 0x4,r3,r2', 0, ()),                # DFLT-3/4
         ('7f14', 0x4560, 'jsr r4', envi.IF_CALL, ()),               # DFLT-1
         ('7e24', 0x4560, 'abs r4', 0, ()),                          # DFLT-1
         ('fc0f42', 0x4560, 'abs r4,r2', 0, ()),                     # DFLT-2
         ('623b', 0x4560, 'add 0x3,r11', 0, ()),                     # FORM_RD_IMM
         ('4a234142', 0x4560, 'add 0x4142[r2].ub,r3', 0, ()),        # FORM_RD_LD_RS
         ('06ca454142', 0x4560, 'add 0x4142[r4].uw,r5', 0, ()),      # FORM_RD_LD_MI_RS
+        ('068823', 0x4560, 'add [r2].l,r3', 0, ()),      # FORM_RD_LD_MI_RS
         ('6423', 0x4560, 'and 0x2,r3', 0, ()),                      # FORM_RD_IMM
         ('742341424344', 0x4560, 'and 0x41424344,r3', 0, ()),       # FORM_RD_LI
-        ('53234243', 0x4560, 'and r2,r3', 0, ()),                   # FORM_RD_LD_RS
+        ('5323', 0x4560, 'and r2,r3', 0, ()),                   # FORM_RD_LD_RS
         ('52234243', 0x4560, 'and 0x4243[r2].ub,r3', 0, ()),        # FORM_RD_LD_RS
         ('2423', 0x4560, 'bgtu 0x4583', 0, ()),                     # FORM_PCDSP
         ('1f', 0x4560, 'bnz 0x4567', 0, ()),                        # FORM_PCDSP
@@ -277,6 +278,13 @@ class RXv2InstructionSet(unittest.TestCase):
             op = vw.arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             redoprepr = repr(op).replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()
+
+            bytezlen = len(bytez) // 2 # hex encoded
+            oplen = len(op)
+
+            if oplen != bytezlen:
+                print("Length mismatch: %r: %r  (decoded: %r, test: %r)" % (bytez, op, oplen, bytezlen))
+
             if redoprepr != redgoodop:
                 badcount += 1
                 raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
