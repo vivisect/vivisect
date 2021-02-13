@@ -22,6 +22,8 @@ ARCH_THUMB16     = 4 << 16
 ARCH_THUMB       = 5 << 16
 ARCH_MSP430      = 6 << 16
 ARCH_H8          = 7 << 16
+ARCH_SPARC       = 14 << 16
+ARCH_SPARC64     = 15 << 16
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
 arch_names = {
@@ -33,6 +35,8 @@ arch_names = {
     ARCH_THUMB:     'thumb',
     ARCH_MSP430:    'msp430',
     ARCH_H8:        'h8',
+    ARCH_SPARC:     'sparc',
+    ARCH_SPARC64:   'sparc64',
 }
 
 arch_by_name = {
@@ -47,6 +51,8 @@ arch_by_name = {
     'thumb2':   ARCH_THUMB,
     'msp430':   ARCH_MSP430,
     'h8':       ARCH_H8,
+    'sparc':    ARCH_SPARC,
+    'sparc64':  ARCH_SPARC64,
 }
 
 # Instruction flags (The first 8 bits are reserved for arch independant use)
