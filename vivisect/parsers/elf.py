@@ -187,6 +187,13 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     fname = vw.addFile(filename.lower(), baseaddr, md5hash)
     vw.setFileMeta(fname, 'sha256', sha256)
+    vw.setFileMeta(fname, 'relro', getRelRo(elf))
+    vw.setFileMeta(fname, 'canaries', hasStackCanaries(vw))
+    vw.setFileMeta(fname, 'nx', hasNX(elf))
+    vw.setFileMeta(fname, 'pie', hasPIE(elf))
+    vw.setFileMeta(fname, 'rpath', hasRPATH(elf))
+    vw.setFileMeta(fname, 'runpath', hasRUNPATH(elf))
+    vw.setFileMeta(fname, 'stripped', isStripped(elf))
 
     strtabs = {}
     secnames = []
@@ -206,7 +213,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             pva = pgm.p_vaddr
             if addbase:
                 pva += baseaddr
-            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez)  # FIXME perms
+            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez)
         else:
             logger.info('Skipping: %s', pgm)
 
