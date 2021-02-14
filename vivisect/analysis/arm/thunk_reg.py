@@ -1,36 +1,14 @@
-import sys
 import envi
-import vivisect
 import vivisect.impemu.monitor as viv_monitor
 
 import logging
 
+from vivisect.const import REF_DATA
 from envi.archs.arm.regs import PSR_T_bit
-from vivisect import LOC_STRING, LOC_UNI, REF_DATA
 
 logger = logging.getLogger(__name__)
 MAX_INIT_OPCODES = 30
 
-def reprPointer(vw, va):
-    """
-    Do your best to create a humon readable name for the
-    value of this pointer.
-    """
-    if va == 0:
-        return "NULL"
-
-    loc = vw.getLocation(va)
-    if loc != None:
-        locva, locsz, lt, ltinfo = loc
-        if lt in (LOC_STRING, LOC_UNI):
-            return vw.reprVa(locva)
-
-    mbase,msize,mperm,mfile = vw.memobj.getMemoryMap(va)
-    ret = mfile
-    sym = vw.getName(va)
-    if sym != None:
-        ret = sym
-    return ret
 
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
@@ -39,33 +17,28 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         self.reg = vw.getFunctionMeta(fva, 'PIE_reg')
         self.tracker = {}
 
-    def prehook(self, emu, op, starteip):
-        viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
-
     def posthook(self, emu, op, starteip):
         viv_monitor.AnalysisMonitor.posthook(self, emu, op, starteip)
         if len(op.opers) > 1:
-            # TODO: future: make this getRegister() for the registers... look for .GOT
             oper = op.opers[1]
             if (hasattr(oper, 'reg') and oper.reg == self.reg) \
                     or (hasattr(oper, 'base_reg') and oper.base_reg == self.reg):
-                # second operand has the register we're interested in for this function
+                # first (dest) operand has the register we're interested in for this function
                 tgt = op.getOperValue(0, emu)
-                if tgt == None:
-                    logger.warn("0x%x: %s   tgt == None!", op.va, op)
+                if tgt is None:
+                    logger.warning("0x%x: %s   tgt is None!", op.va, op)
                     return
 
                 self.tracker[op.va] = tgt
-                #logger.debug("%x  %s", op.va, self.vw.reprVa(tgt))
 
 
 def analyzeFunction(vw, fva):
     '''
     this analysis module will identify thunk_reg functions, which place the .GOT pointer
-    into some register which is then accessed later.  
+    into some register which is then accessed later.
     doing so allows for position-independent code.
 
-    store funcva in "thunk_reg" VaSet in case we identify multiples (not likely) or misidentify 
+    store funcva in "thunk_reg" VaSet in case we identify multiples (not likely) or misidentify
     something.
 
     then store the module base in metadata as "PIE_GOT", accessible by other analysis modules.
@@ -78,7 +51,7 @@ def analyzeFunction(vw, fva):
             break
 
     # if we don't have a segment named ".got" we fail.
-    if got == None: 
+    if got is None:
         return
 
     # roll through the first few opcodes looking for one to load a register with .got's address
@@ -86,7 +59,7 @@ def analyzeFunction(vw, fva):
     tva = fva
     emu = vw.getEmulator()
     emu._prep(tva)
-    
+
     for x in range(MAX_INIT_OPCODES):
         op = emu.parseOpcode(tva)
 
@@ -98,7 +71,7 @@ def analyzeFunction(vw, fva):
         if newtmode != tmode:
             emu.setFlag(PSR_T_bit, tmode)
 
-        if op.iflags & (envi.IF_BRANCH | envi.IF_COND) == (envi.IF_BRANCH | envi.IF_COND):
+        if op.iflags & (envi.IF_BRANCH_COND) == (envi.IF_BRANCH_COND):
             break
 
         if not len(op.opers):
@@ -111,12 +84,11 @@ def analyzeFunction(vw, fva):
             reg = op.opers[0].reg
             vw.setVaSetRow('thunk_reg', (fva, reg))
 
-            if vw.getFunctionMeta(fva, 'PIE_reg') == None:
+            if vw.getFunctionMeta(fva, 'PIE_reg') is None:
                 vw.setFunctionMeta(fva, 'PIE_reg', reg)
-                vw.setComment(op.va, 'Position Indendent Code Register Set: %s' % \
-                        vw.arch._arch_reg.getRegisterName(reg))
+                vw.setComment(op.va, 'Position Indendent Code Register Set: %s' % vw.arch._arch_reg.getRegisterName(reg))
 
-            if vw.getMeta('PIE_GOT') == None:
+            if vw.getMeta('PIE_GOT') is None:
                 vw.setMeta('PIE_GOT', got)
             break
 
@@ -125,7 +97,7 @@ def analyzeFunction(vw, fva):
             logger.debug("thunk_reg: returning before finding PIE data")
             break
 
-    if not success: 
+    if not success:
         return
 
     logger.debug('funcva 0x%x using thunk_reg for PIE', fva)
@@ -135,48 +107,47 @@ def analyzeFunction(vw, fva):
     emu.setEmulationMonitor(emumon)
     try:
         emu.runFunction(fva, maxhit=1)
-    except:
-        logger.warn("Error emulating function 0x%x\n\t%r", fva, emumon.emuanom)
-
-    if vw.verbose: sys.stderr.write('=')
+    except Exception:
+        logger.exception("Error emulating function 0x%x\n\t%r", fva, emumon.emuanom)
 
     # now roll through tracked references and make xrefs/comments
-    items = emumon.tracker.items()
+    items = list(emumon.tracker.items())
     items.sort()
     for va, tgt in items:
         # if we already have xrefs, don't make more...
-        if vw.getLocation(tgt) == None:
+        if vw.getLocation(tgt) is None:
             try:
                 vw.followPointer(tgt)
             except envi.SegmentationViolation:
                 logger.debug("SegV: %x (va:0x%x)", tgt, va)
-                emumon.emuanom.append("SegV: %x (va:0x%x)" % (tgt,va))
+                emumon.emuanom.append("SegV: %x (va:0x%x)" % (tgt, va))
                 continue
 
         nogo = False
-        for xfr,xto,xtype,xflag in vw.getXrefsFrom(va):
+        for xfr, xto, xtype, xflag in vw.getXrefsFrom(va):
             if xto == tgt:
                 nogo = True
         if not nogo:
             logger.debug("PIE XREF: 0x%x -> 0x%x", va, tgt)
             try:
                 vw.addXref(va, tgt, REF_DATA, 0)
-            except:
-                sys.excepthook(*sys.exc_info())
+            except Exception as e:
+                logger.exception('error adding XREF: %s', e)
             ## FIXME: force analysis of the xref.  very likely string for current example code.
 
         # set comment.  if existing comment, by default, don't... otherwise prepend the info before the existing comment
         curcmt = vw.getComment(va)
-        cmt = "0x%x: %s" % (tgt, reprPointer(vw, tgt))
-        if curcmt == None or not len(curcmt):
+        cmt = "0x%x: %s" % (tgt, vw.reprPointer(tgt))
+        if curcmt is None or not len(curcmt):
             vw.setComment(va, cmt)
-        elif not cmt in curcmt:
-            cmt = "0x%x: %s ;\n %s" % (tgt, reprPointer(vw, tgt), curcmt)
+        elif cmt not in curcmt:
+            cmt = "0x%x: %s ;\n %s" % (tgt, vw.reprPointer(tgt), curcmt)
             vw.setComment(va, cmt)
 
         logger.debug("PIE XREF: %x  %s", va, cmt)
 
     logger.debug("ANOMS: \n%r", emumon.emuanom)
+
 
 def analyze(vw):
     '''
@@ -186,14 +157,15 @@ def analyze(vw):
         try:
             analyzeFunction(vw, fva)
         except:
-            pass
+            logger.exception('thunk_reg analysis error:')
 
-if globals().get('vw') != None:
+
+if globals().get('vw') is not None:
     if len(argv) > 1:
         va = vw.parseExpression(argv[1])
-        logger.warn("analyzing workspace function %x for thunk_reg", va)
+        logger.warning("analyzing workspace function %x for thunk_reg", va)
         analyzeFunction(vw, va)
     else:
-        logger.warn("analyzing workspace for thunk_reg")
+        logger.warning("analyzing workspace for thunk_reg")
         analyze(vw)
-    logger.warn("done")
+    logger.warning("done")

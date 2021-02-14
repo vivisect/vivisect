@@ -2,15 +2,13 @@ import sys
 import logging
 import traceback
 
+from PyQt5.QtWidgets import *
+
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
 
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
 
 QMOD_META = 0x08000000
 QMOD_CTRL = 0x04000000
@@ -27,7 +25,7 @@ special_keys = {
 }
 
 fkey_base = 0x100002f
-for i in xrange(1,12):
+for i in range(1,12):
     special_keys[ fkey_base + i ] = 'f%d' % i
 
 def hotkey(targname):
@@ -67,7 +65,7 @@ class HotKeyMixin(object):
                 print('Found Hotkey Target: %s' % tname)
 
         '''
-        return self._vq_hotkey_targets.keys()
+        return list(self._vq_hotkey_targets.keys())
 
     def isHotKeyTarget(self, targname):
         '''
@@ -79,7 +77,7 @@ class HotKeyMixin(object):
         '''
         Retrieve a list of (hotkey,target) tuples.
         '''
-        return self._vq_hotkeys.items()
+        return list(self._vq_hotkeys.items())
 
     def addHotKey(self, keystr, hktarg):
         '''
@@ -118,7 +116,6 @@ class HotKeyMixin(object):
 
         mods = int(event.modifiers())
 
-        # print('HOTKEY: %s 0x%.8x' % (key, mods))
 
         keytxt = None
 
@@ -144,7 +141,6 @@ class HotKeyMixin(object):
 
     def eatKeyPressEvent(self, event):
         hotkey = self.getHotKeyFromEvent(event)
-        # print 'KEYSTR:', hotkey
 
         target = self._vq_hotkeys.get(hotkey)
         if target is not None:
@@ -152,7 +148,7 @@ class HotKeyMixin(object):
             try:
                 callback(*args, **kwargs)
             except:
-                logger.warn("error in eatKeyPressEvent(%r, %r, %r)" % (event, args, kwargs))
+                logger.warning("error in eatKeyPressEvent(%r, %r, %r)", event, args, kwargs)
                 logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
 
             event.accept()
@@ -166,7 +162,7 @@ class HotKeyMixin(object):
             return super(HotKeyMixin, self).keyPressEvent(event)
 
             #parent = self.parent()
-            #if parent != None:
+            #if parent is not None:
             #    return parent.keyPressEvent(event)
 
 import vqt.tree
@@ -188,4 +184,3 @@ class HotKeyEditor(vqt.tree.VQTreeView):
             model.append((targname, lookup.get(targname, '')))
 
         self.setWindowTitle('Hotkey Editor')
-

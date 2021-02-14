@@ -4,7 +4,7 @@ MODE_JAZELLE    = 2
 MODE_THUMBEE    = 3
 
 
-#Support for different ARM Instruction set versions
+# Support for different ARM Instruction set versions
 
 # name          bitmask                    decimal         hex
 REV_ARMv4   =   0b0000000000000000000001 #        1        0x1
@@ -28,75 +28,91 @@ REV_ARMv8M  =   0b0000010000000000000000 #    65536        0x10000
 REV_ALL_ARMv4  = (REV_ARMv4 | REV_ARMv4T)
 REV_ALL_ARMv5  = (REV_ARMv5 | REV_ARMv5T | REV_ARMv5E | REV_ARMv5J | REV_ARMv5TE)
 REV_ALL_ARMv6  = (REV_ARMv6 | REV_ARMv6T2 | REV_ARMv6M)
-REV_ALL_ARMv7  = (REV_ARMv7A | REV_ARMv7R | REV_ARMv7M | REV_ARMv7EM) 
+REV_ALL_ARMv7  = (REV_ARMv7A | REV_ARMv7R | REV_ARMv7M | REV_ARMv7EM)
 REV_ALL_ARMv8  = (REV_ARMv8A | REV_ARMv8R | REV_ARMv8M)
 
-#Todo - For easy instruction filtering add more like:
+# Todo - For easy instruction filtering add more like:
 REV_ALL_TO_ARMv6 = REV_ALL_ARMv4 | REV_ALL_ARMv5 | REV_ALL_ARMv6
 REV_ALL_FROM_ARMv6 = REV_ALL_ARMv6 | REV_ALL_ARMv7 | REV_ALL_ARMv8
-#Note: since arm must be backwards compatible any depreciated commands
-#Would be noted but not removed with the REV_ALL_TO_* if this is even used.
-#These are put here for suggestion and comment for now
+# Note: since arm must be backwards compatible any depreciated commands
+# Would be noted but not removed with the REV_ALL_TO_* if this is even used.
+# These are put here for suggestion and comment for now
 
 REV_ALL_ARM = (REV_ALL_ARMv4 | REV_ALL_ARMv5 | REV_ALL_ARMv6 | REV_ALL_ARMv7 | REV_ALL_ARMv8)
 
-#Will be set below, THUMB16 up through v6 except v6T2, THUMB2 from v6T2 up, THUMBEE from v7 up.
-REV_THUMB16 = REV_THUMB2  = REV_THUMBEE = 0   
+# Will be set below, THUMB16 up through v6 except v6T2, THUMB2 from v6T2 up, THUMBEE from v7 up.
+REV_THUMB16 = REV_THUMB2 = REV_THUMBEE = 0
+
+ARM_MASK_TO_NAME = {
+    0x1: 'REV_ARMv4',
+    0x2: 'REV_ARMv4T',
+    0x4: 'REV_ARMv5',
+    0x8: 'REV_ARMv5T',
+    0x10: 'REV_ARMv5E',
+    0x20: 'REV_ARMv5J',
+    0x40: 'REV_ARMv5TE',
+    0x80: 'REV_ARMv6',
+    0x100: 'REV_ARMv6',
+    0x200: 'REV_ARMv6T2',
+    0x400: 'REV_ARMv7A',
+    0x800: 'REV_ARMv7R',
+    0x1000: 'REV_ARMv7M',
+    0x2000: 'REV_ARMv7EM',
+    0x4000: 'REV_ARMv8A',
+    0x8000: 'REV_ARMv8R',
+    0x10000: 'REV_ARMv8M',
+}
 
 ARCH_REVS = {}
-#Itterate through all REV_ARM values and setup related combo values 
-for name, val in globals().items():
-    if (not name.startswith('REV_ARM')):
-        continue
+# Iterate through all REV_ARM values and setup related combo values 
+# for name, val in globals().items():
+for mask, name in ARM_MASK_TO_NAME.items():
     shortName = name[4:]
-    #add to lookup dictionary
-    ARCH_REVS[shortName] = val
-    #setup thumb versions to Architecture versions
+    # add to lookup dictionary
+    ARCH_REVS[shortName] = mask
+    # setup thumb versions to Architecture versions
     if (int(shortName[4]) > 6 or shortName == 'ARMv6T2'):
-        REV_THUMB2 = REV_THUMB2 | val
-        if int(shortName[4])!= 6:
-            REV_THUMBEE = REV_THUMBEE | val
+        REV_THUMB2 = REV_THUMB2 | mask
+        if shortName[4] != '6':
+            REV_THUMBEE = REV_THUMBEE | mask
     else:
-        REV_THUMB16 = REV_THUMB16 | val
-#Added thumbs to dictionary
+        REV_THUMB16 = REV_THUMB16 | mask
+# Added thumbs to dictionary
 ARCH_REVS['thumb16'] = REV_THUMB16
 ARCH_REVS['thumb'] = REV_THUMB2
 ARCH_REVS['thumbee'] = REV_THUMBEE
 ARCH_REVSLEN = len(ARCH_REVS)
 
-#IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
-IF_PSR_S     = 1<<32     # This DP instruciton can update CPSR  (as in, add vs. adds)
-IF_B         = 1<<33     # Byte
-IF_H         = 1<<35    # HalfWord
-IF_S         = 1<<36    # Signed    #(not to be confused with IF_PSR_S which is the "update status" flag.
-IF_D         = 1<<37    # Dword
-IF_L         = 1<<38    # Long-store (eg. Dblword Precision) for STC
-IF_T         = 1<<39    # Translate for strbt - denotes ldr/str command runs in user mode
-IF_W         = 1<<40    # Write Back for STM/LDM (!)
-IF_UM        = 1<<41    # User Mode Registers for STM/LDM (^) (obviously no R15)
-IF_PSR_S_SIL = 1<<42    # Flag for Silent S. Related to IF_PSR_S and will prevent S from being rendered. TST, TEQ, CMN, CMP commands.
-IF_IE        = 1<<43    # Interrupt Enable flag (used for CPS instruction)
-IF_ID        = 1<<44    # Interrupt Disable flag (used for CPS instruction)
+# IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
+IF_PSR_S     = 1 << 32    # This DP instruciton can update CPSR  (as in, add vs. adds)
+IF_B         = 1 << 33    # Byte
+IF_H         = 1 << 35    # HalfWord
+IF_S         = 1 << 36    # Signed    #(not to be confused with IF_PSR_S which is the "update status" flag.
+IF_D         = 1 << 37    # Dword
+IF_L         = 1 << 38    # Long-store (eg. Dblword Precision) for STC
+IF_T         = 1 << 39    # Translate for strbt - denotes ldr/str command runs in user mode
+IF_W         = 1 << 40    # Write Back for STM/LDM (!)
+IF_UM        = 1 << 41    # User Mode Registers for STM/LDM (^) (obviously no R15)
+IF_PSR_S_SIL = 1 << 42    # Flag for Silent S. Related to IF_PSR_S and will prevent S from being rendered. TST, TEQ, CMN, CMP commands.
+IF_IE        = 1 << 43    # Interrupt Enable flag (used for CPS instruction)
+IF_ID        = 1 << 44    # Interrupt Disable flag (used for CPS instruction)
 
-IF_THUMB32   = 1<<50    # thumb32
+IF_THUMB32   = 1 << 50    # thumb32
+IF_ADV_SIMD  = 1 << 51    # Advanced SIMD instructions...  it matters
+IF_SYS_MODE  = 1 << 52
 
-IF_DAIB_SHFT = 56       # shift-bits to get DAIB bits down to 0.  this chops off the "is DAIB present" bit that the following store.
-IF_DAIB_MASK = 7<<(IF_DAIB_SHFT-1)
-IF_DA        = 1<<(IF_DAIB_SHFT-1)  # Decrement After
-IF_IA        = 3<<(IF_DAIB_SHFT-1)  # Increment After
-IF_DB        = 5<<(IF_DAIB_SHFT-1)  # Decrement Before
-IF_IB        = 7<<(IF_DAIB_SHFT-1)  # Increment Before
-IF_DAIB_B    = 5<<(IF_DAIB_SHFT-1)  # Before mask
-IF_DAIB_I    = 3<<(IF_DAIB_SHFT-1)  # Before mask
+IF_DAIB_SHFT = 56         # shift-bits to get DAIB bits down to 0.  this chops off the "is DAIB present" bit that the following store.
+IF_DAIB_MASK = 7 << (IF_DAIB_SHFT - 1)
+IF_DA        = 1 << (IF_DAIB_SHFT - 1)  # Decrement After
+IF_IA        = 3 << (IF_DAIB_SHFT - 1)  # Increment After
+IF_DB        = 5 << (IF_DAIB_SHFT - 1)  # Decrement Before
+IF_IB        = 7 << (IF_DAIB_SHFT - 1)  # Increment Before
+IF_DAIB_B    = 5 << (IF_DAIB_SHFT - 1)  # Before mask
+IF_DAIB_I    = 3 << (IF_DAIB_SHFT - 1)  # Before mask
 
-###  what do these do?  i can't find reference to them in use
-IFS_VQ        = 1<<1    # Adv SIMD: operation uses saturating arithmetic
-IFS_VR        = 1<<2    # Adv SIMD: operation performs rounding
-IFS_VD        = 1<<3    # Adv SIMD: operation doubles the result
-IFS_VH        = 1<<4    # Adv SIMD: operation halves the result
-IFS_SYS_MODE  = 1<<8    # instruction is encoded to be executed in SYSTEM mode, not USER mode
-####################################333
 
+# NOTE: unlike IF_*, IFS_* are *NOT* flags.  they are indices into the IFS list.
+# thus, opcode.simdflags is *not* flags, but one index.  only one can be used at a time.
 IFS = [
     None,
     '.f32.s32',
@@ -144,12 +160,17 @@ IFS = [
     '.u16.f32',
     '.s16.f64',
     '.u16.f64',
+    '.f32.f64',
+    '.f64.f32',
+    '.f32.f16',
+    '.f16.f32',
     ]
 
 for ifx in range(1, len(IFS)):
     ifs = IFS[ifx]
     gblname = "IFS" + ifs.upper().replace('.','_')
     globals()[gblname] = ifx
+
 
 OF_W         = 1<<8     # Write back to 
 OF_UM        = 1<<9     # Usermode, or if r15 included set current SPSR -> CPSR
@@ -182,40 +203,41 @@ COND_AL     = 0xE        # always
 COND_EXTENDED = 0xF        # special case - see conditional 0b1111
 
 cond_codes = {
-    COND_EQ:"eq", # Equal Z set 
-    COND_NE:"ne", # Not equal Z clear 
-    COND_CS:"cs", #/HS Carry set/unsigned higher or same C set 
-    COND_CC:"cc", #/LO Carry clear/unsigned lower C clear 
-    COND_MI:"mi", # Minus/negative N set 
-    COND_PL:"pl", # Plus/positive or zero N clear 
-    COND_VS:"vs", # Overflow V set 
-    COND_VC:"vc", # No overflow V clear 
-    COND_HI:"hi", # Unsigned higher C set and Z clear 
-    COND_LS:"ls", # Unsigned lower or same C clear or Z set 
-    COND_GE:"ge", # Signed greater than or equal N set and V set, or N clear and V clear (N == V) 
-    COND_LT:"lt", # Signed less than N set and V clear, or N clear and V set (N!= V) 
-    COND_GT:"gt", # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
-    COND_LE:"le", # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
-    COND_AL:"", # Always (unconditional) - could be "al" but "" seems better...
-    COND_EXTENDED:"", # See extended opcode table
+    COND_EQ: "eq", # Equal Z set 
+    COND_NE: "ne", # Not equal Z clear 
+    COND_CS: "cs", #/HS Carry set/unsigned higher or same C set 
+    COND_CC: "cc", #/LO Carry clear/unsigned lower C clear 
+    COND_MI: "mi", # Minus/negative N set 
+    COND_PL: "pl", # Plus/positive or zero N clear 
+    COND_VS: "vs", # Overflow V set 
+    COND_VC: "vc", # No overflow V clear 
+    COND_HI: "hi", # Unsigned higher C set and Z clear 
+    COND_LS: "ls", # Unsigned lower or same C clear or Z set 
+    COND_GE: "ge", # Signed greater than or equal N set and V set, or N clear and V clear (N == V) 
+    COND_LT: "lt", # Signed less than N set and V clear, or N clear and V set (N!= V) 
+    COND_GT: "gt", # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
+    COND_LE: "le", # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
+    COND_AL: "", # Always (unconditional) - could be "al" but "" seems better...
+    COND_EXTENDED: "", # See extended opcode table
 }
+
 cond_map = {
-    COND_EQ:0,      # Equal Z set 
-    COND_NE:1, # Not equal Z clear 
-    COND_CS:2, #/HS Carry set/unsigned higher or same C set 
-    COND_CC:3, #/LO Carry clear/unsigned lower C clear 
-    COND_MI:4, # Minus/negative N set 
-    COND_PL:5, # Plus/positive or zero N clear 
-    COND_VS:6, # Overflow V set 
-    COND_VC:7, # No overflow V clear 
-    COND_HI:8, # Unsigned higher C set and Z clear 
-    COND_LS:9, # Unsigned lower or same C clear or Z set 
-    COND_GE:10, # Signed greater than or equal N set and V set, or N clear and V clear (N == V) 
-    COND_LT:11, # Signed less than N set and V clear, or N clear and V set (N!= V) 
-    COND_GT:12, # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
-    COND_LE:13, # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
-    COND_AL:"", # Always (unconditional) - could be "al" but "" seems better...
-    COND_EXTENDED:"2", # See extended opcode table
+    COND_EQ: 0,      # Equal Z set 
+    COND_NE: 1, # Not equal Z clear 
+    COND_CS: 2, #/HS Carry set/unsigned higher or same C set 
+    COND_CC: 3, #/LO Carry clear/unsigned lower C clear 
+    COND_MI: 4, # Minus/negative N set 
+    COND_PL: 5, # Plus/positive or zero N clear 
+    COND_VS: 6, # Overflow V set 
+    COND_VC: 7, # No overflow V clear 
+    COND_HI: 8, # Unsigned higher C set and Z clear 
+    COND_LS: 9, # Unsigned lower or same C clear or Z set 
+    COND_GE: 10, # Signed greater than or equal N set and V set, or N clear and V clear (N == V) 
+    COND_LT: 11, # Signed less than N set and V clear, or N clear and V set (N!= V) 
+    COND_GT: 12, # Signed greater than Z clear, and either N set and V set, or N clear and V clear (Z == 0,N == V) 
+    COND_LE: 13, # Signed less than or equal Z set, or N set and V clear, or N clear and V set (Z == 1 or N!= V) 
+    COND_AL: "", # Always (unconditional) - could be "al" but "" seems better...
+    COND_EXTENDED: "2", # See extended opcode table
 }
 
 PUxWL_SUB   = 0x00
@@ -350,8 +372,8 @@ iencs = (\
 )
 
 IENC_MAX        = len(iencs)
-for ieidx in range(IENC_MAX):
-    globals()[iencs[ieidx]] = ieidx
+for ieidx, ienc in enumerate(iencs):
+    globals()[ienc] = ieidx
 
 # The supported types of operand shifts (by the 2 bit field)
 S_LSL = 0
@@ -394,7 +416,6 @@ instrnames = [
         'BLX',
         'POP',
         'PUSH',
-        'SWI',
         'DBG',
         'MOVT',
         'MOVW',
@@ -561,6 +582,7 @@ instrnames = [
         'PLI',
         'IT',
         'MLA',
+        'MLS',
         'SXTAH',
         'SXTH',
         'SXTAB16',
@@ -669,42 +691,42 @@ instrnames = [
         'SWP',
         'SWPB',
         'SEL',
-	'SADD16',
-	'SASX',
-	'SSAX',
-	'SSUB16',
-	'SADD8',
-	'SSUB8',
-	'QADD16',
-	'QASX',
-	'QSAX',
-	'QSUB16',
-	'QADD8',
-	'QSUB8',
-	'SHADD16',
-	'SHASX',
-	'SHSAX',
-	'SHSUB16',
-	'SHADD8',
-	'SHSUB8',
-	'UQADD16',
-	'UQASX',
-	'UQSAX',
-	'UQSUB16',
-	'UQADD8',
-	'UQSUB8',
-	'UHADD16',
-	'UHASX',
-	'UHSAX',
-	'UHSUB16',
-	'UHADD8',
-	'UHSUB8',
-	'PKHBT',
-	'PKHTB',
-	'SSAT',
-	'SSAT16',
-	'USAT',
-	'USAT16',
+        'SADD16',
+        'SASX',
+        'SSAX',
+        'SSUB16',
+        'SADD8',
+        'SSUB8',
+        'QADD16',
+        'QASX',
+        'QSAX',
+        'QSUB16',
+        'QADD8',
+        'QSUB8',
+        'SHADD16',
+        'SHASX',
+        'SHSAX',
+        'SHSUB16',
+        'SHADD8',
+        'SHSUB8',
+        'UQADD16',
+        'UQASX',
+        'UQSAX',
+        'UQSUB16',
+        'UQADD8',
+        'UQSUB8',
+        'UHADD16',
+        'UHASX',
+        'UHSAX',
+        'UHSUB16',
+        'UHADD8',
+        'UHSUB8',
+        'PKHBT',
+        'PKHTB',
+        'SSAT',
+        'SSAT16',
+        'USAT',
+        'USAT16',
         'RBIT',
         'REV',
         'REVSH',
@@ -738,11 +760,7 @@ instrnames = [
         'UNDEF',
 ]
 
-ins_index = 0
-for instr in instrnames:
+for ins_index, instr in enumerate(instrnames):
     globals()['INS_' + instr] = ins_index
-    ins_index += 1
 
 no_update_Rd = (INS_TST, INS_TEQ, INS_CMP, INS_CMN, )
-
-

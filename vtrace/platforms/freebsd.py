@@ -5,6 +5,7 @@ FreeBSD support...
 import os
 import ctypes
 import ctypes.util as cutil
+import logging
 
 import envi.memory as e_mem
 import envi.cli as e_cli
@@ -15,6 +16,8 @@ import vtrace.archs.amd64 as v_amd64
 import vtrace.platforms.base as v_base
 import vtrace.platforms.posix as v_posix
 import vtrace.util as v_util
+
+logger = logging.getLogger(__name__)
 
 libc = ctypes.CDLL(cutil.find_library("c"))
 libkvm = ctypes.CDLL(cutil.find_library("kvm"))
@@ -256,8 +259,7 @@ class FreeBSDMixin:
             raise Exception("VDB needs /proc! (use: mount -t procfs procfs /proc)")
 
     def finiMixin(self):
-        print "FIXME I DON'T THINK THIS IS BEING CALLED"
-        if self.kvmh != None:
+        if self.kvmh is not None:
             libkvm.kvm_close(self.kvmh)
 
     def platformReadMemory(self, address, size):
@@ -337,7 +339,7 @@ class FreeBSDMixin:
             exitcode = os.WEXITSTATUS(status)
 
             tid = self.getMeta("ThreadId", None)
-            if tid == None or len(self.getThreads()) == 0:
+            if tid is None or len(self.getThreads()) == 0:
                 self._fireExit( exitcode )
                 return
 
@@ -355,7 +357,7 @@ class FreeBSDMixin:
             self.handlePosixSignal(sig)
 
         else:
-            print "OMG WTF JUST HAPPENED??!?11/!?1?>!"
+            logger.warning('Received unknown event: %s', event)
 
 
     @v_base.threadwrap
@@ -371,7 +373,7 @@ class FreeBSDMixin:
             cmd = PT_SYSCALL
 
         sig = self.getCurrentSignal()
-        if sig == None:
+        if sig is None:
             sig = 0
 
         # In freebsd address is the place to continue from
@@ -418,28 +420,28 @@ class FreeBSDMixin:
         ret = []
         mpath = "/proc/%d/map" % self.pid
 
-        mapfile = file(mpath, "rb")
-        for line in mapfile:
-            perms = 0
-            fname = ""
-            maptup = line.split(None)
-            base = int(maptup[0], 16)
-            max  = int(maptup[1], 16)
-            permstr = maptup[5]
+        with open(mpath, 'rb') as mapfile:
+            for line in mapfile:
+                perms = 0
+                fname = ""
+                maptup = line.split(None)
+                base = int(maptup[0], 16)
+                max  = int(maptup[1], 16)
+                permstr = maptup[5]
 
-            if maptup[11] == "vnode":
-                fname = maptup[12].strip()
+                if maptup[11] == "vnode":
+                    fname = maptup[12].strip()
 
-            if permstr[0] == 'r':
-                perms |= e_mem.MM_READ
+                if permstr[0] == 'r':
+                    perms |= e_mem.MM_READ
 
-            if permstr[1] == 'w':
-                perms |= e_mem.MM_WRITE
+                if permstr[1] == 'w':
+                    perms |= e_mem.MM_WRITE
 
-            if permstr[2] == 'x':
-                perms |= e_mem.MM_EXEC
+                if permstr[2] == 'x':
+                    perms |= e_mem.MM_EXEC
 
-            ret.append((base, max-base, perms, fname))
+                ret.append((base, max-base, perms, fname))
 
         return ret
 
@@ -448,10 +450,10 @@ class FreeBSDMixin:
         cnt = ctypes.c_uint(0)
 
         p = libkvm.kvm_getprocs(self.kvmh, KERN_PROC_PROC, 0, ctypes.addressof(cnt))
-        for i in xrange(cnt.value):
+        for i in range(cnt.value):
             kinfo = p[i]
             if kinfo.ki_structsize != ctypes.sizeof(KINFO_PROC):
-                print "WARNING: KINFO_PROC CHANGED SIZE, Trying to account for it... good luck"
+                logger.warning("WARNING: KINFO_PROC CHANGED SIZE, Trying to account for it... good luck")
             ret.append((kinfo.ki_pid, kinfo.ki_comm))
 
         ret.reverse()

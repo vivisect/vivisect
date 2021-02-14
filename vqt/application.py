@@ -1,19 +1,17 @@
 import os
-import json
+import logging
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
 import vqt.cli as vq_cli
 import vqt.main as vq_main
 import vqt.saveable as vq_save
 import vqt.hotkeys as vq_hotkeys
 import vqt.menubuilder as vq_menu
-from vqt.saveable import compat_isNone, compat_toByteArray, compat_strList
+from vqt.saveable import compat_isNone
+
+logger = logging.getLogger(__name__)
 
 class VQDockWidget(vq_hotkeys.HotKeyMixin, QDockWidget):
 
@@ -117,12 +115,12 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
         pass
 
     def vqAddDockWidgetClass(self, cls, args=()):
-        self._dock_classes[cls.__name__] = (cls,args)
+        self._dock_classes[cls.__name__] = (cls, args)
 
     def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.TopDockWidgetArea):
         res = self._dock_classes.get(clsname)
-        if res == None:
-            print('vqBuildDockWidget Failed For: %s' % clsname)
+        if res is None:
+            logger.error('vqBuildDockWidget Failed For: %s', clsname)
             return
         cls, args = res
         obj = cls(*args)
@@ -132,26 +130,26 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
         dwcls = settings.value('DockClasses')
 
         if not compat_isNone(dwcls):
-            for i, clsname in enumerate(compat_strList(dwcls)):
+            for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=False)
-                    if tup != None:
+                    if tup is not None:
                         d, obj = tup
                         d.setObjectName(name)
-                        d.vqRestoreState(settings,name,stub)
+                        d.vqRestoreState(settings, name, stub)
                         d.show()
-                except Exception, e:
-                    print('Error Building: %s: %s'  % (clsname,e))
+                except Exception as e:
+                    logger.error('Error Building: %s: %s', clsname, e)
 
         # Once dock widgets are loaded, we can restoreState
         state = settings.value('DockState')
         if not compat_isNone(state):
-            self.restoreState(compat_toByteArray(state))
+            self.restoreState(state)
 
         geom = settings.value('DockGeometry')
         if not compat_isNone(geom):
-            self.restoreGeometry(compat_toByteArray(geom))
+            self.restoreGeometry(geom)
 
         # Just get all the resize activities done...
         vq_main.eatevents()
@@ -202,4 +200,3 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
         self.restoreDockWidget(d)
         d.show()
         return d
-

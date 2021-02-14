@@ -5,11 +5,10 @@ from vivisect.symboliks.expression import symexp
 
 class TestReduceCase(unittest.TestCase):
     '''
-    tests the reduction of asts consisting of add's and sub's if widths are
-    the same.
+    tests basic algebraic reductions
     '''
     def assertReduce(self, s1, s2):
-        sym1 = symexp(s1).reduce()
+        sym1 = symexp(s1).reduce(foo=True)
         sym2 = symexp(s2)
         self.assertEqual(str(sym1), str(sym2))
 
@@ -31,8 +30,11 @@ class TestReduceCase(unittest.TestCase):
         self.assertReduce('foo & 0', '0')
         self.assertReduce('0 & foo', '0')
 
-        # reduce & with 0 regarless of width
-        self.assertReduce('foo[1] & 0', '0')
+        # reduce & with 0 regardless of width
+        self.assertReduce('foo[5] & 0', '0')
+        # we only support slices on memory
+        # self.assertReduce('foo[2:4] & 0', '0')
+        self.assertReduce('mem[2:4] & 0', '0')
         self.assertReduce('0[1] & foo', '0')
 
         # reduce & umax of foo to just foo
@@ -65,10 +67,15 @@ class TestReduceCase(unittest.TestCase):
     def test_symboliks_reduce_op_rshift(self):
         self.assertReduce('0 >> foo', '0')
         self.assertReduce('foo >> 0', 'foo')
+        self.assertReduce('3 >> 1', '1')
+        self.assertReduce('5347 >> 6', '83')
 
     def test_symboliks_reduce_op_lshift(self):
         self.assertReduce('0 << foo', '0')
         self.assertReduce('foo << 0', 'foo')
+        self.assertReduce('2 << 2', '8')
+        self.assertReduce('7 << 2', '28')
+        self.assertReduce('1 << 2', '4')
 
     def test_symboliks_reduce_op_pow(self):
         self.assertReduce('0 ** foo', '0')
@@ -111,3 +118,23 @@ class TestReduceCase(unittest.TestCase):
         self.assertReduce('0 - (0 - foo)', 'foo')
         self.assertReduce('0 + (0 + foo)', 'foo')
         self.assertReduce('0 - (0 + foo)', '0 - foo')
+
+    def test_symboliks_reduce_varsub(self):
+        esp = Var('esp', width=4)
+        for i in range(100):
+            esp -= Const(4, width=4)
+        self.assertEqual(str(esp.reduce()), '(esp - 400)')
+
+    def test_symboliks_reduce_funcargs_multipass(self):
+        op = (Const(0x1000, 8) - Const(0xb90, 8)) - Const(0x60, 8)
+        arg = (Mem(Const(0x14000, 8), Const(8, 8)) ^ op) ^ op
+        expr = Call(Const(0x400, 8), Const(8, 8), argsyms=[arg,])
+
+        expr = expr.reduce()
+        self.assertEqual(str(expr), '1024((mem[0x00014000:8] ^ 0))')
+
+        op = (Const(0x1000, 8) - Const(0xb90, 8)) - Const(0x60, 8)
+        arg = (Mem(Const(0x14000, 8), Const(8, 8)) ^ op) ^ op
+        expr = Call(Const(0x400, 8), Const(8, 8), argsyms=[arg,])
+        expr = expr.reduce(foo=True)
+        self.assertEqual(str(expr), '1024(mem[0x00014000:8])')

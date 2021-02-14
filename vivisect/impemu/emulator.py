@@ -1,13 +1,14 @@
 import struct
-import traceback
 import itertools
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.memory as e_mem
-import envi.registers as e_reg
 
 import visgraph.pathcore as vg_path
+
+import vivisect.exc as v_exc
 
 from vivisect.const import *
 
@@ -30,20 +31,68 @@ class WorkspaceEmulator:
 
     taintregs = []
 
-    def __init__(self, vw, logwrite=False, logread=False):
+    def __init__(self, vw, **kwargs):
+        '''
+        Base Emulator Class that other, more platform specific emulators inherit from/mixin.
 
+        Since there's a fair number of knobs that can be turned on the emulator and several
+        descendants of the base WorkspaceEmulator, these kwargs apply not only to the base class,
+        but most children like the ArmWorkspaceEmulator and any others that live in vivisect/impemu/platarm/
+
+        Current Keyword Arguments:
+        * logwrite
+            - Type: Boolean
+            - Default: False
+            - Desc: Enable tracking of all memory writes along the exeuction path. Any results are stored on
+                    the path object as a node property at WorkspaceEmulator.curpath
+        * logread
+            - Type: Boolean
+            - Default: False
+            - Desc: Enable tracking of all memory writes along the exeuction path. Any results are stored on
+                    the path object as a node property at WorkspaceEmulator.curpath
+        * safemem
+            - Type: Boolean
+            - Default: True
+            - Desc: Since we're not a real CPU, and since we also do a lot of partial emulation, we can't
+                    always be sure we're reading from/writing to a valid memory location. So if safemem is
+                    set to True, this enables several addition safety rails in the emulator in terms of
+                    where memory can be read from/written to, and where execution flow can be read from
+        * funconly
+            - Type: Boolean
+            - Default: True
+            - Desc: When emulating, by default when a call/branch to other function instruction happens,
+                    instead of emulating down into the called function, we push the return value onto our
+                    emulated stack, and then using the detected calling convention of the subfunction, try
+                    and detect where to go. Set this value to False to instead, when a call instruction is
+                    hit, emulate down into that subfunction.
+                    Please note that since there's not "Stop when you hit X" condition, disabling this
+                    can have a massive impact on performance.
+        * strictops
+            - Type: Boolean
+            - Default: True
+            - Desc: Due to development time constraints, or plain inability to emulate, not all instructions
+                    on every platform we support is emulated. It may be properly decoded, but if it's not
+                    not supported, by default when emulating, the emulator will bail out of the paths that
+                    contain the unsupported instruction. Set this parameter to false if you want to continue
+                    down those paths even when encountering unsupported instructions
+                    Please note that since any possible effects the unsupported instruction are not
+                    propagated, any possible flags or execution state are most likely misaligned from what
+                    a real CPU might experience.
+        '''
         self.vw = vw
         self.funcva = None # Set if using runFunction
         self.emustop = False
 
         self.hooks = {}
         self.taints = {}
-        self.taintva = itertools.count(0x41560000, 8192)
+        self.taintva = itertools.count(0x4156000F, 0x2000)
+        self.taintoffset = 0x1000
+        self.taintmask = 0xffffe000
         self.taintrepr = {}
 
         self.uninit_use = {}
-        self.logwrite = logwrite
-        self.logread = logread
+        self.logwrite = kwargs.get('logwrite', False)
+        self.logread = kwargs.get('logread', False)
         self.path = self.newCodePathNode()
         self.curpath = self.path
         self.op = None
@@ -52,10 +101,12 @@ class WorkspaceEmulator:
         self.psize = self.getPointerSize()
 
         # Possibly need an "options" API?
-        self._safe_mem = True   # Should we be forgiving about memory accesses?
-        self._func_only = True  # is this emulator meant to stay in one function scope?
-
-        self.strictops = True   # should we bail on emulation if unsupported instruction encountered
+        # Should we be forgiving about memory accesses?
+        self._safe_mem = kwargs.get("safemem", True)
+        # Is this emulator meant to stay in one function scope?
+        self._func_only = kwargs.get("funconly", True)
+        # Should we bail on emulation if unsupported instruction encountered?
+        self.strictops = kwargs.get('strictops', True)
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -63,17 +114,16 @@ class WorkspaceEmulator:
             self.addMemoryMap(va, perms, fname, bytes)
 
         for regidx in self.taintregs:
-            rname = self.getRegisterName(regidx)
-            regval = self.setVivTaint( 'uninitreg', regidx )
+            regval = self.setVivTaint('uninitreg', regidx)
             self.setRegister(regidx, regval)
 
         for name in dir(self):
             val = getattr(self, name, None)
-            if val == None:
+            if val is None:
                 continue
 
-            impname = getattr(val, '__imphook__',None)
-            if impname == None:
+            impname = getattr(val, '__imphook__', None)
+            if impname is None:
                 continue
 
             self.hooks[impname] = val
@@ -106,8 +156,8 @@ class WorkspaceEmulator:
 
             # Create some pre-made taints for positive stack indexes
             # NOTE: This is *ugly* for speed....
-            taints = [ self.setVivTaint('funcstack', i * self.psize) for i in xrange(20) ]
-            taintbytes = ''.join([ e_bits.buildbytes(taint,self.psize) for taint in taints ])
+            taints = [self.setVivTaint('funcstack', i * self.psize) for i in range(20)]
+            taintbytes = b''.join([e_bits.buildbytes(taint, self.psize) for taint in taints])
 
             self.writeMemory(self.stack_pointer, taintbytes)
         else:
@@ -119,8 +169,7 @@ class WorkspaceEmulator:
             new_map_top = self.stack_map_base
             new_map_base = new_map_top - new_map_size
 
-            stack_map = ''.join([struct.pack('<I', new_map_base+(i*4))
-                                    for i in xrange(new_map_size)])
+            stack_map = b''.join([struct.pack('<I', new_map_base+(i*4)) for i in range(new_map_size)])
 
             self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
             self.stack_map_base = new_map_base
@@ -168,9 +217,15 @@ class WorkspaceEmulator:
         """
         iscall = bool(op.iflags & envi.IF_CALL)
         if iscall:
+            # Either way, if it's a call PC goes to next instruction
+            if self._func_only:
+                self.setProgramCounter(starteip+len(op))
             api = self.getCallApi(endeip)
             rtype, rname, convname, callname, funcargs = api
             callconv = self.getCallingConvention(convname)
+            if callconv is None:
+                return iscall
+
             argv = callconv.getCallArgs(self, len(funcargs))
 
             ret = None
@@ -183,14 +238,22 @@ class WorkspaceEmulator:
             hook = self.hooks.get(callname)
             if ret is None and hook:
                 hook(self, callconv, api, argv)
-            else:
+            elif self._func_only:
                 if ret is None:
                     ret = self.setVivTaint('apicall', (op, endeip, api, argv))
+                retn = self.getProgramCounter()
                 callconv.execCallReturn(self, ret, len(funcargs))
-
-            # Either way, if it's a call PC goes to next instruction
-            if self._func_only:
-                self.setProgramCounter(starteip+len(op))
+                newaddr = self.getProgramCounter()
+                # So....sometimes, mostly when we're called into an emulator via isProbablyCode, we don't
+                # get the initial function setups, which include a couple pushes onto the stack. Normally,
+                # this isn't that much of a problem, but when we hit the last codeblock that includes pops
+                # before calling any last few functions, the stack pointer gets throw off by those last few
+                # pops, which leads us to say that code path isn't a function since we miss the ret instruction.
+                # So we have here a fix for that. Added some rails so we don'y always just punch it in
+                if self._safe_mem:
+                    if not self.vw.isValidPointer(newaddr) and self.isValidPointer(retn):
+                        self.setProgramCounter(retn)
+            # no else since we'll emulate into the function
 
         return iscall
 
@@ -201,11 +264,10 @@ class WorkspaceEmulator:
         for symbolic emulator...)
         '''
         props = {
-            'bva':bva,    # the entry virtual address for this branch
-            'valist':[],  # the virtual addresses in this node in order
-            'calllog':[], # FIXME is this even used?
-            'readlog':[], # a log of all memory reads from this block
-            'writelog':[],# a log of all memory writes from this block
+            'bva': bva,      # the entry virtual address for this branch
+            'valist': [],    # the virtual addresses in this node in order
+            'readlog': [],   # a log of all memory reads from this block
+            'writelog': [],  # a log of all memory writes from this block
         }
         ret = vg_path.newPathNode(parent=parent, **props)
         return ret
@@ -226,21 +288,62 @@ class WorkspaceEmulator:
         entries to the current path, and updates current path as needed
         (returns a list of (va, CodePath) tuples.
         """
-
+        '''
+        So I've kinda gone back and forth on this one a bit. On one hand, the emulator
+        should be free to iterate over things as it needs. On the other, it's operating with
+        imperfect information as to what's a valid path and what's not.
+        '''
+        vw = self.vw
         ret = []
-        # Add all the known branches to the list
-        blist = op.getBranches(emu=self)
+        paths = set()
+        # if we've already hunted this location down, know it's a table, and we've resolved it
+        # step carefully so we don't conflate tables together
+        xrefs = vw.getXrefsFrom(op.va, rtype=REF_CODE)
+        branches = []
+        for bva, bflags in op.getBranches(emu=None):
+            if bflags & envi.BR_TABLE and vw.getLocation(op.va) and len(xrefs):
+                for xrfrom, xrto, xrtype, xrflags in xrefs:
+                    # if it's not in a codeblock it's probably something like an import, so we
+                    # can ignore it
+                    if self.vw.getCodeBlock(xrto) is None:
+                        continue
+                    if xrto in paths:
+                        continue
+                    bpath = self.getBranchNode(self.curpath, xrto)
+                    ret.append((xrto, bpath))
+                    paths.add(xrto)
+                return ret
 
         # FIXME this should actually check for conditional...
         # If there is more than one branch target, we need a new code block
+        blist = op.getBranches(emu=self)
         if len(blist) > 1:
             for bva, bflags in blist:
                 if bva is None:
-                    logger.warn("Unresolved branch even WITH an emulator?")
+                    logger.warning("Unresolved branch even WITH an emulator?")
+                    continue
+                if bva in paths:
                     continue
 
                 bpath = self.getBranchNode(self.curpath, bva)
                 ret.append((bva, bpath))
+                paths.add(bva)
+
+        if op.iflags & envi.IF_BRANCH \
+                and not op.iflags & envi.IF_COND \
+                and len(xrefs):
+                    # we've hit a branch that doesn't go anywhere.  probably a switchcase we don't handle here.
+                    for xrfr, xrto, xrt, xrflag in xrefs:
+                        # skip existing, skip DEREFS
+                        if xrto in paths or xrflag & envi.BR_DEREF:
+                            continue
+
+                        bpath = self.getBranchNode(self.curpath, xrto)
+                        ret.append((xrto, bpath))
+                        paths.add(xrto)
+
+        # let's also take into account some of the dynamic branches we may have found
+        # like our table pointers
 
         return ret
 
@@ -277,7 +380,6 @@ class WorkspaceEmulator:
 
         # Let the current (should be base also) path know where we are starting
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
-
         hits = {}
         todo = [(funcva, self.getEmuSnap(), self.path)]
         vw = self.vw  # Save a dereference many many times
@@ -315,25 +417,27 @@ class WorkspaceEmulator:
                     hits[starteip] = h
 
                 # If we ran out of path (branches that went
-                # somewhere that we couldn't follow?
+                # somewhere that we couldn't follow)?
                 if self.curpath is None:
                     break
 
                 try:
-
                     # FIXME unify with stepi code...
                     op = self.parseOpcode(starteip)
                     self.op = op
                     if self.emumon:
                         try:
                             self.emumon.prehook(self, op, starteip)
-                        except Exception, e:
-                            logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon prehook)", funcva, starteip, op, e)
-
+                        except v_exc.BadOpBytes as e:
+                            logger.debug(str(e))
+                            break
+                        except v_exc.BadOutInstruction:
+                            pass
+                        except Exception as e:
+                            logger.warning("Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
 
                         if self.emustop:
                             return
-
                     # Execute the opcode
                     self.executeOpcode(op)
                     vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
@@ -343,15 +447,25 @@ class WorkspaceEmulator:
                     if self.emumon:
                         try:
                             self.emumon.posthook(self, op, endeip)
-                        except Exception, e:
-                            logger.warn("funcva: 0x%x opva: 0x%x:  %r   %r (in emumon posthook)", funcva, starteip, op, e)
+                        except v_exc.BadOpBytes as e:
+                            logger.debug(str(e))
+                            break
+                        except v_exc.BadOutInstruction:
+                            pass
+                        except Exception as e:
+                            logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
 
                         if self.emustop:
                             return
-
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
                         return
+
+                    # TODO: hook things like error(...) when they have a param that indicates to 
+                    # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
+                    if self.vw.isNoReturnVa(endeip):
+                        vg_path.setNodeProp(self.curpath, 'cleanret', False)
+                        break
 
                     # If it wasn't a call, check for branches, if so, add them to
                     # the todo list and go around again...
@@ -369,6 +483,8 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
+                except envi.BadOpcode:
+                    break
                 except envi.UnsupportedInstruction as e:
                     if self.strictops:
                         logger.debug('runFunction failed: unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
@@ -376,9 +492,10 @@ class WorkspaceEmulator:
                     else:
                         logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         self.setProgramCounter(e.op.va + e.op.size)
+                except v_exc.BadOutInstruction:
+                    break
                 except Exception as e:
-                    # traceback.print_exc()
-                    if self.emumon is not None:
+                    if self.emumon is not None and not isinstance(e, e_exc.BreakpointHit):
                         self.emumon.logAnomaly(self, starteip, str(e))
 
                     break  # If we exc during execution, this branch is dead.
@@ -395,7 +512,7 @@ class WorkspaceEmulator:
 
         if vw.isFunction(va):
             ret = vw.getFunctionApi(va)
-            if ret != None:
+            if ret is not None:
                 return ret
 
         else:
@@ -420,7 +537,7 @@ class WorkspaceEmulator:
 
     def nextVivTaint(self):
         # One page into the new taint range
-        return self.taintva.next() + 4096
+        return next(self.taintva) + self.taintoffset
 
     def setVivTaint(self, typename, taint):
         '''
@@ -428,7 +545,7 @@ class WorkspaceEmulator:
         the created taint.
         '''
         va = self.nextVivTaint()
-        self.taints[ va & 0xffffe000 ] = (va,typename,taint)
+        self.taints[ va & self.taintmask ] = (va,typename,taint)
         return va
 
     def getVivTaint(self, va):
@@ -436,7 +553,7 @@ class WorkspaceEmulator:
         Retrieve a previously registered taint ( this will automagically
         mask values down and allow you to retrieve "near taint" values.)
         '''
-        return self.taints.get( va & 0xffffe000 )
+        return self.taints.get( va & self.taintmask )
 
     def reprVivTaint(self, taint):
         '''
@@ -461,7 +578,7 @@ class WorkspaceEmulator:
             stackoff = tinfo
             if self.funcva:
                 flocal = self.vw.getFunctionLocal(self.funcva, stackoff)
-                if flocal != None:
+                if flocal is not None:
                     typename,argname = flocal
                     return argname
             o = '+'
@@ -520,7 +637,7 @@ class WorkspaceEmulator:
 
     def _useVirtAddr(self, va):
         taint = self.getVivTaint(va)
-        if taint == None:
+        if taint is None:
             return
 
         tva,ttype,tinfo = taint
@@ -535,9 +652,9 @@ class WorkspaceEmulator:
         """
         if self.logwrite:
             wlog = vg_path.getNodeProp(self.curpath, 'writelog')
-            wlog.append((self.getProgramCounter(),va,bytes))
+            wlog.append((self.getProgramCounter(), va, bytes))
 
-        self._useVirtAddr( va )
+        self._useVirtAddr(va)
 
         # It's totally ok to write to invalid memory during the
         # emulation pass (as long as safe_mem is true...)
@@ -551,18 +668,18 @@ class WorkspaceEmulator:
         self.uninit_use[regid] = True
 
     def getUninitRegUse(self):
-        return self.uninit_use.keys()
+        return list(self.uninit_use.keys())
 
     def readMemory(self, va, size):
         if self.logread:
             rlog = vg_path.getNodeProp(self.curpath, 'readlog')
-            rlog.append((self.getProgramCounter(),va,size))
+            rlog.append((self.getProgramCounter(), va, size))
 
         # If they read an import entry, start a taint...
         loc = self.vw.getLocation(va)
-        if loc != None:
+        if loc is not None:
             lva, lsize, ltype, ltinfo = loc
-            if ltype == LOC_IMPORT and lsize == size: # They just read an import.
+            if ltype == LOC_IMPORT and lsize == size:  # They just read an import.
                 ret = self.setVivTaint('import', loc)
                 return e_bits.buildbytes(ret, lsize)
 
@@ -571,7 +688,7 @@ class WorkspaceEmulator:
         # Read from the emulator's pages if we havent resolved it yet
         probeok = self.probeMemory(va, size, e_mem.MM_READ)
         if self._safe_mem and not probeok:
-            return 'A' * size
+            return b'A' * size
 
         return e_mem.MemoryObject.readMemory(self, va, size)
 
@@ -582,7 +699,7 @@ class WorkspaceEmulator:
         If val is a numerical value in the same memory page
         as the un-initialized stack values return True
         """
-        #NOTE: If uninit_stack_byte changes, so must this!
+        # NOTE: If uninit_stack_byte changes, so must this!
         if (val & 0xfffff000) == 0xfefef000:
             return True
         return False
@@ -593,4 +710,3 @@ class WorkspaceEmulator:
     def getStackOffset(self, va):
         if (va & self.stack_map_mask) == self.stack_map_base:
             return va - self.stack_pointer
-

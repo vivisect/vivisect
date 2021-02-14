@@ -1,19 +1,18 @@
 import struct
+import logging
+import binascii
+import unittest
+import importlib
 
 import envi
-import envi.memory as e_mem
-import envi.registers as e_reg
-import envi.memcanvas as e_memcanvas
-import envi.memcanvas.renderers as e_rend
+import envi.exc as e_exc
 import envi.archs.arm as arm
 import vivisect
-import platform
-import unittest
 
-import arm_bit_test_adds
-import arm_bit_test_cmn
-import arm_bit_test_cmp
-import arm_bit_test_subs
+import envi.tests.arm_bit_test_adds as arm_bit_test_adds
+import envi.tests.arm_bit_test_cmn as arm_bit_test_cmn
+import envi.tests.arm_bit_test_cmp as arm_bit_test_cmp
+import envi.tests.arm_bit_test_subs as arm_bit_test_subs
 
 from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 from envi.archs.arm.regs import *
@@ -22,9 +21,12 @@ from envi.archs.arm.disasm import *
 
 from envi.tests.armthumb_tests import advsimdtests
 
-GOOD_TESTS = 5946
-GOOD_EMU_TESTS = 1174
-''' 
+logger = logging.getLogger(__name__)
+
+
+GOOD_TESTS = 5953
+GOOD_EMU_TESTS = 1175
+'''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
   archVersionBitmask, ophex, va, repr, flags, emutests
@@ -828,6 +830,8 @@ instrs = [
         (REV_ALL_ARM, '173084e6', 0x4560, 'pkhbt r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '573384e6', 0x4560, 'pkhtb r3, r4, r7, asr #6', 0, ()),
         (REV_ALL_ARM, '573084e6', 0x4560, 'pkhtb r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, 'b34fffe6', 0x4560, 'revsh r4, r3', 0, ()),
+        (REV_ALL_ARM, 'b34fbfe6', 0x4560, 'rev16 r4, r3', 0, ()),
         (REV_ALL_ARM, '543007e1', 0x4560, 'qadd r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '173f24e6', 0x4560, 'qadd16 r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '973f24e6', 0x4560, 'qadd8 r3, r4, r7', 0, ()),
@@ -1102,6 +1106,7 @@ instrs = [
         (REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
         (REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
+        (REV_ALL_ARM, '3f5b46ec', 0x4560, 'vmov d31, r5, r6', 0, ()),
         #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0x00', 0, ()), #This forces an undefined instruction. Commented out normally.
         #all v codes are suspect at this time - not implimented but may not be correct here either
         (REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),
@@ -1171,6 +1176,8 @@ instrs = [
         (REV_ALL_ARM, '0e3488f2', 0x4560, 'vaddhn.i16 d3, q4, q7', 0, ()),
         (REV_ALL_ARM, '0e3498f2', 0x4560, 'vaddhn.i32 d3, q4, q7', 0, ()),
         (REV_ALL_ARM, '0e34a8f2', 0x4560, 'vaddhn.i64 d3, q4, q7', 0, ()),
+        (REV_ALL_ARM, 'c3efa544', 0x4561, 'vaddhn.i16 d20, q9, q10', 0, ()),
+        (REV_ALL_ARM, 'e3efa544', 0x4561, 'vaddhn.i64 d20, q9, q10', 0, ()),
         (REV_ALL_ARM, '076084f2', 0x4560, 'vaddl.s8 q3, d4, d7', 0, ()),
         (REV_ALL_ARM, '076094f2', 0x4560, 'vaddl.s16 q3, d4, d7', 0, ()),
         (REV_ALL_ARM, '0760a4f2', 0x4560, 'vaddl.s32 q3, d4, d7', 0, ()),
@@ -1358,8 +1365,8 @@ instrs = [
         (REV_ALL_ARM, '56f6e456', 0x4561, 'movw.w r6, r6, #0x6de4', 0, ()),
         (REV_ALL_ARM, '53f83450', 0x4561, 'ldr.w r5, [r3, r4, lsl #3]', 0, ()),
 
-        #(REV_ALL_ARM, 'a54be3ef', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
-        #(REV_ALL_ARM, 'a54993ef', 0x4561, 'vqdmlal.s16 q2, d19, d21', 0, ()),
+        (REV_ALL_ARM, 'e3efa54b', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
+        (REV_ALL_ARM, '93efa549', 0x4561, 'vqdmlal.s16 q2, d19, d21', 0, ()),
 
         (REV_ALL_ARM, 'aaefe440', 0x4561, 'vmla.i32 d4, d26, d4[1]', 0, ()),
         (REV_ALL_ARM, 'aaefe441', 0x4561, 'vmla.f32 d4, d26, d4[1]', 0, ()),
@@ -1413,18 +1420,17 @@ instrs = [
 
         ]
 instrs.extend(advsimdtests)
-#instrs = advsimdtests
 
 # temp scratch: generated these while testing
 ['0de803c0','8de903c0','ade903c0','2de803c0','1de803c0','3de803c0','9de903c0','bde903c0',]
 ['srsdb.w sp, svc',
          'srsia.w sp, svc',
-          'srsia.w sp!, svc',
-           'srsdb.w sp!, svc',
-            'rfedb.w sp',
-             'rfedb.w sp!',
-              'rfeia.w sp',
-               'rfeia.w sp!']
+         'srsia.w sp!, svc',
+         'srsdb.w sp!, svc',
+         'rfedb.w sp',
+         'rfedb.w sp!',
+         'rfeia.w sp',
+         'rfeia.w sp!']
 
 import struct
 def getThumbStr(val, val2):
@@ -1457,13 +1463,13 @@ class ArmInstructionSet(unittest.TestCase):
     def test_msr(self):
         # test the MSR instruction
         am = arm.ArmModule()
-        op = am.archParseOpcode('d3f021e3'.decode('hex'))
+        op = am.archParseOpcode(binascii.unhexlify('d3f021e3'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
     def test_BigEndian(self):
         am = arm.ArmModule()
         am.setEndian(envi.ENDIAN_MSB)
-        op = am.archParseOpcode('e321f0d3'.decode('hex'))
+        op = am.archParseOpcode(binascii.unhexlify('e321f0d3'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
     def test_regs(self):
@@ -1477,9 +1483,8 @@ class ArmInstructionSet(unittest.TestCase):
     def test_envi_arm_operands(self):
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "arm")
-        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
-        vw.addMemoryMap(0xbfb00000, 7, 'firmware', '\xfe' * 16384*1024)
-
+        vw.addMemoryMap(0, 7, 'firmware', b'\xff' * 16384*1024)
+        vw.addMemoryMap(0xbfb00000, 7, 'firmware', b'\xfe' * 16384*1024)
 
         # testing the ArmImmOffsetOper
 
@@ -1488,80 +1493,62 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setMeta('forrealz', True)
         emu._forrealz = True    # cause base_reg updates on certain Operands.
 
-        emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
+        emu.writeMemory(0xbfb00010, binascii.unhexlify("abcdef98"))
 
         opstr = struct.pack('<I', 0xe59f3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        #print repr(op)
-        #print hex(op.getOperValue(1, emu))
 
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
 
 
 
         # ldr r3, [r11, #0x8]!
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
+        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
         emu.setRegister(11, 0xbfb00010)
 
         opstr = struct.pack('<I', 0xe5bb3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
 
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(11))
 
         self.assertEqual(hex(0xccddeeff), hex(value))
 
-
-        
         # ldr r3, [r11], #0x8
-        emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
+        emu.writeMemory(0xbfb00010, binascii.unhexlify("ABCDEF10"))
         emu.setRegister(11, 0xbfb00010)
-        
         opstr = struct.pack('<I', 0xe4bb3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(11))
 
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(11)))
         self.assertEqual(hex(0x10efcdab), hex(value))
 
 
         # ldr r3, [r11], #-0x8
-        emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
+        emu.writeMemory(0xbfb00010, binascii.unhexlify("ABCDEF10"))
         emu.setRegister(11, 0xbfb00010)
-        
+
         opstr = struct.pack('<I', 0xe43b3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
+
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(11))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(11)))
         self.assertEqual(hex(0x10efcdab), hex(value))
 
 
         # testing the ArmScaledOffsetOper
-        
         # ldr r2, [r10, r2 ]
         emu = vw.getEmulator()
         emu.setMeta('forrealz', True)
         emu._forrealz = True
-        
+
         opstr = struct.pack('<I', 0xe79a2002)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
+
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
-        #print repr(op)
-        #print hex(op.getOperValue(1, emu))
+        emu.writeMemory(0xbfb00010, binascii.unhexlify("abcdef98"))
 
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
@@ -1572,74 +1559,56 @@ class ArmInstructionSet(unittest.TestCase):
         # ldrt r2, [r10], r2 
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
-        
+        emu.writeMemory(0xbfb00008, binascii.unhexlify("ABCDEF10"))
+
         opstr = struct.pack('<I', 0xe6ba2002)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
+
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0xbfb00010), hex(emu.getRegister(10)))
         self.assertEqual(hex(0x10efcdab), hex(value))
 
-        
-        
         # ldr r2, [r10, -r2 ]!
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
-        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
-        emu.writeMemory(0xbfb00008, "f000f000".decode('hex'))
+        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, binascii.unhexlify("55555555"))
+        emu.writeMemory(0xbfb00008, binascii.unhexlify("f000f000"))
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
-        
+
         opstr = struct.pack('<I', 0xe73a2002)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0x00f000f0), hex(value))
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
 
-
-        
         # ldr r2, [r10, r2 ]!
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
-        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, binascii.unhexlify("55555555"))
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
-        
+
         opstr = struct.pack('<I', 0xe7ba2002)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
+
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0xccddeeff), hex(value))
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
-
-
 
         # Scaled with shifts/roll
         # ldr r3, [r10, r2 lsr #2]
         emu = vw.getEmulator()
         emu.setMeta('forrealz', True)
         emu._forrealz = True
-        
+
         opstr = struct.pack('<I', 0xe79a3122)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
+
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  2)
-        emu.writeMemory(0xbfb00008, "abcdef98".decode('hex'))
-        #print repr(op)
-        #print hex(op.getOperValue(1, emu))
+        emu.writeMemory(0xbfb00008, binascii.unhexlify("abcdef98"))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
@@ -1651,27 +1620,20 @@ class ArmInstructionSet(unittest.TestCase):
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
         self.assertEqual(hex(2), hex(emu.getRegister(2)))
 
-
-
         # ldr r2, [r10], r2 , lsr 2
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  2)
-        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
+        emu.writeMemory(0xbfb00008, binascii.unhexlify("ABCDEF10"))
 
         opstr = struct.pack('<I', 0xe69a3122)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
+
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
-        #self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
+        #TODO: self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
         self.assertEqual(hex(2), hex(emu.getRegister(2)))
         self.assertEqual(hex(0x10efcdab), hex(value))
-
-
 
         # testing the ArmRegOffsetOper
 
@@ -1689,11 +1651,9 @@ class ArmInstructionSet(unittest.TestCase):
 
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00000, "abcdef98".decode('hex'))
-        emu.writeMemory(0xbfb00008, "12345678".decode('hex'))
-        #print repr(op)
+        emu.writeMemory(0xbfb00000, binascii.unhexlify("abcdef98"))
+        emu.writeMemory(0xbfb00008, binascii.unhexlify("12345678"))
         val = op.getOperValue(1, emu)
-        #print hex(val)
 
         self.assertEqual(hex(0x3412), hex(val))
         self.assertEqual(hex(0xbfb00000), hex(emu.getRegister(10)))
@@ -1705,71 +1665,56 @@ class ArmInstructionSet(unittest.TestCase):
         # (131071, 'b2359ae0', 17760, 'ldrh r4, [r10], r2 ', 0, ())
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
+        emu.writeMemory(0xbfb00008, binascii.unhexlify("ABCDEF10"))
 
         opstr = struct.pack('<I', 0xe0ba35b2)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
+
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0xbfb00010), hex(emu.getRegister(10)))
         self.assertEqual(hex(0xcdab), hex(value))
 
-        
-        
         # ldr r2, [r10, -r2 ]!
         # (131071, 'b2453ae1', 17760, 'ldrh r4, [r10, -r2]! ', 0, ())
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
-        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, binascii.unhexlify("55555555"))
         emu.writeMemValue(0xbfb00008, 0xf030e040, 4)
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
-        
+
         opstr = struct.pack('<I', 0xe13a45b2)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
+
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0xe040), hex(value))
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
 
 
-        
+
         # ldr r2, [r10, r2 ]!
         # (131071, 'b245bae1', 17760, 'ldrh r4, [r10, r2]! ', 0, ())
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
-        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, binascii.unhexlify("55555555"))
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
-        
+
         opstr = struct.pack('<I', 0xe1ba45b2)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        
+
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
 
         self.assertEqual(hex(0xeeff), hex(value))
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
 
-        
-
-
-        
     def test_envi_arm_assorted_instrs(self):
-        #print "\n\n\nstart of test_envi_arm_assorted_instrs"
         #setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "arm")
-        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
-        vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
+        vw.addMemoryMap(0, 7, 'firmware', b'\xff' * 16384*1024)
+        vw.addMemoryMap(0x400000, 7, 'firmware', b'\xff' * 16384*1024)
+        # TODO: This doesn't belong here.
         emu = vw.getEmulator()
         emu.setMeta('forrealz', True)
         emu._forrealz = True
@@ -1781,38 +1726,24 @@ class ArmInstructionSet(unittest.TestCase):
         for archz, bytez, va, reprOp, iflags, emutests in instrs:
             ranAlready = False  # support for run once only
             #itterate through architectures 
-            for key in ARCH_REVS: 
+            for key in ARCH_REVS:
                 test_arch = ARCH_REVS[key]
-                if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0): 
+                if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0):
                     ranAlready = True
-                    #num, = struct.unpack("<I", bytez.decode('hex'))
-                    #bs = bin(num)[2:].zfill(32)
-                    #print bytez, bs
-                    #print reprOp
-                    op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
-                    #print repr(op)
+                    op = vw.arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
                     redoprepr = repr(op).replace(' ','').lower()
                     redgoodop = reprOp.replace(' ','').lower()
                     if redoprepr != redgoodop:
-                        print  bytez,redgoodop
-                        print  bytez,redoprepr
-                        print
-                        #print out binary representation of opcode for checking
-                        num, = struct.unpack("<I", bytez.decode('hex'))
-                        print hex(num)
+                        num, = struct.unpack("<I", binascii.unhexlify(bytez))
                         bs = bin(num)[2:].zfill(32)
-                        print bs
-                        
                         badcount += 1
-                        
                         raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                                 (goodcount, va, bytez, reprOp, repr(op) ) )
-                        self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
+                        # self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
 
                     else:
                         goodcount += 1
 
-                    #print bytez, op
                     if not len(emutests):
                         try:
                             # if we don't have special tests, let's just run it in the emulator anyway and see if things break
@@ -1821,12 +1752,9 @@ class ArmInstructionSet(unittest.TestCase):
                             else:
                                 bademu += 1
                         except envi.UnsupportedInstruction:
-                            #print "Instruction not in Emulator - ", repr(op)
                             bademu += 1
                         except Exception as exp:
-                            print "Exception in Emulator for command - ",repr(op), bytez, reprOp
-                            print "  ",exp 
-                            sys.excepthook(*sys.exc_info())
+                            logger.exception("Exception in Emulator for command - %r  %r  %r\n  %r", repr(op), bytez, reprOp, exp)
                             bademu += 1
                     else:
                         # if we have a special test lets run it
@@ -1848,21 +1776,11 @@ class ArmInstructionSet(unittest.TestCase):
                                 bademu += 1
                                 raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (va, bytez, op))
 
-        
-        print "Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
-                (goodcount, badcount, goodemu, bademu)
-        print "Total of ", str(goodcount + badcount) + " tests completed."
+        logger.info("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
+                (goodcount, badcount, goodemu, bademu))
+        logger.info("Total of %d tests completed", goodcount + badcount)
         self.assertEqual(goodcount, GOOD_TESTS)
         self.assertEqual(goodemu, GOOD_EMU_TESTS)
-        
-        #pending deletion of following comments. Please comment if they need to stay or I will delete in following commit
-        #op = vw.arch.archParseOpcode('12c3'.decode('hex'))
-        ##rotl.b #2, r3h
-        ##print( op, hex(0x7a) )
-        #emu.setRegisterByName('r3h', 0x7a)
-        #emu.executeOpcode(op)
-        ##print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
-        ##0xef False
 
     def test_envi_arm_thumb_switches(self):
         pass
@@ -1884,12 +1802,12 @@ class ArmInstructionSet(unittest.TestCase):
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
-            except e_reg.InvalidRegisterName, e:
+            except e_exc.InvalidRegisterName:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if isinstance(tgt, str) and tgt.startswith("PSR_"):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     #For this couldn't we set a temp value equal to endian and write that? Assuming byte order is issue with this one
                     emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
@@ -1905,46 +1823,40 @@ class ArmInstructionSet(unittest.TestCase):
                 # try register first
                 testval = emu.getRegisterByName(tgt)
                 if testval == val:
-                    #print("SUCCESS(reg): %s  ==  0x%x" % (tgt, val))
                     success = 0
                 else:  # should be an else
                     raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
-            except e_reg.InvalidRegisterName, e:
+            except e_exc.InvalidRegisterName:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if isinstance(tgt, str) and tgt.startswith("PSR_"):
                     # it's a flag
                     testval = emu.getFlag(eval(tgt))
                     if testval == val:
-                        #print("SUCCESS(flag): %s  ==  0x%x" % (tgt, val))
                         success = 0
                     else:
                         raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
                         #raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x)" % (op, tidx, tgt, val, testval))
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
-                        #print("SUCCESS(addr): 0x%x  ==  0x%x" % (tgt, val))
                         success = 0
                     raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
 
                 else:
                     raise Exception( "Funkt up test (%r test#%d) : %s == %s" % (op, tidx, tgt, val) )
-        
+
         # NOTE: Not sure how to test this to see if working
         # do some read/write tracking/testing
-        #print emu.curpath
         if len(emu.curpath[2]['readlog']):
             outstr = emu.curpath[2]['readlog']
             if len(outstr) > 10000: outstr = outstr[:10000]
-            #print( repr(op) + '\t\tRead: ' + repr(outstr) )
         if len(emu.curpath[2]['writelog']):
             outstr = emu.curpath[2]['writelog']
             if len(outstr) > 10000: outstr = outstr[:10000]
-            #print( repr(op) + '\t\tWrite: '+ repr(outstr) )
         emu.curpath[2]['readlog'] = []
         emu.curpath[2]['writelog'] = []
-        
+
         return success
 
 """
@@ -1954,7 +1866,7 @@ def generateTestInfo(ophexbytez='6e'):
     '''
     h8 = e_h8.H8Module()
     opbytez = ophexbytez
-    op = h8.archParseOpcode(opbytez.decode('hex'), 0, 0x4000)
+    op = h8.archParseOpcode(binascii.unhexlify(opbytez), 0, 0x4000)
     #print( "opbytez = '%s'\noprepr = '%s'"%(opbytez,repr(op)) )
     opvars=vars(op)
     opers = opvars.pop('opers')
@@ -1983,14 +1895,15 @@ def genDPArm():
                 bytez = struct.pack("<I", y)
                 out.append(bytez)
                 op = vw.arch.archParseOpcode(bytez)
-                print "%x %s" % (y, op)
+                print("%x %s" % (y, op))
 
             except:
-                print "%x error" % y
+                print("%x error" % y)
 
-    file('dpArmTest','w').write(''.join(out))   
+    with open('dpArmTest', 'w') as f:
+        f.write(''.join(out))
 
-        
+
 def genMediaInstructionBytes():
     # Media Instructions
     out = []
@@ -2001,12 +1914,13 @@ def genMediaInstructionBytes():
                 bytez = struct.pack("<I", y)
                 out.append(bytez)
                 op = vw.arch.archParseOpcode(bytez)
-                print "%x %s" % (y, op)
+                print("%x %s" % (y, op))
 
             except:
-                print "%x error" % y
+                print("%x error" % y)
 
-    file('mediaArmTest','w').write(''.join(out))
+    with open('mediaArmTest','w') as f:
+        f.write(''.join(out))
 
 def genAdvSIMD():
     # thumb
@@ -2029,7 +1943,8 @@ def genAdvSIMD():
 
     out = outarm
     out.extend(outthumb)
-    file('advSIMD', 'wb').write(''.join(out))
+    with open('advSIMD', 'wb') as f:
+        f.write(''.join(out))
 
 def genAdvSIMDtests():
     import envi.archs.arm as eaa
@@ -2062,22 +1977,20 @@ def genAdvSIMDtests():
                         opthumb = am.archParseOpcode(bytezthumb, 0, 0x4561)
                         #outthumb.append(bytezthumb)
 
-                        outarm.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytezarm.encode('hex'), 0x4560, oparm))
-                        outthumb.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytezthumb.encode('hex'), 0x4561, opthumb))
+                        outarm.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytezarm), 0x4560, oparm))
+                        outthumb.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytezthumb), 0x4561, opthumb))
 
-                    except envi.InvalidInstruction, e:
-                        print e
+                    except envi.InvalidInstruction as e:
+                        logger.warning(str(e))
                         bad += 1
                         if bad % 25 == 0:
-                            raw_input("PRESS ENTER")
-                            pass
+                            input("PRESS ENTER")
 
-
-                    except Exception, e:
-                        sys.excepthook(*sys.exc_info())
+                    except Exception:
+                        logger.exception('parsing error: ')
                         bad += 1
                         if bad % 2 == 0:
-                            raw_input("PRESS ENTER")
+                            input("PRESS ENTER")
 
 
 
@@ -2088,7 +2001,8 @@ def genTestsODA(abytez, tbytez):
     '''
     generate test cases for arm and thumb for the given sets of bytes
     '''
-    import oda_api;reload(oda_api)
+    import oda_api
+    importlib.reload(oda_api)
     oda = oda_api.OdaSession()
     oda.setArch('arm', oda_api.ENDIAN_LITTLE)
 
@@ -2097,32 +2011,32 @@ def genTestsODA(abytez, tbytez):
         #yield oparmjson[0]
 
         if len(oparmjson) == 0 or not len(oparmjson[0].get('opcode')):
-            print "ARM code error for val: 0x%s" % bytez.encode('hex')
+            print("ARM code error for val: 0x%s" % binascii.hexlify(bytez))
             continue
 
         oparm = oparmjson[0].get('opcode') + " " + oparmjson[0].get('operands')
         #oparm = am.archParseOpcode(bytezarm, 0, 0x4560)
         #outarm.append(bytezarm)
-        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytez.encode('hex'), 0x4560, oparm))
+        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytez), 0x4560, oparm))
 
 
     for bytez in tbytez:
         opthumbjson = oda.disassembleOpcode(bytez, 0, 0x4561)
         if len(opthumbjson) == 0 or not len(opthumbjson[0].get('opcode')):
-            print "THUMB code error for val: 0x%s" % bytez.encode('hex')
+            print("THUMB code error for val: 0x%s" % binascii.hexlify(bytez))
             continue
 
         opthumb = opthumbjson[0].get('opcode') + " " + oparmjson[0].get('operands')
 
         #outthumb.append(bytezthumb)
 
-        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (bytez.encode('hex'), 0x4561, opthumb))
+        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytez), 0x4561, opthumb))
 
 def genTestsObjdump(abytez, tbytez, bigend=False):
     '''
     abytez, tbytez = genAdvSIMDtests()
     tests = genTestsObjdump(abytez, tbytez)
-    file('armthumb_tests.py', 'wb').write('\n'.join(tests))
+    open('armthumb_tests.py', 'wb').write('\n'.join(tests))
     '''
     global data
     import subprocess
@@ -2131,7 +2045,8 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
     endian = ('-EL', '-EB')[bigend]
 
     if len(abytez):
-        file('/tmp/armbytez', 'wb').write(''.join(abytez))
+        with open('/tmp/armbytez', 'wb') as f:
+            f.write(''.join(abytez))
         proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/armbytez', '-b', 'binary', '-m', 'arm', endian], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         data = proc.stdout.readlines()
         data = [x.strip() for x in data]
@@ -2139,7 +2054,7 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
         for parts in data:
             if len(parts) < 4:
-                print parts
+                print(parts)
                 continue
             ova, bytez, op, opers = parts[:4]
             ova = ova[:-1]
@@ -2148,7 +2063,8 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
 
     if len(tbytez):
-        file('/tmp/thmbytez', 'wb').write(''.join(tbytez))
+        with open('/tmp/thmbytez', 'wb') as f:
+            f.write(''.join(tbytez))
         proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/thmbytez', '-b', 'binary', '-m', 'arm', '-M', 'force-thumb', endian], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         data = proc.stdout.readlines()
         data = [x.strip() for x in data]
@@ -2156,10 +2072,10 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
         for parts in data:
             if len(parts) < 4:
-                print parts
+                print(parts)
                 continue
             ova, bytez, op, opers = parts[:4]
-            print "GOOD: ", parts
+            print("GOOD: %s" % parts)
             ova = ova[:-1]
             bytez = bytez[2:4] + bytez[:2] + bytez[7:9] + bytez[5:7]
             yield ("        (REV_ALL_ARM, '%s', 0x%s, '%s %s', 0, ())," % (bytez, ova, op, opers))
@@ -2190,6 +2106,3 @@ def genAdvSIMDtestBytez():
 
     return abytez, tbytez
 # thumb 16bit IT, CNBZ, CBZ
-
-
-

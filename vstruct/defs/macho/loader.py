@@ -434,7 +434,7 @@ command_classes = {
 
 def getCommandClass(cmdtype):
     cls = command_classes.get(cmdtype)
-    if cls != None:
+    if cls is not None:
         return cls
     return load_command
 

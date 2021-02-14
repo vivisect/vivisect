@@ -763,7 +763,7 @@ function Sizzle( selector, context, results, seed ) {
 					// Check parentNode to catch when Blackberry 4.6 returns
 					// nodes that are no longer in the document (jQuery #6963)
 					if ( elem && elem.parentNode ) {
-						// Handle the case where IE, Opera, and Webkit return items
+						// Handle the case where IE, Opera, and WebEngine return items
 						// by name instead of ID
 						if ( elem.id === m ) {
 							results.push( elem );

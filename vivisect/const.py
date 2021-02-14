@@ -106,7 +106,7 @@ ref_type_names = {
 LOC_UNDEF   = 0  # An undefined "non-location"
 LOC_NUMBER  = 1  # A numerical value (non-pointer)
 LOC_STRING  = 2  # A null terminated string
-LOC_UNI     = 3  # A null terminiated unicode string
+LOC_UNI     = 3  # A null terminated unicode string
 LOC_POINTER = 4  # A type to hold a known-derefable pointer that is of appropriate length for arch
 LOC_OP      = 5  # An opcode
 LOC_STRUCT  = 6  # A custom structure (struct name is in tinfo)
@@ -115,6 +115,8 @@ LOC_VFTABLE = 8  # A c++ vftable
 LOC_IMPORT  = 9  # An import dword ptr
 LOC_PAD     = 10  # A sequence of bytes which is a pad (string nulls, MS hotpatch... (char is tinfo)
 LOC_MAX     = 11
+
+loc_lookups = {v:k for k,v in globals().items() if k.startswith('LOC_')}
 
 loc_type_names = {
         LOC_UNDEF: 'Undefined',

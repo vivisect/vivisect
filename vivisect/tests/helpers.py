@@ -1,5 +1,6 @@
 import os
 import unittest
+import functools
 
 import vivisect
 
@@ -30,6 +31,7 @@ def getTestPath(*paths):
     return os.path.join(testdir, *paths)
 
 
+@functools.lru_cache()
 def getTestWorkspace(*paths):
     testdir = os.getenv('VIVTESTFILES')
     if not testdir:

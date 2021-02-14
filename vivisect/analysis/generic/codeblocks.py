@@ -1,24 +1,23 @@
-
 """
 A function analysis module that will find code blocks in
 functions by flow and xrefs.  This is basically a mandatory
 module which should be snapped in *very* early by parsers.
 
 """
-
-#FIXME this belongs in the core disassembler loop!
-import sys
-import envi
-import vivisect
+import logging
 import collections
 
-from vivisect.const import *
+import envi
+
+from vivisect.const import REF_CODE, LOC_POINTER, LOC_OP
+
+logger = logging.getLogger(__name__)
 
 def analyzeFunction(vw, funcva):
     blocks = {}
     done = {}
     mnem = collections.defaultdict(int)
-    todo = [ funcva, ]
+    todo = [funcva, ]
     brefs = []
     size = 0
     opcount = 0
@@ -32,9 +31,11 @@ def analyzeFunction(vw, funcva):
 
         done[start] = True
         blocks[start] = 0
-        brefs.append( (start, True) )
+        brefs.append((start, True))
 
         va = start
+        op = None
+        arch = envi.ARCH_DEFAULT
 
         # Walk forward through instructions until a branch edge
         while True:
@@ -46,24 +47,27 @@ def analyzeFunction(vw, funcva):
                 brefs.append((va, False))
                 break
 
-            lva,lsize,ltype,linfo = loc
+            lva, lsize, ltype, linfo = loc
 
             if ltype == LOC_POINTER:
                 # pointer analysis mis-identified a pointer,
                 # so clear and re-analyze instructions.
 
-                vw.delLocation(va)
+                vw.delLocation(lva)
 
-                # assume we're add a valid instruction, which is most likely.
-                vw.makeCode(va)
+                # assume we're adding a valid instruction, which is most likely.
+                if op is not None:
+                    arch = op.iflags & envi.ARCH_MASK
+
+                vw.makeCode(va, arch=arch, fva=funcva)
 
                 loc = vw.getLocation(va)
                 if loc is None:
                     blocks[start] = va - start
-                    brefs.append( (va, False) )
+                    brefs.append((va, False))
                     break
 
-                lva,lsize,ltype,linfo = loc
+                lva, lsize, ltype, linfo = loc
 
             # If it's not an op, terminate
             if ltype != LOC_OP:
@@ -71,11 +75,11 @@ def analyzeFunction(vw, funcva):
                 brefs.append((va, False))
                 break
 
-            op = vw.parseOpcode(va)
+            op = vw.parseOpcode(va)     # parseOpcode() pulls arch from the location db, if exists
             mnem[op.mnem] += 1
             size += lsize
             opcount += 1
-            nextva = va+lsize
+            nextva = va + lsize
 
             # For each of our code xrefs, create a new target.
             branch = False
@@ -90,12 +94,12 @@ def analyzeFunction(vw, funcva):
                     continue
 
                 branch = True
-                todo.append(tova )
+                todo.append(tova)
 
             # If it doesn't fall through, terminate (at nextva)
             if linfo & envi.IF_NOFALL:
                 blocks[start] = nextva - start
-                brefs.append( (nextva, False) )
+                brefs.append((nextva, False))
                 break
 
             # If we hit a branch, we are the end of a block...
@@ -111,6 +115,7 @@ def analyzeFunction(vw, funcva):
 
             va = nextva
 
+    oldblocks = {va: size for (va, size, fva) in vw.getFunctionBlocks(funcva)}
     # we now have an ordered list of block references!
     brefs.sort()
     brefs.reverse()
@@ -123,11 +128,23 @@ def analyzeFunction(vw, funcva):
         if len(brefs) == 0:
             break
 
-        bsize = blocks[bva]
-        vw.addCodeBlock(bva, bsize, funcva)
-        bcnt += 1
+        # So we don't add a codeblock if we're re-analyzing a function
+        # (like during dynamic branch analysis)
+        try:
+            bsize = blocks[bva]
+            tmpcb = vw.getCodeBlock(bva)
+            # sometimes codeblocks can be deleted if owned by multiple functions
+            if bva not in oldblocks or tmpcb is None:
+                vw.addCodeBlock(bva, bsize, funcva)
+            elif bsize != oldblocks[bva]:
+                vw.delCodeBlock(bva)
+                vw.addCodeBlock(bva, bsize, funcva)
+            bcnt += 1
+        except Exception as e:
+            logger.warning('Codeblock analysis hit exception: %s', e)
+            break
 
     vw.setFunctionMeta(funcva, 'Size', size)
     vw.setFunctionMeta(funcva, 'BlockCount', bcnt)
-    vw.setFunctionMeta(funcva, "InstructionCount", opcount)
-    vw.setFunctionMeta(funcva, "MnemDist", mnem)
+    vw.setFunctionMeta(funcva, 'InstructionCount', opcount)
+    vw.setFunctionMeta(funcva, 'MnemDist', dict(mnem))

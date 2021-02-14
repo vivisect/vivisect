@@ -3,21 +3,20 @@ Tracer Platform Base
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
-import struct
-import vtrace
-import traceback
+import queue
+import logging
 import platform
+import traceback
+import threading
 
-from Queue import Queue
-from threading import Thread, currentThread, Lock
-
-import envi
+import vtrace
 import envi.memory as e_mem
 import envi.threads as e_threads
 import envi.symstore.resolver as e_sym_resolv
-import envi.symstore.symcache as e_sym_symcache
 
 import vstruct.builder as vs_builder
+
+logger = logging.getLogger(__name__)
 
 class TracerBase(vtrace.Notifier):
     """
@@ -41,7 +40,7 @@ class TracerBase(vtrace.Notifier):
         self.bpbyid = {}
         self.bpid = 0
         self.curbp = None
-        self.bplock = Lock()
+        self.bplock = threading.Lock()
         self.deferred = []
         self.running = False
         self.runagain = False
@@ -105,9 +104,11 @@ class TracerBase(vtrace.Notifier):
 
     def getResolverForFile(self, filename):
         res = self.resbynorm.get(filename, None)
-        if res: return res
+        if res:
+            return res
         res = self.resbyfile.get(filename, None)
-        if res: return res
+        if res:
+            return res
         return None
 
     def steploop(self):
@@ -196,7 +197,7 @@ class TracerBase(vtrace.Notifier):
         Cleanup all breakpoints (if the current bp is "fastbreak" this routine
         will not be called...
         '''
-        for bp in self.breakpoints.itervalues():
+        for bp in self.breakpoints.values():
             if bp.active:
                 # only effects active breaks
                 bp.deactivate(self)
@@ -320,14 +321,14 @@ class TracerBase(vtrace.Notifier):
         self._tellThreadExit()
 
     def _tellThreadExit(self):
-        if self.thread != None:
+        if self.thread is not None:
             self.thread.queue.put(None)
             self.thread.join(timeout=2)
             self.thread = None
 
     def __del__(self):
         if not self._released:
-            print('Warning! tracer del w/o release()!')
+            logger.warning('Warning! tracer del w/o release()!')
 
     def fireTracerThread(self):
         # Fire the threadwrap proxy thread for this tracer
@@ -342,7 +343,7 @@ class TracerBase(vtrace.Notifier):
         if event == vtrace.NOTIFY_SIGNAL:
             signo = self.getCurrentSignal()
             if signo in self.getMeta('IgnoredSignals', []):
-                if vtrace.verbose: print('Ignoring %s' % signo)
+                logger.debug('Ignoring %s', signo)
                 self.runAgain()
                 return
 
@@ -363,15 +364,15 @@ class TracerBase(vtrace.Notifier):
             try:
                 notifier.handleEvent(event, trace)
             except:
-                print('WARNING: Notifier exception for %s' % repr(notifier))
-                traceback.print_exc()
+                logger.error('Notifier exception for %s', notifier)
+                logger.error(traceback.format_exc())
 
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
             except:
-                print('WARNING: Notifier exception for %s' % repr(notifier))
-                traceback.print_exc()
+                logger.error('Notifier exception for %s', notifier)
+                logger.error(traceback.format_exc())
 
     def _fireStep(self):
         if self.getMode('FastStep', False):
@@ -385,9 +386,9 @@ class TracerBase(vtrace.Notifier):
 
         try:
             bp.notify(vtrace.NOTIFY_BREAK, self)
-        except Exception, msg:
-            traceback.print_exc()
-            print "Breakpoint Exception 0x%.8x : %s" % (bp.address,msg)
+        except Exception as msg:
+            logger.error("Breakpoint Exception 0x%.8x : %s", bp.address, msg)
+            logger.error(traceback.format_exc())
 
         # "stealthbreak" bp's do not NOTIFY *or* run again
         if bp.stealthbreak:
@@ -409,12 +410,13 @@ class TracerBase(vtrace.Notifier):
         """
         faultaddr,faultperm = self.platformGetMemFault()
 
-        #FIXME this is some AWESOME but intel specific nonsense
-        if faultaddr == None: return False
+        # FIXME this is some AWESOME but intel specific nonsense
+        if faultaddr is None:
+            return False
         faultpage = faultaddr & 0xfffff000
 
         wp = self.breakpoints.get(faultpage, None)
-        if wp == None:
+        if wp is None:
             return False
 
         self._fireBreakpoint(wp)
@@ -424,7 +426,7 @@ class TracerBase(vtrace.Notifier):
     def checkWatchpoints(self):
         # Check for hardware watchpoints
         waddr = self.archCheckWatchpoints()
-        if waddr != None:
+        if waddr is not None:
             wp = self.breakpoints.get(waddr, None)
             if wp:
                 self._fireBreakpoint(wp)
@@ -582,8 +584,8 @@ class TracerBase(vtrace.Notifier):
                     done[fname] = True
                     self.addLibraryBase(fname, addr, always=always)
 
-            except:
-                pass # *never* do this... except this once...
+            except Exception as e:
+                logger.warning('findLibraryMaps(0x%x, %d, %s, %s) hit exception: %s', addr, size, perms, fname, e)
 
     def _loadBinaryNorm(self, normname):
         if not self.libloaded.get(normname, False):
@@ -715,7 +717,7 @@ class TracerBase(vtrace.Notifier):
 
     def archCheckWatchpoints(self):
         """
-        If the current register state indicates that a watchpoint was hit, 
+        If the current register state indicates that a watchpoint was hit,
         return the address of the watchpoint and clear the event.  Otherwise
         return None
         """
@@ -800,13 +802,13 @@ class TracerBase(vtrace.Notifier):
 
     def platformProtectMemory(self, va, size, perms):
         raise Exception("Plaform does not implement protect memory")
-        
+
     def platformAllocateMemory(self, size, perms=e_mem.MM_RWX, suggestaddr=0):
         raise Exception("Plaform does not implement allocate memory")
-        
+
     def platformReadMemory(self, address, size):
         raise Exception("Platform must implement platformReadMemory!")
-        
+
     def platformWriteMemory(self, address, bytes):
         raise Exception("Platform must implement platformWriteMemory!")
 
@@ -844,13 +846,16 @@ class TracerBase(vtrace.Notifier):
 
     def platformOpenFile(self, filename):
         # Open a file for reading
-        return file(filename, 'rb')
+        # TODO: make contextmanager
+        return open(filename, 'rb')
 
     def platformReadFile(self, path):
         '''
         Abstract away reading file bytes to allow wire/remote cases.
         '''
-        return file(path,'rb').read()
+        with open(path, 'rb') as f:
+            bytez = f.read()
+        return bytez
 
     def platformListDir(self, path):
         return os.listdir(path)
@@ -868,13 +873,12 @@ class TracerBase(vtrace.Notifier):
         '''
         pass
 
-import threading
 def threadwrap(func):
     def trfunc(self, *args, **kwargs):
         if threading.currentThread().__class__ == TracerThread:
             return func(self, *args, **kwargs)
         # Proxy the call through a single thread
-        q = Queue()
+        q = queue.Queue()
         # FIXME change calling convention!
         args = (self, ) + args
         self.thread.queue.put((func, args, kwargs, q))
@@ -884,7 +888,7 @@ def threadwrap(func):
         return ret
     return trfunc
 
-class TracerThread(Thread):
+class TracerThread(threading.Thread):
     """
     Ok... so here's the catch... most debug APIs do *not* allow
     one thread to do the attach and another to do continue and another
@@ -897,8 +901,8 @@ class TracerThread(Thread):
     to make particular calls and on what platforms...  YAY!
     """
     def __init__(self):
-        Thread.__init__(self)
-        self.queue = Queue()
+        threading.Thread.__init__(self)
+        self.queue = queue.Queue()
         self.setDaemon(True)
         self.start()
 
@@ -910,16 +914,14 @@ class TracerThread(Thread):
         while True:
             try:
                 qobj = self.queue.get()
-                if qobj == None:
+                if qobj is None:
                     break
                 meth, args, kwargs, queue = qobj
                 try:
                     queue.put(meth(*args, **kwargs))
-                except Exception,e:
+                except Exception as e:
                     queue.put(e)
-                    if vtrace.verbose:
-                        traceback.print_exc()
+                    logger.warning(traceback.format_exc())
                     continue
-            except:
-                if vtrace.verbose:
-                    traceback.print_exc()
+            except Exception:
+                logger.warning(traceback.format_exc())

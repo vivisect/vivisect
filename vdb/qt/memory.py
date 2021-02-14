@@ -1,9 +1,7 @@
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QApplication
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QApplication
+import binascii
+
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QApplication
 
 import vtrace.qt
 import envi.qt.memory
@@ -19,12 +17,10 @@ class VDBACT:
         self.cmdline = cmdline
 
     def __call__(self, *args, **kwargs):
-        workthread(self.db.onecmd)( self.cmdline )
+        workthread(self.db.onecmd)(self.cmdline)
 
 class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
-
     # We get self.db set by our memory window smash...
-
     def initMemWindowMenu(self, va, menu):
 
         t = self.db.getTrace()
@@ -33,11 +29,11 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         menu.addAction('Add Breakpoint', VDBACT(self.db, 'bp 0x%.8x' % va))
 
         bp = t.getBreakpointByAddr(va)
-        if bp != None:
+        if bp is not None:
             bpid = bp.getId()
             menu.addAction('Remove Breakpoint', VDBACT(self.db, 'bp -r %d' % bpid))
 
-            if bp.enabled == True:
+            if bp.enabled:
                 menu.addAction('Disable Breakpoint', VDBACT(self.db, 'bp -d %d' % bpid))
             else:
                 menu.addAction('Enable Breakpoint', VDBACT(self.db, 'bp -e %d' % bpid))
@@ -46,23 +42,17 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         nop = t.archGetNopInstr()
         # yuck...need to fix this on gui re-architecture.
         currend = self.vdb_memwin.rend_select.currentText()
-        if nop != None and 'asm' in currend:
-            smenu_patch.addAction('Set Bytes To NOP',
-                    ACT(self._menuSetOpTo, va, nop))
+        if nop is not None and 'asm' in currend:
+            smenu_patch.addAction('Set Bytes To NOP', ACT(self._menuSetOpTo, va, nop))
 
         if 'asm' in currend:
-            smenu_patch.addAction('Set Bytes To NULL',
-                    ACT(self._menuSetOpTo, va, '\x00'))
+            smenu_patch.addAction('Set Bytes To NULL', ACT(self._menuSetOpTo, va, '\x00'))
 
         if 'asm' in currend or 'bytes' in currend:
-            smenu_patch.addAction('Modify Bytes',
-                    ACT(self._menuWriteMem, va))
+            smenu_patch.addAction('Modify Bytes', ACT(self._menuWriteMem, va))
 
-        smenu_patch.addAction('Copy Bytes To Clipboard',
-                ACT(self._menuCopyBytesToClipBoard, va, currend, False))
-
-        smenu_patch.addAction('Copy Bytes To Clipboard (All Window Bytes)',
-                ACT(self._menuCopyBytesToClipBoard, va, currend, True))
+        smenu_patch.addAction('Copy Bytes To Clipboard', ACT(self._menuCopyBytesToClipBoard, va, currend, False))
+        smenu_patch.addAction('Copy Bytes To Clipboard (All Window Bytes)', ACT(self._menuCopyBytesToClipBoard, va, currend, True))
 
         return envi.qt.memcanvas.VQMemoryCanvas.initMemWindowMenu(self, va, menu)
 
@@ -109,7 +99,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         bytez = t.readMemory(va, size)
 
         clipboard = QApplication.clipboard()
-        clipboard.setText(bytez.encode('hex'))
+        clipboard.setText(binascii.hexlify(bytez))
 
     def _menuFollow(self, va, rend='', newWindow=False):
         totalsize = self._canv_endva - self._canv_beginva
@@ -128,7 +118,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         '''
         Forces the canvas to refresh everything it's currently displaying.
         '''
-        if self._canv_endva == None or self._canv_beginva == None:
+        if self._canv_endva is None or self._canv_beginva is None:
             # not rendered yet.
             return
 
@@ -136,7 +126,6 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
 
         self.renderMemory(self._canv_beginva, totalsize)
 
-import vtrace.qt
 class VdbMemoryWindow(envi.qt.memory.VQMemoryWindow, vtrace.qt.VQTraceNotifier):
 
     def __init__(self, db, dbt, parent=None, expr=None, sizeexpr=None, rend=None, **kwargs):

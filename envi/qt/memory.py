@@ -1,25 +1,14 @@
-import re
-import traceback
 from collections import deque
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import *
 
-import envi
-import envi.memcanvas as e_memcanvas
 import envi.qt.memcanvas as e_memcanvas_qt
 import envi.memcanvas.renderers as e_render
 
-import vqt.main as vq_main
 import vqt.tree as vq_tree
-import vqt.colors as vq_colors
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
-import vqt.menubuilder as vqt_menu
 
 from vqt.main import *
 from vqt.common import *
@@ -76,7 +65,7 @@ class EnviNavMixin:
     def dropEvent(self, e):
         mdata = e.mimeData()
         if mdata.hasFormat('envi/expression'):
-            expr = str(mdata.data('envi/expression').data())
+            expr = mdata.data('envi/expression').data().decode('utf-8')
             e.setDropAction(QtCore.Qt.CopyAction)
             e.accept()
             self.enviNavGoto(expr)
@@ -95,7 +84,7 @@ class EnviNavModel(vq_tree.VQTreeModel):
         pnode = idx[0].internalPointer()
         expr = pnode.rowdata[self.navcol]
         mdata = QtCore.QMimeData()
-        mdata.setData('envi/expression',str(expr))
+        mdata.setData('envi/expression', expr.encode('utf-8'))
         return mdata
 
 class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget, QWidget):
@@ -135,8 +124,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.mem_canvas = self.initMemoryCanvas(memobj, syms=syms)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
 
-        self.addHotKey('esc', 'mem:histback')
-        self.addHotKeyTarget('mem:histback', self._hotkey_histback)
+        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback)
 
         self.loadDefaultRenderers()
         self.loadRendSelect()
@@ -238,7 +226,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
             addr = self._mem_obj.parseExpression(addrexpr)
             menustr = '0x%.8x' % addr
             sym = self._mem_obj.getSymByAddr(addr)
-            if sym != None:
+            if sym is not None:
                 menustr += ' - %s' % repr(sym)
 
             self.histmenu.addAction(menustr, ACT(self._histSelected, hinfo))
@@ -251,10 +239,10 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         # Used by nav event generators to make us render
         self.addr_entry.setText(expr)
-        if sizeexpr != None:
+        if sizeexpr is not None:
             self.size_entry.setText(sizeexpr)
 
-        if rend != None:
+        if rend is not None:
             idx = self.rend_select.findText(str(rend))
             if idx >= 0:
                 self.rend_select.setCurrentIndex(idx)
@@ -285,14 +273,13 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         try:
             addr = self._mem_obj.parseExpression(expr)
-        except Exception, e:
-            #import traceback;traceback.print_exc()
+        except Exception as e:
             self.mem_canvas.addText('Invalid Address: %s (%s)' % (expr, e))
             return None, None
 
         try:
             size = self._mem_obj.parseExpression(sizeexpr)
-        except Exception, e:
+        except Exception as e:
             self.mem_canvas.addText('Invalid Size: %s (%s)' % (expr, e))
             return None, None
 
@@ -305,7 +292,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.clearText()
 
         addr, size = self._getRenderVaSize()
-        if addr == None:
+        if addr is None:
             return
 
         expr = str(self.addr_entry.text())
@@ -314,15 +301,15 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         mhist = (expr, sizeexpr, rname)
         if mhist not in self.mem_history:
-            self.mem_history.appendleft( mhist )
+            self.mem_history.appendleft(mhist)
             while len(self.mem_history) > 100:
                 self.mem_history.pop()
 
         self.mem_canvas.setRenderer(rname)
         try:
             self.mem_canvas.renderMemory(addr, size)
-        except Exception, e:
-            self.mem_canvas.addText('Render Exception: %s (%s)' % (hex(addr), e))
+        except Exception as e:
+            self.mem_canvas.addText('Render Exception: 0x%x (%s)' % (addr, e))
 
     def clearText(self):
         self.mem_canvas.clearCanvas()
@@ -336,7 +323,6 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         return state
 
     def vqSetSaveState(self, state):
-        
         self.addr_entry.setText(state.get('addr_entry',''))
         self.size_entry.setText(state.get('size_entry',''))
         self.setMemWindowName( str(state.get('name','mem')) )
@@ -345,4 +331,3 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         if rendname:
             index = self.rend_select.findText(rendname)
             self.rend_select.setCurrentIndex(index)
-

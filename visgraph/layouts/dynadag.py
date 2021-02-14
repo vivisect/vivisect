@@ -1,33 +1,27 @@
-
 '''
 A dynadag-ish graph layout calculator...
 '''
 
-import itertools
-
-import visgraph
 import visgraph.layouts as vg_layout
-import visgraph.graphcore as vg_graphcore
 import visgraph.drawing.bezier as vg_bezier
-import visgraph.drawing.catmullrom as vg_catmullrom
 
 zero_zero = (0,0)
 
 def revenumerate(l):
-    return itertools.izip(xrange(len(l)-1, -1, -1), reversed(l))
+    return list(zip(range(len(l)-1, -1, -1), reversed(l)))
 
 SCOOCH_LEFT     = 0
 SCOOCH_RIGHT    = 1
 
 class DynadagLayout(vg_layout.GraphLayout):
 
-    def __init__(self, graph):
+    def __init__(self, graph, barry=10):
 
         vg_layout.GraphLayout.__init__(self, graph)
 
         self._addGhostNodes()
 
-        self._barry_count = 10
+        self._barry_count = barry
         self.width_pad = 20
         self.height_pad = 40
 
@@ -69,23 +63,18 @@ class DynadagLayout(vg_layout.GraphLayout):
             barry = tot / float(cnt)
         ninfo['barycenter'] = barry
 
-    def _cmpBaryCenter(self, node1, node2):
-        n1bary = node1[1].get('barycenter')
-        n2bary = node2[1].get('barycenter')
-        return cmp(n1bary, n2bary)
-
     # Try out "barycenter" averaging and re-ordering.
     def _orderNodesByBary(self):
         # Go through the layers and do barycenter calcs first.
         # FIXME how do we tell when we're done?
-        for i in xrange(self._barry_count):
+        for i in range(self._barry_count):
             for layer in self.layers:
-                for nid,ninfo in layer:
+                for nid, ninfo in layer:
                     self._baryCenter(nid, ninfo)
 
             for layer in self.layers:
-                layer.sort(cmp=self._cmpBaryCenter)
-                for i,(nid,ninfo) in enumerate(layer):
+                layer.sort(key=lambda k: k[1].get('barycenter'))
+                for i, (nid, ninfo) in enumerate(layer):
                     ninfo['layerpos'] = i
 
     def _getNodeRelPos(self, nid, ninfo):
@@ -114,7 +103,7 @@ class DynadagLayout(vg_layout.GraphLayout):
         ccount = 0
 
         layer = self.layers[layernum]
-        for i in xrange(1, len(layer)):
+        for i in range(1, len(layer)):
 
             myabove, mybelow = self._getNodeRelPos(*layer[i])
             hisabove, hisbelow = self._getNodeRelPos(*layer[i-1])
@@ -140,7 +129,7 @@ class DynadagLayout(vg_layout.GraphLayout):
         # Go through nodes and see if we can re-order children to
         # reduce crossovers...
 
-        for i in xrange(len(self.layers)):
+        for i in range(len(self.layers)):
 
             layer = self.layers[i]
 
@@ -154,7 +143,7 @@ class DynadagLayout(vg_layout.GraphLayout):
 
                 # TODO should we do this multipliciative rather than
                 # neighbors only?
-                for j in xrange(len(layer)-1):
+                for j in range(len(layer)-1):
 
                     n1 = layer[j]
                     n2 = layer[j+1]
@@ -229,7 +218,6 @@ class DynadagLayout(vg_layout.GraphLayout):
                     xweight += 1
                     ghostid = self.graph.addNode(ghost=True, weight=xweight)[0]
                     self.graph.addEdgeByNids(n1, ghostid)
-                    #print 'ADDED GHOST %d (%d -> %d)' % (ghostid,n1,n2)
                     n1 = ghostid
                 self.graph.addEdgeByNids(n1, n2)
 
@@ -239,9 +227,8 @@ class DynadagLayout(vg_layout.GraphLayout):
 
         for nid, ninfo in self.graph.getNodes():
             self.maxweight = max(ninfo.get('weight', 0), self.maxweight)
-        #print 'Max Weight: %d' % self.maxweight
 
-        self.layers = [ [] for i in xrange(self.maxweight + 1) ]
+        self.layers = [ [] for i in range(self.maxweight + 1) ]
 
         done = set()
         def doit(node):
@@ -262,7 +249,7 @@ class DynadagLayout(vg_layout.GraphLayout):
             w = node[1].get('weight', 0)
 
             layer = self.layers[w]
-            self.graph.setNodeProp(node,'layerpos',len(layer))
+            self.graph.setNodeProp(node, 'layerpos', len(layer))
             layer.append(node)
 
         # FIXME support more than one root!
@@ -283,9 +270,9 @@ class DynadagLayout(vg_layout.GraphLayout):
             y = 0
 
             heightmax = 0
-            for nid,ninfo in layer:
+            for nid, ninfo in layer:
                 size = ninfo.get('size', zero_zero)
-                xx,yy = size
+                xx, yy = size
 
                 heightmax = max(heightmax, yy)
 
@@ -509,7 +496,7 @@ class DynadagLayout(vg_layout.GraphLayout):
                       (x2, y2 - h_vpad),
                       (x2, y2),
                     ]
-                
+
             elif einfo.get('loopbot'):
 
                 x1, y1 = vg_layout.exit_pos(pinfo)

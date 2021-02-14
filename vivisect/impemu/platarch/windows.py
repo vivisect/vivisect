@@ -9,7 +9,6 @@ from vivisect.impemu.emulator import imphook
 MAX_PATH = 260
 
 # A shared place for most of the import hooks
-#class WindowsEmulator(v_i_emulator.WorkspaceEmulator):
 class WindowsMixin(v_i_emulator.WorkspaceEmulator):
 
     def __init__(self):
@@ -19,12 +18,13 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
         size = MAX_PATH
         if unicode:
             size = MAX_PATH * 2
-
         bytez = self.readMemory(va, size)
         if unicode:
-            bytez = bytez.decode('utf-16le','ignore')
-
-        bytez = bytez.split('\x00')[0]
+            bytez = bytez.decode('utf-16le', 'ignore')
+            bytez = bytez.split('\x00')[0]
+        else:
+            bytez = bytez.split(b'\x00')[0]
+            bytez = bytez.decode('utf-8', 'ignore')
 
         if len(bytez) == MAX_PATH:
             bytez = default
@@ -94,17 +94,20 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
         retval = emu.setVivTaint('dynlib',libname)
         callconv.execCallReturn(emu, retval, len(argv))
 
-import vivisect.impemu.platarch.i386 as v_i_i386
 class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
 
-    taintregs = [ 
+    taintregs = [
         e_i386.REG_EAX, e_i386.REG_ECX, e_i386.REG_EDX,
         e_i386.REG_EBX, e_i386.REG_EBP, e_i386.REG_ESI,
         e_i386.REG_EDI,
     ]
 
-    def __init__(self, vw, logwrite=False, logread=False):
-        v_i_i386.i386WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
+    def __init__(self, vw, **kwargs):
+        '''
+        Please see the base emulator class in vivisect/impemu/emulator.py for the parameters
+        that can be passed through kwargs
+        '''
+        v_i_i386.i386WorkspaceEmulator.__init__(self, vw, **kwargs)
         WindowsMixin.__init__(self)
 
     @imphook('ntdll.seh3_prolog')
@@ -167,7 +170,7 @@ class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
 
     @imphook('ntdll.eh_prolog')
     def eh_prolog(self, emu, callconv, api, argv):
-        emu.doPop() # Remove saved eip
+        emu.doPop()  # Remove saved eip
 
         # Push ebp, move ebp, esp
         emu.doPush(emu.getRegister(e_i386.REG_EBP))

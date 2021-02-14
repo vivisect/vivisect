@@ -1,49 +1,44 @@
-import sys
-
 import vtrace.breakpoints
 import vdb.testmods as v_testmods
 
 # in order for these tests to 'pass', these syms need to be in impapi and be
 # called multiple times by python.
 plat_syms = {
-    'windows':'ntdll.rtlencodepointer',
+    'windows': 'ntdll.rtlencodepointer',
 }
+
 
 def prehook(event, trace, ret_addr, args, callconv):
     trace.setMeta('prehookhit', True)
     cur = trace.getMeta('prehook_num', 0)
-    trace.setMeta('prehook_num', cur+1)
+    trace.setMeta('prehook_num', cur + 1)
 
-    #print('ret_addr: 0x{:x}'.format(ret_addr))
-    #print(repr(args))
-    #print(trace.readMemory(args[0], 16))
-    #assert(callconv != None)
 
 def posthook(event, trace, saved_ret_addr, saved_args, callconv):
     trace.setMeta('posthookhit', True)
     cur = trace.getMeta('posthook_num', 0)
     trace.setMeta('posthook_num', cur+1)
-    #print('saved_ret_addr: 0x{:x}'.format(saved_ret_addr))
-    #print(repr(saved_args))
-    #assert(callconv != None)
+
 
 def prehookThrow(event, trace, ret_addr, args, callconv):
     raise Exception('pre throw')
 
+
 def posthookThrow(event, trace, saved_ret_addr, saved_args, callconv):
     raise Exception('post throw')
+
 
 class HookBpTest(v_testmods.VtracePythonTest):
     '''
     Tests the direct implementation of the functionality.
     '''
-    modname='vdb.testmods.hookbptest'
+    modname = 'vdb.testmods.hookbptest'
 
     def runTest(self):
 
         plat = self.trace.getMeta('Platform').lower()
         symname = plat_syms.get(plat)
-        if symname == None:
+        if symname is None:
             raise Exception('No symbol to test platform!')
 
         # if we're on 64bit, impapi won't have the sym so specify cc
@@ -68,17 +63,18 @@ class HookBpTest(v_testmods.VtracePythonTest):
         assert(self.trace.getMeta('prehookhit'))
         assert(self.trace.getMeta('posthookhit'))
 
+
 class HookBpTest2(v_testmods.VtracePythonTest):
     '''
     Tests addHook works with both a prehook and posthook callback specified.
     '''
-    modname='vdb.testmods.hookbptest'
+    modname = 'vdb.testmods.hookbptest'
 
     def runTest(self):
 
         plat = self.trace.getMeta('Platform').lower()
         symname = plat_syms.get(plat)
-        if symname == None:
+        if symname is None:
             raise Exception('No symbol to test platform!')
 
         # if we're on 64bit, impapi won't have the sym so specify cc
@@ -100,17 +96,18 @@ class HookBpTest2(v_testmods.VtracePythonTest):
         assert(self.trace.getMeta('prehookhit'))
         assert(self.trace.getMeta('posthookhit'))
 
+
 class HookBpTest3(v_testmods.VtracePythonTest):
     '''
     Tests addHook works with only a prehook callback specified.
     '''
-    modname='vdb.testmods.hookbptest'
+    modname = 'vdb.testmods.hookbptest'
 
     def runTest(self):
 
         plat = self.trace.getMeta('Platform').lower()
         symname = plat_syms.get(plat)
-        if symname == None:
+        if symname is None:
             raise Exception('No symbol to test platform!')
 
         # don't specify posthook
@@ -122,12 +119,13 @@ class HookBpTest3(v_testmods.VtracePythonTest):
         assert(self.trace.getMeta('ExitCode', 0) == 31)
         assert(self.trace.getMeta('prehookhit'))
 
+
 class HookBpTest4(v_testmods.VtracePythonTest):
     '''
     Tests addHook works even when a handler throws an exception (and the other
     handlers still execute)
     '''
-    modname='vdb.testmods.hookbptest'
+    modname = 'vdb.testmods.hookbptest'
 
     def silentErrorHandler(self, cb_name, stre):
         '''
@@ -141,7 +139,7 @@ class HookBpTest4(v_testmods.VtracePythonTest):
         vtrace.breakpoints.HookBreakpoint.defaultErrorHandler = self.silentErrorHandler
         plat = self.trace.getMeta('Platform').lower()
         symname = plat_syms.get(plat)
-        if symname == None:
+        if symname is None:
             raise Exception('No symbol to test platform!')
 
         vtrace.breakpoints.addHook(self.trace, symname, prehookThrow)
@@ -156,14 +154,15 @@ class HookBpTest4(v_testmods.VtracePythonTest):
         assert(self.trace.getMeta('prehookhit'))
         assert(self.trace.getMeta('posthookhit'))
 
+
 class HookBpTest5(v_testmods.VtracePythonTest):
-    modname='vdb.testmods.hookbptest'
+    modname = 'vdb.testmods.hookbptest'
 
     def runTest(self):
 
         plat = self.trace.getMeta('Platform').lower()
         symname = plat_syms.get(plat)
-        if symname == None:
+        if symname is None:
             raise Exception('No symbol to test platform!')
 
         vtrace.breakpoints.addHook(self.trace, symname, prehook)
@@ -180,18 +179,19 @@ class HookBpTest5(v_testmods.VtracePythonTest):
         assert(self.trace.getMeta('posthook_num') > 2)
         assert(self.trace.getMeta('posthookhit'))
 
+
 class HookBpTest6(v_testmods.VtracePythonTest):
     '''
     Tests the failure of adding a pre bp at a location that already has another
     type of bp on it.
     '''
-    modname='vdb.testmods.hookbptest'
+    modname = 'vdb.testmods.hookbptest'
 
     def runTest(self):
 
         plat = self.trace.getMeta('Platform').lower()
         symname = plat_syms.get(plat)
-        if symname == None:
+        if symname is None:
             raise Exception('No symbol to test platform!')
 
         # add a normal bp
@@ -211,7 +211,7 @@ class HookBpTest6(v_testmods.VtracePythonTest):
         self.trace.run()
 
         assert(self.trace.getMeta('ExitCode', 0) == 31)
-        assert(hitexception == True)
+        assert(hitexception is True)
 
 # TODO: add test for going through a function multiple times
 # ensure the correct # of hook breakpoints are created.
@@ -219,8 +219,9 @@ class HookBpTest6(v_testmods.VtracePythonTest):
 # TODO: add test for a breakpoint type that already exists at the
 # post hook breakpoint location
 
-# TODO: tests for something NOT in impapi
+# TODO: I don't think these are run....
+
 
 if __name__ == '__main__':
     import sys
-    sys.exit(31)
+    sys.exit(31)  # TODO: tests for something NOT in impapi
