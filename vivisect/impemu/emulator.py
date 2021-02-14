@@ -86,8 +86,8 @@ class WorkspaceEmulator:
         self.hooks = {}
         self.taints = {}
         self.taintva = itertools.count(0x4156000F, 0x2000)
-        self.taintoffset = 0x1000
-        self.taintmask = 0xffffe000
+        self.taintoffset = 0x10
+        self.taintmask = 0xffffffe0
         self.taintrepr = {}
 
         self.uninit_use = {}
