@@ -1,4 +1,3 @@
-import os
 import logging
 from io import StringIO
 
@@ -12,6 +11,7 @@ import vivisect.parsers as v_parsers
 import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
+import envi.exc as e_exc
 import envi.memory as e_mem
 import envi.symstore.symcache as e_symcache
 
@@ -40,7 +40,7 @@ def parseBytes(vw, bytes, baseaddr=None):
     fd = StringIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
-    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
+    return loadPeIntoWorkspace(vw, pe, baseaddr=baseaddr)
 
 
 def parseMemory(vw, memobj, base):
@@ -59,6 +59,11 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
 arch_names = {
     PE.IMAGE_FILE_MACHINE_I386: 'i386',
     PE.IMAGE_FILE_MACHINE_AMD64: 'amd64',
+    PE.IMAGE_FILE_MACHINE_ARM: 'arm',
+    # DEV: uncomment this line to enable the arch (prolly not going to happen until AArch64 gets finished)
+    # PE.IMAGE_FILE_MACHINE_ARM64: 'arm64',
+    PE.IMAGE_FILE_MACHINE_ARMNT: 'thumb',
+    PE.IMAGE_FILE_MACHINE_THUMB: 'thumb16',
 }
 
 defcalls = {
@@ -86,6 +91,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
+    vw.parsedbin = pe
 
     platform = 'windows'
 
@@ -150,6 +156,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Setup some va sets used by windows analysis modules
     vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
     vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
+    vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS)
@@ -172,14 +179,14 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     secrem = len(header) % secalign
     if secrem != 0:
-        header += "\x00" * (secalign - secrem)
+        header += b'\x00' * (secalign - secrem)
 
     vw.addMemoryMap(baseaddr, e_mem.MM_READ, fname, header)
     vw.addSegment(baseaddr, len(header), "PE_Header", fname)
 
     hstruct = vw.makeStructure(baseaddr, "pe.IMAGE_DOS_HEADER")
     magicaddr = hstruct.e_lfanew
-    if vw.readMemory(baseaddr + magicaddr, 2) != "PE":
+    if vw.readMemory(baseaddr + magicaddr, 2) != b"PE":
         raise Exception("We only support PE exe's")
 
     if not vw.isLocation(baseaddr + magicaddr):
@@ -278,7 +285,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize)
-            secbytes += "\x00" * plen
+            secbytes += b'\x00' * plen
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
             vw.addSegment(secbase, len(secbytes), secname, fname)
 
@@ -304,7 +311,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize)
-            secbytes += "\x00" * plen
+            secbytes += b'\x00' * plen
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
             vw.addSegment(secbase, len(secbytes), secname, fname)
 
@@ -336,12 +343,32 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             logger.info('Skipping PE Relocation type: %d at %d (no handler)', rtype, rva)
             continue
 
-        mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
-        vw.addRelocation(rva + baseaddr, vtype, mapoffset)
+        try:
+            mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
+        except:
+            # the target adderss of the relocation is not accessible.
+            # for example, it's not mapped, or split across sections, etc.
+            # technically, the PE is corrupt.
+            # by continuing on here, we are a bit more robust (but maybe incorrect)
+            # than the Windows loader.
+            #
+            # discussed in:
+            # https://github.com/vivisect/vivisect/issues/346
+            logger.warning('Skipping invalid PE relocation: %d', rva)
+            continue
+        else:
+            vw.addRelocation(rva + baseaddr, vtype, mapoffset)
 
     for rva, lname, iname in pe.getImports():
         if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
             vw.makeImport(rva + baseaddr, lname, iname)
+
+    for rva, lname, iname in pe.getDelayImports():
+        if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
+            vw.makeImport(rva + baseaddr, lname, iname)
+            if lname != '*':
+                lname = vw.normFileName(lname)
+            vw.setVaSetRow('DelayImports', (rva + baseaddr, lname + '.' + iname))
 
     # Tell vivisect about ntdll functions that don't exit...
     vw.addNoReturnApi("ntdll.RtlExitUserThread")
@@ -447,7 +474,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         va = edir.VirtualAddress + baseaddr
         vamax = va + edir.Size
         while va < vamax:
-            f = vw.makeStructure(va, 'pe.IMAGE_RUNTIME_FUNCTION_ENTRY')
+            try:
+                f = vw.makeStructure(va, 'pe.IMAGE_RUNTIME_FUNCTION_ENTRY')
+            except e_exc.SegmentationViolation as e:
+                logger.warning('Invalid exception entry at 0x%x (error: %s)' % (va, str(e)))
+                break
+
             if not vw.isValidPointer(baseaddr + f.UnwindInfoAddress):
                 break
 
@@ -480,9 +512,9 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         fbytes = pe.fd.read()
         for offset, i in pe_carve.carve(fbytes, 1):
             # Found a sub-pe!
-            subpe = pe_carve.CarvedPE(fbytes, offset, chr(i))
+            subpe = pe_carve.CarvedPE(fbytes, offset, [i])
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
-            rva = pe.offsetToRva(offset)
+            rva = pe.offsetToRva(offset) + baseaddr
             vw.markDeadData(rva, rva+len(pebytes))
     comdesc = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
     if comdesc.VirtualAddress and comdesc.Size:

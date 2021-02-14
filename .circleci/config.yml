@@ -1,0 +1,84 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2.1
+
+
+commands:
+
+  do_python_setup:
+    description: "Setup python for testing"
+    steps:
+      - run:
+          name: setup venv
+          command: |
+            python3 -m pip install -U wheel pip
+            python3 -m pip install -r requirements.txt
+
+
+  do_test_execution:
+    description: "Execute unit tests via unittest"
+    steps:
+      - run:
+          name: run tests
+          command: |
+            python3 -m unittest discover
+
+  test_steps_python:
+    description: "Python test steps"
+    steps:
+      - checkout
+
+      - run:
+          name: checkout vivtest files repo
+          command: |
+            git clone https://github.com/vivisect/vivtestfiles.git $VIVTESTFILES
+
+      - run:
+          name: install deps
+          command: |
+            sudo apt-get update
+            sudo apt-get -qq install libfreetype6-dev liblcms2-dev ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick
+
+      - do_python_setup
+
+      - do_test_execution
+
+jobs:
+
+  python39:
+    parallelism: 1
+    docker:
+      - image: circleci/python:3.9
+        environment:
+          VIVTESTFILES: /tmp/vivtestfiles
+          PYVERS: 3.9
+
+    working_directory: ~/repo
+
+    steps:
+      - test_steps_python
+
+workflows:
+  version: 2
+  run_tests:
+    jobs:
+
+      - python39:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+
+#  weekly:
+#    triggers:
+#      - schedule:
+#          cron: "0 12 1 * *"
+#          filters:
+#            branches:
+#              only:
+#                - master
+#    jobs:
+#      - python39

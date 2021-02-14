@@ -1,7 +1,4 @@
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
+from PyQt5.QtWidgets import *
 
 from vqt.main import getSaveFileName
 

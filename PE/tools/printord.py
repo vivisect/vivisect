@@ -25,7 +25,7 @@ def main(argv):
         for fva, ord, name in p.getExports():
             ords[ord+base] = name
 
-        keys = ords.keys()
+        keys = list(ords.keys())
         for k in keys.sort():
             print('    %d:"%s",' % (k, ords.get(k)))
 

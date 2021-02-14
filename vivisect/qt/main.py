@@ -24,17 +24,13 @@ import vivisect.qt.funcviews as viv_q_funcviews
 import vivisect.qt.symboliks as viv_q_symboliks
 import vivisect.remote.share as viv_share
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QInputDialog, QFileDialog
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QInputDialog, QFileDialog
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QInputDialog
 
 from vqt.common import *
 from vivisect.const import *
 from vqt.main import getOpenFileName, getSaveFileName
-from vqt.saveable import compat_isNone, compat_toByteArray, compat_strList
+from vqt.saveable import compat_isNone
 
 dock_top = QtCore.Qt.TopDockWidgetArea
 dock_right = QtCore.Qt.RightDockWidgetArea
@@ -70,7 +66,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddMenuField('&View.&Memory', self._menuViewMemory)
         self.vqAddMenuField('&View.&Function Graph', self._menuViewFuncGraph)
         self.vqAddMenuField('&View.&Strings', self._menuViewStrings)
-        # self.vqAddMenuField('&View.&Strings', ACT(viv_q_views.getLocView, vw, (LOC_STRING,LOC_UNI) ,'Strings'))
         self.vqAddMenuField('&View.&Structures', self._menuViewStructs)
         self.vqAddMenuField('&View.&Segments', self._menuViewSegments)
         self.vqAddMenuField('&View.&Symboliks', self._menuViewSymboliks)
@@ -99,6 +94,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         if len(self.vqGetDockWidgets()) == 0:
             self.vw.vprint('\n')
+            #self.vw.vprint('&#10;')
             self.vw.vprint('Looks like you have an empty layout!')
             self.vw.vprint('Use View->Layouts->Load and select vivisect/qt/default.lyt')
 
@@ -115,9 +111,9 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def vprint(self, msg, addnl=True):
         # ripped and modded from envi/cli.py
-        if addnl:
-            msg = msg + "\n"
         self.vw.canvas.write(msg)
+        if addnl:
+            self.vw.canvas.write('\n')
 
     def getLocation(self, va):
         loctup = self.vw.getLocation(va)
@@ -265,7 +261,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         stub = '%s/' % guid
 
         if compat_isNone(dwcls):
-            names = self.vw.filemeta.keys()
+            names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
             dwcls = settings.value('%s/DockClasses' % name)
@@ -280,7 +276,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             stub = ''
 
         if not compat_isNone(dwcls):
-            for i, clsname in enumerate(compat_strList(dwcls)):
+            for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=False)
@@ -290,14 +286,14 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
                         d.vqRestoreState(settings, name, stub)
                         d.show()
                 except Exception as e:
-                    print('Error Building: %s: %s' % (clsname, e))
+                    self.vw.vprint('Error Building: %s: %s' % (clsname, e))
 
         # Once dock widgets are loaded, we can restoreState
         if not compat_isNone(state):
-            self.restoreState(compat_toByteArray(state))
+            self.restoreState(state)
 
         if not compat_isNone(geom):
-            self.restoreGeometry(compat_toByteArray(geom))
+            self.restoreGeometry(geom)
 
         # Just get all the resize activities done...
         vq_main.eatevents()
@@ -310,7 +306,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         dock_classes = []
         guid = self.vw.getVivGuid()
-        names = self.vw.filemeta.keys()
+        names = list(self.vw.filemeta.keys())
         names.sort()
         vivname = '+'.join(names)
 
@@ -337,6 +333,22 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         settings.setValue('%s/DockGeometry' % vivname, geom)
         settings.setValue('%s/DockState' % vivname, state)
         # don't store the default.  that should be saved manually
+
+    def vqGetDockWidgetsByName(self, name='viv', firstonly=False):
+        '''
+        Get list of DockWidgets matching a given name (default is 'viv').
+
+        Returns a list of tuples (window, DockWidget)
+        If firstonly==True, returns the first tuple, not a list.
+        '''
+        out = []
+        for vqDW in self.vqGetDockWidgets():
+            w = vqDW.widget()
+            if hasattr(w, 'getEnviNavName') and w.getEnviNavName() == name:
+                if firstonly:
+                    return w, vqDW
+                out.append((w,vqDW))
+        return out
 
     def _menuToolsDebug(self):
         viv_vdbext.runVdb(self)

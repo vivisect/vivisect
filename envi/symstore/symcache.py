@@ -2,7 +2,6 @@ import os
 import json
 import logging
 
-import cobra
 import envi.exc as e_exc
 import envi.config as e_config
 
@@ -82,6 +81,7 @@ class SymbolCache:
             logger.warning('Failed to load cachefile: %s', e)
             return None
 
+
 class SymbolCachePath:
 
     def __init__(self, path):
@@ -94,6 +94,7 @@ class SymbolCachePath:
                 continue
 
             if path.startswith('cobra://') or path.startswith('cobrassl://'):
+                import cobra
                 self.symcaches.append(cobra.CobraProxy(path))
                 continue
 

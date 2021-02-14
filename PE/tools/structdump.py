@@ -3,6 +3,7 @@ import argparse
 
 import PE
 import vtrace.platforms.win32 as vt_win32
+import vstruct.builder as vs_builder
 
 
 def setup():
@@ -29,7 +30,7 @@ def main(argv):
 
         t = parser._sym_types.values()
         e = parser._sym_enums.values()
-        builder = VStructBuilder(defs=t, enums=e)
+        builder = vs_builder.VStructBuilder(defs=t, enums=e)
 
         print('# Version: %d.%d' % (osmajor, osminor))
         print('# Architecture: %s' % archname)
@@ -38,10 +39,9 @@ def main(argv):
             keys.sort()
             for k in keys:
                 val = vsver.getVersionValue(k)
-                if type(val) == unicode:
-                    val = val.encode('ascii','ignore')
-                print('# %s: %s' % (k,val))
+                print('# %s: %s' % (k, val))
         print(builder.genVStructPyCode())
+
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

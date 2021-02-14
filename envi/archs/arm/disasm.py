@@ -4047,7 +4047,7 @@ class ArmOpcode(envi.Opcode):
         elif (self.iflags & self.S_FLAG_MASK) == IF_PSR_S:
             mnem += 's'
         elif (daib_flags > 0) and (mnem != "push"):
-            idx = ((daib_flags)>>(IF_DAIB_SHFT)) 
+            idx = ((daib_flags) >> (IF_DAIB_SHFT))
             mnem += daib[idx]
         else:
             if self.iflags & IF_S:

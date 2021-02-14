@@ -11,7 +11,7 @@ from vivisect.const import *
 def handleArray(vw, plist):
     tlist = []
 
-    for va,targ in plist:
+    for va, targ in plist:
         if vw.getLocation(va) is None:
             vw.makePointer(va)
         loctup = vw.getLocation(targ)
@@ -22,7 +22,7 @@ def handleArray(vw, plist):
 
 def analyze(vw):
 
-    #FIXME this won't do anything on a second pass and it might be good if it did
+    # FIXME this won't do anything on a second pass and it might be good if it did
     align = vw.arch.getPointerSize()
     rlen = vw.config.viv.analysis.pointertables.table_min_len
 

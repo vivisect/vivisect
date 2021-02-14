@@ -1,28 +1,6 @@
-'''
-'''
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QTreeView
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QTreeView
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QTreeView
 
-import vqt.colors as vq_colors
-import visgraph.pathcore as vg_path
-
-class VQTreeSorter:
-
-    def __init__(self, colnum, asc=1):
-        self.colnum = colnum
-        self.asc = asc
-
-    def __call__(self, x1, x2):
-        x1val = x1.rowdata[self.colnum]
-        x2val = x2.rowdata[self.colnum]
-        if self.asc:
-            return cmp(x1val, x2val)
-
-        return cmp(x2val, x1val)
 
 class VQTreeItem(object):
 
@@ -72,7 +50,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
     to hold the data...
     '''
 
-    columns = ( 'A first column!', 'The Second Column!')
+    columns = ('A first column!', 'The Second Column!')
     editable = None
     dragable = False
 
@@ -106,12 +84,11 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         if parent is None:
             parent = self.rootnode
 
-        row = parent.delete(rowdata)
+        parent.delete(rowdata)
 
     def sort(self, colnum, order=0):
-        cmpf = VQTreeSorter(colnum, order)
         self.layoutAboutToBeChanged.emit()
-        self.rootnode.children.sort(cmp=cmpf)
+        self.rootnode.children.sort(key=lambda k: k.rowdata[colnum], reverse=bool(order))
         self.layoutChanged.emit()
 
     def flags(self, index):
@@ -220,7 +197,7 @@ class VQTreeView(QTreeView):
 
         if cols is not None:
             model = VQTreeModel(parent=self, columns=cols)
-            self.setModel( model )
+            self.setModel(model)
 
     def vqSizeColumns(self):
         c = self.model().columnCount()

@@ -1,9 +1,7 @@
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
-
 import logging
+
+from PyQt5.QtWidgets import *
+
 logger = logging.getLogger(__name__)
 
 class FieldAdder:

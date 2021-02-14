@@ -133,15 +133,24 @@ def rt_pc_imm8d(va, value):  # ldr
     oper1 = ArmImmOffsetOper(REG_PC, imm, (va & 0xfffffffc))
     return COND_AL, (oper0, oper1), None
 
+bx_flag_opts = (
+        envi.IF_BRANCH | envi.IF_NOFALL,
+        envi.IF_RET | envi.IF_NOFALL, 
+        envi.IF_CALL, 
+        envi.IF_CALL,
+        )
 
 def rm4_shift3(va, value):  # bx/blx
     iflags = None
     otype, shval, mask = O_REG, 3, 0xf
     oval = shmaskval(value, shval, mask)
     oper = ArmRegOper((value >> shval) & mask, va=va)
-    if oval == REG_LR:
-        l = bool(value & 0b0000000010000000)
-        iflags = (envi.IF_RET | envi.IF_NOFALL, envi.IF_CALL)[l]
+    
+    isLR = (oval == REG_LR) & 1 # convert to bit 0
+    l = (value >> 6) & 2   # store in bit 1
+
+    iflags = bx_flag_opts[(isLR | l)]
+
     return COND_AL, (oper,), iflags
 
 
@@ -1339,6 +1348,7 @@ smulls_info = {
 
 
 def smull_32(va, val1, val2):
+    # TODO: does this exist in thumb?
     rn = val1 & 0xf
     rm = val2 & 0xf
     rdhi = (val2 >> 8) & 0xf
@@ -1350,15 +1360,15 @@ def smull_32(va, val1, val2):
     secondary = smulls_info.get(op1)
     if secondary is None:
         # FIXME!!!!
-        raise envi.InvalidInstruction(mesg="smull invalid decode: op1",
-                                      bytez=struct.pack("<HH", val, val2),
+        raise envi.InvalidInstruction(mesg="smull invalid decode: op1 (secondary is None)",
+                                      bytez=struct.pack("<HH", val1, val2),
                                       va=va-4)
 
     secout = secondary.get(op2)
     if secout is None:
         # FIXME!!!!
-        raise envi.InvalidInstruction(mesg="smull invalid decode: op2",
-                                      bytez=struct.pack("<HH", val, val2),
+        raise envi.InvalidInstruction(mesg="smull invalid decode: op2 (secout is None)",
+                                      bytez=struct.pack("<HH", val1, val2),
                                       va=va-4)
 
     opers = (ArmRegOper(rdhi, va=va),
@@ -2008,7 +2018,7 @@ thumb_base = [
     ('010001011',   (INS_CMP, 'cmp',     d1_rm4_rd3, 0)),        # CMP<c> <Rn>,<Rm>
     ('01000110',    (INS_MOV, 'mov',     d1_rm4_rd3, 0)),        # MOV<c> <Rd>,<Rm>
     # BX<c> <Rm>       # FIXME: check for IF_RET
-    ('010001110',   (INS_BL, 'bx',      rm4_shift3, envi.IF_NOFALL)),
+    ('010001110',   (INS_BX, 'bx',      rm4_shift3, 0)),
     ('010001111',   (INS_BLX, 'blx',     rm4_shift3, envi.IF_CALL)),  # BLX<c> <Rm>
     # Load from Litera7 Pool
     ('01001',       (INS_LDR, 'ldr',     rt_pc_imm8d, 0)),       # LDR<c> <Rt>,<label>
