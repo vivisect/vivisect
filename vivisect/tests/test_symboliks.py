@@ -1,4 +1,5 @@
 import unittest
+from binascii import unhexlify
 
 import vivisect
 import vivisect.symboliks.analysis as vs_anal
@@ -8,11 +9,11 @@ class GenericSymboliksTest(unittest.TestCase):
     def test_vivisect_symboliks_amd64_movsxd(self):
         vw = vivisect.VivWorkspace()
         vw.setMeta('Architecture', 'amd64')
-        #vw.addMemoryMap(0x41410000, 0xff, 'none', '4c8d055ef91e000fb6c9496304884c01c0ffe0'.decode('hex'))
-        #vw.addMemoryMap(0x41410000, 0xff, 'none', '49630488'.decode('hex'))
-        vw.addMemoryMap(0x41410000, 0xff, 'none', '496304884c01c0ffe0'.decode('hex'))
-        vw.addMemoryMap(0x41420000, 0xff, 'none', '371303ff031337'.decode('hex'))
-        vw.addMemoryMap(0x31336, 0xff, 'none', '371303ff031337'.decode('hex'))
+        #vw.addMemoryMap(0x41410000, 0xff, 'none', unhexlify('4c8d055ef91e000fb6c9496304884c01c0ffe0'))
+        #vw.addMemoryMap(0x41410000, 0xff, 'none', unhexlify'49630488'))
+        vw.addMemoryMap(0x41410000, 0xff, 'none', unhexlify('496304884c01c0ffe0'))
+        vw.addMemoryMap(0x41420000, 0xff, 'none', unhexlify('371303ff031337'))
+        vw.addMemoryMap(0x31336, 0xff, 'none', unhexlify('371303ff031337'))
 
         sctx = vs_anal.getSymbolikAnalysisContext(vw)
         xlate = sctx.getTranslator()
@@ -32,5 +33,5 @@ class GenericSymboliksTest(unittest.TestCase):
 
         semu.applyEffects(xlate.getEffects())
         rax = semu.getSymVariable('rax')
-        print rax
-        print hex(rax.solve())
+        print(rax)
+        print(hex(rax.solve()))
