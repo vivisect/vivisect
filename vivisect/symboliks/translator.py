@@ -17,10 +17,6 @@ class SymbolikTranslator:
                 self._op_methods[name[2:]] = getattr(self, name)
         self._cur_va = None
 
-        self._arch = vw.arch
-        self._psize = self._arch.getPointerSize()
-        self._reg_ctx = self._arch.archGetRegCtx()
-
     def effSetVariable(self, rname, rsym):
         '''
         This may *only* be called with 'natural' register definitions or

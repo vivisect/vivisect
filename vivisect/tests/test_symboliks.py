@@ -3,15 +3,16 @@ from binascii import unhexlify
 
 import vivisect
 import vivisect.symboliks.analysis as vs_anal
+from vivisect.symboliks.common import *
 
 class GenericSymboliksTest(unittest.TestCase):
 
     def test_vivisect_symboliks_amd64_movsxd(self):
         vw = vivisect.VivWorkspace()
         vw.setMeta('Architecture', 'amd64')
-        #vw.addMemoryMap(0x41410000, 0xff, 'none', unhexlify('4c8d055ef91e000fb6c9496304884c01c0ffe0'))
+        vw.addMemoryMap(0x41410000, 0xff, 'none', unhexlify('4c8d055ef91e000fb6c9496304884c01c0ffe0'))
         #vw.addMemoryMap(0x41410000, 0xff, 'none', unhexlify'49630488'))
-        vw.addMemoryMap(0x41410000, 0xff, 'none', unhexlify('496304884c01c0ffe0'))
+        #vw.addMemoryMap(0x41410000, 0xff, 'none', unhexlify('496304884c01c0ffe0'))
         vw.addMemoryMap(0x41420000, 0xff, 'none', unhexlify('371303ff031337'))
         vw.addMemoryMap(0x31336, 0xff, 'none', unhexlify('371303ff031337'))
 

@@ -24,6 +24,10 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     #__destp__ = ''
     def __init__(self, vw):
         vsym_trans.SymbolikTranslator.__init__(self, vw)
+        self._arch = vw.arch
+        self._psize = self._arch.getPointerSize()
+        self._reg_ctx = self._arch.archGetRegCtx()
+
 
     def setFlag(self, flagname, state):
         self.effSetVariable(flagname, state)
