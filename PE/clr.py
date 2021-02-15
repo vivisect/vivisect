@@ -1,6 +1,7 @@
 import enum
 import vstruct.defs.clr as vdc
 
+# Shamelessly stolen from:
 # https://github.com/dotnet/runtime/blob/master/src/coreclr/src/inc/corhdr.h
 
 MAX_CLASS_NAME = MAX_PACKAGE_NAME = 1024

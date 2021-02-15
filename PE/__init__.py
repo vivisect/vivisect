@@ -186,13 +186,13 @@ def fourPad(off):
     return (4 - (off % 4)) % 4
 
 def uncompLen(bytez):
-    valu = ord(bytez[0])
+    valu = bytez[0]
     if valu <= 0x7F:
         return 1, valu
     elif valu & 0xC0 == 0x80:
-        return 2, struct.unpack('>H', chr(valu & 0x3F)+bytez[1])[0]
+        return 2, struct.unpack('>H', bytes([valu & 0x3F, bytez[1]]))[0]
     else:
-        return 4, struct.unpack('>I', [chr(valu & 0x3F)] + bytez[1:4])[0]
+        return 4, struct.unpack('>I', bytes([valu & 0x3F] + bytez[1:4]))[0]
 
 class VS_VERSIONINFO:
     '''
@@ -1221,7 +1221,8 @@ class PE(object):
             raise AttributeError
 
     def parseCLR(self):
-        self.CLRMetadata = {}
+        self.CLRHeader = None
+        self.CLRTables = {}
         self.CLRBlobs = {}
         self.CLRGuids = {}
         self.CLRStrings = {}
@@ -1234,7 +1235,6 @@ class PE(object):
             return None
 
         self.IMAGE_COR20_HEADER = clrheader = self.readStructAtOffset(doff, 'pe.IMAGE_COR20_HEADER')
-
 
         # So all the juicy bits live under the Metadata field, but other exports can live under 
         # vtable fixups
@@ -1283,7 +1283,7 @@ class PE(object):
             elif name == '#US':
                 '''
                 So just up front, the #US heap is actually a blob heap, even though it's
-                called theUser Strings heap.
+                called the User Strings heap.
 
                 So the user strings are stored in utf-16 format, with two exceptions. One
                 is that all strings have a trailing 1 or 0 byte to indicate whether there
@@ -1299,6 +1299,10 @@ class PE(object):
 
 
     def parseOptimizedData(self, offset, size):
+        '''
+        So I note it down below, it's it's so important I'll note it here as well:
+        RIDs are all 1 based, so the first element of most lists are going to be None
+        '''
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
         ridmask = (2 ** (header.Rid)) - 1
 
@@ -1339,7 +1343,7 @@ class PE(object):
         for key, count in tblc.items():
             i = 0
             ctor = clr.RIDTYPEMAP[key]
-            # RIDs are all 1 based indexes :(, so fake it here
+            # DEV: RIDs are all 1 based indexes :(, so fake it here
             table = [None]
             for i in range(count):
                 obj = ctor(ridlen=ridbytes, cttbase=ridbits, slen=strOffSz, glen=guidOffSz, blen=blobOffSz)
@@ -1352,6 +1356,10 @@ class PE(object):
         return header, ridtbls
 
     def parseUnoptimizedData(self, offset, size):
+        '''
+        Now the question is, does this differ at all from optimized in terms of what we need to
+        directly parse?
+        '''
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
         # ridlen = header.Rid % 8 + (1 if header.Rid % 8 > 0  else 0)
         raise NotImplementedError("FUCK")
@@ -1369,7 +1377,7 @@ class PE(object):
         # The very first and very last values in the returned values will always be 
         # \x00 if the table is formatted correctly
         while consumed < size:
-            length = data[consumed:].find('\x00')
+            length = data[consumed:].find(b'\x00')
             s = data[consumed:consumed+length]
             strs[consumed] = s.decode('utf-8')
             consumed += len(s) + 1
@@ -1388,6 +1396,8 @@ class PE(object):
 
         Structure of a blob in the blob heap is
         <compressed_length><value>
+
+        where compressed length is their special format
         '''
         blobs = {}
         data = self.readAtOffset(offset, size)
@@ -1408,7 +1418,7 @@ class PE(object):
         guids = []
         while consumed < size:
             # Is this right? Who references this?
-            g = binascii.hexlify(self.readAtOffset(offset + consumed, 16))
+            g = binascii.hexlify(self.readAtOffset(offset + consumed, 16)).decode('utf-8')
             guids.append(g)
             consumed += 16
 

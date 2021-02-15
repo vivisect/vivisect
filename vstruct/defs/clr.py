@@ -10,8 +10,8 @@ SIZEMAP = {
 }
 
 # Soooo.technically there's a few of these that aren't TokenTypes, but are just Types,
-# but the numbers line up either way, so screw 'em
-class Types(enum.Enum):
+# but the numbers line up either way, so fuck it, throw em in here anyway
+class Types(enum.IntEnum):
     Module = 0
     TypeRef = 1
     TypeDef = 2
@@ -123,8 +123,8 @@ class TypeRef(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         cttlen = cttBitLen(cttbase, CodedTokenTypes.ResolutionScope)
         self.ResolutionScope = v_uint32() if cttlen > 16 else v_uint16()
-        self.Name = v_uint32()
-        self.Namespace = v_uint32()
+        self.Name = SIZEMAP[slen]()
+        self.Namespace = SIZEMAP[slen]()
 
 
 class TypeDef(vstruct.VStruct):
