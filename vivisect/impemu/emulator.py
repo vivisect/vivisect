@@ -4,7 +4,8 @@ import itertools
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
-import envi.memory as e_mem
+import envi.common as e_common
+import envi.memory as e_memory
 
 import visgraph.pathcore as vg_path
 
@@ -78,9 +79,17 @@ class WorkspaceEmulator:
                     Please note that since any possible effects the unsupported instruction are not
                     propagated, any possible flags or execution state are most likely misaligned from what
                     a real CPU might experience.
+        * loglevel
+            - Type: Integer
+            - Default: 30 (Corresponds to logging.WARNING)
+            - Desc: Because we do partial emulation for several of our heuristic passes like isProbablyCode,
+                    but also full emulation for several other analysis passes, there are several logging
+                    calls that are erroneous under the heuristic passes and typically we want those silenced
+                    under the heuristic passes only.
         '''
         self.vw = vw
-        self.funcva = None # Set if using runFunction
+        # Set down below in runFunction
+        self.funcva = None
         self.emustop = False
 
         self.hooks = {}
@@ -107,6 +116,9 @@ class WorkspaceEmulator:
         self._func_only = kwargs.get("funconly", True)
         # Should we bail on emulation if unsupported instruction encountered?
         self.strictops = kwargs.get('strictops', True)
+        # So this has nothing to do with the above logwrite/logread
+        # But default to being as permissive as the top level logger allows
+        self._log_level = kwargs.get('loglevel', logging.WARNING)
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -434,7 +446,7 @@ class WorkspaceEmulator:
                         except v_exc.BadOutInstruction:
                             pass
                         except Exception as e:
-                            logger.warning("Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
+                            logger.log(self._log_level, "Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
 
                         if self.emustop:
                             return
@@ -453,7 +465,7 @@ class WorkspaceEmulator:
                         except v_exc.BadOutInstruction:
                             pass
                         except Exception as e:
-                            logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
+                            logger.log(self._log_level, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
 
                         if self.emustop:
                             return
@@ -658,11 +670,11 @@ class WorkspaceEmulator:
 
         # It's totally ok to write to invalid memory during the
         # emulation pass (as long as safe_mem is true...)
-        probeok = self.probeMemory(va, len(bytes), e_mem.MM_WRITE)
+        probeok = self.probeMemory(va, len(bytes), e_memory.MM_WRITE)
         if self._safe_mem and not probeok:
             return
 
-        return e_mem.MemoryObject.writeMemory(self, va, bytes)
+        return e_memory.MemoryObject.writeMemory(self, va, bytes)
 
     def logUninitRegUse(self, regid):
         self.uninit_use[regid] = True
@@ -686,11 +698,11 @@ class WorkspaceEmulator:
         self._useVirtAddr(va)
 
         # Read from the emulator's pages if we havent resolved it yet
-        probeok = self.probeMemory(va, size, e_mem.MM_READ)
+        probeok = self.probeMemory(va, size, e_memory.MM_READ)
         if self._safe_mem and not probeok:
             return b'A' * size
 
-        return e_mem.MemoryObject.readMemory(self, va, size)
+        return e_memory.MemoryObject.readMemory(self, va, size)
 
     # Some APIs for telling if pointers are in runtime memory regions
 

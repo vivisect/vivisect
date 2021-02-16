@@ -214,7 +214,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             logger.debug(repr(e))
                             break
                         except Exception as e:
-                            logger.log(e_common.EMULOG, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
+                            logger.log(self._log_level, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
 
                         if self.emustop:
                             return
@@ -229,7 +229,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         try:
                             self.emumon.posthook(self, op, endeip)
                         except Exception as e:
-                            logger.log(e_common.EMULOG, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
+                            logger.log(self._log_level, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
                         if self.emustop:
                             return
 
