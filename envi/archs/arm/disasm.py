@@ -1,5 +1,6 @@
 import sys
 import struct
+import logging
 import traceback
 
 import envi
@@ -7,6 +8,10 @@ import envi.bits as e_bits
 
 from envi.archs.arm.const import *
 from envi.archs.arm.regs import *
+from vivisect.symboliks.common import *
+
+logger = logging.getLogger(__name__)
+
 
 # FIXME: TODO: ARM Symboliks (enough to successfully handle most switchcases)
 # FIXME:   codeflow currently misses some switchcases
@@ -4087,7 +4092,7 @@ class ArmOperand(envi.Operand):
     def getOperAddr(self, op, emu=None):
         return None
 
-    def getOperObj(self, op):
+    def getOperObj(self, op, xlate=None):
         '''
         Translate the specified operand to a symbol compatible with
         the symbolic translation system.
@@ -4100,21 +4105,17 @@ class ArmOperand(envi.Operand):
                     None by default
         '''
         if self.isReg():
-            return (self.getRegObj(self.reg), None)
+            return xlate.getRegObj(self.reg)
 
         elif self.isDeref():
             addrsym, aftereffs = self.getOperAddrObj(op, idx)
-            return self.effReadMemory(addrsym, Const(self.tsize, self._psize))
+            return self.effReadMemory(addrsym, Const(self.tsize, xlate._psize))
 
         elif self.isImmed():
             ret = self.getOperValue(op, self)
-            return (Const(ret, self._psize), None)
+            return Const(ret, xlate._psize)
 
         raise Exception('Unknown operand class: %s' % oper.__class__.__name__)
-
-    def getOperObj(self, op, emu=None):
-        logger.info("ArmOperand: subclass must implement getOperObj (%r)", self.__class__)
-        return None
 
     def getOperAddrObj(self, op, xlater):
         logger.info("ArmOperand: subclass must implement getOperAddrObj, (%r)", self.__class__)
@@ -4164,6 +4165,11 @@ class ArmRegOper(ArmOperand):
         if emu is None:
             return None
         emu.setRegister(self.reg, val)
+
+    def setOperObj(self, op, emu=None, val=None):
+        if emu is None:
+            return None
+        emu.setRegObj(self.reg, val)
 
     def getFloatValue(self, emu, elmtsz=None, elmtidx=None):
         '''
@@ -5154,7 +5160,7 @@ class ArmRegListOper(ArmOperand):
                 reglist.append(reg)
         return reglist
 
-    def getOperObj(self, op, emu=None):
+    def getOperObj(self, op, xlate=None):
         if emu == None:
             return None
         reglist = []

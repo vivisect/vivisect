@@ -4,6 +4,7 @@ import envi
 import envi.bits as e_bits
 import envi.registers as e_registers
 import envi.archs.arm as e_arm
+from envi.archs.arm import *
 
 import vivisect.symboliks.analysis as vsym_analysis
 import vivisect.symboliks.callconv as vsym_callconv
@@ -12,7 +13,6 @@ import vivisect.symboliks.translator as vsym_trans
 
 from vivisect.const import *
 from vivisect.symboliks.common import *
-from vivisect.symboliks.constraints import *
 
 class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     '''
@@ -49,20 +49,86 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         '''
         oper = op.opers[idx]
 
-        return oper.getOperObj(op)
+        return oper.getOperObj(op, self)
+
+    def getRegObj(self, regidx):
+        ridx = regidx & 0xffff
+        rname = self._reg_ctx.getRegisterName(ridx)
+        rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
+        val = Var(rname, rbitwidth >> 3)
+
+        # Translate to meta if needed...
+        if ridx != regidx:
+            # we cannot call _xlateToMetaReg since we'd pass in a symbolik
+            # object that would trigger an and operation; the code in envi
+            # obviously is NOT symboliks aware (2nd op in & operation is NOT
+            # a symbolik); so we do it manually here since we are symbolik
+            # aware.
+            rreg, lshift, mask = self._reg_ctx.getMetaRegInfo(regidx)
+            metawidth = e_bits.u_maxes.index(mask)
+            if lshift != 0:
+                val = o_rshift(val, Const(lshift, metawidth), metawidth)
+
+            # We must be explicit about the width!
+            val = o_and(val, Const(mask, metawidth), metawidth)
+
+        return val
+
+
+    def setOperObj(self, op, idx, symobj):
+        '''
+        Translate the specified operand to a symbol compatible with
+        the symbolic translation system.
+
+        Returns a tuple: (OperObj, AfterEffs)
+        where:
+            OperObj is the symbolic operand
+            AfterEffs is a list of effects which may be applied after this
+                    this allows for ARM's Post-Indexed processing, etc...
+                    None by default
+        '''
+        oper = op.opers[idx]
+        print(oper)
+
+        return oper.setOperObj(op, self, symobj)
+
+    def setRegObj(self, regidx, obj):
+        ridx = regidx & 0xffff
+        rname = self._reg_ctx.getRegisterName(ridx)
+        rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
+        val = Var(rname, rbitwidth >> 3)
+
+        # Translate to native if needed...
+        if ridx != regidx:
+            # we cannot call _xlateToNativReg since we'd pass in a symbolik
+            # object that would trigger an or operation; the code in envi
+            # obviously is NOT symboliks aware (2nd op in | operation is NOT
+            # a symbolik); so we do it manually here since we are symbolik
+            # aware.
+            # obj = self._reg_ctx._xlateToNativeReg(regidx, obj)
+            basemask = (2**rbitwidth) - 1
+            rreg, lshift, mask = self._reg_ctx.getMetaRegInfo(regidx)
+            # cut hole in mask
+            finalmask = basemask ^ (mask << lshift)
+            if lshift != 0:
+                obj <<= Const(lshift, rbitwidth >> 3)
+
+            obj = obj | (val & Const(finalmask, rbitwidth >> 3))
+
+        self.effSetVariable(rname, obj)
 
     ### move upstream to SymbolikTranslator
-    #def doPush(self, val):
-    #    sp = self.getRegObj(REG_SP)
-    #    sp -= Const(self._psize, self._psize)
-    #    self.setRegObj(REG_SP, sp)
-    #    self.effWriteMemory(sp, Const(self._psize, self._psize), val)
+    def doPush(self, val):
+        sp = self.getRegObj(REG_SP)
+        sp -= Const(self._psize, self._psize)
+        self.setRegObj(REG_SP, sp)
+        self.effWriteMemory(sp, Const(self._psize, self._psize), val)
 
-    #def doPop(self):
-    #    sp = self.getRegObj(REG_SP)
-    #    self.setRegObj(REG_SP, sp+Const(self._psize, self._psize))
-    #    val = self.effReadMemory(sp, Const(self._psize, self._psize))
-    #    return val
+    def doPop(self):
+        sp = self.getRegObj(REG_SP)
+        self.setRegObj(REG_SP, sp+Const(self._psize, self._psize))
+        val = self.effReadMemory(sp, Const(self._psize, self._psize))
+        return val
 
     """
     def getProcMode(self):
@@ -261,11 +327,11 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         newcarry = (ures != result)
         overflow = e_bits.signed(result, tsize) != sres
 
-        #print "====================="
-        #print hex(udst), hex(usrc), hex(ures), hex(result)
-        #print hex(sdst), hex(ssrc), hex(sres)
-        #print e_bits.is_signed(result, tsize), not result, newcarry, overflow
-        #print "ures:", ures, hex(ures), " sres:", sres, hex(sres), " result:", result, hex(result), " signed(result):", e_bits.signed(result, 4), hex(e_bits.signed(result, 4)), "  C/V:",newcarry, overflow
+        #print("=====================")
+        #print(hex(udst), hex(usrc), hex(ures), hex(result))
+        #print(hex(sdst), hex(ssrc), hex(sres))
+        #print(e_bits.is_signed(result, tsize), not result, newcarry, overflow)
+        #print("ures:", ures, hex(ures), " sres:", sres, hex(sres), " result:", result, hex(result), " signed(result):", e_bits.signed(result, 4), hex(e_bits.signed(result, 4)), "  C/V:",newcarry, overflow)
 
         if Sflag:
             curmode = self.getProcMode()
@@ -275,10 +341,10 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
                 else:
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
             else:
-                self.setFlag(PSR_N_bit, e_bits.is_signed(result, tsize))
-                self.setFlag(PSR_Z_bit, not result)
-                self.setFlag(PSR_C_bit, newcarry)
-                self.setFlag(PSR_V_bit, overflow)
+                self.setFlag('eflags_lt', e_bits.is_signed(result, tsize))
+                self.setFlag('eflags_eq', not result)
+                self.setFlag('eflags_c', newcarry)
+                self.setFlag('eflags_v', overflow)
 
         return result
 
@@ -307,10 +373,10 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
                     self.setCPSR(self.getSPSR(curmode))
                 else:
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, tsize))
-            self.setFlag(PSR_Z_bit, not ures)
-            self.setFlag(PSR_C_bit, newcarry)
-            self.setFlag(PSR_V_bit, overflow)
+            self.setFlag('eflags_lt', e_bits.is_signed(ures, tsize))
+            self.setFlag('eflags_eq', not ures)
+            self.setFlag('eflags_c', newcarry)
+            self.setFlag('eflags_v', overflow)
 
         return ures
     """
@@ -337,10 +403,10 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         res = src1 & src2
 
         if op.iflags & IF_PSR_S:     # FIXME: convert to gt, lt, eq, sf
-            self.setFlag(PSR_N_bit, Const(0, 1))
-            self.setFlag(PSR_Z_bit, not res)
-            self.setFlag(PSR_C_bit, Const(0, 1))
-            self.setFlag(PSR_V_bit, Const(0, 1))
+            self.setFlag('eflags_lt', Const(0, 1))
+            self.setFlag('eflags_eq', not res)
+            self.setFlag('eflags_c', Const(0, 1))
+            self.setFlag('eflags_v', Const(0, 1))
         return res
 
     def default_int_handler(self, val):
@@ -363,10 +429,10 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         Sflag = op.iflags & IF_PSR_S
         if Sflag:
-            #self.setFlag(PSR_N_bit, e_bits.is_signed(val, tsize))
-            #self.setFlag(PSR_Z_bit, not val)
-            #self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, tsize))
-            #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, tsize))
+            #self.setFlag('eflags_lt', e_bits.is_signed(val, tsize))
+            #self.setFlag('eflags_eq', not val)
+            #self.setFlag('eflags_c', e_bits.is_unsigned_carry(val, tsize))
+            #self.setFlag('eflags_v', e_bits.is_signed_overflow(val, tsize))
             self.effSetVariable('eflags_gt', gt(v1, v2))
             self.effSetVariable('eflags_lt', lt(v1, v2))
             self.effSetVariable('eflags_of', Const(0, self._psize))
@@ -435,7 +501,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_vpush(self, op):
         oper = op.opers[0]
         tsize = oper.getRegSize()
-        reglist = oper.getOperValue(op, self)
+        reglist = oper.getOperObj(op, self)
 
         for reg in reglist:
             sp = self.getRegister(REG_SP)
@@ -454,13 +520,13 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             reglist.append(val)
             self.setRegister(REG_SP, sp+4)
 
-        oper.setOperValue(op, reglist, self)
+        oper.setOperObj(op, reglist, self)
 
     def i_vldm(self, op):
         if len(op.opers) == 2:
             srcreg = op.opers[0].reg
             updatereg = op.opers[0].oflags & OF_W
-            addr = self.getOperValue(op,0)
+            addr = self.getOperObj(op,0)
             flags = op.iflags
         else:
             srcreg = REG_SP
@@ -498,7 +564,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_vmov(self, op):
         if len(op.opers) == 2:
-            src = self.getOperValue(op, 1)
+            src = self.getOperObj(op, 1)
             if isinstance(op.opers[1], ArmImmOper):
                 # immediate version copies immediate into each element (Q=2 elements, D=1)
                 srcsz = op.opers[1].size
@@ -509,42 +575,42 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             # core reg to vreg
             # vret to core reg
             # core reg to single
-            self.setOperValue(op, 0, src)
+            self.setOperObj(op, 0, src)
 
         elif len(op.opers) == 3:
             # 2 core reg to double
             # move between two ARM Core regs and one dblword extension reg
             if op.opers[0].reg < REGS_VECTOR_TABLE_IDX:
                 # dest is core regs
-                src = self.getOperValue(op, 2)
-                self.setOperValue(op, 0, (src & 0xffffffff))
-                self.setOperValue(op, 1, (src >> 32))
+                src = self.getOperObj(op, 2)
+                self.setOperObj(op, 0, (src & 0xffffffff))
+                self.setOperObj(op, 1, (src >> 32))
             else:
                 # dest is extension reg
-                src = self.getOperValue(op, 1)
-                src2 = self.getOperValue(op, 2)
+                src = self.getOperObj(op, 1)
+                src2 = self.getOperObj(op, 2)
                 src |= (int(src2) << 32)
-                self.setOperValue(op, 0, src)
+                self.setOperObj(op, 0, src)
 
         elif len(op.opers) == 4:
             # 2 core reg to 2 singles
-            src1 = self.getOperValue(op, 2)
-            src2 = self.getOperValue(op, 3)
-            self.setOperValue(op, 0, src1)
-            self.setOperValue(op, 1, src2)
+            src1 = self.getOperObj(op, 2)
+            src2 = self.getOperObj(op, 3)
+            self.setOperObj(op, 0, src1)
+            self.setOperObj(op, 1, src2)
 
         else:
             raise Exception("0x%x:  %r   Something went wrong... opers = %r " % (op.va, op, op.opers))
            
 
     def i_vstr(self, op):
-        src = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, src)
+        src = self.getOperObj(op, 1)
+        self.setOperObj(op, 0, src)
 
     def i_vcmp(self, op):
         try:
-            src1 = self.getOperValue(op, 0)
-            src2 = self.getOperValue(op, 1)
+            src1 = self.getOperObj(op, 0)
+            src2 = self.getOperObj(op, 1)
             val = src2 - src1
             logger.debug("vcmpe %r  %r  %r", src1, src2, val)
             fpsrc = self.getRegister(REG_FPSCR)
@@ -559,17 +625,17 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
             self.setFpFlag(PSR_N_bit, n)
             self.setFpFlag(PSR_Z_bit, z)
-            self.setFpFlag(PSR_C_bit, c)
-            self.setFpFlag(PSR_V_bit, v)
-        except Exception, e:
+            self.setFpFlag(eflags_c_bit, c)
+            self.setFpFlag(eflags_v_bit, v)
+        except Exception as  e:
             logger.warn("vcmp exception: %r", e)
 
     def i_vcmpe(self, op):
         try:
             size = (4,8)[bool(op.iflags & IFS_F64)]
 
-            src1 = self.getOperValue(op, 0)
-            src2 = self.getOperValue(op, 1)
+            src1 = self.getOperObj(op, 0)
+            src2 = self.getOperObj(op, 1)
                
             val = src2 - src1
                
@@ -586,9 +652,9 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
             self.setFpFlag(PSR_N_bit, n)
             self.setFpFlag(PSR_Z_bit, z)
-            self.setFpFlag(PSR_C_bit, c)
-            self.setFpFlag(PSR_V_bit, v)
-        except Exception, e:
+            self.setFpFlag(eflags_c_bit, c)
+            self.setFpFlag(eflags_v_bit, v)
+        except Exception as  e:
             logger.warn("vcmpe exception: %r" % e)
 
     def i_vcvt(self, op):
@@ -697,7 +763,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_ldm(self, op):
         if len(op.opers) == 2:
             srcreg = op.opers[0].reg
-            addr = self.getOperValue(op,0)
+            addr = self.getOperObj(op,0)
             regmask = op.opers[1].val
             updatereg = op.opers[0].oflags & OF_W
             flags = op.iflags
@@ -742,16 +808,16 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
 
     def setThumbMode(self, thumb=1):
-        self.setFlag(PSR_T_bit, thumb)
+        self.setFlag('eflags_t', thumb)
 
     def setArmMode(self, arm=1):
-        self.setFlag(PSR_T_bit, not arm)
+        self.setFlag('eflags_t', not arm)
 
     def i_ldr(self, op):
         # hint: covers ldr, ldrb, ldrbt, ldrd, ldrh, ldrsh, ldrsb, ldrt   (any instr where the syntax is ldr{condition}stuff)
         # need to check that t variants only allow non-priveleged access (ldrt, ldrht etc)
-        val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
+        val = self.getOperObj(op, 1)
+        self.setOperObj(op, 0, val)
         if op.opers[0].reg == REG_PC:
             self.setThumbMode(val & 1)
             return val & -2
@@ -774,13 +840,14 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             return self.i_str(op)
 
     def i_mov(self, op):
-        val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
+        val = self.getOperObj(op, 1)
+        self.setOperObj(op, 0, val)
 
         if op.iflags & IF_PSR_S:
             dsize = op.opers[0].tsize
-            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
-            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag('eflags_lt', e_bits.is_signed(val, dsize))
+            self.setFlag('eflags_lt', gt(Const(ures, dsize), Const(e_bits.umaxes[self._psize], self._psize)))
+            self.setFlag('eflags_eq', not val)
 
         if op.iflags & envi.IF_RET:
             self.setThumbMode(val & 1)
@@ -792,38 +859,38 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             return val & -2
 
     def i_movt(self, op):
-        base = self.getOperValue(op, 0) & 0xffff
-        val = self.getOperValue(op, 1) << 16
-        self.setOperValue(op, 0, base | val)
+        base = self.getOperObj(op, 0) & 0xffff
+        val = self.getOperObj(op, 1) << 16
+        self.setOperObj(op, 0, base | val)
 
     def i_movw(self, op):
-        val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
+        val = self.getOperObj(op, 1)
+        self.setOperObj(op, 0, val)
 
     i_msr = i_mov
     i_adr = i_mov
 
     def i_vmsr(self, op):
         if len(op.opers) == 1:
-            val = self.getOperValue(op, 0)
+            val = self.getOperObj(op, 0)
         else:
-            val = self.getOperValue(op, 1)
+            val = self.getOperObj(op, 1)
 
         self.setRegister(REG_FPSCR, val)
            
     def i_mrs(self, op):
         val = self.getAPSR()
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
     def i_vmrs(self, op):
         src = self.getRegister(REG_FPSCR)
 
         if op.opers[0].reg != 15:
-            self.setOperValue(op, 0, src)
+            self.setOperObj(op, 0, src)
         else:
             apsr = self.getAPSR() & 0x0fffffff
             apsr |= (src | 0xf0000000)
-            self.setOperValue(op, 0, apsr)
+            self.setOperObj(op, 0, apsr)
 
     i_vldr = i_mov
 
@@ -853,31 +920,31 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_itttt = i_it
           
     def i_bfi(self, op):
-        lsb = self.getOperValue(op, 2)
-        width = self.getOperValue(op, 3)
+        lsb = self.getOperObj(op, 2)
+        width = self.getOperObj(op, 3)
         mask = e_bits.b_masks[width]
 
-        addit = self.getOperValue(op, 1) & mask
+        addit = self.getOperObj(op, 1) & mask
 
         mask <<= lsb
-        val = self.getOperValue(op, 0) & ~mask
+        val = self.getOperObj(op, 0) & ~mask
         val |= (addit << lsb)
 
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
     def i_bfc(self, op):
-        lsb = self.getOperValue(op, 1)
-        width = self.getOperValue(op, 2)
+        lsb = self.getOperObj(op, 1)
+        width = self.getOperObj(op, 2)
         mask = e_bits.b_masks[width] << lsb
         mask ^= 0xffffffff
 
-        val = self.getOperValue(op, 0)
+        val = self.getOperObj(op, 0)
         val &= mask
 
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
     def i_clz(self, op):
-        oper = self.getOperValue(op, 1)
+        oper = self.getOperObj(op, 1)
         bsize = op.opers[1].tsize * 8
         lzcnt = 0
         for x in range(bsize):
@@ -886,18 +953,18 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             lzcnt += 1
             oper <<= 1
 
-        self.setOperValue(op, 0, lzcnt)
+        self.setOperObj(op, 0, lzcnt)
 
     def i_mvn(self, op):
-        val = self.getOperValue(op, 1)
+        val = self.getOperObj(op, 1)
         val ^= 0xffffffff
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
     def i_str(self, op):
         # hint: covers str, strb, strbt, strd, strh, strsh, strsb, strt   (any instr where the syntax is str{condition}stuff)
         # need to check that t variants only allow non-priveleged access (strt, strht etc)
-        val = self.getOperValue(op, 0)
-        self.setOperValue(op, 1, val)
+        val = self.getOperObj(op, 0)
+        self.setOperObj(op, 1, val)
 
     i_strh = i_str
     i_strb = i_str
@@ -910,114 +977,115 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_add(self, op):
         if len(op.opers) == 3:
-            src1 = self.getOperValue(op, 1)
-            src2 = self.getOperValue(op, 2)
+            src1 = self.getOperObj(op, 1)
+            src2 = self.getOperObj(op, 2)
         else:
-            src1 = self.getOperValue(op, 0)
-            src2 = self.getOperValue(op, 1)
+            src1 = self.getOperObj(op, 0)
+            src2 = self.getOperObj(op, 1)
        
         dsize = op.opers[0].tsize
         reg = op.opers[0].reg
         Sflag = op.iflags & IF_PSR_S
 
         ures = self.AddWithCarry(src1, src2, 0, Sflag, rd=reg, tsize=dsize)
-        self.setOperValue(op, 0, ures)
+        self.setOperObj(op, 0, ures)
        
         #FIXME PDE and flags
         if src1 == None or src2 == None:
             self.undefFlags()
-            self.setOperValue(op, 0, None)
+            self.setOperObj(op, 0, None)
             return
 
     def i_adc(self, op):
         if len(op.opers) == 3:
-            src1 = self.getOperValue(op, 1)
-            src2 = self.getOperValue(op, 2)
+            src1 = self.getOperObj(op, 1)
+            src2 = self.getOperObj(op, 2)
         else:
-            src1 = self.getOperValue(op, 0)
-            src2 = self.getOperValue(op, 1)
+            src1 = self.getOperObj(op, 0)
+            src2 = self.getOperObj(op, 1)
        
         #FIXME PDE and flags
         if src1 is None or src2 is None:
             self.undefFlags()
-            self.setOperValue(op, 0, None)
+            self.setOperObj(op, 0, None)
             return
 
        
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-        Carry = self.getFlag(PSR_C_bit)
+        Carry = self.getFlag(eflags_c_bit)
         Sflag = op.iflags & IF_PSR_S
         ures = self.AddWithCarry(src1, src2, Carry, Sflag, op.opers[0].reg)
 
-        self.setOperValue(op, 0, ures)
+        self.setOperObj(op, 0, ures)
 
     def i_b(self, op):
         '''
         conditional branches (eg. bne) will be handled here. they are all CONDITIONAL 'b'
         '''
-        return self.getOperValue(op, 0)
+        return self.getOperObj(op, 0)
 
     def i_bl(self, op):
-        tmode = self.getFlag(PSR_T_bit)
+        tmode = self.getFlag(eflags_t_bit)
         retva = (self.getRegister(REG_PC) + len(op)) | tmode
         self.setRegister(REG_LR, retva)
-        return self.getOperValue(op, 0)
+        return self.getOperObj(op, 0)
 
     def i_bx(self, op):
-        target = self.getOperValue(op, 0)
-        self.setFlag(PSR_T_bit, target & 1)
+        target = self.getOperObj(op, 0)
+        self.setFlag('eflags_t', target & 1)
         return target & -2
 
     def i_blx(self, op):
-        tmode = self.getFlag(PSR_T_bit)
+        tmode = self.getFlag(eflags_t_bit)
         retva = (self.getRegister(REG_PC) + len(op)) | tmode
         self.setRegister(REG_LR, retva)
 
-        target = self.getOperValue(op, 0)
-        self.setFlag(PSR_T_bit, target & 1)
+        target = self.getOperObj(op, 0)
+        self.setFlag('eflags_t', target & 1)
         return target & -2
 
     def i_svc(self, op):
-        svc = self.getOperValue(op, 0)
+        svc = self.getOperObj(op, 0)
         logger.warn("Service 0x%x called at 0x%x", svc, op.va)
 
     def i_tst(self, op):
-        src1 = self.getOperValue(op, 0)
-        src2 = self.getOperValue(op, 1)
+        src1 = self.getOperObj(op, 0)
+        src2 = self.getOperObj(op, 1)
 
         dsize = op.opers[0].tsize
         ures = src1 & src2
 
-        self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
-        self.setFlag(PSR_Z_bit, (0,1)[ures==0])
-        self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+        self.setFlag('eflags_lt', lt(src1, src2))
+        self.setFlag('eflags_eq', eq(Const(ures, dsize), Const(0, dsize)))
+        #self.setFlag('eflags_c',  eq(Const(e_bits.is_unsigned_carry(ures, dsize), Const(1, 1))))
+        self.setFlag('eflags_c',  gt(Const(ures, dsize), Const(e_bits.umaxes[self._psize], self._psize)))
        
     def i_teq(self, op):
-        src1 = self.getOperValue(op, 0)
-        src2 = self.getOperValue(op, 1)
+        src1 = self.getOperObj(op, 0)
+        src2 = self.getOperObj(op, 1)
 
         dsize = op.opers[0].tsize
         ures = src1 ^ src2
 
-        self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
-        self.setFlag(PSR_Z_bit, not ures)
+        self.setFlag('eflags_lt', gt(Const(ures, dsize), Const(e_bits.umaxes[self._psize], self._psize)))
+        self.setFlag('eflags_eq', not ures)
         oper = op.opers[1]
         if isinstance(oper, ArmRegShiftImmOper):
             if oper.shimm == 0:
                 return
             logger.critical('FIXME: TEQ - do different shift types for Carry flag')
             # FIXME: make the operands handle a ThumbExpandImm_C (for immediate) or Shift_C (for RegShiftImm), etc...
-            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+            self.setFlag('eflags_c', e_bits.is_unsigned_carry(ures, dsize))
        
     def i_rsb(self, op):
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
+        src1 = self.getOperObj(op, 1)
+        src2 = self.getOperObj(op, 2)
        
         #FIXME PDE and flags
         if src1 is None or src2 is None:
             self.undefFlags()
-            self.setOperValue(op, 0, None)
+            self.setOperObj(op, 0, None)
             return
 
         Sflag = op.iflags & IF_PSR_S
@@ -1028,37 +1096,37 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         mask = e_bits.u_maxes[dsize]
         res = self.AddWithCarry(mask ^ src1, src2, Carry, Sflag, reg, dsize)
 
-        self.setOperValue(op, 0, res)
+        self.setOperObj(op, 0, res)
 
     def i_rsc(self, op):
         # Src op gets sign extended to dst
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
+        src1 = self.getOperObj(op, 1)
+        src2 = self.getOperObj(op, 2)
         #FIXME PDE and flags
         if src1 is None or src2 is None:
             self.undefFlags()
-            self.setOperValue(op, 0, None)
+            self.setOperObj(op, 0, None)
             return
 
         Sflag = op.iflags & IF_PSR_S
-        Carry = self.getFlag(PSR_C_bit)
+        Carry = self.getFlag(eflags_c_bit)
         dsize = op.opers[0].tsize
         reg = op.opers[0].reg
 
         mask = e_bits.u_maxes[dsize]
         res = self.AddWithCarry(src2, mask ^ src1, Carry, Sflag, reg, dsize)
 
-        self.setOperValue(op, 0, res)
+        self.setOperObj(op, 0, res)
 
     def i_sub(self, op):
         # Src op gets sign extended to dst
         #FIXME account for same operand with zero result for PDE
         if len(op.opers) > 2:
-            src1 = self.getOperValue(op, 1)
-            src2 = self.getOperValue(op, 2)
+            src1 = self.getOperObj(op, 1)
+            src2 = self.getOperObj(op, 2)
         else:
-            src1 = self.getOperValue(op, 0)
-            src2 = self.getOperValue(op, 1)
+            src1 = self.getOperObj(op, 0)
+            src2 = self.getOperObj(op, 1)
 
         dsize = op.opers[0].tsize
         reg = op.opers[0].reg
@@ -1070,40 +1138,40 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             return None
 
         res = self.AddWithCarry(src1, mask ^ src2, 1, Sflag, rd=reg, tsize=dsize)
-        self.setOperValue(op, 0, res)
+        self.setOperObj(op, 0, res)
 
     i_subs = i_sub
 
     def i_sbc(self, op):
         # Src op gets sign extended to dst
         if len(op.opers) > 2:
-            src1 = self.getOperValue(op, 1)
-            src2 = self.getOperValue(op, 2)
+            src1 = self.getOperObj(op, 1)
+            src2 = self.getOperObj(op, 2)
         else:
-            src1 = self.getOperValue(op, 0)
-            src2 = self.getOperValue(op, 1)
+            src1 = self.getOperObj(op, 0)
+            src2 = self.getOperObj(op, 1)
 
         Sflag = op.iflags & IF_PSR_S
-        Carry = self.getFlag(PSR_C_bit)
+        Carry = self.getFlag(eflags_c_bit)
 
         mask = e_bits.u_maxes[op.opers[1].tsize]
         res = self.AddWithCarry(src1, mask ^ src2, Carry, Sflag, op.opers[0].reg)
 
-        self.setOperValue(op, 0, res)
+        self.setOperObj(op, 0, res)
 
     def i_eor(self, op):
         dsize = op.opers[0].tsize
         if len(op.opers) == 3:
-            src1 = self.getOperValue(op, 1)
-            src2 = self.getOperValue(op, 2)
+            src1 = self.getOperObj(op, 1)
+            src2 = self.getOperObj(op, 2)
         else:
-            src1 = self.getOperValue(op, 0)
-            src2 = self.getOperValue(op, 1)
+            src1 = self.getOperObj(op, 0)
+            src2 = self.getOperObj(op, 1)
        
         #FIXME PDE and flags
         if src1 is None or src2 is None:
             self.undefFlags()
-            self.setOperValue(op, 0, None)
+            self.setOperObj(op, 0, None)
             return
 
         usrc1 = e_bits.unsigned(src1, dsize)
@@ -1111,7 +1179,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         ures = usrc1 ^ usrc2
 
-        self.setOperValue(op, 0, ures)
+        self.setOperObj(op, 0, ures)
 
         curmode = self.getProcMode()
         if op.iflags & IF_PSR_S:
@@ -1121,47 +1189,47 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
                 else:
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
 
-            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
-            self.setFlag(PSR_Z_bit, not ures)
-            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
-            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(ures, dsize))
+            self.setFlag('eflags_lt', e_bits.is_signed(ures, dsize))
+            self.setFlag('eflags_eq', not ures)
+            self.setFlag('eflags_c', e_bits.is_unsigned_carry(ures, dsize))
+            self.setFlag('eflags_v', e_bits.is_signed_overflow(ures, dsize))
 
     def i_cmp(self, op):
         # Src op gets sign extended to dst
-        src1 = self.getOperValue(op, 0)
-        src2 = self.getOperValue(op, 1)
+        src1 = self.getOperObj(op, 0)
+        src2 = self.getOperObj(op, 1)
         dsize = op.opers[0].tsize
         reg = op.opers[0].reg
         Sflag = 1
         mask = e_bits.u_maxes[dsize]
 
-        #print 'cmp', hex(src1), hex(src2)
+        #print('cmp', hex(src1), hex(src2))
         res2 = self.AddWithCarry(src1, mask^src2, 1, Sflag, rd=reg, tsize=dsize)
 
     def i_cmn(self, op):
         # Src op gets sign extended to dst
-        src1 = self.getOperValue(op, 0)
-        src2 = self.getOperValue(op, 1)
+        src1 = self.getOperObj(op, 0)
+        src2 = self.getOperObj(op, 1)
         dsize = op.opers[0].tsize
         reg = op.opers[0].reg
         Sflag = 1
 
-        #print 'cmn', hex(src1), hex(src2)
+        #print('cmn', hex(src1), hex(src2))
         res2 = self.AddWithCarry(src1, src2, carry=0, Sflag=Sflag, rd=reg, tsize=dsize)
 
     i_cmps = i_cmp
 
     def i_uxth(self, op):
-        val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
+        val = self.getOperObj(op, 1)
+        self.setOperObj(op, 0, val)
 
     i_uxtb = i_uxth
 
     def i_uxtah(self, op):
-        val = self.getOperValue(op, 2)
-        val += self.getOperValue(op, 1)
+        val = self.getOperObj(op, 2)
+        val += self.getOperObj(op, 1)
 
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
     i_uxtab = i_uxtah
 
@@ -1169,9 +1237,9 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         slen = op.opers[1].tsize
         dlen = op.opers[0].tsize
 
-        val = self.getOperValue(op, 1)
+        val = self.getOperObj(op, 1)
         val = e_bits.sign_extend(val, slen, dlen)
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
     i_sxtb = i_sxth
 
@@ -1179,32 +1247,32 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         slen = op.opers[2].tsize
         dlen = op.opers[0].tsize
 
-        val = self.getOperValue(op, 2)
+        val = self.getOperObj(op, 2)
         val = e_bits.sign_extend(val, slen, dlen)
-        val += self.getOperValue(op, 1)
+        val += self.getOperObj(op, 1)
 
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
     i_sxtab = i_sxtah
 
     def i_bic(self, op):
         dsize = op.opers[0].tsize
         if len(op.opers) == 3:
-            val = self.getOperValue(op, 1)
-            const = self.getOperValue(op, 2)
+            val = self.getOperObj(op, 1)
+            const = self.getOperObj(op, 2)
         else:
-            val = self.getOperValue(op, 0)
-            const = self.getOperValue(op, 1)
+            val = self.getOperObj(op, 0)
+            const = self.getOperObj(op, 1)
 
         val &= ~const
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S # FIXME: IF_PSR_S???
         if Sflag:
-            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
-            self.setFlag(PSR_Z_bit, not val)
-            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, dsize))
-            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
+            self.setFlag('eflags_lt', e_bits.is_signed(val, dsize))
+            self.setFlag('eflags_eq', not val)
+            self.setFlag('eflags_c', e_bits.is_unsigned_carry(val, dsize))
+            self.setFlag('eflags_v', e_bits.is_signed_overflow(val, dsize))
 
     def i_swi(self, op):
         # this causes a software interrupt.  we need a good way to handle interrupts
@@ -1212,50 +1280,51 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_mul(self, op):
         dsize = op.opers[0].tsize
-        Rn = self.getOperValue(op, 1)
+        Rn = self.getOperObj(op, 1)
         if len(op.opers) == 3:
-            Rm = self.getOperValue(op, 2)
+            Rm = self.getOperObj(op, 2)
         else:
-            Rm = self.getOperValue(op, 0)
+            Rm = self.getOperObj(op, 0)
         val = Rn * Rm
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
         if Sflag:
-            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
-            self.setFlag(PSR_Z_bit, not val)
-            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, dsize))
-            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, dsize))
+            self.setFlag('eflags_lt', e_bits.is_signed(val, dsize))
+            self.setFlag('eflags_eq', not val)
+            self.setFlag('eflags_c', e_bits.is_unsigned_carry(val, dsize))
+            self.setFlag('eflags_v', e_bits.is_signed_overflow(val, dsize))
 
     def i_lsl(self, op):
         dsize = op.opers[0].tsize
         if len(op.opers) == 3:
-            src = self.getOperValue(op, 1)
-            imm5 = self.getOperValue(op, 2)
+            src = self.getOperObj(op, 1)
+            imm5 = self.getOperObj(op, 2)
 
         else:
-            src = self.getOperValue(op, 0)
-            imm5 = self.getOperValue(op, 1)
+            src = self.getOperObj(op, 0)
+            imm5 = self.getOperObj(op, 1)
 
+        print("%r    %r" % (src, imm5))
         val = src << imm5
-        carry = (val >> 32) & 1
-        self.setOperValue(op, 0, val)
+        carry = (val >> Const(32, dsize)) & Const(1, dsize)
+        self.setOperObj(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
         if Sflag:
-            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
-            self.setFlag(PSR_Z_bit, not val)
-            self.setFlag(PSR_C_bit, carry)
+            self.setFlag('eflags_lt', e_bits.is_signed(val, dsize))
+            self.setFlag('eflags_eq', not val)
+            self.setFlag('eflags_c', carry)
 
     def i_lsr(self, op):
         dsize = op.opers[0].tsize
         if len(op.opers) == 3:
-            src = self.getOperValue(op, 1)
-            shval = self.getOperValue(op, 2) & 0xff
+            src = self.getOperObj(op, 1)
+            shval = self.getOperObj(op, 2) & 0xff
 
         else:
-            src = self.getOperValue(op, 0)
-            shval = self.getOperValue(op, 1) & 0xff
+            src = self.getOperObj(op, 0)
+            shval = self.getOperObj(op, 1) & 0xff
 
         if shval:
             val = src >> shval
@@ -1264,25 +1333,25 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             val = src
             carry = 0
 
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
         if Sflag:
-            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
-            self.setFlag(PSR_Z_bit, not val)
-            self.setFlag(PSR_C_bit, carry)
+            self.setFlag('eflags_lt', e_bits.is_signed(val, dsize))
+            self.setFlag('eflags_eq', not val)
+            self.setFlag('eflags_c', carry)
 
     def i_asr(self, op):
         dsize = op.opers[0].tsize
         if len(op.opers) == 3:
-            src = self.getOperValue(op, 1)
+            src = self.getOperObj(op, 1)
             srclen = op.opers[1].tsize
-            shval = self.getOperValue(op, 2) & 0xff
+            shval = self.getOperObj(op, 2) & 0xff
 
         else:
-            src = self.getOperValue(op, 0)
+            src = self.getOperObj(op, 0)
             srclen = op.opers[0].tsize
-            shval = self.getOperValue(op, 1) & 0xff
+            shval = self.getOperObj(op, 1) & 0xff
 
         if shval:
             if e_bits.is_signed(src, srclen):
@@ -1294,112 +1363,112 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             val = src
             carry = 0
 
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
         if Sflag:
-            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
-            self.setFlag(PSR_Z_bit, not val)
-            self.setFlag(PSR_C_bit, carry)
+            self.setFlag('eflags_lt', e_bits.is_signed(val, dsize))
+            self.setFlag('eflags_eq', not val)
+            self.setFlag('eflags_c', carry)
 
     def i_ror(self, op):
         dsize = op.opers[0].tsize
         if len(op.opers) == 3:
-            src = self.getOperValue(op, 1)
-            imm5 = self.getOperValue(op, 2) & 0b11111
+            src = self.getOperObj(op, 1)
+            imm5 = self.getOperObj(op, 2) & 0b11111
 
         else:
-            src = self.getOperValue(op, 0)
-            imm5 = self.getOperValue(op, 1) & 0b11111
+            src = self.getOperObj(op, 0)
+            imm5 = self.getOperObj(op, 1) & 0b11111
 
         val = ((src >> imm5) | (src << 32-imm5)) & 0xffffffff
         carry = (val >> 31) & 1
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
         if Sflag:
-            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
-            self.setFlag(PSR_Z_bit, not val)
-            self.setFlag(PSR_C_bit, carry)
+            self.setFlag('eflags_lt', e_bits.is_signed(val, dsize))
+            self.setFlag('eflags_eq', not val)
+            self.setFlag('eflags_c', carry)
 
     def i_rrx(self, op):
         dsize = op.opers[0].tsize
         if len(op.opers) == 3:
-            src = self.getOperValue(op, 1)
-            imm5 = self.getOperValue(op, 2)
+            src = self.getOperObj(op, 1)
+            imm5 = self.getOperObj(op, 2)
 
         else:
-            src = self.getOperValue(op, 0)
-            imm5 = self.getOperValue(op, 1)
+            src = self.getOperObj(op, 0)
+            imm5 = self.getOperObj(op, 1)
 
-        carry_in = self.getFlag(PSR_C_bit)
+        carry_in = self.getFlag(eflags_c_bit)
 
         val = (carry_in<<31) | (src >> 1)
         carry = src & 1
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
         if Sflag:
-            self.setFlag(PSR_N_bit, e_bits.is_signed(val, dsize))
-            self.setFlag(PSR_Z_bit, not val)
-            self.setFlag(PSR_C_bit, carry)
+            self.setFlag('eflags_lt', e_bits.is_signed(val, dsize))
+            self.setFlag('eflags_eq', not val)
+            self.setFlag('eflags_c', carry)
 
 
     def i_cbz(self, op):
-        regval = op.getOperValue(0)
-        imm32 = op.getOperValue(1)
+        regval = op.getOperObj(0)
+        imm32 = op.getOperObj(1)
         if not regval:
             return imm32
 
     def i_cbnz(self, op):
-        regval = op.getOperValue(0)
-        imm32 = op.getOperValue(1)
+        regval = op.getOperObj(0)
+        imm32 = op.getOperObj(1)
         if regval:
             return imm32
 
     def i_smulbb(self, op):
-        oper1 = self.getOperValue(op, 1) & 0xffff
-        oper2 = self.getOperValue(op, 2) & 0xffff
+        oper1 = self.getOperObj(op, 1) & 0xffff
+        oper2 = self.getOperObj(op, 2) & 0xffff
 
         s1 = e_bits.signed(oper1 & 0xffff, 2)
         s2 = e_bits.signed(oper2 & 0xffff, 2)
 
         result = s1 * s2
 
-        self.setOperValue(op, 0, result)
+        self.setOperObj(op, 0, result)
 
     def i_smultb(self, op):
-        oper1 = self.getOperValue(op, 1) & 0xffff
-        oper2 = self.getOperValue(op, 2) & 0xffff
+        oper1 = self.getOperObj(op, 1) & 0xffff
+        oper2 = self.getOperObj(op, 2) & 0xffff
 
         s1 = e_bits.signed(oper1 >> 16, 2)
         s2 = e_bits.signed(oper2 & 0xffff, 2)
 
         result = s1 * s2
 
-        self.setOperValue(op, 0, result)
+        self.setOperObj(op, 0, result)
 
     def i_smulbt(self, op):
-        oper1 = self.getOperValue(op, 1) & 0xffff
-        oper2 = self.getOperValue(op, 2) & 0xffff
+        oper1 = self.getOperObj(op, 1) & 0xffff
+        oper2 = self.getOperObj(op, 2) & 0xffff
 
         s1 = e_bits.signed(oper1 & 0xffff, 2)
         s2 = e_bits.signed(oper2 >> 16, 2)
 
         result = s1 * s2
 
-        self.setOperValue(op, 0, result)
+        self.setOperObj(op, 0, result)
 
     def i_smultt(self, op):
-        oper1 = self.getOperValue(op, 1) & 0xffff
-        oper2 = self.getOperValue(op, 2) & 0xffff
+        oper1 = self.getOperObj(op, 1) & 0xffff
+        oper2 = self.getOperObj(op, 2) & 0xffff
 
         s1 = e_bits.signed(oper1 >>16, 2)
         s2 = e_bits.signed(oper2 >>16, 2)
 
         result = s1 * s2
 
-        self.setOperValue(op, 0, result)
+        self.setOperObj(op, 0, result)
 
     def i_tbb(self, op):
         # TBB and TBH both come here.
@@ -1408,22 +1477,22 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         tsize = op.opers[0].tsize
         tbl = []
         '''
-        base = op.opers[0].getOperValue(op, self)
+        base = op.opers[0].getOperObj(op, self)
         val0 = self.readMemValue(base, 4)
         if val0 > 0x100 + base:
-            print "ummmm.. Houston we got a problem.  first option is a long ways beyond BASE"
+            print("ummmm.. Houston we got a problem.  first option is a long ways beyond BASE")
 
         va = base
         while va < val0:
             tbl.append(self.readMemValue(va, 4))
             va += tsize
 
-        print "tbb: \n\t" + '\n'.join([hex(x) for x in tbl])
+        print("tbb: \n\t" + '\n'.join([hex(x) for x in tbl]))
 
         ###
-        jmptblval = self.getOperAddr(op, 0)
-        jmptbltgt = self.getOperValue(op, 0) + base
-        print "0x%x: 0x%r\njmptblval: 0x%x\njmptbltgt: 0x%x" % (op.va, op, jmptblval, jmptbltgt)
+        jmptblval = self.getOperAddrObj(op, 0)
+        jmptbltgt = self.getOperObj(op, 0) + base
+        print("0x%x: 0x%r\njmptblval: 0x%x\njmptbltgt: 0x%x" % (op.va, op, jmptblval, jmptbltgt))
         raw_input("PRESS ENTER TO CONTINUE")
         return jmptbltgt
         '''
@@ -1435,7 +1504,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             base = op.opers[0].va
             logger.debug("TB base = 0%x", base)
 
-        #base = op.opers[0].getOperValue(op, emu)
+        #base = op.opers[0].getOperObj(op, emu)
         logger.debug("base: 0x%x" % base)
         val0 = emu.readMemValue(base, tsize)
 
@@ -1473,8 +1542,8 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             emu.setRegister(idxreg, 0) # args handed in can be replaced with index 0
 
         jmptblbase = op.opers[0]._getOperBase(emu)
-        jmptblval = emu.getOperAddr(op, 0)
-        jmptbltgt = (emu.getOperValue(op, 0) * 2) + base
+        jmptblval = emu.getOperAddrObj(op, 0)
+        jmptbltgt = (emu.getOperObj(op, 0) * 2) + base
         logger.debug("0x%x: 0x%r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x", op.va, op, jmptblbase, jmptblval, jmptbltgt)
         #raw_input("PRESS ENTER TO CONTINUE")
         return jmptbltgt
@@ -1482,14 +1551,14 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_tbh = i_tbb
 
     def i_ubfx(self, op):
-        src = self.getOperValue(op, 1)
-        lsb = self.getOperValue(op, 2)
-        width = self.getOperValue(op, 3)
+        src = self.getOperObj(op, 1)
+        lsb = self.getOperObj(op, 2)
+        width = self.getOperObj(op, 3)
         mask = (1 << width) - 1
 
         val = (src>>lsb) & mask
 
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
 
     def i_umull(self, op):
@@ -1504,18 +1573,18 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         logger.warn("FIXME: 0x%x: %s - in emu", op.va, op)
 
     def i_mla(self, op):
-        src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
-        src3 = self.getOperValue(op, 3)
+        src1 = self.getOperObj(op, 1)
+        src2 = self.getOperObj(op, 2)
+        src3 = self.getOperObj(op, 3)
 
         val = (src1 * src2 + src3) & 0xffffffff
 
-        self.setOperValue(op, 0, val)
+        self.setOperObj(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
         if Sflag:
-            self.setFlag(PSR_N_bit, e_bits.is_signed(val, 4))
-            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag('eflags_lt', e_bits.is_signed(val, 4))
+            self.setFlag('eflags_eq', not val)
 
 
 
@@ -1770,7 +1839,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         else:
             raise Exception("WTFO?  i_imul with no opers")
 
-        #print "FIXME: IMUL FLAGS only valid for POSITIVE results"
+        #print("FIXME: IMUL FLAGS only valid for POSITIVE results")
         f = gt(res, Const(e_bits.s_maxes[dsize/2], dsize))
         self.effSetVariable('eflags_cf', f)
         self.effSetVariable('eflags_of', f)
@@ -1873,10 +1942,10 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_jnle = i_jg
 
     #def i_jno(self, op):
-        #if self.cond_no():   return self.getOperValue(op, 0)
+        #if self.cond_no():   return self.getOperObj(op, 0)
 
     #def i_jnp(self, op):
-        #if self.cond_np():   return self.getOperValue(op, 0)
+        #if self.cond_np():   return self.getOperObj(op, 0)
 
     def i_jns(self, op):
         return self._cond_jmp(op, cnot(Var('eflags_sf', self._psize)))
@@ -1884,10 +1953,10 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_jnz = i_jne
 
     #def i_jo(self, op):
-        #if self.cond_o():    return self.getOperValue(op, 0)
+        #if self.cond_o():    return self.getOperObj(op, 0)
 
     #def i_jp(self, op):
-        #if self.cond_p():    return self.getOperValue(op, 0)
+        #if self.cond_p():    return self.getOperObj(op, 0)
 
     #i_jpe = i_jp
     #i_jpo = i_jnp
@@ -1936,7 +2005,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         #else:
             #esi += 4
             #edi += 4
-        #print 'FIXME how to handle DF bit?'
+        #print('FIXME how to handle DF bit?')
 
         self.effSetVariable(self.__srcp__, si + Const(4, self._psize))
         self.effSetVariable(self.__destp__, di + Const(4, self._psize))
@@ -2259,7 +2328,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             #edi -= 4
         #else:
             #edi += 4
-        #print 'FIXME DF IN stosd'
+        #print('FIXME DF IN stosd')
         di += Const(4, self._psize)
         self.effSetVariable(self.__destp__, di)
 
