@@ -62,14 +62,14 @@ def buildFunctionApi(vw, fva, emu, emumon):
             break
 
     if emumon.stackmax > 0:
-        targc = (emumon.stackmax / 8) + 6
+        targc = (emumon.stackmax // 8) + 6
         if targc > 40:
             emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
             #argc = 0
         else:
             argc = targc
 
-    funcargs = [ ('int',ppcname(i)) for i in xrange(argc) ]
+    funcargs = [ ('int',ppcname(i)) for i in range(argc) ]
 
     api = ('int',None,callconv,None,funcargs)
     vw.setFunctionApi(fva, api)
@@ -101,7 +101,7 @@ def analyzeFunction(vw, fva):
     baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in xrange( stcount ):
+    for i in range(stcount):
 
         vw.setFunctionLocal(fva, baseoff + ( i * 8 ), LSYM_FARG, i+stackidx)
 
