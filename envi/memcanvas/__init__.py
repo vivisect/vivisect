@@ -5,6 +5,7 @@ MemoryCanvas objects.
 
 import sys
 import logging
+import functools
 import traceback
 
 import envi.symstore.resolver as e_resolv
@@ -30,10 +31,11 @@ class MemoryRenderer(object):
 
     def rendChars(self, mcanv, bytez):
         for b in bytez:
-            val = ord(b)
-            bstr = "%.2x" % val
-            if val < 0x20 or val > 0x7e:
+            bstr = "%.2x" % b
+            if b < 0x20 or b > 0x7e:
                 b = "."
+            else:
+                b = chr(b)
             mcanv.addNameText(b, bstr)
 
     def render(self, mcanv, va):
@@ -148,7 +150,7 @@ class MemoryCanvas(object):
     def render(self, va, size, rend=None):
         raise Exception('Deprecated!  use renderMemory!')
 
-    def clearCanvas(self):
+    def clearCanvas(self, cb=None):
         pass
 
     def _beginRenderMemory(self, va, size, rend):
@@ -313,22 +315,11 @@ class MemoryCanvas(object):
 
         self._endRenderAppend(cb)
 
-    def renderMemory(self, va, size, rend=None, cb=None):
-
-        # if this is not a "scrolled" canvas, clear it.
-        if not self._canv_scrolled:
-            self.clearCanvas()
-
-        if rend is None:
-            rend = self.currend
-
-        self.currend = rend
-
-        # Set our canvas render tracking variables.
-        self._canv_beginva = va
-        self._canv_endva = va + size
-        self._canv_rendvas = []
-
+    def _canvasCleared(self, cb, data):
+        va = self._canv_beginva
+        maxva = self._canv_endva
+        size = maxva - va
+        rend = self.currend
         # A callback for "bulk" rendering (let the canvas cache...)
         self._beginRenderMemory(va, size, rend)
         try:
@@ -353,6 +344,22 @@ class MemoryCanvas(object):
         # Canvas callback for render completion (or error...)
         self._endRenderMemory(va, size, rend, cb)
 
+    def renderMemory(self, va, size, rend=None, cb=None):
+        # Set our canvas render tracking variables.
+        self._canv_beginva = va
+        self._canv_endva = va + size
+        self._canv_rendvas = []
+        if rend is None:
+            rend = self.currend
+        self.currend = rend
+
+        clearcb = functools.partial(self._canvasCleared, cb)
+        # if this is not a "scrolled" canvas, clear it.
+        if not self._canv_scrolled:
+            self.clearCanvas(clearcb)
+        else:
+            clearcb(None)
+
 
 class StringMemoryCanvas(MemoryCanvas):
 
@@ -364,7 +371,7 @@ class StringMemoryCanvas(MemoryCanvas):
         # we don't want it cleared every renderMemory call.
         self.setScrolledCanvas(True)
 
-    def clearCanvas(self):
+    def clearCanvas(self, cb=None):
         self.strval = ''
 
     def addText(self, text, tag=None):
