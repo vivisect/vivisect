@@ -331,8 +331,11 @@ class RxDisasm:
                 if li is not None:
                     if li == 0:
                         li = 4
-                    imm = e_bits.parsebytes(bytez, off, li, sign=False, bigend=True)
-                    imm = e_bits.sign_extend(imm, li, 4)
+                        imm = e_bits.parsebytes(bytez, off, li, sign=False)
+                    else:
+                        imm = e_bits.parsebytes(bytez, off, li, sign=False)
+                        imm = e_bits.sign_extend(imm, li, 4) 
+                    #print("  li: %x   imm: 0x%x" % (li, imm))
                     off += li
                     opsz += li
 
@@ -356,7 +359,7 @@ class RxDisasm:
                         elif regconst == O_RS:
                             if O_LDS in operkeys:
                                 lds = fields.get(O_LDS)
-                                dsp = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
+                                dsp = e_bits.parsebytes(bytez, off, lds, sign=False)
                                 opers.append(RxDspOper(val, dsp, tsize=tsize, oflags=oflags, va=va))
                                 off += lds
                                 opsz += lds
@@ -380,11 +383,13 @@ class RxDisasm:
                 #print("ldd: %r   lds: %r" % (ldd, lds))
 
                 if li is not None:
-                    #print("  li: %x" % li)
                     if li == 0:
                         li = 4
-                    imm = e_bits.parsebytes(bytez, off, li, sign=False, bigend=True)
-                    imm = e_bits.sign_extend(imm, li, 4)
+                        imm = e_bits.parsebytes(bytez, off, li, sign=False)
+                    else:
+                        imm = e_bits.parsebytes(bytez, off, li, sign=False)
+                        imm = e_bits.sign_extend(imm, li, 4) 
+                    #print("  li: %x   imm: 0x%x" % (li, imm))
                     off += li
                     opsz += li
 
@@ -414,7 +419,7 @@ class RxDisasm:
                         elif regconst == O_RD:
                             if ldd in (1,2):
                                 #print(mnem, [nms[key] for key in operkeys])
-                                dsp = e_bits.parsebytes(bytez, off, ldd, sign=False, bigend=True)
+                                dsp = e_bits.parsebytes(bytez, off, ldd, sign=False)
                                 opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
                                 off += ldd
                                 opsz += ldd
@@ -428,7 +433,7 @@ class RxDisasm:
 
                         elif regconst == O_RS:
                             if lds in (1,2):
-                                dsp = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
+                                dsp = e_bits.parsebytes(bytez, off, lds, sign=False)
                                 opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
                                 off += lds
                                 opsz += lds
@@ -509,7 +514,7 @@ class RxDisasm:
                         'BMCND: ld cannot be 3')
 
             badd = ld
-            dsp = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
+            dsp = e_bits.parsebytes(bytez, off, badd, sign=False)
             opsz += badd
         else:
             dsp = 0
@@ -537,7 +542,7 @@ class RxDisasm:
 
         else:   # dsp operand with 0 or some 1- or 2-byte displacement
             badd = ld
-            dsp = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
+            dsp = e_bits.parsebytes(bytez, off, badd, sign=False)
             opsz += badd
 
             opers = (RxDspOper(rd, dsp, va), )
@@ -560,7 +565,7 @@ class RxDisasm:
         else:
             dsps = 0
             if lds in (1,2):
-                dsps = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
+                dsps = e_bits.parsebytes(bytez, off, lds, sign=False)
                 opsz += lds
             
             opers = (
@@ -585,7 +590,7 @@ class RxDisasm:
         else:
             dsps = 0
             if lds in (1,2):
-                dsps = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
+                dsps = e_bits.parsebytes(bytez, off, lds, sign=False)
                 opsz += lds
             
             opers = (
@@ -614,7 +619,7 @@ class RxDisasm:
                         )
             else:
                 if ldd in (1,2):
-                    dsps = e_bits.parsebytes(bytez, off, ldd, sign=False, bigend=True)
+                    dsps = e_bits.parsebytes(bytez, off, ldd, sign=False)
                     opsz += ldd
                 elif ldd == 0:
                     dsps = 0
@@ -633,7 +638,7 @@ class RxDisasm:
             else:
                 dsps = 0
                 if lds in (1,2):
-                    dsps = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
+                    dsps = e_bits.parsebytes(bytez, off, lds, sign=False)
                     opsz += lds
                 
                 opers = (
@@ -656,7 +661,7 @@ class RxDisasm:
         rd = fields.get(O_RD)
         li = fields.get(O_LI)
         badd = (li, 4)[li==0]
-        imm = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
+        imm = e_bits.parsebytes(bytez, off, badd, sign=False)
         imm = e_bits.sign_extend(imm, badd, 4)
         opsz += badd
 
@@ -672,7 +677,7 @@ class RxDisasm:
         rs2 = fields.get(O_RS2)
         li = fields.get(O_LI)
         badd = (li, 4)[li==0]
-        imm = e_bits.parsebytes(bytez, off, badd, sign=False, bigend=True)
+        imm = e_bits.parsebytes(bytez, off, badd, sign=False)
         imm = e_bits.sign_extend(imm, badd, 4)
         opsz += badd
 
@@ -709,11 +714,11 @@ class RxDisasm:
         if lds > 2 or ldd > 2:
             raise InvalidInstruction()
 
-        dsps = e_bits.parsebytes(bytez, off, lds, sign=False, bigend=True)
+        dsps = e_bits.parsebytes(bytez, off, lds, sign=False)
         off += lds
         opsz += lds
 
-        dspd = e_bits.parsebytes(bytez, off, ldd, sign=False, bigend=True)
+        dspd = e_bits.parsebytes(bytez, off, ldd, sign=False)
         opsz += ldd
         off += ldd
 
@@ -884,7 +889,7 @@ class RxImmOper(envi.ImmedOper):
         self.va = va
 
     def getOperValue(self, op, emu=None):
-        return e_bits.signed(self.val, 4)
+        return self.val
 
     def setOperValue(self, op, emu, val):
         logger.warning("%s needs to implement setOperAddr!" % self.__class__.__name__)
@@ -893,7 +898,7 @@ class RxImmOper(envi.ImmedOper):
         logger.warning("%s needs to implement getOperAddr!" % self.__class__.__name__)
 
     def repr(self, op):
-        return hex(self.val)
+        return "#" + hex(self.val)
 
     def render(self, mcanv, op, idx):
         val = self.getOperValue(op)
@@ -920,7 +925,7 @@ class RxPcdspOper(envi.ImmedOper):
     def getOperValue(self, op, emu=None):
         val = self.val
         if self.rel:
-            val += self.va
+            val = (val + self.va) & 0xffffffff
         return val
 
     def setOperValue(self, op, emu, val):
