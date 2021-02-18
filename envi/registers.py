@@ -385,7 +385,7 @@ class RegisterContext:
         of meta-registers) or the name of the register.
         (by Index)
         """
-        return self.getRegisterName(regidx& RMETA_NMASK)
+        return self.getRegisterName(regidx & RMETA_NMASK)
 
     def getRealRegisterName(self, regname):
         """

@@ -1,8 +1,8 @@
+import time
 import logging
 import unittest
 
 import Elf
-import envi
 import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
 import vivisect.analysis.elf as vae
@@ -37,26 +37,27 @@ class ELFTests(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         unittest.TestCase.__init__(self, *args, **kwargs)
         self.data = (
-            ("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls'), ),
+            # ("linux_amd64_ls", linux_amd64_ls_data.ls_data, ('linux', 'amd64', 'ls'), ),
             ("linux_amd64_chown", linux_amd64_chown_data.chown_data, ('linux', 'amd64', 'chown'),),
             ("linux_amd64_libc", linux_amd64_libc_2_27_data.libc_data, ('linux', 'amd64', 'libc-2.27.so'),),
-            ("linux_amd64_libstdc", linux_amd64_libstdc_data.libstdc_data, ('linux', 'amd64', 'libstdc++.so.6.0.25'),),
-            #("linux_amd64_static", linux_amd64_static_data.static64_data, ('linux', 'amd64', 'static64.llvm.elf'),),
-            ("linux_i386_libc", linux_i386_libc_2_13_data.libc_data, ('linux', 'i386', 'libc-2.13.so'),),
+            # ("linux_amd64_libstdc", linux_amd64_libstdc_data.libstdc_data, ('linux', 'amd64', 'libstdc++.so.6.0.25'),),
+            # ("linux_amd64_static", linux_amd64_static_data.static64_data, ('linux', 'amd64', 'static64.llvm.elf'),),
+
+            # while i386 libc is a good test, it takes likel 3 minutes to analyze, which is instane
+            # ("linux_i386_libc", linux_i386_libc_2_13_data.libc_data, ('linux', 'i386', 'libc-2.13.so'),),
             ("linux_i386_libstdc", linux_i386_libstdc_data.libstdc_data, ('linux', 'i386', 'libstdc++.so.6.0.25'),),
-            #("linux_i386_static", linux_i386_static_data.static32_data, ('linux', 'i386', 'static32.llvm.elf'),),
+            # ("linux_i386_static", linux_i386_static_data.static32_data, ('linux', 'i386', 'static32.llvm.elf'),),
             ("linux_arm_sh", linux_arm_sh_data.sh_data, ('linux', 'arm', 'sh'),),
             ("qnx_arm_ksh", qnx_arm_ksh_data.ksh_data, ('qnx', 'arm', 'ksh'),),
             ("openbsd_amd64_ls", openbsd_amd64_ls_data.ls_amd64_data, ('openbsd', 'ls.amd64'),),
             )
 
-
     def test_files(self):
         results = []
         for name, test_data, path in self.data:
             logger.warning("======== %r ========", name)
+            start = time.time()
             fn = helpers.getTestPath(*path)
-            e = Elf.Elf(open(fn))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
 
@@ -65,6 +66,8 @@ class ELFTests(unittest.TestCase):
             logger.debug("testing %r (%r)...", name, fn)
             retval = self.do_file(vw, test_data, name)
             results.append(retval)
+            durn = time.time() - start
+            logger.warning(f'============= {name} took {durn} seconds ===============')
 
         failed = 0
         for fidx, tres in enumerate(results):
@@ -169,7 +172,7 @@ class ELFTests(unittest.TestCase):
             # simple check
             if newexp in oldexps:
                 continue
-            
+
             # comprehensive check
             for oldexp in oldexps:
                 if oldexp[0] == va:
@@ -187,7 +190,7 @@ class ELFTests(unittest.TestCase):
         newrels.sort()
         oldrels = test_data['relocs']
         oldrels.sort()
-        
+
         failed_new = 0
         failed_old = 0
         done = []
@@ -270,14 +273,17 @@ class ELFTests(unittest.TestCase):
                 if xfr == pltva and xto == gotva:
                     match = True
 
-        return 0,0
+        return 0, 0
 
     def debuginfosyms(self, vw, test_data):
         # we don't currently parse debugging symbols.
         # while they are seldom in hard targets, this is a weakness we should correct.
-        return 0,0
+        return 0, 0
 
-    def test_minimal(self):
+    def DISABLEtest_minimal(self):
+        '''
+        Until we've got soe decent tests for this, all this does is prolong the test time
+        '''
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
             logger.warning("======== %r ========", path)
             fn = helpers.getTestPath(*path)
@@ -327,4 +333,4 @@ def genNames(names, fnames):
             continue
         logger.debug('   not skip!:  %.30r      %.30r   %r', name, testname, fname)
 
-        yield va, name 
+        yield va, name

@@ -115,7 +115,7 @@ def getHeaps(trace):
     pebaddr = trace.getMeta("PEB")
     peb = trace.getStruct("ntdll.PEB", pebaddr)
     heapcount = int(peb.NumberOfHeaps)
-    hlist = trace.readMemoryFormat(long(peb.ProcessHeaps), "<"+('P'*heapcount))
+    hlist = trace.readMemoryFormat(int(peb.ProcessHeaps), "<"+('P'*heapcount))
     for haddr in hlist:
         ret.append(Win32Heap(trace, haddr))
     return ret
@@ -201,9 +201,9 @@ class Win32Heap:
                 self._win7ParseSegments()
 
             else:
-                for i in range(long(self.heap.LastSegmentIndex)+1):
+                for i in range(int(self.heap.LastSegmentIndex)+1):
                     sa = self.heap.Segments[i]
-                    self.seglist.append(Win32Segment(self.trace, self, long(sa)))
+                    self.seglist.append(Win32Segment(self.trace, self, int(sa)))
 
         return self.seglist
 

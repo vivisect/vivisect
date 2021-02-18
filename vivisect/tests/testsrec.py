@@ -6,15 +6,15 @@ import vivisect.tests.helpers as helpers
 
 logger = logging.getLogger(__name__)
 
-path = ('raw', 'msp430', 'blink.hex')
+path = ('raw', 'msp430', 'blink.srec')
 
 
-class IHexTests(unittest.TestCase):
+class SrecTests(unittest.TestCase):
 
-    def test_ihex(self):
+    def test_srec(self):
         fn = helpers.getTestPath(*path)
         vw = viv_cli.VivCli()
-        vw.config.viv.parsers.ihex.arch = 'msp430'
+        vw.config.viv.parsers.srec.arch = 'msp430'
         vw.loadFromFile(fn)
 
         vw.makeFunction(0x4000)

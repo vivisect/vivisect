@@ -26,7 +26,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 # first (dest) operand has the register we're interested in for this function
                 tgt = op.getOperValue(0, emu)
                 if tgt is None:
-                    logger.warn("0x%x: %s   tgt is None!", op.va, op)
+                    logger.warning("0x%x: %s   tgt is None!", op.va, op)
                     return
 
                 self.tracker[op.va] = tgt
@@ -86,8 +86,7 @@ def analyzeFunction(vw, fva):
 
             if vw.getFunctionMeta(fva, 'PIE_reg') is None:
                 vw.setFunctionMeta(fva, 'PIE_reg', reg)
-                vw.setComment(op.va, 'Position Indendent Code Register Set: %s' % \
-                        vw.arch._arch_reg.getRegisterName(reg))
+                vw.setComment(op.va, 'Position Indendent Code Register Set: %s' % vw.arch._arch_reg.getRegisterName(reg))
 
             if vw.getMeta('PIE_GOT') is None:
                 vw.setMeta('PIE_GOT', got)
@@ -112,7 +111,7 @@ def analyzeFunction(vw, fva):
         logger.exception("Error emulating function 0x%x\n\t%r", fva, emumon.emuanom)
 
     # now roll through tracked references and make xrefs/comments
-    items = emumon.tracker.items()
+    items = list(emumon.tracker.items())
     items.sort()
     for va, tgt in items:
         # if we already have xrefs, don't make more...
@@ -164,9 +163,9 @@ def analyze(vw):
 if globals().get('vw') is not None:
     if len(argv) > 1:
         va = vw.parseExpression(argv[1])
-        logger.warn("analyzing workspace function %x for thunk_reg", va)
+        logger.warning("analyzing workspace function %x for thunk_reg", va)
         analyzeFunction(vw, va)
     else:
-        logger.warn("analyzing workspace for thunk_reg")
+        logger.warning("analyzing workspace for thunk_reg")
         analyze(vw)
-    logger.warn("done")
+    logger.warning("done")

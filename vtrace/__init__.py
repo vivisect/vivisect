@@ -35,8 +35,6 @@ import types
 import logging
 import platform
 
-import cPickle as pickle
-
 import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
@@ -339,9 +337,9 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         "normalized" library names.  This method returns
         the list of normalized names for the loaded libraries.
 
-        (probably only useful for writting symbol browsers...)
+        (probably only useful for writing symbol browsers...)
         """
-        return self.getMeta("LibraryBases").keys()
+        return list(self.getMeta("LibraryBases").keys())
 
     def getSymsForFile(self, libname):
         """
@@ -518,14 +516,14 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         back as \x00s (this probably goes in a mixin soon)
         """
         self.requireNotRunning()
-        return self.platformReadMemory(long(address), long(size))
+        return self.platformReadMemory(int(address), int(size))
 
     def writeMemory(self, address, bytez):
         """
         Write the given bytes to the address in the current trace.
         """
         self.requireNotRunning()
-        self.platformWriteMemory(long(address), bytez)
+        self.platformWriteMemory(int(address), bytez)
 
     def searchMemory(self, needle, regex=False):
         """
@@ -737,7 +735,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         Return a list of the current breakpoints.
         """
-        return self.bpbyid.values()
+        return list(self.bpbyid.values())
 
     def getBreakpointEnabled(self, bpid):
         """
@@ -937,8 +935,8 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
         Example: trace.parseExpression("ispoi(ecx+ntdll.RtlAllocateHeap)")
         """
-        locs = VtraceExpressionLocals(self)
-        return long(e_expr.evaluate(expression, locs))
+        vlocs = VtraceExpressionLocals(self)
+        return int(e_expr.evaluate(expression, vlocs))
 
     def sendBreak(self):
         """
@@ -1200,12 +1198,10 @@ class TraceGroup(Notifier, v_util.TraceManager):
     def addTrace(self, proc):
         """
         Add a new tracer to this group the "proc" argument
-        may be either an long() for a pid (which we will attach
+        may be either an int for a pid (which we will attach
         to) or an already attached (and broken) tracer object.
         """
-
-        if (type(proc) == types.IntType or
-            type(proc) == types.LongType):
+        if isinstance(proc, int):
             trace = getTrace()
             self._initTrace(trace)
             self.traces[proc] = trace
@@ -1215,7 +1211,7 @@ class TraceGroup(Notifier, v_util.TraceManager):
                 self.delTrace(proc)
                 raise
 
-        else: # Hopefully a tracer object... if not.. you're dumb.
+        else:  # Hopefully a tracer object... if not.. you're dumb.
             trace = proc
             self._initTrace(trace)
             self.traces[trace.getPid()] = trace
@@ -1256,7 +1252,7 @@ class TraceGroup(Notifier, v_util.TraceManager):
         """
         Return a list of the current traces
         """
-        return self.traces.values()
+        return list(self.traces.values())
 
     def getTraceByPid(self, pid):
         """

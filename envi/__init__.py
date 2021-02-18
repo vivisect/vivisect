@@ -86,7 +86,7 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
-        self._arch_badopbytes = ['\x00\x00\x00\x00\x00', '\xff\xff\xff\xff\xff']
+        self._arch_badopbytes = [b'\x00\x00\x00\x00\x00', b'\xff\xff\xff\xff\xff']
         self.setEndian(endian)
         self.badops = []
 
@@ -192,9 +192,9 @@ class ArchitectureModule:
 
         "info" should be a dictionary with the {'arch': ARCH_FOO}
 
-        eg.  for ARM, the ARM disassembler would hand in 
+        eg.  for ARM, the ARM disassembler would hand in
             {'arch': ARCH_ARMV7}
-        
+
         and if va is odd, that architecture's implementation would return
             (va & -2), {'arch': ARCH_THUMB}
         '''
@@ -219,7 +219,7 @@ class ArchitectureModule:
             # if we've already done this exercize...
             if len(self.badops):
                 return self.badops
-            
+
             # otherwise, let's start with the architecture's badops list
             byteslist = self._arch_badopbytes
 
@@ -516,7 +516,7 @@ class Opcode:
         return oper.getOperValue(self, emu=emu)
 
     def getOperands(self):
-        return list(self.opers)
+        return self.opers
 
 class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     """
@@ -729,7 +729,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         return self._emu_call_convs.get(name)
 
     def getCallingConventions(self):
-        return self._emu_call_convs.items()
+        return list(self._emu_call_convs.items())
 
     def readMemValue(self, addr, size):
         """
@@ -780,8 +780,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
 
     def intSubBase(self, subtrahend, minuend, ssize, msize):
         '''
-        Base for integer subtraction.  
-        Segmented such that order of operands can easily be overridden by 
+        Base for integer subtraction.
+        Segmented such that order of operands can easily be overridden by
         subclasses.  Does not set flags (arch-specific), and doesn't set
         the dest operand.  That's up to the instruction implementation.
 
@@ -888,11 +888,11 @@ class CallingConvention(object):
                                         Currently the number is ignored
 
         retaddr_def  - where does the function get a return address from?
-            (CC_STACK, #) - on the stack, at offset 0 
+            (CC_STACK, #) - on the stack, at offset 0
             (CC_REG, REG_which) - in register "REG_which", eg. REG_LR
 
         retval_def  - where does the function return value go?
-            (CC_STACK, #) - on the stack, at offset 0 
+            (CC_STACK, #) - on the stack, at offset 0
             (CC_REG, REG_which) - in register "REG_which", eg. REG_EAX
 
         CC_REG      - Ret, Retval or Arg use a particular register

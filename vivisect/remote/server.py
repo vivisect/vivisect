@@ -1,14 +1,12 @@
 import os
 import sys
-import time
 import cobra
-import Queue
+import queue
 import logging
 import argparse
 import threading
 
 import vivisect
-import vivisect.cli as viv_cli
 import vivisect.storage.basicfile as viv_basicfile
 
 import cobra.dcode
@@ -42,7 +40,7 @@ class VivServerClient:
         self.wsname = wsname
         self.server = server
         self.eoffset = 0
-        self.q = Queue.Queue()  # The actual local Q we deliver to
+        self.q = queue.Queue()  # The actual local Q we deliver to
 
     @e_threads.firethread
     def _eatServerEvents(self):
@@ -126,7 +124,7 @@ class VivServer:
         '''
         Get a list of the workspaces this server is willing to share.
         '''
-        return self.wsdict.keys()
+        return list(self.wsdict.keys())
 
     def addNewWorkspace(self, wsname, events):
         wspath = os.path.join(self.path, wsname)
@@ -139,7 +137,7 @@ class VivServer:
 
         wsdir = os.path.dirname(wspath)
         if not os.path.isdir(wsdir):
-            os.makedirs(wsdir, 0750)
+            os.makedirs(wsdir, 0o750)
 
         viv_basicfile.vivEventsToFile(wspath, events)
         wsinfo = [threading.Lock(), wspath, [], {}]

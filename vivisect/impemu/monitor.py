@@ -136,7 +136,7 @@ class AnalysisMonitor(EmulationMonitor):
                     operva = o.getOperAddr(op, emu)
                     # keep track of the max here, but save it for later too...
                     stackoff = emu.getStackOffset(operva)
-                    if stackoff >= 0:  # None is not >= 0 ;)
+                    if stackoff and stackoff >= 0:
                         self.stackmax = max(self.stackmax, stackoff)
                         self.stackargs[stackoff] = True
 

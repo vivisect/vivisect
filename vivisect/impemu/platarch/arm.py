@@ -1,12 +1,14 @@
-import envi
 import logging
+
+import envi
+import envi.common as e_common
 import envi.archs.arm as e_arm
+from envi.archs.arm.regs import *
 
 import vivisect.exc as v_exc
 import vivisect.impemu.emulator as v_i_emulator
 
 import visgraph.pathcore as vg_path
-from envi.archs.arm.regs import *
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +17,13 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
     taintregs = [x for x in range(13)]
 
-    def __init__(self, vw, logwrite=False, logread=False):
+    def __init__(self, vw, **kwargs):
+        '''
+        Please see the base emulator class in vivisect/impemu/emulator.py for the parameters
+        that can be passed through kwargs
+        '''
         e_arm.ArmEmulator.__init__(self)
-        v_i_emulator.WorkspaceEmulator.__init__(self, vw, logwrite=logwrite, logread=logread)
+        v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setMemArchitecture(envi.ARCH_ARMV7)
 
     def setThumbMode(self, thumb=1):
@@ -126,7 +132,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
                 if armop is None and thumbop is None:
                     # we didn't have a single push in either direction
-                    logger.warn("TOTAL FAILURE TO DETERMINE THUMB MODE")
+                    logger.warning("TOTAL FAILURE TO DETERMINE THUMB MODE")
                     raise Exception("Neither architecture parsed the first opcode")
 
                 elif armthumb < 0:
@@ -208,8 +214,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                             logger.debug(repr(e))
                             break
                         except Exception as e:
-                            if not self.getMeta('silent'):
-                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
+                            logger.log(e_common.EMULOG, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
 
                         if self.emustop:
                             return
@@ -224,8 +229,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         try:
                             self.emumon.posthook(self, op, endeip)
                         except Exception as e:
-                            if not self.getMeta('silent'):
-                                logger.warn("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
+                            logger.log(e_common.EMULOG, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
                         if self.emustop:
                             return
 
@@ -271,8 +275,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     break # If we exc during execution, this branch is dead.
 
 class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):
-    def __init__(self, vw, logwrite=False, logread=False):
-        ArmWorkspaceEmulator.__init__(self, vw, logwrite, logread)
+    def __init__(self, vw, **kwargs):
+        ArmWorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setThumbMode()
         self.setMemArchitecture(envi.ARCH_THUMB)
 
@@ -280,8 +284,8 @@ class ThumbWorkspaceEmulator(ArmWorkspaceEmulator):
         return ArmWorkspaceEmulator.runFunction(self, funcva, stopva, maxhit, maxloop, tmode=1)
 
 class Thumb16WorkspaceEmulator(ArmWorkspaceEmulator):
-    def __init__(self, vw, logwrite=False, logread=False):
-        ArmWorkspaceEmulator.__init__(self, vw, logwrite, logread)
+    def __init__(self, vw, **kwargs):
+        ArmWorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setThumbMode()
         self.setMemArchitecture(envi.ARCH_THUMB16)
 
@@ -300,11 +304,11 @@ st0len gratuitously from wikipedia:
     r0 to r3: used to hold argument values passed to a subroutine, and also hold results returned from a subroutine.
 
     If the type of value returned is too large to fit in r0 to r3, or whose size cannot be determined statically at compile time, then the caller must allocate space for that value at run time, and pass a pointer to that space in r0.
-    
+
     Subroutines must preserve the contents of r4 to r11 and the stack pointer. (Perhaps by saving them to the stack in the function prologue, then using them as scratch space, then restoring them from the stack in the function epilogue). In particular, subroutines that call other subroutines *must* save the return address in the link register r14 to the stack before calling those other subroutines. However, such subroutines do not need to return that value to r14-they merely need to load that value into r15, the program counter, to return.
 
     The ARM stack is full-descending.[3]
-    
+
     This calling convention causes a "typical" ARM subroutine to
     * In the prolog, push r4 to r11 to the stack, and push the return address in r14, to the stack. (This can be done with a single STM instruction).
     * copy any passed arguments (in r0 to r3) to the local scratch registers (r4 to r11).

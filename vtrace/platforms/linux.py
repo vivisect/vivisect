@@ -3,7 +3,6 @@ Linux Platform Module
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
-import time
 import signal
 import struct
 import logging
@@ -14,7 +13,6 @@ import traceback
 import envi.cli as e_cli
 import envi.bits as e_bits
 import envi.memory as e_mem
-import envi.registers as e_reg
 
 import vtrace
 import vtrace.exc as v_exc
@@ -34,7 +32,7 @@ logger = logging.getLogger(__name__)
 if os.getenv('ANDROID_ROOT'):
     libc = CDLL('/system/lib/libc.so')
 else:
-    libc = CDLL(cutil.find_library("c"))
+    libc = CDLL(cutil.find_library("c"), use_errno=True)
 
 libc.lseek64.restype = c_ulonglong
 libc.lseek64.argtypes = [c_uint, c_ulonglong, c_uint]
@@ -285,10 +283,6 @@ class user_regs_amd64(Structure):
 intel_dbgregs = (0,1,2,3,6,7)
 
 
-def bytify(bytez):
-    return ''.join(map(chr, bytez))
-
-
 class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
     """
     The mixin to take care of linux specific platform traits.
@@ -312,9 +306,13 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         A utility to open (if necessary) and seek the memfile
         """
         if self.memfd is None:
-            self.memfd = libc.open("/proc/%d/mem" % self.pid, O_RDWR | O_LARGEFILE, 0755)
+            self.memfd = libc.open(b"/proc/%d/mem" % self.pid, O_RDWR | O_LARGEFILE, 0o755)
+            if self.memfd < 0:
+                logger.warning('Failed to get proper file descriptor (errno: %d)', get_errno())
 
-        x = libc.lseek64(self.memfd, offset, 0)
+        retn = libc.lseek64(self.memfd, offset, 0)
+        if retn < 0:
+            logger.warning('lseek64 hit issue with error: %d' % get_errno())
 
     @v_base.threadwrap
     def platformReadMemory(self, address, size):
@@ -328,7 +326,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         x = libc.read(self.memfd, addressof(buf), size)
         if x != size:
             # libc.perror('libc.read %d (size: %d)' % (x,size))
-            raise Exception("reading from invalid memory %s (%d returned)" % (hex(address), x))
+            raise Exception("reading from invalid memory %s (%d returned) (errno: %d) (fd: %d)" % (hex(address), x, get_errno(), self.memfd))
         # We have to slice cause ctypes "helps" us by adding a null byte...
         return buf.raw
 
@@ -647,7 +645,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
     def platformGetThreads(self):
         ret = {}
         for tid in self.pthreads:
-            ret[tid] = tid #FIXME make this pthread struct or stackbase soon
+            ret[tid] = tid  # FIXME make this pthread struct or stackbase soon
         return ret
 
     def platformGetMaps(self):
@@ -661,8 +659,8 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 permstr = sline[1]
                 fname = sline[-1].strip()
                 addrs = addrs.split("-")
-                base = long(addrs[0],16)
-                max = long(addrs[1],16)
+                base = int(addrs[0],16)
+                max = int(addrs[1],16)
                 mlen = max-base
 
                 if "r" in permstr:
@@ -787,7 +785,7 @@ class Linuxi386Trace(
         SYS_mmap = 90
 
         self.writeMemory(sp, mma)
-        self.writeMemory(pc, "\xcd\x80")
+        self.writeMemory(pc, b"\xcd\x80")
         self.setRegisterByName("eax", SYS_mmap)
         self.setRegisterByName("ebx", sp)
         self._syncRegs()
@@ -863,7 +861,7 @@ class LinuxAmd64Trace(
         for i in range(fpu_len):
             offset = fpu_off + i * 16
             # the upper 48 bits of the st/mm registers are marked as reserved
-            valu = e_bits.parsebytes(bytify(iovec[offset:offset+10]), 0, 10)
+            valu = e_bits.parsebytes(bytes(iovec[offset:offset+10]), 0, 10)
             ctx.setRegister(regidx+i, valu)
 
         xmm_off = 160
@@ -871,23 +869,22 @@ class LinuxAmd64Trace(
         # these are just the lower bits of the simd registers (just the xmm portion)
         for i in range(len(simd_regs)):
             offset = xmm_off + i * 16
-            simd_regs[i] = e_bits.parsebytes(bytify(iovec[offset:offset+16]), 0, 16)
+            simd_regs[i] = e_bits.parsebytes(bytes(iovec[offset:offset+16]), 0, 16)
 
-        xstate_bv = e_bits.parsebytes(bytify(iovec[512:520]), 0, 8)
+        xstate_bv = e_bits.parsebytes(bytes(iovec[512:520]), 0, 8)
         has_avx = xstate_bv & 0x4
         # XXX: Sooooo....we're gonna cheat a bit here. Technically what we're supposed to do
         # is check CPUID.(EAX=0x0D, ECX=i) for every feature and se how many bytes it takes up, but 
         # right now the goal is just to get the upper YMM registers, and we know exactly how
-        # man bytes those take up, and they're literally the first state component in the extended
-        # xsave region (standard or compacted), so yolo, let's parse us some bytes if the 
-        # has_avx bit is set.
+        # many bytes those take up, and they're literally the first state component in the extended
+        # xsave region (standard or compacted), so let's parse us some bytes if the has_avx bit is set.
         # (we're also doing it this way because I don't feel like figuring out how to directly call
         # the cpuid asm instruction from python)
         if has_avx:
             ymm_offset = 576
             for i in range(len(simd_regs)):
                 offset = ymm_offset + i*16
-                valu = e_bits.parsebytes(bytify(iovec[offset:offset+16]), 0, 16)
+                valu = e_bits.parsebytes(bytes(iovec[offset:offset+16]), 0, 16)
                 simd_regs[i] |= valu << 128
 
         regidx = self.archGetRegCtx().getRegisterIndex("ymm0")
