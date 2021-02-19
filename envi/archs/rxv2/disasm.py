@@ -277,8 +277,31 @@ class RxDisasm:
         fields = {}
         for fkey, fparts in operdefs:
             fdata = 0
+            fullmask = 0
+
             for shval, fmask in fparts:
+                fullmask |= fmask
                 fdata |= ((val >> shval) & fmask)
+
+            if fullmask > 255:
+                # this is a >8 bit
+                isize = 0
+                newdata = 0
+                while fullmask:
+                    isize += 1
+                    newdata <<= 8
+                    newdata |= fdata & 0xff
+                    fdata >>= 8
+                    fullmask >>= 8
+
+                if fkey != O_UIMM and 1 < isize < 4:
+                    fdata = e_bits.sign_extend(newdata, isize, 4)
+                    #print("0x%x: signed: %d, %d, 0x%x -> 0x%x" % (va, isize, 4, newdata, fdata))
+                else:
+                    #print("fkey: %r: %r" % (fkey, nms[fkey]))
+                    fdata = newdata
+                    #print("0x%x: NOT signed: %d, %d, 0x%x -> 0x%x" % (va, isize, 4, newdata, fdata))
+
             
             fields[fkey] = fdata
 
@@ -484,7 +507,7 @@ class RxDisasm:
             if lds == 0:
                 dsp = 0
             else:
-                fmt = e_bits.getFormat(lds, big_endian=True, signed=False)
+                fmt = e_bits.getFormat(lds, big_endian=False, signed=False)
                 dsp, = struct.unpack_from(fmt, bytez, off)
                 opsz += lds
                 off += lds
@@ -837,7 +860,12 @@ class RxRegOper(envi.RegisterOper):
 
     def render(self, mcanv, op, idx):
         rname = regs.rctx.getRegisterName(self.reg)
-        mcanv.addNameText(rname, typename='registers')
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        if hint is not None:
+            mcanv.addNameText(hint)
+
+        else:
+            mcanv.addNameText(rname, typename='registers')
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -901,9 +929,24 @@ class RxImmOper(envi.ImmedOper):
         return "#" + hex(self.val)
 
     def render(self, mcanv, op, idx):
-        val = self.getOperValue(op)
+        value = self.getOperValue(op)
         mcanv.addText('#')
-        mcanv.addNameText(hex(val))
+
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        if hint is not None:
+            if mcanv.mem.isValidPointer(value):
+                mcanv.addVaText(hint, value)
+            else:
+                mcanv.addNameText(hint)
+        elif mcanv.mem.isValidPointer(value):
+            name = addrToName(mcanv, value)
+            mcanv.addVaText(name, value)
+        else:
+
+            if value >= 4096:
+                mcanv.addNameText('0x%.8x' % value)
+            else:
+                mcanv.addNameText(str(value))
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -914,7 +957,7 @@ class RxImmOper(envi.ImmedOper):
 
 class RxUImmOper(RxImmOper):
     def getOperValue(self, op, emu=None):
-        return self.val, 4
+        return self.val
 
 class RxPcdspOper(envi.ImmedOper):
     def __init__(self, val, va, relative=True):
@@ -938,9 +981,21 @@ class RxPcdspOper(envi.ImmedOper):
         return "0x%x" % self.getOperValue(op)
 
     def render(self, mcanv, op, idx):
-        val = self.getOperValue(op)
-        mcanv.addText('#')
-        mcanv.addNameText('0x%.2x' % (val))
+        value = self.getOperValue(op)
+
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        if hint is not None:
+            if mcanv.mem.isValidPointer(value):
+                mcanv.addVaText(hint, value)
+            else:
+                mcanv.addNameText(hint)
+
+        elif mcanv.mem.isValidPointer(value):
+            name = addrToName(mcanv, value)
+            mcanv.addVaText(name, value)
+
+        else:
+            mcanv.addNameText('0x%.8x' % value)
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
