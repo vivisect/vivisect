@@ -1,4 +1,5 @@
 import itertools
+import traceback
 
 import vqt.tree as vq_tree
 import vqt.saveable as vq_save
@@ -174,6 +175,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
 
         except Exception as e:
             self.memcanvas.addText('ERROR: %s' % e)
+            self.memcanvas.addText(traceback.format_exception(*sys.exc_info()))
 
     def addVivNames(self, path, symobj, ctx):
         emu, symctx = ctx
