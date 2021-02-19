@@ -140,7 +140,6 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         if vw.isValidPointer(va+lastloc[1]):
             va += lastloc[1]
         self._navExpression(hex(va))
-        self._selectVa(va)
 
     @vq_hotkey.hotkey('viv:nav:prevundef')
     def _hotkey_nav_prevundef(self):
@@ -169,7 +168,6 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
                 va -= 1
 
         self._navExpression(hex(va))
-        self._selectVa(va)
 
     @vq_hotkey.hotkey('viv:make:code')
     def _hotkey_make_code(self):
