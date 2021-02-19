@@ -32,9 +32,9 @@ class VivSymbolikPathsView(vq_tree.VQTreeView):
 
     def loadSymbolikPaths(self, paths):
         cnt = 0
-        model = VivSymbolikPathsModel( parent=self )
-        for i, (emu,effects) in enumerate(paths):
-            model.append( (str(i), len(effects), emu, effects) )
+        model = VivSymbolikPathsModel(parent=self)
+        for i, (emu, effects) in enumerate(paths):
+            model.append((str(i), len(effects), emu, effects))
             cnt += 1
         self.setModel(model)
         return cnt
@@ -81,6 +81,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
         looplabel = QLabel("Max Loops:", parent=self)
 
         self.pathview = VivSymbolikPathsView(vw, parent=self)
+        self.pathview.setFixedHeight(100)
         self.memcanvas = e_q_memcanvas.VQMemoryCanvas(vw, syms=vw, parent=self)
 
         self.pathview.pathSelected.connect(self.symPathSelected)
