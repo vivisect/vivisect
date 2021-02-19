@@ -232,11 +232,12 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
             try:
                 b = b.decode('utf-8')
+                if b in string.printable:
+                    mcanv.addText('    %s' % repr(b), tag=cmnttag)
             except:
-                b = b.hex()
+                # if we don't decode correctly, don't print it.
+                pass
 
-            if b in string.printable:
-                mcanv.addText('    %s' % repr(b), tag=cmnttag)
             if cmnt is not None:
                 mcanv.addText('    ;%s' % cmnt, tag=cmnttag)
 
