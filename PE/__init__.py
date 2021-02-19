@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import struct
 
@@ -178,6 +179,8 @@ RT_ANICURSOR        = 21
 RT_ANIICON          = 22
 RT_HTML             = 23
 RT_MANIFEST         = 24
+
+logger = logging.getLogger('vivisect')
 
 class VS_VERSIONINFO:
     '''
@@ -1019,7 +1022,10 @@ class PE(object):
                     fwdname = self.readAtRva(funcoff, 260, shortok=True).split(b'\x00', 1)[0]
                     self.forwarders.append((funclist[ordl], name.decode('utf-8'), fwdname))
                 else:
-                    self.exports.append((funclist[ordl], ordl, name.decode('utf-8')))
+                    try:
+                        self.exports.append((funclist[ordl], ordl, name.decode('utf-8')))
+                    except UnicodeDecodeError:
+                        logger.warning('Invalid name for export ordinal %i: %s', ordl, name[:16].hex())
 
         # unnamed function exports
         else:
