@@ -40,5 +40,5 @@ setup(
         'Programming Language :: Python :: 2',
         'License :: OSI Approved :: Apache Software License',
     ],
-    python_requires='<3',
+    python_requires='>=3.6',
 )

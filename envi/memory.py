@@ -229,6 +229,8 @@ class IMemory:
         Return a tuple of mapva,size,perms,filename for the memory
         map which contains the specified address (or None).
         '''
+        if va is None:
+            return None
         for mapva, size, perms, mname in self.getMemoryMaps():
             if mapva <= va < (mapva + size):
                 return (mapva, size, perms, mname)
@@ -449,6 +451,8 @@ class MemoryObject(IMemory):
         """
         Get the va,size,perms,fname tuple for this memory map
         """
+        if va is None:
+            return None
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 return mmap
