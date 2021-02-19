@@ -86,6 +86,28 @@ class WorkspaceEmulator:
                     but also full emulation for several other analysis passes, there are several logging
                     calls that are erroneous under the heuristic passes and typically we want those silenced
                     under the heuristic passes only.
+        * taintbase
+            - Type: Integer
+            - Default: 0x4156000F
+            - Desc: This option affects where we start taint values, which are how we determine what has been
+                    written where, what's been called, what values have been edited where, etc.
+                    WARNING: Like taintbyte below, while you can modify this value to suit your needs, you
+                    should review how the emulator works before modifying this value, as this can directly
+                    impact various forms of analysis such as calling convention detection, what values get
+                    associated with what API calls, and more.
+        * taintbyte
+            - Type: A python byte object of length 1
+            - Default: b'a'
+            - Desc: So when the emulator attempts to read memory, and it's in a location that has yet to be
+                    defined (because we're missing the full context of execution inside a real process) or
+                    isn't technically considered okay to read from (see probeMemory in envi/memory.py for
+                    what we consider to be "okay"), but if we have _safe_mem turned on, we instead return a
+                    mocked value that's just the taint bytes, but repeated a number of times equal to the
+                    desired read size. Otherwise, we attempt to drop into the base memory object's readMemory
+                    to see if there is anything there.
+                    WARNING: While this value is configurable, changing this value without knowing what you're
+                    doing can result in undesirable effects (such as infinite recursion when trying to repr
+                    taint values), so change this value with care.
         '''
         self.vw = vw
         # Set down below in runFunction
@@ -94,9 +116,11 @@ class WorkspaceEmulator:
 
         self.hooks = {}
         self.taints = {}
-        self.taintva = itertools.count(0x4156000F, 0x2000)
-        self.taintoffset = 0x10
-        self.taintmask = 0xffffffe0
+        base = int(kwargs.get('taintbase', 0x4156000F))
+        self.taintva = itertools.count(base, 0x2000)
+        self.taintoffset = 0x1000
+        self.taintmask = 0xffffe000
+        self.taintbyte = kwargs.get('taintbyte', b'a')
         self.taintrepr = {}
 
         self.uninit_use = {}
@@ -700,7 +724,7 @@ class WorkspaceEmulator:
         # Read from the emulator's pages if we havent resolved it yet
         probeok = self.probeMemory(va, size, e_memory.MM_READ)
         if self._safe_mem and not probeok:
-            return b'A' * size
+            return self.taintbyte * size
 
         return e_memory.MemoryObject.readMemory(self, va, size)
 
