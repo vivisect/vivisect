@@ -48,6 +48,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('U', 'viv:undefine')
         self.addHotKey('ctrl+p', 'viv:preview:instr')
         self.addHotKey('B', 'viv:bookmark')
+        self.addHotKey('ctrl+meta+J', 'viv:javascript')
 
         self.addHotKey('ctrl+1', 'viv:make:number:one')
         self.addHotKey('ctrl+2', 'viv:make:number:two')
@@ -244,6 +245,12 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
                     for count in range(number):
                         vs = self.vw.makeStructure(curva, self._last_sname)
                         curva += len(vs)
+
+    @vq_hotkey.hotkey('viv:javascript')
+    def _hotkey_dbg_runjavascript(self, parent=None):
+        js, ok = QInputDialog.getText(parent, 'Run Javascript', 'code:')
+        if ok:
+            self.page().runJavaScript(js)
 
     def makeStructAgainMulti(self, va, parent=None):
         if parent is None:
