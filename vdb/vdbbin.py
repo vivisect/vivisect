@@ -12,7 +12,6 @@ import vtrace.snapshot as vt_snap
 
 
 logger = logging.getLogger('vdb')
-e_common.setLogging(logger, 'DEBUG')
 
 
 def targetusage():
@@ -78,8 +77,9 @@ def main():
     args = parser.parse_args()
 
     # setup logging
-    verbose = min(args.verbose, 4)
-    logger.setLevel(loglevels[verbose])
+    verbose = min(args.verbose, 5)
+    level = e_common.LOG_LEVELS[verbose]
+    e_common.setLogging(logger, level)
 
     # Handle some options before we even create a trace.
     vtrace.remote = args.remotehost  # None by default
