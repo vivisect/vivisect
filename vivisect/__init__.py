@@ -21,6 +21,7 @@ import collections
 
 import envi
 import envi.bits as e_bits
+import envi.common as e_common
 import envi.memory as e_mem
 import envi.config as e_config
 import envi.bytesig as e_bytesig
@@ -1080,6 +1081,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.iscode[va]
 
         self.iscode[va] = True
+        # because we're doing partial emulation, demote some of the logging
+        # messages to low priority.
+        kwargs['loglevel'] = e_common.EMULOG
         emu = self.getEmulator(**kwargs)
         wat = v_emucode.watcher(self, va)
         emu.setEmulationMonitor(wat)

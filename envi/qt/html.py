@@ -128,13 +128,17 @@ function scrolltoid(name) {
 
     var elem = document.getElementById(name);
 
-    var elemrect = elem.getBoundingClientRect();
-    if ( elemrect.top < 0 ) {
-        elem.scrollIntoView(true);
-    }
+    if (elem != null) {
+        var elemrect = elem.getBoundingClientRect();
+        if ( elemrect.top < 0 ) {
+            elem.scrollIntoView(true);
+        }
 
-    if ( elemrect.bottom > window.innerHeight ) {
-        elem.scrollIntoView(false);
+        if ( elemrect.bottom > window.innerHeight ) {
+            elem.scrollIntoView(false);
+        }
+    } else {
+        console.log("Failed to find element");
     }
 }
 
