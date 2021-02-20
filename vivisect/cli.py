@@ -28,7 +28,6 @@ import vtrace.envitools as vt_envitools
 import vdb
 
 import envi.cli as e_cli
-import envi.common as e_common
 import envi.memory as e_mem
 import envi.expression as e_expr
 import envi.memcanvas as e_canvas
@@ -37,7 +36,6 @@ import envi.memcanvas.renderers as e_render
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'WARNING')
 
 
 class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):

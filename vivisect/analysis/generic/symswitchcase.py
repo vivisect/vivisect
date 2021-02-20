@@ -269,7 +269,7 @@ def targetNewFunctions(vw, fva):
                 # TODO: improve upon determination of call
                 tgtva = op.getOperValue(0)
                 #logger.debug("-- 0x%x", tgtva)
-                if not vw.isValidPointer(tgtva):
+                if tgtva is None or not vw.isValidPointer(tgtva):
                     continue
 
                 if vw.getFunction(tgtva) is not None:

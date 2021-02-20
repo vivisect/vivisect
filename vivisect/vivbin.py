@@ -16,7 +16,6 @@ import vivisect.parsers as viv_parsers
 
 
 logger = logging.getLogger('vivisect')
-e_common.setLogging(logger, level='WARNING')
 
 loglevels = (
     logging.CRITICAL,
@@ -61,7 +60,8 @@ def main():
 
     # setup logging
     vw.verbose = min(args.verbose, 4)
-    logger.setLevel(loglevels[vw.verbose])
+    e_common.setLogging(logger, level=e_common.LOG_LEVELS[vw.verbose])
+
 
     if args.option is not None:
         for option in args.option:
