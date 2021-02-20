@@ -370,7 +370,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 sdasz = sec.sh_size
                 align = sec.sh_addralign
                 sdasz += align-1
-                sdasz = (sdasz / align) * align
+                sdasz = (sdasz // align) * align
                 sdabase = vw.addMemoryMap(None, 7, fname + sname, '\0' * sdasz)
                 vw.makeName(sdabase, fname + ".bss_temp")
 
@@ -379,7 +379,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 sdasz = sec.sh_size
                 align = sec.sh_addralign
                 sdasz += align-1
-                sdasz = (sdasz / align) * align
+                sdasz = (sdasz // align) * align
                 sdabase = vw.addMemoryMap(None, 7, fname + sname, '\0' * sdasz)
                 vw.makeName(sdabase, "_SDA_BASE_")
 
@@ -388,7 +388,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 sdasz = sec.sh_size
                 align = sec.sh_addralign
                 sda2sz += align-1
-                sda2sz = (sda2sz / align) * align
+                sda2sz = (sda2sz // align) * align
                 sda2base = vw.addMemoryMap(None, 7, fname + sname, '\0' * sda2sz)
                 vw.makeName(sda2base, "_SDA2_BASE_")
 
