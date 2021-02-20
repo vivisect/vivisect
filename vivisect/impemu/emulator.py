@@ -497,12 +497,6 @@ class WorkspaceEmulator:
                     if self.emustop:
                         return
 
-                    # TODO: hook things like error(...) when they have a param that indicates to 
-                    # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
-                    if self.vw.isNoReturnVa(endeip):
-                        vg_path.setNodeProp(self.curpath, 'cleanret', False)
-                        break
-
                     # If it wasn't a call, check for branches, if so, add them to
                     # the todo list and go around again...
                     if not iscall:
@@ -519,6 +513,13 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
+
+                    # TODO: hook things like error(...) when they have a param that indicates to
+                    # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
+                    if self.vw.isNoReturnVa(endeip):
+                        vg_path.setNodeProp(self.curpath, 'cleanret', False)
+                        break
+
                 except envi.BadOpcode:
                     break
                 except envi.UnsupportedInstruction as e:
