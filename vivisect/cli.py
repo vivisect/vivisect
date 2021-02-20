@@ -862,7 +862,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             return self.do_help("m_switch_ptr")
         except:
             import traceback
-            print traceback.format_exc()
+            print(traceback.format_exc())
 
     def do_m_switch_off(self, line):
         '''
