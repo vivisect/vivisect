@@ -343,8 +343,7 @@ class VivisectTest(unittest.TestCase):
         answers = [
             (0x804f7f0, 0x8052560, 'cdecl', 3, 'hash_insert_if_absent'),
             (0x804aad0, 0x8055b50, 'cdecl', 5, 'quotearg_buffer'),
-            # quotearg_buffer_restyled, the problem child
-            # there should be 9 and an msfastcaller here, but meta registers are a nightmare
+            # FIXME: and the problem child continue to suck.
             (0x804ab30, 0x8055bb0, 'cdecl', 7, 'quotearg_buffer_restyled'),
             (0x804b7c0, 0x8056840, 'cdecl', 3, 'quotearg_alloc'),
             (0x804b7e0, 0x8056860, 'cdecl', 4, 'quotearg_alloc_mem'),
@@ -378,7 +377,7 @@ class VivisectTest(unittest.TestCase):
             self.assertIsNotNone(capi)
             self.assertIsNotNone(vapi)
 
-            self.assertEqual(capi[2], cconv)
+            self.assertEqual(capi[2], cconv, f'{hex(cfva)}/{hex(vfva)} wanted cconv of {cconv}, got {capi[2]}')
             self.assertEqual(len(capi[4]), arglen)
             self.assertEqual(capi[2], vapi[2])
             self.assertEqual(capi[4], vapi[4])
