@@ -2,7 +2,7 @@ import logging
 
 import envi
 import envi.common as e_common
-import envi.archs.arm as e_arm
+import envi.archs.arm.emu as e_arm
 from envi.archs.arm.regs import *
 
 import vivisect.exc as v_exc

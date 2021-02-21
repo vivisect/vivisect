@@ -8,7 +8,7 @@ import envi.bits as e_bits
 
 from envi.archs.arm.const import *
 from envi.archs.arm.regs import *
-from vivisect.symboliks.common import *
+# symboliks modules imported in defs..
 
 logger = logging.getLogger(__name__)
 
@@ -4289,6 +4289,7 @@ class ArmRegScalarOper(ArmRegOper):
         return None
 
     #def getOperAddrObj(self, op, xlater):
+        #from vivisect.symboliks.common import Const, Var
         #reg = Var(self._reg_ctx.getRegisterName(oper.reg), oper.tsize)
         #if oper.index == 0:
             #base = reg
@@ -4601,6 +4602,7 @@ class ArmScaledOffsetOper(ArmOperand):
         return emu.getRegister(self.base_reg)
 
     def getOperAddrObj(self, op, xlater):
+        from vivisect.symboliks.common import Const, Var
         secondary = None
 
         base_reg = Var(xlater.vw._reg_ctx.getRegisterName(oper.base_reg), oper.tsize)
@@ -4747,6 +4749,7 @@ class ArmRegOffsetOper(ArmOperand):
         return addr
 
     def getOperAddrObj(self, op, xlater):
+        from vivisect.symboliks.common import Const, Var
         secondary = None
 
         base_reg = Var(self._reg_ctx.getRegisterName(self.base_reg), self.tsize)
@@ -4898,6 +4901,7 @@ class ArmImmOffsetOper(ArmOperand):
         return addr
 
     def getOperAddrObj(self, op, xlater):
+        from vivisect.symboliks.common import Const, Var
         if self.base_reg == REG_PC:
             base = Const(self.va, self.psize)
         else:
