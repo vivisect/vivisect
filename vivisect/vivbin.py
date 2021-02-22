@@ -52,7 +52,7 @@ def main():
     # setup logging
     vw.verbose = min(args.verbose, 4)
     level = e_common.LOG_LEVELS[vw.verbose]
-    e_common.setLogging(logger, level=level, init=True)
+    e_common.initLogging(logger, level=level)
 
 
     # do things
