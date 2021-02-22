@@ -371,7 +371,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 align = sec.sh_addralign
                 sdasz += align-1
                 sdasz = (sdasz // align) * align
-                sdabase = vw.addMemoryMap(None, 7, fname + sname, '\0' * sdasz)
+                sdabase = vw.addMemoryMap(None, 7, fname + sname, b'\0' * sdasz)
                 vw.makeName(sdabase, fname + ".bss_temp")
 
         elif sname in (".sbss", ".sdata"):
@@ -380,7 +380,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 align = sec.sh_addralign
                 sdasz += align-1
                 sdasz = (sdasz // align) * align
-                sdabase = vw.addMemoryMap(None, 7, fname + sname, '\0' * sdasz)
+                sdabase = vw.addMemoryMap(None, 7, fname + sname, b'\0' * sdasz)
                 vw.makeName(sdabase, "_SDA_BASE_")
 
         elif sname in (".sbss2", ".sdata2"):
@@ -389,7 +389,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 align = sec.sh_addralign
                 sda2sz += align-1
                 sda2sz = (sda2sz // align) * align
-                sda2base = vw.addMemoryMap(None, 7, fname + sname, '\0' * sda2sz)
+                sda2base = vw.addMemoryMap(None, 7, fname + sname, b'\0' * sda2sz)
                 vw.makeName(sda2base, "_SDA2_BASE_")
 
         # If the section is really a string table, do it
