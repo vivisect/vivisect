@@ -1824,7 +1824,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # align appropriately
         hint += align-1
-        hint = (hint / align) * align
+        hint = (hint // align) * align
 
         # now go fish...
         memva = hint
