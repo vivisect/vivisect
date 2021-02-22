@@ -380,7 +380,6 @@ class WorkspaceEmulator:
 
         # let's also take into account some of the dynamic branches we may have found
         # like our table pointers
-
         return ret
 
     def stepi(self):
@@ -516,7 +515,7 @@ class WorkspaceEmulator:
 
                     # TODO: hook things like error(...) when they have a param that indicates to
                     # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
-                    if self.vw.isNoReturnVa(endeip):
+                    if self.vw.isNoReturnVa(op.va):
                         vg_path.setNodeProp(self.curpath, 'cleanret', False)
                         break
 

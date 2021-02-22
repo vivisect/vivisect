@@ -135,7 +135,8 @@ class VivisectTest(unittest.TestCase):
                                  (134553488,), (134556128,), (134559504,), (134573472,), (134554096,), (134572464,),
                                  (134575616,), (134575872,), (134575552,), (134582112,), (134561824,), (134573264,),
                                  (134561232,), (134574816,), (134547936,), (134582096,), (134552448,), (134552560,),
-                                 (134575584,), (134553216,), (134573760,), (134582064,)]
+                                 (134575584,), (134553216,), (134573760,), (134582064,), (134583824,), (134519952,),
+                                 (134568352,)]
 
         }
 
@@ -148,7 +149,7 @@ class VivisectTest(unittest.TestCase):
                 self.fail(mesg)
 
         self.assertEqual(len(vw.getVaSetRows('CodeFragments')), 213)
-        self.assertEqual(len(vw.getVaSetRows('EntryPoints')), 230)
+        self.assertEqual(len(vw.getVaSetRows('EntryPoints')), 229)
 
     def test_basic_apis(self):
         '''
