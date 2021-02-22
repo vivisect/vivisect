@@ -16,8 +16,6 @@ def parseFile(vw, filename, baseaddr=None):
         raise Exception('IHex loader *requires* arch option (-O viv.parsers.ihex.arch=\\"<archname>\\")')
 
     bigend = vw.config.viv.parsers.ihex.bigend
-    if not bigend:
-        raise Exception('IHex loader *requires* arch option (-O viv.parsers.ihex.arch=\\"<archname>\\")')
 
     envi.getArchModule(arch)
 
