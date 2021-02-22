@@ -3004,10 +3004,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         fname = self.getFileByVa(va)
         vastr = '_%.8x' % va
 
-        if name.startswith(fname + '.'):
-            fpart, npart = name.split('.', 1)
-        elif name.startswith('*.'):
-            skip, npart = name.split('.', 1)
+        if fname is not None:
+            if name.startswith(fname + '.'):
+                fpart, npart = name.split('.', 1)
+            elif name.startswith('*.'):
+                skip, npart = name.split('.', 1)
+        else:
+            logger.warning("_getNameParts(%r): fname is None?", name)
 
         if npart.endswith(vastr) and not npart == 'sub' + vastr:
             npart, vapart = npart.rsplit('_', 1)
