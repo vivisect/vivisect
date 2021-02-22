@@ -12,10 +12,14 @@ LOG_LEVELS = (
 LOG_FORMAT = '%(asctime)s:%(levelname)s:%(name)s: %(message)s' \
              '[%(filename)s:%(funcName)s:%(lineno)s:%(threadName)s]'
 
-logging.basicConfig(level=logging.WARNING, format=LOG_FORMAT)
-logging.addLevelName(EMULOG, 'EMULOG')
+def setLogging(logger, level=None, init=False, fmt=LOG_FORMAT):
+    '''
+    Setup logging and log levels
+    '''
+    if init:
+        logging.basicConfig(level=logging.WARNING, format=fmt)
+        logging.addLevelName(EMULOG, 'EMULOG')
 
-def setLogging(logger, level=None):
     if level is not None:
         level = str(level).upper()
         if level not in LOG_LEVELS:

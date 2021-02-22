@@ -79,7 +79,7 @@ def main():
     # setup logging
     verbose = min(args.verbose, 5)
     level = e_common.LOG_LEVELS[verbose]
-    e_common.setLogging(logger, level)
+    e_common.setLogging(logger, level=level, init=True)
 
     # Handle some options before we even create a trace.
     vtrace.remote = args.remotehost  # None by default
