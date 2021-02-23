@@ -636,8 +636,7 @@ class i386Opcode(envi.Opcode):
             else:
                 tova = oper0.getOperValue(self, emu=emu)
 
-            if tova is not None:
-                ret.append((tova, flags))
+            ret.append((tova, flags))
 
         return ret
 

@@ -267,7 +267,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         add = v1 + v2 + Var('eflags_cf', 1)
 
-        f = gt(res, Const(e_bits.u_maxes[dsize>>1], dsize))
+        f = gt(add, Const(e_bits.u_maxes[dsize>>1], dsize))
         if isDX:
             self.effSetVariable('eflags_cf', f)
         else:

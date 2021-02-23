@@ -17,15 +17,6 @@ import vivisect.parsers as viv_parsers
 
 logger = logging.getLogger('vivisect')
 
-loglevels = (
-    logging.CRITICAL,
-    logging.ERROR,
-    logging.WARN,
-    logging.INFO,
-    logging.DEBUG,
-    e_common.EMULOG
-)
-
 
 def main():
     parser = argparse.ArgumentParser(prog='vivbin', usage='%(prog)s [options] <workspace|binaries...>')
@@ -60,9 +51,11 @@ def main():
 
     # setup logging
     vw.verbose = min(args.verbose, 4)
-    e_common.setLogging(logger, level=e_common.LOG_LEVELS[vw.verbose])
+    level = e_common.LOG_LEVELS[vw.verbose]
+    e_common.initLogging(logger, level=level)
 
 
+    # do things
     if args.option is not None:
         for option in args.option:
             if option in ('-h', '?'):

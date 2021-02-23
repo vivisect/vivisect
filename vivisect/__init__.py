@@ -21,6 +21,7 @@ import collections
 
 import envi
 import envi.bits as e_bits
+import envi.common as e_common
 import envi.memory as e_mem
 import envi.config as e_config
 import envi.bytesig as e_bytesig
@@ -479,7 +480,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Check if a VA is a no return API
         '''
-        return self.getMeta('NoReturnApisVa', {}).get(va, False)
+        isva = self.getMeta('NoReturnApisVa', {}).get(va, False)
+        iscall = self.getVaSetRow('NoReturnCalls', va) is not None
+        return isva or iscall
 
     def checkNoRetApi(self, apiname, va):
         '''
@@ -1081,6 +1084,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.iscode[va]
 
         self.iscode[va] = True
+        # because we're doing partial emulation, demote some of the logging
+        # messages to low priority.
+        kwargs['loglevel'] = e_common.EMULOG
         emu = self.getEmulator(**kwargs)
         wat = v_emucode.watcher(self, va)
         emu.setEmulationMonitor(wat)
@@ -2278,6 +2284,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if vw.isLocType(0x41414141, LOC_STRING):
             print("string at: 0x41414141")
         """
+        # make it operate like py2 did
+        if va is None:
+            return False
         tup = self.getLocation(va)
         if tup is None:
             return False
