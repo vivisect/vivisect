@@ -84,8 +84,7 @@ def analyze(vw):
                     name = vw._addNamePrefix(tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
                     logger.debug('0x%x: adding name prefix: %r  (%r)', tgt, tgtname, name)
                     vw.makeName(ptr, name)
-                else:
-                    logger.debug('0x%x: Skipping naming due to no target name' % tgt)
+
             except Exception as e:
                 logger.error('naming failed (0x%x -> 0x%x), (err: %s)', ptr, tgt, e)
                 sys.excepthook(*sys.exc_info())
