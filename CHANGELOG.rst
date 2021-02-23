@@ -3,6 +3,39 @@ Vivisect Changelog
 ******************
 
 
+v1.0.0 - 2021-02-23
+===================
+
+Features
+--------
+- Full Python 3 cutover
+  (`#328 <https://github.com/vivisect/vivisect/pull/328>`_)
+
+Fixes
+-----
+- Make envi.codeflow stable when analyzing function
+  (Wrapped in as part of #328)
+- Fixing some issues with memory view rendering
+  (`#352 https://github.com/vivisect/vivisect/pull/352`_)
+- Python 3 Cleanup (for extensions/UI fixes/unicode detection/switchtable regression/ELF Parser)
+  (`#353 https://github.com/vivisect/vivisect/pull/353`_)
+- More memory render fixes
+  (`#355 https://github.com/vivisect/vivisect/pull/355`_)
+- More python3 fixes for API consistency and packed dll name exception handling
+  (`#357 https://github.com/vivisect/vivisect/pull/357`_)
+- Python3.6 specific import fixes
+  (`#361 https://github.com/vivisect/vivisect/pull/361`_)
+- Memory rendering tweaks to not double show bytes
+  (`#364 https://github.com/vivisect/vivisect/pull/364`_)
+- UI fixes for arrow keys, taint value fixes to prevent some infinity recursion
+  (`#365 https://github.com/vivisect/vivisect/pull/365`_)
+- Symbolik View was unusable
+  (`#366 https://github.com/vivisect/vivisect/pull/366`_)
+- DynamicBranches wasn't populating in py, and no return improvements
+  (`#367 https://github.com/vivisect/vivisect/pull/367`_)
+- Logging update for vivbin/vdbbin
+  (`#368 https://github.com/vivisect/vivisect/pull/368`_)
+
 v0.2.0 - 2021-02-01
 ===================
 
