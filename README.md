@@ -5,7 +5,7 @@ framework. More documentation is in the works :)
 
 ## Vdb
 
-As in previous vdb releases, the command ```python -m vdb.vdbbin``` from the
+As in previous releases, the command ```python -m vdb.vdbbin``` from the
 checkout directory will drop you into a debugger prompt on supported
 platforms. ( Windows / Linux / FreeBSD / OSX... kinda? )
 
@@ -48,14 +48,30 @@ python3 -m vivisect.vivbin <binaryfile>
 to do both simultaneously. You will have to hit <Ctrl-S> to manually save
 the workspace file though.
 
-As with most vtoys, the ui
-relies fairly heavily on right-click context menus and various memory
-views.
+As with most vtoys, the ui relies fairly heavily on right-click context menus
+and various memory views.
 
 For the binary ninjas, all APIs used during automatic analysis (and several
 that aren't) are directly accessible for use writing your own custom
-research tools...  The interface should be nearly the same when dealing with
+research tools. The interface should be nearly the same when dealing with
 a real process (via vdb/vtrace) and dealing with an emulator / viv workspace.
+
+## Versioning
+
+All releases prior to v1.0.0 are python2 only. As of v1.0.0, vivisect/vdb/vstruct
+are all python3 compatible. Please report any bugs/issues to the [issue tracker](https://github.com/vivisect/vivisect/issues)
+or hit us up in the #vivisect room in the [synapse slack](http://slackinvite.vertex.link/)
+
+Please see v0.x.x-support branch for the current python2 version, or pip install
+the v.0.2.x version of vivisect.
+
+## Upgrading
+
+Due to fun pickle shenanigans, old python2 vivisect workspaces are not typically
+compatible with python3. In what will be one of (if not, the) final release of the
+python2 compatible vivisect, v0.2.1 will include a conversion script that can migrate
+the basicfile-based vivisect workspaces files to the msgpack-back ones, which should
+be loadable in python3 vivisect.
 
 ## Build Status
 

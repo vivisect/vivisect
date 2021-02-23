@@ -41,6 +41,7 @@ setup(
         'Topic :: Security',
         'Topic :: Software Development :: Disassemblers',
         'Topic :: Software Development :: Debuggers',
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.9',
         'License :: OSI Approved :: Apache Software License',
