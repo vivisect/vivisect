@@ -87,6 +87,9 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         cnt = self.mndist.get(op.mnem, 0)
         self.mndist[op.mnem] = cnt + 1
         self.insn_count += 1
+        if self.vw.isNoReturnVa(eip):
+            self.hasret = True
+            emu.stopEmu()
 
         # FIXME do we need a way to terminate emulation here?
     def apicall(self, emu, op, pc, api, argv):
