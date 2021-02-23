@@ -7461,8 +7461,8 @@ libstdc_data = {
     ],
 
     'names' : [
-        (0x2190000, 'libstdc___so_6_0.bss_temp'),
         (0x2000536, 'libstdc___so_6_0.ptr_std::basic_istream<wchar_t, std::char_traits<wchar_t> >::ignore(int, unsigned int)_02000536'),
+        (0x2000af7, 'libstdc___so_6_0.ptr_bss_temp_02000af7'),
         (0x2000b64, 'libstdc___so_6_0.ptr_std::codecvt<wchar_t, char, __mbstate_t>::~codecvt()_0_02000b64'),
         (0x206ae80, 'libstdc___so_6_0.init_function'),
         (0x206aeb0, 'libstdc___so_6_0.LazyLoaderTrampoline'),
@@ -14443,9 +14443,12 @@ libstdc_data = {
         (0x218502c, 'libstdc___so_6_0.std::money_get<wchar_t, std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> > >::id'),
         (0x2185030, 'libstdc___so_6_0.std::moneypunct<wchar_t, true>::id'),
         (0x2185034, 'libstdc___so_6_0.std::moneypunct<wchar_t, false>::id'),
+        (0x2190000, 'libstdc___so_6_0.bss_temp'),
     ],
 
     'pltgot' : [
     ],
 
 }
+
+
