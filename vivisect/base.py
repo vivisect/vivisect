@@ -723,7 +723,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         if loc is None:
 
             # dont code flow through import calls
-            branches = [br for br in branches if br[0] and not self._mem.isLocType(br[0], LOC_IMPORT)]
+            branches = [br for br in branches if not self._mem.isLocType(br[0], LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
             # TODO: future home of makeOpcode branch/xref analysis

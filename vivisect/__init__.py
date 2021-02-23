@@ -485,7 +485,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Check if a VA is a no return API
         '''
-        return self.getMeta('NoReturnApisVa', {}).get(va, False)
+        isva = self.getMeta('NoReturnApisVa', {}).get(va, False)
+        iscall = self.getVaSetRow('NoReturnCalls', va) is not None
+        return isva or iscall
 
     def checkNoRetApi(self, apiname, va):
         '''
@@ -2332,6 +2334,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if vw.isLocType(0x41414141, LOC_STRING):
             print("string at: 0x41414141")
         """
+        # make it operate like py2 did
+        if va is None:
+            return False
         tup = self.getLocation(va)
         if tup is None:
             return False
