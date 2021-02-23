@@ -56,6 +56,29 @@ that aren't) are directly accessible for use writing your own custom
 research tools. The interface should be nearly the same when dealing with
 a real process (via vdb/vtrace) and dealing with an emulator / viv workspace.
 
+## Installing
+
+Unlike previous releases, version v1.x.x and up of vivisect/vdb should be entirely
+pip installable, so just running `pip install vivisect` should get you the latest
+release and all the dependencies.
+
+For convenience, setup.py for vivisect installs the main user facing scripts of
+vivbin and vdbbin to the local path, so instead of having to run:
+
+```
+python3 -m vivisect.vivbin <binaryfile>
+python3 -m vdb.vdbbin
+```
+
+You should just be able to run
+
+```
+vivbin -B <binaryfile>
+vdbbin
+```
+
+and have things work as normal.
+
 ## Versioning
 
 All releases prior to v1.0.0 are python2 only. As of v1.0.0, vivisect/vdb/vstruct
