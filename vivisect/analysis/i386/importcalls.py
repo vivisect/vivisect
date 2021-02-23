@@ -23,7 +23,7 @@ def analyze(vw):
         if offset < 2:
             continue
 
-        if bytes[offset-2:offset] == "\xff\x15":  # call [importloc]
+        if bytes[offset-2:offset] == b"\xff\x15":  # call [importloc]
             # If there's a pointer here, remove it.
             if vw.getLocation(va):
                 vw.delLocation(va)

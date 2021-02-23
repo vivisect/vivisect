@@ -1,4 +1,3 @@
-import os
 import logging
 from io import StringIO
 
@@ -41,7 +40,7 @@ def parseBytes(vw, bytes, baseaddr=None):
     fd = StringIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
-    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
+    return loadPeIntoWorkspace(vw, pe, baseaddr=baseaddr)
 
 
 def parseMemory(vw, memobj, base):
@@ -92,6 +91,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
+    vw.parsedbin = pe
 
     platform = 'windows'
 
@@ -179,14 +179,14 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     secrem = len(header) % secalign
     if secrem != 0:
-        header += "\x00" * (secalign - secrem)
+        header += b'\x00' * (secalign - secrem)
 
     vw.addMemoryMap(baseaddr, e_mem.MM_READ, fname, header)
     vw.addSegment(baseaddr, len(header), "PE_Header", fname)
 
     hstruct = vw.makeStructure(baseaddr, "pe.IMAGE_DOS_HEADER")
     magicaddr = hstruct.e_lfanew
-    if vw.readMemory(baseaddr + magicaddr, 2) != "PE":
+    if vw.readMemory(baseaddr + magicaddr, 2) != b"PE":
         raise Exception("We only support PE exe's")
 
     if not vw.isLocation(baseaddr + magicaddr):
@@ -285,7 +285,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize)
-            secbytes += "\x00" * plen
+            secbytes += b'\x00' * plen
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
             vw.addSegment(secbase, len(secbytes), secname, fname)
 
@@ -310,16 +310,19 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
 
             secoff = pe.rvaToOffset(secrva)
-            secbytes = pe.readAtOffset(secoff, readsize)
-            secbytes += "\x00" * plen
+            secbytes = pe.readAtOffset(secoff, readsize, shortok=True)
+            slen = len(secbytes)
+            if slen != readsize:
+                logger.warning("Section at offset 0x%x should have 0x%x bytes, but we only got 0x%x bytes", secoff, readsize, slen)
+            secbytes += b'\x00' * plen
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
-            vw.addSegment(secbase, len(secbytes), secname, fname)
+            vw.addSegment(secbase, slen, secname, fname)
 
             # Mark dead data on resource and import data directories
             if sec.VirtualAddress in deadvas:
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
-            #FIXME create a mask for this
+            # FIXME create a mask for this
             if not (chars & PE.IMAGE_SCN_CNT_CODE) and not (chars & PE.IMAGE_SCN_MEM_EXECUTE) and not (chars & PE.IMAGE_SCN_MEM_WRITE):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
@@ -343,8 +346,21 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             logger.info('Skipping PE Relocation type: %d at %d (no handler)', rtype, rva)
             continue
 
-        mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
-        vw.addRelocation(rva + baseaddr, vtype, mapoffset)
+        try:
+            mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
+        except:
+            # the target adderss of the relocation is not accessible.
+            # for example, it's not mapped, or split across sections, etc.
+            # technically, the PE is corrupt.
+            # by continuing on here, we are a bit more robust (but maybe incorrect)
+            # than the Windows loader.
+            #
+            # discussed in:
+            # https://github.com/vivisect/vivisect/issues/346
+            logger.warning('Skipping invalid PE relocation: %d', rva)
+            continue
+        else:
+            vw.addRelocation(rva + baseaddr, vtype, mapoffset)
 
     for rva, lname, iname in pe.getImports():
         if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
@@ -499,7 +515,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         fbytes = pe.fd.read()
         for offset, i in pe_carve.carve(fbytes, 1):
             # Found a sub-pe!
-            subpe = pe_carve.CarvedPE(fbytes, offset, chr(i))
+            subpe = pe_carve.CarvedPE(fbytes, offset, [i])
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
             rva = pe.offsetToRva(offset) + baseaddr
             vw.markDeadData(rva, rva+len(pebytes))

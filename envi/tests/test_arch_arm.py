@@ -1,22 +1,18 @@
 import struct
+import logging
 import binascii
+import unittest
+import importlib
 
 import envi
 import envi.exc as e_exc
-import envi.memory as e_mem
-import envi.memcanvas as e_memcanvas
-import envi.memcanvas.renderers as e_rend
 import envi.archs.arm as arm
 import vivisect
 
-import logging
-import platform
-import unittest
-
-import arm_bit_test_adds
-import arm_bit_test_cmn
-import arm_bit_test_cmp
-import arm_bit_test_subs
+import envi.tests.arm_bit_test_adds as arm_bit_test_adds
+import envi.tests.arm_bit_test_cmn as arm_bit_test_cmn
+import envi.tests.arm_bit_test_cmp as arm_bit_test_cmp
+import envi.tests.arm_bit_test_subs as arm_bit_test_subs
 
 from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 from envi.archs.arm.regs import *
@@ -1487,9 +1483,8 @@ class ArmInstructionSet(unittest.TestCase):
     def test_envi_arm_operands(self):
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "arm")
-        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
-        vw.addMemoryMap(0xbfb00000, 7, 'firmware', '\xfe' * 16384*1024)
-
+        vw.addMemoryMap(0, 7, 'firmware', b'\xff' * 16384*1024)
+        vw.addMemoryMap(0xbfb00000, 7, 'firmware', b'\xfe' * 16384*1024)
 
         # testing the ArmImmOffsetOper
 
@@ -1717,8 +1712,9 @@ class ArmInstructionSet(unittest.TestCase):
         #setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "arm")
-        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
-        vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
+        vw.addMemoryMap(0, 7, 'firmware', b'\xff' * 16384*1024)
+        vw.addMemoryMap(0x400000, 7, 'firmware', b'\xff' * 16384*1024)
+        # TODO: This doesn't belong here.
         emu = vw.getEmulator()
         emu.setMeta('forrealz', True)
         emu._forrealz = True
@@ -1730,9 +1726,9 @@ class ArmInstructionSet(unittest.TestCase):
         for archz, bytez, va, reprOp, iflags, emutests in instrs:
             ranAlready = False  # support for run once only
             #itterate through architectures 
-            for key in ARCH_REVS: 
+            for key in ARCH_REVS:
                 test_arch = ARCH_REVS[key]
-                if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0): 
+                if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0):
                     ranAlready = True
                     op = vw.arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
                     redoprepr = repr(op).replace(' ','').lower()
@@ -1743,7 +1739,7 @@ class ArmInstructionSet(unittest.TestCase):
                         badcount += 1
                         raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                                 (goodcount, va, bytez, reprOp, repr(op) ) )
-                        self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
+                        # self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
 
                     else:
                         goodcount += 1
@@ -1782,7 +1778,7 @@ class ArmInstructionSet(unittest.TestCase):
 
         logger.info("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
                 (goodcount, badcount, goodemu, bademu))
-        logger.info("Total of ", str(goodcount + badcount) + " tests completed.")
+        logger.info("Total of %d tests completed", goodcount + badcount)
         self.assertEqual(goodcount, GOOD_TESTS)
         self.assertEqual(goodemu, GOOD_EMU_TESTS)
 
@@ -1808,10 +1804,10 @@ class ArmInstructionSet(unittest.TestCase):
                 emu.setRegisterByName(tgt, val)
             except e_exc.InvalidRegisterName:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if isinstance(tgt, str) and tgt.startswith("PSR_"):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     #For this couldn't we set a temp value equal to endian and write that? Assuming byte order is issue with this one
                     emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
@@ -1832,7 +1828,7 @@ class ArmInstructionSet(unittest.TestCase):
                     raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
             except e_exc.InvalidRegisterName:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if isinstance(tgt, str) and tgt.startswith("PSR_"):
                     # it's a flag
                     testval = emu.getFlag(eval(tgt))
                     if testval == val:
@@ -1840,7 +1836,7 @@ class ArmInstructionSet(unittest.TestCase):
                     else:
                         raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
                         #raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x)" % (op, tidx, tgt, val, testval))
-                elif type(tgt) in (long, int):
+                elif isinstance(tgt, int):
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
@@ -1899,10 +1895,10 @@ def genDPArm():
                 bytez = struct.pack("<I", y)
                 out.append(bytez)
                 op = vw.arch.archParseOpcode(bytez)
-                print "%x %s" % (y, op)
+                print("%x %s" % (y, op))
 
             except:
-                print "%x error" % y
+                print("%x error" % y)
 
     with open('dpArmTest', 'w') as f:
         f.write(''.join(out))
@@ -1918,10 +1914,10 @@ def genMediaInstructionBytes():
                 bytez = struct.pack("<I", y)
                 out.append(bytez)
                 op = vw.arch.archParseOpcode(bytez)
-                print "%x %s" % (y, op)
+                print("%x %s" % (y, op))
 
             except:
-                print "%x error" % y
+                print("%x error" % y)
 
     with open('mediaArmTest','w') as f:
         f.write(''.join(out))
@@ -1988,15 +1984,13 @@ def genAdvSIMDtests():
                         logger.warning(str(e))
                         bad += 1
                         if bad % 25 == 0:
-                            raw_input("PRESS ENTER")
-                            pass
-
+                            input("PRESS ENTER")
 
                     except Exception:
                         logger.exception('parsing error: ')
                         bad += 1
                         if bad % 2 == 0:
-                            raw_input("PRESS ENTER")
+                            input("PRESS ENTER")
 
 
 
@@ -2007,7 +2001,8 @@ def genTestsODA(abytez, tbytez):
     '''
     generate test cases for arm and thumb for the given sets of bytes
     '''
-    import oda_api;reload(oda_api)
+    import oda_api
+    importlib.reload(oda_api)
     oda = oda_api.OdaSession()
     oda.setArch('arm', oda_api.ENDIAN_LITTLE)
 

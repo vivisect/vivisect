@@ -37,7 +37,6 @@ import envi.memcanvas.renderers as e_render
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'WARNING')
 
 
 class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
@@ -474,7 +473,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 return
             edict = {line: x}
 
-        fnames = edict.keys()
+        fnames = list(edict.keys())
         fnames.sort()
         for fname in fnames:
             self.canvas.addNameText(fname, fname)

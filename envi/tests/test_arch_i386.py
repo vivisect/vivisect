@@ -304,6 +304,10 @@ i386MultiByteOpcodes = [
     ('VMPTRST', '0fc73d41414141', 0x40, 'vmptrst qword [0x41414141]', 'vmptrst qword [0x41414141]'),
     ('VMCLEAR', '0fc73541414141', 0x40, 'vmptrld qword [0x41414141]', 'vmptrld qword [0x41414141]'),
     ('CMPXCHG', '0fb0d0', 0x40, 'cmpxchg al,dl', 'cmpxchg al,dl'),
+    ('ADOX', 'F30F38f6c2', 0x40, 'adox eax,edx', 'adox eax,edx'),
+    ('ADOX MEM', 'F30F38F6042541414141', 0x40, 'adox eax,dword [0x41414141]', 'adox eax,dword [0x41414141]'),
+    ('ADCX', '660f38f6e5', 0x40, 'adcx esp,ebp', 'adcx esp,ebp'),
+    ('ADCX MEM', '660f38f6242541414141', 0x40, 'adcx esp,dword [0x41414141]', 'adcx esp,dword [0x41414141]'),
 ]
 
 
@@ -319,9 +323,8 @@ class i386InstructionSet(unittest.TestCase):
                 op = self._arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
-            except Exception as e:
+            except Exception:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (bytez, name, reprOp))
-
             msg = '%s failed length check. Got %d, expected %d' % (name, len(op), int(len(bytez)/2))
             self.assertEqual(len(op), int(len(bytez)/2), msg=msg)
             # print("'%s', 0x%x, '%s' == '%s'" % (bytez, va, repr(op), reprOp))
@@ -332,7 +335,6 @@ class i386InstructionSet(unittest.TestCase):
 
             scanv.clearCanvas()
             op.render(scanv)
-            # print("render:  %s" % repr(scanv.strval))
             self.assertEqual(scanv.strval, renderOp)
 
     def test_envi_i386_disasm_Specific_SingleByte_Instrs(self):
@@ -375,15 +377,15 @@ class i386InstructionSet(unittest.TestCase):
         '''
         opbytez = '0032'
         oprepr = 'add byte [edx],dh'
-        opcheck =  {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
-        opercheck = [{'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 2}, {'tsize': 1, 'reg': 134742018}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        opcheck = {'iflags': 65536, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
+        opercheck = ({'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 2}, {'tsize': 1, 'reg': 134742018},)
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '0440'
         oprepr = 'add al,64'
         opcheck = {'iflags': 65536, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
-        opercheck = ( {'tsize': 1, 'reg': 524288}, {'tsize': 1, 'imm': 64} )
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        opercheck = ({'tsize': 1, 'reg': 524288}, {'tsize': 1, 'imm': 64})
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '0218'
         oprepr = 'add bl,byte [eax]'

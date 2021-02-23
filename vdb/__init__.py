@@ -8,15 +8,12 @@ import logging
 import binascii
 import threading
 import traceback
-from Queue import Queue
-from collections import defaultdict
-
-from ConfigParser import *
+from queue import Queue
+from collections import defaultdict, UserDict
 
 from cmd import *
 from struct import *
 from getopt import getopt
-from UserDict import *
 
 import vtrace
 import vtrace.util as v_util
@@ -414,7 +411,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         # Do we have a symbol?
         sym = self.trace.getSymByAddr(address, exact=False)
         if sym is not None:
-            return "%s + %d" % (repr(sym),address-long(sym))
+            return "%s + %d" % (repr(sym),address-int(sym))
 
         # Check if it's a thread's stack
         for tid,tinfo in self.trace.getThreads().items():
@@ -643,30 +640,24 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             addr = t.parseExpression(expr)
             t.setVariable(name, addr)
 
-        vars = t.getVariables()
+        varz = t.getVariables()
         self.vprint("Current Variables:")
-        if not vars:
+        if not varz:
             self.vprint("None.")
         else:
-            vnames = vars.keys()
+            vnames = varz.keys()
             vnames.sort()
             for n in vnames:
-                val = vars.get(n)
-                if type(val) in (int, long):
-                    self.vprint("%20s = 0x%.8x" % (n,val))
+                val = varz.get(n)
+                if isinstance(val, int):
+                    self.vprint("%20s = 0x%.8x" % (n, val))
                 else:
                     rstr = repr(val)
                     if len(rstr) > 30:
                         rstr = rstr[:30] + '...'
-                    self.vprint("%20s = %s" % (n,rstr))
+                    self.vprint("%20s = %s" % (n, rstr))
 
     def do_alloc(self, args):
-        #"""
-        #Allocate a chunk of memory in the target process.  You may
-        #optionally specify permissions and a suggested base address.
-
-        #Usage: alloc [-p rwx] [-s <base>] <size>
-        #"""
         """
         Allocate a chunk of memory in the target process.  It will be
         allocated with rwx permissions.
@@ -1824,7 +1815,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     for sym in self.trace.searchSymbols(regex, libname=libname):
 
                         symstr = str(sym)
-                        symval = long(sym)
+                        symval = int(sym)
                         if self.trace.getBreakpointByAddr(symval) is not None:
                             self.vprint('Duplicate (0x%.8x) %s' % (symval, symstr))
                             continue
@@ -2151,7 +2142,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             elif opt == '-L':
                 libname, regex = optarg.split(':', 1)
                 for sym in trace.searchSymbols(regex, libname=libname):
-                    v_stalker.addStalkerEntry(trace, long(sym))
+                    v_stalker.addStalkerEntry(trace, int(sym))
                     self.vprint('Stalking %s' % str(sym))
 
             elif opt == '-R':
@@ -2216,7 +2207,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 pass
 
         rcmds = []
-        for cname, clist in cmds.iteritems():
+        for cname, clist in cmds.items():
             if len(clist) > 2:
                 raise Exception('how do we handle inherited overridden help')
 

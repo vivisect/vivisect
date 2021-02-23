@@ -31,8 +31,8 @@ def varsolve(name, width, emu=None):
     if emu is not None:
         name += emu.getRandomSeed()
 
-    md5sum = hashlib.md5(name).hexdigest()
-    return long(md5sum[:width*2], 16)
+    md5sum = hashlib.md5(name.encode('utf-8')).hexdigest()
+    return int(md5sum[:width*2], 16)
 
 def evalSymbolik(reprstr):
     '''
@@ -75,7 +75,7 @@ class SymbolikBase:
     commutative = False
 
     def __init__(self):
-        self._sym_id = self.idgen.next()
+        self._sym_id = next(self.idgen)
         self.kids = []
         self.parents = []
         self.cache = {}
@@ -134,10 +134,13 @@ class SymbolikBase:
     def __imul__(self, other):
         return o_mul(self, other, self.getWidth())
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         return o_div(self, other, self.getWidth())
 
     def __idiv__(self, other):
+        return o_div(self, other, self.getWidth())
+
+    def __floordiv__(self, other):
         return o_div(self, other, self.getWidth())
 
     def __pow__(self, other):
@@ -151,13 +154,49 @@ class SymbolikBase:
         if other is None:
             return False
 
-        if type(other) in (int, long):
+        if isinstance(other, int):
             return self.solve() == other
 
         return self.solve() == other.solve()
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __le__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() <= other
+
+        return self.solve() <= other.solve()
+
+    def __lt__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() < other
+
+        return self.solve() < other.solve()
+
+    def __ge__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() >= other
+
+        return self.solve() >= other.solve()
+
+    def __gt__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() > other
+
+        return self.solve() > other.solve()
 
     def clearCache(self):
         '''
@@ -535,8 +574,8 @@ class Mem(SymbolikBase):
 
         addrval = self.kids[0].solve(emu=emu, vals=vals)
         sizeval = self.kids[1].solve(emu=emu, vals=vals)
-        # FIXME higher entropy!
-        return hash(str(addrval)) & 0xffffffff
+
+        return varsolve(f'[{addrval}:{sizeval}]', 32)
 
     def getWidth(self):
         # FIXME should we do something about that?
@@ -565,7 +604,7 @@ class Var(SymbolikBase):
 
         sym = vw.getSymByName(strval)
         if sym is not None:
-            value = long(sym)
+            value = int(sym)
             canvas.addVaText(strval, va=value)
             return
 
@@ -634,7 +673,7 @@ class LookupVar(Var):
         if emu is not None:
             name += emu.getRandomSeed()
 
-        return long(hashlib.md5(name).hexdigest()[:self.width*2], 16)
+        return int(hashlib.md5(name).hexdigest()[:self.width*2], 16)
 
     def update(self, emu):
         offset = self.offset.update(emu=emu)
@@ -724,12 +763,12 @@ class Const(SymbolikBase):
             return
 
         # if our const is a named pointer...
-        if vw.isValidPointer( self.value ):
-            name = str(vw.getSymByAddr( self.value ))
+        if vw.isValidPointer(self.value):
+            name = str(vw.getSymByAddr(self.value))
             canvas.addText('&')
             canvas.addVaText(name, va=self.value)
             return
-        canvas.addNameText( str(self) )
+        canvas.addNameText(str(self))
 
     def _solve(self, emu=None, vals=None):
         return self.value
@@ -877,7 +916,7 @@ class o_mul(Operator):
     commutative = True
 
 class o_div(Operator):
-    oper        = operator.div # should this be floordiv?
+    oper        = operator.floordiv
     operstr     = '/'
     symtype     = SYMT_OPER_DIV
 

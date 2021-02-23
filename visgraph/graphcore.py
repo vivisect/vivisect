@@ -8,12 +8,12 @@ import collections
 
 from binascii import hexlify
 
-from exc import *
+from visgraph.exc import *
 import visgraph.pathcore as vg_pathcore
 
 
 def guid(size=16):
-    return hexlify(os.urandom(size))
+    return hexlify(os.urandom(size)).decode('utf-8')
 
 
 def zdict():
@@ -245,7 +245,7 @@ class Graph:
         Add a Node object to the graph.  Returns the node. (nid,nprops)
 
         Example: node = g.addNode()
-                 - or - 
+                 - or -
                  node = g.addNode('woot', {'height':20, 'width':20})
 
         NOTE: If nid is unspecified, it is considered an 'anonymous'
@@ -263,10 +263,10 @@ class Graph:
         if nprops is not None:
             myprops.update(nprops)
 
-        node = (nid,myprops)
+        node = (nid, myprops)
         self.nodes[nid] = node
 
-        for k,v in myprops.items():
+        for k, v in myprops.items():
             try:
                 self.nodeprops[k][v].append(node)
             except TypeError:
@@ -364,7 +364,7 @@ class Graph:
         '''
         Return a list of (nid, nprops) tuples.
         '''
-        return self.nodes.values()
+        return list(self.nodes.values())
 
     def getNodeCount(self):
         return len(self.nodes)
@@ -419,29 +419,28 @@ class Graph:
         self.edge_by_to[n2].append(edge)
         self.edge_by_from[n1].append(edge)
 
-        for k,v in eprops.items():
+        for k, v in eprops.items():
             try:
                 self.edgeprops[k][v].append(edge)
-            except TypeError as e:
+            except TypeError:
                 pass # no value indexes for unhashable types
 
         return edge
 
     def delEdge(self, edge):
-        '''
-        Delete an edge from the graph (by eid).
-
-        Example: g.delEdge(eid)
-        '''
         eid,n1,n2,eprops = edge
-
-        [ self.delEdgeProp(edge,k) for k in eprops.keys() ]
+        [ self.delEdgeProp(edge,k) for k in list(eprops.keys()) ]
 
         self.edges.pop(eid)
         self.edge_by_to[n2].remove(edge)
         self.edge_by_from[n1].remove(edge)
 
     def delEdgeByEid(self, eid):
+        '''
+        Delete an edge from the graph (by eid).
+
+        Example: g.delEdge(eid)
+        '''
         edge = self.getEdge(eid)
         return self.delEdge(edge)
 
@@ -500,9 +499,8 @@ class Graph:
 
         nodes = self.getNodes()
         done = {}
-        while len(nodes):
+        for nid, nprops in nodes:
 
-            nid,nprops = nodes.pop()
             if done.get(nid):
                 continue
 
@@ -518,7 +516,7 @@ class Graph:
                 if not g.hasNode(gnid):
                     g.addNode(nid=gnid, nprops=gnprops)
 
-                for eid,n1,n2,eprops in self.getRefsFromByNid(gnid):
+                for eid, n1, n2, eprops in self.getRefsFromByNid(gnid):
 
                     if not g.getNode(n2):
                         n2props = self.getNodeProps(n2)
@@ -528,7 +526,7 @@ class Graph:
                     if not g.getEdge(eid):
                         g.addEdgeByNids(n1, n2, eid=eid, eprops=eprops)
 
-                for eid,n1,n2,eprops in self.getRefsToByNid(gnid):
+                for eid, n1, n2, eprops in self.getRefsToByNid(gnid):
 
                     if not g.getNode(n1):
                         n1props = self.getNodeProps(n1)
@@ -541,7 +539,7 @@ class Graph:
             ret.append(g)
 
         return ret
-                
+
 
     def pathSearchOne(self, *args, **kwargs):
         for p in self.pathSearch(*args, **kwargs):
@@ -719,7 +717,7 @@ class HierGraph(Graph):
         nodes = self.getNodes()
 
         # Lets make the list of nodes *ordered* by weight
-        nodes.sort(cmp=weightcmp)
+        nodes.sort(key=lambda k: k[1]['weight'])
 
         # Here's the magic... In *hierarchy order* each node
         # gets the sum of the paths of his parents.

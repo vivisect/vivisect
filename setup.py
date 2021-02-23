@@ -9,7 +9,7 @@ setup(
     name='vivisect',
     author='Vivisect',
     author_email='',
-    version='0.1.0',
+    version='0.2.0',
     url='https://github.com/vivisect/vivisect',
     packages=find_packages(),
     zip_safe=False,
@@ -40,5 +40,5 @@ setup(
         'Programming Language :: Python :: 2',
         'License :: OSI Approved :: Apache Software License',
     ],
-    python_requires='<3',
+    python_requires='>=3.6',
 )

@@ -45,6 +45,7 @@ multiplied:
 =======================================
 '''
 
+
 class SubState:
     '''
     The base SubState class designed to help out creating
@@ -65,7 +66,7 @@ class SubState:
             yield self.getCombState(i)
 
     def __getslice__(self, x, y):
-        for i in range(x,y+1):
+        for i in range(x, y+1):
             yield self.getCombState(i)
 
     def __add__(self, x):
@@ -79,6 +80,7 @@ class SubState:
 
     def __getitem__(self, i):
         raise Exception('SubState must implement __getitem__!')
+
 
 class AddSubState(SubState):
     '''
@@ -115,6 +117,7 @@ class AddSubState(SubState):
 
         return d
 
+
 class MultSubState(SubState):
 
     def __init__(self, comb1, comb2):
@@ -137,6 +140,7 @@ class MultSubState(SubState):
         self.comb2.getCombState(c2, d=d)
         return d
 
+
 class srange(SubState):
     '''
     A SubState class which produces values over a range similar
@@ -147,14 +151,15 @@ class srange(SubState):
         srange('arg0', 30, 4)
     '''
     def __init__(self, iname, imax, imin=0, iinc=1):
-        icount = (imax - imin) / iinc
+        icount = int((imax - imin) / iinc)
         SubState.__init__(self, iname, icount)
         self.imin = imin
         self.imax = imax
         self.iinc = iinc
 
     def __getitem__(self, i):
-        return self.imin + ( self.iinc * i )
+        return self.imin + (self.iinc * i)
+
 
 class sset(SubState):
     '''

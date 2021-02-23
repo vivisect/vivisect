@@ -11,7 +11,7 @@ The module's vivExtension function takes a vivisect workspace
 '''
 
 import os
-import imp
+import importlib
 import traceback
 
 
@@ -41,15 +41,16 @@ def loadExtensions(vw, vwgui):
                 continue
 
             # Build code objects from the module files
-            mod = imp.new_module('viv_ext')
-            with open(modpath, 'r') as fd:
-                filebytes = fd.read()
-            mod.__file__ = modpath
-            try:
-                exec filebytes in mod.__dict__
-                mod.vivExtension(vw, vwgui)
-                vw.addExtension(modpath, mod)
+            spec = importlib.util.spec_from_file_location('viv_ext', modpath)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
 
-            except Exception as e:
-                vw.vprint( traceback.format_exc() )
+            try:
+                with open(modpath, 'r') as fd:
+                    filebytes = fd.read()
+                exec(filebytes, module.__dict__)
+                module.vivExtension(vw, vwgui)
+                vw.addExtension(fname, module)
+            except Exception:
                 vw.vprint('Extension Error: %s' % modpath)
+                vw.vprint(traceback.format_exc())

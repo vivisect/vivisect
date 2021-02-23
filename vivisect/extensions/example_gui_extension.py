@@ -15,11 +15,16 @@ Set the environment variable VIV_EXT_PATH to point at a
 directory full of python modules such as this to extend
 and implement your own vivisect features.
 
-The extension should be a python module, either in the 
+The extension should be a python module, either in the
 form of a .py file or a directory with a __init__.py
-file.  Either way, the module will be loaded into 
+file.  Either way, the module will be loaded into
 memory and the "vivExtension" function called.
 '''
+
+from PyQt5.QtWidgets import QToolBar, QLabel, QPushButton, QTextEdit
+
+from vqt.main import idlethread
+from vqt.basics import VBox
 
 class ExampleToolbar(QToolBar):
     def __init__(self, vw, vwgui):

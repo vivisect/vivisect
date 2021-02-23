@@ -188,7 +188,7 @@ class VStruct(vs_prims.v_base):
             ffvals = [ ff.vsGetValue() for ff in self._vs_fastfields ]
             return struct.pack(self._vs_fastfmt, *ffvals)
 
-        ret = ''
+        ret = b''
         for fname, fobj in self.vsGetFields():
             ret += fobj.vsEmit()
         return ret

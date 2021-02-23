@@ -511,9 +511,47 @@ amd64MultiByteOpcodes = [
     ('RDFSBASE', 'F3480FAEC0', 'rdfsbase rax', 'rdfsbase rax'),
 
     ('WAIT', '9b', 'wait ', 'wait '),  # TODO: this needs to be able to change the opcode too
+    ('ADOX 1', 'F30F38f6c2', 'adox eax,edx', 'adox eax,edx'),
+    ('ADOX 2', 'f3480f38f6c2', 'adox rax,rdx', 'adox rax,rdx'),
+    ('ADOX 3', 'F30F38F6042541414141', 'adox eax,dword [0x41414141]', 'adox eax,dword [0x41414141]'),
+    ('ADOX 4', 'F3480F38F6042541414141', 'adox rax,qword [0x41414141]', 'adox rax,qword [0x41414141]'),
+    ('ADCX 1', '660f38f6e5', 'adcx esp,ebp', 'adcx esp,ebp'),
+    ('ADCX 2', '66480f38f6e5', 'adcx rsp,rbp', 'adcx rsp,rbp'),
+    ('ADCX 3', '660f38f6242541414141', 'adcx esp,dword [0x41414141]', 'adcx esp,dword [0x41414141]'),
+    ('ADCX 4', '664c0f38f6242541414141', 'adcx r12,qword [0x41414141]', 'adcx r12,qword [0x41414141]'),
 ]
 
 amd64VexOpcodes = [
+    ('SARX 1', 'c4e272f7c3', 'sarx eax,ebx,ecx', 'sarx eax,ebx,ecx'),
+    ('SARX 2', 'c4e2f2f7c3', 'sarx rax,rbx,rcx', 'sarx rax,rbx,rcx'),
+    ('SARX 3', 'c4e262f7042541414141', 'sarx eax,dword [0x41414141],ebx', 'sarx eax,dword [0x41414141],ebx'),
+    ('SARX 4', 'c4e2f2f7042541414141', 'sarx rax,qword [0x41414141],rcx', 'sarx rax,qword [0x41414141],rcx'),
+
+    ('SHLX 1', 'c4e261f7c3', 'shlx eax,ebx,ebx', 'shlx eax,ebx,ebx'),
+    ('SHLX 2', 'c4e2e1f7c4', 'shlx rax,rsp,rbx', 'shlx rax,rsp,rbx'),
+    ('SHLX 3', 'c4e261f7042541414141', 'shlx eax,dword [0x41414141],ebx', 'shlx eax,dword [0x41414141],ebx'),
+    ('SHLX 4', 'c4e2e1f7042541414141', 'shlx rax,qword [0x41414141],rbx', 'shlx rax,qword [0x41414141],rbx'),
+
+    ('SHRX 1', 'C4E273F7C3', 'shrx eax,ebx,ecx', 'shrx eax,ebx,ecx'),
+    ('SHRX 2', 'C4E2F3F7C3', 'shrx rax,rbx,rcx', 'shrx rax,rbx,rcx'),
+    ('SHRX 3', 'C4E273F7042541414141', 'shrx eax,dword [0x41414141],ecx', 'shrx eax,dword [0x41414141],ecx'),
+    ('SHRX 4', 'C4E2f3F7042541414141', 'shrx rax,qword [0x41414141],rcx', 'shrx rax,qword [0x41414141],rcx'),
+    ('MULX 1', 'C4E273f6c3', 'mulx eax,ecx,edx,ebx', 'mulx eax,ecx,edx,ebx'),
+    ('MULX 2', 'C4E2f3f6c3', 'mulx rax,rcx,rdx,rbx', 'mulx rax,rcx,rdx,rbx'),
+    ('MULX 3', 'C4E263F60C2541414141', 'mulx ecx,ebx,edx,dword [0x41414141]', 'mulx ecx,ebx,edx,dword [0x41414141]'),
+    ('MULX 4', 'C4E2E3F60C2541414141', 'mulx rcx,rbx,rdx,qword [0x41414141]', 'mulx rcx,rbx,rdx,qword [0x41414141]'),
+    ('PDEP 1', 'C4E263F5C1', 'pdep eax,ebx,ecx', 'pdep eax,ebx,ecx'),
+    ('PDEP 2', 'C4E2E3F5C1', 'pdep rax,rbx,rcx', 'pdep rax,rbx,rcx'),
+    ('PDEP 3', 'C4E263F5042541414141', 'pdep eax,ebx,dword [0x41414141]', 'pdep eax,ebx,dword [0x41414141]'),
+    ('PDEP 4', 'C4E2E3F5042541414141', 'pdep rax,rbx,qword [0x41414141]', 'pdep rax,rbx,qword [0x41414141]'),
+    ('PEXT 1', 'c4e272f5d3', 'pext edx,ecx,ebx', 'pext edx,ecx,ebx'),
+    ('PEXT 2', 'c4e2f2f5d3', 'pext rdx,rcx,rbx', 'pext rdx,rcx,rbx'),
+    ('PEXT 3', 'c4e272f5142541414141', 'pext edx,ecx,dword [0x41414141]', 'pext edx,ecx,dword [0x41414141]'),
+    ('PEXT 4', 'c4e2f2f5142541414141', 'pext rdx,rcx,qword [0x41414141]', 'pext rdx,rcx,qword [0x41414141]'),
+
+    ('PBLENDW', '660f3a0ef411', 'pblendw xmm6,xmm4,17', 'pblendw xmm6,xmm4,17'),
+    ('VBROADCASTI', 'c4627d5a1d8decffff', 'vpbroadcasti128 ymm11,oword [rip + -4979]', 'vpbroadcasti128 ymm11,oword [rip - 4979]'),
+
     ('PSRLW (VEX)', 'C5E9D1CB', 'vpsrlw xmm1,xmm2,xmm3', 'vpsrlw xmm1,xmm2,xmm3'),
     ('PSRLW (VEX) 1', 'C5F171D208', 'vpsrlw xmm1,xmm2,8', 'vpsrlw xmm1,xmm2,8'),
     ('PSRLW (VEX) 2', 'C5E9D10C2541414141', 'vpsrlw xmm1,xmm2,oword [0x41414141]', 'vpsrlw xmm1,xmm2,oword [0x41414141]'),
@@ -1162,13 +1200,13 @@ class Amd64InstructionSet(unittest.TestCase):
         self.assertEqual( repr(op), oprepr )
         opvars = vars(op)
         for opk,opv in opcheck.items():
-            self.assertEqual( (repr(op), opk, opvars.get(opk)), (oprepr, opk, opv) )
+            self.assertEqual((repr(op), opk, opvars.get(opk)), (oprepr, opk, opv))
 
         for oidx in range(len(op.opers)):
             oper = op.opers[oidx]
             opervars = vars(oper)
             for opk,opv in opercheck[oidx].items():
-                self.assertEqual( (repr(op), opk, opervars.get(opk)), (oprepr, opk, opv) )
+                self.assertEqual((repr(op), opk, opervars.get(opk)), (oprepr, opk, opv))
 
         vw = vivisect.VivWorkspace()
         scanv = e_memcanvas.StringMemoryCanvas(vw)
@@ -1195,41 +1233,41 @@ class Amd64InstructionSet(unittest.TestCase):
         oprepr = 'add byte [rdx],dh'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
         opercheck = [{'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 2}, {'tsize': 1, 'reg': 134742018}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '480032'
         oprepr = 'add byte [rdx],sil'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 1572864, 'mnem': 'add', 'opcode': 8193, 'size': 3}
         opercheck = [{'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 2}, {'tsize': 1, 'reg': 524294}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '480132'
         oprepr = 'add qword [rdx],rsi'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 1572864, 'mnem': 'add', 'opcode': 8193, 'size': 3}
         opercheck = [{'disp': 0, 'tsize': 8, '_is_deref': True, 'reg': 2}, {'tsize': 8, 'reg': 6}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '0440'
         oprepr = 'add al,64'
         opcheck = {'iflags': 131072, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
         opercheck = ( {'tsize': 1, 'reg': 524288}, {'tsize': 1, 'imm': 64} )
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         opbytez = '0218'
         oprepr = 'add bl,byte [rax]'
         opcheck = {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'add', 'opcode': 8193, 'size': 2}
         opercheck = ( {'tsize': 1, 'reg': 524291}, {'disp': 0, 'tsize': 1, '_is_deref': True, 'reg': 0} )
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
         for x in range(0xb0, 0xb8):
             bytez = '41%.2xAAAAAAAA' % x
             op = self._arch.archParseOpcode(binascii.unhexlify(bytez),0,0x1000)
-            self.assertEqual( (bytez, hex(op.opers[0].reg)), (bytez, hex( 0x80000 + (x-0xa8) )) )
+            self.assertEqual((bytez, hex(op.opers[0].reg)), (bytez, hex( 0x80000 + (x-0xa8))))
 
         for x in range(0xb8, 0xc0):
             bytez = '41%.2xAAAAAAAA' % x
             op = self._arch.archParseOpcode(binascii.unhexlify(bytez),0,0x1000)
-            self.assertEqual( (bytez, hex(op.opers[0].reg)), (bytez, hex( 0x200000 + (x-0xb0) )) )
+            self.assertEqual((bytez, hex(op.opers[0].reg)), (bytez, hex( 0x200000 + (x-0xb0) )))
 
     def test_envi_amd64_disasm_Imm_Operands(self):
         '''
@@ -1250,98 +1288,83 @@ class Amd64InstructionSet(unittest.TestCase):
         opercheck = [{'tsize': 6, 'imm': 56954414829994}]
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
-        #In [3]: generateTestInfo('413ac4')
         opbytez = '413ac4'
         oprepr = 'cmp al,r12l'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 1114112, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 1, 'reg': 524288}, {'tsize': 1, 'reg': 524300}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [4]: generateTestInfo('453ac4')
         opbytez = '453ac4'
         oprepr = 'cmp r8l,r12l'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 1376256, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 1, 'reg': 524296}, {'tsize': 1, 'reg': 524300}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [5]: generateTestInfo('473ac4')
         opbytez = '473ac4'
         oprepr = 'cmp r8l,r12l'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 1507328, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 1, 'reg': 524296}, {'tsize': 1, 'reg': 524300}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [3]: generateTestInfo('3ac4')
         opbytez = '3ac4'
         oprepr = 'cmp al,ah'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'cmp', 'opcode': 20482, 'size': 2}
         opercheck = [{'tsize': 1, 'reg': 524288}, {'tsize': 1, 'reg': 134742016}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [4]: generateTestInfo('403ac4')
         opbytez = '403ac4'
         oprepr = 'cmp al,spl'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 1048576, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 1, 'reg': 524288}, {'tsize': 1, 'reg': 524292}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [5]: generateTestInfo('663ac4')
         opbytez = '663ac4'
         oprepr = 'cmp al,ah'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 64, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 1, 'reg': 524288}, {'tsize': 1, 'reg': 134742016}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [6]: generateTestInfo('673ac4')
         opbytez = '673ac4'
         oprepr = 'cmp al,ah'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 128, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 1, 'reg': 524288}, {'tsize': 1, 'reg': 134742016}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [7]: generateTestInfo('663ac4')
         opbytez = '663ac4'
         oprepr = 'cmp al,ah'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 64, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 1, 'reg': 524288}, {'tsize': 1, 'reg': 134742016}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [9]: generateTestInfo('663bc4')
         opbytez = '663bc4'
         oprepr = 'cmp ax,sp'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 64, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 2, 'reg': 1048576}, {'tsize': 2, 'reg': 1048580}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [10]: generateTestInfo('3bc4')
         opbytez = '3bc4'
         oprepr = 'cmp eax,esp'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'cmp', 'opcode': 20482, 'size': 2}
         opercheck = [{'tsize': 4, 'reg': 2097152}, {'tsize': 4, 'reg': 2097156}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [11]: generateTestInfo('403bc4')
         opbytez = '403bc4'
         oprepr = 'cmp eax,esp'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 1048576, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 4, 'reg': 2097152}, {'tsize': 4, 'reg': 2097156}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [12]: generateTestInfo('413bc4')
         opbytez = '413bc4'
         oprepr = 'cmp eax,r12d'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 1114112, 'mnem': 'cmp', 'opcode': 20482, 'size': 3}
         opercheck = [{'tsize': 4, 'reg': 2097152}, {'tsize': 4, 'reg': 2097164}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
-        #In [13]: generateTestInfo('66413bc4')
         opbytez = '66413bc4'
         oprepr = 'cmp ax,r12w'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 1114176, 'mnem': 'cmp', 'opcode': 20482, 'size': 4}
         opercheck = [{'tsize': 2, 'reg': 1048576}, {'tsize': 2, 'reg': 1048588}]
-        self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
-
-
+        self.checkOpcode(opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr)
 
     def test_envi_amd64_disasm_PcRel_Operands(self):
         '''
@@ -1375,7 +1398,7 @@ class Amd64InstructionSet(unittest.TestCase):
         opbytez = 'a1a2345678aabbccdd'
         oprepr = 'mov eax,dword [0xddccbbaa785634a2]'
         opcheck =  {'iflags': 131072, 'va': 16384, 'repr': None, 'prefixes': 0, 'mnem': 'mov', 'opcode': 24577, 'size': 9}
-        opercheck = [{'tsize': 4, 'reg': 2097152}, {'tsize': 4, '_is_deref': True, 'imm': 15982355518468797602L}]
+        opercheck = [{'tsize': 4, 'reg': 2097152}, {'tsize': 4, '_is_deref': True, 'imm': 15982355518468797602}]
         self.checkOpcode( opbytez, 0x4000, oprepr, opcheck, opercheck, oprepr )
 
     def test_envi_amd64_disasm_SIB_Operands(self):

@@ -65,7 +65,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
     def prehook(self, emu, op, eip):
         if op.mnem == "out":  # FIXME arch specific. see above idea.
             emu.stopEmu()
-            raise Exception("Out instruction...")
+            raise v_exc.BadOutInstruction(op.va)
 
         if op in self.badops:
             emu.stopEmu()
@@ -87,6 +87,9 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         cnt = self.mndist.get(op.mnem, 0)
         self.mndist[op.mnem] = cnt + 1
         self.insn_count += 1
+        if self.vw.isNoReturnVa(eip):
+            self.hasret = True
+            emu.stopEmu()
 
         # FIXME do we need a way to terminate emulation here?
     def apicall(self, emu, op, pc, api, argv):
@@ -109,8 +112,16 @@ def analyze(vw):
         vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None] )
 
         for va in set(vatodo):
-            if vw.getLocation(va) is not None:
+            loc = vw.getLocation(va)
+            if loc is not None:
+                if loc[L_LTYPE] == LOC_STRING:
+                    vw.makeString(va)
+                    tried.add(va)
+                elif loc[L_LTYPE] == LOC_UNI:
+                    vw.makeUnicode(va)
+                    tried.add(va)
                 continue
+
             if vw.isDeadData(va):
                 continue
 
@@ -126,6 +137,7 @@ def analyze(vw):
             emu = vw.getEmulator()
             wat = watcher(vw, va)
             emu.setEmulationMonitor(wat)
+
             try:
                 emu.runFunction(va, maxhit=1)
             except Exception:

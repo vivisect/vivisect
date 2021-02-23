@@ -1,20 +1,13 @@
-import sys
 import logging
-import traceback
 
 # Some common GUI helpers
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QTreeView
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QTreeView
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QTreeView
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
+
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
-
 
 
 class ACT:
@@ -26,9 +19,9 @@ class ACT:
     def __call__(self):
         try:
             return self.meth( *self.args, **self.kwargs )
-        except:
-            logger.warn("error in ACT(%s, %s, %s)", str(self.meth), str(self.args), str(self.kwargs))
-            logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+        except Exception as e:
+            logger.warning("error in ACT(%s, %s, %s)", str(self.meth), str(self.args), str(self.kwargs))
+            logger.warning(str(e))
 
 
 class VqtModel(QtCore.QAbstractItemModel):
@@ -56,7 +49,7 @@ class VqtModel(QtCore.QAbstractItemModel):
         return len(self.rows)
 
     def data(self, index, role):
-        if role == 0: 
+        if role == 0:
             row = index.row()
             col = index.column()
             return self.rows[row][col]
@@ -68,12 +61,8 @@ class VqtModel(QtCore.QAbstractItemModel):
         return len(self.columns)
 
     def headerData(self, column, orientation, role):
-
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
-
+        if (orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole):
             return self.columns[column]
-
         return None
 
     def flags(self, index):
@@ -164,7 +153,7 @@ class VqtView(QTreeView):
                 continue
 
             rdone[idx.row()] = True
-            ret.append( model.mapToSource(idx).internalPointer() )
+            ret.append(model.mapToSource(idx).internalPointer())
 
         return ret
 
@@ -182,4 +171,4 @@ class VqtView(QTreeView):
 
     def getModelRow(self, idx):
         idx = self.model().mapToSource(idx)
-        return idx.row(),idx.internalPointer()
+        return idx.row(), idx.internalPointer()
