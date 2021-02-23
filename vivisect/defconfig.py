@@ -25,15 +25,15 @@ defconfig = {
             'ihex':{
                 'arch':'',
                 'bigend':False,
+                'offset':0,
             },
             'vbf':{
                 'arch':'',
                 'bigend':False,
-
-                'offset':0,
             },
             'srec':{
                 'arch':'',
+                'bigend':False,
                 'offset':0,
             },
         },
