@@ -47,9 +47,9 @@ instrs = [
         ('2240', 0x4560, 'bgeu.b 0x45a0', 0, ()),                     # FORM_PCDSP
         ('3b1547', 0x4560, 'bnz.w 0x8c75', 0, ()),                    # FORM_PCDSP
         ('fced3468', 0x4560, 'bmgtu #0x3,0x68[r3].b', 0, ()),         # FORM_BMCND
-        ('fde734', 0x4560, 'bmltu #0x7,r4', 0, ()),               # FORM_BMCND
-        ('fcf23f4645', 0x4560, 'bnot #0x4,0x4546[r3].b', 0, ()),    # FORM_BMCND
-        ('fc6e3f6845', 0x4560, 'bnot r3,0x4568[r15].ub', 0, ()),    # FORM_BMCND
+        ('fde734', 0x4560, 'bmltu #0x7,r4', 0, ()),               # FORM_
+        ('fcf23f4645', 0x4560, 'bnot #0x4,0x4546[r3].b', 0, ()),    # FORM_
+        ('fc6e3f6845', 0x4560, 'bnot r15,0x4568[r3].b', 0, ()),    # FORM_
         ('fde6f4', 0x4560, 'bnot #0x6,r4', 0, ()),                  # FORM_PCDSP
         ('fc6f36', 0x4560, 'bnot r6,r3', 0, ()),                    # FORM_BMCND
         ('08', 0x4560, 'bra.s 0x4568', 0, ()),                        # FORM_BMCND

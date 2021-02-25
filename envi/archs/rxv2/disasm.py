@@ -197,6 +197,7 @@ class RxDisasm:
         self.HANDLERS[FORM_RD_IMM] = self.form_RD_IMM
         self.HANDLERS[FORM_RD_LD_RS] = self.form_RD_LD_RS
         self.HANDLERS[FORM_RD_LD_RS_L] = self.form_RD_LD_RS_L
+        self.HANDLERS[FORM_RD_LD_RS_B] = self.form_RD_LD_RS_B
         self.HANDLERS[FORM_A_RS2_RS] = self.form_A_RS2_RS
         self.HANDLERS[FORM_LD_RS2_RS_L] = self.form_LD_RS2_RS_L
         self.HANDLERS[FORM_LD_RS2_RS_UB] = self.form_LD_RS2_RS_UB
@@ -565,7 +566,7 @@ class RxDisasm:
 
             opers = (
                     RxImmOper(imm, va),
-                    RxDspOper(rd, dsp, tsize=1, va=va),
+                    RxDspOper(rd, dsp, tsize=1, oflags=OF_B, va=va),
                     )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
@@ -642,6 +643,9 @@ class RxDisasm:
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
+    def form_RD_LD_RS_B(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        return self.form_RD_LD_RS(va, opcode, mnem, fields, opsz, iflags, bytez, off, tsize=1, oflags=OF_B)
+
     def form_RD_LD_RS_L(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         return self.form_RD_LD_RS(va, opcode, mnem, fields, opsz, iflags, bytez, off, tsize=4, oflags=OF_L)
 
@@ -661,14 +665,14 @@ class RxDisasm:
                         )
             else:
                 if ldd in (1,2):
-                    dsps = e_bits.parsebytes(bytez, off, ldd, sign=False)
+                    dspd = e_bits.parsebytes(bytez, off, ldd, sign=False)
                     opsz += ldd
                 elif ldd == 0:
-                    dsps = 0
+                    dspd = 0
                 
                 opers = (
-                        RxRegOper(rd, va), 
-                        RxDspOper(rs, dsps, tsize=tsize, oflags=oflags, va=va), 
+                        RxRegOper(rs, va), 
+                        RxDspOper(rd, dspd, tsize=tsize, oflags=oflags, va=va), 
                         )
 
         else:
