@@ -324,6 +324,8 @@ def getForm(mnem, operdefs, operands):
     if nms == ['rd', 'ld', 'rs']:
         if mnem in ('round', 'sbb'):
             return 'FORM_RD_LD_RS_L'
+        elif mnem in ('bnot',):
+            return 'FORM_RD_LD_RS_B'
         return 'FORM_RD_LD_RS'
     if nms == ['a', 'rs2', 'rs']:
         return 'FORM_A_RS2_RS'
@@ -383,6 +385,22 @@ def getIflags(mnem, operdefs):
         return 'IF_BRANCH | IF_NOFALL'
     
     elif mnem in brconds:
+        pcdspvals = operdefs.get('pcdsp')
+
+        if pcdspvals is not None:
+            s, f = pcdspvals.values()[0]
+            delta = s - f + 1
+            if delta == 3:
+                return 'IF_BRANCH | IF_COND | IF_SMALL'
+            elif delta == 8:
+                return 'IF_BRANCH | IF_COND | IF_BYTE'
+            elif delta == 16:
+                return 'IF_BRANCH | IF_COND | IF_WORD'
+            elif delta == 24:
+                return 'IF_BRANCH | IF_COND | IF_24BIT'
+            elif delta == 32:
+                return 'IF_BRANCH | IF_COND | IF_LONG'
+
         return 'IF_BRANCH | IF_COND'
     
     elif mnem in calls:

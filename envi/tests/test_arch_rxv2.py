@@ -16,8 +16,8 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 
 
 logger = logging.getLogger(__name__)
-import envi.common as e_common
-e_common.initLogging(logger, logging.WARN)
+#import envi.common as e_common
+#e_common.initLogging(logger, logging.WARN)
 
 
 GOOD_TESTS = 228
@@ -41,13 +41,13 @@ instrs = [
         ('742344434241', 0x4560, 'and #0x41424344,r3', 0, ()),      # FORM_RD_LI
         ('5323', 0x4560, 'and r2,r3', 0, ()),                       # FORM_RD_LD_RS
         ('52234342', 0x4560, 'and 0x4243[r2].ub,r3', 0, ()),        # FORM_RD_LD_RS
-        ('2423', 0x4560, 'bgtu 0x4583', 0, ()),                     # FORM_PCDSP
-        ('1f', 0x4560, 'bnz 0x4567', 0, ()),                        # FORM_PCDSP
-        ('18', 0x4560, 'bnz 0x4568', 0, ()),                        # FORM_PCDSP
-        ('2240', 0x4560, 'bgeu 0x45a0', 0, ()),                     # FORM_PCDSP
-        ('3b1547', 0x4560, 'bnz 0x8c75', 0, ()),                    # FORM_PCDSP
-        ('fced3468', 0x4560, 'bmgtu #0x3,0x68[r3]', 0, ()),         # FORM_BMCND
-        ('fde734', 0x4560, 'bmltu #0x7,[r4]', 0, ()),               # FORM_BMCND
+        ('2423', 0x4560, 'bgtu.b 0x4583', 0, ()),                     # FORM_PCDSP
+        ('1f', 0x4560, 'bnz.s 0x4567', 0, ()),                        # FORM_PCDSP
+        ('18', 0x4560, 'bnz.s 0x4568', 0, ()),                        # FORM_PCDSP
+        ('2240', 0x4560, 'bgeu.b 0x45a0', 0, ()),                     # FORM_PCDSP
+        ('3b1547', 0x4560, 'bnz.w 0x8c75', 0, ()),                    # FORM_PCDSP
+        ('fced3468', 0x4560, 'bmgtu #0x3,0x68[r3].b', 0, ()),         # FORM_BMCND
+        ('fde734', 0x4560, 'bmltu #0x7,r4', 0, ()),               # FORM_BMCND
         ('fcf23f4645', 0x4560, 'bnot #0x4,0x4546[r3].b', 0, ()),    # FORM_BMCND
         ('fc6e3f6845', 0x4560, 'bnot r3,0x4568[r15].ub', 0, ()),    # FORM_BMCND
         ('fde6f4', 0x4560, 'bnot #0x6,r4', 0, ()),                  # FORM_PCDSP

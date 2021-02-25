@@ -543,7 +543,7 @@ class RxDisasm:
         rd = fields.get(O_RD)
         ld = fields.get(O_LDD)
 
-        if ld == 3:
+        if ld is None or ld == 3:
             ### NEXT PART: Documentation is incorrect, per email from Renesas, and their tooling
             #raise e_exc.InvalidInstruction(bytez[off-opsz:off], 
             #        'BMCND: ld cannot be 3')
