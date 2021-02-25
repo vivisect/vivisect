@@ -68,7 +68,7 @@ class NodeColumn(QGraphicsItem):
         return self.x()
 
     def getYMid(self):
-        return self.y() + (self.boundingRect().height() / 2)
+        return self.y() + (int(self.boundingRect().height()) / 2)
 
     def drawLinesTo(self, colnode):
         '''
