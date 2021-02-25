@@ -327,7 +327,7 @@ def getForm(mnem, operdefs, operands):
     if nms == ['rd', 'ld', 'mi', 'rs']:
         return 'FORM_RD_LD_MI_RS'
     if nms == ['rd', 'ld', 'rs']:
-        if mnem in ('round', 'sbb'):
+        if mnem in ('round','sbb','fadd','fdiv','fmul','fsqrt','fsub','ftoi','ftou',):
             return 'FORM_RD_LD_RS_L'
         elif mnem in ('bnot','bset',):
             return 'FORM_RD_LD_RS_B'
@@ -443,6 +443,15 @@ def getIflags(mnem, operdefs):
 
     elif mnem in nofalls:
         return 'IF_NOFALL'
+
+    elif mnem == 'mov':
+        odefs = operdefs.keys()
+        odefs.sort()
+        cdefs = ['imm','rd']
+        cdefs.sort()
+        if odefs == cdefs:
+            return 'IF_LONG'
+
 
     return 'IF_NONE'
 

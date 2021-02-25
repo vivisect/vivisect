@@ -90,7 +90,7 @@ instrs = [
         ('fc1e348017', 0x4560, 'emulu 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
         ('06a207348017', 0x4560, 'emulu 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd722445710400', 0x4560, 'fadd #0x47145,r4', 0, ()),             # FORM_BMCND
-        ('fc8a348017', 0x4560, 'fadd 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('fc8a348017', 0x4560, 'fadd 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('ffa345', 0x4560, 'fadd r4,r5,r3', 0, ()),             # FORM_BMCND
         ('fd721445710400', 0x4560, 'fcmp #0x47145,r4', 0, ()),             # FORM_BMCND
         ('fc86348017', 0x4560, 'fcmp 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND    should be: fcmp 0x1780[r3].l,r4  - is: fcmp 0x1780[r3].b,r4
