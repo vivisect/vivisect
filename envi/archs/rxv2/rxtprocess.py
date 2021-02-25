@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 branches = [
         'jmp',
         'bra',
@@ -652,4 +654,4 @@ def formsHist(data):
 import rxtprocess;reload(rxtprocess) ; data = rxtprocess.process(open('rxtbls.raw').read()); [x for x in data if x[-1] % 8]
 '''
 
-
+createRxTablesModule()
