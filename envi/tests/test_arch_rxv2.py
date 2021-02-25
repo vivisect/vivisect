@@ -16,17 +16,18 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 
 
 logger = logging.getLogger(__name__)
+import envi.common as e_common
+e_common.initLogging(logger, logging.WARN)
 
 
-GOOD_TESTS = 229
+GOOD_TESTS = 228
 GOOD_EMU_TESTS = 0
 
 
 instrs = [
-        ('06e202f44141', 0x4560, 'adc 0x4141[r15].uw,r4', 0, ()),   # FORM_RD_LD_MI_RS
+        ('06a202f4a020', 0x4560, 'adc 0x8280[r15].l,r4', 0, ()),   # FORM_RD_LD_MI_RS
         ('06e302f4', 0x4560, 'adc r15,r4', 0, ()),                  # FORM_RD_LD_MI_RS
-        ('06e102f441', 0x4560, 'adc 0x41[r15].uw,r4', 0, ()),       # FORM_RD_LD_MI_RS
-        ('06a102f441', 0x4560, 'adc 0x41[r15].l,r4', 0, ()),        # FORM_RD_LD_MI_RS
+        ('06a102f421', 0x4560, 'adc 0x84[r15].l,r4', 0, ()),        # FORM_RD_LD_MI_RS
         ('fd7c24434241', 0x4560, 'adc #0x414243,r4', 0, ()),        # FORM_RD_LI
         ('fda432', 0x4560, 'shar #0x4,r3,r2', 0, ()),               # DFLT-3/4
         ('7f14', 0x4560, 'jsr r4', envi.IF_CALL, ()),               # DFLT-1
@@ -34,7 +35,7 @@ instrs = [
         ('fc0f42', 0x4560, 'abs r4,r2', 0, ()),                     # DFLT-2
         ('623b', 0x4560, 'add #0x3,r11', 0, ()),                    # FORM_RD_IMM
         ('4a234241', 0x4560, 'add 0x4142[r2].ub,r3', 0, ()),        # FORM_RD_LD_RS
-        ('06ca454241', 0x4560, 'add 0x4142[r4].uw,r5', 0, ()),      # FORM_RD_LD_MI_RS
+        ('06ca454241', 0x4560, 'add 0x8284[r4].uw,r5', 0, ()),      # FORM_RD_LD_MI_RS
         ('068823', 0x4560, 'add [r2].l,r3', 0, ()),                 # FORM_RD_LD_MI_RS
         ('6423', 0x4560, 'and #0x2,r3', 0, ()),                     # FORM_RD_IMM
         ('742344434241', 0x4560, 'and #0x41424344,r3', 0, ()),      # FORM_RD_LI
@@ -51,10 +52,10 @@ instrs = [
         ('fc6e3f6845', 0x4560, 'bnot r3,0x4568[r15].ub', 0, ()),    # FORM_BMCND
         ('fde6f4', 0x4560, 'bnot #0x6,r4', 0, ()),                  # FORM_PCDSP
         ('fc6f36', 0x4560, 'bnot r6,r3', 0, ()),                    # FORM_BMCND
-        ('08', 0x4560, 'bra 0x4568', 0, ()),                        # FORM_BMCND
-        ('2e05', 0x4560, 'bra 0x4565', 0, ()),                      # FORM_BMCND
-        ('381547', 0x4560, 'bra 0x8c75', 0, ()),                    # FORM_BMCND
-        ('7f45', 0x4560, 'bra r5', 0, ()),                          # FORM_BMCND
+        ('08', 0x4560, 'bra.s 0x4568', 0, ()),                        # FORM_BMCND
+        ('2e05', 0x4560, 'bra.b 0x4565', 0, ()),                      # FORM_BMCND
+        ('381547', 0x4560, 'bra.w 0x8c75', 0, ()),                    # FORM_BMCND
+        ('7f45', 0x4560, 'bra.l r5', 0, ()),                          # FORM_BMCND
         ('00', 0x4560, 'brk', 0, ()),                               # FORM_BMCND
         ('f2336845', 0x4560, 'bset #0x3,0x4568[r3].b', 0, ()),      # FORM_BMCND
         ('fc62346845', 0x4560, 'bset r3,0x4568[r4].ub', 0, ()),     # FORM_BMCND
@@ -73,26 +74,26 @@ instrs = [
         ('75547f', 0x4560, 'cmp #0x7f,r4', 0, ()),             # FORM_BMCND
         ('76042017', 0x4560, 'cmp #0x1720,r4', 0, ()),             # FORM_BMCND
         ('46348017', 0x4560, 'cmp 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
-        ('0686348017', 0x4560, 'cmp 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('0686348017', 0x4560, 'cmp 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd78848017', 0x4560, 'div #0x1780,r4', 0, ()),             # FORM_BMCND
         ('fc22348017', 0x4560, 'div 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
-        ('06a208348017', 0x4560, 'div 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('06a208348017', 0x4560, 'div 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd78938017', 0x4560, 'divu #0x1780,r3', 0, ()),             # FORM_BMCND
         ('fc26348017', 0x4560, 'divu 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
-        ('06a209348017', 0x4560, 'divu 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('06a209348017', 0x4560, 'divu 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd0f34', 0x4560, 'emaca r3,r4,acc1', 0, ()),             # FORM_BMCND
         ('fd4f34', 0x4560, 'emsba r3,r4,acc1', 0, ()),             # FORM_BMCND
         ('fd78648017', 0x4560, 'emul #0x1780,r4', 0, ()),             # FORM_BMCND
-        ('06a206348017', 0x4560, 'emul 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('06a206348017', 0x4560, 'emul 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd0b34', 0x4560, 'emula r3,r4,acc1', 0, ()),             # FORM_BMCND
         ('fd78748017', 0x4560, 'emulu #0x1780,r4', 0, ()),             # FORM_BMCND
         ('fc1e348017', 0x4560, 'emulu 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
-        ('06a207348017', 0x4560, 'emulu 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('06a207348017', 0x4560, 'emulu 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd722445710400', 0x4560, 'fadd #0x47145,r4', 0, ()),             # FORM_BMCND
         ('fc8a348017', 0x4560, 'fadd 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
         ('ffa345', 0x4560, 'fadd r4,r5,r3', 0, ()),             # FORM_BMCND
         ('fd721445710400', 0x4560, 'fcmp #0x47145,r4', 0, ()),             # FORM_BMCND
-        ('fc86348017', 0x4560, 'fcmp 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND    should be: fcmp 0x1780[r3].l,r4  - is: fcmp 0x1780[r3].b,r4
+        ('fc86348017', 0x4560, 'fcmp 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND    should be: fcmp 0x1780[r3].l,r4  - is: fcmp 0x1780[r3].b,r4
         ('fd724445710400', 0x4560, 'fdiv #0x47145,r4', 0, ()),             # FORM_BMCND
         ('fc92348017', 0x4560, 'fdiv 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
         ('fd723445710400', 0x4560, 'fmul #0x47145,r4', 0, ()),             # FORM_BMCND
@@ -106,7 +107,7 @@ instrs = [
         ('fca6348017', 0x4560, 'ftou 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
         ('756045', 0x4560, 'int #0x45', 0, ()),             # FORM_BMCND
         ('fc46348017', 0x4560, 'itof 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
-        ('06a211348017', 0x4560, 'itof 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('06a211348017', 0x4560, 'itof 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('7f04', 0x4560, 'jmp r4', 0, ()),             # FORM_BMCND
         ('7f14', 0x4560, 'jsr r4', 0, ()),             # FORM_BMCND
         ('fd0c34', 0x4560, 'machi r3,r4,acc1', 0, ()),             # FORM_BMCND
@@ -114,32 +115,32 @@ instrs = [
         ('fd0d34', 0x4560, 'maclo r3,r4,acc1', 0, ()),             # FORM_BMCND
         ('fd78448017', 0x4560, 'max #0x1780,r4', 0, ()),             # FORM_BMCND
         ('fc12348017', 0x4560, 'max 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
-        ('06a204348017', 0x4560, 'max 0x1780[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('06a204348017', 0x4560, 'max 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd745417', 0x4560, 'min #0x17,r4', 0, ()),             # FORM_BMCND
         ('fc153417', 0x4560, 'min 0x17[r3].ub,r4', 0, ()),             # FORM_BMCND
-        ('0661043417', 0x4560, 'max 0x17[r3].w,r4', 0, ()),             # FORM_BMCND
-        ('97cb', 0x4560, 'mov.w r3,0x1f[r4]', 0, ()),             # FORM_BMCND
-        ('9fcb', 0x4560, 'mov.w 0x1f[r4],r3', 0, ()),             # FORM_BMCND
+        ('0661043417', 0x4560, 'max 0x2e[r3].w,r4', 0, ()),             # FORM_BMCND
+        ('97cb', 0x4560, 'mov.w r3,0x3e[r4]', 0, ()),             # FORM_BMCND
+        ('9fcb', 0x4560, 'mov.w 0x3e[r4],r3', 0, ()),             # FORM_BMCND
         ('66f4', 0x4560, 'mov #0xf,r4', 0, ()),             # FORM_BMCND # wrong, but doesn't really need a size?
-        ('3ecc17', 0x4560, 'mov.l #0x17,0x1c[r4]', 0, ()),             # FORM_BMCND
+        ('3ecc17', 0x4560, 'mov.l #0x17,0x70[r4]', 0, ()),             # FORM_BMCND
         ('754321', 0x4560, 'mov #0x21,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
         ('fb3a8017', 0x4560, 'mov #0x1780,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
         ('fb3245710400', 0x4560, 'mov #0x47145,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
         ### FIXME: go back through and make sense of all the SIMM/IMM/UIMM parsing.  should these be operand flags?
         ('ef34', 0x4560, 'mov.l r3,r4', 0, ()),             # FORM_
-        ('fa3a80171547', 0x4560, 'mov.l #0x1780,0x4715[r3]', 0, ()),             # FORM_
+        ('fa3a80171547', 0x4560, 'mov.l #0x1780,0x11c54[r3]', 0, ()),             # FORM_
         ('fe6234', 0x4560, 'mov.l [r3, r2],r4', 0, ()),             # FORM_
-        ('eb348017', 0x4560, 'mov.l r4,0x1780[r3]', 0, ()),             # FORM_
+        ('eb348017', 0x4560, 'mov.l r4,0x5e00[r3]', 0, ()),             # FORM_
         ('fe2234', 0x4560, 'mov.l r4,[r3, r2]', 0, ()),             # FORM_
-        ('e934408017', 0x4560, 'mov.l 0x40[r3],0x1780[r4]', 0, ()),             # FORM_
+        ('e934408017', 0x4560, 'mov.l 0x100[r3],0x5e00[r4]', 0, ()),             # FORM_
         ('fd2234', 0x4560, 'mov.l r4,[r3+]', 0, ()),             # FORM_
         ('fd2634', 0x4560, 'mov.l r4,[-r3]', 0, ()),             # FORM_
         ('fd2a34', 0x4560, 'mov.l [r3+],r4', 0, ()),             # FORM_
         ('fd2e34', 0x4560, 'mov.l [-r3],r4', 0, ()),             # FORM_
         ('fd2c34', 0x4560, 'mov.b [-r3],r4', 0, ()),             # FORM_
         ('fd2f34', 0x4560, 'movli r3,r4', 0, ()),             # FORM_
-        ('bf34', 0x4560, 'movu.w 0x1c[r3],r4', 0, ()),             # FORM_
-        ('5e348017', 0x4560, 'movu.w 0x1780[r3],r4', 0, ()),             # FORM_
+        ('bf34', 0x4560, 'movu.w 0x38[r3],r4', 0, ()),             # FORM_
+        ('5e348017', 0x4560, 'movu.w 0x2f00[r3],r4', 0, ()),             # FORM_
         ('fed234', 0x4560, 'movu.w [r3, r2],r4', 0, ()),             # FORM_
         ('fd3934', 0x4560, 'movu.w [r3+],r4', 0, ()),             # FORM_
         ('fd4c34', 0x4560, 'msbhi r3,r4,acc1', 0, ()),             # FORM_
@@ -148,7 +149,7 @@ instrs = [
         ('6334', 0x4560, 'mul #0x3,r4', 0, ()),             # FORM_
         ('76138017', 0x4560, 'mul #0x1780,r3', 0, ()),             # FORM_
         ('4e348017', 0x4560, 'mul 0x1780[r3].ub,r4', 0, ()),             # FORM_
-        ('068e348017', 0x4560, 'mul 0x1780[r3].l,r4', 0, ()),             # FORM_
+        ('068e348017', 0x4560, 'mul 0x5e00[r3].l,r4', 0, ()),             # FORM_
         ('fd0834', 0x4560, 'mulhi r3,r4,acc1', 0, ()),             # FORM_
         ('fd0a34', 0x4560, 'mullh r3,r4,acc1', 0, ()),             # FORM_
         ('fd0934', 0x4560, 'mullo r3,r4,acc1', 0, ()),             # FORM_
@@ -171,12 +172,12 @@ instrs = [
         ('6534', 0x4560, 'or #0x3,r4', 0, ()),             # FORM_
         ('76348017', 0x4560, 'or #0x1780,r4', 0, ()),             # FORM_
         ('56348017', 0x4560, 'or 0x1780[r3].ub,r4', 0, ()),             # FORM_
-        ('0696348017', 0x4560, 'or 0x1780[r3].l,r4', 0, ()),             # FORM_
+        ('0696348017', 0x4560, 'or 0x5e00[r3].l,r4', 0, ()),             # FORM_
         ('ff5234', 0x4560, 'or r3,r4,r2', 0, ()),             # FORM_
         ('7eb4', 0x4560, 'pop r4', 0, ()),             # FORM_
         ('7ee3', 0x4560, 'popc fpsw', 0, ()),             # FORM_
         ('7ea3', 0x4560, 'push.l r3', 0, ()),             # FORM_
-        ('f63a8017', 0x4560, 'push.l 0x1780[r3]', 0, ()),             # FORM_
+        ('f63a8017', 0x4560, 'push.l 0x5e00[r3]', 0, ()),             # FORM_
         ('7ec3', 0x4560, 'pushc fpsw', 0, ()),             # FORM_
         ('6e34', 0x4560, 'pushm r3,r4', 0, ()),             # FORM_
         ('fd1990', 0x4560, 'racl #0x2,acc1', 0, ()),             # FORM_
@@ -193,7 +194,7 @@ instrs = [
         ('fd6634', 0x4560, 'rotl r3,r4', 0, ()),             # FORM_
         ('fd6dc4', 0x4560, 'rotr #0x1c,r4', 0, ()),             # FORM_
         ('fd6434', 0x4560, 'rotr r3,r4', 0, ()),             # FORM_
-        ('fc9a348017', 0x4560, 'round 0x1780[r3].l,r4', 0, ()),             # FORM_
+        ('fc9a348017', 0x4560, 'round 0x5e00[r3].l,r4', 0, ()),             # FORM_
         ('7f95', 0x4560, 'rte', 0, ()),             # FORM_
         ('7f94', 0x4560, 'rtfi', 0, ()),             # FORM_
         ('02', 0x4560, 'rts', 0, ()),             # FORM_
@@ -202,21 +203,21 @@ instrs = [
         ('7e34', 0x4560, 'sat r4', 0, ()),             # FORM_
         ('7f93', 0x4560, 'satr', 0, ()),             # FORM_
         ('fc0334', 0x4560, 'sbb r3,r4', 0, ()),             # FORM_
-        ('06a200348017', 0x4560, 'sbb 0x1780[r3].l,r4', 0, ()),             # FORM_
-        ('fcda308017', 0x4560, 'scz.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda318017', 0x4560, 'scnz.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda328017', 0x4560, 'scgeu.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda338017', 0x4560, 'scltu.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda348017', 0x4560, 'scgtu.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda358017', 0x4560, 'scleu.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda368017', 0x4560, 'scpz.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda378017', 0x4560, 'scn.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda388017', 0x4560, 'scge.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda398017', 0x4560, 'sclt.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda3a8017', 0x4560, 'scgt.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda3b8017', 0x4560, 'scle.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda3c8017', 0x4560, 'sco.l 0x1780[r3]', 0, ()),             # FORM_
-        ('fcda3d8017', 0x4560, 'scno.l 0x1780[r3]', 0, ()),             # FORM_
+        ('06a200348017', 0x4560, 'sbb 0x5e00[r3].l,r4', 0, ()),             # FORM_
+        ('fcda308017', 0x4560, 'scz.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda318017', 0x4560, 'scnz.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda328017', 0x4560, 'scgeu.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda338017', 0x4560, 'scltu.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda348017', 0x4560, 'scgtu.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda358017', 0x4560, 'scleu.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda368017', 0x4560, 'scpz.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda378017', 0x4560, 'scn.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda388017', 0x4560, 'scge.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda398017', 0x4560, 'sclt.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda3a8017', 0x4560, 'scgt.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda3b8017', 0x4560, 'scle.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda3c8017', 0x4560, 'sco.l 0x5e00[r3]', 0, ()),             # FORM_
+        ('fcda3d8017', 0x4560, 'scno.l 0x5e00[r3]', 0, ()),             # FORM_
         ('7f83', 0x4560, 'scmpu', 0, ()),             # FORM_
         ('7fa3', 0x4560, 'setpsw o', 0, ()),             # FORM_
         ('6bc4', 0x4560, 'shar #0x1c,r4', 0, ()),             # FORM_
@@ -238,21 +239,21 @@ instrs = [
         ('fc4b34', 0x4560, 'stz r3,r4', 0, ()),             # FORM_        FIXME: DOCS ARE WRONG! THIS IS THE SAME AS stnz
         ('6034', 0x4560, 'sub #0x3,r4', 0, ()),             # FORM_
         ('42348017', 0x4560, 'sub 0x1780[r3].ub,r4', 0, ()),             # FORM_
-        ('0682348017', 0x4560, 'sub 0x1780[r3].l,r4', 0, ()),             # FORM_
+        ('0682348017', 0x4560, 'sub 0x5e00[r3].l,r4', 0, ()),             # FORM_
         ('ff0234', 0x4560, 'sub r3,r4,r2', 0, ()),             # FORM_
         ('7f82', 0x4560, 'suntil.l', 0, ()),             # FORM_
         ('7f86', 0x4560, 'swhile.l', 0, ()),             # FORM_
         ('fd78c38017', 0x4560, 'tst #0x1780,r3', 0, ()),             # FORM_
         ('fc32348017', 0x4560, 'tst 0x1780[r3].ub,r4', 0, ()),             # FORM_     should be: tst 0x1780[r3].ub,r4  - is: tst 0x1780[r3].b,r4
-        ('06a20c348017', 0x4560, 'tst 0x1780[r3].l,r4', 0, ()),             # FORM_
+        ('06a20c348017', 0x4560, 'tst 0x5e00[r3].l,r4', 0, ()),             # FORM_
         ('fc56348017', 0x4560, 'utof 0x1780[r3].ub,r4', 0, ()),             # FORM_
-        ('06a215348017', 0x4560, 'utof 0x1780[r3].l,r4', 0, ()),             # FORM_
+        ('06a215348017', 0x4560, 'utof 0x5e00[r3].l,r4', 0, ()),             # FORM_
         ('7f96', 0x4560, 'wait', 0, ()),             # FORM_
         ('fc42348017', 0x4560, 'xchg 0x1780[r3].ub,r4', 0, ()),             # FORM_
-        ('06a210348017', 0x4560, 'xchg 0x1780[r3].l,r4', 0, ()),             # FORM_
+        ('06a210348017', 0x4560, 'xchg 0x5e00[r3].l,r4', 0, ()),             # FORM_
         ('fd78d48017', 0x4560, 'xor #0x1780,r4', 0, ()),             # FORM_
         ('fc36348017', 0x4560, 'xor 0x1780[r3].ub,r4', 0, ()),             # FORM_
-        ('06a20d348017', 0x4560, 'xor 0x1780[r3].l,r4', 0, ()),             # FORM_
+        ('06a20d348017', 0x4560, 'xor 0x5e00[r3].l,r4', 0, ()),             # FORM_
 
 ]
 
@@ -274,7 +275,7 @@ class RXv2InstructionSet(unittest.TestCase):
         bademu = 0
 
         for bytez, va, reprOp, iflags, emutests in instrs:
-            #print("Test: %r" % bytez)
+            print("Test: %r" % bytez)
             op = vw.arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             redoprepr = repr(op).replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()
@@ -332,7 +333,7 @@ class RXv2InstructionSet(unittest.TestCase):
 
         logger.info("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
                 (goodcount, badcount, goodemu, bademu))
-        logger.info("Total of ", str(goodcount + badcount) + " tests completed.")
+        logger.info("Total of %d tests completed." % (goodcount + badcount))
         self.assertEqual(goodcount, GOOD_TESTS)
         #self.assertEqual(goodemu, GOOD_EMU_TESTS)
 

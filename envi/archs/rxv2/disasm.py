@@ -467,7 +467,7 @@ class RxDisasm:
                                 opers.append(RxRegOper(reg, va=va))
 
                         elif regconst == O_RS:
-                            if lds is not None:
+                            if lds is not None and lds < 3:
                                 dsp = e_bits.parsebytes(bytez, off, lds, sign=False)
                                 opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
                                 off += lds
