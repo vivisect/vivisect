@@ -58,13 +58,13 @@ instrs = [
         ('7f45', 0x4560, 'bra.l r5', 0, ()),                          # FORM_BMCND
         ('00', 0x4560, 'brk', 0, ()),                               # FORM_BMCND
         ('f2336845', 0x4560, 'bset #0x3,0x4568[r3].b', 0, ()),      # FORM_BMCND
-        ('fc62346845', 0x4560, 'bset r3,0x4568[r4].ub', 0, ()),     # FORM_BMCND
+        ('fc62346845', 0x4560, 'bset r4,0x4568[r3].b', 0, ()),     # FORM_BMCND
         ('7834', 0x4560, 'bset #0x3,r4', 0, ()),             # FORM_BMCND
         ('7934', 0x4560, 'bset #0x13,r4', 0, ()),             # FORM_BMCND
         ('fc6334', 0x4560, 'bset r4,r3', 0, ()),             # FORM_BMCND
-        ('396845', 0x4560, 'bsr 0x8ac8', 0, ()),             # FORM_BMCND
-        ('05006845', 0x4560, 'bsr 0x45ad60', 0, ()),             # FORM_BMCND
-        ('7f53', 0x4560, 'bsr r3', 0, ()),             # FORM_BMCND
+        ('396845', 0x4560, 'bsr.w 0x8ac8', 0, ()),             # FORM_BMCND
+        ('05006845', 0x4560, 'bsr.a 0x45ad60', 0, ()),             # FORM_BMCND
+        ('7f53', 0x4560, 'bsr.l r3', 0, ()),             # FORM_BMCND
         ('f6336845', 0x4560, 'btst #0x3,0x4568[r3].b', 0, ()),             # FORM_BMCND
         ('fc6aab6845', 0x4560, 'btst 0x4568[r11].b,r10', 0, ()),             # FORM_BMCND
         ('7d44', 0x4560, 'btst #0x14,r4', 0, ()),             # FORM_BMCND
@@ -153,10 +153,10 @@ instrs = [
         ('fd0834', 0x4560, 'mulhi r3,r4,acc1', 0, ()),             # FORM_
         ('fd0a34', 0x4560, 'mullh r3,r4,acc1', 0, ()),             # FORM_
         ('fd0934', 0x4560, 'mullo r3,r4,acc1', 0, ()),             # FORM_
-        ('fd1ff4', 0x4560, 'mvfacgu #0x3,acc1,r4', 0, ()),             # FORM_
-        ('fd1fc4', 0x4560, 'mvfachi #0x3,acc1,r4', 0, ()),             # FORM_
-        ('fd1fd4', 0x4560, 'mvfaclo #0x3,acc1,r4', 0, ()),             # FORM_
-        ('fd1fe4', 0x4560, 'mvfacmi #0x3,acc1,r4', 0, ()),             # FORM_
+        ('fd1ff4', 0x4560, 'mvfacgu #0x1,acc1,r4', 0, ()),             # FORM_
+        ('fd1fc4', 0x4560, 'mvfachi #0x1,acc1,r4', 0, ()),             # FORM_
+        ('fd1fd4', 0x4560, 'mvfaclo #0x1,acc1,r4', 0, ()),             # FORM_
+        ('fd1fe4', 0x4560, 'mvfacmi #0x1,acc1,r4', 0, ()),             # FORM_
         ('fd6a34', 0x4560, 'mvfc fpsw,r4', 0, ()),             # FORM_
         ('fd17b4', 0x4560, 'mvtacgu r4,acc1', 0, ()),             # FORM_
         ('fd1784', 0x4560, 'mvtachi r4,acc1', 0, ()),             # FORM_
@@ -198,8 +198,8 @@ instrs = [
         ('7f95', 0x4560, 'rte', 0, ()),             # FORM_
         ('7f94', 0x4560, 'rtfi', 0, ()),             # FORM_
         ('02', 0x4560, 'rts', 0, ()),             # FORM_
-        ('6740', 0x4560, 'rtsd #0x40', 0, ()),             # FORM_
-        ('3f3440', 0x4560, 'rtsd #0x40,r3,r4', 0, ()),             # FORM_
+        ('6740', 0x4560, 'rtsd #0x100', 0, ()),             # FORM_
+        ('3f3440', 0x4560, 'rtsd #0x100,r3,r4', 0, ()),             # FORM_
         ('7e34', 0x4560, 'sat r4', 0, ()),             # FORM_
         ('7f93', 0x4560, 'satr', 0, ()),             # FORM_
         ('fc0334', 0x4560, 'sbb r3,r4', 0, ()),             # FORM_

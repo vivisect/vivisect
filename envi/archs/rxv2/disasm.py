@@ -191,6 +191,8 @@ class RxDisasm:
         self.HANDLERS = [None for x in range(len(formconsts))]
         self.HANDLERS[FORM_AD] = self.form_AD
         self.HANDLERS[FORM_IMM1] = self.form_IMM1
+        self.HANDLERS[FORM_RTSD] = self.form_RTSD
+        self.HANDLERS[FORM_MVFA] = self.form_MVFA
         self.HANDLERS[FORM_PCDSP] = self.form_PCDSP
         self.HANDLERS[FORM_RD_LI] = self.form_RD_LI
         self.HANDLERS[FORM_RS2_LI] = self.form_RS2_LI
@@ -489,6 +491,27 @@ class RxDisasm:
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz)
 
 
+    def form_RTSD(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        uimm = fields[O_UIMM]
+        uimm <<= 2  # rtsd keeps the stack 32-bit aligned
+
+        rd = fields.get(O_RD)
+
+        if rd is not None:
+            rd2 = fields.get(O_RD2)
+            opers = (
+                    RxImmOper(uimm, va),
+                    RxRegOper(rd, va),
+                    RxRegOper(rd2, va),
+                    )
+
+        else:
+            opers = (
+                    RxImmOper(uimm, va),
+                    )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
+
     def form_PCDSP(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
         pcdsp = fields[O_PCDSP]
 
@@ -698,6 +721,18 @@ class RxDisasm:
         opers = (
                 RxImmOper(fields.get(O_IMM), va),
                 RxRegOper(fields.get(O_RD), va),
+                )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
+
+    def form_MVFA(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        imm = fields.get(O_IMM) ^ 2 # odd wtf moment in RX-land
+        acc = fields.get(O_A)
+        rd = fields.get(O_RD)
+        opers = (
+                RxImmOper(imm, va),
+                RxRegOper(regs.REG_ACC0 + acc, va), 
+                RxRegOper(rd, va),
                 )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 

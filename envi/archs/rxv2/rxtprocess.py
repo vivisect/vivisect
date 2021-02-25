@@ -317,6 +317,11 @@ def genTables(data):
 def getForm(mnem, operdefs, operands):
     nms = [nm for nm in operdefs.keys()]
 
+    if mnem == 'rtsd':
+        return 'FORM_RTSD'
+    elif mnem.startswith('mvfa'):
+        return 'FORM_MVFA'
+
     if 'ri' in nms:
         return 'FORM_MOV_RI_RB'
     if nms == ['rd', 'ld', 'mi', 'rs']:
@@ -324,7 +329,7 @@ def getForm(mnem, operdefs, operands):
     if nms == ['rd', 'ld', 'rs']:
         if mnem in ('round', 'sbb'):
             return 'FORM_RD_LD_RS_L'
-        elif mnem in ('bnot',):
+        elif mnem in ('bnot','bset',):
             return 'FORM_RD_LD_RS_B'
         return 'FORM_RD_LD_RS'
     if nms == ['a', 'rs2', 'rs']:
@@ -404,6 +409,24 @@ def getIflags(mnem, operdefs):
         return 'IF_BRANCH | IF_COND'
     
     elif mnem in calls:
+        pcdspvals = operdefs.get('pcdsp')
+
+        if pcdspvals is not None:
+            s, f = pcdspvals.values()[0]
+            delta = s - f + 1
+            if delta == 3:
+                return 'IF_CALL | IF_SMALL'
+            elif delta == 8:
+                return 'IF_CALL | IF_BYTE'
+            elif delta == 16:
+                return 'IF_CALL | IF_WORD'
+            elif delta == 24:
+                return 'IF_CALL | IF_24BIT'
+            elif delta == 32:
+                return 'IF_CALL | IF_LONG'
+        elif mnem == 'bsr':
+            return 'IF_CALL | IF_LONG'
+
         return 'IF_CALL'
 
     elif mnem in rets:
