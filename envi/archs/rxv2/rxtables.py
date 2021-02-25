@@ -40,7 +40,7 @@ tbl_75 = (\
     (None, None, 0xfffff0, 0x757000, INS_MVTIPL, 'mvtipl', ((O_IMM, ((0, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0x756000, INS_INT, 'int', ((O_IMM, ((0, 0xff),)), ), 3, IF_NONE),
     (None, None, 0xfff000, 0x755000, INS_CMP, 'cmp', ((O_UIMM, ((0, 0xff),)), (O_RS2, ((8, 0xf),)), ), 3, IF_NONE),
-    (None, None, 0xfff000, 0x754000, INS_MOV, 'mov', ((O_RD, ((8, 0xf),)), (O_UIMM, ((0, 0xff),)), ), 3, IF_NONE),
+    (None, None, 0xfff000, 0x754000, INS_MOV, 'mov', ((O_RD, ((8, 0xf),)), (O_UIMM, ((0, 0xff),)), ), 3, IF_LONG),
     (None, FORM_RD_LI, 0xfcf0, 0x7420, INS_AND, 'and', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RS2_LI, 0xfcf0, 0x7400, INS_CMP, 'cmp', ((O_RS2, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
     (None, FORM_RD_LI, 0xfcf0, 0x7410, INS_MUL, 'mul', ((O_RD, ((0, 0xf),)), (O_LI, ((8, 0x3),)), ), 2, IF_NONE),
@@ -405,7 +405,7 @@ tbl_fa = (\
 
 
 tbl_fb = (\
-    (None, FORM_RD_LI, 0xff03, 0xfb02, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
+    (None, FORM_RD_LI, 0xff03, 0xfb02, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_LI, ((2, 0x3),)), ), 2, IF_LONG),
     (None, None, 0xfc00, 0xf800, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((0, 0x3),)), (O_LDD, ((8, 0x3),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
     (None, None, 0xc300, 0xc300, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((12, 0x3),)), (O_LDD, ((10, 0x3),)), (O_RS, ((0, 0xf),)), ), 2, IF_NONE),
     (None, FORM_GOOGOL, 0xc000, 0xc000, INS_MOV, 'mov', ((O_LDS, ((8, 0x3),)), (O_SZ, ((12, 0x3),)), (O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), (O_LDD, ((10, 0x3),)), ), 2, IF_NONE),

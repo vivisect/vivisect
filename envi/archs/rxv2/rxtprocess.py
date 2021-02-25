@@ -447,11 +447,15 @@ def getIflags(mnem, operdefs):
     elif mnem == 'mov':
         odefs = operdefs.keys()
         odefs.sort()
-        cdefs = ['imm','rd']
-        cdefs.sort()
-        if odefs == cdefs:
-            return 'IF_LONG'
+        uirdefs = ['uimm','rd']
+        uirdefs.sort()
+        irdefs = ['imm','rd']
+        irdefs.sort()
+        lidefs = ['li','rd']
+        lidefs.sort()
 
+        if odefs in (irdefs, lidefs, uirdefs):
+            return 'IF_LONG'
 
     return 'IF_NONE'
 
