@@ -60,7 +60,11 @@ a real process (via vdb/vtrace) and dealing with an emulator / viv workspace.
 
 Unlike previous releases, version v1.x.x and up of vivisect/vdb should be entirely
 pip installable, so just running `pip install vivisect` should get you the latest
-release and all the dependencies.
+release and all of the baseline dependencies in order to run vivisect in a headless
+mode.
+
+However, should you also desire a GUI, you can run `pip install vivisect[gui]` to
+also install the pyqt5 based gui dependencies.
 
 For convenience, setup.py for vivisect installs the main user facing scripts of
 vivbin and vdbbin to the local path, so instead of having to run:
