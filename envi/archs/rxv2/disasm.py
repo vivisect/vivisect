@@ -417,6 +417,7 @@ class RxDisasm:
                 #'li' gives a size for an extra IMM:#
                 li = fields.get(O_LI)
                 lds = fields.get(O_LDS)
+                lds2 = fields.get(O_LDS2)
                 ldd = fields.get(O_LDD)
                 #logger.debug("ldd: %r   lds: %r" % (ldd, lds))
 
@@ -479,6 +480,16 @@ class RxDisasm:
                             elif O_DSPS in operkeys:
                                 dsp = fields.get(O_DSPS)
                                 opers.append(RxDspOper(reg, dsp, tsize=tsize, va=va))
+
+                            else:
+                                opers.append(RxRegOper(reg, va=va))
+
+                        elif regconst == O_RS2:
+                            if lds2 is not None and lds2 < 3:
+                                dsp = e_bits.parsebytes(bytez, off, lds2, sign=False)
+                                opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
+                                off += lds2
+                                opsz += lds2
 
                             else:
                                 opers.append(RxRegOper(reg, va=va))

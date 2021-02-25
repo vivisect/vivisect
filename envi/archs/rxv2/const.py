@@ -230,6 +230,7 @@ nms = (
     'O_CB',
     'O_DSPS',
     'O_LDD',
+    'O_LDS2',
     'O_CD',
     'O_A',
     'O_ADD',

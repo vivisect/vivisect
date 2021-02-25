@@ -460,10 +460,15 @@ def convertOpers(opers, opsz):
 
         # fix dsp and ld to be easily determined whether it's src or dst
         if nm == 'ld':
-            rstup = opers.get('rs')
             rdtup = opers.get('rd')
+            rstup = opers.get('rs')
+            rs2tup = opers.get('rs2')
             if rdtup is None:
-                nm = 'lds'
+                if rs2tup is None or rs2tup > rstup:
+                    nm = 'lds'
+                else:
+                    nm = 'lds2'
+
             elif rstup is None:
                 nm = 'ldd'
             elif rdtup > rstup:
