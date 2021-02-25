@@ -18,7 +18,7 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 228
+GOOD_TESTS = 229
 GOOD_EMU_TESTS = 0
 
 
@@ -27,36 +27,36 @@ instrs = [
         ('06e302f4', 0x4560, 'adc r15,r4', 0, ()),                  # FORM_RD_LD_MI_RS
         ('06e102f441', 0x4560, 'adc 0x41[r15].uw,r4', 0, ()),       # FORM_RD_LD_MI_RS
         ('06a102f441', 0x4560, 'adc 0x41[r15].l,r4', 0, ()),        # FORM_RD_LD_MI_RS
-        ('fd7c24434241', 0x4560, 'adc #0x414243,r4', 0, ()),         # FORM_RD_LI
-        ('fda432', 0x4560, 'shar #0x4,r3,r2', 0, ()),                # DFLT-3/4
+        ('fd7c24434241', 0x4560, 'adc #0x414243,r4', 0, ()),        # FORM_RD_LI
+        ('fda432', 0x4560, 'shar #0x4,r3,r2', 0, ()),               # DFLT-3/4
         ('7f14', 0x4560, 'jsr r4', envi.IF_CALL, ()),               # DFLT-1
         ('7e24', 0x4560, 'abs r4', 0, ()),                          # DFLT-1
         ('fc0f42', 0x4560, 'abs r4,r2', 0, ()),                     # DFLT-2
-        ('623b', 0x4560, 'add #0x3,r11', 0, ()),                     # FORM_RD_IMM
+        ('623b', 0x4560, 'add #0x3,r11', 0, ()),                    # FORM_RD_IMM
         ('4a234241', 0x4560, 'add 0x4142[r2].ub,r3', 0, ()),        # FORM_RD_LD_RS
         ('06ca454241', 0x4560, 'add 0x4142[r4].uw,r5', 0, ()),      # FORM_RD_LD_MI_RS
-        ('068823', 0x4560, 'add [r2].l,r3', 0, ()),      # FORM_RD_LD_MI_RS
-        ('6423', 0x4560, 'and #0x2,r3', 0, ()),                      # FORM_RD_IMM
-        ('742344434241', 0x4560, 'and #0x41424344,r3', 0, ()),       # FORM_RD_LI
-        ('5323', 0x4560, 'and r2,r3', 0, ()),                   # FORM_RD_LD_RS
+        ('068823', 0x4560, 'add [r2].l,r3', 0, ()),                 # FORM_RD_LD_MI_RS
+        ('6423', 0x4560, 'and #0x2,r3', 0, ()),                     # FORM_RD_IMM
+        ('742344434241', 0x4560, 'and #0x41424344,r3', 0, ()),      # FORM_RD_LI
+        ('5323', 0x4560, 'and r2,r3', 0, ()),                       # FORM_RD_LD_RS
         ('52234342', 0x4560, 'and 0x4243[r2].ub,r3', 0, ()),        # FORM_RD_LD_RS
         ('2423', 0x4560, 'bgtu 0x4583', 0, ()),                     # FORM_PCDSP
         ('1f', 0x4560, 'bnz 0x4567', 0, ()),                        # FORM_PCDSP
         ('18', 0x4560, 'bnz 0x4568', 0, ()),                        # FORM_PCDSP
         ('2240', 0x4560, 'bgeu 0x45a0', 0, ()),                     # FORM_PCDSP
         ('3b1547', 0x4560, 'bnz 0x8c75', 0, ()),                    # FORM_PCDSP
-        ('fced3468', 0x4560, 'bmgtu #0x3,0x68[r3]', 0, ()),          # FORM_BMCND
-        ('fde734', 0x4560, 'bmltu #0x7,[r4]', 0, ()),                # FORM_BMCND
-        ('fcf23f4645', 0x4560, 'bnot #0x4,0x4546[r3].b', 0, ()),     # FORM_BMCND
+        ('fced3468', 0x4560, 'bmgtu #0x3,0x68[r3]', 0, ()),         # FORM_BMCND
+        ('fde734', 0x4560, 'bmltu #0x7,[r4]', 0, ()),               # FORM_BMCND
+        ('fcf23f4645', 0x4560, 'bnot #0x4,0x4546[r3].b', 0, ()),    # FORM_BMCND
         ('fc6e3f6845', 0x4560, 'bnot r3,0x4568[r15].ub', 0, ()),    # FORM_BMCND
-        ('fde6f4', 0x4560, 'bnot #0x6,r4', 0, ()),                   # FORM_PCDSP
+        ('fde6f4', 0x4560, 'bnot #0x6,r4', 0, ()),                  # FORM_PCDSP
         ('fc6f36', 0x4560, 'bnot r6,r3', 0, ()),                    # FORM_BMCND
         ('08', 0x4560, 'bra 0x4568', 0, ()),                        # FORM_BMCND
         ('2e05', 0x4560, 'bra 0x4565', 0, ()),                      # FORM_BMCND
         ('381547', 0x4560, 'bra 0x8c75', 0, ()),                    # FORM_BMCND
         ('7f45', 0x4560, 'bra r5', 0, ()),                          # FORM_BMCND
         ('00', 0x4560, 'brk', 0, ()),                               # FORM_BMCND
-        ('f2336845', 0x4560, 'bset #0x3,0x4568[r3].b', 0, ()),       # FORM_BMCND
+        ('f2336845', 0x4560, 'bset #0x3,0x4568[r3].b', 0, ()),      # FORM_BMCND
         ('fc62346845', 0x4560, 'bset r3,0x4568[r4].ub', 0, ()),     # FORM_BMCND
         ('7834', 0x4560, 'bset #0x3,r4', 0, ()),             # FORM_BMCND
         ('7934', 0x4560, 'bset #0x13,r4', 0, ()),             # FORM_BMCND
@@ -233,9 +233,9 @@ instrs = [
         ('7f87', 0x4560, 'smovu', 0, ()),             # FORM_
         ('7f8a', 0x4560, 'sstr.l', 0, ()),             # FORM_
         ('fd78f48017', 0x4560, 'stnz #0x1780,r4', 0, ()),             # FORM_
-        ('fc4b34', 0x4560, 'stnz r3,r4', 0, ()),             # FORM_
+        ('fc4f34', 0x4560, 'stnz r3,r4', 0, ()),             # FORM_
         ('fd78e48017', 0x4560, 'stz #0x1780,r4', 0, ()),             # FORM_
-        #('fc4b34', 0x4560, 'stz r3,r4', 0, ()),             # FORM_        FIXME: DOCS ARE WRONG! THIS IS THE SAME AS stnz
+        ('fc4b34', 0x4560, 'stz r3,r4', 0, ()),             # FORM_        FIXME: DOCS ARE WRONG! THIS IS THE SAME AS stnz
         ('6034', 0x4560, 'sub #0x3,r4', 0, ()),             # FORM_
         ('42348017', 0x4560, 'sub 0x1780[r3].ub,r4', 0, ()),             # FORM_
         ('0682348017', 0x4560, 'sub 0x1780[r3].l,r4', 0, ()),             # FORM_

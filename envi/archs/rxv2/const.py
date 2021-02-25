@@ -4,12 +4,15 @@ from envi import IF_NOFALL, IF_PRIV, IF_CALL, IF_BRANCH, IF_RET, IF_COND, IF_REP
 MODE_USER = 0
 MODE_SUPV = 1
 
+# opcode flags
 IF_NONE = 0
 
 IF_BYTE = 1<<8
 IF_WORD = 1<<9
 IF_LONG = 1<<10
 IF_UWORD = 1<<11
+IF_24BIT = 1<<12
+IF_SMALL = 1<<13
 
 SZ = [
     (IF_BYTE, 1),
@@ -19,6 +22,7 @@ SZ = [
     ]
 
 
+# operand flags
 OF_B = 1 << 0
 OF_W = 1 << 1
 OF_L = 1 << 2
@@ -41,6 +45,7 @@ SIZE_BYTES[OF_UW] = 'uw'
 SIZE_BYTES[OF_UB] = 'ub'
 
 
+# instruction defs and mnemonics
 BMCND = [
     'bmz',
     'bmnz',

@@ -91,7 +91,7 @@ def process(fbytes):
         if not len(fline) or fline.startswith('#'):
             continue
 
-        print fline
+        print(fline)
 
         firstbyte = fline[0]
         # check for new mnemonic
@@ -105,7 +105,7 @@ def process(fbytes):
         elif firstbyte in ['0', '1']:
             # it's a definition line
             lparts = fline.split(' ')
-            #print lparts
+            #print(lparts)
             
             mask = 0
             endval = 0
@@ -116,7 +116,7 @@ def process(fbytes):
             while lidx < len(lparts):
                 size = 1
                 item = lparts[lidx]
-                #print "(%d) item: %r" % (bidx, item)
+                #print("(%d) item: %r" % (bidx, item))
 
                 if item in ('0', '1'):
                     # handle static bits
@@ -125,7 +125,7 @@ def process(fbytes):
                     mask |= 1
                     endval <<= 1
                     endval |= bit
-                    #print "%x:%x" % (mask, endval)
+                    #print("%x:%x" % (mask, endval))
 
                 else:
                     # named things
@@ -134,7 +134,7 @@ def process(fbytes):
                         name, bits = item.replace(']','').split('[')
                         bitrange = bits.split(':')
 
-                        #print bitrange
+                        #print(bitrange)
                         if len(bitrange) > 1:
                             bithi, bitlo = [int(x) for x in bitrange] # of that field
                             size += bithi - bitlo
@@ -147,7 +147,7 @@ def process(fbytes):
 
                     elif ':' in item:
                         # no [] but : - we're talking about pcdsp:8 style
-                        #print "looking for maxbit: ", item
+                        #print("looking for maxbit: ", item)
                         name, bits = item.split(':')
                         size = int(bits)
                         valadd = (size-1, 0)
@@ -166,7 +166,7 @@ def process(fbytes):
                         names[name] = cur
 
                     cur[bidx] = valadd
-                    #print cur
+                    #print(cur)
 
                     #### finish stuff here
                 lidx += 1
@@ -174,7 +174,7 @@ def process(fbytes):
 
             ldata = (fline, mask, endval, curmnem, names, bidx)
             out.append(ldata)
-            print ldata
+            print(ldata)
             #raw_input()
     return out, mnems
 
@@ -220,7 +220,7 @@ def genTables(data):
             orig, mask, endval, mnem, opers, sz = byte1[idx][0]
             operands = convertOpers(opers, sz)
             form = getForm(mnem, opers, operands)
-            iflagstr = getIflags(mnem)
+            iflagstr = getIflags(mnem, opers)
 
             operandstr = reprCvtdOpers(operands, nmconsts)
             if form not in forms and form != "None":
@@ -241,8 +241,26 @@ def genTables(data):
             openclist = byte1[idx]
 
             # sort from encoding! VERY IMPORTANT... ? 
+            def cmp_to_key(mycmp):
+                'Convert a cmp= function into a key= function'
+                class K:
+                    def __init__(self, obj, *args):
+                        self.obj = obj
+                    def __lt__(self, other):
+                        return mycmp(self.obj, other.obj) < 0
+                    def __gt__(self, other):
+                        return mycmp(self.obj, other.obj) > 0
+                    def __eq__(self, other):
+                        return mycmp(self.obj, other.obj) == 0
+                    def __le__(self, other):
+                        return mycmp(self.obj, other.obj) <= 0
+                    def __ge__(self, other):
+                        return mycmp(self.obj, other.obj) >= 0
+                    def __ne__(self, other):
+                        return mycmp(self.obj, other.obj) != 0
+                return K
             def thingsort(x, y):
-                print "%r   ==?==   %r" % (x, y)
+                print("%r   ==?==   %r" % (x, y))
                 xlowest = 255
                 for xnm, xpart in x[4].items():
                     for key in xpart.keys():
@@ -275,12 +293,12 @@ def genTables(data):
                     
                 return delta
 
-            openclist.sort(cmp=thingsort)
+            openclist.sort(key=cmp_to_key(thingsort))
 
             for orig, mask, endval, mnem, opers, sz in openclist:
                 operands = convertOpers(opers, sz)
                 form = getForm(mnem, opers, operands)
-                iflagstr = getIflags(mnem)
+                iflagstr = getIflags(mnem, opers)
 
                 operandstr = reprCvtdOpers(operands, nmconsts)
                 if form not in forms and form != "None":
@@ -339,8 +357,24 @@ def getForm(mnem, operdefs, operands):
 
     return 'None'
 
-def getIflags(mnem):
+def getIflags(mnem, operdefs):
     if mnem in branches:
+        pcdspvals = operdefs.get('pcdsp')
+
+        if pcdspvals is not None:
+            s, f = pcdspvals.values()[0]
+            delta = s - f + 1
+            if delta == 3:
+                return 'IF_BRANCH | IF_NOFALL | IF_SMALL'
+            elif delta == 8:
+                return 'IF_BRANCH | IF_NOFALL | IF_BYTE'
+            elif delta == 16:
+                return 'IF_BRANCH | IF_NOFALL | IF_WORD'
+            elif delta == 24:
+                return 'IF_BRANCH | IF_NOFALL | IF_24BIT'
+            elif delta == 32:
+                return 'IF_BRANCH | IF_NOFALL | IF_LONG'
+
         return 'IF_BRANCH | IF_NOFALL'
     
     elif mnem in brconds:
@@ -415,7 +449,7 @@ def convertOpers(opers, opsz):
             else:
                 nm = 'add'
 
-            print "%-20s %-20s %-10s \t %50s" % (rstup, rdtup, nm, opers)
+            print("%-20s %-20s %-10s \t %50s" % (rstup, rdtup, nm, opers))
 
         operands.append((nm, tuple(nparts)))
 
@@ -487,12 +521,15 @@ from envi import IF_NOFALL, IF_PRIV, IF_CALL, IF_BRANCH, IF_RET, IF_COND, IF_REP
 MODE_USER = 0
 MODE_SUPV = 1
 
+# opcode flags
 IF_NONE = 0
 
 IF_BYTE = 1<<8
 IF_WORD = 1<<9
 IF_LONG = 1<<10
 IF_UWORD = 1<<11
+IF_24BIT = 1<<12
+IF_SMALL = 1<<13
 
 SZ = [
     (IF_BYTE, 1),
@@ -502,6 +539,7 @@ SZ = [
     ]
 
 
+# operand flags
 OF_B = 1 << 0
 OF_W = 1 << 1
 OF_L = 1 << 2
@@ -523,6 +561,8 @@ SIZE_BYTES[OF_L] = 'l'
 SIZE_BYTES[OF_UW] = 'uw'
 SIZE_BYTES[OF_UB] = 'ub'
 
+
+# instruction defs and mnemonics
 ''')
 
     out.append('BMCND = [')

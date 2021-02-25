@@ -37,6 +37,11 @@ class RxOpcode(envi.Opcode):
             mnem += '.l'
         elif self.iflags & IF_UWORD:
             mnem += '.uw'
+        elif self.iflags & IF_24BIT:
+            mnem += '.a'
+        elif self.iflags & IF_SMALL:
+            mnem += '.s'
+
 
         return mnem + " " + ",".join([o.repr(self) for o in self.opers])
 
@@ -212,7 +217,11 @@ class RxDisasm:
         opvals[opsize] = val
 
         #print("val: 0x%x  bval: 0x%x" % (val, bval))
-        nextbl, handler, mask, endval, opcode, mnem, operdefs, opsz, iflags = curtable[bval]
+        tbldefs = curtable[bval]
+        if tbldefs is None:
+            raise e_exc.InvalidInstruction(bytez=bytez[off:off+10], va=va)
+
+        nextbl, handler, mask, endval, opcode, mnem, operdefs, opsz, iflags = tbldefs
         found = True
         
         #print("  tabline: %r" % (repr(curtable[bval])))
@@ -283,8 +292,8 @@ class RxDisasm:
                 fullmask |= fmask
                 fdata |= ((val >> shval) & fmask)
 
-            if fullmask > 255:
-                # this is a >8 bit
+            if fullmask > 0xff:
+                # this is a >8 bit, we need to reverse byte order
                 isize = 0
                 newdata = 0
                 while fullmask:
@@ -302,13 +311,16 @@ class RxDisasm:
                     fdata = newdata
                     #print("0x%x: NOT signed: %d, %d, 0x%x -> 0x%x" % (va, isize, 4, newdata, fdata))
 
+            elif fullmask == 0xff:
+                if fkey != O_UIMM:
+                    fdata = e_bits.sign_extend(fdata, 1, 4)
             
             fields[fkey] = fdata
 
         if handler is not None:
             # if we have a handler, just let it do everything
             hndlFunc = self.HANDLERS[handler]
-            #print("Handler: %r" % hndlFunc)
+            #logger.debug("Handler: %r" % hndlFunc)
             return hndlFunc(va, opcode, mnem, fields, opsz, iflags, bytez, off)
 
 
@@ -339,16 +351,16 @@ class RxDisasm:
         else:
             opers = []
             if opercnt == 1:
-                #print("Parser: 1-oper")
+                logger.debug("Parser: 1-oper")
                 for key, val in fields.items():
-                    #print("  %d ---> %r" % (key, nms[key]))
+                    #logger.debug("  %d ---> %r" % (key, nms[key]))
                     opercls = OPERS.get(key)
                     opers = (
                             opercls(val, va),
                     )
                 
             elif opercnt == 2:
-                #print("Parser: 2-oper")
+                logger.debug("Parser: 2-oper")
                 #'li' gives a size for an extra IMM:#
                 li = fields.get(O_LI)
                 if li is not None:
@@ -358,17 +370,17 @@ class RxDisasm:
                     else:
                         imm = e_bits.parsebytes(bytez, off, li, sign=False)
                         imm = e_bits.sign_extend(imm, li, 4) 
-                    #print("  li: %x   imm: 0x%x" % (li, imm))
+                    #logger.debug("  li: %x   imm: 0x%x" % (li, imm))
                     off += li
                     opsz += li
 
                     opers.append(RxImmOper(imm, va=va))
 
                 # check all the registers (and not quite)
-                #print([nms[x] for x,y in fields.items()])
+                #logger.debug([nms[x] for x,y in fields.items()])
                 for regconst in O_UIMM, O_IMM, O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
                     val = fields.get(regconst)
-                    #print("  loop: %r = %r" % (nms[regconst], val))
+                    logger.debug("  loop: %r = %r" % (nms[regconst], val))
                     if val is not None:
                         if regconst in (O_IMM, O_UIMM):
                             opers.append(RxImmOper(val, va=va))
@@ -389,7 +401,7 @@ class RxDisasm:
 
                             elif O_DSPS in operkeys:
                                 dsp = fields.get(O_DSPS)
-                                opers.append(RxDspOper(val, dsp, va))
+                                opers.append(RxDspOper(val, dsp, tsize=tsize, va=va))
 
                             else:
                                 opers.append(RxRegOper(val, va=va))
@@ -398,12 +410,12 @@ class RxDisasm:
                             opers.append(RxRegOper(val, va=va))
 
             else:   # 3 and 4 operand-parts
-                #print("Parser: 3/4/5-oper")
+                logger.debug("Parser: 3/4/5-oper")
                 #'li' gives a size for an extra IMM:#
                 li = fields.get(O_LI)
                 lds = fields.get(O_LDS)
                 ldd = fields.get(O_LDD)
-                #print("ldd: %r   lds: %r" % (ldd, lds))
+                #logger.debug("ldd: %r   lds: %r" % (ldd, lds))
 
                 if li is not None:
                     if li == 0:
@@ -412,7 +424,7 @@ class RxDisasm:
                     else:
                         imm = e_bits.parsebytes(bytez, off, li, sign=False)
                         imm = e_bits.sign_extend(imm, li, 4) 
-                    #print("  li: %x   imm: 0x%x" % (li, imm))
+                    #logger.debug("  li: %x   imm: 0x%x" % (li, imm))
                     off += li
                     opsz += li
 
@@ -431,7 +443,7 @@ class RxDisasm:
                 # check all the registers (and not quite)
                 for regconst in O_RS, O_RS2, O_CR, O_A, O_RD, O_RD2:
                     reg = fields.get(regconst)
-                    #print("  loop: %r = %r" % (nms[regconst], reg))
+                    logger.debug("  loop: %r = %r" % (nms[regconst], reg))
                     if reg is not None:
                         if regconst == O_CR:
                             opers.append(RxCRRegOper(reg, va=va))
@@ -449,13 +461,13 @@ class RxDisasm:
 
                             elif O_DSPD in operkeys:
                                 dsp = fields.get(O_DSPD)
-                                opers.append(RxDspOper(reg, dsp, va))
+                                opers.append(RxDspOper(reg, dsp, tsize=tsize, va=va))
 
                             else:
                                 opers.append(RxRegOper(reg, va=va))
 
                         elif regconst == O_RS:
-                            if lds in (1,2):
+                            if lds is not None:
                                 dsp = e_bits.parsebytes(bytez, off, lds, sign=False)
                                 opers.append(RxDspOper(reg, dsp, tsize=tsize, oflags=oflags, va=va))
                                 off += lds
@@ -463,7 +475,7 @@ class RxDisasm:
 
                             elif O_DSPS in operkeys:
                                 dsp = fields.get(O_DSPS)
-                                opers.append(RxDspOper(reg, dsp, va))
+                                opers.append(RxDspOper(reg, dsp, tsize=tsize, va=va))
 
                             else:
                                 opers.append(RxRegOper(reg, va=va))
@@ -530,24 +542,30 @@ class RxDisasm:
         imm = fields.get(O_IMM)
         rd = fields.get(O_RD)
         ld = fields.get(O_LDD)
-        if ld is not None:
-            # dsp operand with 0 or some 1- or 2-byte displacement
-            if ld == 3:
-                raise e_exc.InvalidInstruction(bytez[off-opsz:off], 
-                        'BMCND: ld cannot be 3')
 
-            badd = ld
-            dsp = e_bits.parsebytes(bytez, off, badd, sign=False)
-            opsz += badd
+        if ld == 3:
+            ### NEXT PART: Documentation is incorrect, per email from Renesas, and their tooling
+            #raise e_exc.InvalidInstruction(bytez[off-opsz:off], 
+            #        'BMCND: ld cannot be 3')
+            opers = (
+                    RxImmOper(imm, va),
+                    RxRegOper(rd, va),
+                    )
+
         else:
-            dsp = 0
+            if ld is not None:
+                # dsp operand with 0 or some 1- or 2-byte displacement
 
+                badd = ld
+                dsp = e_bits.parsebytes(bytez, off, badd, sign=False)
+                opsz += badd
+            else:
+                dsp = 0
 
-
-        opers = (
-                RxImmOper(imm, va),
-                RxDspOper(rd, dsp, va),
-                )
+            opers = (
+                    RxImmOper(imm, va),
+                    RxDspOper(rd, dsp, va),
+                    )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
@@ -1031,7 +1049,10 @@ class RxDspOper(envi.RegisterOper):
     def getOperAddr(self, op, emu=None):
         if emu is None:
             return None
-        return emu.getRegister(reg) + self.dsp
+
+        # dsp is multiplied by the tsize (per spec)
+        dsp = self.dsp * self.tsize
+        return emu.getRegister(reg) + dsp
 
     def getWidth(self):
         return self.tsize
@@ -1039,20 +1060,24 @@ class RxDspOper(envi.RegisterOper):
     def repr(self, op):
         szl = SIZE_BYTES[self.oflags]
         rname = regs.rctx.getRegisterName(self.reg)
+        dsp = self.dsp * self.tsize
+
         if szl is None:
             if self.dsp == 0:
                 return "[%s]" % (rname)
-            return "0x%x[%s]" % (self.dsp, rname)
+            return "0x%x[%s]" % (dsp, rname)
 
         if self.dsp == 0:
             return "[%s].%s" % (rname, szl)
-        return "0x%x[%s].%s" % (self.dsp, rname, szl)
+        return "0x%x[%s].%s" % (dsp, rname, szl)
 
     def render(self, mcanv, op, idx):
         szl = SIZE_BYTES[self.oflags]
         rname = regs.rctx.getRegisterName(self.reg)
-        if self.dsp != 0:
-            mcanv.addNameText(hex(self.dsp), typename='offset')
+        dsp = self.dsp * self.tsize
+
+        if dsp != 0:
+            mcanv.addNameText(hex(dsp), typename='offset')
 
         mcanv.addText('[')
         mcanv.addNameText(rname, typename='registers')

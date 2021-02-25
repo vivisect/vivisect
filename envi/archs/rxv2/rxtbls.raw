@@ -434,7 +434,7 @@ sstr
 
 stnz
 1 1 1 1 1 1 0 1 0 1 1 1 li[1:0] 0 0 1 1 1 1 rd[3:0]
-1 1 1 1 1 1 0 0 0 1 0 0 1 0 1 1 rs[3:0] rd[3:0]
+1 1 1 1 1 1 0 0 0 1 0 0 1 1 1 1 rs[3:0] rd[3:0]     # docs are wrong.  discovered with rx_elf_as and rx_elf_objdump
 
 stz
 1 1 1 1 1 1 0 1 0 1 1 1 li[1:0] 0 0 1 1 1 0 rd[3:0]
