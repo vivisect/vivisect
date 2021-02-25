@@ -91,7 +91,7 @@ tbl_7f = (\
     (None, None, 0xfffc, 0x7f88, INS_SSTR, 'sstr', ((O_SZ, ((0, 0x3),)), ), 2, IF_REPEAT),
     (None, None, 0xfffc, 0x7f80, INS_SUNTIL, 'suntil', ((O_SZ, ((0, 0x3),)), ), 2, IF_REPEAT),
     (None, None, 0xfffc, 0x7f84, INS_SWHILE, 'swhile', ((O_SZ, ((0, 0x3),)), ), 2, IF_REPEAT),
-    (None, None, 0xfff0, 0x7f40, INS_BRA, 'bra', ((O_RS, ((0, 0xf),)), ), 2, IF_BRANCH | IF_NOFALL),
+    (None, None, 0xfff0, 0x7f40, INS_BRA, 'bra', ((O_RS, ((0, 0xf),)), ), 2, IF_BRANCH | IF_NOFALL | IF_LONG),
     (None, None, 0xfff0, 0x7f50, INS_BSR, 'bsr', ((O_RS, ((0, 0xf),)), ), 2, IF_CALL),
     (None, None, 0xfff0, 0x7fb0, INS_CLRPSW, 'clrpsw', ((O_CB, ((0, 0xf),)), ), 2, IF_NONE),
     (None, None, 0xfff0, 0x7f00, INS_JMP, 'jmp', ((O_RS, ((0, 0xf),)), ), 2, IF_BRANCH | IF_NOFALL),

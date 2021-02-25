@@ -377,6 +377,9 @@ def getIflags(mnem, operdefs):
             elif delta == 32:
                 return 'IF_BRANCH | IF_NOFALL | IF_LONG'
 
+        elif mnem == 'bra' and operdefs.get('rs') is not None:
+            return 'IF_BRANCH | IF_NOFALL | IF_LONG'
+
         return 'IF_BRANCH | IF_NOFALL'
     
     elif mnem in brconds:

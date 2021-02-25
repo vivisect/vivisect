@@ -555,16 +555,17 @@ class RxDisasm:
         else:
             if ld is not None:
                 # dsp operand with 0 or some 1- or 2-byte displacement
-
                 badd = ld
                 dsp = e_bits.parsebytes(bytez, off, badd, sign=False)
                 opsz += badd
+
             else:
+                # if dsp is 0, it's a simple deref
                 dsp = 0
 
             opers = (
                     RxImmOper(imm, va),
-                    RxDspOper(rd, dsp, va),
+                    RxDspOper(rd, dsp, tsize=1, va=va),
                     )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
@@ -586,7 +587,7 @@ class RxDisasm:
             dsp = e_bits.parsebytes(bytez, off, badd, sign=False)
             opsz += badd
 
-            opers = (RxDspOper(rd, dsp, va), )
+            opers = (RxDspOper(rd, dsp, tsize=tsize, va=va), )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
@@ -764,8 +765,8 @@ class RxDisasm:
         off += ldd
 
         opers = (
-                RxDspOper(rs, dsps, tsize, va=va),
-                RxDspOper(rd, dspd, tsize, va=va),
+                RxDspOper(rs, dsps, tsize=tsize, va=va),
+                RxDspOper(rd, dspd, tsize=tsize, va=va),
                 )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
