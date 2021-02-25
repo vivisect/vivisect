@@ -319,8 +319,13 @@ def getForm(mnem, operdefs, operands):
 
     if mnem == 'rtsd':
         return 'FORM_RTSD'
+    elif mnem.startswith('movli'):
+        return 'FORM_MOVLI'
     elif mnem.startswith('mvfa'):
         return 'FORM_MVFA'
+    elif mnem == 'mov' and 'li' in nms and 'ld' in nms:
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        return 'FORM_MOV_RD_SZ_LD_LI'
 
     if 'ri' in nms:
         return 'FORM_MOV_RI_RB'

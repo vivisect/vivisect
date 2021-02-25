@@ -95,16 +95,16 @@ instrs = [
         ('fd721445710400', 0x4560, 'fcmp #0x47145,r4', 0, ()),             # FORM_BMCND
         ('fc86348017', 0x4560, 'fcmp 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND    should be: fcmp 0x1780[r3].l,r4  - is: fcmp 0x1780[r3].b,r4
         ('fd724445710400', 0x4560, 'fdiv #0x47145,r4', 0, ()),             # FORM_BMCND
-        ('fc92348017', 0x4560, 'fdiv 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('fc92348017', 0x4560, 'fdiv 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd723445710400', 0x4560, 'fmul #0x47145,r4', 0, ()),             # FORM_BMCND
-        ('fc8e348017', 0x4560, 'fmul 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('fc8e348017', 0x4560, 'fmul 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('ffb345', 0x4560, 'fmul r4,r5,r3', 0, ()),             # FORM_BMCND
-        ('fca2348017', 0x4560, 'fsqrt 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('fca2348017', 0x4560, 'fsqrt 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('fd720445710400', 0x4560, 'fsub #0x47145,r4', 0, ()),             # FORM_BMCND
-        ('fc82348017', 0x4560, 'fsub 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('fc82348017', 0x4560, 'fsub 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('ff8345', 0x4560, 'fsub r4,r5,r3', 0, ()),             # FORM_BMCND
-        ('fc96348017', 0x4560, 'ftoi 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
-        ('fca6348017', 0x4560, 'ftou 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
+        ('fc96348017', 0x4560, 'ftoi 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
+        ('fca6348017', 0x4560, 'ftou 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
         ('756045', 0x4560, 'int #0x45', 0, ()),             # FORM_BMCND
         ('fc46348017', 0x4560, 'itof 0x1780[r3].ub,r4', 0, ()),             # FORM_BMCND
         ('06a211348017', 0x4560, 'itof 0x5e00[r3].l,r4', 0, ()),             # FORM_BMCND
@@ -121,27 +121,27 @@ instrs = [
         ('0661043417', 0x4560, 'max 0x2e[r3].w,r4', 0, ()),             # FORM_BMCND
         ('97cb', 0x4560, 'mov.w r3,0x3e[r4]', 0, ()),             # FORM_BMCND
         ('9fcb', 0x4560, 'mov.w 0x3e[r4],r3', 0, ()),             # FORM_BMCND
-        ('66f4', 0x4560, 'mov #0xf,r4', 0, ()),             # FORM_BMCND # wrong, but doesn't really need a size?
+        ('66f4', 0x4560, 'mov.l #0xf,r4', 0, ()),             # FORM_BMCND # wrong, but doesn't really need a size?
         ('3ecc17', 0x4560, 'mov.l #0x17,0x70[r4]', 0, ()),             # FORM_BMCND
-        ('754321', 0x4560, 'mov #0x21,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
-        ('fb3a8017', 0x4560, 'mov #0x1780,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
-        ('fb3245710400', 0x4560, 'mov #0x47145,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
+        ('754321', 0x4560, 'mov.l #0x21,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
+        ('fb3a8017', 0x4560, 'mov.l #0x1780,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
+        ('fb3245710400', 0x4560, 'mov.l #0x47145,r3', 0, ()),             # FORM_BMCND # doesn't really need a size?
         ### FIXME: go back through and make sense of all the SIMM/IMM/UIMM parsing.  should these be operand flags?
         ('ef34', 0x4560, 'mov.l r3,r4', 0, ()),             # FORM_
-        ('fa3a80171547', 0x4560, 'mov.l #0x1780,0x11c54[r3]', 0, ()),             # FORM_
-        ('fe6234', 0x4560, 'mov.l [r3, r2],r4', 0, ()),             # FORM_
+        ('fa3a80171547', 0x4560, 'mov.l #0x4715,0x5e00[r3]', 0, ()),             # FORM_
+        ('fe6234', 0x4560, 'mov.l [r2, r3],r4', 0, ()),             # FORM_
         ('eb348017', 0x4560, 'mov.l r4,0x5e00[r3]', 0, ()),             # FORM_
-        ('fe2234', 0x4560, 'mov.l r4,[r3, r2]', 0, ()),             # FORM_
+        ('fe2234', 0x4560, 'mov.l r4,[r2, r3]', 0, ()),             # FORM_
         ('e934408017', 0x4560, 'mov.l 0x100[r3],0x5e00[r4]', 0, ()),             # FORM_
         ('fd2234', 0x4560, 'mov.l r4,[r3+]', 0, ()),             # FORM_
         ('fd2634', 0x4560, 'mov.l r4,[-r3]', 0, ()),             # FORM_
         ('fd2a34', 0x4560, 'mov.l [r3+],r4', 0, ()),             # FORM_
         ('fd2e34', 0x4560, 'mov.l [-r3],r4', 0, ()),             # FORM_
         ('fd2c34', 0x4560, 'mov.b [-r3],r4', 0, ()),             # FORM_
-        ('fd2f34', 0x4560, 'movli r3,r4', 0, ()),             # FORM_
+        ('fd2f34', 0x4560, 'movli [r3],r4', 0, ()),             # FORM_
         ('bf34', 0x4560, 'movu.w 0x38[r3],r4', 0, ()),             # FORM_
         ('5e348017', 0x4560, 'movu.w 0x2f00[r3],r4', 0, ()),             # FORM_
-        ('fed234', 0x4560, 'movu.w [r3, r2],r4', 0, ()),             # FORM_
+        ('fed234', 0x4560, 'movu.w [r2, r3],r4', 0, ()),             # FORM_
         ('fd3934', 0x4560, 'movu.w [r3+],r4', 0, ()),             # FORM_
         ('fd4c34', 0x4560, 'msbhi r3,r4,acc1', 0, ()),             # FORM_
         ('fd4634', 0x4560, 'msblh r3,r4,acc0', 0, ()),             # FORM_

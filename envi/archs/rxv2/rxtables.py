@@ -387,26 +387,26 @@ tbl_f7 = (\
 
 
 tbl_f8 = (\
-    (None, None, 0xfc00, 0xf800, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((0, 0x3),)), (O_LDD, ((8, 0x3),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
+    (None, FORM_MOV_RD_SZ_LD_LI, 0xfc00, 0xf800, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((0, 0x3),)), (O_LDD, ((8, 0x3),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
     (None, FORM_GOOGOL, 0xc000, 0xc000, INS_MOV, 'mov', ((O_LDS, ((8, 0x3),)), (O_SZ, ((12, 0x3),)), (O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), (O_LDD, ((10, 0x3),)), ), 2, IF_NONE),
 )
 
 
 tbl_f9 = (\
-    (None, None, 0xfc00, 0xf800, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((0, 0x3),)), (O_LDD, ((8, 0x3),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
+    (None, FORM_MOV_RD_SZ_LD_LI, 0xfc00, 0xf800, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((0, 0x3),)), (O_LDD, ((8, 0x3),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
     (None, FORM_GOOGOL, 0xc000, 0xc000, INS_MOV, 'mov', ((O_LDS, ((8, 0x3),)), (O_SZ, ((12, 0x3),)), (O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), (O_LDD, ((10, 0x3),)), ), 2, IF_NONE),
 )
 
 
 tbl_fa = (\
-    (None, None, 0xfc00, 0xf800, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((0, 0x3),)), (O_LDD, ((8, 0x3),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
+    (None, FORM_MOV_RD_SZ_LD_LI, 0xfc00, 0xf800, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((0, 0x3),)), (O_LDD, ((8, 0x3),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
     (None, FORM_GOOGOL, 0xc000, 0xc000, INS_MOV, 'mov', ((O_LDS, ((8, 0x3),)), (O_SZ, ((12, 0x3),)), (O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), (O_LDD, ((10, 0x3),)), ), 2, IF_NONE),
 )
 
 
 tbl_fb = (\
     (None, FORM_RD_LI, 0xff03, 0xfb02, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_LI, ((2, 0x3),)), ), 2, IF_LONG),
-    (None, None, 0xfc00, 0xf800, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((0, 0x3),)), (O_LDD, ((8, 0x3),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
+    (None, FORM_MOV_RD_SZ_LD_LI, 0xfc00, 0xf800, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((0, 0x3),)), (O_LDD, ((8, 0x3),)), (O_LI, ((2, 0x3),)), ), 2, IF_NONE),
     (None, None, 0xc300, 0xc300, INS_MOV, 'mov', ((O_RD, ((4, 0xf),)), (O_SZ, ((12, 0x3),)), (O_LDD, ((10, 0x3),)), (O_RS, ((0, 0xf),)), ), 2, IF_NONE),
     (None, FORM_GOOGOL, 0xc000, 0xc000, INS_MOV, 'mov', ((O_LDS, ((8, 0x3),)), (O_SZ, ((12, 0x3),)), (O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), (O_LDD, ((10, 0x3),)), ), 2, IF_NONE),
 )
@@ -470,7 +470,7 @@ tbl_fd = (\
     (None, None, 0xffff70, 0xfd1700, INS_MVTACHI, 'mvtachi', ((O_A, ((7, 0x1),)), (O_RS, ((0, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff70, 0xfd1710, INS_MVTACLO, 'mvtaclo', ((O_A, ((7, 0x1),)), (O_RS, ((0, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfd2700, INS_MOVCO, 'movco', ((O_RD, ((4, 0xf),)), (O_RS, ((0, 0xf),)), ), 3, IF_NONE),
-    (None, None, 0xffff00, 0xfd2f00, INS_MOVLI, 'movli', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
+    (None, FORM_MOVLI, 0xffff00, 0xfd2f00, INS_MOVLI, 'movli', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfd6a00, INS_MVFC, 'mvfc', ((O_RD, ((0, 0xf),)), (O_CR, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfd6800, INS_MVTC, 'mvtc', ((O_CR, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),
     (None, None, 0xffff00, 0xfd6700, INS_REVL, 'revl', ((O_RD, ((0, 0xf),)), (O_RS, ((4, 0xf),)), ), 3, IF_NONE),

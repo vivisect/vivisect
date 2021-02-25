@@ -193,6 +193,7 @@ class RxDisasm:
         self.HANDLERS[FORM_IMM1] = self.form_IMM1
         self.HANDLERS[FORM_RTSD] = self.form_RTSD
         self.HANDLERS[FORM_MVFA] = self.form_MVFA
+        self.HANDLERS[FORM_MOVLI] = self.form_MOVLI
         self.HANDLERS[FORM_PCDSP] = self.form_PCDSP
         self.HANDLERS[FORM_RD_LI] = self.form_RD_LI
         self.HANDLERS[FORM_RS2_LI] = self.form_RS2_LI
@@ -204,6 +205,7 @@ class RxDisasm:
         self.HANDLERS[FORM_LD_RS2_RS_L] = self.form_LD_RS2_RS_L
         self.HANDLERS[FORM_LD_RS2_RS_UB] = self.form_LD_RS2_RS_UB
         self.HANDLERS[FORM_RD_LD_MI_RS] = self.form_RD_LD_MI_RS
+        self.HANDLERS[FORM_MOV_RD_SZ_LD_LI] = self.form_MOV_RD_SZ_LD_LI
         self.HANDLERS[FORM_SCCND] = self.form_SCCND
         self.HANDLERS[FORM_BMCND] = self.form_BMCND
         self.HANDLERS[FORM_GOOGOL] = self.form_GOOGOL
@@ -674,6 +676,46 @@ class RxDisasm:
                     RxDspOper(rs, dsps, tsize=tsize, oflags=oflags, va=va), 
                     RxRegOper(rs2, va), 
                     )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
+
+    def form_MOV_RD_SZ_LD_LI(self, va, opcode, mnem, fields, opsz, iflags, bytez, off):
+        li = fields.get(O_LI)
+        rd = fields.get(O_RD)
+        ldd = fields.get(O_LDD)
+        osz = fields.get(O_SZ)
+        oflag, tsize = SZ[osz]
+        iflags |= IF_LONG
+
+        if ldd == 3:
+            oper1 = RxRegOper(rd, va)
+        else:
+            dspd = 0
+            if ldd in (1,2):
+                dspd = e_bits.parsebytes(bytez, off, ldd, sign=False)
+                opsz += ldd
+                off+= ldd
+            
+            oper1 = RxDspOper(rd, dspd, tsize=tsize, va=va)
+
+        imm = e_bits.parsebytes(bytez, off, li, sign=False)
+        opsz += li
+        off+= li
+
+        opers = (
+                RxImmOper(imm, va),
+                oper1,
+                )
+
+        return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
+
+    def form_MOVLI(self, va, opcode, mnem, fields, opsz, iflags, bytez, off, tsize=1, oflags=OF_UB):
+        rs = fields.get(O_RS)
+        rd = fields.get(O_RD)
+        opers = (
+                RxDspOper(rs, 0, tsize=4, va=va),
+                RxRegOper(rd, va),
+                )
 
         return RxOpcode(va, opcode, mnem, opers, iflags, opsz) 
 
@@ -1185,9 +1227,9 @@ class RxRegIdxOper(envi.RegisterOper):
         rname = regs.rctx.getRegisterName(self.reg)
         iname = regs.rctx.getRegisterName(self.idx)
         if szl is None:
-            return "[%s, %s]" % (iname, rname)
+            return "[%s, %s]" % (rname, iname)
 
-        return "[%s, %s].%s" % (iname, rname, szl)
+        return "[%s, %s].%s" % (rname, iname, szl)
 
     def render(self, mcanv, op, idx):
         szl = SIZE_BYTES[self.oflags]
@@ -1195,9 +1237,9 @@ class RxRegIdxOper(envi.RegisterOper):
         iname = regs.rctx.getRegisterName(self.idx)
 
         mcanv.addText('[')
-        mcanv.addNameText(iname, typename='registers')
-        mcanv.addText(', ')
         mcanv.addNameText(rname, typename='registers')
+        mcanv.addText(', ')
+        mcanv.addNameText(iname, typename='registers')
         if szl is None:
             mcanv.addText(']')
         else:
