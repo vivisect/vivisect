@@ -9,7 +9,7 @@ setup(
     name='vivisect',
     author='Vivisect',
     author_email='',
-    version='1.0.0',
+    version='1.0.1',
     url='https://github.com/vivisect/vivisect',
     packages=find_packages(),
     zip_safe=False,
@@ -32,11 +32,13 @@ setup(
         'cxxfilt==0.2.1',
         'msgpack==1.0.0',
         'pycparser==2.20',
-        # TODO: There was a suggestion to break these out into a separate-ish install
-        # like have these as optional dependencies so we can install viv headless. Worth?
-        'pyqt5==5.15.1',
-        'pyqtwebengine==5.15.1',
     ],
+    extras_require={
+        'gui': [
+            'pyqt5==5.15.1',
+            'pyqtwebengine==5.15.1',
+        ]
+    },
     classifiers=[
         'Topic :: Security',
         'Topic :: Software Development :: Disassemblers',
