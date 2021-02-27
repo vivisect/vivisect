@@ -502,17 +502,17 @@ class SwitchCase:
             pathGenFactory = viv_graph.PathGenerator(self._sgraph)
             self._codepathgen = pathGenFactory.getFuncCbRoutedPaths(fva, cbva, 1, timeout=20)
 
-        self._codepath = self._codepathgen.next()
+        self._codepath = self._codepathgen.__next__()
         contextpath = self._codepath[:-1]
         analpath = self._codepath[-1:]
 
-        self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[contextpath]).next()
-        self.aspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[analpath]).next()
+        self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[contextpath]).__next__()
+        self.aspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[analpath]).__next__()
 
         if len(self.cspath[1]) == 0:
             self.cspath = self.aspath
         
-        self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[self._codepath]).next()
+        self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[self._codepath]).__next__()
 
         return self.cspath, self.aspath, self.fullpath
 
