@@ -68,7 +68,7 @@ class NodeColumn(QGraphicsItem):
         return self.x()
 
     def getYMid(self):
-        return self.y() + (self.boundingRect().height() / 2)
+        return self.y() + (int(self.boundingRect().height()) / 2)
 
     def drawLinesTo(self, colnode):
         '''
@@ -87,10 +87,10 @@ class NodeColumn(QGraphicsItem):
             itrect = item.boundingRect()
 
             x1 = colpos.x() + colrect.width()
-            y1 = colpos.y() + (colrect.height() >> 1)
+            y1 = colpos.y() + (int(colrect.height()) >> 1)
 
             x2 = itpos.x()
-            y2 = itpos.y() + (itrect.height() >> 1)
+            y2 = itpos.y() + (int(itrect.height()) >> 1)
 
             lineitem = scene.addLine(x1, y1, x2, y2, pen=pen)
             self._v_lines.append(lineitem)
@@ -112,10 +112,10 @@ class NodeColumn(QGraphicsItem):
             itrect = item.boundingRect()
 
             x1 = itpos.x() + itrect.width()
-            y1 = itpos.y() + (itrect.height() >> 1)
+            y1 = itpos.y() + (int(itrect.height()) >> 1)
 
             x2 = colpos.x()
-            y2 = colpos.y() + (colrect.height() >> 1)
+            y2 = colpos.y() + (int(colrect.height()) >> 1)
 
             lineitem = scene.addLine(x1, y1, x2, y2, pen=pen)
             self._v_lines.append(lineitem)
