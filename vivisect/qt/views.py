@@ -37,7 +37,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
         if idx.isValid() and self._viv_navcol is not None:
             pnode = idx.internalPointer()
             expr = pnode.rowdata[self._viv_navcol]
-            vqtevent('envi:nav:expr', ('viv',expr,None))
+            vqtevent('envi:nav:expr', ('viv', expr, None))
             return True
 
     def contextMenuEvent(self, event):
