@@ -642,18 +642,15 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             # relocable_reloc indexes should be in sync with relocs
                             ridx = relocs.index(r)
                             rsecname, rr = elf.relocable_relocs[ridx]
-                            rlva = rr.r_offset
                             # Try to recover the section name, they seem to have the same convention
                             # .rel.xxx --> .xxx
-                            rname = '.'.join([rsecname.split('.')[-1]])
-                            
-                            if addbase:
-                                rlva += baseaddr
+                            rname = f".{rsecname.split('.')[-1]}"
 
                             # Now read from the approriate section
                             for sva, ssz, sname, fname in vw.segments:
                                 if sname == rname:
-                                    temp = vw.readMemoryPtr(rlva + sva)
+                                    rlva = rr.r_offset + sva
+                                    temp = vw.readMemoryPtr(rlva)
                                     break
                         else:
                             temp = vw.readMemoryPtr(rlva)
