@@ -275,6 +275,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.symbols  = []
         self.relocs   = []
         self.relocvas = []
+        self.relocable_relocs = [] # For Relocatable ELFs
         self.symbols_by_name = {}
         self.symbols_by_addr = {}
         self.dynamics = []      # deprecated - 2019-10-21
@@ -698,6 +699,16 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 logger.info('section reloc: %s', reloc)
                 self.relocs.append(reloc)
                 self.relocvas.append(reloc.r_offset)
+                # This is the quickfix for the unusual composition of kernel modules
+                #
+                # In Relocatable ELF files (kernel modules)  r_offset is relative to the 
+                # storage unit that it represents, i.e. .rel.text reloc r_offset's are relative 
+                # to .text. Since this mapping/pairing needs to be maintained, the dirty solution 
+                # is to pair each reloc with its section name. 
+                #
+                # Perhaps there is a better solution?
+                if self.e_type == ET_REL:
+                    self.relocable_relocs.append((sec.name, reloc))
 
     def getBaseAddress(self):
         """

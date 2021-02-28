@@ -635,7 +635,29 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     # if it's an instruction, we have to use the immediate value and then 
                     # figure out if it's negative based on the instruction!
                     try:
-                        temp = vw.readMemoryPtr(rlva)
+
+                        # Have to check if ELF type first; ET_REL's are special.
+                        # Their r_offsets are relative to the section they represent
+                        if elf.e_type == Elf.ET_REL:
+                            # relocable_reloc indexes should be in sync with relocs
+                            ridx = relocs.index(r)
+                            rsecname, rr = elf.relocable_relocs[ridx]
+                            rlva = rr.r_offset
+                            # Try to recover the section name, they seem to have the same convention
+                            # .rel.xxx --> .xxx
+                            rname = '.'.join([rsecname.split('.')[-1]])
+                            
+                            if addbase:
+                                rlva += baseaddr
+
+                            # Now read from the approriate section
+                            for sva, ssz, sname, fname in vw.segments:
+                                if sname == rname:
+                                    temp = vw.readMemoryPtr(rlva + sva)
+                                    break
+                        else:
+                            temp = vw.readMemoryPtr(rlva)
+                        
                         if rtype in Elf.r_armclasses[Elf.R_ARMCLASS_DATA] or rtype in Elf.r_armclasses[Elf.R_ARMCLASS_MISC]:
                             # relocation points to a DATA or MISCELLANEOUS location
                             addend = temp
