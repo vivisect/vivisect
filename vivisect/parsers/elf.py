@@ -741,7 +741,10 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                 elif rtype == Elf.R_ARM_ABS32:
                     symidx = r.getSymTabIndex()
-                    sym = elf.getDynSymbol(symidx)
+                    if elf.e_type == Elf.ET_REL:
+                        sym = elf.getSymbols()[symidx]
+                    else:
+                        sym = elf.getDynSymbol(symidx)
                     ptr = sym.st_value
 
                     if ptr:

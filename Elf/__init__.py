@@ -753,6 +753,15 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.readAtOffset(self.rvaToOffset(rva), size)
 
     def rvaToOffset(self, rva):
+        if self.e_type == ET_REL:
+            self.relRvaToOffset(rva)
+        else:
+            self.execRvaToOffset(rva)
+
+    def relRvaToOffset(self, rva):
+        print("relRvaToOffset", rva)
+
+    def execRvaToOffset(self, rva):
         '''
         Convert an RVA for this ELF binary to a file offset.
         '''
@@ -1045,10 +1054,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         symidx indexed symbol.
         '''
         symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
-
-        if symsz is None:
-            # Sometimes there isn't a DynSym, zero everything out
-            symtabrva, symsz, symtabsz = 0,0,0
 
         symrva = symtabrva + (symidx * symsz)
         # DON'T trust symtabsz.  it's often smaller than the '.dynsym' section
