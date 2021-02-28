@@ -95,7 +95,7 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
         return self._trackReads
 
     def setupFunctionCall(self, fva, args=None):
-        logger.warn("setupFunctionCall: SKIPPING!")
+        logger.warning("setupFunctionCall: SKIPPING!")
         pass
         
     def readSymMemory(self, symaddr, symsize, vals=None):
@@ -258,7 +258,7 @@ def targetNewFunctions(vw, fva):
                 op = vw.parseOpcode(cbva)
 
             except:
-                logger.warn('failed to parse opcode within function at 0x%x (fva: 0x%x)', cbva, fva)
+                logger.warning('failed to parse opcode within function at 0x%x (fva: 0x%x)', cbva, fva)
                 cbva += 1
                 continue
 
@@ -279,7 +279,7 @@ def targetNewFunctions(vw, fva):
                     continue
                 done.append(tgtva)
 
-                logger.warn('Making new function: 0x%x (from 0x%x)', tgtva, xrfr)
+                logger.warning('Making new function: 0x%x (from 0x%x)', tgtva, xrfr)
                 vw.makeFunction(tgtva)
 
             cbva += len(op)
@@ -781,7 +781,7 @@ class SwitchCase:
                     logger.info("0x%x->0x%x" % (eff.va, solution))
 
                     if not self.vw.isValidPointer(solution):
-                        logger.warn(("ARRRG: Non-pointer in ReadMemory???"))
+                        logger.warning(("ARRRG: Non-pointer in ReadMemory???"))
 
                     target = semu.readSymMemory(eff.symaddr, eff.symsize)
                     size = target.getWidth()
@@ -847,10 +847,10 @@ class SwitchCase:
             count = upper - lower + 1
             if count > self.max_cases:
                 if count > self.case_failure:
-                    logger.warn("TOO many switch cases detected: %d.  FAILURE.  Skipping this dynamic branch", count)
+                    logger.warning("TOO many switch cases detected: %d.  FAILURE.  Skipping this dynamic branch", count)
                     return
                 
-                logger.warn("too many switch cases during analysis: %d   limiting to %d", count, self.max_cases)
+                logger.warning("too many switch cases during analysis: %d   limiting to %d", count, self.max_cases)
                 count = self.max_cases
 
             # determine deref-ops...  uses TrackingSymbolikEmulator
@@ -1024,7 +1024,7 @@ def makeNames(vw, jmpva, cases, baseoff=0):
             ## either simply add the new outstrings to the current one or we need to keep track of what
             ## calls each and with what switchcase/index info.  VaSet?  or do we want this to only expect
             ## the same function to call each one, and all part of the same Switchcase?
-            logger.warn("%s is already labeled %s", casename, curname)
+            logger.warning("%s is already labeled %s", casename, curname)
 
         vw.makeName(addr, casename)
         logger.info(casename)
