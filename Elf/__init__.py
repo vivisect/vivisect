@@ -429,6 +429,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def _parseDynamicsFromSections(self):
         '''
         if by some strange chance, the DYNAMCS PHDR doesn't exist but we have this section...
+        i.e. linux kernel modules
         '''
         dynbytes = self.getSectionBytes('.dynamic')
         while dynbytes:
@@ -669,12 +670,25 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
             relocs = reloc * count
             vstruct.VArray(elems=relocs).vsParse(secbytes, fast=True)
+            print(sec)
+            print(sec.name, self.dynamic_symbols)
+            print(relocs)
+            print()
 
             for reloc in relocs:
                 index = reloc.getSymTabIndex()
                 if index < len(self.dynamic_symbols):
                     sym = self.dynamic_symbols[index]
                     reloc.setName( sym.getName() )
+
+                # Appears kernel modules only have a strtab if they're not stripped?
+                # Check to see if a name was recovered
+                print("Reloc old name!", reloc.getName())
+                if reloc.getName() == "":
+                    print("SymTabIndex", reloc.getSymTabIndex())
+                    sym = self.symbols[index]
+                    reloc.setName( sym.getName() )
+                    print("Reloc new name!", reloc.getName())
 
                 if reloc.r_offset in self.relocvas:
                     # FIXME: This line is hit sever tens of thousands of times during parsing
