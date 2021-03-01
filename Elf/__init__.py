@@ -752,7 +752,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def rvaToOffset(self, rva):
         self.execRvaToOffset(rva)
 
-    def RvaToOffset(self, rva):
+    def rvaToOffset(self, rva):
         '''
         Convert an RVA for this ELF binary to a file offset.
         '''
