@@ -279,7 +279,7 @@ def targetNewFunctions(vw, fva):
                     continue
                 done.append(tgtva)
 
-                logger.warning('Making new function: 0x%x (from 0x%x)', tgtva, xrfr)
+                logger.info('Making new function: 0x%x (from 0x%x)', tgtva, xrfr)
                 vw.makeFunction(tgtva)
 
             cbva += len(op)
@@ -345,7 +345,7 @@ class SwitchCase:
 
         try:
             self.max_instr_count = vw.config.viv.analysis.switchcase.max_instr_count
-            self.max_cases = vw.config.analysis.switchcase.max_cases
+            self.max_cases = vw.config.viv.analysis.switchcase.max_cases
             self.case_failure = vw.config.viv.analysis.switchcase.case_failure
             self.min_func_instr_size = vw.config.viv.analysis.switchcase.min_func_instr_size
 
