@@ -531,6 +531,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 logger.warning("%s" % str(e))
 
         if s.st_info == Elf.STT_FUNC:
+            print("LOADSTUFFINTOWORKSPACE", sva, s.getName())
             new_functions.append(("STT_FUNC", sva))
 
     if addbase:
@@ -648,8 +649,9 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             print("RELOCABLE_RELOCS", rsecname, rr)
                             # Try to recover the section name, they seem to have the same convention
                             # .rel.xxx --> .xxx
-                            print("RNAME", rsecname.split('.'), ".".join(rsecname.split('.')[2:]))
-                            rname = "." + '.'.join(rsecname.split('.')[2:])
+                            # Except when it doesn't
+                            rname = '.'.join(rsecname.split('rel')[1:])
+                            print("RNAME", rsecname.split('rel'), rname)
 
                             # Now read from the approriate section
                             rlva = 0
