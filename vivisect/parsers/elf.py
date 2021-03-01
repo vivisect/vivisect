@@ -627,6 +627,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                 # ARM REL entries require an addend that could be stored as a 
                 # number or an instruction!
                 import envi.archs.arm.const as eaac
+                print("-"*10)
+                print("R", r)
                 if r.vsHasField('addend'):
                     # this is a RELA object, bringing its own addend field!
                     addend = r.addend
@@ -641,17 +643,23 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         if elf.e_type == Elf.ET_REL:
                             # relocable_reloc indexes should be in sync with relocs
                             ridx = relocs.index(r)
+                            print("RIDX", ridx)
                             rsecname, rr = elf.relocable_relocs[ridx]
+                            print("RELOCABLE_RELOCS", rsecname, rr)
                             # Try to recover the section name, they seem to have the same convention
                             # .rel.xxx --> .xxx
-                            rname = f".{rsecname.split('.')[-1]}"
+                            print("RNAME", rsecname.split('.'), ".".join(rsecname.split('.')[2:]))
+                            rname = "." + '.'.join(rsecname.split('.')[2:])
 
                             # Now read from the approriate section
+                            rlva = 0
                             for sva, ssz, sname, fname in vw.segments:
                                 if sname == rname:
                                     rlva = rr.r_offset + sva
+                                    print("RLVA NAME", rname, rr.r_offset, rlva)
                                     temp = vw.readMemoryPtr(rlva)
                                     break
+
                         else:
                             temp = vw.readMemoryPtr(rlva)
                         
@@ -660,6 +668,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             addend = temp
                         else:
                             # relocation points to a CODE location (ARM, THUMB16, THUMB32)
+                            print("OPCode RLVA", rlva)
                             op = vw.parseOpcode(rlva)
                             for oper in op.opers:
                                 if hasattr(oper, 'val'):
@@ -768,6 +777,25 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     if len(name):
                         vw.makeName(rlva, dmglname, makeuniq=True)
                         vw.setComment(rlva, name)
+
+                elif rtype == Elf.R_ARM_CALL:
+                    # 28    R_ARM_CALL  Static  Arm ((S + A) | T) - P
+                    # S -- Addr of Sym
+                    # A -- Addend
+                    # T -- 1 if ST_FUNC else 0
+                    # P -- Addr of place being reloc'd
+                    symidx = r.getSymTabIndex()
+                    if elf.e_type == Elf.ET_REL:
+                        sym = elf.getSymbols()[symidx]
+                    else:
+                        sym = elf.getDynSymbol(symidx)
+                    
+                    ptr = sym.st_value
+                    print("ARM_CALL\n\t",r,"\n\t",sym, ) 
+                    vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
+                    vw.makeName(rlva, name, makeuniq=True)
+                    vw.setComment(rlva, name)
+                    
 
                 else:
                     logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
