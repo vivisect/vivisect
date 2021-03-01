@@ -5,14 +5,17 @@ import envi.memory as e_mem
 import logging
 import envi.common as e_common
 logger = logging.getLogger(__name__)
-e_common.initLogging(logger, logging.DEBUG)
+#e_common.initLogging(logger, logging.DEBUG)
 
 MS_MAPS = [
+    (0x880000, 1, e_mem.MM_READ, b'\x00'),
+    (0x884ec0, 32, e_mem.MM_RWX, b'\xb7D$*f\x89C\x0c\x0f\xb7D$,f\x89C\x0eH\x83\xc40[\xc3\x90\x90\x90\x90\x90\x90\x90\x90\x90'),
     (0x884ee0, 112, e_mem.MM_RWX, b'H\x83\xecHH\x85\xc9\x0f\x84{\xbe\x01\x00\x83\xf9\xf4\x0f\x83\xb97\x01\x00H\x85\xc9\x0f\x84i\xbe\x01\x00L\x8dD$PH\x8dT$0A\xb9\x08\x00\x00\x00\xc7D$ \x04\x00\x00\x00\xff\x15\xcbS\x04\x00\x85\xc0\x0f\x88\xa77\x01\x00H\x8bD$P\x83\xf8\x07\x0f\x85\xff\xc2\x00\x00\xb8\x01\x00\x00\x00H\x83\xc4H\xc3\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90'),
     (0x891232, 68, e_mem.MM_RWX, b'\x8dH\xfe\x83\xf9)\x0f\x87\x89\xfb\x00\x00H\x8d\x15\xbb\xed\xfe\xff\x0f\xb6\x84\n@\xc5\x01\x00\x8b\x8c\x820\xc5\x01\x00H\x03\xca\xff\xe1\xb8\x03\x00\x00\x00H\x83\xc4H\xc3\x8b\xc1%\x00\x00\x00\xc0=\x00\x00\x00\x80\x0f\x84\xe8\xfa\x00\x00\xe8'),
     (0x8986af, 62, e_mem.MM_RWX, b'\x0f\x84\xf8\x86\x00\x00\x83\xf9\xf5\x0f\x84\xd5\x86\x00\x00\x83\xf9\xf6\x0f\x85/\xc8\xfe\xff\xe9\xad\x86\x00\x00\x8b\xc8\xe8=\x90\xfe\xff3\xc0H\x83\xc4H\xc3H\x8d\r?\x90\x04\x00\xff\x15\x81\x1b\x03\x00\xe84\x04\xff\xffH'),
     (0x899db9, 29, e_mem.MM_RWX, b'\xb8\x02\x00\x00\x00H\x83\xc4H\xc3\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90H\x83\xec(D\x0f'),
 
+    (0x89c540, 41, e_mem.MM_RWX, b'\x00\x00\x00\x00\x00\x00\x00\x03\x03\x01\x03\x03\x03\x01\x03\x02\x03\x03\x03\x01\x01\x03\x01\x03\x03\x01\x01\x01\x03\x03\x03\x03\x03\x03\x00\x03\x03\x03\x03\x03\x03'),
     (0x89c634, 24, e_mem.MM_RWX, b'\x89\xf2\x00\x00\x89\xf2\x00\x00\x89\xf2\x00\x00\x89\xf2\x00\x00W\x98\x00\x00\x0f\xf9\x00\x00'),
     (0x8a0d68, 129, e_mem.MM_RWX, b'\xb9\x08\x00\x00\xc0\xe8\x9e\t\xfe\xff3\xc0H\x83\xc4H\xc3eH\x8b\x04%0\x00\x00\x00H\x8bH`H\x8bA H\x8bH \xe9cA\xfe\xffeH\x8b\x04%0\x00\x00\x00H\x8bH`H\x8bA H\x8bH(\xe9IA\xfe\xffeH\x8b\x04%0\x00\x00\x00H\x8bH`H\x8bA H\x8bH0\xe9/A\xfe\xff3\xc9\xff\x15\xd1\x92\x02\x003\xc0H\x83\xc4H\xc3eH\x8b\x04%0\x00\x00\x00L\x8b\xc73\xd2H\x8bH`H'),
     (0x8ca0a0, 28, e_mem.MM_RWX, b'@ \xeax\x00\x00\x00\x00@\xff\xe9x\x00\x00\x00\x00p\x1e\xeax\x00\x00\x00\x00p\x12\xeax'),
@@ -48,9 +51,9 @@ def applyMaps(vw, maps=MS_MAPS, mapbase=0x400000, bufferpages=2):
         vw.addSegment(mapva, len(mem), 'switch_code_%x' % mapva, 'testswitches')
 
 
-def genMsSwitchWorkspace(maps=MS_MAPS, mapbase=0x400000, bufferpages=2):
+def genMsSwitchWorkspace(maps=MS_MAPS, mapbase=0x400000, bufferpages=2, arch='amd64'):
     vw = vivisect.VivWorkspace()
-    vw.setMeta('Architecture', 'i386')
+    vw.setMeta('Architecture', arch)
     vw.setMeta('Platform', 'windows')
     vw.setMeta('Format', 'pe')
     vw._snapInAnalysisModules()
@@ -87,6 +90,28 @@ cbs_ms_0 = [
         (4308659, 26, 4194304),
         (4308685, 26, 4194304),
         (4308711, 15, 4194304)]
+
+cbs_ms_0 = [
+        (0x404ee0, 0xd , 0x404ee0),
+        (0x404eed, 0x9 , 0x404ee0),
+        (0x404ef6, 0x9 , 0x404ee0),
+        (0x404eff, 0x26, 0x404ee0),
+        (0x404f25, 0xe , 0x404ee0),
+        (0x404f33, 0xa , 0x404ee0),
+        (0x411232, 0xc , 0x404ee0),
+        (0x41123e, 0x1b, 0x404ee0),
+        (0x411259, 0xa , 0x404ee0),
+        (0x4186af, 0x6 , 0x404ee0),
+        (0x4186b5, 0x9 , 0x404ee0),
+        (0x4186be, 0x9 , 0x404ee0),
+        (0x4186c7, 0x5 , 0x404ee0),
+        (0x4186cc, 0xe , 0x404ee0),
+        (0x419db9, 0xa , 0x404ee0),
+        (0x420d68, 0x11, 0x404ee0),
+        (0x420d79, 0x1a, 0x404ee0),
+        (0x420d93, 0x1a, 0x404ee0),
+        (0x420dad, 0x1a, 0x404ee0),
+        (0x420dc7, 0xf , 0x404ee0)]
 
 cbs_libc_0 = [
         (5242880, 34, 5242880),
@@ -678,17 +703,18 @@ cbs_amd64_ls_1 = [
 
 class MsSwitchTest(unittest.TestCase):
     def test_ms_switch_0(self):
-        base = 0x400000
+        base = 0x400000     # looks for reg at 0x3fb120
+        fva = base + 0x4ee0
         vw = genMsSwitchWorkspace(MS_MAPS, base)
-        vw.makeFunction(base)
-        funcblocks = vw.getFunctionBlocks(base)
+        vw.setMeta('DefaultCall', 'msx64call')
+        vw.makeFunction(fva)
+        funcblocks = vw.getFunctionBlocks(fva)
         funcblocks.sort()
 
-        print("\n\n%s blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_ms_0))
-        print("switches:", vw.getVaSetRows('SwitchCases') )
-        self.assertEqual(vw.getFunctionBlocks(0x400000), cbs_ms_0)
-        self.assertEqual(len(vw.getXrefsFrom(base+0xc377)), 5)
-        #self.assertEqual(vw.getXrefsFrom(0x
+        logger.debug("\n\n%s blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_ms_0))
+        logger.debug("switches: %r" % vw.getVaSetRows('SwitchCases') )
+        self.assertEqual(vw.getFunctionBlocks(fva), cbs_ms_0)
+        self.assertEqual(len(vw.getXrefsFrom(base+0x11257)), 5)
 
 class PosixSwitchTest(unittest.TestCase):
     def test_libc_switch_0(self):
@@ -697,8 +723,8 @@ class PosixSwitchTest(unittest.TestCase):
         funcblocks = vw.getFunctionBlocks(0x500000)
         funcblocks.sort()
 
-        print("\n\n%s blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_libc_0))
-        print("switches:", vw.getVaSetRows('SwitchCases') )
+        logger.debug("\n\n%s blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_libc_0))
+        logger.debug("switches: %r" % vw.getVaSetRows('SwitchCases') )
         self.assertEqual(vw.getFunctionBlocks(0x500000), cbs_libc_0)
 
 class WalkerSwitchTest(unittest.TestCase):
@@ -718,23 +744,23 @@ class LsSwitchTest(unittest.TestCase):
         self.maxDiff = None
         vw = helpers.getTestWorkspace('linux', 'amd64', 'ls')
 
-        fva = 0x402690
-        vw.makeFunction(fva)
-        funcblocks = vw.getFunctionBlocks(fva)
-        funcblocks.sort()
-        cbs_amd64_ls_1.sort()
-        print("\n\n%s blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_amd64_ls_1))
-        print("switches:", vw.getVaSetRows('SwitchCases') )
-        self.assertEqual(funcblocks, cbs_amd64_ls_1)
-
         fva = 0x404223
         vw.makeFunction(fva)
         funcblocks = vw.getFunctionBlocks(fva)
         funcblocks.sort()
         cbs_amd64_ls_0.sort()
-        print("\n\n%s (2) blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_amd64_ls_0))
-        print("switches:", vw.getVaSetRows('SwitchCases') )
+        logger.debug("\n\n%s (2) blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_amd64_ls_0))
+        logger.debug("switches: %r" % vw.getVaSetRows('SwitchCases') )
         self.assertEqual(funcblocks, cbs_amd64_ls_0)
+
+        fva = 0x402690
+        vw.makeFunction(fva)
+        funcblocks = vw.getFunctionBlocks(fva)
+        funcblocks.sort()
+        cbs_amd64_ls_1.sort()
+        logger.debug("\n\n%s blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_amd64_ls_1))
+        logger.debug("switches: %r" % vw.getVaSetRows('SwitchCases') )
+        self.assertEqual(funcblocks, cbs_amd64_ls_1)
 
 
 #=======  test generator code =======
