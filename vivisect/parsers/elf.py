@@ -646,7 +646,12 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             ridx = relocs.index(r)
                             print("RIDX", ridx)
                             rsecname, rr = elf.relocable_relocs[ridx]
-                            print("RELOCABLE_RELOCS", rsecname, rr)
+                            print("RELOCABLE_RELOCS", rsecname, rr, "r.r_info >> 8", r.r_info >> 8)
+                            print(
+                                "SYMBOL", 
+                                elf.symbols[r.r_info >> 8], 
+                                elf.symbols[r.r_info >> 8].st_info & 0xf,
+                            )
                             # Try to recover the section name, they seem to have the same convention
                             # .rel.xxx --> .xxx
                             # Except when it doesn't
@@ -693,6 +698,12 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                 logger.debug('addend: 0x%x', addend)
 
+                if rtype in (0,1):
+                    print("foundone")
+                    print(r)
+                    raise Exception("ExasdsaD")
+
+
                 if rtype == Elf.R_ARM_JUMP_SLOT:
                     symidx = r.getSymTabIndex()
                     sym = elf.getDynSymbol(symidx)
@@ -721,7 +732,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                     else:
                         logger.info('R_ARM_JUMP_SLOT: adding Import 0x%x (%s) ', rlva, dmglname)
-                        vw.makeImport(rlva, "*", dmglname)
+                        vw.makeImport(rlva, "a*", dmglname)
                         vw.setComment(rlva, name)
 
                 elif rtype == Elf.R_ARM_GLOB_DAT:
@@ -747,7 +758,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                     else:
                         logger.info('R_ARM_GLOB_DAT: adding Import 0x%x (%s) ', rlva, dmglname)
-                        vw.makeImport(rlva, "*", dmglname)
+                        vw.makeImport(rlva, "b*", dmglname)
                         vw.setComment(rlva, name)
 
                 elif rtype == Elf.R_ARM_ABS32:
@@ -767,7 +778,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                     else:
                         logger.info('R_ARM_ABS32: adding Import 0x%x (%s) ', rlva, dmglname)
-                        vw.makeImport(rlva, "*", dmglname)
+                        vw.makeImport(rlva, "*", name)
+                        #vw.makeImport(rlva, "*", dmglname)
                         vw.setComment(rlva, name)
 
                     vw.setComment(rlva, dmglname)
@@ -797,6 +809,13 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     vw.addRelocation(rlva, vivisect.RTYPE_BASEOFF, ptr)
                     vw.makeName(rlva, name, makeuniq=True)
                     vw.setComment(rlva, name)
+
+                elif rtype == Elf.R_ARM_NONE:
+                    symidx = r.getSymTabIndex()
+                    sym = elf.getSymbols()[symidx]
+
+                    print("NO_TYPE")
+                    print(sym.getName())
                     
 
                 else:

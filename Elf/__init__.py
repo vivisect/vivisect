@@ -673,6 +673,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             vstruct.VArray(elems=relocs).vsParse(secbytes, fast=True)
 
             for reloc in relocs:
+                print("_parseSectionReloc", reloc.vsGetField("r_info") & 0xff, hex(sec.sh_offset))
                 index = reloc.getSymTabIndex()
                 if index < len(self.dynamic_symbols):
                     sym = self.dynamic_symbols[index]
@@ -684,8 +685,11 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     sym = self.symbols[index]
                     reloc.setName( sym.getName() )
 
+
                 if reloc.r_offset in self.relocvas:
                     # FIXME: This line is hit sever tens of thousands of times during parsing
+                    # Possible solution -- Make self.relocvas a set. Ensures each entry
+                    # is unique
                     logger.debug('duplicate relocation (section): %s', reloc)
                     continue
 
@@ -746,15 +750,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.readAtOffset(self.rvaToOffset(rva), size)
 
     def rvaToOffset(self, rva):
-        if self.e_type == ET_REL:
-            self.relRvaToOffset(rva)
-        else:
-            self.execRvaToOffset(rva)
+        self.execRvaToOffset(rva)
 
-    def relRvaToOffset(self, rva):
-        print("relRvaToOffset", rva)
-
-    def execRvaToOffset(self, rva):
+    def RvaToOffset(self, rva):
         '''
         Convert an RVA for this ELF binary to a file offset.
         '''
