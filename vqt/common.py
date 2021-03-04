@@ -1,8 +1,9 @@
 import logging
 
 # Some common GUI helpers
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QTreeView
+from PyQt5.QtCore import QRegExp
+from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtWidgets import QTreeView, QDialog, QLineEdit, QComboBox, QVBoxLayout, QHBoxLayout, QDialogButtonBox, QLabel
 
 logger = logging.getLogger(__name__)
 
@@ -172,3 +173,131 @@ class VqtView(QTreeView):
     def getModelRow(self, idx):
         idx = self.model().mapToSource(idx)
         return idx.row(), idx.internalPointer()
+
+
+class DynamicDialog(QDialog):
+    '''
+    Pop up and ask the questions.  If "OK", returns a dict with answers.  
+    Intended for easy access by extensions, and possibly for envi.Config items.
+    eg:
+
+    >>> dynd = vcmn.DynamicDialog('Test Dialog')
+    >>> dynd.addComboBox('testbox', ["a", 'b', 'c'])
+    >>> dynd.addTextField('foo')
+    >>> dynd.addIntHexField('bar')
+    >>> results = dynd.prompt()
+    >>> print(results)
+
+    {'testbox': 'b', 'foo': 'blah blah', 'bar': 4660}
+
+    '''
+    _TEXT = 0
+    _COMBO = 1
+    _INTHEX = 2
+
+    def __init__(self, title, height=100, width=300, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle(title)
+        self.items = {}
+        self.resize(width, height)
+        self.vbox = QVBoxLayout()
+        self.setLayout(self.vbox)
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel);
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+    def addComboBox(self, fieldname, itemlist, title=None):
+        '''
+        Adds a Combo Box to the dialog.  The returned value will be one of the 
+        options provided in itemlist.
+        '''
+        if fieldname in self.items:
+            raise Exception("ComboBox: Adding field to DynamicDialog twice: %r (existing: %r)"\
+                    % (fieldname, self.items.get(fieldname)))
+
+        cb = QComboBox()
+        cb.addItems(itemlist)
+        self.items[fieldname] = (self._COMBO, cb)
+        if title is None:
+            title = fieldname
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(QLabel(title))
+        hbox.addWidget(cb)
+        self.vbox.addLayout(hbox)
+
+    def addTextField(self, fieldname, dflt=None, title=None):
+        '''
+        Adds a standard Text Box (QLineEdit) to the dialog.
+        Return value is basically untouched.
+        '''
+        if fieldname in self.items:
+            raise Exception("Text: Adding field to DynamicDialog twice: %r (existing: %r)"\
+                    % (fieldname, self.items.get(fieldname)))
+
+        le = QLineEdit()
+        self.items[fieldname] = (self._TEXT, le)
+        if title is None:
+            title = fieldname
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(QLabel(title))
+        hbox.addWidget(le)
+        self.vbox.addLayout(hbox)
+
+    def addIntHexField(self, fieldname, dflt=None, title=None):
+        '''
+        Adds a number field to the dialog.  It's a QLineEdit field with a 
+        QRegExpValidator, using regex for Hexidecimal numbers, which also
+        allows for Decimal.  
+        Returned value is an int.
+        The value is interpreted as decimal (ie. int(foo)) unless non-numeric digits 
+        encountered, in which case it's interpreted as hex (ie. int(foo, 16))
+        '''
+        if fieldname in self.items:
+            raise Exception("IntHex: Adding field to DynamicDialog twice: %r (existing: %r)"\
+                    % (fieldname, self.items.get(fieldname)))
+
+        le = QLineEdit()
+        le.setValidator(QRegExpValidator(QRegExp("^(-)?(0x)?[0-9a-fA-F]+$")))
+        self.items[fieldname] = (self._INTHEX, le)
+        if title is None:
+            title = fieldname
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(QLabel(title))
+        hbox.addWidget(le)
+        self.vbox.addLayout(hbox)
+
+    def prompt(self):
+        '''
+        Temporarily adds a ButtonBox with "OK" and "Cancel", and shows the 
+        dialog to the user.  Then removes the buttonBox.
+        '''
+        self.vbox.addWidget(self.buttonBox);
+        res = self.exec_()
+        self.vbox.removeWidget(self.buttonBox);
+
+        retval = {}
+        if res:
+            for key, (ftype, field) in self.items.items():
+                if ftype == self._INTHEX:
+                    val = field.text()
+                    if len(val):
+                        try:
+                            val = int(val)
+                        except ValueError:
+                            val = int(val, 16)
+                    else:
+                        val = 0
+
+                elif ftype == self._TEXT:
+                    val = field.text()
+
+                elif ftype == self._COMBO:
+                    val = field.currentText()
+
+                retval[key] = val
+
+        return retval
