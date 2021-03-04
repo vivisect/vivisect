@@ -147,6 +147,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._cached_emus = {}
 
         self.parsedbin = None
+        self.opcache = {}
         # The function entry signature decision tree
         # FIXME add to export
         self.sigtree = e_bytesig.SignatureTree()
@@ -1122,8 +1123,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # so that at least parse opcode wont fail
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
-
-        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+        key = (va, arch)
+        op = self.opcache.get(key)
+        if not op:
+            op = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+            self.opcache[key] = op
+        return op
 
     def iterJumpTable(self, startva, step=None, maxiters=None, rebase=False):
         if not step:
