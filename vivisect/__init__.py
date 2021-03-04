@@ -47,6 +47,10 @@ import vivisect.analysis.generic.emucode as v_emucode
 logger = logging.getLogger(__name__)
 
 STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
+STORAGE_MAP = {
+    'viv': 'vivisect.storage.basicfile',
+    'mpviv': 'vivisect.storage.mpfile',
+}
 
 
 def guid(size=16):
@@ -2645,7 +2649,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if fmtname is None:
             fmtname = viv_parsers.guessFormatFilename(filename)
 
-        if fmtname in ('viv', 'mpviv'):
+        # TODO: Ugh. Make this cleaner by having it pci
+        if fmtname in STORAGE_MAP:
+            self.setMeta('StorageModule', STORAGE_MAP[fmtname])
             self.loadWorkspace(filename)
             return self.normFileName(filename)
 
