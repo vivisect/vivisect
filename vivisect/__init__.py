@@ -2623,6 +2623,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             fmtname = viv_parsers.guessFormatFilename(filename)
 
         if fmtname in ('viv', 'mpviv'):
+            if fmtname == 'mpviv':
+                self.setMeta('StorageModule', 'vivisect.storage.mpfile')
             self.loadWorkspace(filename)
             return self.normFileName(filename)
 
