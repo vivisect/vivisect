@@ -205,7 +205,7 @@ class WorkspaceEmulator:
                 # pops, which leads us to say that code path isn't a function since we miss the ret instruction.
                 # So we have here a fix for that. Added some rails so we don'y always just punch it in
                 if self._safe_mem:
-                    if not self.vw.isValidPointer(newaddr) and self.isValidPointer(retn):
+                    if not self.vw.isValidPointer(newaddr) and self.vw.isValidPointer(retn):
                         self.setProgramCounter(retn)
             # no else since we'll emulate into the function
 
