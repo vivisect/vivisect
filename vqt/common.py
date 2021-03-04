@@ -182,13 +182,20 @@ class DynamicDialog(QDialog):
     eg:
 
     >>> dynd = vcmn.DynamicDialog('Test Dialog')
-    >>> dynd.addComboBox('testbox', ["a", 'b', 'c'])
-    >>> dynd.addTextField('foo')
-    >>> dynd.addIntHexField('bar')
+    >>> dynd.addComboBox('testbox', ["a", 'b', 'c'], dfltidx=2)
+    >>> dynd.addTextField('foo', dflt="blah blah")
+    >>> dynd.addIntHexField('bar', dflt=47145)
     >>> results = dynd.prompt()
+        <when returns, after user clicks OK>
     >>> print(results)
+    {'testbox': 'c', 'foo': 'blah blah', 'bar': 47145}
 
-    {'testbox': 'b', 'foo': 'blah blah', 'bar': 4660}
+            or...
+
+    >>> results = dynd.prompt()
+        <if user hits cancel>
+    >>> print(results)
+    {}
 
     '''
     _TEXT = 0
@@ -207,10 +214,13 @@ class DynamicDialog(QDialog):
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
-    def addComboBox(self, fieldname, itemlist, title=None):
+    def addComboBox(self, fieldname, itemlist, dfltidx=None, title=None):
         '''
         Adds a Combo Box to the dialog.  The returned value will be one of the 
         options provided in itemlist.
+
+        dfltidx is the index in the itemlist which should start out selected.
+        default is the first item.
         '''
         if fieldname in self.items:
             raise Exception("ComboBox: Adding field to DynamicDialog twice: %r (existing: %r)"\
@@ -219,6 +229,9 @@ class DynamicDialog(QDialog):
         cb = QComboBox()
         cb.addItems(itemlist)
         self.items[fieldname] = (self._COMBO, cb)
+
+        if dfltidx is not None:
+            cb.setCurrentIndex(dfltidx)
         if title is None:
             title = fieldname
 
@@ -238,6 +251,9 @@ class DynamicDialog(QDialog):
 
         le = QLineEdit()
         self.items[fieldname] = (self._TEXT, le)
+
+        if dflt is not None:
+            le.setText(dflt)
         if title is None:
             title = fieldname
 
@@ -262,6 +278,9 @@ class DynamicDialog(QDialog):
         le = QLineEdit()
         le.setValidator(QRegExpValidator(QRegExp("^(-)?(0x)?[0-9a-fA-F]+$")))
         self.items[fieldname] = (self._INTHEX, le)
+
+        if dflt is not None:
+            le.setText(str(dflt))
         if title is None:
             title = fieldname
 
