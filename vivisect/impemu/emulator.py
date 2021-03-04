@@ -195,7 +195,18 @@ class WorkspaceEmulator:
             elif self._func_only:
                 if ret is None:
                     ret = self.setVivTaint('apicall', (op, endeip, api, argv))
+                retn = self.getProgramCounter()
                 callconv.execCallReturn(self, ret, len(funcargs))
+                newaddr = self.getProgramCounter()
+                # So....sometimes, mostly when we're called into an emulator via isProbablyCode, we don't
+                # get the initial function setups, which include a couple pushes onto the stack. Normally,
+                # this isn't that much of a problem, but when we hit the last codeblock that includes pops
+                # before calling any last few functions, the stack pointer gets throw off by those last few
+                # pops, which leads us to say that code path isn't a function since we miss the ret instruction.
+                # So we have here a fix for that. Added some rails so we don'y always just punch it in
+                if self._safe_mem:
+                    if not self.vw.isValidPointer(newaddr) and self.isValidPointer(retn):
+                        self.setProgramCounter(retn)
             # no else since we'll emulate into the function
 
         return iscall
