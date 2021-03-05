@@ -1,9 +1,10 @@
 import logging
 
 # Some common GUI helpers
-from PyQt5.QtCore import QRegExp
+from PyQt5 import QtCore 
 from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtWidgets import QTreeView, QDialog, QLineEdit, QComboBox, QVBoxLayout, QHBoxLayout, QDialogButtonBox, QLabel
+from PyQt5.QtWidgets import QTreeView, QDialog, QLineEdit, QComboBox, QVBoxLayout, QHBoxLayout, QDialogButtonBox, QLabel, QMessageBox
+from vqt.main import idlethread
 
 logger = logging.getLogger(__name__)
 
@@ -276,7 +277,7 @@ class DynamicDialog(QDialog):
                     % (fieldname, self.items.get(fieldname)))
 
         le = QLineEdit()
-        le.setValidator(QRegExpValidator(QRegExp("^(-)?(0x)?[0-9a-fA-F]+$")))
+        le.setValidator(QRegExpValidator(QtCore.QRegExp("^(-)?(0x)?[0-9a-fA-F]+$")))
         self.items[fieldname] = (self._INTHEX, le)
 
         if dflt is not None:
