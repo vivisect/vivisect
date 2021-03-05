@@ -11,6 +11,7 @@ The module's vivExtension function takes a vivisect workspace
 '''
 
 import os
+import sys
 import importlib
 import traceback
 
@@ -28,6 +29,9 @@ def loadExtensions(vw, vwgui):
         if not os.path.isdir(dirname):
             vw.vprint('Invalid VIV_EXT_PATH dir: %s' % dirname)
             continue
+
+        if dirname not in sys.path:
+            sys.path.append(dirname)
 
         for fname in os.listdir(dirname):
             modpath = os.path.join(dirname, fname)
