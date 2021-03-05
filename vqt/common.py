@@ -326,6 +326,7 @@ class DynamicDialog(QDialog):
 def warning(msg, info):
     msgbox = QMessageBox()
     msgbox.setWindowTitle('Warn: %s' % msg)
+    msgbox.setText('Warn: %s' % msg)
     msgbox.setInformativeText(info)
     msgbox.setIcon(QMessageBox.Warning)
     msgbox.exec_()
@@ -334,7 +335,16 @@ def warning(msg, info):
 def information(msg, info):
     msgbox = QMessageBox()
     msgbox.setWindowTitle('%s' % msg)
+    msgbox.setText('%s' % msg)
     msgbox.setInformativeText(info)
     msgbox.setIcon(QMessageBox.Information)
+    msgbox.exec_()
+
+@idlethread
+def scripterr(msg, info):
+    msgbox = QMessageBox()
+    msgbox.setWindowTitle('Script Error: %s' % msg)
+    msgbox.setText('Script Error: %s' % msg)
+    msgbox.setInformativeText(info)
     msgbox.exec_()
 
