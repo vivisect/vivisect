@@ -137,7 +137,7 @@ For examples of using this powerful capability, look at the example file at:
 
 ## The Power of Scripts with Vivisect
 
-You can script up meanial tasks or powerful techniques using simple Python
+You can script up menial tasks or powerful techniques using simple Python
 scripts from either the command-line or the GUI.  
 
 Scripts are loaded and run as any python code is run from the command line.  
