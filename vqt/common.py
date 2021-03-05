@@ -320,3 +320,20 @@ class DynamicDialog(QDialog):
                 retval[key] = val
 
         return retval
+
+@idlethread
+def warning(msg, info):
+    msgbox = QMessageBox()
+    msgbox.setWindowTitle('Warn: %s' % msg)
+    msgbox.setInformativeText(info)
+    msgbox.setIcon(QMessageBox.Warning)
+    msgbox.exec_()
+
+@idlethread
+def information(msg, info):
+    msgbox = QMessageBox()
+    msgbox.setWindowTitle('%s' % msg)
+    msgbox.setInformativeText(info)
+    msgbox.setIcon(QMessageBox.Information)
+    msgbox.exec_()
+
