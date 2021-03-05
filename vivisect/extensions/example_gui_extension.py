@@ -1,14 +1,3 @@
-try:
-    from PyQt5.QtWidgets import QToolBar, QLabel, QPushButton, QTextEdit, QWidget, QInputDialog
-    from PyQt5 import QtCore
-except:
-    from PyQt4.QtGui import QToolBar, QLabel, QPushButton, QTextEdit, QWidget, QInputDialog
-    from PyQt4 import QtCore
-
-from vqt.main import idlethread
-from vqt.basics import VBox
-from vqt.common import ACT
-
 '''
 This is an example of a vivisect GUI extension module.
 Set the environment variable VIV_EXT_PATH to point at a
@@ -20,11 +9,12 @@ form of a .py file or a directory with a __init__.py
 file.  Either way, the module will be loaded into
 memory and the "vivExtension" function called.
 '''
-
-from PyQt5.QtWidgets import QToolBar, QLabel, QPushButton, QTextEdit
+from PyQt5.QtWidgets import QToolBar, QLabel, QPushButton, QTextEdit, QWidget, QInputDialog
+from PyQt5 import QtCore
 
 from vqt.main import idlethread
 from vqt.basics import VBox
+from vqt.common import ACT
 
 class ExampleToolbar(QToolBar):
     def __init__(self, vw, vwgui):
@@ -127,4 +117,3 @@ def vivExtension(vw, vwgui):
     # get Dock Windows by name
     for w, vqDW in vwgui.vqGetDockWidgetsByName('viv'):
         vprint(vw, "Window: %r    DockWidget: %r (%r)", w, vqDW, w.getEnviNavName())
-
