@@ -1,6 +1,6 @@
 from collections import deque
 
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
 
 import envi.qt.memcanvas as e_memcanvas_qt
@@ -124,8 +124,8 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.mem_canvas = self.initMemoryCanvas(memobj, syms=syms)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
 
-        self.addHotKey('esc', 'mem:histback')
-        self.addHotKeyTarget('mem:histback', self._hotkey_histback)
+        # https://doc.qt.io/qt-5/qt.html#ShortcutContext-enum
+        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=3)
 
         self.loadDefaultRenderers()
         self.loadRendSelect()

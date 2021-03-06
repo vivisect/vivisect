@@ -16,15 +16,6 @@ import vivisect.parsers as viv_parsers
 
 
 logger = logging.getLogger('vivisect')
-e_common.setLogging(logger, level='WARNING')
-
-loglevels = (
-    logging.CRITICAL,
-    logging.ERROR,
-    logging.WARN,
-    logging.INFO,
-    logging.DEBUG
-)
 
 
 def main():
@@ -49,7 +40,7 @@ def main():
                         help='Enable verbose mode (multiples matter: -vvvv)')
     parser.add_argument('-V', '--version', dest='version', default=None, action='store',
                         help='Add file version (if available) to save file name')
-    parser.add_argument('-c', '--config', dest='config', default=None, action='store_true',
+    parser.add_argument('-c', '--config', dest='config', default=None,
                         help='Path to a directory to use for config data')
     parser.add_argument('-a', '--autosave', dest='autosave', default=False, action='store_true',
                         help='Autosave configuration data')
@@ -60,8 +51,11 @@ def main():
 
     # setup logging
     vw.verbose = min(args.verbose, 4)
-    logger.setLevel(loglevels[vw.verbose])
+    level = e_common.LOG_LEVELS[vw.verbose]
+    e_common.initLogging(logger, level=level)
 
+
+    # do things
     if args.option is not None:
         for option in args.option:
             if option in ('-h', '?'):

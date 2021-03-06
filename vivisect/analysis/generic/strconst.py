@@ -15,7 +15,6 @@ def analyze(vw):
     Functions and xrefs have already been identified.  Analysis of opcodes
     is closely related to the makeOpcode() logic in vivisect/__init__.py.
     '''
-
     for fva in vw.getFunctions():
         for va, size, funcva in vw.getFunctionBlocks(fva):
             maxva = va + size

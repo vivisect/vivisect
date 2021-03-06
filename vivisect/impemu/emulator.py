@@ -4,7 +4,8 @@ import itertools
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
-import envi.memory as e_mem
+import envi.common as e_common
+import envi.memory as e_memory
 
 import visgraph.pathcore as vg_path
 
@@ -31,22 +32,100 @@ class WorkspaceEmulator:
 
     taintregs = []
 
-    def __init__(self, vw, logwrite=False, logread=False):
+    def __init__(self, vw, **kwargs):
+        '''
+        Base Emulator Class that other, more platform specific emulators inherit from/mixin.
 
+        Since there's a fair number of knobs that can be turned on the emulator and several
+        descendants of the base WorkspaceEmulator, these kwargs apply not only to the base class,
+        but most children like the ArmWorkspaceEmulator and any others that live in vivisect/impemu/platarm/
+
+        Current Keyword Arguments:
+        * logwrite
+            - Type: Boolean
+            - Default: False
+            - Desc: Enable tracking of all memory writes along the exeuction path. Any results are stored on
+                    the path object as a node property at WorkspaceEmulator.curpath
+        * logread
+            - Type: Boolean
+            - Default: False
+            - Desc: Enable tracking of all memory writes along the exeuction path. Any results are stored on
+                    the path object as a node property at WorkspaceEmulator.curpath
+        * safemem
+            - Type: Boolean
+            - Default: True
+            - Desc: Since we're not a real CPU, and since we also do a lot of partial emulation, we can't
+                    always be sure we're reading from/writing to a valid memory location. So if safemem is
+                    set to True, this enables several addition safety rails in the emulator in terms of
+                    where memory can be read from/written to, and where execution flow can be read from
+        * funconly
+            - Type: Boolean
+            - Default: True
+            - Desc: When emulating, by default when a call/branch to other function instruction happens,
+                    instead of emulating down into the called function, we push the return value onto our
+                    emulated stack, and then using the detected calling convention of the subfunction, try
+                    and detect where to go. Set this value to False to instead, when a call instruction is
+                    hit, emulate down into that subfunction.
+                    Please note that since there's not "Stop when you hit X" condition, disabling this
+                    can have a massive impact on performance.
+        * strictops
+            - Type: Boolean
+            - Default: True
+            - Desc: Due to development time constraints, or plain inability to emulate, not all instructions
+                    on every platform we support is emulated. It may be properly decoded, but if it's not
+                    not supported, by default when emulating, the emulator will bail out of the paths that
+                    contain the unsupported instruction. Set this parameter to false if you want to continue
+                    down those paths even when encountering unsupported instructions
+                    Please note that since any possible effects the unsupported instruction are not
+                    propagated, any possible flags or execution state are most likely misaligned from what
+                    a real CPU might experience.
+        * loglevel
+            - Type: Integer
+            - Default: 30 (Corresponds to logging.WARNING)
+            - Desc: Because we do partial emulation for several of our heuristic passes like isProbablyCode,
+                    but also full emulation for several other analysis passes, there are several logging
+                    calls that are erroneous under the heuristic passes and typically we want those silenced
+                    under the heuristic passes only.
+        * taintbase
+            - Type: Integer
+            - Default: 0x4156000F
+            - Desc: This option affects where we start taint values, which are how we determine what has been
+                    written where, what's been called, what values have been edited where, etc.
+                    WARNING: Like taintbyte below, while you can modify this value to suit your needs, you
+                    should review how the emulator works before modifying this value, as this can directly
+                    impact various forms of analysis such as calling convention detection, what values get
+                    associated with what API calls, and more.
+        * taintbyte
+            - Type: A python byte object of length 1
+            - Default: b'a'
+            - Desc: So when the emulator attempts to read memory, and it's in a location that has yet to be
+                    defined (because we're missing the full context of execution inside a real process) or
+                    isn't technically considered okay to read from (see probeMemory in envi/memory.py for
+                    what we consider to be "okay"), but if we have _safe_mem turned on, we instead return a
+                    mocked value that's just the taint bytes, but repeated a number of times equal to the
+                    desired read size. Otherwise, we attempt to drop into the base memory object's readMemory
+                    to see if there is anything there.
+                    WARNING: While this value is configurable, changing this value without knowing what you're
+                    doing can result in undesirable effects (such as infinite recursion when trying to repr
+                    taint values), so change this value with care.
+        '''
         self.vw = vw
-        self.funcva = None # Set if using runFunction
+        # Set down below in runFunction
+        self.funcva = None
         self.emustop = False
 
         self.hooks = {}
         self.taints = {}
-        self.taintva = itertools.count(0x4156000F, 0x2000)
+        base = int(kwargs.get('taintbase', 0x4156000F))
+        self.taintva = itertools.count(base, 0x2000)
         self.taintoffset = 0x1000
         self.taintmask = 0xffffe000
+        self.taintbyte = kwargs.get('taintbyte', b'a')
         self.taintrepr = {}
 
         self.uninit_use = {}
-        self.logwrite = logwrite
-        self.logread = logread
+        self.logwrite = kwargs.get('logwrite', False)
+        self.logread = kwargs.get('logread', False)
         self.path = self.newCodePathNode()
         self.curpath = self.path
         self.op = None
@@ -55,10 +134,15 @@ class WorkspaceEmulator:
         self.psize = self.getPointerSize()
 
         # Possibly need an "options" API?
-        self._safe_mem = True   # Should we be forgiving about memory accesses?
-        self._func_only = True  # is this emulator meant to stay in one function scope?
-
-        self.strictops = True   # should we bail on emulation if unsupported instruction encountered
+        # Should we be forgiving about memory accesses?
+        self._safe_mem = kwargs.get("safemem", True)
+        # Is this emulator meant to stay in one function scope?
+        self._func_only = kwargs.get("funconly", True)
+        # Should we bail on emulation if unsupported instruction encountered?
+        self.strictops = kwargs.get('strictops', True)
+        # So this has nothing to do with the above logwrite/logread
+        # But default to being as permissive as the top level logger allows
+        self._log_level = kwargs.get('loglevel', logging.WARNING)
 
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
@@ -193,7 +277,18 @@ class WorkspaceEmulator:
             elif self._func_only:
                 if ret is None:
                     ret = self.setVivTaint('apicall', (op, endeip, api, argv))
+                retn = self.getProgramCounter()
                 callconv.execCallReturn(self, ret, len(funcargs))
+                newaddr = self.getProgramCounter()
+                # So....sometimes, mostly when we're called into an emulator via isProbablyCode, we don't
+                # get the initial function setups, which include a couple pushes onto the stack. Normally,
+                # this isn't that much of a problem, but when we hit the last codeblock that includes pops
+                # before calling any last few functions, the stack pointer gets throw off by those last few
+                # pops, which leads us to say that code path isn't a function since we miss the ret instruction.
+                # So we have here a fix for that. Added some rails so we don'y always just punch it in
+                if self._safe_mem:
+                    if not self.vw.isValidPointer(newaddr) and self.isValidPointer(retn):
+                        self.setProgramCounter(retn)
             # no else since we'll emulate into the function
 
         return iscall
@@ -285,7 +380,6 @@ class WorkspaceEmulator:
 
         # let's also take into account some of the dynamic branches we may have found
         # like our table pointers
-
         return ret
 
     def stepi(self):
@@ -375,7 +469,7 @@ class WorkspaceEmulator:
                         except v_exc.BadOutInstruction:
                             pass
                         except Exception as e:
-                            logger.warning("Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
+                            logger.log(self._log_level, "Emulator prehook failed on fva: 0x%x, opva: 0x%x, op: %s, err: %s", funcva, starteip, str(op), str(e))
 
                         if self.emustop:
                             return
@@ -394,19 +488,13 @@ class WorkspaceEmulator:
                         except v_exc.BadOutInstruction:
                             pass
                         except Exception as e:
-                            logger.warning("funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
+                            logger.log(self._log_level, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook)", funcva, starteip, op, e)
 
                         if self.emustop:
                             return
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
                         return
-
-                    # TODO: hook things like error(...) when they have a param that indicates to 
-                    # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
-                    if self.vw.isNoReturnVa(endeip):
-                        vg_path.setNodeProp(self.curpath, 'cleanret', False)
-                        break
 
                     # If it wasn't a call, check for branches, if so, add them to
                     # the todo list and go around again...
@@ -424,6 +512,13 @@ class WorkspaceEmulator:
                     if op.iflags & envi.IF_RET:
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
+
+                    # TODO: hook things like error(...) when they have a param that indicates to
+                    # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
+                    if self.vw.isNoReturnVa(op.va):
+                        vg_path.setNodeProp(self.curpath, 'cleanret', False)
+                        break
+
                 except envi.BadOpcode:
                     break
                 except envi.UnsupportedInstruction as e:
@@ -599,11 +694,11 @@ class WorkspaceEmulator:
 
         # It's totally ok to write to invalid memory during the
         # emulation pass (as long as safe_mem is true...)
-        probeok = self.probeMemory(va, len(bytes), e_mem.MM_WRITE)
+        probeok = self.probeMemory(va, len(bytes), e_memory.MM_WRITE)
         if self._safe_mem and not probeok:
             return
 
-        return e_mem.MemoryObject.writeMemory(self, va, bytes)
+        return e_memory.MemoryObject.writeMemory(self, va, bytes)
 
     def logUninitRegUse(self, regid):
         self.uninit_use[regid] = True
@@ -627,11 +722,11 @@ class WorkspaceEmulator:
         self._useVirtAddr(va)
 
         # Read from the emulator's pages if we havent resolved it yet
-        probeok = self.probeMemory(va, size, e_mem.MM_READ)
+        probeok = self.probeMemory(va, size, e_memory.MM_READ)
         if self._safe_mem and not probeok:
-            return b'A' * size
+            return self.taintbyte * size
 
-        return e_mem.MemoryObject.readMemory(self, va, size)
+        return e_memory.MemoryObject.readMemory(self, va, size)
 
     # Some APIs for telling if pointers are in runtime memory regions
 

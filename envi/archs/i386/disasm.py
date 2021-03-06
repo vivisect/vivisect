@@ -10,10 +10,10 @@ import envi.bits as e_bits
 
 # Grab our register enums etc...
 from envi.const import *
-from envi.archs.i386.regs import *
+from .regs import *
 
-import envi.archs.i386.opconst as opconst
-import envi.archs.i386.opcode86 as opcode86
+from . import opconst
+from . import opcode86
 all_tables = opcode86.tables86
 
 # Our instruction prefix masks
@@ -636,8 +636,7 @@ class i386Opcode(envi.Opcode):
             else:
                 tova = oper0.getOperValue(self, emu=emu)
 
-            if tova is not None:
-                ret.append((tova, flags))
+            ret.append((tova, flags))
 
         return ret
 

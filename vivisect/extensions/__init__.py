@@ -20,9 +20,10 @@ def loadExtensions(vw, vwgui):
     extdir = os.getenv('VIV_EXT_PATH')
 
     if extdir is None:
-        return
+        # if user hasn't overridden the Extension Path, use the built-in default
+        extdir = os.sep.join([vw.vivhome, 'plugins'])
 
-    for dirname in extdir.split(';'):
+    for dirname in extdir.split(os.pathsep):
 
         if not os.path.isdir(dirname):
             vw.vprint('Invalid VIV_EXT_PATH dir: %s' % dirname)
@@ -32,25 +33,28 @@ def loadExtensions(vw, vwgui):
             modpath = os.path.join(dirname, fname)
             # dig into first level of directories and exec the __init__.py
             if os.path.isdir(modpath):
+                modname = fname
                 modpath = os.path.join(modpath, '__init__.py')
                 if not os.path.exists(modpath):
                     continue
 
             # otherwise, run all the .py files in the VIV_EXT_PATH dir
-            if not modpath.endswith('.py'):
+            elif not modpath.endswith('.py'):
                 continue
 
-            # Build code objects from the module files
-            spec = importlib.util.spec_from_file_location('viv_ext', modpath)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+            else:
+                # it's a .py file
+                modname = fname[:-3]
 
             try:
-                with open(fname, 'r') as fd:
-                    filebytes = fd.read()
-                exec(filebytes, module.__dict__)
+                # Build code objects from the module files
+                spec = importlib.util.spec_from_file_location(fname, modpath)
+                module = importlib.util.module_from_spec(spec)
+                module.vw = vw
+                spec.loader.exec_module(module)
+
                 module.vivExtension(vw, vwgui)
-                vw.addExtension(modpath, module)
+                vw.addExtension(fname, module)
             except Exception:
                 vw.vprint('Extension Error: %s' % modpath)
                 vw.vprint(traceback.format_exc())
