@@ -315,6 +315,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             if slen != readsize:
                 logger.warning("Section at offset 0x%x should have 0x%x bytes, but we only got 0x%x bytes", secoff, readsize, slen)
             secbytes += b'\x00' * plen
+            slen = len(secbytes)
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
             vw.addSegment(secbase, slen, secname, fname)
 

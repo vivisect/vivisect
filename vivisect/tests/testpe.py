@@ -2,6 +2,9 @@ import logging
 import unittest
 
 import PE
+import envi.memory as e_memory
+
+import vivisect
 import vivisect.const as viv_con
 import vivisect.tests.helpers as helpers
 
@@ -17,6 +20,10 @@ class PETests(unittest.TestCase):
 
         cls.vw_psexec = helpers.getTestWorkspace('windows', 'i386', 'PsExec.exe')
         cls.vw_sphinx = helpers.getTestWorkspace('windows', 'i386', 'sphinx_livepretend.exe')
+
+        cls.vw_mimi = vivisect.VivWorkspace()
+        mimi_fn = helpers.getTestPath('windows', 'i386', 'mimikatz.exe_')
+        cls.vw_mimi.loadFromFile(mimi_fn)
 
     def test_function_disasm(self):
         disasm = [
@@ -479,3 +486,24 @@ class PETests(unittest.TestCase):
         import_list = pe.getImports()
         self.assertEqual(len(import_list), 36, "expecting 36 imported functions")
         self.assertEqual(import_list[0][1], "advapi32.dll", "imported function with name 'advapi32.dll' not found")
+
+    def test_mimikatz_segments(self):
+        vw = self.vw_mimi
+        ans = {
+            # name -> (Base, Size, Flags)
+            'PE_Header': (0x400000, 0x1000, e_memory.MM_READ),
+            '.text': (0x401000, 0x71635, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.data': (0x4b6000, 0x41c8, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.rdata': (0x473000, 0x42ca6, e_memory.MM_READ),
+            '.reloc': (0x4bf000, 0x661a, e_memory.MM_READ),
+        }
+        for sva, ssize, sname, sfname in vw.getSegments():
+            self.assertEqual(ans[sname][0], sva)
+            self.assertEqual(ans[sname][1], ssize)
+            self.assertEqual(sfname, 'mimikatz')
+
+            mva, msize, flags, mfname = vw.getMemoryMap(sva)
+            self.assertEqual(mva, sva)
+            self.assertEqual(msize, ssize)
+            self.assertEqual(flags, ans[sname][2])
+            self.assertEqual(mfname, sfname)

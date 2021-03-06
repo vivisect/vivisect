@@ -1821,12 +1821,10 @@ class Windowsi386Trace(
                           CONTEXT_EXTENDED_REGISTERS)
         return c
 
-class WindowsAmd64Trace(
-            vtrace.Trace,
-            WindowsMixin,
-            v_amd64.Amd64Mixin,
-            v_base.TracerBase,
-            ):
+class WindowsAmd64Trace(vtrace.Trace,
+                        WindowsMixin,
+                        v_amd64.Amd64Mixin,
+                        v_base.TracerBase):
 
     def __init__(self):
         vtrace.Trace.__init__(self)
@@ -2104,7 +2102,7 @@ class Win32SymbolParser:
 
         x = dbghelp.SymLoadModule64(self.phandle,
                                     0,
-                                    self.filename,
+                                    self.filename.encode('utf-8'),
                                     None,
                                     self.loadbase,
                                     os.path.getsize(self.filename))
