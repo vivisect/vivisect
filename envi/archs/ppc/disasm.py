@@ -1,7 +1,6 @@
 import envi
 import envi.bits as e_bits
 
-import copy
 import struct
 
 from .ppc_tables import *
@@ -11,9 +10,11 @@ from .disasm_classes import *
 
 class PpcDisasm:
     __ARCH__ = None # abstract class.  subclasses should define this
-    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
-        ### TODO: options gets lost in Vivisect.  it must be part of the event stream to get saved. 
-        ###   this is only worthwhile for canned options which are otherwise persistent or for 
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED, psize=8):
+        self.psize = psize
+
+        ### TODO: options gets lost in Vivisect.  it must be part of the event stream to get saved.
+        ###   this is only worthwhile for canned options which are otherwise persistent or for
         ###   incidental hacking use.  perhaps we need arch config entries in the config file which
         ###   are passed into the different architectures.
         ### currently we rely on 5 specific option groupings, each of which are their own "architecture": see bottom
@@ -29,7 +30,9 @@ class PpcDisasm:
             options = CAT_NONE
         self.options = options
 
+        # The lookup for decoding instructions
         self._instr_dict = {}
+
         # populate and trim unnecessary instructions (based on categories)
         for key, group in instr_dict.items():
             mygroup = []
@@ -43,11 +46,9 @@ class PpcDisasm:
             mygroup = tuple(mygroup)    # for speed
             self._instr_dict[key] = mygroup
 
-
     def setEndian(self, endian):
         self.endian = endian
         self.fmt = ('<I', '>I')[endian]
-
 
     def disasm(self, bytez, offset, va):
         """
@@ -56,7 +57,7 @@ class PpcDisasm:
         """
         # Stuff we'll be putting in the opcode object
         optype = None # This gets set if we successfully decode below
-        mnem = None 
+        mnem = None
         operands = []
         prefixes = 0
         iflags = 0
@@ -66,26 +67,15 @@ class PpcDisasm:
 
         key = ival >> 26
         #print(hex(key))
-        
-        group = self._instr_dict.get(key)
+
         #print(group)
-        if group == None:
+        group = self._instr_dict.get(key)
+        if not group:
             raise envi.InvalidInstruction(bytez[offset:offset+4], 'No Instruction Group Found: %x' % key, va)
 
-        data = None
-        match = False
-        for ocode in group:
-            mask, value, data = ocode
-            #print(hex(ival), hex(mask), hex(value), "(%x)" % (ival & mask))
-            if ival & mask != value:
-                continue
-
-            #print("0x%x & 0x%x != 0 :)" % (data[3], self.options))
-            #print("match:  %x & %x == %x" % (ival, mask, value))
-            match = True
-            break
-
-        if not match:
+        try:
+            data = next(d for m, v, d in group if ival & m == v)
+        except:
             raise envi.InvalidInstruction(bytez[offset:offset+4], 'No Instruction Matched in Group: %x' % key, va)
 
         mnem, opcode, form, cat, operands, iflags = data
@@ -102,7 +92,7 @@ class PpcDisasm:
         return PpcOpcode(va, opcode, mnem, size=4, operands=opers, iflags=iflags)
 
     def simplifiedMnems(self, ival, mnem, opcode, opers, iflags):
-        if opcode in SIMPLIFIEDS.keys(): 
+        if opcode in SIMPLIFIEDS.keys():
             return SIMPLIFIEDS[opcode](ival, mnem, opcode, opers, iflags)
 
         return mnem, opcode, opers, iflags
@@ -110,54 +100,77 @@ class PpcDisasm:
 # TODO simpleMnems:
 # rlwinm -> clrlwi
 
+cmp_mnems = ('cmpw','cmpd')
+cmp_opcodes = (INS_CMPW, INS_CMPD)
 def simpleCMP(ival, mnem, opcode, opers, iflags):
-    #print(vars(opers[0]))
-    l = opers[1].val
-    opers.pop(1)
+    # The 'L' operand (second operand) indicates if this is a word or
+    # double-word comparison
+    mnem = cmp_mnems[opers[1].val]
+    opcode = cmp_opcodes[opers[1].val]
 
     # if using CR0, it can be omitted
     if opers[0].field == 0:
-        opers.pop(0)
-    
-    if l == 0:
-        return 'cmpw', INS_CMPWI, opers, iflags
-    return 'cmpd', INS_CMPDI, opers, iflags
+        # drop the first two operands
+        opers = opers[2:]
+    else:
+        # drop the second operand
+        opers.pop(1)
 
+    return mnem, opcode, opers, iflags
+
+cmpi_mnems = ('cmpwi','cmpdi')
+cmpi_opcodes = (INS_CMPWI, INS_CMPDI)
 def simpleCMPI(ival, mnem, opcode, opers, iflags):
-    l = opers[1].val
-    opers.pop(1)
+    # The 'L' operand (second operand) indicates if this is a word or
+    # double-word comparison
+    mnem = cmpi_mnems[opers[1].val]
+    opcode = cmpi_opcodes[opers[1].val]
 
     # if using CR0, it can be omitted
     if opers[0].field == 0:
-        opers.pop(0)
-    
-    if l == 0:
-        return 'cmpwi', INS_CMPWI, opers, iflags
-    return 'cmpdi', INS_CMPDI, opers, iflags
+        # drop the first two operands
+        opers = opers[2:]
+    else:
+        # drop the second operand
+        opers.pop(1)
 
+    return mnem, opcode, opers, iflags
+
+cmpli_mnems = ('cmplwi','cmpldi')
+cmpli_opcodes = (INS_CMPLWI, INS_CMPLDI)
 def simpleCMPLI(ival, mnem, opcode, opers, iflags):
-    l = opers[1].val
-    opers.pop(1)
+    # The 'L' operand (second operand) indicates if this is a word or
+    # double-word comparison
+    mnem = cmpli_mnems[opers[1].val]
+    opcode = cmpli_opcodes[opers[1].val]
 
     # if using CR0, it can be omitted
     if opers[0].field == 0:
-        opers.pop(0)
-   
-    if l == 0:
-        return 'cmplwi', INS_CMPWI, opers, iflags
-    return 'cmpldi', INS_CMPDI, opers, iflags
+        # drop the first two operands
+        opers = opers[2:]
+    else:
+        # drop the second operand
+        opers.pop(1)
 
+    return mnem, opcode, opers, iflags
+
+cmpl_mnems = ('cmplw','cmpld')
+cmpl_opcodes = (INS_CMPLW, INS_CMPLD)
 def simpleCMPL(ival, mnem, opcode, opers, iflags):
-    l = opers[1].val
-    opers.pop(1)
+    # The 'L' operand (second operand) indicates if this is a word or
+    # double-word comparison
+    mnem = cmpl_mnems[opers[1].val]
+    opcode = cmpl_opcodes[opers[1].val]
 
     # if using CR0, it can be omitted
     if opers[0].field == 0:
-        opers.pop(0)
-    
-    if l == 0:
-        return 'cmplw', INS_CMPWI, opers, iflags
-    return 'cmpld', INS_CMPDI, opers, iflags
+        # drop the first two operands
+        opers = opers[2:]
+    else:
+        # drop the second operand
+        opers.pop(1)
+
+    return mnem, opcode, opers, iflags
 
 mr_mnems = ('mr', 'mr.')
 def simpleOR(ival, mnem, opcode, opers, iflags):
@@ -202,10 +215,13 @@ def simpleSYNC(ival, mnem, opcode, opers, iflags):
     if opers[1].val == 0:
         oper0 = opers[0].val
         if oper0 == 0:
-            return 'msync', opcode, (), iflags
+            # This could also be represented as `sync` with no parameters, the
+            # EREF suggests this form is allowed to maintain compatibility with
+            # the PowerISA.
+            return 'msync', INS_MSYNC, (), iflags
 
         if oper0 == 1:
-            return 'lwsync', opcode, (), iflags
+            return 'lwsync', INS_LWSYNC, (), iflags
 
     return mnem, opcode, opers, iflags
 
@@ -228,23 +244,23 @@ trap_conds = {
         0x01 : 'lgt',
         0x02 : 'llt',
         0x03 : 'lne',
-        0x05 : 'lge',
-        0x06 : 'lle', 
+        0x05 : 'lge',  # also 'lnl'
+        0x06 : 'lle',  # also 'lng'
 
         0x04 : 'eq',
 
         0x08 : 'gt',
-        0x0a : 'ge',
+        0x0c : 'ge',   # also 'nl'
         0x10 : 'lt',
-        0x14 : 'le',
+        0x14 : 'le',   # also 'ng'
         0x18 : 'ne',
-        0x1f : '',
+        0x1f : 'u',    # in PowerISA but not in NXP EREF
     }
 
-td_mnems = { k : 'td%s' % v for k,v in trap_conds.items() } 
-tdi_mnems = { k : 'td%si' % v for k,v in trap_conds.items() } 
-tw_mnems = { k : 'tw%s' % v for k,v in trap_conds.items() } 
-twi_mnems = { k : 'tw%si' % v for k,v in trap_conds.items() } 
+td_mnems = { k : 'td%s' % v for k,v in trap_conds.items() }
+tdi_mnems = { k : 'td%si' % v for k,v in trap_conds.items() }
+tw_mnems = { k : 'tw%s' % v for k,v in trap_conds.items() }
+twi_mnems = { k : 'tw%si' % v for k,v in trap_conds.items() }
 tw_mnems[0x1f] = 'trap'
 
 def simpleTD(ival, mnem, opcode, opers, iflags):
@@ -344,15 +360,14 @@ def form_DFLT(disasm, va, ival, opcode, operands, iflags):
         opers.append(oper)
 
     return opcode, opers, iflags
-    
+
 def form_A(disasm, va, ival, opcode, operands, iflags):
     opcode = None
     # fallback for all non-memory-accessing FORM_X opcodes
     opers = []
     for onm, otype, oshr, omask in operands:
         val = (ival >> oshr) & omask
-        oper = OPERCLASSES[otype](val, va)
-        opers.append(oper)
+        opers.append(OPERCLASSES[otype](val, va))
 
     if iflags & IF_MEM_EA:
         opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
@@ -382,21 +397,22 @@ def form_X(disasm, va, ival, opcode, operands, iflags):
 
     return opcode, opers, iflags
 
-    
+
 def form_XL(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
     for onm, otype, oshr, omask in operands:
         val = (ival >> oshr) & omask
-        if otype == FIELD_BH:
-            iflags |= BHFLAGS[val]
-            continue # FIXME: this may want to change...
-        oper = OPERCLASSES[otype](val, va)
-        opers.append(oper)
+        if otype == FIELD_crBI:
+            # Only add this operand if it has a non-zero value
+            if val != 0:
+                opers.append(OPERCLASSES[otype](val, va))
+        else:
+            opers.append(OPERCLASSES[otype](val, va))
 
     return opcode, opers, iflags
-    
+
 def form_EVX(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
@@ -418,7 +434,7 @@ def form_EVX(disasm, va, ival, opcode, operands, iflags):
         opers.append(oper)
 
     return opcode, opers, iflags
-    
+
 
 tsizes_formD = {
         INS_LWZ: 4,
@@ -485,29 +501,34 @@ def form_D(disasm, va, ival, opcode, operands, iflags):
         oidx += 1
 
     return opcode, opers, iflags
-    
+
 def form_B(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
-    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    # FORM_B instructions (branch and branch conditional variants) can
+    # have 2 or 3 operands, the last operand is 'BD' (the target address), the
+    # second to last value is the 'BI' or 'crBI' operand.  'BI' operands must be
+    # left alone but if 'crBI' operands are 0 then the "cr0" value can be
+    # removed from the operand list because "cr0" is the default condition
+    # register and the PPC simplified mnemonics leave cr0 off.
 
-    # contingency for decoding BC opcodes with BO left in tact (basically, BC, BCL, BCA, BCLA)
-    if len(opvals) == 3:
-        opers.append(PpcImmOper(opvals.pop(0), va))
-
-    if len(opvals) == 2:
-        opers.append(PpcCBRegOper(opvals[0], va))
-        tgt = opvals[1] << 2
-    
-    if len(opvals) == 1:    # eg. bdnz doesn't have a BI operand
-        tgt = opvals[0] << 2
-
-    if iflags & IF_ABS:
-        opers.append(PpcUImmOper(tgt, va))
-    else:
-        val = e_bits.signed(tgt, 2) + va
-        opers.append(PpcUImmOper(val, va))
+    for onm, otype, oshr, omask in operands:
+        opval = (ival >> oshr) & omask
+        if otype == FIELD_BD:
+            offset = e_bits.bsigned(opval << 2, 16)
+            if iflags & IF_ABS:
+                addr = e_bits.unsigned(offset, disasm.psize)
+                tgtoper = PpcJmpAbsOper(addr)
+            else:
+                tgtoper = PpcJmpRelOper(offset, va)
+            opers.append(tgtoper)
+        elif otype == FIELD_crBI:
+            # Only add this operand if it has a non-zero value
+            if opval != 0:
+                opers.append(OPERCLASSES[otype](opval, va))
+        else:
+            opers.append(OPERCLASSES[otype](opval, va))
 
     return opcode, opers, iflags
 
@@ -517,12 +538,13 @@ def form_I(disasm, va, ival, opcode, operands, iflags):
 
     opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
 
-    tgt = opvals[0] << 2
+    offset = e_bits.bsigned(opvals[0] << 2, 26)
     if iflags & IF_ABS:
-        opers.append(PpcUImmOper(tgt, va))
+        addr = e_bits.unsigned(offset, disasm.psize)
+        tgtoper = PpcJmpAbsOper(addr)
     else:
-        val = e_bits.bsigned(tgt, 26) + va
-        opers.append(PpcUImmOper(val, va))
+        tgtoper = PpcJmpRelOper(offset, va)
+    opers.append(tgtoper)
 
     return opcode, opers, iflags
 
@@ -534,7 +556,7 @@ def form_DS(disasm, va, ival, opcode, operands, iflags):
     oper1 = PpcMemOper(opvals[1], opvals[2] * 4, va)
     opers = (oper0, oper1)
     return opcode, opers, iflags
-    
+
 def form_MDS(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
@@ -549,7 +571,7 @@ def form_MDS(disasm, va, ival, opcode, operands, iflags):
 
     opers = (oper0, oper1, oper2, oper3)
     return opcode, opers, iflags
-    
+
 def form_MD(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
@@ -565,7 +587,7 @@ def form_MD(disasm, va, ival, opcode, operands, iflags):
 
     opers = (oper0, oper1, oper2, oper3)
     return opcode, opers, iflags
-    
+
 def form_XS(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
@@ -578,13 +600,13 @@ def form_XS(disasm, va, ival, opcode, operands, iflags):
 
     opers = (oper0, oper1, oper2)
     return opcode, opers, iflags
-   
+
 
 REG_OFFS = {
-        FIELD_DCRN0_4 : REG_OFFSET_DCR, 
-        FIELD_PMRN0_4 : REG_OFFSET_PMR, 
-        FIELD_SPRN0_4 : REG_OFFSET_SPR, 
-        FIELD_TMRN0_4 : REG_OFFSET_TMR, 
+        FIELD_DCRN0_4 : REG_OFFSET_DCR,
+        FIELD_PMRN0_4 : REG_OFFSET_PMR,
+        FIELD_SPRN0_4 : REG_OFFSET_SPR,
+        FIELD_TMRN0_4 : REG_OFFSET_TMR,
         FIELD_TBRN0_4 : REG_OFFSET_TBR,
         }
 
@@ -621,7 +643,7 @@ def form_XFX(disasm, va, ival, opcode, operands, iflags):
         opers.append(oper)
 
     return opcode, opers, iflags
-    
+
 decoders = { eval(x) : form_DFLT for x in globals().keys() if x.startswith('FORM_') }
 decoders[FORM_A] = form_A
 decoders[FORM_X] = form_X
@@ -636,7 +658,7 @@ decoders[FORM_MD] = form_MD
 decoders[FORM_XS] = form_XS
 decoders[FORM_XL] = form_XL
 
-        
+
 def genTests(abytez):
     import subprocess
     from subprocess import PIPE
@@ -646,7 +668,7 @@ def genTests(abytez):
     data = proc.stdout.readlines()
     data = [x.strip() for x in data]
     data = [x.split('\t') for x in data]
-    
+
     for parts in data:
         if len(parts) < 4:
             print(parts)
@@ -658,21 +680,21 @@ def genTests(abytez):
 
 class Ppc64EmbeddedDisasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_E64
-    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
-        PpcDisasm.__init__(self, endian, options)
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED, psize=8):
+        PpcDisasm.__init__(self, endian, options, psize=psize)
 
 class Ppc32EmbeddedDisasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_E32
-    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED):
-        PpcDisasm.__init__(self, endian, options)
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED, psize=4):
+        PpcDisasm.__init__(self, endian, options, psize=psize)
 
 class Ppc64ServerDisasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_S64
-    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER):
-        PpcDisasm.__init__(self, endian, options)
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER, psize=8):
+        PpcDisasm.__init__(self, endian, options, psize=psize)
 
 class Ppc32ServerDisasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_S32
-    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER):
-        PpcDisasm.__init__(self, endian, options)
+    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER, psize=4):
+        PpcDisasm.__init__(self, endian, options, psize=psize)
 

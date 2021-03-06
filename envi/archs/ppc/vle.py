@@ -25,7 +25,7 @@ operands = (
         PpcImmOper,
         PpcSImm32Oper,
         PpcMemOper,
-        PpcJmpOper,
+        PpcJmpRelOper,
         PpcCrOper,
         )
 
@@ -229,18 +229,16 @@ def case_E_I16LS(types, data, va):
 
 def case_E_BD24(types, data, va):
     val0 = data & 0x01FFFFFE;
-    if (val0 & 0x01000000):
-        val0 |= 0xFE000000;
+    offset = e_bits.bsigned(val0, 25)
 
     op0 = operands[types[0]]
 
-    opers = ( op0(val0, va), )
+    opers = ( op0(offset, va), )
     return opers
 
 def case_E_BD15(types, data, va):
     val1 = data & 0xFFFE;
-    if (val1 & 0x8000):
-        val1 |= 0xFFFF0000;
+    offset = e_bits.bsigned(val1, 16)
 
     op1 = operands[types[1]]
 
@@ -250,13 +248,17 @@ def case_E_BD15(types, data, va):
         #val0 = 9 + REG_OFFSET_SPR
         #op0 = operands[types[0]]
 
-        #opers = ( op0(val0, va), op1(val1, va) )
-        opers = ( op1(val1, va), )
+        #opers = ( op0(val0, va), op1(offset, va) )
+        opers = ( op1(offset, va), )
     else:
         val0 = (data & 0xC0000) >> 18;
         op0 = operands[types[0]]
 
-        opers = ( op0(val0, va), op1(val1, va) )
+        # if the CR field is 0 then it can be dropped
+        if val0 == 0:
+            opers = ( op1(offset, va), )
+        else:
+            opers = ( op0(val0, va), op1(offset, va) )
 
     return opers
 
@@ -393,7 +395,8 @@ def case_F_X_MTCRF(types, data, va):
     val1 = (data & 0x000FF000) >> 12
     op1 = operands[types[1]]
 
-    opers = ( op0(val0, va), op1(val1, va) )
+    # mtcrf fields should be reversed
+    opers = ( op1(val1, va), op0(val0, va) )
     return opers
 
 def case_F_XRA(types, data, va):
@@ -420,7 +423,11 @@ def case_F_CMP(types, data, va):
     val2 = (data & 0xF800) >> 11;
     op2 = operands[types[2]]
 
-    opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
+    # if the first operand is 0 then it can be dropped
+    if val0 == 0:
+        opers = ( op1(val1, va), op2(val2, va) )
+    else:
+        opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
 def case_F_DCBF(types, data, va):
@@ -483,13 +490,17 @@ def case_F_A(types, data, va):
         opers.append(op2(val2, va))
 
     if types[3] != TYPE_NONE:
+        op3 = operands[types[3]]
         # If the type is CR, then use only the upper 3 bits
         if types[3] == TYPE_CR:
             val3 = (data & 0x700) >> 8;
+            # unless the upper 3 bits are 0 then this operand can just be
+            # dropped
+            if val3 != 0:
+                opers.append(op3(val3, va))
         else:
             val3 = (data & 0x7C0) >> 6;
-        op3 = operands[types[3]]
-        opers.append(op3(val3, va))
+            opers.append(op3(val3, va))
 
     return opers
 
@@ -672,8 +683,8 @@ def find_se(buf, offset, endian=True, va=0):
                 value += add
                 #print(data, value)
 
-                if ftype == TYPE_JMP and value & 0x100:
-                    value = e_bits.signed(value | 0xfffffe00, 4)
+                if ftype == TYPE_JMP:
+                    value = e_bits.bsigned(value, 9)
                 elif ftype in [TYPE_MEM, TYPE_REG_SE]:
                     if value & 8:
                         value = (value & 0x7) + 24

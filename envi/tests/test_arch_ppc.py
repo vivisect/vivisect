@@ -29,7 +29,7 @@ def getVivEnv(arch='ppc'):
     return vw, emu, sctx
 
 class PpcInstructionSet(unittest.TestCase):
-    def validateEmulation(self, emu, op, setters, tests, tidx=0):
+    def validateEmulation(self, emu, opbytes, setters, tests, tidx=0):
         '''
         Run emulation tests.  On successful test, returns True
         '''
@@ -43,13 +43,16 @@ class PpcInstructionSet(unittest.TestCase):
         emu.setStackCounter(0x450000)
 
         # setup flags and registers
-        settersrepr = '( %r )' % (', '.join(["%s=%s" % (s, hex(v)) for s,v in setters]))
+        #settersrepr = '( %r )' % (', '.join(["%s=%s" % (s, hex(v)) for s,v in setters]))
         testsrepr = '( %r )' % (', '.join(["%s==%s" % (s, hex(v)) for s,v in tests]))
 
+        va = 0x40004560
         for tgt, val in setters:
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
+                if tgt == 'PC':
+                    va = val
 
             except e_exc.InvalidRegisterName:
                 # it's not a register
@@ -57,12 +60,18 @@ class PpcInstructionSet(unittest.TestCase):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
 
-                elif type(tgt) in (long, int):
+                #elif type(tgt) in (long, int): Keeping this line incase I break things
+                elif isinstance(tgt, int):
                     # it's an address
-                    emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
+                    #emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently.  Commenting this out so I don't mess up what was there already.
+                    emu.writeMemory(tgt, val)
 
                 else:
-                    raise Exception( "Funkt up Setting: (%r test#%d)  %s = 0x%x" % (op, tidx, tgt, val) )
+                    op = emu.archParseOpcode(unhexlify(opbytes), 0, va=va)
+                    raise Exception( "Funkt up Setting: (%r: %r test#%d)  %s = 0x%x" % (opbytes, op, tidx, tgt, val) )
+
+        op = emu.archParseOpcode(unhexlify(opbytes), 0, va=va)
+        print("0x%x:  %r" % (op.va, op))
 
         emu.executeOpcode(op)
 
@@ -103,7 +112,7 @@ class PpcInstructionSet(unittest.TestCase):
 
         return success
 
-    def do_emutsts(self, emu, bytez, op, emutests):
+    def do_emutsts(self, emu, opbytes, emutests):
         '''
         Setup and Perform Emulation Tests per architecture variant
         '''
@@ -118,39 +127,47 @@ class PpcInstructionSet(unittest.TestCase):
                     setters = sCase['setup']
 
                 tests = sCase['tests']
-                if self.validateEmulation(emu, op, (setters), (tests), tidx):
+                if self.validateEmulation(emu, opbytes, (setters), (tests), tidx):
                     goodemu += 1
                 else:
                     bademu += 1
-                    raise Exception( "FAILED emulation (special case): %.8x %s - %s" % (op.va, bytez, op) )
+                    op = emu.archParseOpcode(unhexlify(opbytes), 0, va=0x40004560)
+                    raise Exception( "FAILED emulation (special case): %.8x %s - %s" % (op.va, opbytes, op) )
 
             else:
                 bademu += 1
-                raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (op.va, bytez, op))
+                op = emu.archParseOpcode(unhexlify(opbytes), 0, va=0x40004560)
+                raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (op.va, opbytes, op))
 
         return goodemu, bademu
 
     def test_envi_ppcvle_disasm(self):
         from . import ppc_vle_instructions
-        from . import ppc_vle_emutests
-        self.do_envi_disasm('vle', ppc_vle_instructions, ppc_vle_emutests)
+        self.do_envi_disasm('vle', ppc_vle_instructions)
 
     def test_envi_ppc_server_disasm(self):
         from . import ppc_server_instructions
-        from . import ppc_server_emutests
-        self.do_envi_disasm('ppc-server', ppc_server_instructions, ppc_server_emutests)
+        self.do_envi_disasm('ppc-server', ppc_server_instructions)
 
-    def do_envi_disasm(self, archname, test_module, emu_module):
+    def test_envi_ppcvle_emu(self):
+        from . import ppc_vle_emutests
+        self.do_envi_emu('vle', ppc_vle_emutests)
+
+    def test_envi_ppc_server_emu(self):
+        from . import ppc_server_emutests
+        self.do_envi_emu('ppc-server', ppc_server_emutests)
+
+    def do_envi_disasm(self, archname, test_module):
         bademu = 0
         goodemu = 0
         test_pass = 0
 
         vw, emu, sctx = getVivEnv(archname)
-        
+
         for test_bytes, result_instr in test_module.instructions:
             try:
                 # test decoding of the instructions
-                op = vw.arch.archParseOpcode(unhexlify(test_bytes), 0)
+                op = vw.arch.archParseOpcode(unhexlify(test_bytes), 0, va=0x40004560)
                 op_str = repr(op).strip()
                 if op_str == result_instr:
                     test_pass += 1
@@ -160,32 +177,43 @@ class PpcInstructionSet(unittest.TestCase):
             except Exception as  e:
                 logging.exception('ERROR: {}: {}'.format(test_bytes, result_instr))
 
+        logger.info("%s: %d of %d successes", archname, test_pass, len(test_module.instructions))
+        self.assertAlmostEqual(test_pass, len(test_module.instructions), delta=MARGIN_OF_ERROR)
+
+    def do_envi_emu(self, archname, emu_module):
+        bademu = 0
+        goodemu = 0
+        test_pass = 0
+
+        vw, emu, sctx = getVivEnv(archname)
+
+        print()
         for test_bytes, emutests in emu_module.emutests.items():
             try:
                 # do emulator tests for this byte combination
-                op = vw.arch.archParseOpcode(unhexlify(test_bytes), 0)
                 if emutests is not None:
-                    ngoodemu, nbademu = self.do_emutsts(emu, test_bytes, op, emutests)
+                    ngoodemu, nbademu = self.do_emutsts(emu, test_bytes, emutests)
                     goodemu += ngoodemu
                     bademu += nbademu
 
             except Exception as  e:
-                logging.exception('ERROR: {}: {}'.format(test_bytes, result_instr))
+
+                logging.exception('ERROR: {}:'.format(test_bytes,))
 
         logger.info("%s: %d of %d successes", archname, test_pass, len(test_module.instructions))
         self.assertAlmostEqual(test_pass, len(test_module.instructions), delta=MARGIN_OF_ERROR)
 
+
         logger.info("%s: Total of %d tests completed.", archname, (goodemu + bademu))
         self.assertEqual(goodemu, emu_module.GOOD_EMU_TESTS)
 
-
-    def test_MASK_and_ROTL32(self):
+    def test_MASK_and_ROTL(self):
         import envi.archs.ppc.emu as eape
         import vivisect.symboliks.archs.ppc as vsap
 
         for x in range(64):
             for y in range(64):
-                #mask = 
+                #mask =
                 emumask = eape.MASK(x, y)
 
                 symmask = vsap.MASK(vsap.Const(x, 8), vsap.Const(y, 8))
@@ -244,22 +272,22 @@ class PpcInstructionSet(unittest.TestCase):
         emu.setRegister(REG_XER, 0)
         emu.setRegister(REG_CA, 1)
         xer = emu.getRegister(REG_XER)
-        self.assertEqual(xer , XERFLAG_CA)
-        self.assertEqual(xer>>29 , XERFLAG_CA_LOW)
+        self.assertEqual(xer , XERFLAGS_CA)
+        self.assertEqual(xer>>XERFLAGS_shift, FLAGS_XER_CA)
 
         emu.setRegister(REG_CR0, 0)
         emu.setRegister(REG_XER, 0)
         emu.setRegister(REG_OV, 1)
         xer = emu.getRegister(REG_XER)
-        self.assertEqual(xer , XERFLAG_OV)
-        self.assertEqual(xer>>29 , XERFLAG_OV_LOW)
+        self.assertEqual(xer , XERFLAGS_OV)
+        self.assertEqual(xer>>XERFLAGS_shift, FLAGS_XER_OV)
 
         emu.setRegister(REG_CR0, 0)
         emu.setRegister(REG_XER, 0)
         emu.setRegister(REG_SO, 1)
         xer = emu.getRegister(REG_XER)
-        self.assertEqual(xer , XERFLAG_SO)
-        self.assertEqual(xer>>29 , XERFLAG_SO_LOW)
+        self.assertEqual(xer , XERFLAGS_SO)
+        self.assertEqual(xer>>XERFLAGS_shift, FLAGS_XER_SO)
 
 
 

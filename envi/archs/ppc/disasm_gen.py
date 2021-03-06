@@ -50,6 +50,7 @@ OPERCLASSES = {
     FIELD_W : PpcImmOper,
     FIELD_WC : PpcImmOper,
     FIELD_WH : PpcImmOper,
+    FIELD_crBI : PpcCRegOper,
     FIELD_crD : PpcCRegOper,
     FIELD_crb : PpcCBRegOper,
     FIELD_crbA : PpcCBRegOper,

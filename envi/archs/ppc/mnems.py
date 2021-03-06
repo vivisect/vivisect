@@ -888,7 +888,7 @@ evextsh 0 0 0 1 0 0
 evrndw 0 0 0 1 0 0
  rD
  rA
- 0 0 0 0 0 
+ 0 0 0 0 0
  0 1 0 0 0
  0
  0 1 1
@@ -5062,7 +5062,7 @@ rldicl 0 1 1 1 1 0
  mb1-5
  mb0
  0
- 0 0 
+ 0 0
  sh0
  0
  MD
@@ -5074,7 +5074,7 @@ rldicl. 0 1 1 1 1 0
  mb1-5
  mb0
  0
- 0 0 
+ 0 0
  sh0
  1
  MD
@@ -5086,7 +5086,7 @@ rldicr 0 1 1 1 1 0
  me1-5
  me0
  0
- 0 1 
+ 0 1
  sh0
  0
  MD
@@ -5098,7 +5098,7 @@ rldicr. 0 1 1 1 1 0
  me1-5
  me0
  0
- 0 1 
+ 0 1
  sh0
  1
  MD
@@ -5110,7 +5110,7 @@ rldic 0 1 1 1 1 0
  mb1-5
  mb0
  0
- 1 0 
+ 1 0
  sh0
  0
  MD
@@ -5122,7 +5122,7 @@ rldic. 0 1 1 1 1 0
  mb1-5
  mb0
  0
- 1 0 
+ 1 0
  sh0
  1
  MD
@@ -5134,7 +5134,7 @@ rldimi 0 1 1 1 1 0
  mb1-5
  mb0
  0
- 1 1 
+ 1 1
  sh0
  0
  MD
@@ -5146,7 +5146,7 @@ rldimi. 0 1 1 1 1 0
  mb1-5
  mb0
  0
- 1 1 
+ 1 1
  sh0
  1
  MD
@@ -6529,8 +6529,8 @@ sat 0 1 1 1 1 1
  rD
  rA
  SS
- IU 
- OU 
+ IU
+ OU
  SA
  0 1 0 0 0
  0
@@ -6543,8 +6543,8 @@ sat. 0 1 1 1 1 1
  rD
  rA
  SS
- IU 
- OU 
+ IU
+ OU
  SA
  0 1 0 0 0
  0
@@ -8596,7 +8596,7 @@ sradi 0 1 1 1 1 1
  sh1-5
  1 1 0 0 1
  1
- 1 0 1 
+ 1 0 1
  sh0
  0
  XS
@@ -8607,7 +8607,7 @@ sradi. 0 1 1 1 1 1
  sh1-5
  1 1 0 0 1
  1
- 1 0 1 
+ 1 0 1
  sh0
  1
  XS
@@ -10398,7 +10398,7 @@ fcfid. 1 1 1 1 1 1
 # * cmpl is completely botched:  they left out the crfD field completely, which caused a shift in all the other fields.  eerily, they made up for it with ///
 # a few others (should have and will document as i think of them.  see git log.
 
-# TODO: 
+# TODO:
 # * isel   note: isel r15, r15, r16, cr3.eq
 
 cat_names = ('NONE',
@@ -10457,13 +10457,13 @@ FORM_CONST = { form : "FORM_" + form for form in forms }
 # BI starts at bit 11
 # LI starts at bit 6
 # BD starts at bit 16
-# UIMM and SIMM start at bit 16 (SOMETIMES) otherwise it's 5 bits 
+# UIMM and SIMM start at bit 16 (SOMETIMES) otherwise it's 5 bits
 # DUI starts at bit 6
 # DCTL starts at bit 11
 # STRM starts at bit 9
 # crD is 2bits and starts at bit 6
 # crfS is 3 bits starting at bit 11
-# OC is 15 bits and starts at bit 6 
+# OC is 15 bits and starts at bit 6
 # CT starts at bit 6
 # D starts at bit 16 and is 16 bits long
 # DS starts at bit 16
@@ -10495,12 +10495,12 @@ FIELD_DATA = {
     'vS' :      (6,5),
     'frS' :     (6,5),
     'rS' :      (6,5),
-    
+
     'rD' :      (6,5),
     'vD' :      (6,5),
     'frD' :     (6,5),
     'crbD' :    (6,5),
-    
+
     'rA' :      (11,5),
     'vA' :      (11,5),
     'frA' :     (11,5),
@@ -10510,7 +10510,7 @@ FIELD_DATA = {
     'vB' :      (16,5),
     'frB' :     (16,5),
     'crbB' :    (16,5),
-    
+
     'rC' :      (21,5),
     'vC' :      (21,5),
     'frC' :     (21,5),
@@ -10519,6 +10519,7 @@ FIELD_DATA = {
     'TO' :      (6,5),
     'BO' :      (6, 5),
     'BI' :      (11, 5),
+    'crBI' :    (11, 3),
     'LI' :      (6, 24),
     'BD' :      (16, 14),
     'BH' :      (19, 2),
@@ -10527,7 +10528,7 @@ FIELD_DATA = {
     'DCTL' :    (11, 5),
     'STRM' :    (9, 2),
     'crD' :     (6, 3),
-    'OC' :      (6, 15), 
+    'OC' :      (6, 15),
     'CT' :      (6, 5),
     'D' :       (16, 16),
     'DE' :      (16, 12),
@@ -10563,8 +10564,8 @@ FIELD_DATA = {
     'WC' :      (9, 2),
     'WH' :      (11, 1),
     'T'  :      (9, 2),
-    'crb' :     (21, 5), 
-    'crfD' :    (6, 3), 
+    'crb' :     (21, 5),
+    'crfD' :    (6, 3),
     'SIMM5' :   (11, 5),        # only here to be included in the const_gen.  this does not work with parsing the data
     'SIMM16' :  (16, 16),       # only here to be included in the const_gen.  this does not work with parsing the data
     '///' :     (None, None),  # this is a filler field.  could be anywhere and any size.
@@ -10715,6 +10716,8 @@ rAnegades = [
     'stdcix',
     'tlbilx',
     'tlbsrx.',
+    'tlbivax',
+    'dcbtls',
 ]
 
 TAG_APPEND  = -1
@@ -10788,12 +10791,12 @@ def parseOpgroup(opgrp):
         cat = data[-1].strip()
 
         if cat in forms and not data[-2].strip() in forms:
-            #print("fixing cat/form")
+            #print('%r/%r/%r: missing cat' % (mnem, data[-2].strip(), cat))
             form = cat
             fidx = -1
             cat = 'NONE'
         elif cat.find(' ') != -1 and cat.find(', ') == -1:
-            #print("fixing cat/form(2)")
+            #print('%r/%r/%r: merged form/cat' % (mnem, data[-2].strip(), cat))
             form, cat = cat.split(' ')
             fidx = -1
             if form not in forms:
@@ -10813,6 +10816,7 @@ def parseOpgroup(opgrp):
                     bf = []
                     badforms[form] = bf
                 bf.append((mnem, data))
+
 
         fields = data[1:fidx]
 
@@ -10858,8 +10862,8 @@ def parseOpgroup(opgrp):
             #print(f, "  \t",(len(f)/2), statbits)
 
 
-        # try to determing type and size of operands
-        leftover = 32 - statbits 
+        # try to determine type and size of operands
+        leftover = 32 - statbits
         # mark registers
         for oidx in range(len(varfs)):
             odata = None
@@ -10926,7 +10930,7 @@ def parseOpgroup(opgrp):
                 if laststart == 32:
                     thing[2] = laststart - thing[3]
                     laststart = thing[2]
-                    
+
                 if prev[4] == THING_STATIC:
                     # since we're collapsing, set prev's starting point
                     if prev[2] == None and thing[2] != None:
@@ -11049,13 +11053,13 @@ def parseOpgroup(opgrp):
 
         if checkNfieldSanity(nfields):
             print("ERROR: ", mnem, repr(nfields))
-            raw_input()
+            input()
 
 
 
         grpdeets.append((mnem, grp, form, cat, fields, statbits, varfs, stats, nfields))
 
-        
+
         nobits = [x for x in varfs if x[3] == 0 and '///' not in x[1]]
 
         #for nb in nobits:
@@ -11067,7 +11071,7 @@ def parseOpgroup(opgrp):
 
         if len(nobits):
             print("%-20s: %s\t%s\t%s \t%r\t%r\t%d\t%r" % (mnem, grp, form, cat, fields, varfs, leftover, nobits))
-        
+
         #print("%s: %s\t%s\t%s \t%r\t%r\t%d" % (mnem, grp, form, cat, fields, varfs, leftover))
     return grpdeets
 
@@ -11104,95 +11108,403 @@ IGNORE_CONSTS = (
     )
 
 ############
-aa = ('','a','lr','ctr')
+
+# Table 5-27. BO Operand Encodings
+# page 319 of EREF_RM.pdf
+#
+#   BO    | Description
+#   ------+------------
+#   0000z | Decrement the CTR, then branch if the decremented CTR ≠ 0 and the condition is FALSE.
+#   0001z | Decrement the CTR, then branch if the decremented CTR = 0 and the condition is FALSE.
+#   001at | Branch if the condition is FALSE.
+#   0100z | Decrement the CTR, then branch if the decremented CTR ≠ 0 and the condition is TRUE.
+#   0101z | Decrement the CTR, then branch if the decremented CTR = 0 and the condition is TRUE.
+#   011at | Branch if the condition is TRUE.
+#   1a00t | Decrement the CTR, then branch if the decremented CTR ≠ 0.
+#   1a01t | Decrement the CTR, then branch if the decremented CTR = 0.
+#   1z1zz | Branch always.
+#
+#   z  == don't care
+#   at == branch prediction bits
+#
+# * BO values where BO[2] != 0 are invalid for the bcctr instruction
+#   page 415 of EREF_RM.pdf
+#
+
+# Some utility functions to make it clear what is being checked
+BO_CHECK_CTR_ZERO_MASK = 0b00010
+BO_DECREMENT_MASK      = 0b00100
+BO_COND_MASK           = 0b01000
+BO_CHECK_COND_MASK     = 0b10000
+
+def BO_DECREMENT(bo):
+    return (bo & BO_DECREMENT_MASK) == 0
+
+# Table 5-28. at Bit Encodings
+# page 319 of EREF_RM.pdf
+#
+#   at | Hint
+#   ---+-----
+#   00 | No hint is given
+#   01 | Reserved
+#   10 | The branch is very likely not to be taken
+#   11 | The branch is very likely to be taken
+#
+#
+# This table turns the branch conditional instructions into a mnemonic that
+# incorporates the difficult to understand (as a number) BO field using the
+# contents of tables 5-27 and 5-28.  Any encoding when z==1 in table 5-27 is
+# technically invalid, so don't create a simplified mnemonic and just let the
+# default bc/bcctr/bclr instruction form catch it.
+bo_simple_stubs = {
+    0b00000: (('bdnz', 'f'), ('envi.IF_COND', 'envi.IF_BRANCH'), ('BI',)),
+    0b00001: None,
+    0b00010: (('bdz', 'f'), ('envi.IF_COND', 'envi.IF_BRANCH'), ('BI',)),
+    0b00011: None,
+    0b00100: (('b', 'f'), ('envi.IF_COND', 'envi.IF_BRANCH'), ('BI',)),
+    0b00101: None,
+    0b00110: (('b', 'f'), ('envi.IF_COND', 'envi.IF_BRANCH', 'IF_BRANCH_UNLIKELY'), ('BI',)),
+    0b00111: (('b', 'f'), ('envi.IF_COND', 'envi.IF_BRANCH', 'IF_BRANCH_LIKELY'), ('BI',)),
+    0b01000: (('bdnz', 't'), ('envi.IF_COND', 'envi.IF_BRANCH'), ('BI',)),
+    0b01001: None,
+    0b01010: (('bdz', 't'), ('envi.IF_COND', 'envi.IF_BRANCH'), ('BI',)),
+    0b01011: None,
+    0b01100: (('b', 't'), ('envi.IF_COND', 'envi.IF_BRANCH'), ('BI',)),
+    0b01101: None,
+    0b01110: (('b', 't'), ('envi.IF_COND', 'envi.IF_BRANCH', 'IF_BRANCH_UNLIKELY'), ('BI',)),
+    0b01111: (('b', 't'), ('envi.IF_COND', 'envi.IF_BRANCH', 'IF_BRANCH_LIKELY'), ('BI',)),
+    0b10000: (('bdnz',), ('envi.IF_COND', 'envi.IF_BRANCH'), ()),
+    0b10001: None,
+    0b10010: (('bdz',), ('envi.IF_COND', 'envi.IF_BRANCH'), ()),
+    0b10011: None,
+    0b10100: (('b',), ('envi.IF_BRANCH', 'envi.IF_NOFALL'), ()),
+    0b10101: None,
+    0b10110: None,
+    0b10111: None,
+    0b11000: (('bdnz',), ('envi.IF_COND', 'envi.IF_BRANCH', 'IF_BRANCH_UNLIKELY'), ()),
+    0b11001: (('bdnz',), ('envi.IF_COND', 'envi.IF_BRANCH', 'IF_BRANCH_LIKELY'), ()),
+    0b11010: None,
+    0b11011: None,
+    0b11100: None,
+    0b11101: None,
+    0b11110: None,
+    0b11111: None,
+}
+
+# Table 5-29. BH Field Encodings
+# page 319 of EREF_RM.pdf
+#
+#   BH | Instruction | Hint
+#   ---+-------------+-----
+#   00 | bclr[l]     | The instruction is a subroutine return
+#      | bcctr[l]    | The instruction is not a subroutine return; the target
+#      |             | address is likely to be the same as the target address
+#      |             | used the preceding time the branch was taken
+#   ---+-------------+-----
+#   01 | bclr[l]     | The instruction is not a subroutine return; the target
+#      |             | address is likely to be the same as the target address
+#      |             | used the preceding time the branch was taken
+#      | bcctr[l]    | Reserved
+#   ---+-------------+-----
+#   10 | *           | Reserved
+#   ---+-------------+-----
+#   11 | *           | The target address is not predictable
+#
+# Reserved values are represented as None
+bcctr_bh_field_flags = {
+    0b00: ('IF_BRANCH_PREV_TARGET',),
+    0b01: None,
+    0b10: None,
+    0b11: (),
+}
+
+bclr_bh_field_flags = {
+    # Don't add the envi.IF_NOFALL flag here because the b*lrl flags shouldn't
+    # have NOFALL set even if the assembly technically says it's a function
+    # return.
+    0b00: ('envi.IF_RET',),
+    0b01: ('IF_BRANCH_PREV_TARGET',),
+    0b10: None,
+    0b11: (),
+}
+
+# Table B-17. Standard Coding for Branch Conditions
+# page 1105 of EREF_RM.pdf
+#
+#   Code | Description                | Equivalent | Bit Tested
+#   -----+----------------------------+------------+-----------
+#   lt   | Less than                  |            | LT
+#   le   | Less than or equal         | ng         | GT
+#   eq   | Equal                      |            | EQ
+#   ge   | Greater than or equal      | nl         | LT
+#   gt   | Greater than               |            | GT
+#   nl   | Not less than              | ge         | LT
+#   ne   | Not equal                  |            | EQ
+#   ng   | Not greater than           | le         | GT
+#   so   | Summary overflow           |            | SO
+#   ns   | Not summary overflow       |            | SO
+#   un   | Unordered (after fcmp)     |            | SO
+#   nu   | Not unordered (after fcmp) |            | SO
+#
+# This table takes the true/false value from the BO-generated mnemonic and the
+# lower 2 bits of the BI field and turns that into a more logical operation.
+# The floating-point specific flag names from the above table are not used.
+#
+# Table 6-6. BI Operand Settings for CR Fields
+# page 415 of EREF_RM.pdf
+#
+#   CRn Bits | CR Bits | BI    | Description
+#   ---------+---------+-------+------------
+#   CR0[0]   | 32      | 00000 | Negative (LT)—Set when the result is negative.
+#   CR0[1]   | 33      | 00001 | Positive (GT)—Set when the result is positive
+#            |         |       | (and not zero).
+#   CR0[2]   | 34      | 00010 | Zero (EQ)—Set when the result is zero.
+#   CR0[3]   | 35      | 00011 | Summary overflow (SO). Copy of XER[SO] at the
+#            |         |       | instruction’s completion.
+#
+bi_mnems = {
+    't': {
+        0b00: 'lt',
+        0b01: 'gt',
+        0b10: 'eq',
+        0b11: 'so',
+    },
+    'f': {
+        0b00: 'ge',
+        0b01: 'le',
+        0b10: 'ne',
+        0b11: 'ns',
+    }
+}
+
+# Build up the opcode list for the 3 different branch conditional instructions:
+# - bc (branch conditional)
+# - bcctr (branch conditional to count register)
+# - bclr (branch to count register)
+# and their "branch conditional & link" counterparts.
+#
+# The bc instruction has an "absolute" (AA) flag indicating if the BD field is
+# a relative or absolute branch.
+#
+# All three instruction forms have a "link" flag (LK) indicating that the link
+# register should be set to the return address.
+#
+# The BO field indicates the conditions under which the branch should be taken
+# including the CR bit specified by the BI field and/or the CTR register being
+# 0 or not 0.  In addition the BO field specifies if the CTR should be
+# decremented, and any branch prediction hints if they are available.
+#
+# The BI field is used to indicate the condition that the branch decision is
+# based on, the upper 3 bits indicate the CRx field, and the lower 2 bits
+# indicate which bit in that CRx field to check. All 5 bits together indicate
+# the bit in the CR SPR that the true or false condition is checking for.
+#
+# The bcctr and bclr instructions do not have a BD field, but instead have a BH
+# field which indicates additional instruction hints.
+aa = ('','a')
 lk = ('','l')
 
-br_simple_stubs = (
-        ('bdnzf', 'envi.IF_COND | envi.IF_BRANCH', 0), 
-        ('bdnzf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 0), 
-        ('bdzf', 'envi.IF_COND | envi.IF_BRANCH', 0), 
-        ('bdzf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 0), 
-        ('bf', 'envi.IF_COND | envi.IF_BRANCH', 0), 
-        ('bf', 'envi.IF_COND | envi.IF_BRANCH', 0), # reserved bit used...
-        ('bf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY', 0), 
-        ('bf', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 0), 
-        ('bdnzt', 'envi.IF_COND | envi.IF_BRANCH', 0), 
-        ('bdnzt', 'envi.IF_COND | envi.IF_BRANCH', 0), # sbz
-        ('bdzt', 'envi.IF_COND | envi.IF_BRANCH', 0), 
-        ('bdzt', 'envi.IF_COND | envi.IF_BRANCH', 0),  # sbz
-        ('bt', 'envi.IF_COND | envi.IF_BRANCH', 0),
-        None,
-        ('bt', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY', 0),
-        ('bt', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 0),
-        ('bdnz', 'envi.IF_COND | envi.IF_BRANCH', 1),
-        None,
-        ('bdz', 'envi.IF_COND | envi.IF_BRANCH', 1),
-        None,
-        ('b', 'envi.IF_BRANCH | envi.IF_NOFALL', 1),
-        None,
-        None,
-        None,
-        ('bdnz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY', 1),
-        ('bdnz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 1),
-        ('bdz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_UNLIKELY', 1),
-        ('bdz', 'envi.IF_COND | envi.IF_BRANCH | IF_BRANCH_LIKELY', 1),
-        None,
-        None,
-        None,
-        None,
-        # FIXME: Throw in other flags... (`  and Instructions... (INS_*)
+# Some utilities to make the following loops simpler
+def make_mnem_str(mnem_parts, bi=None, extra=None):
+    base = mnem_parts[:]
 
-        )
+    if bi is None:
+        assert 't' not in mnem_parts and 'f' not in mnem_parts
+    else:
+        assert 't' in mnem_parts or 'f' in mnem_parts
+        if 't' in base:
+            t_index = base.index('t')
+            base[t_index] = bi_mnems['t'][bi]
+        else:
+            f_index = base.index('f')
+            base[f_index] = bi_mnems['f'][bi]
 
+    mnem = ''.join(base)
+    opcode = "INS_" + mnem.upper()
+
+    # add any additional instruction suffix before adding the likely/unlikely
+    # hint
+    if extra is not None:
+        mnem += extra
+
+    # The text mnemonic in the opcode table can have these branch hint flags
+    # because the PpcAbstractEmulator._populateOpMethods() function builds up
+    # a table of instructions and uses the INS_* opcode constant rather than the
+    # mnem string to find the correct emulation function
+    if 'IF_BRANCH_LIKELY' in flags:
+        mnem += '+'
+    elif 'IF_BRANCH_UNLIKELY' in flags:
+        mnem += '-'
+
+    return (mnem, opcode)
+
+def update_flags_for_lk(l, flags_tup):
+    flags = list(flags_tup)
+    # if we link, then this has a fallthrough. period.
+    if lk[l] == 'l':
+        try:
+            flags.remove('envi.IF_NOFALL')
+        except ValueError:
+            pass
+        try:
+            br_flag_index = flags.index('envi.IF_BRANCH')
+            flags[br_flag_index] = 'envi.IF_CALL'
+        except ValueError:
+            pass
+    return flags
+
+# The bc instruction has both the AA and LK flags
 bcopcodes = []
-bclropcodes = []
-bcctropcodes = []
 for a in range(2):
     for l in range(2):
         for bo in range(32):
-            if br_simple_stubs[bo] == None:
+            if bo_simple_stubs[bo] == None:
                 continue
-            
-            mnbase, flag, opoff = br_simple_stubs[bo]
 
-            # if we link, then this has a fallthrough. period.
-            if lk[l] == 'l':
-                flag = flag.replace('| envi.IF_NOFALL','').replace('envi.IF_BRANCH', 'envi.IF_CALL')
-               
-            lrflag = flag
-            mnem = mnbase + 'lr' + lk[l] + aa[a]
-            if mnem == 'blr':
-                lrflag = 'envi.IF_RET | envi.IF_NOFALL'
-            opcode = "INS_" + mnem.upper()
-            num = 0x4c000020 |(bo<<21) |  a<<1 | l
+            mnbase_tup, flags_tup, opfields_tup = bo_simple_stubs[bo]
+            flags = update_flags_for_lk(l, flags_tup)
 
-            bclropcodes.append((mnem, opcode, (0xffe007ff, num), opoff, lrflag))
+            # If this an "absolute address" branch, add IF_ABS to the flags
+            if aa[a]:
+                flags.append('IF_ABS')
+            flag_str = ' | '.join(flags)
 
-            mnem = mnbase + 'ctr' + lk[l] + aa[a]
-            opcode = "INS_" + mnem.upper()
-            num = 0x4c000420 |(bo<<21) |  a<<1 | l
+            # Don't include the 'a' flag in the "opcode" name, the IF_ABS flag
+            # that is added for all absolute branch instructions causes the
+            # correct target to be calculated when the FORM_B instructions are
+            # decoded.
+            mnem_base = list(mnbase_tup) + [lk[l]]
 
-            bcctropcodes.append((mnem, opcode, (0xffe007ff, num), opoff, flag))
+            # By default the bc instructions have BO, BI, BD, LK, and AA
+            # operands.  This loop turns the BO, LK, and AA operands into the
+            # mnemonic.  Depending on the BO field the BI field may not be
+            # needed for this encoding.  The opfields_tup value indicates which
+            # non-required fields are needed for this specific mnemonic.
+            opfields = list(opfields_tup) + ['BD']
 
-            #if mnbase == 'b':
-            #    continue
+            if 'BI' not in opfields_tup:
+                # Do the normal instruction generation
+                mnem, opcode = make_mnem_str(mnem_base, extra=aa[a])
 
-            #for bi in range(32):
-            mnem = mnbase + lk[l] + aa[a]
-            opcode = "INS_" + mnem.upper()
-            num = 0x40000000 |(bo<<21) |  a<<1 | l
+                num  = 0x40000000 |   bo<<21 | a<<1 | l
+                mask = 0x4C000000 | 0x1F<<21 | 1<<1 | 1
+                bcopcodes.append((mnem, opcode, (mask, num), opfields, flag_str))
 
-            bcopcodes.append((mnem, opcode, (0xffe00003, num), opoff, flag))
+            else:
+                # We need to generate 4 opcode entries for this particular
+                # branch instruction given the possible values of the lower
+                # 2 bits of the BI field where we turn the 5 bit BI field into
+                # a 3 bit crBI field.
+
+                bi_index = opfields.index('BI')
+                opfields[bi_index] = 'crBI'
+                for bi in range(4):
+                    mnem, opcode = make_mnem_str(mnem_base, bi, extra=aa[a])
+
+                    num  = 0x40000000 |   bo<<21 |  bi<<16 | a<<1 | l
+                    mask = 0x4C000000 | 0x1F<<21 | 0x3<<16 | 1<<1 | 1
+                    bcopcodes.append((mnem, opcode, (mask, num), opfields, flag_str))
 
 
-'''
-bc BO, BI, BD (, AA, LK)
-BO = Any conditions which must be met to take the branch
-BI = CR bit to be tested
-BD = target address/offset from PC for next instruction
-AA = Absolute Addressing (instead of offset)
-LK = Link or not
-'''
+# The bcctr only uses the LK flag, but also has the BH field
+bcctropcodes = []
+for l in range(2):
+    for bo in range(32):
+        if bo_simple_stubs[bo] is None:
+            continue
+
+        # bcctr instructions cannot be encoded with BO values that indicate the
+        # CTR register should be decremented.  This is represented when bit 2 of
+        # BO is 0.
+        if BO_DECREMENT(bo):
+            continue
+
+        for bh in range(4):
+            if bcctr_bh_field_flags[bh] is None:
+                continue
+
+            mnbase_tup, flags_tup, opfields_tup = bo_simple_stubs[bo]
+            flags = update_flags_for_lk(l, flags_tup)
+
+            # Special case, ensure that envi.IF_RET is not in the flags list
+            # unless it is in bcctr_bh_field_flags[bh]
+            flags += list(bcctr_bh_field_flags[bh])
+            if 'envi.IF_RET' in flags and 'envi.IF_RET' not in bcctr_bh_field_flags[bh]:
+                flags.remove('envi.IF_RET')
+
+            flag_str = ' | '.join(flags)
+
+            mnem_base = list(mnbase_tup) + ['ctr', lk[l]]
+
+            opfields = list(opfields_tup)
+
+            # Do the same BI field checks as done for the bc instruction
+            if 'BI' not in opfields_tup:
+                mnem, opcode = make_mnem_str(mnem_base)
+
+                num  = 0x4C000420 |   bo<<21 |  bh<<11 | l
+                mask = 0x4C0007FE | 0x1F<<21 | 0x3<<11 | 1
+                bcctropcodes.append((mnem, opcode, (mask, num), opfields, flag_str))
+
+            else:
+                bi_index = opfields.index('BI')
+                opfields[bi_index] = 'crBI'
+
+                for bi in range(4):
+                    mnem, opcode = make_mnem_str(mnem_base, bi)
+
+                    num  = 0x4C000420 |   bo<<21 |  bi<<16 |  bh<<11 | l
+                    mask = 0x4C0007FE | 0x1F<<21 | 0x3<<16 | 0x3<<11 | 1
+                    bcctropcodes.append((mnem, opcode, (mask, num), opfields, flag_str))
+
+
+# The bclr only uses the LK flag, but also has the BH field
+bclropcodes = []
+for l in range(2):
+    for bo in range(32):
+        if bo_simple_stubs[bo] is None:
+            continue
+
+        for bh in range(4):
+            if bclr_bh_field_flags[bh] is None:
+                continue
+
+            mnbase_tup, flags_tup, opfields_tup = bo_simple_stubs[bo]
+            flags = update_flags_for_lk(l, flags_tup)
+
+            # Special case, ensure that envi.IF_RET is not in the flags list
+            # unless it is in bclr_bh_field_flags[bh]
+            flags += list(bclr_bh_field_flags[bh])
+            if 'envi.IF_RET' in flags and 'envi.IF_RET' not in bclr_bh_field_flags[bh]:
+                flags.remove('envi.IF_RET')
+
+            flag_str = ' | '.join(flags)
+
+            mnem_base = list(mnbase_tup) + ['lr', lk[l]]
+
+            opfields = list(opfields_tup)
+
+            # Do the same BI field checks as done for the bc and bctr
+            # instructions
+            if 'BI' not in opfields_tup:
+                mnem, opcode = make_mnem_str(mnem_base)
+
+                num  = 0x4C000020 |   bo<<21 |  bh<<11 | l
+                mask = 0x4C0007FE | 0x1F<<21 | 0x3<<11 | 1
+                bclropcodes.append((mnem, opcode, (mask, num), opfields, flag_str))
+
+            else:
+                bi_index = opfields.index('BI')
+                opfields[bi_index] = 'crBI'
+
+                for bi in range(4):
+                    mnem, opcode = make_mnem_str(mnem_base, bi)
+
+                    num  = 0x4C000020 |   bo<<21 |  bi<<16 |  bh<<11 | l
+                    mask = 0x4C0007FE | 0x1F<<21 | 0x3<<16 | 0x3<<11 | 1
+                    bclropcodes.append((mnem, opcode, (mask, num), opfields, flag_str))
+
+
 ############
 mnems_simplify = [
         'nop',
@@ -11222,7 +11534,7 @@ mnems_simplify = [
 
 def buildOutput():
     '''
-    this is the highest level.  
+    this is the highest level.
     parses data to get opgrps, builds tables, applies mnems_simplify
     then generates the textual output
     returns three outputs, which are lists of string "lines" to be written to a file
@@ -11290,43 +11602,59 @@ def buildOutput():
     out.append('')
     out.append('mnems = (')
 
-    mnem_array = []
-    mnem_done = []
-    for mnem in mnems:
-        nmnem = mnem.replace('.','')
-        if nmnem in mnem_done:
-            continue
-        mnem_array.append("    '%s'," % nmnem)
-        mnem_done.append(nmnem)
+    # Pool all of the mnemonics together in one big list with any trailing '.'
+    # stripped so we can ensure that only unique mnemonics are output.
 
-    # allows us to insert non-scraped mnemonics into the const_gen.py without manual modification
-    for mnem in mnems_simplify:
-        nmnem = mnem.replace('.','')
-        if nmnem in mnem_done:
-            continue
-        if nmnem not in mnem_array:
-            mnem_array.append("    '%s'," % nmnem)
-        mnem_done.append(nmnem)
+    mnem_array  = [m if m[-1] != '.' else m[:-1] for m in mnems]
+    mnem_array += [m if m[-1] != '.' else m[:-1] for m in mnems_simplify]
 
-    out.extend(mnem_array)
+    # For the branch conditional mnemonics also make sure that the "branch
+    # X absolute" mnemonic of 'a' is not included.  The relative/absolute branch
+    # target difference is sorted out when the FORM_B instructions are decoded.
+    def fix_branch_mnem(mnem):
+        if mnem.endswith(('a-', 'a+')):
+            return mnem[:-2]
+        elif mnem.endswith(('a', '-', '+')):
+            return mnem[:-1]
+        else:
+            return mnem
 
-    bgroupopcodes = []
-    for d in bcopcodes:
-        if d[0] not in bgroupopcodes:
-            bgroupopcodes.append(d[0])
-    for d in bclropcodes:
-        if d[0] not in bgroupopcodes:
-            bgroupopcodes.append(d[0])
-    for d in bcctropcodes:
-        if d[0] not in bgroupopcodes:
-            bgroupopcodes.append(d[0])
-    bgroupmnems = ['    %r,' % (d) for d in bgroupopcodes]
-    out.extend(bgroupmnems)
+    mnem_array += [fix_branch_mnem(m) for m, _, _, _, _ in bcopcodes]
+    mnem_array += [fix_branch_mnem(m) for m, _, _, _, _ in bcctropcodes]
+    mnem_array += [fix_branch_mnem(m) for m, _, _, _, _ in bclropcodes]
+
+    # Turn this list into a set, and then back again so we can sort the list
+    # alphabetically before outputting to the const_gen.py output buffer.
+    mnem_array = sorted(list(set(mnem_array )))
+    mnem_out_list = ['    %r,' % m for m in mnem_array]
+    out.extend(mnem_out_list)
 
     out.append(')')
-    out.append('')
-    out.append('inscounter = 0\nfor mnem in mnems:\n    globals()["INS_"+mnem.upper()] = inscounter\n    inscounter += 1\n')
-    out.append('')
+    out.append('''
+inscounter = 0
+for _mnem in mnems:
+    _name = "INS_" + _mnem.upper()
+    if _name in globals():
+        msg = 'ERROR: cannot assign %r = %d (currently %r = %d)' % (_name, inscounter, _name, globals()[_name])
+        raise Exception(msg)
+    globals()[_name] = inscounter
+    inscounter += 1
+
+from . import const_gen_vle
+VLE_INS_OFFSET = inscounter
+for _mnem in const_gen_vle.mnems:
+    _name = "INS_" + _mnem.upper()
+    if _name in globals():
+        if globals()[_name] >= inscounter:
+            msg = 'ERROR: cannot assign %r = %d (currently %r = %d)' % (_name, inscounter, _name, globals()[_name])
+            raise Exception(msg)
+        else:
+            # Ignore, no need to add a VLE-specific opcode
+            pass
+    else:
+        globals()[_name] = inscounter
+        inscounter += 1
+''')
 
     # additional CONSTs
     out.append('IF_NONE = 0')
@@ -11334,13 +11662,14 @@ def buildOutput():
     out.append('IF_ABS = 1<<9')
     out.append('IF_BRANCH_LIKELY = 1<<10')
     out.append('IF_BRANCH_UNLIKELY = 1<<11')
-    out.append('IF_MEM_EA = 1<<12')
+    out.append('IF_BRANCH_PREV_TARGET = 1<<12')
+    out.append('IF_MEM_EA = 1<<13')
     out.append('')
 
     # now build the instruction tables.
     out2 = []
     out2.append('import envi')
-    out2.append('from const import *')
+    out2.append('from .const import *')
     out2.append('instr_dict = {')
     for grpkey in deets.keys():
         grp = deets.get(grpkey)
@@ -11364,7 +11693,7 @@ def buildOutput():
                         pmask &= ~(1<<(sz-x-1))
 
                 pval = int(bits, 2)
-                
+
                 # now shift them into place...
                 shl = 32 - sz - start
                 pval <<= shl
@@ -11372,7 +11701,7 @@ def buildOutput():
                 #overlaps.append((pval, pmask))
                 val |= pval
                 mask |= pmask
-        
+
 
             fields = [field for field in nfields if field[4] == THING_VAR]
             print("Mask/Val: ", bin(mask), bin(val), hex(mask), hex(val), mnem, fields)
@@ -11381,6 +11710,11 @@ def buildOutput():
             fout = []
             for field in fields:
                 n, fname, start, sz, ftyp = field
+
+                # HACK: if mtfsfi has a field type of IMM change it to UIMM
+                if mnem.startswith('mtfsfi') and fname == 'IMM':
+                    fname = 'UIMM'
+
                 fname = fname.strip().replace('-','_').replace(' ','')
                 shr = 32 - (start + sz)
                 fmask = e_bits.b_masks[sz]
@@ -11391,7 +11725,7 @@ def buildOutput():
 
                 fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_"+fname, shr, fmask))
 
-            
+
             #### fix up the operand ordering where possible.  this is faster and simpler than doing it in the decoder
             if len(fout) > 1 and 'FIELD_rS' in fout[0] and form not in  ('EVX', ):
                 if mnem not in ('evstddepx', ) and not mnem.startswith('st'):    # WONKY AS SHIT!
@@ -11408,8 +11742,6 @@ def buildOutput():
                 temp = fout[1]
                 fout[1] = fout[2]
                 fout[2] = temp
-
-
 
             ##################### OPERAND ORDERING COMPLETE #####################
 
@@ -11444,43 +11776,63 @@ def buildOutput():
                 iflags.append("IF_NONE")
 
             # mask, value, (data)
-            # data is ( mnem, opcode, form, cat, operands, iflags) 
+            # data is ( mnem, opcode, form, cat, operands, iflags)
+            #
             ncat = "CAT_" + cat.upper().replace('.', '_').replace(', ', ' | CAT_').replace(',',' | CAT_')
+
+            # Some branch mnemonics remove the need to have to parse out certain
+            # operand fields.  The menomic for each branch instruction will
+            # specify which fields should be included from this list.  This
+            # includes shrinking the standard BI field into a 3-bit field that
+            # specify the CR to use for that instruction, rather than the full
+            # CR bit mask.
+            bc_operands = {
+                'BO': "( 'BO', FIELD_BO, 21, 0x1f )",
+                'BI': "( 'BI', FIELD_BI, 16, 0x1f )",
+                'BD': "( 'BD', FIELD_BD, 2, 0x3fff )",
+                'crBI': "( 'crBI', FIELD_crBI, 18, 0x7 )",
+                'BH': "( 'BH', FIELD_BH, 10, 0x3 )",
+            }
 
             ###### fixup bc
             if mnem == 'bc':
-                for fmnem, bcopcode, (fmask, fval), opoff, fflags in bcopcodes:
-                    #operands = "( ( 'BI', FIELD_BI, 16, 0x1f ), ( 'BD', FIELD_BD, 2, 0x3fff ), )"
-                    operands = "( "+ ', '.join(["( 'BI', FIELD_BI, 16, 0x1f )", "( 'BD', FIELD_BD, 2, 0x3fff ),"][opoff:]) + " )"
+                for fmnem, bcopcode, (fmask, fval), opfields, fflags in bcopcodes:
+                    if len(opfields) == 1:
+                        operands = '( %s, )' % bc_operands[opfields[0]]
+                    else:
+                        operands = '( ' + ', '.join(bc_operands[o] for o in opfields) + ' )'
                     data = "'%s', %s, %s, %s, %s, %s" % (fmnem, bcopcode, form_const, ncat, operands, fflags)
                     out2.append('        (0x%x, 0x%x, ( %s ), ),' % (fmask, fval, data))
                 #continue
 
             if mnem == 'bclr':
-                for fmnem, bcopcode, (fmask, fval), opoff, fflags in bclropcodes:
-                    #operands = "( ( 'BI', FIELD_BI, 16, 0x1f ), )"
-                    operands = "( "+ ', '.join(["( 'BI', FIELD_BI, 16, 0x1f )," ][opoff:]) + " )"
+                for fmnem, bcopcode, (fmask, fval), opfields, fflags in bclropcodes:
+                    if len(opfields) == 1:
+                        operands = '( %s, )' % bc_operands[opfields[0]]
+                    else:
+                        operands = '( ' + ', '.join(bc_operands[o] for o in opfields) + ' )'
                     data = "'%s', %s, %s, %s, %s, %s" % (fmnem, bcopcode, form_const, ncat, operands, fflags)
                     out2.append('        (0x%x, 0x%x, ( %s ), ),' % (fmask, fval, data))
                 #continue
             #if mnem == 'bclrl':
             #    continue # this should be covered by the previous generator
-                
+
             if mnem == 'bcctr':
-                for fmnem, bcopcode, (fmask, fval), opoff, fflags in bcctropcodes:
-                    #operands = "( ( 'BI', FIELD_BI, 16, 0x1f ), )"
-                    operands = "( "+ ', '.join(["( 'BI', FIELD_BI, 16, 0x1f )," ][opoff:]) + " )"
+                for fmnem, bcopcode, (fmask, fval), opfields, fflags in bcctropcodes:
+                    if len(opfields) == 1:
+                        operands = '( %s, )' % bc_operands[opfields[0]]
+                    else:
+                        operands = '( ' + ', '.join(bc_operands[o] for o in opfields) + ' )'
                     data = "'%s', %s, %s, %s, %s, %s" % (fmnem, bcopcode, form_const, ncat, operands, fflags)
                     out2.append('        (0x%x, 0x%x, ( %s ), ),' % (fmask, fval, data))
                 #continue
-            
+
             #if mnem == 'bcctrl':
             #    continue # this should be covered by the previous generator
 
-
             operands = "( " + ''.join(fout) + ") "
             opcode = "INS_" + mnem.replace('.','').upper()
-            data = "'%s', %s, %s, %s, %s, %s" % (mnem, opcode, form_const, ncat, operands, '|'.join(iflags))
+            data = "'%s', %s, %s, %s, %s, %s" % (mnem, opcode, form_const, ncat, operands, ' | '.join(iflags))
 
             out2.append('        (0x%x, 0x%x, ( %s ), ),' % (mask, val, data))
 
@@ -11569,14 +11921,14 @@ def make_unit_tests(outfile='test_ppc_by_cat'):
                 if not opcat & cat:
                     continue
 
-                shifters = [shl for nm,tp,shl,mask in instrline[2][-2]]
+                shifters = [(shl, mask) for nm,tp,shl,mask in instrline[2][-2]]
                 shifters.sort()
                 for oidx in range(len(shifters)):
-                    shl = shifters[oidx]
-                    opcodenum |= ((len(shifters)-oidx) << shl)
+                    shl, mask = shifters[oidx]
+                    opcodenum |= (len(shifters)-oidx & mask) << shl
 
                 opbin = struct.pack(">I", opcodenum)
-                
+
                 try:
                     op = d.disasm(opbin, 0, 0x4000)
                     print("0x%.8x:  %s" % (opcodenum, op))
@@ -11592,9 +11944,11 @@ def make_unit_tests(outfile='test_ppc_by_cat'):
                     traceback.print_exc()
 
                 out.append(opbin)
-    file(outfile+".bin", "wb").write("".join(out))
+    with open('%s.bin' % outfile, 'wb') as f:
+        f.write(b''.join(out))
     tests.append("]\\n")
-    file(outfile+".py", "wb").write("\\n".join(tests))
+    with open('%s.py' % outfile, 'w') as f:
+        f.write('\\n'.join(tests))
 
 
 test_code = """
@@ -11648,7 +12002,7 @@ class PpcInstructionSetByCategories(unittest.TestCase):
             except AssertionError:
                 self.fail("Failing match for case %s (%s != %s)" % (reprOp, repr(op), reprOp))
 
-            
+
             # test emulation
             emu.setEmuSnap(snap)
             self.do_emutsts(emu, bytez, op, emutests)
@@ -11771,13 +12125,17 @@ if __name__ == '__main__':
 
 if __name__ == '__main__':
     out,out2,out3,utest = buildOutput()
-    file('const_gen.py','w').write( '\n'.join(out))
-    file('ppc_tables.py','w').write( '\n'.join(out2))
-    file('disasm_gen.py','w').write( '\n'.join(out3))
-    file('gen_test_ppc.py','w').write(utest)
+    with open('const_gen.py','w') as f:
+        f.write( '\n'.join(out))
+    with open('ppc_tables.py','w') as f:
+        f.write( '\n'.join(out2))
+    with open('disasm_gen.py','w') as f:
+        f.write( '\n'.join(out3))
+    with open('gen_test_ppc.py','w') as f:
+        f.write(utest)
 
 
-''' 
+'''
 1
 d = UIMM * 8
 2

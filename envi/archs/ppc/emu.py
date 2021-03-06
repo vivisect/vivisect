@@ -15,25 +15,27 @@ from .const import *
 from .disasm import *
 from envi.archs.ppc import *
 
+logger = logging.getLogger(__name__)
+
 '''
-PowerPC Emulation code.  most of this code is written based on the information from the 
-EREF, Rev. 1 (EIS 2.1)  
+PowerPC Emulation code.  most of this code is written based on the information from the
+EREF, Rev. 1 (EIS 2.1)
 (aka EREF_RM.pdf from http://cache.freescale.com/files/32bit/doc/ref_manual/EREF_RM.pdf)
 
-that documentation is specific, and generally good, with one Major exception:  
+that documentation is specific, and generally good, with one Major exception:
     they think that 0 is the Most Significant Bit!
 
 this convention flies in the face of most other architecture reference manuals, and the
 way that the authors of this module themselves, think of bit numbering for instructions.
 therefore, some places may seem a little confusing if compared to the EREF.
 
-MASK and ROTL32 have specifically been coded to allow the emulated instructions to map 
+MASK and ROTL have specifically been coded to allow the emulated instructions to map
 directly to the EREF docs execution pseudocode.
 '''
 
 class PpcCall(envi.CallingConvention):
     '''
-    PowerPC Calling Convention.  
+    PowerPC Calling Convention.
     '''
     arg_def = [(CC_REG, REG_R3 + x) for x in range(8)]
     arg_def.append((CC_STACK_INF, 8))
@@ -48,9 +50,72 @@ ppccall = PpcCall()
 OPER_SRC = 1
 OPER_DST = 0
 
+# Static generation of which bit should be set according to the PPC
+# documentation for 32 and 64 bit values
+_ppc64_bitmasks = tuple(0x8000_0000_0000_0000 >> i for i in range(64))
+_ppc32_bitmasks = tuple(0x8000_0000 >> i for i in range(32))
+_ppc_bitmasks = (None, None, None, None, _ppc32_bitmasks, None, None, None, None, _ppc64_bitmasks,)
 
-class Trap(Exception):
-    pass
+def BITMASK(bit, psize=8):
+    '''
+    Return mask with bit b of 64 or 32 set using PPC numbering.
+
+    Most PPC documentation uses 64-bit numbering regardless of whether or not
+    the underlying architecture is 64 or 32 bits.
+    '''
+    return _ppc_bitmasks[psize][bit]
+
+def BIT(val, bit, psize=8):
+    '''
+    Return value of specified bit provided in PPC numbering
+    '''
+    return (val & _ppc_bitmasks[psize][bit]) >> bit
+
+# Carry bit mask and shift the tuple values are:
+#   1. CA mask
+#   2. right shift value
+MAX_PPC_WORD_RANGE = range(0, e_bits.MAX_WORD + 1)
+_ppc_carry_masks = tuple(1 << (8*i) for i in MAX_PPC_WORD_RANGE)
+_ppc_carry_shift = tuple(      8*i  for i in MAX_PPC_WORD_RANGE)
+
+# Results for the "signed saturate" arithmetic operations depending on if the
+# "CA" bit is set in the result.
+_ppc_signed_saturate_min = tuple(e_bits.signed( ((2 ** (8*i)) >> 1),      i) for i in MAX_PPC_WORD_RANGE)
+_ppc_signed_saturate_max = tuple(e_bits.signed((((2 ** (8*i)) >> 1) - 1), i) for i in MAX_PPC_WORD_RANGE)
+
+# The value returned is based on the carry bit:
+#   0 (no carry) means use the max value
+#   1 (carry) means use the min value
+_ppc_signed_saturate_results = (_ppc_signed_saturate_max, _ppc_signed_saturate_max)
+
+def CARRY(val, size):
+    '''
+    Return the MSB+1 (CA) bit
+    '''
+    ca_mask = _ppc_carry_masks[size]
+    ca_shift = _ppc_carry_shift[size]
+    ca = (val & ca_mask) >> ca_shift
+    return ca
+
+def SIGNED_SATURATE(val, size):
+    '''
+    Return the min or max value for a size depending on if the "CA" bit of
+    the result is set
+    '''
+    ca = CARRY(val, size)
+    return _ppc_signed_saturate_results[ca]
+
+def UNSIGNED_SATURATE(size):
+    '''
+    Return the max value for a size
+    '''
+    return e_bits.u_maxes[size]
+
+def COMPLEMENT(val, size):
+    '''
+    1's complement of the value
+    '''
+    return val ^ e_bits.u_maxes[size]
 
 def MASK(b, e):
     '''
@@ -69,6 +134,21 @@ def MASK(b, e):
     real_shift = 63 - e
     return e_bits.bu_maxes[delta] << (real_shift)
 
+def EXTS(self, val, size=8, psize=8):
+    '''
+    The PowerPC manual uses EXTS() often to indicate sign extending, so
+    this is a convenience function that calls envi.bits.sign_extend using
+    a newsize of the native pointer size for the current architecture.
+    '''
+    return e_bits.sign_extend(val, size, psize)
+
+def EXTZ(val, size=8):
+    '''
+    The PowerPC manual uses EXTZ() often to indicate zero extending, so
+    this is a convenience function that calls envi.bits.unsigned.
+    '''
+    return e_bits.unsigned(val, size)
+
 def ROTL32(x, y, psize=8):
     '''
     helper to rotate left, 32-bit stype.
@@ -78,7 +158,7 @@ def ROTL32(x, y, psize=8):
     tmp = x >> (32-y)
     x |= (x<<32)
     return ((x << y) | tmp) & e_bits.u_maxes[psize]
-    
+
 def ROTL64(x, y, psize=8):
     '''
     helper to rotate left, 64-bit stype.
@@ -87,7 +167,7 @@ def ROTL64(x, y, psize=8):
     '''
     tmp = x >> (64-y)
     return ((x << y) | tmp) & e_bits.u_maxes[psize]
-    
+
 def getCarryBitAtX(bit, add0, add1):
     '''
     return the carry bit at bit x.
@@ -98,13 +178,92 @@ def getCarryBitAtX(bit, add0, add1):
     #print("getCarryBitAtX (%d): 0x%x  0x%x  (%d)" % (bit, a0b, a1b, results))
     return results
 
+def CLZ(x, psize=8):
+    '''
+    Count leading zeros, supports maximum of 64bit values.
+    '''
+    # Make sure that the input value does not have any bits set above the
+    # maximum possible size for the byte size indicated
+    x = x & e_bits.u_maxes[psize]
+
+    if x == 0:
+        return psize * 8
+
+    n = 0
+    # There is probably a better way to do this but this works
+    if psize == 8:
+        checks = (
+            (32, 0xFFFF_FFFF_0000_0000),
+            (16, 0x0000_0000_FFFF_0000),
+            (8,  0x0000_0000_0000_FF00),
+            (4,  0x0000_0000_0000_00F0),
+            (2,  0x0000_0000_0000_000C),
+            (1,  0x0000_0000_0000_0002),
+        )
+    elif psize == 4:
+        checks = (
+            (16, 0xFFFF_0000),
+            (8,  0x0000_FF00),
+            (4,  0x0000_00F0),
+            (2,  0x0000_000C),
+            (1,  0x0000_0002),
+        )
+    elif psize == 2:
+        checks = (
+            (8,  0xFF00),
+            (4,  0x00F0),
+            (2,  0x000C),
+            (1,  0x0002),
+        )
+    elif psize == 1:
+        checks = (
+            (4,  0xF0),
+            (2,  0x0C),
+            (1,  0x02),
+        )
+
+    for shift, mask in checks:
+        # # If the result after masking is 0 then there are at least "shift"
+        # leading zeros.  If it is not zero then shift the number to the right
+        # and do the next mask to try and identify how many leading zeros there
+        # are.
+        if x & mask == 0:
+            n += shift
+        else:
+            x = x >> shift
+    return n
+
+# Conditional Branch BO and BI decoding utilities
+
+def BO_UNCONDITIONAL(bo):
+    return bool(bo & FLAGS_BO_CHECK_COND) and bool(bo & FLAGS_BO_DECREMENT)
+
+def BO_DECREMENT(bo):
+    return not bool(bo & FLAGS_BO_DECREMENT)
+
+def BO_CTR_OK(bo, ctr):
+    # For some reason the CTR == or != 0 bit is reversed from the desired value
+    # of CTR.
+    return bool(bo & FLAGS_BO_CHECK_CTR_ZERO) != bool(ctr)
+
+def BO_CONDITIONAL(bo):
+    return not bool(bo & FLAGS_BO_CHECK_COND)
+
+def BO_COND_OK(bo, cond):
+    # The cr argument is expected to be already masked with the correct bits, so
+    # if it is 0 then the condition is false, otherwise the condition is true.
+    #
+    # If the BO_COND_MASK bit is set then the branch condition is met if the CR
+    # condition is set
+    return bool(bo & FLAGS_BO_COND) == bool(cond)
+
 class PpcAbstractEmulator(envi.Emulator):
 
     def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=8):
         self.psize = psize
-        envi.Emulator.__init__(self, archmod=archmod)
+        super(PpcAbstractEmulator, self).__init__(archmod=archmod)
         self.setEndian(endian)
-                
+
         self.addCallingConvention("ppccall", ppccall)
 
         self.spr_read_handlers = {
@@ -112,7 +271,6 @@ class PpcAbstractEmulator(envi.Emulator):
         self.spr_write_handlers = {
             REG_L1CSR1: self._swh_L1CSR1,
         }
-
 
     # Special Register Access Handlers: SPRs often have ties to hardware things
     # which may want to be emulated
@@ -141,7 +299,6 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         if reg in self.spr_write_handlers:
             return self.spr_write_handlers.pop(reg)
-
 
     def undefFlags(self):
         """
@@ -172,7 +329,7 @@ class PpcAbstractEmulator(envi.Emulator):
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
         #       other than None, that is the new eip
-        meth = self.op_methods.get(op.mnem, None)
+        meth = self.op_methods[op.opcode]
         if meth == None:
             raise envi.UnsupportedInstruction(self, op)
 
@@ -185,11 +342,70 @@ class PpcAbstractEmulator(envi.Emulator):
             self.setProgramCounter(pc)
 
     def _populateOpMethods(self):
+        # pre-allocate all of the methods to be invalid
+        self.op_methods = [None] * inscounter
+        from . import const as ppc_consts
+
+        # TODO PRINTS ARE FOR DEBUGGING, REMOVE WHEN EMU IS DONE
+        # Make a list of which INS_ is in which category
+        instr_cat = {}
+        for instr_list in instr_dict.values():
+            for instr in instr_list:
+                opcode = instr[2][1]
+                cat = instr[2][3]
+
+                if opcode not in instr_cat:
+                    instr_cat[opcode] = cat
+
+                elif opcode in instr_cat and instr_cat[opcode] != cat:
+                    # This doesn't apply to FP and FP.R
+                    if CAT_FP in (instr_cat[opcode], cat) and \
+                            CAT_FP_R in (instr_cat[opcode], cat):
+                                continue
+
+                    opcodestr = next(a for a in dir(ppc_consts) \
+                            if a.startswith('INS_') and \
+                            opcode == getattr(ppc_consts, a))
+
+                    oldcatstr =  next(a for a in dir(ppc_consts) \
+                            if a.startswith('CAT_') and \
+                            instr_cat[opcode] == getattr(ppc_consts, a))
+
+                    newcatstr =  next(a for a in dir(ppc_consts) \
+                            if a.startswith('CAT_') and \
+                            cat == getattr(ppc_consts, a))
+
+                    logger.warning("instruction CAT mismatch for %s(%x): %s(%x) != %s(%x)" % (opcodestr, opcode, oldcatstr, instr_cat[opcode], newcatstr, cat))
+
+        # Now go through each instruction identified and find an emulation
+        # function for it
+        for name in dir(ppc_consts):
+            if name.startswith("INS_"):
+                opcode = getattr(ppc_consts, name)
+
+                # check if there were any opcodes with no cat
+                if opcode in instr_cat:
+                    cat = instr_cat[opcode]
+                else:
+                    cat = None
+
+                emu_method_name = 'i_' + name[4:].lower()
+                if hasattr(self, emu_method_name):
+                    self.op_methods[opcode] = getattr(self, emu_method_name)
+                #else:
+                #    if cat is not None and \
+                #            cat & (CAT_V|CAT_SP|CAT_SP_FV|CAT_SP_FS|CAT_SP_FD) == 0 and \
+                #            opcode < VLE_INS_OFFSET:
+                #        catstr = hex(cat) if cat is not None else 'None'
+                #        logger.warning("%r(%s) emulation method missing" % (name, catstr))
+
+    def _checkExtraOpMethods(self):
+        assigned_methods = [f for f in self.op_methods if f is not None]
         for name in dir(self):
             if name.startswith("i_"):
-                self.op_methods[name[2:]] = getattr(self, name)
-                # add in the "." suffix because instrs which have RC set are handled in same func
-                self.op_methods[name[2:] + "."] = getattr(self, name)
+                emu_method = getattr(self, name)
+                if emu_method not in assigned_methods:
+                    logger.warning("%r emulation method not assigned an opcode" % name)
 
     ####################### Helper Functions ###########################
     def doPush(self, val):
@@ -208,7 +424,8 @@ class PpcAbstractEmulator(envi.Emulator):
         return val
 
     ########################### Flag Helpers #############################
-    def getCr(self, crnum):
+
+    def getCr(self, crnum=0):
         '''
         get a particular cr# field
         CR is the control status register
@@ -217,7 +434,7 @@ class PpcAbstractEmulator(envi.Emulator):
         cr = self.getRegister(REG_CR)
         return (cr >> ((7-crnum) * 4)) & 0xf
 
-    def setCr(self, crnum, flags):
+    def setCr(self, flags, crnum=0):
         '''
         set a particular cr# field
         CR is the control status register
@@ -228,6 +445,15 @@ class PpcAbstractEmulator(envi.Emulator):
         cr |= (flags << ((7-crnum) * 4))
         self.setRegister(REG_CR, cr)
 
+    def setCMPFlags(self, flags, crnum=0):
+        '''
+        Update the LT/GT/EQ flags in the specified CR field
+        '''
+        cr = self.getRegister(REG_CR)
+        cr &= (cr_cmp_mask[crnum])
+        cr |= (flags << ((7-crnum) * 4))
+        self.setRegister(REG_CR, cr)
+
     def getXERflags(self):
         '''
         get a particular cr# field
@@ -235,9 +461,8 @@ class PpcAbstractEmulator(envi.Emulator):
         cr# is one of 8 status register fields within CR, cr0 being the most significant bits in CR
         '''
         xer = self.getRegister(REG_XER)
-        xer >>= 29
-        xer &= 0x7
-        return xer
+        flags = (xer & XERFLAGS_MASK) >> XERFLAGS_shift
+        return flags
 
     def setXERflags(self, flags):
         '''
@@ -247,770 +472,54 @@ class PpcAbstractEmulator(envi.Emulator):
             CA
         '''
         xer = self.getRegister(REG_XER)
-        xer & 0x1fffffff
-        xer |= (flags << 29)
+
+        # Mask off the SO, OV, and CA bits
+        xer &= 0x1fffffff
+
+        # Now update with the new flags
+        xer |= flags << XERFLAGS_shift
         self.setRegister(REG_XER, xer)
 
-    def setFlags(self, result, SO=None, crnum=0, size=4):
+    def setOverflow(self, ov=1):
         '''
-        easy way to set the flags, reusable by many different instructions
-        if SO is None, SO is pulled from the XER register (most often)
+        set XER flags
+            SO
+            OV
 
-        from PowerISA 2.07:
-            For all fixed-point instructions in which Rc=1, and for
-            addic., andi., and andis., the first three bits of CR Field
-            0 (bits 32:34 of the Condition Register) are set by
-            signed comparison of the result to zero, and the fourth
-            bit of CR Field 0 (bit 35 of the Condition Register) is
-            copied from the SO field of the XER. “Result” here
-            refers to the entire 64-bit value placed into the target
-            register in 64-bit mode, and to bits 32:63 of the 64-bit
-            value placed into the target register in 32-bit mode.
-
+        This utilty only updates the SO and OV flags without changing the CA flag.
         '''
-        result = e_bits.signed(result, self.psize)
-        flags = 0
-        if result > 0:
-            flags |= FLAGS_GT
-        elif result < 0:
-            flags |= FLAGS_LT
-        else:
-            flags |= FLAGS_EQ
 
-        if SO is None:
-            SO = self.getRegister(REG_SO)
-        
-        #print("0 setFlags( 0x%x, 0x%x)" % (result, flags))
-        flags |= (SO << FLAGS_SO_bitnum)
-        #print("1 setFlags( 0x%x, 0x%x)" % (result, flags))
+        # note that the XERFLAGS_* constants are values that indicate the
+        # position in the XER of the SO, OV, and CA flags, while the FLAGS_XER_*
+        # constants are used to distinguish between the non-XER SO and the XER
+        # SO bit positions.
 
-        self.setCr(crnum, flags)
+        # Get the current value of SO
+        xer = self.getRegister(REG_XER)
+        so = xer & XERFLAGS_SO
 
-    def setFloatFlags(self, result, size):
-        fx = 0
-        fex = 0
-        vx = 0
-        ox = 0
+        # Update SO with incoming OV value
+        so |= ov << XERFLAGS_SO_bitnum
 
-        fpscr = 0
-        pass
+        # Save the changes back to XER
+        xer = so | ov << XERFLAGS_OV_bitnum | (xer & 0x3fffffff)
+        self.setRegister(REG_XER, xer)
 
-        
-
-    def trap(self, op):
-        raise Trap('0x%x: %r' % (op.va, op))
-        # FIXME: if this is used for software permission transition (like a kernel call), 
-        #   this approach may need to be rethought
-
-    # Beginning of Instruction methods
-    def i_nop(self, op):
-        pass
-
-    ########################### Metric shit-ton of Branch Instructions #############################
-    def i_b(self, op):
+    def setCA(self, result, opsize=None):
         '''
-        Branch!  no frills.
-        '''
-        val = self.getOperValue(op, OPER_DST)
-        return val
-
-    def i_bl(self, op):
-        '''
-        branch with link, the basic CALL instruction
-        '''
-        self.setRegister(REG_LR, op.va + len(op))
-        return self.getOperValue(op, 0)
-
-    def i_blr(self, op):
-        '''
-        blr is actually "ret"
-        '''
-        return self.getRegister(REG_LR)
-
-    def i_bctr(self, op):
-        ctr  = self.getRegister(REG_CTR)
-        return ctr
-
-    def i_bctrl(self, op):
-        nextva = op.va + len(op)
-        ctr  = self.getRegister(REG_CTR)
-        self.setRegister(REG_LR, nextva)
-        return ctr
-
-    def i_rfi(self, op):
-        '''
-        Return From Interrupt
-        '''
-        # is this a critical interrupt?
-        # if not... SRR0 is next instruction address
-        nextpc = self.getRegister(REG_SRR0)
-        msr = self.getRegister(REG_SRR1)
-        self.setRegister(REG_MSR)
-        raise Exception("Please implement RFI")
-        return nextpc
-
-
-    # conditional branches....
-    def i_bc(self, op, aa=False, lk=False, tgtreg=None):
-        bo = self.getOperValue(op, 0)
-        bi = self.getOperValue(op, 1)
-        nextva = op.va + len(op)
-        ctr = self.getRegister(REG_CTR)
-        cr = self.getRegister(REG_CR)
-
-        # if we provide a tgtreg, it's an  instruction-inherent register (eg. bclr)
-        if tgtreg is None:
-            tgt = self.getOperValue(op, 2)
-        else:
-            tgt = self.getRegister(tgtreg)
-
-        bo_0 = bo & 0x10
-        bo_1 = bo & 0x8
-        bo_2 = bo & 0x4
-        bo_3 = bo & 0x2
-        crmask = 1 << (32 - bi)
-
-        # if tgtreg is REG_CTR, we can't decrement it...
-        if not bo_2 and tgtreg != REG_CTR:
-            ctr -= 1
-            self.setRegister(REG_CTR, ctr)
-
-        # ctr_ok ← BO2 | ((CTRm:63 ≠ 0) ⊕ BO3)
-        ctr_ok = bool(bo_2)
-        if not ctr_ok:
-            if (ctr & e_bits.u_maxes[self.psize]) != 0 and not bo_3: ctr_ok = True
-            elif (not (ctr & e_bits.u_maxes[self.psize]) != 0) and bo_3: ctr_ok = True
-
-        # cond_ok = BO0 | (CRBI+32 ≡ BO1)
-        cond_ok = bo_0 or (bool(cr & crmask) == bool(bo_1))
-
-        # always update LR, regardless of the conditions.  odd.
-        if lk:
-            self.setRegister(REG_LR, nextva)
-
-        # if we don't meet the requirements, bail
-        if not (ctr_ok and cond_ok):
-            return
-
-        # if we meet the required conditions:
-        if not aa:  # if *not* ABSOLUTE address
-            tgt += nextva
-
-        return tgt
-
-    def i_bca(self, op):
-        return self.i_bc(op, aa=True)
-
-    def i_bcl(self, op):
-        return self.i_bc(op, lk=True)
-
-    def i_bcla(self, op):
-        return self.i_bc(op, aa=True, lk=True)
-
-    def i_bclr(self, op):
-        return self.i_bc(op, aa=True, lk=True, tgtreg=REG_LR)
-
-    def i_bcctr(self, op):
-        return self.i_bc(op, aa=True, lk=True, tgtreg=REG_CTR)
-
-    # bc breakdowns:  decrement, zero/not-zero, true/false, w/link, etc...
-    def i_bdnzf(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        if self.getOperValue(op, 0):
-           return
-
-        return self.getOperValue(op, 1)
-           
-    def i_bdzf(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        if self.getOperValue(op, 0):
-            return
-
-        return self.getOperValue(op, 1)
-
-    def i_bf(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        if self.getOperValue(op, 0):
-            return
-
-        return self.getOperValue(op, 1)
-
-    def i_bdnzt(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        if not self.getOperValue(op, 0):
-            return
-
-        return self.getOperValue(op, 1)
-           
-    def i_bdzt(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        if not self.getOperValue(op, 0):
-            return
-
-        return self.getOperValue(op, 1)
-           
-    def i_bt(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        if not self.getOperValue(op, 0):
-            return
-
-        return self.getOperValue(op, 1)
-
-    def i_bdnz(self, op):
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        return self.getOperValue(op, 0)
-
-    def i_bdz(self, op):
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        return self.getOperValue(op, 0)
-
-    # with link...
-    def i_bdnzfl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        if self.getOperValue(op, 0):
-            return
-
-        self.setRegister(REG_LR, op.va + 4)
-        return self.getOperValue(op, 1)
-           
-    def i_bdzfl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        if self.getOperValue(op, 0):
-            return
-
-        self.setRegister(REG_LR, op.va + 4)
-        return self.getOperValue(op, 1)
-
-    def i_bfl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        if self.getOperValue(op, 0):
-            return
-
-        self.setRegister(REG_LR, op.va + 4)
-        return self.getOperValue(op, 1)
-
-    def i_bdnztl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        if not self.getOperValue(op, 0):
-            return
-
-        self.setRegister(REG_LR, op.va + 4)
-        return self.getOperValue(op, 1)
-           
-    def i_bdztl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        if not self.getOperValue(op, 0):
-            return
-
-        self.setRegister(REG_LR, op.va + 4)
-        return self.getOperValue(op, 1)
-           
-    def i_btl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        if not self.getOperValue(op, 0):
-            return
-
-        self.setRegister(REG_LR, op.va + 4)
-        return self.getOperValue(op, 1)
-
-    def i_bdnzl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        self.setRegister(REG_LR, op.va + 4)
-        return self.getOperValue(op, 1)
-
-    def i_bdzl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        self.setRegister(REG_LR, op.va + 4)
-        return self.getOperValue(op, 1)
-
-
-    i_bdnzfa = i_bdnzf
-    i_bdzfa = i_bdzf
-    i_bfa = i_bf
-    i_bdnzta = i_bdnzt
-    i_bdzta = i_bdzt
-    i_bta = i_bt
-    i_bdnza = i_bdnz
-    i_bdza = i_bdz
-    i_bla = i_bl
-
-    i_bdnzfla = i_bdnzfl
-    i_bdzfla = i_bdzfl
-    i_bfla = i_bfl
-    i_bdnztla = i_bdnztl
-    i_bdztla = i_bdztl
-    i_btla = i_btl
-    i_bdnzla = i_bdnzl
-    i_bdzla = i_bdzl
-
-    ##### LR branches
-    def i_bdnzflr(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        if self.getOperValue(op, 0):
-            return
-
-        return self.getOperValue(op, 1)
-           
-    def i_bdzflr(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        if self.getOperValue(op, 0):
-            return
-
-        return self.getOperValue(op, 1)
-
-    def i_bflr(self, op):
-        if self.getOperValue(op, 0):
-            return
-
-        return self.getRegister(REG_LR)
-
-    def i_bdnztlr(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        if not self.getOperValue(op, 0):
-            return
-
-        return self.getOperValue(op, 1)
-           
-    def i_bdztlr(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        if not self.getOperValue(op, 0):
-            return
-
-        return self.getOperValue(op, 1)
-           
-    def i_btlr(self, op):
-        if not self.getOperValue(op, 0):
-            return
-
-        return self.getRegister(REG_LR)
-
-    def i_bdnzlr(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        return self.getOperValue(op, 1)
-
-    def i_bdzlr(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        return self.getOperValue(op, 1)
-
-
-    def i_bdnzflrl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        if self.getOperValue(op, 0):
-            return
-
-        tgt = self.getRegister(REG_LR)
-        self.setRegister(REG_LR, op.va + 4)
-        return tgt
-           
-    def i_bdzflrl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        if self.getOperValue(op, 0):
-            return
-
-        tgt = self.getRegister(REG_LR)
-        self.setRegister(REG_LR, op.va + 4)
-        return tgt
-
-    def i_bflrl(self, op):
-        if self.getOperValue(op, 0):
-            return
-
-        tgt = self.getRegister(REG_LR)
-        self.setRegister(REG_LR, op.va + 4)
-        return tgt
-
-    def i_bdnztlrl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        if not self.getOperValue(op, 0):
-            return
-
-        tgt = self.getRegister(REG_LR)
-        self.setRegister(REG_LR, op.va + 4)
-        return tgt
-           
-    def i_bdztlrl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        if not self.getOperValue(op, 0):
-            return
-
-        tgt = self.getRegister(REG_LR)
-        self.setRegister(REG_LR, op.va + 4)
-        return tgt
-           
-    def i_btlrl(self, op):
-        if not self.getOperValue(op, 0):
-            return
-
-        tgt = self.getRegister(REG_LR)
-        self.setRegister(REG_LR, op.va + 4)
-        return tgt
-
-    def i_bdnzlrl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr == 0:
-            return
-
-        tgt = self.getRegister(REG_LR)
-        self.setRegister(REG_LR, op.va + 4)
-        return tgt
-
-    def i_bdzlrl(self, op):
-        if len(op.opers) != 2:
-            print("%s doesn't have 2 opers: %r" % (op.mnem, op.opers))
-
-        ctr = self.getRegister(REG_CTR)
-        ctr -= 1
-        self.setRegister(REG_CTR, ctr)
-        if ctr != 0:
-            return
-
-        tgt = self.getRegister(REG_LR)
-        self.setRegister(REG_LR, op.va + 4)
-        return tgt
-
-
-    def i_blrl(self, op):
-        tgt = self.getRegister(REG_LR)
-        self.setRegister(REG_LR, op.va + 4)
-        return tgt
-
-    i_bdnzfa = i_bdnzflr
-    i_bdzfa = i_bdzflr
-    i_bfa = i_bflr
-    i_bdnzta = i_bdnztlr
-    i_bdzta = i_bdztlr
-    i_bta = i_btlr
-    i_bdnza = i_bdnzlr
-    i_bdza = i_bdzlr
-    i_bla = i_blrl
-
-    i_bdnzfla = i_bdnzfl
-    i_bdzfla = i_bdzfl
-    i_bfla = i_bfl
-    i_bdnztla = i_bdnztl
-    i_bdztla = i_bdztl
-    i_btla = i_btl
-    i_bdnzla = i_bdnzl
-    i_bdzla = i_bdzl
-
-    def i_sync(self, op):
-        print("sync call: %r" % op)
-
-    def i_isync(self, op):
-        print("isync call: %r" % op)
-
-    def i_msync(self, op):
-        print("msync call: %r" % op)
-
-    ######################## arithmetic instructions ##########################
-    def i_cmpwi(self, op, L=0): # FIXME: we may be able to simply use i_cmpw for this...
-        # signed comparison for cmpi and cmp
-        if len(op.opers) == 3:
-            cridx = op.opers[0].field
-            raidx = 1
-            rbidx = 2
-        else:
-            cridx = 0
-            raidx = 0
-            rbidx = 1
-
-        rA = self.getOperValue(op, raidx)
-        if L==0:
-            a = e_bits.signed(rA & 0xffffffff, 4)
-        else:
-            a = rA
-
-        b = e_bits.signed(self.getOperValue(op, rbidx), 2)
-        SO = self.getRegister(REG_SO)
-
-        if a < b:
-            c = 8
-        elif a > b:
-            c = 4
-        else:
-            c = 2
-
-        self.setCr(cridx, c|SO)
-
-    def i_cmpw(self, op, L=0):
-        # signed comparison for cmpli and cmpl
-        if len(op.opers) == 3:
-            cridx = op.opers[0].field
-            raidx = 1
-            rbidx = 2
-        else:
-            cridx = 0
-            raidx = 0
-            rbidx = 1
-
-        rA = self.getOperValue(op, raidx)
-        rB = self.getOperValue(op, rbidx)
-        dsize = op.opers[raidx].tsize
-        ssize = op.opers[rbidx].tsize
-
-        if L==0:
-            a = e_bits.signed(rA, dsize)
-            b = e_bits.signed(rB, ssize)
-        else:
-            a = e_bits.signed(rA, 8)
-            b = e_bits.signed(rB, 8)
-        SO = self.getRegister(REG_SO)
-
-        if a < b:
-            c = 8
-        elif a > b:
-            c = 4
-        else:
-            c = 2
-
-        #print("cmpw: %r  %x  %x  %x" % (cridx, a, b, c))
-        self.setCr(cridx, c|SO)
-
-    def i_cmplw(self, op, L=0):
-        # unsigned comparison for cmpli and cmpl
-        if len(op.opers) == 3:
-            cridx = op.opers[0].field
-            raidx = 1
-            rbidx = 2
-        else:
-            cridx = 0
-            raidx = 0
-            rbidx = 1
-
-        rA = self.getOperValue(op, raidx)
-        rB = self.getOperValue(op, rbidx)
-        dsize = op.opers[raidx].tsize
-        ssize = op.opers[rbidx].tsize
-
-        if L==0:
-            a = e_bits.unsigned(rA, dsize)
-            b = e_bits.unsigned(rB, ssize)
-        else:
-            a = rA
-            b = rB
-        SO = self.getRegister(REG_SO)
-
-        if a < b:
-            c = 8
-        elif a > b:
-            c = 4
-        else:
-            c = 2
-
-        self.setCr(cridx, c|SO)
-
-    i_cmplwi = i_cmplw
-
-    def i_cmpdi(self, op):
-        return self.i_cmpwi(op, L=1)
-
-    def i_cmpd(self, op):
-        return self.i_cmpw(op, L=1)
-
-    def i_cmpld(self, op):
-        return self.i_cmplw(op, L=1)
-
-    def i_cmpldi(self, op):
-        return self.i_cmplwi(op, L=1)
-
-
-    def setCA(self, result):
-        '''
+        Calculate carry and overflow
         CA flag is always set for addic, subfic, addc, subfc, adde, subfe, addme, subfme, addze, subfze
         '''
-        mode = self.getPointerSize() * 8
-        ca = bool(result >> mode)
-        #print("setCA(0x%x):  %r" % (result, ca))
-        self.setRegister(REG_CA, ca)
+        if opsize is None:
+            opsize = self.psize
 
+        ca = CARRY(result, opsize)
+        self.setRegister(REG_CA, ca)
 
     def setOEflags(self, result, size, add0, add1, mode=OEMODE_ADDSUBNEG):
         #https://devblogs.microsoft.com/oldnewthing/20180808-00/?p=99445
 
-        # OV = (carrym ^ carrym+1) 
+        # OV = (carrym ^ carrym+1)
         if mode == OEMODE_LEGACY:
             cm = getCarryBitAtX((size*8), add0, add1)
             cm1 = getCarryBitAtX((size*8)-1, add0, add1)
@@ -1028,60 +537,1421 @@ class PpcAbstractEmulator(envi.Emulator):
             ov = bool(result >> 64)
 
 
-        #SO = SO | (carrym ^ carrym+1) 
-        so = self.getRegister(REG_SO)
-        so |= ov
+        self.setOverflow(ov)
 
-        self.setRegister(REG_SO, so)
-        self.setRegister(REG_OV, ov)
+        # Return an indication of if overflow was detected
+        return ov
+
+    def setFlags(self, result, so=None, crnum=0, opsize=None):
+        '''
+        easy way to set the flags, reusable by many different instructions
+        if SO is None, SO is pulled from the XER register (most often)
+
+        from PowerISA 2.07:
+            For all fixed-point instructions in which Rc=1, and for
+            addic., andi., and andis., the first three bits of CR Field
+            0 (bits 32:34 of the Condition Register) are set by
+            signed comparison of the result to zero, and the fourth
+            bit of CR Field 0 (bit 35 of the Condition Register) is
+            copied from the SO field of the XER. “Result” here
+            refers to the entire 64-bit value placed into the target
+            register in 64-bit mode, and to bits 32:63 of the 64-bit
+            value placed into the target register in 32-bit mode.
+
+        '''
+        if opsize is None:
+            opsize = self.psize
+
+        if e_bits.is_signed(result, opsize):
+            flags = FLAGS_LT
+        elif (result & e_bits.u_maxes[opsize]) == 0:
+            flags = FLAGS_EQ
+        else:
+            flags = FLAGS_GT
+
+        if so is None:
+            # Get the current value of SO
+            xer = self.getRegister(REG_XER)
+            so = (xer & XERFLAGS_SO) >> XERFLAGS_SO_bitnum
+
+        flags |= so << FLAGS_SO_bitnum
+
+        self.setCr(flags, crnum)
+
+    def setFloatFlags(self, result, fpsize=8):
+        assert not isinstance(result, float)
+
+        # See if any of the simple result class values match
+        try:
+            fflags = FP_FLAGS[fpsize][result]
+        except KeyError:
+            denormalized = (result & FP_EXP_MASK[fpsize]) == 0
+            signed = bool(x & e_bits.sign_bits[size])
+
+            # Set the class based on if the value is normalized/denormalized and
+            # the sign bit
+            fflags = FP_ORDERED_FLAGS[denormalized][signed]
+
+        # Mask the current C & FPCC bits out of the FPSCR register
+        fpscr = self.getRegister(REG_FPSCR)
+        fpscr &= ~FPSCRFLAGS_MASK
+
+        # mix in the new flags
+        fpscr |= fflags << FPSCRFLAGS_C_FPCC_shift
+
+        self.setRegister(REG_FPSCR, fpscr)
+
+        # After FPSCR is set copy the FX/FEX/VX/OX bits into CR1
+        self.setCr(fflags & C_FPCC_TO_CR1_MASK, crnum=1)
+
+    def float2decimal(self, fresult, fpsize=8):
+        endian = self.getEndian()
+        result = e_bits.floattodecimel(fresult, fpsize, endian)
+
+        # If the result is the python version of NaN convert it to the correct
+        # PPC QNAN representation
+        if fpsize == 8:
+            if result == FP_DOUBLE_NEG_PYNAN:
+                result = FP_DOUBLE_NEG_QNAN
+            elif result == FP_DOUBLE_POS_PYNAN:
+                result = FP_DOUBLE_POS_QNAN
+        else:
+            # fpsize == 4
+            if result == FP_SINGLE_NEG_PYNAN:
+                result = FP_SINGLE_NEG_QNAN
+            elif result == FP_SINGLE_POS_PYNAN:
+                result = FP_SINGLE_POS_QNAN
+
+        return result
+
+    def decimal2float(self, result, fpsize=8):
+        fresult = e_bits.decimeltofloat(result, fpsize, self.getEndian())
+        return fresult
+
+    # Beginning of Instruction methods
+
+    ########################### NOP #############################
+
+    def i_nop(self, op):
+        pass
+
+    ########################### Integer Select Instructions #############################
+
+    def i_isel(self, op):
+        # The 4th operand is which bit to check in the CR register, but using
+        # the MSB as bit 0 because PPC. (use psize of 4 because the CR register
+        # is always only 32 bits.
+        cr_mask = BITMASK(op.opers[3].field, psize=4)
+
+        # Doesn't matter what the actual bit or CR is because the if the cr bit
+        # is set in the CR then the use rA, otherwise use rB
+        if self.getCr(cr) & cr_mask:
+            self.setOperValue(op, 0, self.getOperValue(op, 1))
+        else:
+            self.setOperValue(op, 0, self.getOperValue(op, 2))
+
+    def i_isellt(self, op):
+        # If the CR0 LT flag is set use rA, otherwise use rB
+        if self.getCr(0) & FLAGS_LT:
+            self.setOperValue(op, 0, self.getOperValue(op, 1))
+        else:
+            self.setOperValue(op, 0, self.getOperValue(op, 2))
+
+    def i_iselgt(self, op):
+        # If the CR0 GT flag is set use rA, otherwise use rB
+        if self.getCr(0) & FLAGS_GT:
+            self.setOperValue(op, 0, self.getOperValue(op, 1))
+        else:
+            self.setOperValue(op, 0, self.getOperValue(op, 2))
+
+    def i_iseleq(self, op):
+        # If the CR0 EQ flag is set use rA, otherwise use rB
+        if self.getCr(0) & FLAGS_EQ:
+            self.setOperValue(op, 0, self.getOperValue(op, 1))
+        else:
+            self.setOperValue(op, 0, self.getOperValue(op, 2))
+
+    ########################### Metric shit-ton of Branch Instructions #############################
+
+    def i_b(self, op):
+        '''
+        Branch!  no frills.
+        '''
+        return self.getOperValue(op, 0)
+
+    def i_bl(self, op):
+        '''
+        branch with link, the basic CALL instruction
+        '''
+        self.setRegister(REG_LR, op.va + op.size)
+        return self.getOperValue(op, 0)
+
+    i_ba = i_b
+    i_bla = i_bl
+
+    def i_blr(self, op):
+        '''
+        blr is actually "ret"
+        '''
+        return self.getRegister(REG_LR)
+
+    def i_blrl(self, op):
+        nextva = op.va + op.size
+        lr = self.getRegister(REG_LR)
+        self.setRegister(REG_LR, nextva)
+        return lr
+
+    def i_bctr(self, op):
+        ctr = self.getRegister(REG_CTR)
+        return ctr
+
+    def i_bctrl(self, op):
+        nextva = op.va + op.size
+        ctr = self.getRegister(REG_CTR)
+        self.setRegister(REG_LR, nextva)
+        return ctr
+
+
+    # conditional branches....
+    def _bc(self, op, tgt, lk=False):
+        # always update LR, regardless of the conditions.  odd.
+        if lk:
+            nextva = op.va + op.size
+            self.setRegister(REG_LR, nextva)
+
+        bo = self.getOperValue(op, 0)
+
+        if BO_UNCONDITIONAL(bo):
+            return tgt
+
+        if BO_DECREMENT(bo):
+            # if tgtreg is REG_CTR, we can't decrement it...
+            #assert tgtreg != REG_CTR
+            ctr = self.getRegister(REG_CTR) - 1
+            self.setRegister(REG_CTR, ctr)
+
+            # If CTR is decremented the branch condition depends on the value of
+            # CTR
+            ctr_ok = BO_CTR_OK(bo, ctr)
+        else:
+            # If the CTR is not being modified, the CTR condition is good
+            ctr_ok = True
+
+        if BO_CONDITIONAL(bo):
+            cond = self.getOperValue(op, 1)
+            ctr_ok = BO_COND_OK(bo, cond)
+        else:
+            cond_ok = True
+
+        if ctr_ok and cond_ok:
+            return tgt
+        else:
+            return None
+
+    def i_bc(self, op):
+        tgt = self.getOperValue(op, 2)
+        return self._bc(op, tgt)
+
+    def i_bcl(self, op):
+        tgt = self.getOperValue(op, 2)
+        return self._bc(op, tgt, lk=True)
+
+    # The simplified mnemonic branch instructions with the AA flag set don't
+    # have separate instructions, but the base "b" and "bl" instructions must be
+    # defined.
+    i_bca = i_bc
+    i_bcla = i_bcl
+
+    def i_bclr(self, op):
+        tgt = self.getRegister(REG_LR)
+        return self._bc(op, tgt)
+
+    def i_bclrl(self, op):
+        tgt = self.getRegister(REG_LR)
+        return self._bc(op, tgt, lk=True)
+
+    def i_bcctr(self, op):
+        tgt = self.getRegister(REG_CTR)
+        return self._bc(op, tgt)
+
+    def i_bcctrl(self, op):
+        tgt = self.getRegister(REG_CTR)
+        return self._bc(op, tgt, lk=True)
+
+    ####### CR condition-only branches #######
+
+    # utility for handling the simplified mnemonic branch instructions with
+    # conditions but on CTR decrementing
+    #
+    # This is essentially the same as the _bc() function, except that the
+    # information normally held in the BO and BI operands is split out into
+    # parameters that must be supplied.  This allows this particular function to
+    # support the conditional branch simplified mnemonics as efficiently as
+    # possible.
+    def _bc_simplified_cond_only(self, cond, tgt, lk=False):
+        # always update LR, regardless of the conditions.  odd.
+        if lk:
+            nextva = op.va + op.size
+            self.setRegister(REG_LR, nextva)
+
+        # If the conditions are met return the target
+        if cond:
+            return tgt
+        else:
+            return None
+
+    ## EQ ##
+
+    def i_beq(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_EQ
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_EQ
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_beql(self, op):
+        return self.i_beq(op, True)
+
+    def i_beqctr(self, op, lk=False):
+        tgt = self.getRegister(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_EQ
+        else:
+            cond = self.getCr(0) & FLAGS_EQ
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_beqctrl(self, op):
+        return self.i_beqctr(op, True)
+
+    def i_beqlr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_EQ
+        else:
+            cond = self.getCr(0) & FLAGS_EQ
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_beqlrl(self, op):
+        return self.i_beqlr(op, True)
+
+    ## GE ##
+    # For BGE check if the LE flag is _not_ set
+
+    def i_bge(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_LT) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_LT) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bgel(self, op):
+        return self.i_bge(op, True)
+
+    def i_bgectr(self, op, lk=False):
+        tgt = self.getRegister(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_LT) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_LT) == 0
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bgectrl(self, op):
+        return self.i_bgectr(op, True)
+
+    def i_bgelr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_LT) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_LT) == 0
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bgelrl(self, op):
+        return self.i_bgelr(op, True)
+
+    ## GT ##
+
+    def i_bgt(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_GT
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_GT
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bgtl(self, op):
+        return self.i_bgt(op, True)
+
+    def i_bgtctr(self, op, lk=False):
+        tgt = self.getRegister(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_GT
+        else:
+            cond = self.getCr(0) & FLAGS_GT
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bgtctrl(self, op):
+        return self.i_bgtctr(op, True)
+
+    def i_bgtlr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_GT
+        else:
+            cond = self.getCr(0) & FLAGS_GT
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bgtlrl(self, op):
+        return self.i_bgtlr(op, True)
+
+    ## LE ##
+    # For BLE check if the GT flag is _not_ set
+
+    def i_ble(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_GT) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_GT) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_blel(self, op):
+        return self.i_ble(op, True)
+
+    def i_blectr(self, op, lk=False):
+        tgt = self.getRegister(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_GT) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_GT) == 0
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_blectrl(self, op):
+        return self.i_blectr(op, True)
+
+    def i_blelr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_GT) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_GT) == 0
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_blelrl(self, op):
+        return self.i_blelr(op, True)
+
+    ## LT ##
+
+    def i_blt(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_LT
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_LT
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bltl(self, op):
+        return self.i_blt(op, True)
+
+    def i_bltctr(self, op, lk=False):
+        tgt = self.getRegister(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_LT
+        else:
+            cond = self.getCr(0) & FLAGS_LT
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bltctrl(self, op):
+        return self.i_bltctr(op, True)
+
+    def i_bltlr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_LT
+        else:
+            cond = self.getCr(0) & FLAGS_LT
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bltlrl(self, op):
+        return self.i_bltlr(op, True)
+
+    ## NE ##
+    # For BNE check if the EQ flag is _not_ set
+
+    def i_bne(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_EQ) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_EQ) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bnel(self, op):
+        return self.i_bne(op, True)
+
+    def i_bnectr(self, op, lk=False):
+        tgt = self.getRegister(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_EQ) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_EQ) == 0
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bnectrl(self, op):
+        return self.i_bnectr(op, True)
+
+    def i_bnelr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_EQ) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_EQ) == 0
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bnelrl(self, op):
+        return self.i_bnelr(op, True)
+
+    ## NS ##
+    # For BNS check if the SO flag is _not_ set
+
+    def i_bns(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_SO) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_SO) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bnsl(self, op):
+        return self.i_bns(op, True)
+
+    def i_bnsctr(self, op, lk=False):
+        tgt = self.getRegister(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_SO) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_SO) == 0
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bnsctrl(self, op):
+        return self.i_bnsctr(op, True)
+
+    def i_bnslr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_SO) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_SO) == 0
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bnslrl(self, op):
+        return self.i_bnslr(op, True)
+
+    ## SO ##
+
+    def i_bso(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bsol(self, op):
+        return self.i_bso(op, True)
+
+    def i_bsoctr(self, op, lk=False):
+        tgt = self.getRegister(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bsoctrl(self, op):
+        return self.i_bsoctr(op, True)
+
+    def i_bsolr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+        return self._bc_simplified_cond_only(cond, tgt, lk)
+
+    def i_bsolrl(self, op):
+        return self.i_bsolr(op, True)
+
+    ####### CTR decrementing-only branches #######
+    # There are no bcctr instructions of this form because CTR cannot be the
+    # branch target when it is being modified.
+
+    def _bc_simplified_ctr_only(self, ctr_nz, tgt, lk=False):
+        ctr = self.getRegister(REG_CTR) - 1
+        self.setRegister(REG_CTR, ctr)
+
+        # always update LR, regardless of the conditions.  odd.
+        if lk:
+            nextva = op.va + op.size
+            self.setRegister(REG_LR, nextva)
+
+        # If ctr_nz is True then branch if CTR is not zero
+        # If ctr_nz is False then branch if CTR is zero
+        if bool(ctr) == ctr_nz:
+            return tgt
+        else:
+            return None
+
+    # target is BD (first operand)
+
+    def i_bdz(self, op):
+        tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_only(False, tgt)
+
+    def i_bdzl(self, op):
+        tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_only(False, tgt, lk=True)
+
+    def i_bdnz(self, op):
+        tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_only(True, tgt)
+
+    def i_bdnzl(self, op):
+        tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_only(True, tgt, lk=True)
+
+    ## target is LR
+
+    def i_bdzlr(self, op):
+        tgt = self.getRegister(REG_LR)
+        return self._bc_simplified_ctr_only(False, tgt)
+
+    def i_bdzlrl(self, op):
+        tgt = self.getRegister(REG_LR)
+        return self._bc_simplified_ctr_only(False, tgt, lk=True)
+
+    def i_bdnzlr(self, op):
+        tgt = self.getRegister(REG_LR)
+        return self._bc_simplified_ctr_only(True, tgt)
+
+    def i_bdnzlrl(self, op):
+        tgt = self.getRegister(REG_LR)
+        return self._bc_simplified_ctr_only(True, tgt, lk=True)
+
+    ####### CTR decrementing and CR condition branches #######
+    # There are no bcctr instructions of this form because CTR cannot be the
+    # branch target when it is being modified.
+
+    def _bc_simplified_ctr_and_cond(self, ctr_nz, cond, tgt, lk=False):
+        ctr = self.getRegister(REG_CTR) - 1
+        self.setRegister(REG_CTR, ctr)
+
+        # always update LR, regardless of the conditions.  odd.
+        if lk:
+            nextva = op.va + op.size
+            self.setRegister(REG_LR, nextva)
+
+        # If ctr_nz is True and cond is met then branch if CTR is not zero
+        # If ctr_nz is False and cond is met then branch if CTR is zero
+        if bool(ctr) == ctr_nz and cond:
+            return tgt
+        else:
+            return None
+
+    ## EQ and CTR == 0 ##
+
+    def i_bdzeq(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_EQ
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_EQ
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzeql(self, op):
+        return self.i_bdzeq(op, True)
+
+    def i_bdzeqlr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_EQ
+        else:
+            cond = self.getCr(0) & FLAGS_EQ
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzeqlrl(self, op):
+        return self.i_bdzeqlr(op, True)
+
+    ## EQ and CTR != 0 ##
+
+    def i_bdnzeq(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_EQ
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_EQ
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzeql(self, op):
+        return self.i_bdnzeq(op, True)
+
+    def i_bdnzeqlr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_EQ
+        else:
+            cond = self.getCr(0) & FLAGS_EQ
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzeqlrl(self, op):
+        return self.i_bdnzeqlr(op, True)
+
+    ## GE and CTR == 0 ##
+    # For BGE check if the LT flag is _not_ set
+
+    def i_bdzge(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_LT) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_LT) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzgel(self, op):
+        return self.i_bdzge(op, True)
+
+    def i_bdzgelr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_LT) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_LT) == 0
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzgelrl(self, op):
+        return self.i_bdzgelr(op, True)
+
+    ## GE and CTR != 0 ##
+
+    def i_bdnzge(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_LT) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_LT) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzgel(self, op):
+        return self.i_bdnzge(op, True)
+
+    def i_bdnzgelr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_LT) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_LT) == 0
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzgelrl(self, op):
+        return self.i_bdnzgelr(op, True)
+
+    ## GT and CTR == 0 ##
+
+    def i_bdzgt(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_GT
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_GT
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzgtl(self, op):
+        return self.i_bdzgt(op, True)
+
+    def i_bdzgtlr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_GT
+        else:
+            cond = self.getCr(0) & FLAGS_GT
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzgtlrl(self, op):
+        return self.i_bdzgtlr(op, True)
+
+    ## GT and CTR != 0 ##
+
+    def i_bdnzgt(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_GT
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_GT
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzgtl(self, op):
+        return self.i_bdnzgt(op, True)
+
+    def i_bdnzgtlr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_GT
+        else:
+            cond = self.getCr(0) & FLAGS_GT
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzgtlrl(self, op):
+        return self.i_bdnzgtlr(op, True)
+
+    ## LE and CTR == 0 ##
+    # For BLE check if the GT flag is _not_ set
+
+    def i_bdzle(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_GT) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_GT) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzlel(self, op):
+        return self.i_bdzle(op, True)
+
+    def i_bdzlelr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_GT) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_GT) == 0
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzlelrl(self, op):
+        return self.i_bdzlelr(op, True)
+
+    ## LE and CTR != 0 ##
+
+    def i_bdnzle(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_GT) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_GT) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzlel(self, op):
+        return self.i_bdnzle(op, True)
+
+    def i_bdnzlelr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_GT) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_GT) == 0
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzlelrl(self, op):
+        return self.i_bdnzlelr(op, True)
+
+    ## LT and CTR == 0 ##
+
+    def i_bdzlt(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_LT
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_LT
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzltl(self, op):
+        return self.i_bdzlt(op, True)
+
+    def i_bdzltlr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_LT
+        else:
+            cond = self.getCr(0) & FLAGS_LT
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzltlrl(self, op):
+        return self.i_bdzltlr(op, True)
+
+    ## LT and CTR != 0 ##
+
+    def i_bdnzlt(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_LT
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_LT
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzltl(self, op):
+        return self.i_bdnzlt(op, True)
+
+    def i_bdnzltlr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_LT
+        else:
+            cond = self.getCr(0) & FLAGS_LT
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzltlrl(self, op):
+        return self.i_bdnzltlr(op, True)
+
+    ## NE and CTR == 0 ##
+    # For BNE check if the EQ flag is _not_ set
+
+    def i_bdzne(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_EQ) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_EQ) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdznel(self, op):
+        return self.i_bdzne(op, True)
+
+    def i_bdznelr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_EQ) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_EQ) == 0
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdznelrl(self, op):
+        return self.i_bdznelr(op, True)
+
+    ## NE and CTR != 0 ##
+
+    def i_bdnzne(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_EQ) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_EQ) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnznel(self, op):
+        return self.i_bdnzne(op, True)
+
+    def i_bdnznelr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_EQ) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_EQ) == 0
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnznelrl(self, op):
+        return self.i_bdnznelr(op, True)
+
+    ## NS and CTR == 0 ##
+    # For BNS check if the SO flag is _not_ set
+
+    def i_bdzns(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_SO) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_SO) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdznsl(self, op):
+        return self.i_bdzns(op, True)
+
+    def i_bdznslr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_SO) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_SO) == 0
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdznslrl(self, op):
+        return self.i_bdznslr(op, True)
+
+    ## NS and CTR != 0 ##
+
+    def i_bdnzns(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperValue(op, 0) & FLAGS_SO) == 0
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = (self.getCr(0) & FLAGS_SO) == 0
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnznsl(self, op):
+        return self.i_bdnzns(op, True)
+
+    def i_bdnznslr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_SO) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_SO) == 0
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnznslrl(self, op):
+        return self.i_bdnznslr(op, True)
+
+    ## SO and CTR == 0 ##
+
+    def i_bdzso(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzsol(self, op):
+        return self.i_bdzso(op, True)
+
+    def i_bdzsolr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+        return self._bc_simplified_ctr_and_cond(False, cond, tgt, lk)
+
+    def i_bdzsolrl(self, op):
+        return self.i_bdzsolr(op, True)
+
+    ## SO and CTR != 0 ##
+
+    def i_bdnzso(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+            tgt = self.getOperValue(op, 0)
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzsol(self, op):
+        return self.i_bdnzso(op, True)
+
+    def i_bdnzsolr(self, op, lk=False):
+        tgt = self.getRegister(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+        return self._bc_simplified_ctr_and_cond(True, cond, tgt, lk)
+
+    def i_bdnzsolrl(self, op):
+        return self.i_bdnzsolr(op, True)
+
+    ######################## compare instructions ##########################
+
+    def i_cmpb(self, op):
+        # operands: rS, rA, rB
+        # Byte-by-byte comparison of rS and rB, if the bytes are equal then the
+        # byte in rA is set to 0xFF, otherwise it is set to 0x00.
+        ssize = op.opers[0].tsize
+        masks_and_shifts = [(0xFF << i*8, i*8) for i in range(ssize)]
+
+        rS = self.getOperValue(op, 0)
+        rB = self.getOperValue(op, 2)
+
+        result = sum(0xFF << s if (rS & m) == (rB & m) else 0 for m, s in masks_and_shifts)
+        self.setOperValue(op, 1, result)
+
+    def _cmp(self, op, crnum, a_opidx, b_opidx, opsize):
+        # Sign extend the A and B (if necessary) values
+        a = e_bits.signed(self.getOperValue(op, a_opidx), opsize)
+        b = e_bits.signed(self.getOperValue(op, b_opidx), opsize)
+
+        #c = a - b
+        #self.setFlags(c, crnum=crnum)
+
+        if a < b:
+            flags = FLAGS_LT
+        elif a > b:
+            flags = FLAGS_GT
+        else:
+            flags = FLAGS_EQ
+
+        # Get the current value of SO
+        xer = self.getRegister(REG_XER)
+        so = (xer & XERFLAGS_SO) >> XERFLAGS_SO_bitnum
+        flags |= so << FLAGS_SO_bitnum
+
+        self.setCr(flags, crnum)
+
+    def _cmpl(self, op, crnum, a_opidx, b_opidx, opsize):
+        a = e_bits.unsigned(self.getOperValue(op, a_opidx), opsize)
+        b = e_bits.unsigned(self.getOperValue(op, b_opidx), opsize)
+
+        #c = a - b
+        #self.setFlags(c, crnum=crnum)
+
+        if a < b:
+            flags = FLAGS_LT
+        elif a > b:
+            flags = FLAGS_GT
+        else:
+            flags = FLAGS_EQ
+
+        # Get the current value of SO
+        xer = self.getRegister(REG_XER)
+        so = (xer & XERFLAGS_SO) >> XERFLAGS_SO_bitnum
+        flags |= so << FLAGS_SO_bitnum
+
+        self.setCr(flags, crnum)
+
+    def _cmp_simplified(self, op, opsize):
+        if len(op.opers) == 2:
+            # crfD is CR0
+            crnum = 0
+
+            # the "A" operand index is 0
+            # the "B" operand index is 1
+            a_opidx = 0
+            b_opidx = 1
+        else:
+            crnum = op.opers[0].field
+
+            # the "A" operand index is 1
+            # the "B" operand index is 2
+            a_opidx = 1
+            b_opidx = 2
+        self._cmp(op, crnum, a_opidx, b_opidx, opsize)
+
+    def _cmpl_simplified(self, op, opsize):
+        if len(op.opers) == 2:
+            # crfD is CR0
+            crnum = 0
+
+            # the "A" operand index is 0
+            # the "B" operand index is 1
+            a_opidx = 0
+            b_opidx = 1
+        else:
+            crnum = op.opers[0].field
+
+            # the "A" operand index is 1
+            # the "B" operand index is 2
+            a_opidx = 1
+            b_opidx = 2
+        self._cmpl(op, crnum, a_opidx, b_opidx, opsize)
+
+    def i_cmpw(self, op):
+        self._cmp_simplified(op, opsize=4)
+
+    i_cmpwi = i_cmpw
+
+    def i_cmplw(self, op):
+        self._cmpl_simplified(op, opsize=4)
+
+    i_cmplwi = i_cmplw
+
+    def i_cmpd(self, op):
+        #if self.psize == 4:
+        #    raise InvalidInstruction(mesg='Cannot execute "%r" on %s' % (op, self.getArchName()))
+        self._cmp_simplified(op, opsize=8)
+
+    i_cmpdi = i_cmpd
+
+    def i_cmpld(self, op):
+        #if self.psize == 4:
+        #    raise InvalidInstruction(mesg='Cannot execute "%r" on %s' % (op, self.getArchName()))
+        self._cmpl_simplified(op, opsize=8)
+
+    i_cmpldi = i_cmpld
+
+    def i_cmp(self, op):
+        # This non-simplified mnemonic form isn't really used, but it is a valid
+        # instruction form so for the emulation call the correct simplified
+        # mnemonic emulation function.
+
+        # There are 3 possible operand lists for this instruction, if crfD is
+        # 0 then it may be left off, if L is 0 then it can also be left off
+        if len(op.opers) == 2:
+            # crfD is CR0
+            crnum = 0
+
+            # L is 0
+            l = 0
+
+            # the "A" operand index is 0
+            # the "B" operand index is 1
+            a_opidx = 0
+            b_opidx = 1
+        elif len(op.opers) == 3:
+            if isinstance(op.opers[b_opidx], PpcCRegOper):
+                # first operand is the crnum
+                crnum = self.opers[0].field
+                l = 0
+            else:
+                # first operand is L
+                crnum = 0
+                l = self.getOperValue(op, 0)
+
+            # the "A" operand index is 1
+            # the "B" operand index is 2
+            a_opidx = 1
+            b_opidx = 2
+        else:
+            crnum = self.opers[0].field
+            l = self.getOperValue(op, 1)
+
+            # the "A" operand index is 1
+            # the "B" operand index is 2
+            a_opidx = 2
+            b_opidx = 3
+
+        if l == 0:
+            opsize = 4
+        else:
+            opsize = 8
+
+        self._cmp(op, crnum, a_opidx, b_opidx, opsize=opsize)
+
+    i_cmpi = i_cmp
+
+    def i_cmpl(self, op):
+        # This non-simplified mnemonic form isn't really used, but it is a valid
+        # instruction form so for the emulation call the correct simplified
+        # mnemonic emulation function.
+
+        # There are 3 possible operand lists for this instruction, if crfD is
+        # 0 then it may be left off, if L is 0 then it can also be left off
+        if len(op.opers) == 2:
+            # crfD is CR0
+            crnum = 0
+
+            # L is 0
+            l = 0
+
+            # the "A" operand index is 0
+            # the "B" operand index is 1
+            a_opidx = 0
+            b_opidx = 1
+        elif len(op.opers) == 3:
+            if isinstance(op.opers[b_opidx], PpcCRegOper):
+                # first operand is the crnum
+                crnum = self.opers[0].field
+                l = 0
+            else:
+                # first operand is L
+                crnum = 0
+                l = self.getOperValue(op, 0)
+
+            # the "A" operand index is 1
+            # the "B" operand index is 2
+            a_opidx = 1
+            b_opidx = 2
+        else:
+            crnum = self.opers[0].field
+            l = self.getOperValue(op, 1)
+
+            # the "A" operand index is 1
+            # the "B" operand index is 2
+            a_opidx = 2
+            b_opidx = 3
+
+        if l == 0:
+            opsize = 4
+        else:
+            opsize = 8
+
+        self._cmpl(op, crnum, a_opidx, b_opidx, opsize=opsize)
+
+    i_cmpli = i_cmpl
+
+    ######################## arithmetic instructions ##########################
 
     def i_add(self, op, oe=False):
         '''
         add
         '''
         src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2) # FIXME: move signedness here instead of at decode
+        src2 = self.getOperValue(op, 2)
         result = src1 + src2
-        
-        self.setCA(result)
-        self.setOperValue(op, 0, result)
+
         if oe: self.setOEflags(result, self.psize, src1, src2)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        if op.iflags & IF_RC: self.setFlags(result)
+
+        self.setOperValue(op, 0, result)
 
     def i_addo(self, op):
-        return self.i_add(op, oe=True)
+        self.i_add(op, oe=True)
 
-    def i_addb(self, op, oe=False):
+    def i_addb(self, op, opsize=1):
         '''
         add signed byte
         '''
-        src1 = self.getOperValue(op, 1)
-        src1 = e_bits.signed(src2, 1)
-        src2 = self.getOperValue(op, 2)
-        src2 = e_bits.signed(src2, 1)
-        uresult = src1 + src2
-        result = e_bits.signed(src1 + src2, 1)
-        
-        self.setCA(uresult)
-        self.setOperValue(op, 0, result)
-        if oe: self.setOEflags(uresult, self.psize, src1, src2)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        src1 = EXTS(self.getOperValue(op, 1), opsize)
+        src2 = EXTS(self.getOperValue(op, 2), opsize)
+        result = EXTS(src1 + src2)
 
-    def i_addbu(self, op, oe=False):
+        if op.iflags & IF_RC: self.setFlags(result)
+
+        self.setOperValue(op, 0, result)
+
+    def i_addbss(self, op, opsize=1):
+        '''
+        add byte signed saturate
+        '''
+        src1 = EXTS(self.getOperValue(op, 1), opsize)
+        src2 = EXTS(self.getOperValue(op, 2), opsize)
+        result = src1 + src2
+
+        if self.setOEflags(result, opsize, src1, src2):
+            result = SIGNED_SATURATE(val, opsize)
+
+        if op.iflags & IF_RC: self.setFlags(result)
+
+        self.setOperValue(op, 0, result)
+
+    def i_addbu(self, op, opsize=1):
         '''
         add unsigned byte
         '''
-        src1 = self.getOperValue(op, 1)
-        src1 = e_bits.unsigned(src2, 1)
-        src2 = self.getOperValue(op, 2)
-        src2 = e_bits.unsigned(src2, 1)
-        uresult = src1 + src2
-        result = e_bits.unsigned(src1 + src2, 1)
-        
-        self.setCA(uresult)
+        src1 = EXTZ(self.getOperValue(op, 1), opsize)
+        src2 = EXTZ(self.getOperValue(op, 2), opsize)
+        result = EXTZ(src1 + src2, opsize)
+
+        if op.iflags & IF_RC: self.setFlags(result)
+
         self.setOperValue(op, 0, result)
-        if oe: self.setOEflags(uresult, self.psize, src1, src2)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+
+    def i_addbus(self, op, opsize=1):
+        '''
+        add byte unsigned saturate
+        '''
+        src1 = EXTZ(self.getOperValue(op, 1), opsize)
+        src2 = EXTZ(self.getOperValue(op, 2), opsize)
+        result = src1 + src2
+
+
+        ov = int(quotient > e_bits.u_maxes[4])
+        if ov:
+            result = UNSIGNED_SATURATE(opsize)
+
+        self.setOverflow(ov)
+        if op.iflags & IF_RC: self.setFlags(result)
+
+        self.setOperValue(op, 0, result)
 
     def i_addc(self, op, oe=False):
         '''
@@ -1089,63 +1959,42 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
-        uresult = src1 + src2
         result = src1 + src2
-        
+
+        if oe: self.setOEflags(result, self.psize, src1, src2)
+        if op.iflags & IF_RC: self.setFlags(result)
+
         self.setOperValue(op, 0, result)
-        self.setCA(uresult)
-        if oe: self.setOEflags(uresult, self.psize, src1, src2)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        self.setCA(result)
 
     def i_addco(self, op):
-        return self.i_addc(op, oe=True)
+        self.i_addc(op, oe=True)
 
     def i_adde(self, op, oe=False):
         ra = self.getOperValue(op, 1)
         rb = self.getOperValue(op, 2)
         ca = self.getRegister(REG_CA)
-
         result = ra + rb + ca
 
-        self.setCA(result)
         if oe: self.setOEflags(result, self.psize, ra, rb + ca)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
+        self.setCA(result)
 
     def i_addeo(self, op):
-        return self.i_adde(op, oe=True)
+        self.i_adde(op, oe=True)
 
-    def i_addh(self, op, oe=False):
-        '''
-        add signed halfword
-        '''
-        src1 = self.getOperValue(op, 1)
-        src1 = e_bits.signed(src2, 2)
-        src2 = self.getOperValue(op, 2)
-        src2 = e_bits.signed(src2, 2)
-        uresult = src1 + src2
-        result = e_bits.signed(src1 + src2, 2)
-        
-        self.setCA(uresult)
-        self.setOperValue(op, 0, result)
-        if oe: self.setOEflags(uresult, self.psize, src1, src2)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+    def i_addh(self, op):
+        self.i_addb(op, opsize=2)
 
-    def i_addhu(self, op, oe=False):
-        '''
-        add unsigned halfword
-        '''
-        src1 = self.getOperValue(op, 1)
-        src1 = e_bits.unsigned(src2, 2)
-        src2 = self.getOperValue(op, 2)
-        src2 = e_bits.unsigned(src2, 2)
-        uresult = src1 + src2
-        result = e_bits.unsigned(src1 + src2, 2)
-        
-        self.setCA(uresult)
-        self.setOperValue(op, 0, result)
-        if oe: self.setOEflags(uresult, self.psize, src1, src2)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+    def i_addhss(self, op):
+        self.i_addbss(op, opsize=2)
+
+    def i_addhu(self, op):
+        self.i_addbu(op, opsize=2)
+
+    def i_addhus(self, op):
+        self.i_addbus(op, opsize=2)
 
     def i_addi(self, op):
         '''
@@ -1153,8 +2002,8 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
-        src2 = e_bits.signed(src2, 2)
         result = src1 + src2
+
         self.setOperValue(op, 0, result)
 
     def i_addic(self, op):
@@ -1164,119 +2013,84 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
-        uresult = src1 + src2
-
-        src2 = e_bits.signed(src2, 2)
         result = src1 + src2
 
-        self.setCA(uresult)
+        if op.iflags & IF_RC: self.setFlags(result)
+
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        self.setCA(result)
 
     def i_addis(self, op):
         '''
         add immediate shifted
         '''
         src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
-        src2 <<= 16
-        src2 = e_bits.signed(src2, 4)
-
+        src2 = self.getOperValue(op, 2) << 16
         result = src1 + src2
+
         self.setOperValue(op, 0, result)
 
-    def i_addme(self, op):
+    def i_addme(self, op, oe=False):
         '''
         add minus one extended
         update flags (if IF_RC)
         '''
         src1 = self.getOperValue(op, 1)
-        src2 = 0xffffffffffffffff
         ca = self.getRegister(REG_CA)
-        result = src1 + src2 + ca
+        src2 = 0xffff_ffff_ffff_ffff + ca
+        result = src1 + src2
 
+        if oe: self.setOEflags(result, self.psize, src1, src2)
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-
         self.setCA(result)
-        if op.iflags & IF_RC: self.setFlags(result, None)
 
     def i_addmeo(self, op):
-        '''
-        add minus one extended
-        update flags (if IF_RC)
-        '''
-        src1 = self.getOperValue(op, 1)
-        src2 = 0xffffffffffffffff
-        result = src1 + src2
-        carry = e_bits.is_signed_carry(result, 8, src1)
-
-        self.setOperValue(op, 0, result)
-
-        self.setRegister(REG_CA, carry)
-        self.setOEflags(result, 4, src1, src2)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        self.i_addme(op, oe=True)
 
     def i_addw(self, op):   # CAT_64
-        '''
-        add word
-        '''
-        src1 = self.getOperValue(op, 1)
-        src1 = e_bits.signed(src1, 4)
-        src2 = self.getOperValue(op, 2)
-        src2 = e_bits.signed(src2, 4)
-        result = e_bits.signed(src1 + src2, 4)
-        self.setOperValue(op, 0, result)
-   
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        self.i_addb(op, opsize=4)
+
+    def i_addwss(self, op):  # CAT_64
+        self.i_addbss(op, opsize=4)
 
     def i_addwu(self, op):   # CAT_64
-        '''
-        add word    ??
-        '''
+        self.i_addbu(op, opsize=4)
+
+    def i_addwus(self, op):   # CAT_64
+        self.i_addbus(op, opsize=4)
+
+    def i_addze(self, op, oe=False):
         src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
-        result = e_bits.unsigned(src1 + src2, 8)
+        ca = self.getRegister(REG_CA)
+        result = src1 + ca
+
+        if oe: self.setOEflags(result, self.psize, src1, ca)
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-   
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        self.setCA(result)
 
-    def i_addwss(self, op):
-        '''
-        add word
-        '''
-        src1 = self.getOperValue(op, 1)
-        src1 = e_bits.signed(src1, 4)
-        src2 = self.getOperValue(op, 2)
-        src2 = e_bits.signed(src2, 4)
-        result = e_bits.signed(src1 + src2, 4)
+    def i_addzeo(self, op):
+        self.i_addze(op, oe=True)
 
-        SO = self.getRegister(REG_SO)
-        sum31 = ((result >> 32) & 1)
-        sum32 = ((result >> 31) & 1) 
-        OV = sum31 ^ sum32
-        if OV:
-            if sum31: 
-                result = 0xffffffff80000000
-            else:
-                result = 0x7fffffff
-            SO |= OV
-
-        self.setOperValue(op, 0, result)
-        self.setFlags(result, SO)
-  
     def i_and(self, op):
-        src0 = self.getOperValue(op, 1)
-        src1 = self.getOperValue(op, 2)
-        # PDE
-        if src0 == None or src1 == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
-            return
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        result = src1 & src2
 
-        result = (src0 & src1)
-
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+
+    def i_andc(self, op):
+        '''
+        and "complement"
+        '''
+        src1 = self.getOperValue(op, 1)
+        src2 = COMPLEMENT(self.getOperValue(op, 2), self.psize)
+        result = src1 & src2
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
 
     i_andi = i_and
 
@@ -1284,112 +2098,235 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         and immediate shifted
         '''
-        src0 = self.getOperValue(op, 1)
-        src1 = self.getOperValue(op, 2)
-        # PDE
-        if src0 == None or src1 == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
-            return
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2) << 16
+        result = src1 & src2
 
-        src2 <<= 16
-
-        result = src0 & src1
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(result, None)
 
-    def i_andc(self, op):
-        '''
-        and "complement"
-        '''
-        ssize = op.opers[1].tsize
-        src0 = self.getOperValue(op, 1)
-        src1 = self.getOperValue(op, 2) ^ e_bits.u_maxes[ssize]
-        # PDE
-        if src0 == None or src1 == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
-            return
+    def i_nand(self, op):
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        result = COMPLEMENT(src1 & src2, self.psize)
 
-        result = (src0 & src1)
-
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+
+    def i_nor(self, op):
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        result = COMPLEMENT(src1 | src2, self.psize)
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
 
     def i_or(self, op):
-        src0 = self.getOperValue(op, 1)
-        src1 = self.getOperValue(op, 2)
-        # PDE
-        if src0 == None or src1 == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
-            return
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        result = src1 | src2
 
-        result = (src0 | src1)
-        
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+
+    def i_orc(self, op):
+        src0 = self.getOperValue(op, 1)
+        src1 = COMPLEMENT(self.getOperValue(op, 2), self.psize)
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, (src0 | src1))
 
     i_ori = i_or
 
     def i_oris(self, op):
-        src0 = self.getOperValue(op, 1)
-        src1 = self.getOperValue(op, 2)
-        src1 <<= 16
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2) << 16
+        result = src1 | src2
 
-        # PDE
-        if src0 == None or src1 == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
-            return
-
-        self.setOperValue(op, 0, (src0 | src1))
-        if op.iflags & IF_RC: self.setFlags(result, None)
-
-    def i_orc(self, op):
-        src0 = self.getOperValue(op, 1)
-        src1 = self.getOperValue(op, 2)
-        src1 = -src
-
-        # PDE
-        if src0 == None or src1 == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
-            return
-
-        self.setOperValue(op, 0, (src0 | src1))
-        if op.iflags & IF_RC: self.setFlags(result, None)
-
-    def i_divd(self, op, size=8):
-        div = self.getOperValue(op, 1)
-        dvd = self.getOperValue(op, 2)
-
-        result = divmod(div, dvd)
-
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(result, size=size)
+
+    i_miso = i_nop
+
+    def i_divd(self, op, opsize=8, oe=False):
+        ra = self.getOperValue(op, 1)
+        dividend = e_bits.signed(ra, opsize)
+        rb = self.getOperValue(op, 1)
+        divisor = e_bits.signed(rb, opsize)
+
+        # integer division overflow check, do the divide by 0 check separately
+        # from the overflow (0x8000... / -1) check because we can, and also
+        # because that allows this function to be re-uesd for the divw
+        # instructions
+
+        if divisor == 0:
+            ov = 1
+            # Result is undefined, use the "saturate" style values described in
+            # the divw instruction
+            signed = int(e_bits.is_signed(dividend, opsize))
+            quotient = _ppc_signed_saturate_results[opsize][signed]
+        else:
+            quotient = dividend // divisor
+
+            # Now check if that operation would overflow the available register
+            # size
+            if ra == e_bits.sign_bits[opsize] and divisor == -1:
+                ov = 1
+                # If the opsize is the current machine pointer size, set the
+                # quotient to the "saturate" negative value, otherwise just
+                # leave the quotient as-is.
+                if opsize == self.psize:
+                    quotient = _ppc_signed_saturate_results[opsize][1]
+            else:
+                ov = 0
+
+        if oe: self.setOverflow(ov)
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, quotient)
+
+    def i_divdo(self, op):
+        self.divd(op, oe=True)
+
+    def i_divdu(self, op, opsize=8, oe=False):
+        ra = self.getOperValue(op, 1)
+        dividend = e_bits.unsigned(ra, opsize)
+        rb = self.getOperValue(op, 1)
+        divisor = e_bits.unsigned(rb, opsize)
+
+        if divisor == 0:
+            ov = 1
+            # Result is undefined, use the "saturate" style values described in
+            # the divwu instruction
+            quotient = UNSIGNED_SATURATE(opsize)
+        else:
+            ov = 0
+            quotient = dividend // divisor
+
+        if oe: self.setOverflow(ov)
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, quotient)
+
+    def i_divduo(self, op):
+        self.divd(op, oe=True)
 
     def i_divw(self, op):
-        self.i_divd(op, size=4)
+        self.divd(op, opsize=4)
 
+    def i_divwo(self, op):
+        self.divd(op, opsize=4, oe=True)
+
+    def i_divwu(self, op):
+        self.divdu(op, opsize=4)
+
+    def i_divwuo(self, op):
+        self.divdu(op, opsize=4, oe=True)
+
+    def i_divwe(self, op, oe=False):
+        # This one gets weird
+        ra = self.getOperValue(op, 1)
+        dividend = e_bits.signed(ra, 4) << 32
+        rb = self.getOperValue(op, 1)
+        divisor = e_bits.signed(rb, 4)
+
+        if divisor == 0:
+            ov = 1
+            # Result is undefined, use the "saturate" style values described in
+            # the divw instruction
+            signed = e_bits.is_signed(dividend, 4)
+            quotient = _ppc_signed_saturate_results[4][signed]
+        elif ra == e_bits.sign_bits[4] and divisor == -1:
+            ov = 1
+            quotient = _ppc_signed_saturate_results[4][1]
+        else:
+            quotient = dividend // divisor
+
+            # Check if the quotient is too small or large for a valid 4-byte
+            # value.
+            signed = e_bits.is_signed(quotient, 8)
+            msb = BIT(quotient, 33)
+            if (signed and not msb) or (not signed and msb):
+                ov = 1
+                quotient = SIGNED_SATURATE(quotient, 4)
+
+        if oe: self.setOverflow(ov)
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, quotient)
+
+    def i_divweo(self, op):
+        self.i_divwe(op, oe=True)
+
+    def i_divweu(self, op, oe=False):
+        # This one gets weird
+        ra = self.getOperValue(op, 1)
+        dividend = e_bits.unsigned(ra, 4) << 32
+        rb = self.getOperValue(op, 1)
+        divisor = e_bits.unsigned(rb, 4)
+
+        if divisor == 0:
+            ov = 1
+            quotient = UNSIGNED_SATURATE(4)
+        else:
+            quotient = dividend // divisor
+
+            # Do the unsigned saturate check for 4 bytes
+            ov = int(quotient > e_bits.u_maxes[4])
+
+            if ov:
+                quotient = UNSIGNED_SATURATE(4)
+
+        if oe: self.setOverflow(ov)
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, quotient)
+
+    def i_divweuo(self, op):
+        self.i_divweu(op, oe=True)
 
     ########################## FLOAT INSTRUCTIONS ################################
-    def i_fdiv(self, op):
-        dvd = self.getOperValue(op, 1)
-        div = self.getOperValue(op, 2)
 
-        dvd = e_bits.decimeltofloat(dvd, op.opers[1].tsize, self.getEndian())
-        div = e_bits.decimeltofloat(div, op.opers[2].tsize, self.getEndian())
+    # TODO: In theory MSR[FP] == 0 should cause a floating-point unavailable
+    # interrupt, but when finding valid source we don't want that to happen.
 
-        fresult = dvd/div
+    def i_fabs(self, op):
+        val = self.getOperValue(op, 1)
+        tsize = op.opers[1].tsize
 
-        result = e_bits.floattodecimel(fresult, op.opers[1].tsize, self.getEndian())
-        self.setOperValue(op, 0, result)
+        # Clear the sign bit
+        result = val & (~e_bits.sign_bits[tsize])
+
+        val = self.setOperValue(op, 0, result)
         if op.iflags & IF_RC: self.setFloatFlags(result, size)
 
+    def i_fdiv(self, op, fpsize=8):
+        frA = self.getOperValue(op, 1)
+        frB = self.getOperValue(op, 2)
+
+        dividend = self.decimal2float(frA, fpsize)
+        divisor = self.decimal2float(frB, fpsize)
+
+        fresult = dividend / divisor
+
+        result = self.float2decimal(fresult, fpsize)
+        if op.iflags & IF_RC: self.setFloatFlags(result, size)
+        self.setOperValue(op, 0, result)
 
     ########################## LOAD/STORE INSTRUCTIONS ################################
     # lbz and lbzu access memory directly from operand[1]
+
+    def i_lha(self, op):
+        src = e_bits.signed(self.getOperValue(op, 1), 2)
+        self.setOperValue(op, 0, src & 0xffffffffffffffff)
+
+    def i_lhau(self, op):   # CAT_64
+        src = e_bits.signed(self.getOperValue(op, 1), 2)
+        self.setOperValue(op, 0, src & 0xffffffffffffffff)
+
+        # Save the calculated effective address (src) into rA
+        self.setOperValue(op, 1, src)
+
+    def i_lwa(self, op):
+        src = e_bits.signed(self.getOperValue(op, 1), 4)
+        self.setOperValue(op, 0, src & 0xffffffffffffffff)
+
     def i_lbz(self, op):
         op.opers[1].tsize = 1
         src = self.getOperValue(op, 1)
@@ -1459,7 +2396,6 @@ class PpcAbstractEmulator(envi.Emulator):
     i_lhzxe = i_lhzx
     i_lhzuxe = i_lhzux
 
-
     # lwz and lwzu access memory directly from operand[1]
     def i_lwz(self, op):
         src = self.getOperValue(op, 1)
@@ -1519,7 +2455,7 @@ class PpcAbstractEmulator(envi.Emulator):
             word = self.getRegister(regidx)
             self.writeMemValue(startaddr + offset, word & 0xffffffff, 4)
             offset += 4
-    
+
     def i_stb(self, op, size=1):
         op.opers[1].tsize = size
         src = self.getOperValue(op, 0)
@@ -1533,7 +2469,7 @@ class PpcAbstractEmulator(envi.Emulator):
 
     def i_std(self, op):
         return self.i_stb(op, size=8)
-  
+
 
     def i_stbu(self, op, size=1):
         op.opers[1].tsize = size
@@ -1543,10 +2479,10 @@ class PpcAbstractEmulator(envi.Emulator):
         # the u stands for "update"... ie. write-back
         # this form holds both base and offset in the same operand, so let it handle the update
         op.opers[1].updateReg(self)
-    
+
     def i_sthu(self, op):
         return self.i_stbu(op, size=2)
-    
+
     def i_stwu(self, op):
         return self.i_stbu(op, size=4)
 
@@ -1585,9 +2521,6 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_stdux(self, op):
         return self.i_stbx(op, size=8, update=True)
 
-   
-    
-
     def i_movfrom(self, op):
         src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
@@ -1595,14 +2528,6 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_mov(self, op):
         src = self.getOperValue(op, 0)
         self.setOperValue(op, 1, src)
-
-    def i_mflr(self, op):
-        src = self.getRegister(REG_LR)
-        self.setOperValue(op, 0, src)
-
-    def i_mtlr(self, op):
-        src = self.getOperValue(op, 0)
-        self.setRegister(REG_LR, src)
 
     def i_mfmsr(self, op):
         src = self.getRegister(REG_MSR) & 0xffffffff
@@ -1635,10 +2560,33 @@ class PpcAbstractEmulator(envi.Emulator):
         spr = op.opers[0].reg
         src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
-        
+
         spr_write_hdlr = self.spr_write_handlers.get(spr)
         if spr_write_hdlr is not None:
             spr_write_hdlr(self, op)
+
+    ########################## Special case MT/F instructions ################################
+#'INS_MCRFS' emulation method missing
+#'INS_MCRXR' emulation method missing
+#
+#'INS_MFFS' emulation method missing
+#'INS_MFOCRF' emulation method missing
+#'INS_MFPMR' emulation method missing
+#'INS_MFTB' emulation method missing
+#'INS_MFTMR' emulation method missing
+#'INS_MFVSCR' emulation method missing
+#
+#'INS_MTCR' emulation method missing
+#'INS_MTCRF' emulation method missing
+#'INS_MTDCR' emulation method missing
+#'INS_MTFSB0' emulation method missing
+#'INS_MTFSB1' emulation method missing
+#'INS_MTFSF' emulation method missing
+#'INS_MTFSFI' emulation method missing
+#'INS_MTOCRF' emulation method missing
+#'INS_MTPMR' emulation method missing
+#'INS_MTTMR' emulation method missing
+#'INS_MTVSCR' emulation method missing
 
     def _swh_L1CSR1(self, emu, op):
         spr = self.getOperValue(op, 0)
@@ -1649,153 +2597,247 @@ class PpcAbstractEmulator(envi.Emulator):
     i_li = i_movfrom
     i_mr = i_movfrom
 
+    ######################## utility instructions ##########################
+
     def i_lis(self, op):
         src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, (src<<16))
         # technically this is incorrect, but since we disassemble wrong, we emulate wrong.
         #self.setOperValue(op, 0, (src))
 
-    def i_rlwimi(self, op):
-        n = self.getOperValue(op, 2) & 0x1f
-        b = self.getOperValue(op, 3) + 32
-        e = self.getOperValue(op, 4) + 32
+    def i_cntlzw(self, op):
+        rs = self.getOperValue(op, 1)
+        result = CLZ(rs, psize=4)
+        self.setOperValue(op, 0, result)
+        if op.iflags & IF_RC: self.setFlags(result)
+
+    def i_cntlzd(self, op):   # CAT_64
+        rs = self.getOperValue(op, 1)
+        result = CLZ(rs, psize=8)
+        self.setOperValue(op, 0, result)
+        if op.iflags & IF_RC: self.setFlags(result)
+
+    ######################## rotate/shift instructions ##########################
+
+    def i_rldcl(self, op):
+        rb = self.getOperValue(op, 1)
+        rs = self.getOperValue(op, 1)
+
+        n = rb & 0x3f
+        r = ROTL64(rs, n)
+        b = self.getOperValue(op, 3)
+        k = MASK(b, 63)
+        result = r & k
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
+    def i_rldcr(self, op):
+        rb = self.getOperValue(op, 1)
+        rs = self.getOperValue(op, 1)
+
+        n = rb & 0x3f
+        r = ROTL64(rs, n)
+        e = self.getOperValue(op, 3)
+        k = MASK(0, e)
+        result = r & k
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
+    def i_rldic(self, op):
+        rs = self.getOperValue(op, 1)
+
+        n = self.getOperValue(op, 2)
+        r = ROTL64(rs, n)
+        b = self.getOperValue(op, 3)
+        k = MASK(b, ~n)
+        result = r & k
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
+    def i_rldicl(self, op):
+        rs = self.getOperValue(op, 1)
+
+        n = self.getOperValue(op, 2)
+        r = ROTL64(rs, n)
+        b = self.getOperValue(op, 3)
+        k = MASK(b, 63)
+        result = r & k
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
+    def i_rldicr(self, op):
+        rs = self.getOperValue(op, 1)
+
+        n = self.getOperValue(op, 2)
+        r = ROTL64(rs, n)
+        e = self.getOperValue(op, 3)
+        k = MASK(0, e)
+        result = r & k
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
+    def i_rldimi(self, op):
         ra = self.getOperValue(op, 0)
+        rs = self.getOperValue(op, 1)
 
-        r = ROTL32(self.getOperValue(op, 1), n)
-        k = MASK(b, e)
-
+        n = self.getOperValue(op, 2)
+        r = ROTL64(rs, n)
+        b = self.getOperValue(op, 3)
+        k = MASK(b, ~n)
         result = (r & k) | (ra & ~k)
 
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(result, None)
 
-        
-    def i_rlwnm(self, op):
+    def i_rlwimi(self, op):
+        ra = self.getOperValue(op, 0)
+        rs = self.getOperValue(op, 1)
+
         n = self.getOperValue(op, 2) & 0x1f
         b = self.getOperValue(op, 3) + 32
         e = self.getOperValue(op, 4) + 32
-        ra = self.getOperValue(op, 0)
-
-        r = ROTL32(self.getOperValue(op, 1), n)
+        r = ROTL32(e_bits.unsigned(rs, 4), n)
         k = MASK(b, e)
+        result = (r & k) | (ra & ~k)
 
-        result = r & k
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(result, None)
+
+    def i_rlwnm(self, op):
+        rs = self.getOperValue(op, 1)
+
+        n = self.getOperValue(op, 2) & 0x1f
+        b = self.getOperValue(op, 3) + 32
+        e = self.getOperValue(op, 4) + 32
+        r = ROTL32(e_bits.unsigned(rs, 4), n)
+        k = MASK(b, e)
+        result = r & k
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
 
     i_rlwinm = i_rlwnm
 
-    def i_rlwinm_old(self, op):
-        rs = self.getOperValue(op, 1)
-        sh = self.getOperValue(op, 2)
-        mb = self.getOperValue(op, 3)
-        me = self.getOperValue(op, 4)
-
-        r = (rs << sh) | (rs >> (32-sh))
-        numbits = me - mb
-        k = e_bits.bu_masks[numbits] << mb
-
-        result = r & k
-        self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFlags(result, None)
-
-    def i_srawi(self, op, size=4):
-        rs = self.getOperValue(op, 1)
-        n = self.getOperValue(op, 2) & 0x1f
-        k = MASK(n+32, 63)
-        r = ROTL32(rs, 64-n)
-        s = (0, e_bits.u_maxes[4])[bool(rs & 0x80000000)]
-
-        result = (r & k) | (s & ~k)
-
-        self.setOperValue(op, 0, result)
-
-        carry = bool(s and ((r & ~k)))
-        self.setRegister(REG_CA, carry)
-        
-        if op.iflags & IF_RC: self.setFlags(result, None)
-
-    def i_sraw(self, op, size=4):
+    def i_sld(self, op):
         rb = self.getOperValue(op, 2)
         rs = self.getOperValue(op, 1)
 
-        n = rb & 0x1f
-        r = ROTL32(rs, 64-n)
-        if bool(rb & 0x20):
-            k = 0
-        else:
-            k = MASK(n+32, 63)
-        s = (0, e_bits.u_maxes[4])[bool(rs & 0x80000000)]
-
-        result = (r & k) | (s & ~k)
-
-        carry = bool(s and ((r & ~k)))
-        self.setRegister(REG_CA, carry)
-        
-        if op.iflags & IF_RC: self.setFlags(result, None)
-        self.setOperValue(op, 0, result)
-
-
-    def i_srw(self, op):
-        rb = self.getOperValue(op, 2)
-        rs = self.getOperValue(op, 1)
-
-        n = rb & 0x1f
-        r = ROTL32(rs, 64-n)
-        if bool(rb & 0x20):
-            k = 0
-        else:
-            k = MASK(n+32, 63)
-
+        n = rb & 0x3f
+        r = ROTL64(rs, n)
+        k = 0 if rb & 0x40 else MASK(0, 63-n)
         result = r & k
 
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-        print("srw: rb: %x  rs: %x  result: %x" % (rb, rs, result))
 
     def i_slw(self, op):
         rb = self.getOperValue(op, 2)
         rs = self.getOperValue(op, 1)
 
         n = rb & 0x1f
-        r = ROTL32(rs, n)
-        if bool(rb & 0x20):
-            k = 0
-        else:
-            k = MASK(n+32, 63)
-
+        r = ROTL32(e_bits.unsigned(rs, 4), n)
+        k = 0 if rb & 0x20 else MASK(32, 63-n)
         result = r & k
 
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
-        print("slw: rb: %x  rs: %x  result: %x" % (rb, rs, result))
 
-    def i_lha(self, op):
-        src = e_bits.signed(self.getOperValue(op, 1), 2)
-        self.setOperValue(op, 0, src & 0xffffffffffffffff)
-        
+    def i_srad(self, op):
+        rb = self.getOperValue(op, 2)
+        rs = self.getOperValue(op, 1)
 
-    def i_twi(self, op):
-        TO = self.getOperValue(op, 0)
-        rA = self.getOperValue(op, 1)
-        asize = op.opers[1].tsize
-        SIMM = self.getOperValue(op, 2)
+        n = rb & 0x3f
+        r = ROTL64(rs, 64-n)
+        k = 0 if rb & 0x40 else MASK(n, 63)
+        s = e_bits.is_signed(rs, 8)
+        result = (r & k) | (s & ~k)
 
-        if TO & 1 and e_bits.signed(rA, asize) < e_bits.signed(SIMM, 2):
-            #TRAP
-            self.trap(op)
-        if TO & 2 and e_bits.signed(rA, asize) > e_bits.signed(SIMM, 2):
-            #TRAP
-            self.trap(op)
-        if TO & 4 and rA == SIMM:
-            #TRAP
-            self.trap(op)
-        if TO & 8 and rA > SIMM:
-            #TRAP
-            self.trap(op)
-        if TO & 10 and rA > SIMM:
-            #TRAP
-            self.trap(op)
+        if op.iflags & IF_RC: self.setFlags(result)
+
+        ca = s and ((r & ~k))
+        self.setRegister(REG_CA, ca)
+
+        self.setOperValue(op, 0, result)
+
+    def i_sradi(self, op):
+        n = self.getOperValue(op, 2)
+        rs = self.getOperValue(op, 1)
+
+        r = ROTL64(rs, 64-n)
+        k = MASK(n, 63)
+        s = e_bits.is_signed(rs, 8)
+        result = (r & k) | (s & ~k)
+
+        if op.iflags & IF_RC: self.setFlags(result)
+
+        ca = s and ((r & ~k))
+        self.setRegister(REG_CA, ca)
+
+        self.setOperValue(op, 0, result)
+
+    def i_sraw(self, op):
+        rb = self.getOperValue(op, 2)
+        rs = self.getOperValue(op, 1)
+
+        n = rb & 0x1f
+        r = ROTL32(e_bits.unsigned(rs, 4), 32-n)
+        k = 0 if rb & 0x20 else MASK(n+32, 63)
+        s = e_bits.is_signed(rs, 4)
+        result = (r & k) | (s & ~k)
+
+        if op.iflags & IF_RC: self.setFlags(result)
+
+        ca = s and ((r & ~k))
+        self.setRegister(REG_CA, ca)
+
+        self.setOperValue(op, 0, result)
+
+    def i_srawi(self, op):
+        n = self.getOperValue(op, 2)
+        rs = self.getOperValue(op, 1)
+
+        r = ROTL32(e_bits.unsigned(rs, 4), 32-n)
+        k = MASK(n+32, 63)
+        s = e_bits.is_signed(rs, 4)
+        result = (r & k) | (s & ~k)
+
+        if op.iflags & IF_RC: self.setFlags(result)
+
+        ca = s and ((r & ~k))
+        self.setRegister(REG_CA, ca)
+
+        self.setOperValue(op, 0, result)
+
+    def i_srd(self, op):
+        rb = self.getOperValue(op, 2)
+        rs = self.getOperValue(op, 1)
+
+        n = rb & 0x3f
+        r = ROTL64(rs, 64-n)
+        k = 0 if rb & 0x40 else MASK(n, 63)
+        result = r & k
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
+    def i_srw(self, op):
+        rb = self.getOperValue(op, 2)
+        rs = self.getOperValue(op, 1)
+
+        n = rb & 0x1f
+        r = ROTL32(e_bits.unsigned(rs, 4), 32-n)
+        k = 0 if rb & 0x20 else MASK(n+32, 63)
+        result = r & k
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
+    ######################## arithmetic instructions ##########################
 
     def i_mulld(self, op, size=8):
         ra = self.getOperValue(op, 1) & e_bits.u_maxes[size]
@@ -1844,7 +2886,7 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_divw(self, op, oe=False):
         dividend = e_bits.signed(self.getOperValue(op, 1), 4)
         divisor = e_bits.signed(self.getOperValue(op, 2), 4)
-        
+
         if (dividend == -0x80000000 and divisor == -1):
             quotient = 0x7fffffff
 
@@ -1857,7 +2899,7 @@ class PpcAbstractEmulator(envi.Emulator):
             ov = 1
 
         else:
-            quotient = dividend / divisor
+            quotient = dividend // divisor
             ov = 0
 
         so = self.getRegister(REG_SO)
@@ -1866,7 +2908,7 @@ class PpcAbstractEmulator(envi.Emulator):
             self.setRegister(REG_OV, ov)
             self.setRegister(REG_SO, so)
 
-        if op.iflags & IF_RC: 
+        if op.iflags & IF_RC:
             if self.psize == 8:
                 self.setRegister(REG_CR0, so)
             else:
@@ -1877,13 +2919,13 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_divwu(self, op, oe=False):
         dividend = self.getOperValue(op, 1)
         divisor = self.getOperValue(op, 2)
-        
+
         if divisor == 0:
             quotient = 0xffffffff
             ov = 1
 
         else:
-            quotient = dividend / divisor
+            quotient = dividend // divisor
 
             ov = 0
 
@@ -1893,7 +2935,7 @@ class PpcAbstractEmulator(envi.Emulator):
             self.setRegister(REG_OV, ov)
             self.setRegister(REG_SO, so)
 
-        if op.iflags & IF_RC: 
+        if op.iflags & IF_RC:
             if self.psize == 8:
                 self.setRegister(REG_CR0, so)
             else:
@@ -1908,6 +2950,13 @@ class PpcAbstractEmulator(envi.Emulator):
         cr = self.getRegister(REG_CR)
         self.setOperValue(op, 0, cr & 0xffffffff)
 
+    def i_mcrfs(self, op):
+        # This has weird side effects:
+        #   - if MSR[FP] =0 0 raise FP unavailable interrupt
+        #   - all exception bits copied from the FPSCR are cleared
+
+        crS = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, crS)
 
     def _base_sub(self, op, oeflags=False, setcarry=False, addone=1, size=4):
         dsize = op.opers[0].tsize
@@ -1920,13 +2969,10 @@ class PpcAbstractEmulator(envi.Emulator):
         ures = result & e_bits.u_maxes[dsize]
         sres = e_bits.signed(ures, dsize)
         self.setOperValue(op, 0, sres & e_bits.u_maxes[dsize])
-        
-        if oeflags: self.setOEflags(result, size, ra, rb+1)
-        if op.iflags & IF_RC: self.setFlags(result, None)
 
-        if setcarry:
-            carry = bool(result & (e_bits.u_maxes[dsize] + 1))
-            self.setRegister(REG_CA, carry)
+        if setcarry: self.setCA(result)
+        if oeflags: self.setOEflags(result, size, ra, rb + addone)
+        if op.iflags & IF_RC: self.setFlags(result)
 
     def i_subf(self, op):
         result = self._base_sub(op)
@@ -1948,8 +2994,8 @@ class PpcAbstractEmulator(envi.Emulator):
         result = ra + rb + 1
         ures = result & e_bits.u_maxes[dsize]
         self.setOperValue(op, 0, ures & e_bits.u_maxes[dsize])
-        
-        if op.iflags & IF_RC: self.setFlags(result, None)
+
+        if op.iflags & IF_RC: self.setFlags(result)
 
     def i_subfbss(self, op, size=1):
         dsize = op.opers[0].tsize
@@ -1976,7 +3022,7 @@ class PpcAbstractEmulator(envi.Emulator):
             else:
                 ures = e_bits.s_maxes[size]
         so |= ov
-        
+
         self.setRegister(REG_OV, ov)
         self.setRegister(REG_SO, so)
         if op.iflags & IF_RC: self.setFlags(result, so)
@@ -1987,30 +3033,30 @@ class PpcAbstractEmulator(envi.Emulator):
         dsize = op.opers[0].tsize
         asize = op.opers[1].tsize
 
-        ra = self.getOperValue(op, 1) & e_bits.u_maxes[size]     # EXTZ... zero-extended
+        ra = EXTZ(self.getOperValue(op, 1), size)
         ra ^= e_bits.u_maxes[asize] # 1's complement
         ra = e_bits.unsigned(ra, 1)
 
-        rb = self.getOperValue(op, 2) & e_bits.u_maxes[size] 
+        rb = self.getOperValue(op, 2) & e_bits.u_maxes[size]
 
         result = ra + rb + 1
-        ures = result & e_bits.u_maxes[size] 
+        ures = result & e_bits.u_maxes[size]
         self.setOperValue(op, 0, ures & e_bits.u_maxes[dsize])
 
-        if op.iflags & IF_RC: self.setFlags(result, None)
+        if op.iflags & IF_RC: self.setFlags(result)
 
     def i_subfbus(self, op, size=1):
         dsize = op.opers[0].tsize
         asize = op.opers[1].tsize
 
-        ra = self.getOperValue(op, 1) & e_bits.u_maxes[size]    # EXTZ... zero-extended
+        ra = EXTZ(self.getOperValue(op, 1), size)
         ra ^= e_bits.u_maxes[asize] # 1's complement
         ra = e_bits.signed(ra, 1)
 
         rb = self.getOperValue(op, 2) & e_bits.u_maxes[size]
 
         result = ra + rb + 1
-        ures = result & e_bits.u_maxes[size] 
+        ures = result & e_bits.u_maxes[size]
 
         # flag magic
         so = self.getRegister(REG_SO)
@@ -2023,7 +3069,7 @@ class PpcAbstractEmulator(envi.Emulator):
             else:
                 ures = e_bits.s_maxes[size]
         so |= ov
-        
+
         self.setRegister(REG_OV, ov)
         self.setRegister(REG_SO, so)
         if op.iflags & IF_RC: self.setFlags(result, so)
@@ -2036,13 +3082,27 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_subfco(self, op):
         self._base_sub(op, oeflags=True, setcarry=True)
 
-    def i_subfe(self, op):
-        addone = self.getRegister(REG_CA)
-        self._base_sub(op, oeflags=False, setcarry=True, addone=addone)
+    def i_subfe(self, op, oe=False):
+        ca = self.getRegister(REG_CA)
+
+        dsize = op.opers[0].tsize
+        asize = op.opers[1].tsize
+
+        ra = self.getOperValue(op, 1)
+        ra ^= e_bits.u_maxes[asize] # 1's complement
+        rb = self.getOperValue(op, 2)
+        result = ra + rb + ca
+
+        ures = result & e_bits.u_maxes[dsize]
+        sres = e_bits.signed(ures, dsize)
+
+        self.setOperValue(op, 0, sres & e_bits.u_maxes[dsize])
+        self.setCA(result)
+        if oe: self.setOEflags(result, size, ra, rb + ca)
+        if op.iflags & IF_RC: self.setFlags(result)
 
     def i_subfeo(self, op):
-        addone = self.getRegister(REG_CA)
-        self._base_sub(op, oeflags=True, setcarry=True, addone=addone)
+        self.i_subfe(op, oe=True)
 
     def i_subfh(self, op):
         self.i_subfb(op, 2)
@@ -2066,9 +3126,10 @@ class PpcAbstractEmulator(envi.Emulator):
         ra ^= e_bits.u_maxes[asize] # 1's complement
         result = ra + simm + 1
         ures = result & e_bits.u_maxes[dsize]
-        
-        carry = bool(result & (e_bits.u_maxes[dsize] + 1))
-        self.setRegister(REG_CA, carry)
+        sres = e_bits.signed(ures, dsize)
+        self.setOperValue(op, 0, sres & e_bits.u_maxes[dsize])
+
+        self.setCA(result)
 
     def _subme(self, op, size=4, addone=1, oeflags=False):
         dsize = op.opers[0].tsize
@@ -2081,12 +3142,10 @@ class PpcAbstractEmulator(envi.Emulator):
         ures = result & e_bits.u_maxes[dsize]
         sres = e_bits.signed(ures, dsize)
         self.setOperValue(op, 0, sres & e_bits.u_maxes[dsize])
-        
-        if oeflags: self.setOEflags(result, size, ra, rb+1)
-        if op.iflags & IF_RC: self.setFlags(result, None)
 
-        carry = bool(result & (e_bits.u_maxes[dsize] + 1))
-        self.setRegister(REG_CA, carry)
+        self.setCA(result)
+        if oeflags: self.setOEflags(result, size, ra + rb + addone)
+        if op.iflags & IF_RC: self.setFlags(result)
 
     def i_subfme(self, op, size=4, addone=1):
         ca = self.getRegister(REG_CA)
@@ -2108,12 +3167,161 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_subfwus(self, op):
         self.i_subfbus(op, 4)
 
+    def i_subfze(self, op, oe=False):
+        ca = self.getRegister(REG_CA)
 
-    # VLE instructions
+        dsize = op.opers[0].tsize
+        asize = op.opers[1].tsize
+
+        ra = self.getOperValue(op, 1)
+        ra ^= e_bits.u_maxes[asize] # 1's complement
+
+        # 1's compliment of rA added to the CA flag
+        result = ra + ca
+
+        ures = result & e_bits.u_maxes[dsize]
+        sres = e_bits.signed(ures, dsize)
+
+        self.setOperValue(op, 0, sres & e_bits.u_maxes[dsize])
+        self.setCA(result)
+        if oe: self.setOEflags(result, size, ra, ca)
+        if op.iflags & IF_RC: self.setFlags(result)
+
+    def i_subfzeo(self, op):
+        self.i_subfze(op, oe=True)
+
+    ######################## cache instructions ##########################
+
+    # these instructions don't have any effect on the emulation
+
+    i_dcba = i_nop
+    i_dcbal = i_nop
+    i_dcbf = i_nop
+    i_dcbfep = i_nop
+    i_dcbi = i_nop
+    i_dcblc = i_nop
+    i_dcblq = i_nop
+    i_dcbst = i_nop
+    i_dcbstep = i_nop
+    i_dcbt = i_nop
+    i_dcbtep = i_nop
+    i_dcbtls = i_nop
+    i_dcbtst = i_nop
+    i_dcbtstep = i_nop
+    i_dcbtstls = i_nop
+    i_dcbz = i_nop
+    i_dcbzep = i_nop
+    i_dcbzl = i_nop
+    i_dcbzlep = i_nop
+
+    ######################## sync instructions ##########################
+
+    i_sync = i_nop
+    i_isync = i_nop
+    i_msync = i_nop
+    i_esync = i_nop
+
+    ######################## debug instructions ##########################
+
+    # These instructions are valid but do nothing for now
+
+    i_dnh = i_nop
+    i_dni = i_nop
+
+    ######################## interrupt instructions ##########################
+
+    # These are instructions related to causing, or returning from interrupt
+    # contexts
+
+    def i_rfi(self, op):
+        '''
+        Return From Interrupt
+        '''
+        # is this a critical interrupt?
+        # if not... SRR0 is next instruction address
+        nextpc = self.getRegister(REG_SRR0)
+        msr = self.getRegister(REG_SRR1)
+        self.setRegister(REG_MSR, msr)
+        return nextpc
+
+    def trap(self, op):
+        print('TRAP 0x%08x: %r' % (op.va, op))
+        # FIXME: if this is used for software permission transition (like a kernel call),
+        #   this approach may need to be rethought
+
+    def i_twi(self, op):
+        TO = self.getOperValue(op, 0)
+        rA = self.getOperValue(op, 1)
+        asize = op.opers[1].tsize
+        SIMM = self.getOperValue(op, 2)
+
+        if TO & 1 and e_bits.signed(rA, asize) < e_bits.signed(SIMM, 2):
+            #TRAP
+            self.trap(op)
+        if TO & 2 and e_bits.signed(rA, asize) > e_bits.signed(SIMM, 2):
+            #TRAP
+            self.trap(op)
+        if TO & 4 and rA == SIMM:
+            #TRAP
+            self.trap(op)
+        if TO & 8 and rA > SIMM:
+            #TRAP
+            self.trap(op)
+        if TO & 10 and rA > SIMM:
+            #TRAP
+            self.trap(op)
+
+    i_tdi = i_twi
+
+    # TODO: These are instructions that should move the code into a different
+    # context
+
+    def i_sc(self, op):
+        # SYSTEM CALL EXCEPTION
+        print('SC 0x%08x: %r' % (op.va, op))
+
+    def i_ehpriv(self, op):
+        print('EHPRIV 0x%08x: %r' % (op.va, op))
+
+    def i_wait(self, op):
+        # This should wait until an "interrupt" occurs, for now just assume the
+        # interrupt has happened and continue processing
+        pass
+
+    ######################## misc instructions ##########################
+
+    def i_bpermd(self, op):
+        '''
+        bit permute doubleword
+
+        bpermd rA,rS,rB
+
+        From the manual:
+            If byte i of RS is less than 64, permuted bit i is set to the bit
+            of RB specified by byte i of RS; otherwise permuted bit i is set
+            to 0.
+        '''
+        rs = self.getOperValue(op, 1)
+        rb = self.getOperValue(op, 2)
+
+        # Turn rS into 8 bytes, make this big endian so we go MSB to LSB
+        val_list = struct.pack('>Q', rs)
+
+        # Now combine those values with a list of shift values to indicate which
+        # bit (in sane numbering) in rA should be set
+        shift_list = range(7,-1,-1)
+
+        # Now smash all those bits together
+        result = sum(BIT(rb, val) << shift \
+                for shift, val in zip(shift_list, val_list) \
+                if val < 64)
+
+        self.setOperValue(op, 0, result)
+
+
+    ######################## VLE instructions ##########################
     i_e_li = i_li
     i_e_lis = i_lis
-    i_se_mflr = i_mflr
-    i_se_mtlr = i_mtlr
     i_e_stwu = i_stwu
     i_e_stmw = i_stmw
     i_e_lmw = i_lmw
@@ -2162,22 +3370,65 @@ class PpcAbstractEmulator(envi.Emulator):
 
     i_wrtee = i_wrteei
 
+    def i_extsb(self, op, opsize=1):
+        result = self.getOperValue(op, 1)
+        results = e_bits.sign_extend(result, opsize, self.psize)
+        self.setOperValue(op, 0, result)
+
+        if op.iflags & IF_RC: self.setFlags(result)
 
     def i_extsh(self, op):
-        result = self.getOperValue(op, 1)
-        results = e_bits.sign_extend(result, 2, 8)
-        self.setOperValue(op, 0, result)
+        self.i_extsb(op, opsize=2)
 
-        if op.iflags & IF_RC: self.setFlags(result, None)
+    def i_extsw(self, op):
+        self.i_extsb(op, opsize=4)
 
     def i_xor(self, op):
-        result = self.getOperValue(op, 1)
-        result ^= self.getOperValue(op, 2)
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        result = src1 ^ src2
+
+        if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
 
-        if op.iflags & IF_RC: self.setFlags(result, None)
-
     i_xori = i_xor
+
+    def i_xoris(self, op):
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2) << 16
+        result = src1 ^ src2
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
+    def i_eqv(self, op):
+        # This is essengially an "nxor" instruction
+        src0 = self.getOperValue(op, 1)
+        src1 = self.getOperValue(op, 2)
+        # PDE
+        if src0 == None or src1 == None:
+            self.undefFlags()
+            op.opers[OPER_DST].setOperValue(op, self, None)
+            return
+
+        result = (src0 ^ src1)
+        dsize = op.opers[0].tsize
+        result ^= e_bits.u_maxes[dsize] # 1's complement of the result
+
+        self.setOperValue(op, 0, result)
+        if op.iflags & IF_RC: self.setFlags(result)
+
+    # These condition register logical operations use CR source/dest
+    # pseudo-registers, but otherwise is the same logic as the normal logical
+    # counterparts
+    i_cror = i_or
+    i_crnor = i_nor
+    i_crorc = i_orc
+    i_crand = i_and
+    i_crandc = i_andc
+    i_crnand = i_nand
+    i_crxor = i_xor
+    i_creqv = i_eqv
 
     '''
     i_se_bclri                         rX,UI5
@@ -2302,14 +3553,14 @@ In [2]: mnems = {}
 In [3]: for lva, lsz, ltype, ltinfo in vw.getLocations(vivisect.LOC_OP):
    ...:     op = vw.parseOpcode(lva)
    ...:     mnems[op.mnem] = mnems.get(op.mnem, 0) + 1
-   ...:     
+   ...:
 
 In [5]: dist = [(y, x) for x,y in mnems.items()]
 
 In [7]: dist.sort()
 
 In [8]: dist
-Out[8]: 
+Out[8]:
 [(1, 'add.'),
  (1, 'addic'),
  (1, 'addme'),

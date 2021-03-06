@@ -3,6 +3,25 @@
 import re
 import sys
 import collections
+import argparse
+import time
+
+
+def now():
+    # return an ISO 8601 formatted date string
+    # 2019-07-18T02:28:16+00:00
+    return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
+
+
+def arg_to_int(val):
+    if isinstance(val, str):
+        if val.startswith('0x'):
+            return int(val, 16)
+        else:
+            return int(val)
+    else:
+        return val
+
 
 # VLE instructions are all prefixed with se_ or e_, but the VLE cores do
 # support a small subset of EREF defined instructions (defined in section
@@ -43,7 +62,7 @@ class lst_parser(object):
             ('DATA',         r'\.(?:byte|short|dword|qword)'),
             ('STRUCTDATA',   r' {17}[a-zA-Z][0-9A-Za-z_.]+ +<[x0-9A-Fa-f, ]+>'),
             ('REG',          r'\b(?:cr|r|v|fpr|f)[0-9]{1,2}\b'),
-            ('ASM',          r' {17}(?:e_|se_)?[a-z][a-z0-9]*\b\.?(?: |$)'),
+            ('ASM',          r' {17}(?:e_|se_)?[a-z][a-z0-9]*\b[.+-]?(?: |$)'),
             ('CONDITION',    r'(?:4 ?\* ?cr[0-7] ?\+ ?)?(?:lt|gt|eq|so|un)\b'),
             ('COMMENT',      r'#.*'),
             ('STRING',       r'".*"'),
@@ -98,21 +117,39 @@ class ppc_instr(object):
         'e_bne':        'signed_bd15',             # BD15: signed 15 bit value << 1
         'e_beq':        'signed_bd15',             # BD15: signed 15 bit value << 1
         'e_bdnz':       'signed_bd15',             # BD15: signed 15 bit value << 1
-        'bge':          'signed_b',                # B:    signed 14 bit value << 2
-        'bgt':          'signed_b',                # B:    signed 14 bit value << 2
-        'ble':          'signed_b',                # B:    signed 14 bit value << 2
-        'blt':          'signed_b',                # B:    signed 14 bit value << 2
-        'bne':          'signed_b',                # B:    signed 14 bit value << 2
-        'beq':          'signed_b',                # B:    signed 14 bit value << 2
-        'bdnz':         'signed_b',                # B:    signed 14 bit value << 2
-        'bdnzf':        'signed_b',                # B:    signed 14 bit value << 2
-        'bdnzt':        'signed_b',                # B:    signed 14 bit value << 2
-        'bns':          'signed_b',                # B:    signed 14 bit value << 2
-        'bdz':          'signed_b',                # B:    signed 14 bit value << 2
+        #'bge':          'signed_b',               # B:    signed 14 bit value << 2
+        #'bge-':         'signed_b',               # B:    signed 14 bit value << 2
+        #'bge+':         'signed_b',               # B:    signed 14 bit value << 2
+        #'bgt':          'signed_b',               # B:    signed 14 bit value << 2
+        #'bgt-':         'signed_b',               # B:    signed 14 bit value << 2
+        #'bgt+':         'signed_b',               # B:    signed 14 bit value << 2
+        #'ble':          'signed_b',               # B:    signed 14 bit value << 2
+        #'ble-':         'signed_b',               # B:    signed 14 bit value << 2
+        #'ble+':         'signed_b',               # B:    signed 14 bit value << 2
+        #'blt':          'signed_b',               # B:    signed 14 bit value << 2
+        #'blt-':         'signed_b',               # B:    signed 14 bit value << 2
+        #'blt+':         'signed_b',               # B:    signed 14 bit value << 2
+        #'bne':          'signed_b',               # B:    signed 14 bit value << 2
+        #'bne-':         'signed_b',               # B:    signed 14 bit value << 2
+        #'bne+':         'signed_b',               # B:    signed 14 bit value << 2
+        #'beq':          'signed_b',               # B:    signed 14 bit value << 2
+        #'beq-':         'signed_b',               # B:    signed 14 bit value << 2
+        #'beq+':         'signed_b',               # B:    signed 14 bit value << 2
+        #'bdnz':         'signed_b',               # B:    signed 14 bit value << 2
+        #'bdnzf':        'signed_b',               # B:    signed 14 bit value << 2
+        #'bdnzt':        'signed_b',               # B:    signed 14 bit value << 2
+        #'bns':          'signed_b',               # B:    signed 14 bit value << 2
+        #'bns-':         'signed_b',               # B:    signed 14 bit value << 2
+        #'bns+':         'signed_b',               # B:    signed 14 bit value << 2
+        #'bdz':          'signed_b',               # B:    signed 14 bit value << 2
         'bc':           'signed_b_full',           # B:    signed 14 bit value << 2
         'bcl':          'signed_b_full',           # B:    signed 14 bit value << 2
         'bca':          'signed_b_full',           # B:    signed 14 bit value << 2
         'bcla':         'signed_b_full',           # B:    signed 14 bit value << 2
+        'bcctr':        'signed_xl_full',          # XL:   BO, BI, and BH operands
+        'bcctrl':       'signed_xl_full',          # XL:   BO, BI, and BH operands
+        'bclr':         'signed_xl_full',          # XL:   BO, BI, and BH operands
+        'bclrl':        'signed_xl_full',          # XL:   BO, BI, and BH operands
 
         # Integer Select
         'isel':         'special_r0_handling',     # A:    special handling of param rA r0 case
@@ -286,18 +323,18 @@ class ppc_instr(object):
         'cmpdi':        'signed_d',                # D:    signed 16 bit value (alias of cmpi)
 
         # Trap Immediate
-        'twui':         'signed_d_full',           # D:    signed 16 bit value
+        #'twui':         'signed_d_full',           # D:    signed 16 bit value
         'tw':           'x_full',                  # X
-        'twu':          'x_full',                  # X
+        #'twu':          'x_full',                  # X
         'twi':          'signed_d_full',           # D:    signed 16 bit value
-        'trap':         'signed_d_full',           # D:    signed 16 bit value
-        'twgti':        'signed_d',                # D:    signed 16 bit value
-        'twlgti':       'signed_d',                # D:    signed 16 bit value
-        'twnei':        'signed_d',                # D:    signed 16 bit value
+        #'trap':         'signed_d_full',           # D:    signed 16 bit value
+        #'twgti':        'signed_d',                # D:    signed 16 bit value
+        #'twlgti':       'signed_d',                # D:    signed 16 bit value
+        #'twnei':        'signed_d',                # D:    signed 16 bit value
         'tdi':          'signed_d',                # D:    signed 16 bit value
-        'tdgti':        'signed_d',                # D:    signed 16 bit value
-        'tdlgti':       'signed_d',                # D:    signed 16 bit value
-        'tdnei':        'signed_d',                # D:    signed 16 bit value
+        #'tdgti':        'signed_d',                # D:    signed 16 bit value
+        #'tdlgti':       'signed_d',                # D:    signed 16 bit value
+        #'tdnei':        'signed_d',                # D:    signed 16 bit value
 
         # Add Immediate
         'se_addi':      'unsigned_oim5',           # OIM5: unsigned 5 bit value
@@ -344,8 +381,8 @@ class ppc_instr(object):
         'mfcrf':        'mtcrf',                   # XFX: special CRM flag values
         'mtocrf':       'mtcrf',                   # XFX: special CRM flag values
         'mfocrf':       'mtcrf',                   # XFX: special CRM flag values
-        'mtfsf':        'xfx_field2',              # XFX
-        'mffsf':        'xfx_field2',              # XFX
+        'mtfsf':        'mtfsf',                   # XFL: NXP EREF says XFX form, PowerISA says XFL
+        'mffsf':        'mtfsf',                   # XFL: NXP EREF says XFX form, PowerISA says XFL
         'tlbsx':        'x_2reg_r0_handling',      # X
         'tlbsx.':       'x_2reg_r0_handling',      # X
         'tlbsrx.':      'x_2reg_r0_handling',      # X
@@ -361,9 +398,178 @@ class ppc_instr(object):
         'vspltisw':     'signed_vx',               # VX: signed 5 bit value
     }
 
-    def __init__(self, tokens, line_nr):
-        self._line_nr = line_nr
+    regen_branch_ops = [
+        # first here are the standard simplified mnemonics for the
+        # bc/bclr/bcctr instructions:
+
+        # bc
+        'bge',        'bgt',        'ble',        'blt',        'bne',        'beq',        'bns',
+        'bge-',       'bgt-',       'ble-',       'blt-',       'bne-',       'beq-',       'bns-',
+        'bge+',       'bgt+',       'ble+',       'blt+',       'bne+',       'beq+',       'bns+',
+        'bgel',       'bgtl',       'blel',       'bltl',       'bnel',       'beql',       'bnsl',
+        'bgel-',      'bgtl-',      'blel-',      'bltl-',      'bnel-',      'beql-',      'bnsl-',
+        'bgel+',      'bgtl+',      'blel+',      'bltl+',      'bnel+',      'beql+',      'bnsl+',
+        'bgea',       'bgta',       'blea',       'blta',       'bnea',       'beqa',       'bnsa',
+        'bgea-',      'bgta-',      'blea-',      'blta-',      'bnea-',      'beqa-',      'bnsa-',
+        'bgea+',      'bgta+',      'blea+',      'blta+',      'bnea+',      'beqa+',      'bnsa+',
+        'bgela',      'bgtla',      'blela',      'bltla',      'bnela',      'beqla',      'bnsla',
+        'bgela-',     'bgtla-',     'blela-',     'bltla-',     'bnela-',     'beqla-',     'bnsla-',
+        'bgela+',     'bgtla+',     'blela+',     'bltla+',     'bnela+',     'beqla+',     'bnsla+',
+
+        # bclr
+        'bgelr',      'bgtlr',      'blelr',      'bltlr',      'bnelr',      'beqlr',      'bnslr',
+        'bgelr-',     'bgtlr-',     'blelr-',     'bltlr-',     'bnelr-',     'beqlr-',     'bnslr-',
+        'bgelr+',     'bgtlr+',     'blelr+',     'bltlr+',     'bnelr+',     'beqlr+',     'bnslr+',
+        'bgelrl',     'bgtlrl',     'blelrl',     'bltlrl',     'bnelrl',     'beqlrl',     'bnslrl',
+        'bgelrl-',    'bgtlrl-',    'blelrl-',    'bltlrl-',    'bnelrl-',    'beqlrl-',    'bnslrl-',
+        'bgelrl+',    'bgtlrl+',    'blelrl+',    'bltlrl+',    'bnelrl+',    'beqlrl+',    'bnslrl+',
+
+        # bcctr
+        'bgectr',     'bgtctr',     'blectr',     'bltctr',     'bnectr',     'beqctr',     'bnsctr',
+        'bgectr-',    'bgtctr-',    'blectr-',    'bltctr-',    'bnectr-',    'beqctr-',    'bnsctr-',
+        'bgectr+',    'bgtctr+',    'blectr+',    'bltctr+',    'bnectr+',    'beqctr+',    'bnsctr+',
+        'bgectrl',    'bgtctrl',    'blectrl',    'bltctrl',    'bnectrl',    'beqctrl',    'bnsctrl',
+        'bgectrl-',   'bgtctrl-',   'blectrl-',   'bltctrl-',   'bnectrl-',   'beqctrl-',   'bnsctrl-',
+        'bgectrl+',   'bgtctrl+',   'blectrl+',   'bltctrl+',   'bnectrl+',   'beqctrl+',   'bnsctrl+',
+
+        # bc - ctr decrement, non-zero && condition
+        'bdnzge',     'bdnzgt',     'bdnzle',     'bdnzlt',     'bdnzne',     'bdnzeq',     'bdnzns',
+        'bdnzge-',    'bdnzgt-',    'bdnzle-',    'bdnzlt-',    'bdnzne-',    'bdnzeq-',    'bdnzns-',
+        'bdnzge+',    'bdnzgt+',    'bdnzle+',    'bdnzlt+',    'bdnzne+',    'bdnzeq+',    'bdnzns+',
+        'bdnzgel',    'bdnzgtl',    'bdnzlel',    'bdnzltl',    'bdnznel',    'bdnzeql',    'bdnznsl',
+        'bdnzgel-',   'bdnzgtl-',   'bdnzlel-',   'bdnzltl-',   'bdnznel-',   'bdnzeql-',   'bdnznsl-',
+        'bdnzgel+',   'bdnzgtl+',   'bdnzlel+',   'bdnzltl+',   'bdnznel+',   'bdnzeql+',   'bdnznsl+',
+        'bdnzgea',    'bdnzgta',    'bdnzlea',    'bdnzlta',    'bdnznea',    'bdnzeqa',    'bdnznsa',
+        'bdnzgea-',   'bdnzgta-',   'bdnzlea-',   'bdnzlta-',   'bdnznea-',   'bdnzeqa-',   'bdnznsa-',
+        'bdnzgea+',   'bdnzgta+',   'bdnzlea+',   'bdnzlta+',   'bdnznea+',   'bdnzeqa+',   'bdnznsa+',
+        'bdnzgela',   'bdnzgtla',   'bdnzlela',   'bdnzltla',   'bdnznela',   'bdnzeqla',   'bdnznsla',
+        'bdnzgela-',  'bdnzgtla-',  'bdnzlela-',  'bdnzltla-',  'bdnznela-',  'bdnzeqla-',  'bdnznsla-',
+        'bdnzgela+',  'bdnzgtla+',  'bdnzlela+',  'bdnzltla+',  'bdnznela+',  'bdnzeqla+',  'bdnznsla+',
+
+        # bclr - ctr decrement, non-zero && condition
+        'bdnzgelr',   'bdnzgtlr',   'bdnzlelr',   'bdnzltlr',   'bdnznelr',   'bdnzeqlr',   'bdnznslr',
+        'bdnzgelr-',  'bdnzgtlr-',  'bdnzlelr-',  'bdnzltlr-',  'bdnznelr-',  'bdnzeqlr-',  'bdnznslr-',
+        'bdnzgelr+',  'bdnzgtlr+',  'bdnzlelr+',  'bdnzltlr+',  'bdnznelr+',  'bdnzeqlr+',  'bdnznslr+',
+        'bdnzgelrl',  'bdnzgtlrl',  'bdnzlelrl',  'bdnzltlrl',  'bdnznelrl',  'bdnzeqlrl',  'bdnznslrl',
+        'bdnzgelrl-', 'bdnzgtlrl-', 'bdnzlelrl-', 'bdnzltlrl-', 'bdnznelrl-', 'bdnzeqlrl-', 'bdnznslrl-',
+        'bdnzgelrl+', 'bdnzgtlrl+', 'bdnzlelrl+', 'bdnzltlrl+', 'bdnznelrl+', 'bdnzeqlrl+', 'bdnznslrl+',
+
+        # bc - ctr decrement, zero && condition
+        'bdzge',      'bdzgt',      'bdzle',      'bdzlt',      'bdzne',      'bdzeq',      'bdzns',
+        'bdzge-',     'bdzgt-',     'bdzle-',     'bdzlt-',     'bdzne-',     'bdzeq-',     'bdzns-',
+        'bdzge+',     'bdzgt+',     'bdzle+',     'bdzlt+',     'bdzne+',     'bdzeq+',     'bdzns+',
+        'bdzgel',     'bdzgtl',     'bdzlel',     'bdzltl',     'bdznel',     'bdzeql',     'bdznsl',
+        'bdzgel-',    'bdzgtl-',    'bdzlel-',    'bdzltl-',    'bdznel-',    'bdzeql-',    'bdznsl-',
+        'bdzgel+',    'bdzgtl+',    'bdzlel+',    'bdzltl+',    'bdznel+',    'bdzeql+',    'bdznsl+',
+        'bdzgea',     'bdzgta',     'bdzlea',     'bdzlta',     'bdznea',     'bdzeqa',     'bdznsa',
+        'bdzgea-',    'bdzgta-',    'bdzlea-',    'bdzlta-',    'bdznea-',    'bdzeqa-',    'bdznsa-',
+        'bdzgea+',    'bdzgta+',    'bdzlea+',    'bdzlta+',    'bdznea+',    'bdzeqa+',    'bdznsa+',
+        'bdzgela',    'bdzgtla',    'bdzlela',    'bdzltla',    'bdznela',    'bdzeqla',    'bdznsla',
+        'bdzgela-',   'bdzgtla-',   'bdzlela-',   'bdzltla-',   'bdznela-',   'bdzeqla-',   'bdznsla-',
+        'bdzgela+',   'bdzgtla+',   'bdzlela+',   'bdzltla+',   'bdznela+',   'bdzeqla+',   'bdznsla+',
+
+        # bclr - ctr decrement, zero && condition
+        'bdzgelr',    'bdzgtlr',    'bdzlelr',    'bdzltlr',    'bdznelr',    'bdzeqlr',    'bdznslr',
+        'bdzgelr-',   'bdzgtlr-',   'bdzlelr-',   'bdzltlr-',   'bdznelr-',   'bdzeqlr-',   'bdznslr-',
+        'bdzgelr+',   'bdzgtlr+',   'bdzlelr+',   'bdzltlr+',   'bdznelr+',   'bdzeqlr+',   'bdznslr+',
+        'bdzgelrl',   'bdzgtlrl',   'bdzlelrl',   'bdzltlrl',   'bdznelrl',   'bdzeqlrl',   'bdznslrl',
+        'bdzgelrl-',  'bdzgtlrl-',  'bdzlelrl-',  'bdzltlrl-',  'bdznelrl-',  'bdzeqlrl-',  'bdznslrl-',
+        'bdzgelrl+',  'bdzgtlrl+',  'bdzlelrl+',  'bdzltlrl+',  'bdznelrl+',  'bdzeqlrl+',  'bdznslrl+',
+
+        # Other possible branch instruction forms
+
+        'bdz',  'bdnz',  'bdnzf',  'bdnzt',  'bdzf',  'bdzt'
+        'bdz-', 'bdnz-', 'bdnzf-', 'bdnzt-', 'bdzf-', 'bdzt-'
+        'bdz+', 'bdnz+', 'bdnzf+', 'bdnzt+', 'bdzf+', 'bdzt+'
+
+        # The "un-simplified" mnemonics
+        'bc', 'bca', 'bcl', 'bcla'
+    ]
+
+    # The BO and BI values that result in some simplified mnemonics
+    branch_encodings = {
+        0b00000: {
+            '.lt': ('bdnzge', ''),
+            '.gt': ('bdnzle', ''),
+            '.eq': ('bdnzne', ''),
+            '.so': ('bdnzns', ''),
+        },
+        0b00010: {
+            '.lt': ('bdzge', ''),
+            '.gt': ('bdzle', ''),
+            '.eq': ('bdzne', ''),
+            '.so': ('bdzns', ''),
+        },
+        0b00100: {
+            '.lt': ('bge', ''),
+            '.gt': ('ble', ''),
+            '.eq': ('bne', ''),
+            '.so': ('bns', ''),
+        },
+        0b00110: {
+            '.lt': ('bge', '-'),
+            '.gt': ('ble', '-'),
+            '.eq': ('bne', '-'),
+            '.so': ('bns', '-'),
+        },
+        0b00111: {
+            '.lt': ('bge', '+'),
+            '.gt': ('ble', '+'),
+            '.eq': ('bne', '+'),
+            '.so': ('bns', '+'),
+        },
+        0b01000: {
+            '.lt': ('bdnzlt', ''),
+            '.gt': ('bdnzgt', ''),
+            '.eq': ('bdnzeq', ''),
+            '.so': ('bdnzso', ''),
+        },
+        0b01010: {
+            '.lt': ('bdzlt', ''),
+            '.gt': ('bdzgt', ''),
+            '.eq': ('bdzeq', ''),
+            '.so': ('bdzso', ''),
+        },
+        0b01100: {
+            '.lt': ('blt', ''),
+            '.gt': ('bgt', ''),
+            '.eq': ('beq', ''),
+            '.so': ('bso', ''),
+        },
+        0b01110: {
+            '.lt': ('blt', '-'),
+            '.gt': ('bgt', '-'),
+            '.eq': ('beq', '-'),
+            '.so': ('bso', '-'),
+        },
+        0b01111: {
+            '.lt': ('blt', '+'),
+            '.gt': ('bgt', '+'),
+            '.eq': ('beq', '+'),
+            '.so': ('bso', '+'),
+        },
+        0b01111: {
+            '.lt': ('blt', '+'),
+            '.gt': ('bgt', '+'),
+            '.eq': ('beq', '+'),
+            '.so': ('bso', '+'),
+        },
+        0b10000: ('bdnz', ''),
+        0b11000: ('bdnz', '-'),
+        0b11001: ('bdnz', '+'),
+        0b10010: ('bdz', ''),
+        0b11010: ('bdz', '-'),
+        0b11011: ('bdz', '+'),
+        0b10100: ('b', ''),
+    }
+
+    def __init__(self, tokens, line_nr, va=0, psize=8):
         self._tokens = tokens
+        self._line_nr = line_nr
+
+        self._va = va
+        self._psize = psize
+
         self.data = None
         self.op = None
         self.args = []
@@ -381,7 +587,7 @@ class ppc_instr(object):
             elif tok.type in ['LABEL', 'LABEL_MATH']:
                 self.args.append(lst_parser.Token('TBD', tok, 'TBD', tok.column))
 
-        # Some instructions tend to be decoded incorrectly by IDA, but not in 
+        # Some instructions tend to be decoded incorrectly by IDA, but not in
         # a way that is dramatically wrong enough to require "fixing"
         if self.op.value in ['lbarx', 'lharx', 'lwarx', 'ldarx'] and len(self.args) > 3:
             self.args = self.args[:3]
@@ -410,30 +616,41 @@ class ppc_instr(object):
                 'dcbst', 'dcbf', 'dcbz',
                 'icbi',
                 'tlbilx', 'tlbre',
+                'twu', 'trap',
+                'twui', 'twgti', 'twlgti', 'twnei',
+                'tdgti', 'tdlgti', 'tdnei',
         ]
         if self.op.value not in dont_fix_instrs:
             self.fix()
 
     def fix(self):
-        # IDA listings use some incorrect mnemononics
+        # The input listings use some incorrect (or non-NXP) mnemonics, make
+        # some adjustments.
         rename_mapping = {
             'mfsprg':      (None, 'mfspr'),
             'mtsprg':      (None, 'mtspr'),
 
             # 'eieio' was the old PPC instruction, it should now be called 'mbar'
             'eieio':       (None, 'mbar'),
-            'msync':       (None, 'sync'),
-            'lwsync':      (None, 'sync'),
+            #'lwsync':      (None, 'sync'),
+            #'msync':       (None, 'sync'),
+
+            # 'sync' is the standard PowerISA simplified mnemonic for
+            #   sync 0,0
+            #
+            # The EREF uses msync currently to mean the same thing, for now
+            # generate the NXP/EREF form
+            'sync':        (None, 'msync'),
+
+            # The tlbsx. instruction does not appear to be valid in PowerISA
+            # 2.x+ or the EREF.
+            'tlbsx.':      (None, 'tlbsx'),
 
             # Generic PPC forms into forms I recognize better
-            'twu':         (None, 'tw'),
-            'twui':        (None, 'twi'),
-            'trap':        ( (0x0C000000, 'twi'),
-                             (0x7C000000, 'tw') ),
-
-            # There is no tlbsx. instruction
-            'tlbsx':       (None, 'tlbsx'),
-            'tlbsx.':      (None, 'tlbsx'),
+            #'twu':         (None, 'tw'),
+            #'twui':        (None, 'twi'),
+            #'trap':        ( (0x0C000000, 'twi'),
+            #                 (0x7C000000, 'tw') ),
 
             # These new ISR load/store instrucions are misnamed in IDA
             'e_lmvgprw':   (None, 'e_ldmvgprw'),
@@ -443,7 +660,9 @@ class ppc_instr(object):
             'e_lmvdsrrw':  (None, 'e_ldmvdsrrw'),
 
             # These VLE instructions should not be translated eventually.
-            'e_srwi':      ( (0x74000000, 'e_rlwinm') ),
+            'e_srwi': (
+                           (0x74000000, 'e_rlwinm'),
+            ),
             'e_extrwi':    (None, 'e_rlwinm'),
             'e_extlwi':    (None, 'e_rlwinm'),
             'e_clrlslwi':  (None, 'e_rlwinm'),
@@ -454,7 +673,7 @@ class ppc_instr(object):
             'e_rotlwi':    (None, 'e_rlwinm'),
             'mtcr':        (None, 'mtcrf'),
 
-            # These PPC instructions should not be translated eventually.
+            # TODO: These PPC instructions should not be translated eventually.
             'rotldi':      (None, 'rldicl'),
             'rotrdi':      (None, 'rldicl'),
             'sldi':        (None, 'rldicr'),
@@ -477,29 +696,50 @@ class ppc_instr(object):
             'extldi':      (None, 'rldicr'),
             'extrdi':      (None, 'rldicl'),
             'clrlsldi':    (None, 'rldic'),
+
+            # RC=1 forms of the rotate/shift instructions
+            'rotldi.':     (None, 'rldicl.'),
+            'rotrdi.':     (None, 'rldicl.'),
+            'sldi.':       (None, 'rldicr.'),
+            'srwi.':       (None, 'rlwinm.'),
+            'srdi.':       (None, 'rldicl.'),
+            'extrwi.':     (None, 'rlwinm.'),
+            'extlwi.':     (None, 'rlwinm.'),
+            'clrlslwi.':   (None, 'rlwinm.'),
+            'clrlwi.':     (None, 'rlwinm.'),
+            'slwi.':       (None, 'rlwinm.'),
+            'insrwi.':     (None, 'rlwimi.'),
+            'insrdi.':     (None, 'rldimi.'),
+            'clrrwi.':     (None, 'rlwinm.'),
+            'rotrwi.':     (None, 'rlwinm.'),
+            'rotlwi.':     (None, 'rlwinm.'),
+            'rotlw.':      (None, 'rlwnm.'),
+            'inslwi.':     (None, 'rlwimi.'),
+            'clrrdi.':     (None, 'rldicr.'),
+            'clrldi.':     (None, 'rldicl.'),
+            'extldi.':     (None, 'rldicr.'),
+            'extrdi.':     (None, 'rldicl.'),
+            'clrlsldi.':   (None, 'rldic.'),
         }
 
         cr0_prepend = [
                 #'cmpw', 'cmpwi', 'cmplw', 'cmplwi', 'cmpli', 'cmpl', 'cmp', 'cmpi'
-                'e_bge', 'e_ble', 'e_bne', 'e_beq', 'e_bgt', 'e_blt',
-                'bge', 'ble', 'bne', 'beq', 'bgt', 'blt',
-                'bgea', 'blea', 'bnea', 'beqa', 'bgta', 'blta',
-                'bgel', 'blel', 'bnel', 'beql', 'bgtl', 'bltl',
-                'bgela', 'blela', 'bnela', 'beqla', 'bgtla', 'bltla',
-                'bgelr', 'blelr', 'bnelr', 'beqlr', 'bgtlr', 'bltlr',
-                'bgelrl', 'blelrl', 'bnelrl', 'beqlrl', 'bgtlrl', 'bltlrl',
-                'bgectr', 'blectr', 'bnectr', 'beqctr', 'bgtctr', 'bltctr',
-                'bgectrl', 'blectrl', 'bnectrl', 'beqctrl', 'bgtctrl', 'bltctrl',
+                #'e_bge', 'e_ble', 'e_bne', 'e_beq', 'e_bgt', 'e_blt',
+                #'bge', 'ble', 'bne', 'beq', 'bgt', 'blt',
+                #'bgea', 'blea', 'bnea', 'beqa', 'bgta', 'blta',
+                #'bgel', 'blel', 'bnel', 'beql', 'bgtl', 'bltl',
+                #'bgela', 'blela', 'bnela', 'beqla', 'bgtla', 'bltla',
+                #'bgelr', 'blelr', 'bnelr', 'beqlr', 'bgtlr', 'bltlr',
+                #'bgelrl', 'blelrl', 'bnelrl', 'beqlrl', 'bgtlrl', 'bltlrl',
+                #'bgectr', 'blectr', 'bnectr', 'beqctr', 'bgtctr', 'bltctr',
+                #'bgectrl', 'blectrl', 'bnectrl', 'beqctrl', 'bgtctrl', 'bltctrl',
         ]
 
         cr0_append = [
         ]
 
-        op, cr = (self.op.value[:-1], self.op.value[-1]) if self.op.value[-1] == '.' else (self.op.value, '')
-        if op in rename_mapping:
-            if self.op.value in rename_mapping:
-                op = self.op.value
-                cr = ''
+        if self.op.value in rename_mapping:
+            op = self.op.value
 
             new_op = None
             if rename_mapping[op][0] is None:
@@ -511,7 +751,7 @@ class ppc_instr(object):
                     new_op = matches[0]
 
             if new_op is not None:
-                self.op = lst_parser.Token('ASM', self.op.match, new_op + cr, self.op.column)
+                self.op = lst_parser.Token('ASM', self.op.match, new_op, self.op.column)
 
                 # If this is 'or', duplicate the last register
                 if new_op in ['or', 'or.']:
@@ -522,7 +762,7 @@ class ppc_instr(object):
         args_to_fix = [ a for a in self.args if a.type in ['TBD', 'DEC_CONST', 'HEX_CONST'] ]
         if self.op.value in ['rlwnm', 'ori', 'rlwnm'] and len(args_to_fix) == 0:
             self.args.append(lst_parser.Token('TBD', None, 'TBD', None))
-        
+
         if self.op.value in ['mtcrf'] and len(args_to_fix) == 0:
             self.args = [lst_parser.Token('TBD', None, 'TBD', None)] + self.args[:]
 
@@ -530,23 +770,38 @@ class ppc_instr(object):
         regen_ops = [
             'wait',
             'mbar',
-            'bc', 'bcl',
             'tlbsx', 'tlbsx.', 'tlbsrx.', 'tlbivax',
             'sync',
-            'tw', 'twi',
+            'tw', 'twi', 'td', 'tdi',
+            'mtfsf', 'mtfsfi',
         ]
+
         if self.op.value in regen_ops:
             self.args = [lst_parser.Token('TBD', None, 'TBD', None)]
+
+        # Regen all branch conditional instructions
+
+        branch_op_pat = re.compile(r'^b[a-z]+?(lr|ctr)?(la|l|a)?[+-]?$')
+
+        if self.op.value in self.regen_branch_ops:
+            self.args = [lst_parser.Token('TBD', None, 'TBD', None)]
+
+            # Also rename the instruction mnemonic back to the basic
+            #   bc, bca, bcl, bcla
+            # instructions
+            new_mnem = branch_op_pat.sub(r'bc\1\2', self.op.value)
+            new_op = lst_parser.Token('ASM', self.op.match, new_mnem, self.op.column)
+            self.op = new_op
 
         fixed_args = []
         changed = False
         for arg in self.args:
-            # I can't figure out a cleaner way to handle "twi" than this
-            if (self.op.value == 'twi' and arg.type == 'TBD') or \
-                    (self.op.value != 'twi' and arg.type in ['TBD', 'DEC_CONST', 'HEX_CONST']):
+            if arg.type in ['TBD', 'DEC_CONST', 'HEX_CONST']:
                 if self.op.value in ppc_instr.Instructions and not changed:
                     changed = True
-                    new_arg = getattr(self, ppc_instr.Instructions[self.op.value])(self.data.value)
+                    arg_func = getattr(self, ppc_instr.Instructions[self.op.value])
+
+                    new_arg = arg_func(self.data.value)
                     if isinstance(new_arg, list):
                         fixed_args.extend(new_arg)
                     else:
@@ -600,26 +855,43 @@ class ppc_instr(object):
         # The same 3 letter prefixes work for all types of conditional branches:
         #   bc
         #   bcl
-        #   bca
-        #   bcla
         #   bcctr
         #   bcctrl
         #   bclr
         #   bclrl
+        #
+        # if the branch unordered conditions are seen, convert them into branch
+        # summary overflow because the disassembler does not currently track
+        # context to determine if the previous compare was floating point or
+        # integer.
         rename_branch_instrs = {
-            'blt': ('bt', '.lt'),
-            'ble': ('bf', '.gt'),
-            'beq': ('bt', '.eq'),
-            'bge': ('bf', '.lt'),
-            'bgt': ('bt', '.gt'),
-            'bnl': ('bf', '.gt'),
-            'bne': ('bf', '.eq'),
-            'bng': ('bf', '.gt'),
-            'bso': ('bt', '.so'),
-            'bns': ('bf', '.so'),
-            'bun': ('bt', '.so'),
-            'bnu': ('bt', '.so'),
+            #'blt': ('bt', 'lt'),
+            #'ble': ('bf', 'gt'),
+            #'beq': ('bt', 'eq'),
+            #'bge': ('bf', 'lt'),
+            #'bgt': ('bt', 'gt'),
+            #'bnl': ('bf', 'gt'),
+            #'bne': ('bf', 'eq'),
+            #'bng': ('bf', 'gt'),
+            #'bso': ('bt', 'so'),
+            #'bns': ('bf', 'so'),
+            #'bun': ('bt', 'so'),
+            #'bnu': ('bt', 'so'),
+            'bun': ('bso', ''),
+            'bnu': ('bns', ''),
+
+            # Translate the decrement & not zero true/false branch instructions
+            # into the simplified mnemonics
+            'bdnzf': {
+                '.eq': ('bdnzne', ''),
+                'eq': ('bdnzne', ''),
+            },
+            'bdnzt': {
+                '.eq': ('bdnzeq', ''),
+                'eq': ('bdnzeq', ''),
+            },
         }
+
         if self.op.value in spr_asm:
             new_op = lst_parser.Token('ASM', self.op.match, spr_asm[self.op.value], self.op.column)
             self.op = new_op
@@ -634,18 +906,111 @@ class ppc_instr(object):
                 new_arg = getattr(self, ppc_instr.Instructions[self.op.value])(self.data.value)
                 fixed_args.insert(0, new_arg)
 
-        elif self.op.value[0:3] in rename_branch_instrs:
-            mods = rename_branch_instrs[self.op.value[0:3]]
-            instr_rem = self.op.value[3:]
-            new_op = lst_parser.Token('ASM', self.op.match, mods[0] + instr_rem, self.op.column)
-            self.op = new_op
+        elif any(self.op.value.startswith(k) for k in rename_branch_instrs):
+            prefix, entry = next((k, v) for k, v in rename_branch_instrs.items() if self.op.value.startswith(k))
+            if isinstance(entry, dict):
+                # Check the suffix of the first argument, if it matches a key
+                # then delete the suffix and transform the op
+                if not any(fixed_args[0].value.endswith(k) for k in entry):
+                    # If not, this branch doesn't need modified
+                    mods = None
+                else:
+                    argsuffix, mods = next((k, v) for k, v in entry.items() if fixed_args[0].value.endswith(k))
+                    arg0_rem = fixed_args[0].value[:len(argsuffix)]
+            else:
+                mods = entry
+                arg0_rem = fixed_args[0].value
 
-            fixed_cr_arg = lst_parser.Token(fixed_args[0].type, fixed_args[0].type, fixed_args[0].value + mods[1], fixed_args[0].column)
-            fixed_args[0] = fixed_cr_arg
-        elif self.op.value in ['bc', 'bcl'] and len(fixed_args) == 3 and fixed_args[0].value == 0x14:
-            # Special case: a branch conditional with flags indicating "don't 
-            # decrement and ignore the condition flags"
-            fixed_args = fixed_args[-1:]
+            if mods is not None:
+                instr_rem = self.op.value[len(prefix):]
+                new_op = lst_parser.Token('ASM', self.op.match, mods[0] + instr_rem, self.op.column)
+                self.op = new_op
+
+                arg0_value = arg0_rem + mods[1]
+
+                # If arg0 hasn't been removed re-create it with the modified values
+                if arg0_value:
+                    fixed_cr_arg = lst_parser.Token(fixed_args[0].type, fixed_args[0].type, arg0_rem + mods[1], fixed_args[0].column)
+                    fixed_args[0] = fixed_cr_arg
+                else:
+                    del fixed_args[0]
+
+        elif self.op.value in ['bc', 'bcl', 'bca', 'bcla', 'bcctr', 'bcctrl', 'bclr', 'bclrl']:
+            if len(fixed_args) == 3:
+                # NOTE: Earlier versions of the PowerISA have slightly different
+                # encodings of the branch hint flags, In these tests we are
+                # generating the PowerISA V2+ hints because they aren't
+                # completely compatible.
+
+                # convert these into simplified mnemonics if possible
+                if fixed_args[0].value in self.branch_encodings:
+                    entry = self.branch_encodings[fixed_args[0].value]
+                    if isinstance(entry, dict):
+                        if any(fixed_args[1].value.endswith(k) for k in entry):
+                            suffix, values = next((k, v) for k, v in entry.items() if fixed_args[1].value.endswith(k))
+                            mnem, hint = values
+                            arg1_value = fixed_args[1].value[:-len(suffix)]
+                            if arg1_value != 'cr0':
+                                fixed_args[1] = lst_parser.Token(fixed_args[1].type, fixed_args[1].type, arg1_value, fixed_args[1].column)
+                                del fixed_args[0]
+                            else:
+                                fixed_args = [fixed_args[-1]]
+
+                            # If the original instruction is one of the XL form
+                            # branch instructions, remove the last (BH) operand
+                            # now that this instruction is being simplified
+                            if self.op.value in ['bcctr', 'bcctrl', 'bclr', 'bclrl']:
+                                del  fixed_args[-1]
+
+                            instr_name = mnem + self.op.value[2:] + hint
+                            new_op = lst_parser.Token('ASM', self.op.match, instr_name, self.op.column)
+                            self.op = new_op
+                    else:
+                        # the condition argument is not used
+                        mnem, hint = entry
+
+                        fixed_args = [fixed_args[-1]]
+
+                        # If the original instruction is one of the XL form
+                        # branch instructions, remove the last (BH) operand
+                        # now that this instruction is being simplified
+                        if self.op.value in ['bcctr', 'bcctrl', 'bclr', 'bclrl']:
+                            del  fixed_args[-1]
+
+                        instr_name = mnem + self.op.value[2:] + hint
+                        new_op = lst_parser.Token('ASM', self.op.match, instr_name, self.op.column)
+                        self.op = new_op
+
+        elif self.op.value in ['twi', 'tw', 'tdi', 'td']:
+            trap_conditions = (
+                (0b10000, 'lt'),
+                (0b10100, 'le'),
+                (0b00100, 'eq'),
+                (0b01100, 'ge'),
+                (0b01000, 'gt'),
+                (0b11000, 'ne'),
+                (0b00010, 'llt'),
+                (0b00110, 'lle'),
+                (0b00101, 'lge'),
+                (0b00001, 'lgt'),
+                (0b11111, 'u'),
+            )
+            if len(fixed_args) == 3 and \
+                    fixed_args[0].value in trap_conditions:
+                if fixed_args[0].value in trap_conditions:
+                    # Special case, if this is a 'tw 31,0,0' then replace it with
+                    # 'trap' and no operands
+                    if self.op.value == 'tw' and fixed_args[0].value == 31 and \
+                            fixed_args[1].value == 0 and fixed_args[2].value == 0:
+                        instr_name = 'trap'
+                        fixed_args = []
+                    else:
+                        cond_str = trap_conditions[fixed_args[0].value]
+                        del fixed_args[0]
+                        instr_name = self.op.value[:2] + cond_str + self.op.value[2:]
+
+                    new_op = lst_parser.Token('ASM', self.op.match, instr_name, self.op.column)
+                    self.op = new_op
 
         self.args = fixed_args
 
@@ -653,9 +1018,9 @@ class ppc_instr(object):
         arg_list = ''
         if self.args:
             if self.args[-1].type == 'INDIRECT_REF':
-                arg_list = ' ' + ppc_instr._str_arg_list(self.args[:-1]) + self.args[-1].value
+                arg_list = ' ' + self._str_arg_list(self.args[:-1]) + self.args[-1].value
             else:
-                arg_list = ' ' + ppc_instr._str_arg_list(self.args)
+                arg_list = ' ' + self._str_arg_list(self.args)
 
         return str((self.data.match, self.op.value + arg_list))
 
@@ -663,9 +1028,9 @@ class ppc_instr(object):
         arg_list = ''
         if self.args:
             if self.args[-1].type == 'INDIRECT_REF':
-                arg_list = ' ' + ppc_instr._str_arg_list(self.args[:-1]) + self.args[-1].value
+                arg_list = ' ' + self._str_arg_list(self.args[:-1]) + self.args[-1].value
             else:
-                arg_list = ' ' + ppc_instr._str_arg_list(self.args)
+                arg_list = ' ' + self._str_arg_list(self.args)
 
         #if self.op.value in ['tdi', 'vaddubm']:
         #    fmt = '#{0.data.match: <8} {0.op.value}{1}'
@@ -673,64 +1038,88 @@ class ppc_instr(object):
         fmt = '{0.data.match: <8} {0.op.value}{1}'
         return fmt.format(self, arg_list)
 
-    @classmethod
-    def _str_arg(cls, arg):
+    def _str_arg(self, arg):
         if isinstance(arg.value, str):
             if len(arg.value) == 6 and arg.value[0:4] == "cr0.":
                 return arg.value[4:]
             return arg.value
         return hex(arg.value)
 
-    @classmethod
-    def _str_arg_list(cls, arg_list):
-        return ','.join([cls._str_arg(a) for a in arg_list])
+    def _str_arg_list(self, arg_list):
+        return ','.join([self._str_arg(a) for a in arg_list])
 
-    @classmethod
-    def _dec_token(cls, val):
+    def _dec_token(self, val):
         return lst_parser.Token('DEC_CONST', str(val), val, None)
 
-    @classmethod
-    def _hex_token(cls, val):
+    def _hex_token(self, val):
         return lst_parser.Token('HEX_CONST', hex(val), val, None)
 
-    @classmethod
-    def signed_bd8(cls, data):
+    def signed_bd8(self, data):
         sign = 0x0080
         mask = 0x007F
-        val = ((data & mask) - (data & sign)) << 1
-        return cls._dec_token(val)
+        val = (data & mask) - (data & sign)
 
-    @classmethod
-    def signed_bd15(cls, data):
+        # The value printed with each branch statement should be the absolute
+        # target address, so multiply the target by 2 and add to the VA.
+        addr_offset = val * 2
+        addr = self._va + addr_offset
+
+        return self._dec_token(addr)
+
+    def signed_bd15(self, data):
         sign = 0x00008000
         mask = 0x00007FFE
         val = (data & mask) - (data & sign)
-        return cls._dec_token(val)
 
-    @classmethod
-    def signed_bd24(cls, data):
+        # The value printed with each branch statement should be the absolute
+        # target address, so multiply the target by 2 and add to the VA. The
+        # shift is already incorporated into the above shifts.
+        addr = self._va + val
+
+        return self._dec_token(addr)
+
+    def signed_bd24(self, data):
         sign = 0x01000000
         mask = 0x00FFFFFE
         val = (data & mask) - (data & sign)
-        return cls._dec_token(val)
 
-    @classmethod
-    def signed_i(cls, data):
+        # The value printed with each branch statement should be the absolute
+        # target address, so multiply the target by 2 and add to the VA. The
+        # shift is already incorporated into the above shifts.
+        addr = self._va + val
+
+        return self._dec_token(addr)
+
+    def signed_i(self, data):
         sign = 0x02000000
         mask = 0x01FFFFFC
         val = (data & mask) - (data & sign)
-        return cls._dec_token(val)
 
-    @classmethod
-    def signed_b(cls, data):
+        is_abs = data & 0x00000002
+        if is_abs:
+            mask = (2 ** (8 * self._psize)) - 1
+            addr = val & mask
+        else:
+            # The value printed with each branch statement should be the
+            # absolute target address, so multiply the target by 4 and add to
+            # the VA. The shift is already incorporated into the above shifts.
+            addr = self._va + val
+
+        return self._dec_token(addr)
+
+    def signed_b(self, data):
         tgt_sign = 0x00008000
         tgt_mask = 0x00007FFC
         tgt = (data & tgt_mask) - (data & tgt_sign)
 
-        return cls._dec_token(tgt)
+        # The value printed with each branch statement should be the absolute
+        # target address, so multiply the target by 4 and add to the VA. The
+        # shift is already incorporated into the above shifts.
+        addr = self._va + tgt
 
-    @classmethod
-    def signed_b_full(cls, data):
+        return self._dec_token(addr)
+
+    def signed_b_full(self, data):
         # For non-simplified branch conditionals, grab all fields
         flags_mask = 0x03E00000
         flags = (data & flags_mask) >> 21
@@ -750,52 +1139,74 @@ class ppc_instr(object):
         tgt_mask = 0x00007FFC
         tgt = (data & tgt_mask) - (data & tgt_sign)
 
-        cr_tok = lst_parser.Token('CONDITION', cr, cr, None)
-        return [cls._dec_token(flags), cr_tok, cls._dec_token(tgt)]
+        # The value printed with each branch statement should be the absolute
+        # target address, so multiply the target by 4 and add to the VA. The
+        # shift is already incorporated into the above shifts.
+        addr = self._va + tgt
 
-    @classmethod
-    def unsigned_sd4_word_addr(cls, data):
+        cr_tok = lst_parser.Token('CONDITION', cr, cr, None)
+        return [self._dec_token(flags), cr_tok, self._dec_token(addr)]
+
+    def signed_xl_full(self, data):
+        # bclr and bcctr use this form because there is no BD operand
+        flags_mask = 0x03E00000
+        flags = (data & flags_mask) >> 21
+
+        cr_reg  = (data & 0x001C0000) >> 18
+        cr_bits = (data & 0x00030000) >> 16
+        if cr_bits == 0b00:
+            cr = 'cr{}.lt'.format(cr_reg)
+        elif cr_bits == 0b01:
+            cr = 'cr{}.gt'.format(cr_reg)
+        elif cr_bits == 0b10:
+            cr = 'cr{}.eq'.format(cr_reg)
+        elif cr_bits == 0b11:
+            cr = 'cr{}.so'.format(cr_reg)
+
+        # The BH field has some branch prediction hints in it, un-simplified
+        # branch mnemonics should have this operand, simplified mnemonics will
+        # discard it.
+        bh = (data & 0x00001800) >> 11
+
+        cr_tok = lst_parser.Token('CONDITION', cr, cr, None)
+        return [self._dec_token(flags), cr_tok, self._dec_token(bh)]
+
+    def unsigned_sd4_word_addr(self, data):
         mask = 0x0F00
         val = (data & mask) >> 6 # val >> 8 then << 2
-        return cls._dec_token(val)
+        return self._dec_token(val)
 
-    @classmethod
-    def unsigned_sd4_half_addr(cls, data):
+    def unsigned_sd4_half_addr(self, data):
         mask = 0x0F00
         val = (data & mask) >> 7 # val >> 8 then << 1
-        return cls._dec_token(val)
+        return self._dec_token(val)
 
-    @classmethod
-    def unsigned_sd4_byte_addr(cls, data):
+    def unsigned_sd4_byte_addr(self, data):
         mask = 0x0F00
         val = (data & mask) >> 8
-        return cls._dec_token(val)
+        return self._dec_token(val)
 
-    @classmethod
-    def signed_d8(cls, data):
+    def signed_d8(self, data):
         sign = 0x00000080
         mask = 0x0000007F
         val = (data & mask) - (data & sign)
-        return cls._dec_token(val)
+        return self._dec_token(val)
 
-    @classmethod
-    def signed_ds(cls, data):
+    def signed_ds(self, data):
         sign = 0x00008000
         mask = 0x00007FFC # This format takes bits 16-29 then left shifts by 2
                           # bits, which is the same as just masking off the
                           # lower 2 bits
         val = (data & mask) - (data & sign)
-        return cls._dec_token(val)
+        return self._dec_token(val)
 
-    @classmethod
-    def signed_d(cls, data):
+    def signed_d(self, data):
         sign = 0x00008000
         mask = 0x00007FFF
         val = (data & mask) - (data & sign)
-        return cls._dec_token(val)
+        return self._dec_token(val)
 
-    @classmethod
-    def signed_d_full(cls, data):
+    def signed_d_full(self, data):
         mask_TO = 0x03E00000
         mask_rA = 0x001F0000
 
@@ -807,12 +1218,11 @@ class ppc_instr(object):
         val = (data & mask) - (data & sign)
 
         reg_str ='r{}'.format(rA)
-        return [cls._dec_token(TO),
+        return [self._dec_token(TO),
                 lst_parser.Token('REG', reg_str, reg_str, None),
-                cls._dec_token(val)]
+                self._dec_token(val)]
 
-    @classmethod
-    def x_full(cls, data):
+    def x_full(self, data):
         mask_TO = 0x03E00000
         mask_rA = 0x001F0000
         mask_rB = 0x0000F800
@@ -823,12 +1233,11 @@ class ppc_instr(object):
 
         rA_str ='r{}'.format(rA)
         rB_str ='r{}'.format(rB)
-        return [cls._dec_token(TO),
+        return [self._dec_token(TO),
                 lst_parser.Token('REG', rA_str, rA_str, None),
                 lst_parser.Token('REG', rB_str, rB_str, None)]
 
-    @classmethod
-    def signed_d_handle_r0(cls, data):
+    def signed_d_handle_r0(self, data):
         sign = 0x00008000
         mask = 0x00007FFF
         val = (data & mask) - (data & sign)
@@ -837,27 +1246,24 @@ class ppc_instr(object):
         reg = (data & reg_mask) >> 16
 
         if reg == 0:
-            return [cls._dec_token(reg), cls._dec_token(val)]
+            return [self._dec_token(reg), self._dec_token(val)]
         else:
-            return cls._dec_token(val)
+            return self._dec_token(val)
 
-    @classmethod
-    def unsigned_d(cls, data):
+    def unsigned_d(self, data):
         mask = 0x0000FFFF
         val = data & mask
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def unsigned_im7(cls, data):
+    def unsigned_im7(self, data):
         mask = 0x07F0
         val = (data & mask) >> 4
 
         # Since this is a simple unsigned value it is most commonly used with
         # hex values
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def signed_li20(cls, data):
+    def signed_li20(self, data):
         mask_1 = 0x00007800
         mask_2 = 0x001F0000
         mask_3 = 0x000007FF
@@ -870,10 +1276,9 @@ class ppc_instr(object):
         sign = 0x00080000
         mask = 0x0007FFFF
         signed_val = (unsigned_val & mask) - (unsigned_val & sign)
-        return cls._dec_token(signed_val)
+        return self._dec_token(signed_val)
 
-    @classmethod
-    def _get_i16l_imm(cls, data):
+    def _get_i16l_imm(self, data):
         mask_1 = 0x001F0000
         mask_2 = 0x000007FF
         up_val = (data & mask_1) >> 5  # upper >> 16 then << 11
@@ -881,44 +1286,38 @@ class ppc_instr(object):
         unsigned_val = up_val | low_val
         return unsigned_val
 
-    @classmethod
-    def unsigned_i16l(cls, data):
-        val = cls._get_i16l_imm(data)
+    def unsigned_i16l(self, data):
+        val = self._get_i16l_imm(data)
 
         # This unsigned immediate form is most often used in logical (AND/OR)
         # operations, make the token in hex format.
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def _get_im5_imm(cls, data):
+    def _get_im5_imm(self, data):
         mask = 0x01F0
         val = (data & mask) >> 4
         return val
 
-    @classmethod
-    def unsigned_im5(cls, data):
-        val = cls._get_im5_imm(data)
+    def unsigned_im5(self, data):
+        val = self._get_im5_imm(data)
 
         # Make hex tokens for logical operation operands
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def unsigned_oim5(cls, data):
-        val = cls._get_im5_imm(data) + 1
+    def unsigned_oim5(self, data):
+        val = self._get_im5_imm(data) + 1
 
         # Make since this is used in "se_addi", make this a decimal operand
-        return cls._dec_token(val)
+        return self._dec_token(val)
 
-    @classmethod
-    def unsigned_x(cls, data):
+    def unsigned_x(self, data):
         mask = 0x0000F800
         val = (data & mask) >> 11
 
         # Make hex tokens for logical operation operands
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def unsigned_x_dw(cls, data):
+    def unsigned_x_dw(self, data):
         mask_1 = 0x0000F800
         mask_2 = 0x00000002
         val_1 = (data & mask_1) >> 11
@@ -926,10 +1325,9 @@ class ppc_instr(object):
         val = val_1 | val_2
 
         # Make hex tokens for logical operation operands
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def unsigned_m(cls, data):
+    def unsigned_m(self, data):
         mask_1 = 0x0000F800
         mask_2 = 0x000007C0
         mask_3 = 0x0000003E
@@ -938,20 +1336,18 @@ class ppc_instr(object):
         mask_end = (data & mask_3) >> 1
 
         # Make hex tokens for logical operation operands
-        return [cls._hex_token(shift), cls._hex_token(mask_begin), cls._hex_token(mask_end)]
+        return [self._hex_token(shift), self._hex_token(mask_begin), self._hex_token(mask_end)]
 
-    @classmethod
-    def unsigned_m_reg(cls, data):
+    def unsigned_m_reg(self, data):
         mask_1 = 0x000007C0
         mask_2 = 0x0000003E
         mask_begin = (data & mask_1) >> 6
         mask_end = (data & mask_2) >> 1
 
         # Make hex tokens for logical operation operands
-        return [cls._hex_token(mask_begin), cls._hex_token(mask_end)]
+        return [self._hex_token(mask_begin), self._hex_token(mask_end)]
 
-    @classmethod
-    def unsigned_md(cls, data):
+    def unsigned_md(self, data):
         sh_lower_mask = 0x0000F800
         sh_upper_mask = 0x00000002
         sh = ((data & sh_upper_mask ) << 4) | ((data & sh_lower_mask ) >> 11)
@@ -961,21 +1357,19 @@ class ppc_instr(object):
         mb = (data & mb_upper_mask ) | ((data & mb_lower_mask ) >> 6)
 
         # Make hex tokens for logical operation operands
-        return [cls._hex_token(sh), cls._hex_token(mb)]
+        return [self._hex_token(sh), self._hex_token(mb)]
 
-    @classmethod
-    def special_r0_handling(cls, data):
+    def special_r0_handling(self, data):
         mask = 0x001F0000
         val = (data & mask) >> 16
 
         if val == 0:
-            return cls._dec_token(val)
+            return self._dec_token(val)
         else:
             reg_str ='r{}'.format(val)
             return lst_parser.Token('REG', reg_str, reg_str, None)
 
-    @classmethod
-    def _get_sci8_imm(cls, data):
+    def _get_sci8_imm(self, data):
         f_mask = 0x00000400
         scl_mask = 0x00000300
         data_mask = 0x000000FF
@@ -999,17 +1393,15 @@ class ppc_instr(object):
 
         return val
 
-    @classmethod
-    def unsigned_sci8(cls, data):
-        val = cls._get_sci8_imm(data)
+    def unsigned_sci8(self, data):
+        val = self._get_sci8_imm(data)
 
         # The SCI8 form is used most often in mask generating instructions,
         # make this operand hex
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def signed_sci8(cls, data):
-        unsigned_val = cls._get_sci8_imm(data)
+    def signed_sci8(self, data):
+        unsigned_val = self._get_sci8_imm(data)
 
         sign = 0x80000000
         mask = 0x7FFFFFFF
@@ -1017,10 +1409,9 @@ class ppc_instr(object):
 
         # The "signed" SCI8 values are used in add operations, make this
         # operand decimal.
-        return cls._dec_token(signed_val)
+        return self._dec_token(signed_val)
 
-    @classmethod
-    def _get_i16a_imm(cls, data):
+    def _get_i16a_imm(self, data):
         mask_1 = 0x03E00000
         mask_2 = 0x000007FF
         up_val = (data & mask_1) >> 10  # upper >> 21 then << 11
@@ -1028,35 +1419,31 @@ class ppc_instr(object):
         unsigned_val = up_val | low_val
         return unsigned_val
 
-    @classmethod
-    def signed_i16a(cls, data):
-        unsigned_val = cls._get_i16a_imm(data)
+    def signed_i16a(self, data):
+        unsigned_val = self._get_i16a_imm(data)
 
         sign = 0x00100000
         mask = 0x000FFFFF
         signed_val = (unsigned_val & mask) - (unsigned_val & sign)
 
         # For signed values return a decimal operand
-        return cls._dec_token(signed_val)
+        return self._dec_token(signed_val)
 
-    @classmethod
-    def unsigned_i16a(cls, data):
-        val = cls._get_i16a_imm(data)
+    def unsigned_i16a(self, data):
+        val = self._get_i16a_imm(data)
 
         # For unsigned values return a hex operand
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def signed_vx(cls, data):
+    def signed_vx(self, data):
         sign = 0x00100000
         mask = 0x000F0000
         val = ((data & mask) - (data & sign)) >> 16
 
         # For signed values return a decimal operand
-        return cls._dec_token(val)
+        return self._dec_token(val)
 
-    @classmethod
-    def _get_xfx_field2(cls, data):
+    def _get_xfx_field2(self, data):
         mask_1 = 0x0000F800
         mask_2 = 0x001F0000
         up_val = (data & mask_1) >> 6  # upper >> 11 then << 5
@@ -1064,19 +1451,16 @@ class ppc_instr(object):
         val = up_val | low_val
         return val
 
-    @classmethod
-    def xfx_field1(cls, data):
+    def xfx_field1(self, data):
         mask = 0x003E0000
         val = (data & mask) >> 21
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def xfx_field2(cls, data):
-        val = cls._get_xfx_field2(data)
-        return cls._hex_token(val)
+    def xfx_field2(self, data):
+        val = self._get_xfx_field2(data)
+        return self._hex_token(val)
 
-    @classmethod
-    def x_2reg_r0_handling(cls, data):
+    def x_2reg_r0_handling(self, data):
         mask_rA = 0x001F0000
         mask_rB = 0x0000F800
 
@@ -1085,36 +1469,35 @@ class ppc_instr(object):
 
         if rA == 0:
             rB_str ='r{}'.format(rB)
-            return [cls._dec_token(rA),
+            return [self._dec_token(rA),
                     lst_parser.Token('REG', rB_str, rB_str, None)]
         else:
             rA_str ='r{}'.format(rA)
             rB_str ='r{}'.format(rB)
             return [lst_parser.Token('REG', rA_str, rA_str, None),
                     lst_parser.Token('REG', rB_str, rB_str, None)]
-    @classmethod
-    def sync(cls, data):
+
+    def sync(self, data):
         mask_l = 0x00600000
         mask_e = 0x00070000
 
         l = (data & mask_l) >> 21
         e = (data & mask_e) >> 16
 
-        return [cls._dec_token(l), cls._dec_token(e)]
+        return [self._dec_token(l), self._dec_token(e)]
 
-    @classmethod
-    def wait(cls, data):
+    def wait(self, data):
         mask_WC = 0x00600000
         mask_WH = 0x00100000
 
         WC = (data & mask_WC) >> 21
         WH = (data & mask_WH) >> 20
 
-        return [cls._dec_token(WC), cls._dec_token(WH)]
+        return [self._dec_token(WC), self._dec_token(WH)]
 
-    @classmethod
-    def xfx_spr(cls, data):
-        val = cls._get_xfx_field2(data)
+    def xfx_spr(self, data):
+        val = self._get_xfx_field2(data)
+        # SPRs are capitalized, TMR and PMR names are lower case
         spr_to_str_map = {
             1: 'XER',
             8: 'LR',
@@ -1317,73 +1700,74 @@ class ppc_instr(object):
         else:
             return lst_parser.Token('HEX_CONST', hex(val), val, None)
 
-    @classmethod
-    def xfx_tmr(cls, data):
-        val = cls._get_xfx_field2(data)
+    def xfx_tmr(self, data):
+        val = self._get_xfx_field2(data)
+        # SPRs are capitalized, TMR and PMR names are lower case
         tmr_to_str_map = {
-            289: 'IMSR1',
-            290: 'IMSR2',
-            291: 'IMSR3',
-            292: 'IMSR4',
-            293: 'IMSR5',
-            294: 'IMSR6',
-            295: 'IMSR7',
-            296: 'IMSR8',
-            297: 'IMSR9',
-            298: 'IMSR10',
-            299: 'IMSR11',
-            300: 'IMSR12',
-            301: 'IMSR13',
-            302: 'IMSR14',
-            303: 'IMSR15',
-            304: 'IMSR16',
-            305: 'IMSR17',
-            306: 'IMSR18',
-            307: 'IMSR19',
-            308: 'IMSR20',
-            309: 'IMSR21',
-            310: 'IMSR22',
-            311: 'IMSR23',
-            312: 'IMSR24',
-            313: 'IMSR25',
-            314: 'IMSR26',
-            315: 'IMSR27',
-            316: 'IMSR28',
-            317: 'IMSR29',
-            318: 'IMSR30',
-            319: 'IMSR31',
-            320: 'INIA0',
-            321: 'INIA1',
-            322: 'INIA2',
-            323: 'INIA3',
-            324: 'INIA4',
-            325: 'INIA5',
-            326: 'INIA6',
-            327: 'INIA7',
-            328: 'INIA8',
-            329: 'INIA9',
-            330: 'INIA10',
-            331: 'INIA11',
-            332: 'INIA12',
-            333: 'INIA13',
-            334: 'INIA14',
-            335: 'INIA15',
-            336: 'INIA16',
-            337: 'INIA17',
-            338: 'INIA18',
-            339: 'INIA19',
-            340: 'INIA20',
-            341: 'INIA21',
-            342: 'INIA22',
-            343: 'INIA23',
-            344: 'INIA24',
-            345: 'INIA25',
-            346: 'INIA26',
-            347: 'INIA27',
-            348: 'INIA28',
-            349: 'INIA29',
-            350: 'INIA30',
-            351: 'INIA31',
+            288: 'imsr0',
+            289: 'imsr1',
+            290: 'imsr2',
+            291: 'imsr3',
+            292: 'imsr4',
+            293: 'imsr5',
+            294: 'imsr6',
+            295: 'imsr7',
+            296: 'imsr8',
+            297: 'imsr9',
+            298: 'imsr10',
+            299: 'imsr11',
+            300: 'imsr12',
+            301: 'imsr13',
+            302: 'imsr14',
+            303: 'imsr15',
+            304: 'imsr16',
+            305: 'imsr17',
+            306: 'imsr18',
+            307: 'imsr19',
+            308: 'imsr20',
+            309: 'imsr21',
+            310: 'imsr22',
+            311: 'imsr23',
+            312: 'imsr24',
+            313: 'imsr25',
+            314: 'imsr26',
+            315: 'imsr27',
+            316: 'imsr28',
+            317: 'imsr29',
+            318: 'imsr30',
+            319: 'imsr31',
+            320: 'inia0',
+            321: 'inia1',
+            322: 'inia2',
+            323: 'inia3',
+            324: 'inia4',
+            325: 'inia5',
+            326: 'inia6',
+            327: 'inia7',
+            328: 'inia8',
+            329: 'inia9',
+            330: 'inia10',
+            331: 'inia11',
+            332: 'inia12',
+            333: 'inia13',
+            334: 'inia14',
+            335: 'inia15',
+            336: 'inia16',
+            337: 'inia17',
+            338: 'inia18',
+            339: 'inia19',
+            340: 'inia20',
+            341: 'inia21',
+            342: 'inia22',
+            343: 'inia23',
+            344: 'inia24',
+            345: 'inia25',
+            346: 'inia26',
+            347: 'inia27',
+            348: 'inia28',
+            349: 'inia29',
+            350: 'inia30',
+            351: 'inia31',
         }
 
         if val in tmr_to_str_map:
@@ -1391,48 +1775,48 @@ class ppc_instr(object):
         else:
             return lst_parser.Token('HEX_CONST', hex(val), val, None)
 
-    @classmethod
-    def xfx_pmr(cls, data):
-        val = cls._get_xfx_field2(data)
+    def xfx_pmr(self, data):
+        val = self._get_xfx_field2(data)
+        # SPRs are capitalized, TMR and PMR names are lower case
         pmr_to_str_map = {
-            0: 'UPMC0',
-            1: 'UPMC1',
-            2: 'UPMC2',
-            3: 'UPMC3',
-            4: 'UPMC4',
-            5: 'UPMC5',
-            16: 'PMC0',
-            17: 'PMC1',
-            18: 'PMC2',
-            19: 'PMC3',
-            20: 'PMC4',
-            21: 'PMC5',
-            128: 'UPMLCA0',
-            129: 'UPMLCA1',
-            130: 'UPMLCA2',
-            131: 'UPMLCA3',
-            132: 'UPMLCA4',
-            133: 'UPMLCA5',
-            144: 'PMLCA0',
-            145: 'PMLCA1',
-            146: 'PMLCA2',
-            147: 'PMLCA3',
-            148: 'PMLCA4',
-            149: 'PMLCA5',
-            256: 'UPMLCB0',
-            257: 'UPMLCB1',
-            258: 'UPMLCB2',
-            259: 'UPMLCB3',
-            260: 'UPMLCB4',
-            261: 'UPMLCB5',
-            272: 'PMLCB0',
-            273: 'PMLCB1',
-            274: 'PMLCB2',
-            275: 'PMLCB3',
-            276: 'PMLCB4',
-            277: 'PMLCB5',
-            384: 'UPMGC0',
-            400: 'PMGC0',
+            0: 'upmc0',
+            1: 'upmc1',
+            2: 'upmc2',
+            3: 'upmc3',
+            4: 'upmc4',
+            5: 'upmc5',
+            16: 'pmc0',
+            17: 'pmc1',
+            18: 'pmc2',
+            19: 'pmc3',
+            20: 'pmc4',
+            21: 'pmc5',
+            128: 'upmlca0',
+            129: 'upmlca1',
+            130: 'upmlca2',
+            131: 'upmlca3',
+            132: 'upmlca4',
+            133: 'upmlca5',
+            144: 'pmlca0',
+            145: 'pmlca1',
+            146: 'pmlca2',
+            147: 'pmlca3',
+            148: 'pmlca4',
+            149: 'pmlca5',
+            256: 'upmlcb0',
+            257: 'upmlcb1',
+            258: 'upmlcb2',
+            259: 'upmlcb3',
+            260: 'upmlcb4',
+            261: 'upmlcb5',
+            272: 'pmlcb0',
+            273: 'pmlcb1',
+            274: 'pmlcb2',
+            275: 'pmlcb3',
+            276: 'pmlcb4',
+            277: 'pmlcb5',
+            384: 'upmgc0',
+            400: 'pmgc0',
         }
 
         if val in pmr_to_str_map:
@@ -1440,20 +1824,17 @@ class ppc_instr(object):
         else:
             return lst_parser.Token('HEX_CONST', hex(val), val, None)
 
-    @classmethod
-    def wrteei(cls, data):
+    def wrteei(self, data):
         mask = 0x00008000
         val = (data & mask) >> 15
-        return cls._dec_token(val)
+        return self._dec_token(val)
 
-    @classmethod
-    def mtcrf(cls, data):
+    def mtcrf(self, data):
         mask = 0x000FF000
         val = (data & mask) >> 12
-        return cls._hex_token(val)
+        return self._hex_token(val)
 
-    @classmethod
-    def dcbt(cls, data):
+    def dcbt(self, data):
         mask = 0x03E00000
         val = (data & mask) >> 21
 
@@ -1461,44 +1842,103 @@ class ppc_instr(object):
         rA = (data & rA_mask) >> 16
 
         if rA == 0:
-            return [cls._hex_token(val), cls._hex_token(rA)]
+            return [self._hex_token(val), self._hex_token(rA)]
         else:
-            return cls._hex_token(val)
+            return self._hex_token(val)
+
+    def mtfsf(self, data):
+        l   = (data & 0x02000000) >> 25
+        fm  = (data & 0x01FE0000) >> 17
+        w   = (data & 0x00010000) >> 16
+        frB = (data & 0x0000F800) >> 11
+
+        # The PowerISA indicates the operands should be displayed in this order:
+        #   mtfsf FM, rfB, L, W
+        return [
+            self._hex_token(fm),
+            lst_parser.Token('REG', None, 'f%d' % frB, None),
+            self._dec_token(l),
+            self._dec_token(w),
+        ]
+
+    def mtfsfi(self, data):
+        bf = (data & 0x03800000) >> 23
+        w  = (data & 0x00010000) >> 16
+        u  = (data & 0x0000F000) >> 12
+
+        # The PowerISA indicates the operands should be displayed in this order:
+        #   mtfsf BF, U, W
+        return [
+            lst_parser.Token('REG', None, 'crf%d' % bf, None),
+            self._hex_token(u),
+            self._dec_token(w),
+        ]
+
+    def __lt__(self, other):
+        return self.data.value < other.data.value
+
+    def __gt__(self, other):
+        return self.data.value > other.data.value
+
+    def __eq__(self, other):
+        return self.data.value == other.data.value
+
+    def __le__(self, other):
+        return self.data.value <= other.data.value
+
+    def __ge__(self, other):
+        return self.data.value >= other.data.value
+
+    def __ne__(self, other):
+        return self.data.value != other.data.value
 
 
-def parse(lst_lines):
+def parse(input_file_list, va, psize):
     parser = lst_parser()
-    instructions = []
 
-    for line_nr, line in enumerate(lst_lines, 1):
-        tokenized = list(parser.tokenize(line.strip()))
-        if [tok for tok in tokenized if tok.type == 'ASM']:
-            instr = ppc_instr(tokenized, line_nr)
-            instructions.append(instr)
-    return instructions
+    # keep track of which instructions have already been decoded
+    already_decoded = {}
 
+    for filename in input_file_list:
+        sys.stderr.write('[%s] reading "%s"\n' % (now(), filename))
+
+        with open(filename, 'r') as f:
+            line_nr = 0
+            for line in f:
+                line_nr += 1
+                tokenized = list(parser.tokenize(line.strip()))
+                has_asm = any(t.type == 'ASM' for t in tokenized)
+                try:
+                    op_byte_val = next(t.value for t in tokenized if t.type == 'BYTES')
+                    if has_asm and op_byte_val not in already_decoded:
+                        instr = ppc_instr(tokenized, line_nr, va, psize)
+                        already_decoded[op_byte_val] = instr
+                except StopIteration:
+                    pass
+
+    sys.stderr.write('[%s] sorting...\n' % now())
+    sorted_lines = sorted(already_decoded.values())
+    sys.stderr.write('[%s] sorting complete\n' % now())
+
+    return sorted_lines
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print('Usage: {} <input 1> [<input 2> ... <input n>] <output file>'.format(sys.argv[0]))
-        sys.exit(-1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input', nargs='+', help='input file(s)')
+    parser.add_argument('-a', '--va', default=0, help='va used to calculate offsets and addresses')
+    parser.add_argument('-p', '--psize', default=8, help='pointer size')
+    args = parser.parse_args()
 
-    input_lines = []
-    for file_in in sys.argv[1:-1]:
-        with open(file_in, 'r') as f:
-            input_lines.extend(f.readlines())
+    va = arg_to_int(args.va)
+    psize = arg_to_int(args.psize)
 
-    # turn the input lines into a set before parsing to reduce the amount of 
-    # time it takes to generate the tests.
-    # Then turn the results into a set to get unique instructions for testing
-    unique_instructions = sorted(list(set([repr(l) for l in parse(list(set(input_lines)))])))
+    unique_instructions = parse(args.input, va, psize)
 
-    if sys.argv[-1] == '-':
-        for line in unique_instructions:
-            print(line)
-    else:
-        with open(sys.argv[-1], 'w') as f:
-            f.write('instructions = [\n')
-            for line in unique_instructions:
-                f.write('\t' + line + ',\n')
-            f.write(']\n')
+    print('# va = %#x' % va)
+    print('# psize = %d' % psize)
+    print('instructions = [')
+    for line in unique_instructions:
+        print('\t%r,' % line)
+    print(']')
+
+    sys.stderr.write('[%s] done\n' % now())

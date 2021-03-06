@@ -32,7 +32,7 @@ IF_CALLCC = (IF_CALL | IF_COND)
 
 class PpcOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, size, operands, iflags=0):
-        envi.Opcode.__init__(self, va, opcode, mnem, 0, size, operands, iflags)
+        super(PpcOpcode, self).__init__(va, opcode, mnem, 0, size, operands, iflags)
 
     def getBranches(self, emu=None):
         ret = []
@@ -127,7 +127,7 @@ class PpcRegOper(envi.RegisterOper):
         if self.tsize != oper.tsize:
             return False
         return True
-    
+
     def involvesPC(self):
         return self.reg == 15
 
@@ -148,7 +148,7 @@ class PpcRegOper(envi.RegisterOper):
     def setOperValue(self, op, emu=None, val=None):
         if emu == None:
             return None
-        
+
         mask = e_bits.u_maxes[emu.psize]
         val &= mask
         emu.setRegister(self.reg, val)
@@ -165,21 +165,21 @@ class PpcFRegOper(PpcRegOper):
     ''' Floating Point register operand.'''
     def __init__(self, reg, va=0, tsize=4):
         reg += REG_OFFSET_FLOAT
-        PpcRegOper.__init__(self, reg, va, tsize)
-        
+        super(PpcFRegOper, self).__init__(reg, va, tsize)
+
 class PpcVRegOper(PpcRegOper):
     ''' Vector register operand.'''
     def __init__(self, reg, va=0, tsize=4):
         reg += REG_OFFSET_VECTOR
-        PpcRegOper.__init__(self, reg, va, tsize)
-        
+        super(PpcVRegOper, self).__init__(reg, va, tsize)
+
 class PpcCRegOper(PpcRegOper):
     ''' CR register operand field.'''
     def __init__(self, field, va=0, tsize=4):
         reg = REG_CR
-        PpcRegOper.__init__(self, reg, va, tsize)
+        super(PpcCRegOper, self).__init__(reg, va, tsize)
         self.field = field
-        
+
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
@@ -190,7 +190,7 @@ class PpcCRegOper(PpcRegOper):
         if self.field != oper.field:
             return False
         return True
-    
+
     def render(self, mcanv, op, idx):
         rname = "cr%d" % self.field
         mcanv.addNameText(rname, typename='cregisters')
@@ -203,18 +203,22 @@ class PpcCRegOper(PpcRegOper):
         if emu == None:
             return
 
-        cr = emu.getRegister(REG_CR)
-        crb = (cr >> (self.field*4)) & 0xf
-        return crb
+        return emu.getCr(self.field)
+
+    def setOperValue(self, op, val, emu=None):
+        if emu == None:
+            return
+
+        emu.setCr(self.field, val & 0xf)
 
 CRBITS = ('lt', 'gt', 'eq', 'so')
 class PpcCBRegOper(PpcRegOper):
     ''' CR register operand.'''
     def __init__(self, bit, va=0, tsize=4):
         reg = REG_CR
-        PpcRegOper.__init__(self, reg, va, tsize)
+        super(PpcCBRegOper, self).__init__(reg, va, tsize)
         self.bit = bit
-        
+
     def __eq__(self, other):
         if self.__class__ != other.__class__:
             return False
@@ -314,60 +318,60 @@ class PpcSImmOper(PpcImmOper):
             val |= (e_bits.b_masks[32-bits] << bits)
 
         val = e_bits.signed(val, tsize)
-        PpcImmOper.__init__(self, val, va, tsize)
+        super(PpcSImmOper, self).__init__(val, va, tsize)
 
 class PpcSImm5Oper(PpcSImmOper):
     ''' Signed Immediate operand bit 5. '''
     def __init__(self, val, va=0, tsize=4):
-        PpcSImmOper.__init__(self, val, va, 5, tsize)
+        super(PpcSImm5Oper, self).__init__(val, va, 5, tsize)
 
 class PpcSImm12Oper(PpcSImmOper):
     ''' Signed Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
-        PpcSImmOper.__init__(self, val, va, 12, tsize)
+        super(PpcSImm12Oper, self).__init__(val, va, 12, tsize)
 
 class PpcSImm16Oper(PpcSImmOper):
     ''' Signed Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
-        PpcSImmOper.__init__(self, val, va, 16, tsize)
+        super(PpcSImm16Oper, self).__init__(val, va, 16, tsize)
 
 class PpcSImm32Oper(PpcSImmOper):
     ''' Signed Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
-        PpcSImmOper.__init__(self, val, va, 32, tsize)
+        super(PpcSImm32Oper, self).__init__(val, va, 32, tsize)
 
 class PpcSImm3Oper(PpcSImmOper):
     ''' Signed Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
         val = e_bits.signed(val * 4, 2)
-        PpcSImmOper.__init__(self, val, va, tsize)
+        super(PpcSImm3Oper, self).__init__(val, va, tsize)
 
 class PpcUImmOper(PpcImmOper):
     ''' Unsigned Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
-        PpcImmOper.__init__(self, val, va, tsize)
+        super(PpcUImmOper, self).__init__(val, va, tsize)
 
 class PpcUImm1Oper(PpcUImmOper):
     ''' Unsigned Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
         val *= 8
-        PpcUimmOper.__init__(self, val, va, tsize)
+        super(PpcUImm1Oper, self).__init__(val, va, tsize)
 
 class PpcUImm2Oper(PpcUImmOper):
     ''' Unsigned Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
         val *= 2
-        PpcUimmOper.__init__(self, val, va, tsize)
+        super(PpcUImm2Oper, self).__init__(val, va, tsize)
 
 class PpcUImm3Oper(PpcUImmOper):
     ''' Unsigned Immediate operand. '''
     def __init__(self, val, va=0, tsize=4):
         val *= 4
-        PpcUimmOper.__init__(self, val, va, tsize)
+        super(PpcUImm3Oper, self).__init__(val, va, tsize)
 
 
 class PpcMemOper(envi.DerefOper):
-    ''' 
+    '''
     immediate offset memory operand.
     0xOFFSET (base_reg)
     '''
@@ -437,7 +441,7 @@ class PpcMemOper(envi.DerefOper):
     def updateRegObj(self, emu):
         import vivisect.symboliks.common as vs_common
         rval = emu.getRegObj(self.base_reg)
-        rval += vs_common.Const(self.offset, emu._psize)
+        rval += vs_common.Const(self.offset, emu.psize)
         emu.setRegObj(self.base_reg, rval)
 
 
@@ -482,33 +486,23 @@ class PpcMemOper(envi.DerefOper):
             tname = '%s(%s)' % (hex(self.offset), basereg)
         return tname
 
-class PpcJmpOper(envi.RegisterOper):
+class PpcJmpRelOper(PpcImmOper):
     """
-    PC + imm_offset
-
-    PpcImmOper but for Branches, not a dereference. 
+    PC/va relative target address for branches
     """
     def __init__(self, val, va):
         self.va = va
-        self.val = e_bits.signed(val, 4)
+        self.val = val
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
-        if self.val != oper.val:
-            return False
-        if self.va != oper.va:
+        if self.getOperValue(None) != oper.getOperValue(None):
             return False
         return True
 
     def involvesPC(self):
         return True
-
-    def isDeref(self):
-        return False
-
-    def isDiscrete(self):
-        return False
 
     def getOperValue(self, op, emu=None):
         return self.va + self.val
@@ -521,10 +515,30 @@ class PpcJmpOper(envi.RegisterOper):
         else:
             mcanv.addVaText('0x%.8x' % value, value)
 
-    def repr(self, op):
-        targ = self.getOperValue(op)
-        tname = "%#x" % targ
-        return tname
+class PpcJmpAbsOper(PpcJmpRelOper):
+    """
+    absolute target address for branches
+    """
+    def __init__(self, val):
+        self.val = val
+
+    def __eq__(self, oper):
+        # Explicitly check if the items being compared are PpcJmpRelOper
+        # objects, we want (I think?) relative and absolute jump addresses that
+        # have the same value to be considered equal.  Using PpcJmpRelOper in
+        # this comparison will evaluate to true for the both relative and
+        # absolute jump operand objects.
+        if not isinstance(oper, PpcJmpRelOper):
+            return False
+        if self.getOperValue(None) != oper.getOperValue(None):
+            return False
+        return True
+
+    def involvesPC(self):
+        return False
+
+    def getOperValue(self, op, emu=None):
+        return self.val
 
 fields = (None, 'c', 'x', 'cx', 's', 'cs', 'xs', 'cxs',  'f', 'fc', 'fx', 'fcx', 'fs', 'fcs', 'fxs', 'fcxs')
 
@@ -570,7 +584,6 @@ class PpcCrOper(envi.RegisterOper):
         name = "cr%u" % self.val
         mcanv.addNameText(name, typename='cr')
 
-
 OPERCLASSES = {
     FIELD_BD : PpcSImm3Oper,
     FIELD_BH : PpcImmOper,
@@ -579,10 +592,10 @@ OPERCLASSES = {
     FIELD_CRM : PpcImmOper,
     FIELD_CT : PpcImmOper,
     FIELD_D : PpcSImm16Oper,
-    FIELD_DE : PpcSImm12Oper,
     FIELD_DCRN0_4 : PpcImmOper,
     FIELD_DCRN5_9 : PpcImmOper,
     FIELD_DCTL : PpcImmOper,
+    FIELD_DE : PpcSImm12Oper,
     FIELD_DS : PpcSImm3Oper,
     FIELD_DUI : PpcImmOper,
     FIELD_E : PpcImmOper,
@@ -622,6 +635,7 @@ OPERCLASSES = {
     FIELD_W : PpcImmOper,
     FIELD_WC : PpcImmOper,
     FIELD_WH : PpcImmOper,
+    FIELD_crBI : PpcCRegOper,
     FIELD_crD : PpcCRegOper,
     FIELD_crb : PpcCBRegOper,
     FIELD_crbA : PpcCBRegOper,
