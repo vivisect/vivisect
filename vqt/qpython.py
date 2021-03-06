@@ -9,14 +9,7 @@ from PyQt5.QtWidgets import *
 
 from vqt.main import idlethread
 from vqt.basics import *
-
-
-@idlethread
-def scripterr(msg, info):
-    msgbox = QMessageBox()
-    msgbox.setText('Script Error: %s' % msg)
-    msgbox.setInformativeText(info)
-    msgbox.exec_()
+from vqt.common import scripterr
 
 
 class ScriptThread(Thread):
