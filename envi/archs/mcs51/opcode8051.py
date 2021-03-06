@@ -1,6 +1,6 @@
 import envi
 
-from const import *
+from .const import *
 
 
 table_main = (
@@ -228,10 +228,10 @@ table_main = (
     ( INS_DJNZ, "djnz", "Decrement register and jump if not zero", 0xdd, 2, 3, ( OP_REGISTER | R5,OP_REL, ) ),
     ( INS_DJNZ, "djnz", "Decrement register and jump if not zero", 0xde, 2, 3, ( OP_REGISTER | R6,OP_REL, ) ),
     ( INS_DJNZ, "djnz", "Decrement register and jump if not zero", 0xdf, 2, 3, ( OP_REGISTER | R7,OP_REL, ) ),
-    ( INS_MOVX, "movx", "Move external RAM (16-bit addr.) to A", 0xe0, 1, 03-10, ( OP_A,OP_DPTR_INDIRECT, ) ),
+    ( INS_MOVX, "movx", "Move external RAM (16-bit addr.) to A", 0xe0, 1, 3, ( OP_A,OP_DPTR_INDIRECT, ) ),
     ( INS_AJMP, "ajmp", "Absolute jump", 0xe1, 2, 3, ( OP_ADDR11, ) ),
-    ( INS_MOVX, "movx", "Move external RAM (8-bit addr.) to A", 0xe2, 1, 03-10, ( OP_A,OP_REG_INDIRECT | R0, ) ),
-    ( INS_MOVX, "movx", "Move external RAM (8-bit addr.) to A", 0xe3, 1, 03-10, ( OP_A,OP_REG_INDIRECT | R1, ) ),
+    ( INS_MOVX, "movx", "Move external RAM (8-bit addr.) to A", 0xe2, 1, 3, ( OP_A,OP_REG_INDIRECT | R0, ) ),
+    ( INS_MOVX, "movx", "Move external RAM (8-bit addr.) to A", 0xe3, 1, 3, ( OP_A,OP_REG_INDIRECT | R1, ) ),
     ( INS_CLR, "clr", "Clear accumulator", 0xe4, 1, 1, ( OP_A, ) ),
     ( INS_MOV, "mov", "Move direct byte to accumulator", 0xe5, 2, 2, ( OP_A,OP_DIRECT, ) ),
     ( INS_MOV, "mov", "Move indirect RAM to accumulator", 0xe6, 1, 2, ( OP_A,OP_REG_INDIRECT | R0, ) ),
@@ -244,10 +244,10 @@ table_main = (
     ( INS_MOV, "mov", "Move register to accumulator", 0xed, 1, 1, ( OP_A,OP_REGISTER | R5, ) ),
     ( INS_MOV, "mov", "Move register to accumulator", 0xee, 1, 1, ( OP_A,OP_REGISTER | R6, ) ),
     ( INS_MOV, "mov", "Move register to accumulator", 0xef, 1, 1, ( OP_A,OP_REGISTER | R7, ) ),
-    ( INS_MOVX, "movx", "Move A to external RAM (16-bit addr.)", 0xf0, 1, 04-11, ( OP_DPTR_INDIRECT,OP_A, ) ),
+    ( INS_MOVX, "movx", "Move A to external RAM (16-bit addr.)", 0xf0, 1, 4, ( OP_DPTR_INDIRECT,OP_A, ) ),
     ( INS_ACALL, "acall", "Absolute subroutine call", 0xf1, 2, 6, ( OP_ADDR11, ) ),
-    ( INS_MOVX, "movx", "Move A to external RAM (8-bit addr.)", 0xf2, 1, 04-11, ( OP_REG_INDIRECT | R0,OP_A, ) ),
-    ( INS_MOVX, "movx", "Move A to external RAM (8-bit addr.)", 0xf3, 1, 04-11, ( OP_REG_INDIRECT | R1,OP_A, ) ),
+    ( INS_MOVX, "movx", "Move A to external RAM (8-bit addr.)", 0xf2, 1, 4, ( OP_REG_INDIRECT | R0,OP_A, ) ),
+    ( INS_MOVX, "movx", "Move A to external RAM (8-bit addr.)", 0xf3, 1, 4, ( OP_REG_INDIRECT | R1,OP_A, ) ),
     ( INS_CPL, "cpl", "Complement accumulator", 0xf4, 1, 1, ( OP_A, ) ),
     ( INS_MOV, "mov", "Move accumulator to direct byte", 0xf5, 2, 3, ( OP_DIRECT,OP_A, ) ),
     ( INS_MOV, "mov", "Move accumulator to indirect RAM", 0xf6, 1, 3, ( OP_REG_INDIRECT | R0,OP_A, ) ),

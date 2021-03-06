@@ -7,7 +7,7 @@ import copy
 import struct
 
 
-import opcode8051 as optable
+from . import opcode8051 as optable
 from envi.archs.mcs51.disasm import *
 from envi.archs.mcs51.regs import *
 
@@ -42,7 +42,7 @@ class Mcs51DirectOper(envi.Operand):
         if name == None:
             return "%xh" % (self.imm)
         else:
-            print "CHECKME:"
+            print("CHECKME:")
             return name[0]
 
     def getOperValue(self, op, emu=None):

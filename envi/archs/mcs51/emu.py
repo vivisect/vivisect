@@ -7,7 +7,7 @@ import envi.memory as e_mem
 import copy
 import struct
 
-import opcode8051 as optable
+from . import opcode8051 as optable
 from envi.archs.mcs51.disasm import *
 from envi.archs.mcs51.regs import *
 from envi.archs.mcs51 import *
@@ -109,7 +109,7 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         for mmap in xrange(0,len(self.segments)):
             bva,size,offset,name = self.segments[mmap]
             try:
-                self.addMemoryMap(bva+offset,0777,name, "\x00"*(size))
+                self.addMemoryMap(bva+offset, 7, name, b"\x00"*(size))
             except:
                 sys.excepthook(*sys.exc_info())
 

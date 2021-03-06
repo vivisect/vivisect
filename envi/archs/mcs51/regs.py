@@ -1,7 +1,7 @@
 
 import envi.registers as e_reg
 import struct
-from const import *
+from .const import *
 
 PSW_P = 0
 PSW_UD = 1

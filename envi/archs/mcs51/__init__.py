@@ -12,7 +12,7 @@ import struct
 
 import envi
 import envi.bits as e_bits
-import opcode8051 as optable
+from . import  opcode8051 as optable
 from envi.archs.mcs51.disasm import *
 from envi.archs.mcs51.regs import *
 
