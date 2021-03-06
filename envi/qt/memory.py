@@ -124,7 +124,8 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.mem_canvas = self.initMemoryCanvas(memobj, syms=syms)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
 
-        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback)
+        # https://doc.qt.io/qt-5/qt.html#ShortcutContext-enum
+        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=3)
 
         self.loadDefaultRenderers()
         self.loadRendSelect()
