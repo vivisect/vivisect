@@ -311,16 +311,20 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
 
             secoff = pe.rvaToOffset(secrva)
-            secbytes = pe.readAtOffset(secoff, readsize)
+            secbytes = pe.readAtOffset(secoff, readsize, shortok=True)
+            slen = len(secbytes)
+            if slen != readsize:
+                logger.warning("Section at offset 0x%x should have 0x%x bytes, but we only got 0x%x bytes", secoff, readsize, slen)
             secbytes += b'\x00' * plen
+            slen = len(secbytes)
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
-            vw.addSegment(secbase, len(secbytes), secname, fname)
+            vw.addSegment(secbase, slen, secname, fname)
 
             # Mark dead data on resource and import data directories
             if sec.VirtualAddress in deadvas:
                 vw.markDeadData(secbase, secbase+len(secbytes))
 
-            #FIXME create a mask for this
+            # FIXME create a mask for this
             if not (chars & PE.IMAGE_SCN_CNT_CODE) and not (chars & PE.IMAGE_SCN_MEM_EXECUTE) and not (chars & PE.IMAGE_SCN_MEM_WRITE):
                 vw.markDeadData(secbase, secbase+len(secbytes))
 

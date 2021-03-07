@@ -2,6 +2,7 @@ import io
 import os
 import math
 import struct
+import logging
 import binascii
 
 
@@ -10,6 +11,8 @@ import vstruct.defs.pe as vs_pe
 import PE.clr as clr
 
 from . import ordlookup
+
+logger = logging.getLogger('vivisect')
 
 IMAGE_FILE_RELOCS_STRIPPED = 0x0001
 IMAGE_FILE_EXECUTABLE_IMAGE = 0x0002
@@ -1034,7 +1037,10 @@ class PE(object):
                     fwdname = self.readAtRva(funcoff, 260, shortok=True).split(b'\x00', 1)[0]
                     self.forwarders.append((funclist[ordl], name.decode('utf-8'), fwdname))
                 else:
-                    self.exports.append((funclist[ordl], ordl, name.decode('utf-8')))
+                    try:
+                        self.exports.append((funclist[ordl], ordl, name.decode('utf-8')))
+                    except UnicodeDecodeError:
+                        logger.warning('Invalid name for export ordinal %i: %s', ordl, name[:16].hex())
 
         # unnamed function exports
         else:

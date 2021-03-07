@@ -3,6 +3,7 @@ import logging
 import unittest
 
 import envi
+import envi.memory as e_memory
 
 import vivisect
 import vivisect.exc as v_exc
@@ -59,6 +60,97 @@ class VivisectTest(unittest.TestCase):
                                  (ltype, True))
                 if linfo:
                     self.assertTrue(type(linfo) in (int, str, list))
+
+    def test_vaset_populate(self):
+        vw = self.vdir_vw
+        ans = {
+            'FileSymbols': [('', 0), ('filenamecat-lgpl.c', 0), ('gettime.c', 0),
+                            ('areadlink-with-size.c', 0), ('filenamecat.c', 0), ('umaxtostr.c', 0),
+                            ('close-stream.c', 0), ('filemode.c', 0), ('obstack.c', 0),
+                            ('mbswidth.c', 0), ('imaxtostr.c', 0), ('mbsalign.c', 0),
+                            ('time_rz.c', 0), ('fflush.c', 0), ('hash-triple.c', 0),
+                            ('hard-locale.c', 0), ('se-selinux.c', 0), ('xstrtoul.c', 0),
+                            ('mpsort.c', 0), ('version-etc-fsf.c', 0), ('xdectoumax.c', 0),
+                            ('hash.c', 0), ('dirname-lgpl.c', 0), ('xgetcwd.c', 0),
+                            ('quotearg.c', 0), ('hash-pjw.c', 0), ('closeout.c', 0),
+                            ('progname.c', 0), ('localcharset.c', 0), ('basename-lgpl.c', 0),
+                            ('ls.c', 0), ('human.c', 0), ('version-etc.c', 0),
+                            ('nstrftime.c', 0), ('c-ctype.c', 0), ('xgethostname.c', 0),
+                            ('c-strncasecmp.c', 0), ('xalloc-die.c', 0), ('xstrtol-error.c', 0),
+                            ('crtstuff.c', 0), ('ls-vdir.c', 0), ('argmatch.c', 0),
+                            ('xstrtoumax.c', 0), ('canonicalize.c', 0), ('stat-time.c', 0),
+                            ('calloc.c', 0), ('file-set.c', 0), ('xmalloc.c', 0),
+                            ('timespec.c', 0), ('fseeko.c', 0), ('file-has-acl.c', 0),
+                            ('bitrotate.c', 0), ('idcache.c', 0), ('mbrtowc.c', 0),
+                            ('dirname.c', 0), ('exitfail.c', 0), ('filevercmp.c', 0),
+                            ('fclose.c', 0), ('version.c', 0), ('same.c', 0)],
+            'DynamicBranches': [(134541059, 'call eax', 65537), (134555409, 'call dword [edi + 28]', 65541),
+                                (134540947, 'call ebp', 65537), (134580376, 'call dword [ecx + 28]', 65541),
+                                (134553117, 'call dword [ecx + 24]', 65541), (134540968, 'call ebp', 65537),
+                                (134580408, 'call dword [ecx + 32]', 65541), (134554170, 'call eax', 65537),
+                                (134519869, 'call edx', 65537), (134547907, 'call dword [esp + 52]', 65541),
+                                (134555467, 'call dword [edi + 28]', 65541), (134554325, 'call dword [esi + 32]', 65541),
+                                (134541400, 'call eax', 65537), (134561888, 'call eax', 65537),
+                                (134562273, 'call dword [esp + 68]', 65541), (134583780, 'call dword [ebx + edi * 4 - 244]', 65541),
+                                (134554213, 'call eax', 65537), (134541288, 'call eax', 65537),
+                                (134553449, 'call edi', 65537), (134519792, 'call eax', 65537),
+                                (134553075, 'call dword [ebx + 28]', 65541), (134540791, 'call dword [esp + 32]', 65541),
+                                (134541176, 'call eax', 65537), (134562046, 'call dword [esp + 68]', 65541)],
+            'NoReturnCalls': [(134573120,), (134524676,), (134577802,), (134582295,), (134551055,), (134525456,),
+                              (134568495,), (134534039,), (134524568,), (134528303,), (134578863,), (134577311,),
+                              (134549928,), (134544175,), (134553138,), (134572852,), (134580661,),
+                              (134550582,), (134579529,), (134572857,), (134534204,), (134577471,), (134580544,),
+                              (134568769,), (134546505,), (134578743,), (134553208,), (134555349,),
+                              (134580057,), (134521306,), (134531547,), (134572084,), (134578576,), (134554727,),
+                              (134576873,), (134580336,), (134521331,), (134550133,), (134521336,), (134529017,)],
+            'Bookmarks': [],
+            'SwitchCases': [],
+            'thunk_bx': [(134519744,),
+                         (134519715,)],
+            'FuncWrappers': [(134517916, 134517946)],
+            'Emulation Anomalies': [(134546338, 'DivideByZero at 0x80503a2'),
+                                    (134544390, 'DivideByZero at 0x804fc06'),
+                                    (134545954, 'DivideByZero at 0x8050222'),
+                                    (134546126, 'DivideByZero at 0x80502ce')],
+            'WeakSymbols': [('__x86.get_pc_thunk.bx', 134519744), ('__udivdi3', 134583136),
+                            ('lstat64', 134583968), ('__TMC_END__', 134615780),
+                            ('fstat64', 134583920), ('__umoddi3', 134583424),
+                            ('fstatat64', 134584016), ('atexit', 134583824),
+                            ('__dso_handle', 134615476), ('__divdi3', 134582800),
+                            ('_dl_relocate_static_pie', 134519728), ('stat64', 134583872)],
+            'PointersFromFile': [(134614800, 134519888, 'vdir', 'fini_function_0'),
+                                 (134614796, 134519936, 'vdir', 'init_function_0')],
+            'EmucodeFunctions': [(134582272,), (134583808,), (134552688,), (134556176,), (134548256,), (134575648,),
+                                 (134549936,), (134556208,), (134548240,), (134582048,), (134577216,), (134572896,),
+                                 (134582304,), (134576528,), (134573136,), (134556288,), (134548224,), (134572128,),
+                                 (134568720,), (134572928,), (134575264,), (134577264,), (134573440,), (134575520,),
+                                 (134553152,), (134575232,), (134575296,), (134575760,), (134548128,), (134581872,),
+                                 (134552608,), (134573232,), (134575488,), (134575744,), (134550208,), (134575904,),
+                                 (134576000,), (134548432,), (134572096,), (134559872,), (134548176,), (134575728,),
+                                 (134572864,), (134584016,), (134552576,), (134568688,), (134575456,), (134549968,),
+                                 (134575712,), (134548144,), (134581952,), (134574848,), (134548352,), (134575184,),
+                                 (134582032,), (134549952,), (134572320,), (134553392,), (134582576,), (134573600,),
+                                 (134576720,), (134553312,), (134548272,), (134573856,), (134575424,), (134573792,),
+                                 (134553568,), (134548304,), (134573408,), (134582160,), (134582416,), (134575392,),
+                                 (134582128,), (134583712,), (134573568,), (134582144,), (134575680,), (134519728,),
+                                 (134553488,), (134556128,), (134559504,), (134573472,), (134554096,), (134572464,),
+                                 (134575616,), (134575872,), (134575552,), (134582112,), (134561824,), (134573264,),
+                                 (134561232,), (134574816,), (134547936,), (134582096,), (134552448,), (134552560,),
+                                 (134575584,), (134553216,), (134573760,), (134582064,), (134583824,), (134519952,),
+                                 (134568352,)]
+
+        }
+
+        for name, valist in ans.items():
+            retn = vw.getVaSetRows(name)
+            try:
+                self.assertEqual(set(retn), set(valist))
+            except Exception as e:
+                mesg = f'On VaSet {name}, we failed due to: {str(e)}'
+                self.fail(mesg)
+
+        self.assertEqual(len(vw.getVaSetRows('CodeFragments')), 213)
+        self.assertEqual(len(vw.getVaSetRows('EntryPoints')), 229)
 
     def test_basic_apis(self):
         '''
@@ -343,8 +435,7 @@ class VivisectTest(unittest.TestCase):
         answers = [
             (0x804f7f0, 0x8052560, 'cdecl', 3, 'hash_insert_if_absent'),
             (0x804aad0, 0x8055b50, 'cdecl', 5, 'quotearg_buffer'),
-            # quotearg_buffer_restyled, the problem child
-            # there should be 9 and an msfastcaller here, but meta registers are a nightmare
+            # FIXME: and the problem child continue to suck.
             (0x804ab30, 0x8055bb0, 'cdecl', 7, 'quotearg_buffer_restyled'),
             (0x804b7c0, 0x8056840, 'cdecl', 3, 'quotearg_alloc'),
             (0x804b7e0, 0x8056860, 'cdecl', 4, 'quotearg_alloc_mem'),
@@ -378,7 +469,7 @@ class VivisectTest(unittest.TestCase):
             self.assertIsNotNone(capi)
             self.assertIsNotNone(vapi)
 
-            self.assertEqual(capi[2], cconv)
+            self.assertEqual(capi[2], cconv, f'{hex(cfva)}/{hex(vfva)} wanted cconv of {cconv}, got {capi[2]}')
             self.assertEqual(len(capi[4]), arglen)
             self.assertEqual(capi[2], vapi[2])
             self.assertEqual(capi[4], vapi[4])
@@ -482,9 +573,6 @@ class VivisectTest(unittest.TestCase):
 
         self.assertEqual(vw.castPointer(0x22220000), 0x41424344)
         self.assertEqual(vw.parseNumber(0x22220000, 2), 0x4142)
-
-    def test_posix_impapi(self):
-        pass
 
     def test_substrings(self):
         vw = self.firefox_vw
@@ -689,3 +777,27 @@ class VivisectTest(unittest.TestCase):
                 cb = vw.getCodeBlock(nid)
                 self.assertEqual(nid, cb[0])
                 self.assertEqual(fva, cb[2])
+
+    def test_firefox_segments(self):
+        vw = self.firefox_vw
+        ans = {
+            'PE_Header': (0x140000000, 0x1000, e_memory.MM_READ),
+            '.text': (0x140001000, 0x48f80, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.rdata': (0x14004a000, 0xbf7c, e_memory.MM_READ),
+            '.data': (0x140056000, 0x2998, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.pdata': (0x140059000, 0x2f28, e_memory.MM_READ),
+            '.00cfg': (0x14005c000, 0x10, e_memory.MM_READ),
+            '.freestd': (0x14005d000, 0x10, e_memory.MM_READ),
+            '.tls': (0x14005e000, 0x11, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.reloc': (0x140092000, 0x338, e_memory.MM_READ),
+        }
+        for sva, ssize, sname, sfname in vw.getSegments():
+            self.assertEqual(ans[sname][0], sva)
+            self.assertEqual(ans[sname][1], ssize)
+            self.assertEqual(sfname, 'firefox')
+
+            mva, msize, flags, mfname = vw.getMemoryMap(sva)
+            self.assertEqual(mva, sva)
+            self.assertEqual(msize, ssize)
+            self.assertEqual(flags, ans[sname][2])
+            self.assertEqual(mfname, sfname)

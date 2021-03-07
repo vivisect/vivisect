@@ -4,7 +4,7 @@ import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 import envi.archs.i386.opconst as e_i386_const
-import envi.archs.amd64.opcode64 as opcode86
+from . import opcode64 as opcode86
 
 from envi.const import RMETA_NMASK
 
@@ -13,7 +13,7 @@ from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, \
         MANDATORY_PREFIXES, PREFIX_REP_MASK, RMETA_LOW8, RMETA_LOW16
 
-from envi.archs.amd64.regs import *
+from .regs import *
 from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
                                     OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
                                     INS_VEXREQ, OP_NOVEXL
