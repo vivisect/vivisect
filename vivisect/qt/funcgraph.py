@@ -489,7 +489,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         js = 'var sizes = {};'
 
         for nid, nprops in self.graph.getNodes():
-            cbname = 'codeblock_%.8x' % nid
+            try:
+                cbname = 'codeblock_%.8x' % nid
+            except:
+                return
             js += f'''
             sizes[{nid}] = [document.getElementById("{cbname}").offsetWidth, document.getElementById("{cbname}").offsetHeight];
             '''
