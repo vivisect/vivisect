@@ -111,6 +111,9 @@ class AnalysisMonitor(EmulationMonitor):
         for va, callname, argv in self.callcomments:
             reprargs = [emu.reprVivValue(val) for val in argv]
             self.vw.setComment(va, '%s(%s)' % (callname, ','.join(reprargs)))
+            cva = self.vw.vaByName(callname)
+            if cva:
+                self.vw.addXref(va, self.vw.vaByName(callname), REF_CODE, envi.BR_PROC)
 
     def addDynamicBranchHandler(self, cb):
         '''
