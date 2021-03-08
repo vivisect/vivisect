@@ -698,7 +698,10 @@ class RxDisasm:
             
             oper1 = RxDspOper(rd, dspd, tsize=tsize, va=va)
 
-        imm = e_bits.parsebytes(bytez, off, li, sign=False)
+        # li as 0 translates to 32-bit
+        if li == 0:
+            li = 4
+        imm = e_bits.sign_extend(e_bits.parsebytes(bytez, off, li, sign=False), li, 4)
         opsz += li
         off+= li
 

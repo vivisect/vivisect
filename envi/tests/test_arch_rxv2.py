@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 #e_common.initLogging(logger, logging.WARN)
 
 
-GOOD_TESTS = 228
+GOOD_TESTS = 231
 GOOD_EMU_TESTS = 0
 
 
@@ -254,6 +254,10 @@ instrs = [
         ('fd78d48017', 0x4560, 'xor #0x1780,r4', 0, ()),             # FORM_
         ('fc36348017', 0x4560, 'xor 0x1780[r3].ub,r4', 0, ()),             # FORM_
         ('06a20d348017', 0x4560, 'xor 0x5e00[r3].l,r4', 0, ()),             # FORM_
+
+        ('f812ffffff47', 0x4560, 'mov.l #0x47ffffff,[r1]', 0, ()),
+        ('f91601ff', 0x4560, 'mov.l #0xffffffff,0x4[r1]', 0, ()),
+        ('f91e020000ff', 0x4560, 'mov.l #0xffff0000, 0x8[r1]', 0, ()),
 
 ]
 
