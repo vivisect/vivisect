@@ -1,4 +1,5 @@
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 
 import logging
@@ -107,6 +108,22 @@ class AnalysisMonitor(EmulationMonitor):
                     vw.makePointer(val, tova=pval)
                 else:
                     vw.makeNumber(val, tsize)
+
+                nloc = None
+                try:
+                    if vw.isProbablyUnicode(val):
+                        nloc = vw.makeUnicode(val)
+                    elif vw.isProbablyString(val):
+                        nloc = vw.makeString(val)
+                except e_exc.SegmentationViolation:
+                    pass
+                except Exception as e:
+                    logger.warning('addAnalysisResults string making hit error %s', str(e))
+                if not nloc:
+                    if (vw.psize == tsize and vw.isValidPointer(val)):
+                        vw.makePointer(val, tova=pval)
+                    else:
+                        vw.makeNumber(val, tsize)
 
         for va, callname, argv in self.callcomments:
             reprargs = [emu.reprVivValue(val) for val in argv]

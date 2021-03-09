@@ -7,7 +7,7 @@ import argparse
 import binascii
 import threading
 
-import vivisect
+import vivisect.cli as v_cli
 import vivisect.parsers as v_parsers
 import vivisect.storage.basicfile as viv_basicfile
 
@@ -65,8 +65,8 @@ class VivServerClient:
         # Retrieve the big initial list of viv events
         return self.server.getNextEvents(self.chan)
 
-    def waitForEvent(self, chan):
-        return self.q.get()
+    def waitForEvent(self, chan, timeout=None):
+        return self.q.get(timeout=timeout)
 
 
 class VivServer:
@@ -199,7 +199,7 @@ class VivServer:
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
-        chan = binascii.hexlify(os.urandom(16))
+        chan = binascii.hexlify(os.urandom(16)).decode('utf-8')
 
         lock, fpath, pevents, users = wsinfo
         with lock:
@@ -215,7 +215,7 @@ class VivServer:
 
 
 def getServerWorkspace(server, wsname):
-    vw = vivisect.cli.VivCli()
+    vw = v_cli.VivCli()
     cliproxy = VivServerClient(vw, server, wsname)
     vw.initWorkspaceClient(cliproxy)
     return vw

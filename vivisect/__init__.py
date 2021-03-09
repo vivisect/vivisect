@@ -20,6 +20,7 @@ import collections
 
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.common as e_common
 import envi.memory as e_mem
@@ -1371,10 +1372,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         # So we need the size check to avoid things like "aaaaa", maybe
                         # but maybe if we do something like the tsize must be either the
                         # target pointer size or in a set of them that the arch defines?
-                        if (self.psize == o.tsize and self.isValidPointer(val)):
-                            self.makePointer(ref, tova=val)
-                        else:
-                            self.makeNumber(ref, o.tsize)
+                        nloc = None
+                        try:
+                            if self.isProbablyUnicode(val):
+                                nloc = self.makeUnicode(val)
+                            elif self.isProbablyString(val):
+                                nloc = self.makeString(val)
+                        except e_exc.SegmentationViolation:
+                            pass
+                        except Exception as e:
+                            logger.warning('makeOpcode string making hit error %s', str(e))
+                            import pdb, sys
+                            pdb.post_mortem(sys.exc_info()[2])
+                        if not nloc:
+                            if (self.psize == o.tsize and self.isValidPointer(val)):
+                                self.makePointer(ref, tova=val)
+                            else:
+                                self.makeNumber(ref, o.tsize)
 
             else:
                 ref = o.getOperValue(op)
@@ -1893,10 +1907,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         if self.getLocation(va) is not None:
             return None
-        if self.isProbablyString(va):
-            return LOC_STRING
-        elif self.isProbablyUnicode(va):
+        if self.isProbablyUnicode(va):
             return LOC_UNI
+        elif self.isProbablyString(va):
+            return LOC_STRING
         elif self.isProbablyCode(va):
             return LOC_OP
         return None
@@ -2060,8 +2074,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 if (sva, ssize) not in pinfo:
                     modified = True
                     pinfo.append((sva, ssize))
+
+            tinfo = pinfo
             if modified:
-                tinfo = pinfo
                 va = pva
                 size = psize
         else:
