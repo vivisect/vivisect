@@ -69,7 +69,6 @@ class VivServerDialog(QDialog):
         except AttributeError:
             server = "visi.kenshoto.com"
 
-        #self.wsname = QLineEdit(vw.getMeta('StorageName', ''), parent=self)
         self.wsserver = QLineEdit(server, parent=self)
         self.setdef = QCheckBox(parent=self)
 
@@ -83,7 +82,6 @@ class VivServerDialog(QDialog):
         serverlayout.addWidget(self.setdef)
 
         layout = QFormLayout()
-        #layout.addRow('Workspace Name', self.wsname)
         layout.addRow('Workspace Server', serverlayout)
         layout.addWidget(self.buttons)
         self.setLayout(layout)

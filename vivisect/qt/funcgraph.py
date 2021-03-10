@@ -492,6 +492,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             try:
                 cbname = 'codeblock_%.8x' % nid
             except:
+                self.vw.vprint('Failed to build cbname during funcgraph building')
                 return
             js += f'''
             sizes[{nid}] = [document.getElementById("{cbname}").offsetWidth, document.getElementById("{cbname}").offsetHeight];
