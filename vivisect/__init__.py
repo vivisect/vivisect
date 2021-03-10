@@ -1382,8 +1382,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                             pass
                         except Exception as e:
                             logger.warning('makeOpcode string making hit error %s', str(e))
-                            import pdb, sys
-                            pdb.post_mortem(sys.exc_info()[2])
                         if not nloc:
                             if (self.psize == o.tsize and self.isValidPointer(val)):
                                 self.makePointer(ref, tova=val)

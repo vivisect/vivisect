@@ -27,7 +27,7 @@ class VtraceProcessTest(unittest.TestCase):
             self.proc.stdin.flush()
             self.trace.run()
         try:
-            self.proc.wait(timeout=5)
+            self.proc.wait(timeout=30)
         except:
             # whatever. shoot the process and keep going. Ain't nobody got time for that.
             self.proc.kill()
