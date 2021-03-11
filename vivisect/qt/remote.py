@@ -125,6 +125,7 @@ def openServerAndWorkspace(vw, parent=None):
     host = dia.getServer()
     if host is None:
         return
+    port = 16500
     if ':' in host:
         host, port = host.split(':')
 
