@@ -128,13 +128,13 @@ def openServerAndWorkspace(vw, parent=None):
     if ':' in host:
         host, port = host.split(':')
 
-    connServerAndWorkspace(vw, str(host), parent=parent)
+    connServerAndWorkspace(vw, str(host), int(port), parent=parent)
 
 
 def connServerAndWorkspace(vw, host, port=16500, parent=None):
     # NOTE: do *not* touch parent (or qt) in here!
     try:
-        server = viv_server.connectToServer(host)
+        server = viv_server.connectToServer(host, port=port)
         wslist = server.listWorkspaces()
         selectServerWorkspace(vw, server, wslist, parent=parent)
     except Exception as e:
