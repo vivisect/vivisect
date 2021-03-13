@@ -5,6 +5,7 @@ import vstruct.qt as vs_qt
 import envi.expression as e_expr
 import envi.qt.config as e_q_config
 
+import vqt.cli as vq_cli
 import vqt.main as vq_main
 import vqt.colors as vq_colors
 import vqt.qpython as vq_python
@@ -200,6 +201,90 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         bname, ok = QInputDialog.getText(parent, 'Enter...', 'Bookmark Name')
         if ok:
             self.vw.setVaSetRow('Bookmarks', (va, str(bname)))
+
+    def getWindowsByName(self, name='viv', firstonly=True):
+        '''
+        Returns a list of Envi Nav Widgets with the given name.
+        If "firstonly" is True, only return the first one (not a list)
+
+        Returns a tuple of (Widget, DockWidget).  The "Widget" is obtained from
+        the DockWidget, but they both have different powers.
+        '''
+        logger.debug("getWindowsByName(%r, firstonly=%r)", name, firstonly)
+        out = []
+
+        for vqDW in self.vqGetDockWidgets():
+            w = vqDW.widget()
+            if hasattr(w, 'getEnviNavName'):
+                logger.debug("enn: " + w.getEnviNavName())
+                if w.getEnviNavName() == name:
+                    if firstonly:
+                        return w, vqDW
+
+                    out.append((w,vqDW))
+
+        if not len(out):
+            return None
+
+        return out
+
+    def sendVivTo(self, va, wname='viv'):
+        '''
+        Tells the named Envi Nav Widget to navigate to the given VA
+        '''
+        logger.debug("sendVivTo(0x%x, wname=%r)", va, wname)
+        win = self.getWindowsByName(wname, firstonly=True)
+        if win is None:
+            logger.debug('  no window named %r', wname)
+            return False
+
+        logger.debug("sendVivTo gets %r", repr(win))
+        w, vqFW = win
+
+        logger.debug("sending %r to %r", w, hex(va))
+        w.enviNavGoto(hex(va))
+        return True
+
+    def getCliBar(self):
+        '''
+        Returns the CLI Bar object
+        '''
+        logger.debug("getCliBar()")
+        for c in self.children():
+            if type(c) == vq_cli.VQCli:
+                return c
+
+    def getCliText(self):
+        '''
+        Get the text from the GUI's CLI Bar (at the bottom)
+        '''
+        logger.debug("getCliText()")
+        cli = self.getCliBar()
+        return cli.input.text()
+
+    def setCliText(self, text):
+        '''
+        Set the text in the GUI's CLI Bar (at the bottom)
+        '''
+        logger.debug("setCliText(%r)" % text)
+        cli = self.getCliBar()
+        cli.input.setText(text)
+
+    def getEnviNavWidgets(self):
+        '''
+        Returns a list of Dock Widgets which have a "getEnviNavName"
+        This includes MemoryViews and FuncGraphs
+        '''
+        logger.debug("getEnviNavWidgets()")
+
+        out = []
+        for vqDW in self.vqGetDockWidgets():
+            w = vqDW.widget()
+            if hasattr(w, 'getEnviNavName'):
+                logger.debug("enn: " + w.getEnviNavName())
+                out.append((w, vqDW))
+
+        return out
 
     def _menuEditPrefs(self):
         configs = []
