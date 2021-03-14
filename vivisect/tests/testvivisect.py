@@ -46,6 +46,19 @@ class VivisectTest(unittest.TestCase):
                 self.assertEqual((xflags, isint(xflags)),
                                  (xflags, True))
 
+    def test_cli_searchopcode(self):
+        '''
+        Test that VivCli.do_searchopcodes works
+        '''
+        self.chgrp_vw.do_searchopcodes('ret')
+        self.chgrp_vw.do_searchopcodes('foo')
+        self.chgrp_vw.do_searchopcodes('-f 0x08050200 ret')
+        self.chgrp_vw.do_searchopcodes('-c ret')
+        self.chgrp_vw.do_searchopcodes('-o ret')
+        self.chgrp_vw.do_searchopcodes('-t ret')
+        self.chgrp_vw.do_searchopcodes('-M red ret')
+        self.chgrp_vw.do_searchopcodes('-R r.t')
+
     def test_loc_types(self):
         '''
         Test that we have data consistency in locations
