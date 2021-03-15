@@ -18,12 +18,11 @@ class PageLookup:
     '''
 
     def __init__(self):
-        #self._page_dict = {}
         self._page_dict = pagedict()
 
     def getPageLookup(self, va):
         page = self._page_dict.get( va >> 16 )
-        if page == None:
+        if page is None:
             return None
         return page[ va & 0xffff ]
 
@@ -68,5 +67,4 @@ class MapLookup:
         return None
 
     def __getslice__(self, start, end):
-        print 'GET SLICE'
-
+        raise NotImplementedError("__getslice__ on MapLookup needs implementing")

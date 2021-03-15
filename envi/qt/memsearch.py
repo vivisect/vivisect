@@ -1,16 +1,12 @@
 import string
 
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import *
+
 import envi.memory as e_mem
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
-from vqt.main import getOpenFileName, getSaveFileName
-
-try:
-    from PyQt5 import QtCore, QtGui
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import *
+from vqt.main import getSaveFileName
 
 class MemSearchDialog(QDialog):
     '''
@@ -19,8 +15,7 @@ class MemSearchDialog(QDialog):
     def __init__(self):
         QDialog.__init__(self)
 
-        self.modes = ['ascii', 'hex', 'regex', 'utf-8', 'utf-16-le',
-                        'utf-16-be']
+        self.modes = ['ascii', 'hex', 'regex', 'utf-8', 'utf-16-le', 'utf-16-be']
         self.pattern = None
         self.filename = None
 
@@ -136,13 +131,13 @@ class MemSearchDialog(QDialog):
         return txt.encode(encoding)
 
     def updateHexPreview(self, bytez):
-        if bytez == None:
+        if bytez is None:
             self.hex_edit.setPlainText('')
             return
 
         self.canvas.clearCanvas()
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(0, e_mem.MM_READ, '', bytez)
+        mem.addMemoryMap(0, e_mem.MM_READ, b'', bytez)
         self.canvas.mem = mem
         self.canvas.renderMemory(0, len(bytez))
         self.hex_edit.setPlainText(str(self.canvas))
@@ -163,15 +158,3 @@ class MemSearchDialog(QDialog):
 
     def getResults(self):
         return self.pattern, self.filename
-
-def main():
-    app = QApplication([])
-    dlg = MemSearchDialog()
-    font = QtGui.QFont('Courier')#'Consolas', 10)#'Courier New', 10)
-    dlg.hex_edit.setFont(font)
-    if dlg.exec_() == QDialog.Accepted:
-        print(dlg.pattern)
-        print(dlg.filename)
-
-if __name__ == '__main__':
-    main()

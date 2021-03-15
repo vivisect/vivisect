@@ -25,7 +25,7 @@ class SymbolikFunctionGraph(v_graphcore.HierGraph):
         seperate "block" refs )
         '''
         #node = self.getNode(va)
-        #if node == None:
+        #if node is None:
 
     #def addNodeOpcode(self, node, op):
         #'''
@@ -116,7 +116,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         Example:
             reg = emu.getSymbolikVariable('regfoo')
             off = emu.getStackOffset(reg)
-            if off != None:
+            if off is not None:
                 print('regfoo is stack offset: %d' % off)
         '''
         if self.stackbase is None or self.stacksize is None:
@@ -154,18 +154,18 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         # Setup our calling convention based on what the workspace says
         # for this function...
         apictx = self._sym_vw.getFunctionApi(fva)
-        if apictx == None:
+        if apictx is None:
             raise Exception('No API context for function %x' % fva)
 
         ccname = apictx[API_CCONV]
         self.cconv = self.getCallingConvention(ccname)
-        if self.cconv == None:
+        if self.cconv is None:
             raise Exception('Unknown CallingConvention (%s) for: 0x%.8x' % (ccname, fva))
 
         if args is None:
             # Initialize arguments by setting variables based on their arg indexes
             argc = len(self._sym_vw.getFunctionArgs(fva))
-            args = [Var('arg%d' % i, self.__width__) for i in xrange(argc)]
+            args = [Var('arg%d' % i, self.__width__) for i in range(argc)]
 
         self.cconv.setSymbolikArgs(self, args)
 
@@ -297,7 +297,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         Retrieve a list of (name, ccobj) tuples for the registered *symbolik*
         calling convention objects in this context.
         '''
-        return self.cconvs.items()
+        return list(self.cconvs.items())
 
     def addFunctionCallback(self, funcname, callback):
         '''
@@ -331,10 +331,11 @@ class SymbolikAnalysisContext:
     allows over-rides for things like symbolik imports during runtime.
     '''
 
-    def __init__(self, vw):
+    def __init__(self, vw, consolve=False):
         self.vw = vw
         self.funccb = {}    # Callbacks
-        self.consolve = False
+        self.consolve = consolve
+        # TODO: is this used?
         self._sym_resolve = False
         self.preeffects = []
         self.preconstraints = []
@@ -520,7 +521,6 @@ class SymbolikAnalysisContext:
                 # bail if the constraint is dorked
                 if coneff.cons.isDiscrete():
                     if not coneff.cons._solve():
-                        print('TRIM: %s' % (str(coneff.cons),))
                         return False
                     continue
 
@@ -557,7 +557,7 @@ class SymbolikAnalysisContext:
 
         if args is None:
             argdef = self.vw.getFunctionArgs(fva)
-            args = [Arg(i, width=self.vw.psize) for i in xrange(len(argdef))]
+            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
         if paths is None:
             paths = viv_graph.getCodePaths(graph, maxpath=maxpath)
@@ -585,18 +585,11 @@ class SymbolikAnalysisContext:
                     constraints = graph.getEdgeProps(eid).get('symbolik_constraints', ())
                     constraints = emu.applyEffects(constraints)
 
-                    # print 'EDGE GOT CONSTRAINTS',[ str(c) for c in constraints]
-                    # FIXME check if constraints are discrete, and possibly skip path!
-                    # FIXME: if constraints are Const vs Const, and one Const is a loop var, don't skip!
-
                     if self.consolve:
                         # If any of the constraints are discrete and false we skip the path
                         [c.reduce() for c in constraints]
                         discs = [c.cons._solve() for c in constraints if c.cons.isDiscrete()]
-                        # print 'CONS',constraints
-                        # print 'DISCS',discs
                         if not all(discs):  # emtpy discs is True...
-                            # print('SKIP: %s %s' % (repr(discs),[str(c) for c in constraints ]))
                             skippath = True
                             break
 
@@ -630,7 +623,7 @@ class SymbolikAnalysisContext:
         '''
         if args is None:
             argdef = self.vw.getFunctionArgs( fva )
-            args = [Arg(i, width=self.vw.psize) for i in xrange(len(argdef))]
+            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
         for emu, effects in self.getSymbolikPaths(fva, args=args):
 
@@ -680,7 +673,7 @@ class SymbolikAnalysisContext:
             emu.setupFunctionCall(fva, args=fargs)
         return emu
 
-def getSymbolikAnalysisContext(vw):
+def getSymbolikAnalysisContext(vw, consolve=False):
     '''
     Return a symbolik analysis context which is appropriate for the given
     VivWorkspace.  Returns None if the given arch/platform does not support
@@ -690,11 +683,10 @@ def getSymbolikAnalysisContext(vw):
     arch = vw.getMeta('Architecture')
     if arch == 'i386':
         import vivisect.symboliks.archs.i386 as vsym_i386
-        return vsym_i386.i386SymbolikAnalysisContext(vw)
+        return vsym_i386.i386SymbolikAnalysisContext(vw, consolve=consolve)
 
     elif arch == 'amd64':
         import vivisect.symboliks.archs.amd64 as vsym_amd64
-        return vsym_amd64.Amd64SymbolikAnalysisContext(vw)
+        return vsym_amd64.Amd64SymbolikAnalysisContext(vw, consolve=consolve)
 
     return None
-

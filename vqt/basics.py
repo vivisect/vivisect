@@ -1,12 +1,9 @@
 '''
 A place for some no-brainer basics :)
 '''
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
+
 
 class BasicTreeView(QTreeView):
 
@@ -18,7 +15,7 @@ class BasicTreeView(QTreeView):
     def setModel(self, model):
         ret = QTreeView.setModel(self, model)
         c = len(model.columns)
-        for i in xrange(c):
+        for i in range(c):
             self.resizeColumnToContents(i)
         return ret
 
@@ -76,7 +73,7 @@ class VBox( QVBoxLayout ):
         self.setContentsMargins(2,2,2,2)
         self.setSpacing(4)
         for w in widgets:
-            if w == None:
+            if w is None:
                 self.addStretch()
                 continue
             self.addWidget( w )
@@ -88,7 +85,7 @@ class HBox( QHBoxLayout ):
         self.setContentsMargins(2,2,2,2)
         self.setSpacing(4)
         for w in widgets:
-            if w == None:
+            if w is None:
                 self.addStretch()
                 continue
             self.addWidget( w )

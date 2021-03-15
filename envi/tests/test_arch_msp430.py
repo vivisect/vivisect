@@ -1,3 +1,4 @@
+import binascii
 import unittest
 
 import vivisect
@@ -21,12 +22,12 @@ class msp430InstructionSet(unittest.TestCase):
         cls._vw.setMeta('Architecture', 'msp430')
         cls._vw.setMeta('Platform', 'unknown')
         cls._vw.setMeta('Format', 'blob')
-        cls._vw.addMemoryMap(0, 0x7, 'mem', "\x00"*cls.MEMSIZE)
+        cls._vw.addMemoryMap(0, 0x7, 'mem', b'\x00' * cls.MEMSIZE)
         cls._emu = cls._vw.getEmulator()
 
     def doTest(self, test_name, init_state, final_state):
         # Reset memory
-        self._emu.writeMemory(0, "\x00"*self.MEMSIZE)
+        self._emu.writeMemory(0, b"\x00" * self.MEMSIZE)
 
         # Init registers, status flags and memory
         for reg, val in init_state['regs']:
@@ -35,8 +36,8 @@ class msp430InstructionSet(unittest.TestCase):
         for flag, state in init_state['flags']:
             self._emu.setFlag(flag, state)
 
-        init_code = init_state['code'].decode('hex')
-        init_data = init_state['data'].decode('hex')
+        init_code = binascii.unhexlify(init_state['code'])
+        init_data = binascii.unhexlify(init_state['data'])
 
         self._emu.writeMemory(self.CODE_VA, init_code)
         self._emu.writeMemory(self.DATA_VA, init_data)
@@ -55,11 +56,11 @@ class msp430InstructionSet(unittest.TestCase):
             val = self._emu.getFlag(flag)
             self.assertEqual(val, want, '{} - flags ({})'.format(test_name, flag))
 
-        want = final_state['code'].decode('hex')
+        want = binascii.unhexlify(final_state['code'])
         code = self._emu.readMemory(self.CODE_VA, len(want))
         self.assertEqual(code, want, test_name + ' - code')
 
-        want = final_state['data'].decode('hex')
+        want = binascii.unhexlify(final_state['data'])
         data = self._emu.readMemory(self.DATA_VA, len(want))
         self.assertEqual(data, want, test_name + ' - data')
 

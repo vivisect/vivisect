@@ -1,20 +1,15 @@
-import sys
 import logging
-import traceback
 
 # Some common GUI helpers
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QTreeView
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QTreeView
+from PyQt5 import QtCore 
+from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtWidgets import QTreeView, QDialog, QLineEdit, QComboBox, QVBoxLayout, QHBoxLayout, QDialogButtonBox, QLabel, QMessageBox
+from vqt.main import idlethread
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
+
 if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
-
 
 
 class ACT:
@@ -26,9 +21,9 @@ class ACT:
     def __call__(self):
         try:
             return self.meth( *self.args, **self.kwargs )
-        except:
-            logger.warn("error in ACT(%r, %r, %r)" % (self.meth, self.args, self.kwargs))
-            logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+        except Exception as e:
+            logger.warning("error in ACT(%s, %s, %s)", str(self.meth), str(self.args), str(self.kwargs))
+            logger.warning(str(e))
 
 
 class VqtModel(QtCore.QAbstractItemModel):
@@ -41,7 +36,7 @@ class VqtModel(QtCore.QAbstractItemModel):
         QtCore.QAbstractItemModel.__init__(self)
         # Make sure the rows are lists ( so we can mod them )
         self.rows = [ list(row) for row in rows ]
-        if self.editable == None:
+        if self.editable is None:
             self.editable = [False,] * len(self.columns)
 
     def index(self, row, column, parent):
@@ -56,7 +51,7 @@ class VqtModel(QtCore.QAbstractItemModel):
         return len(self.rows)
 
     def data(self, index, role):
-        if role == 0: 
+        if role == 0:
             row = index.row()
             col = index.column()
             return self.rows[row][col]
@@ -68,12 +63,8 @@ class VqtModel(QtCore.QAbstractItemModel):
         return len(self.columns)
 
     def headerData(self, column, orientation, role):
-
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
-
+        if (orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole):
             return self.columns[column]
-
         return None
 
     def flags(self, index):
@@ -120,10 +111,8 @@ class VqtModel(QtCore.QAbstractItemModel):
 
         # If this is the edit role, fire the vqEdited thing
         if role == QtCore.Qt.EditRole:
-            print('EDIT ROLE')
-            
             #value = self.vqEdited(node, index.column(), value)
-            #if value == None:
+            #if value is None:
                 #return False
 
             row = index.row()
@@ -136,7 +125,7 @@ class VqtModel(QtCore.QAbstractItemModel):
     def pop(self, row, parent=QtCore.QModelIndex()):
         self.beginRemoveRows(parent, row, row+1)
         self.rows.pop(row)
-        self.endRemoveRows()  
+        self.endRemoveRows()
 
     #def mimeTypes(self):
         #types = QtCore.QStringList()
@@ -166,7 +155,7 @@ class VqtView(QTreeView):
                 continue
 
             rdone[idx.row()] = True
-            ret.append( model.mapToSource(idx).internalPointer() )
+            ret.append(model.mapToSource(idx).internalPointer())
 
         return ret
 
@@ -175,7 +164,7 @@ class VqtView(QTreeView):
         smodel.setSourceModel(model)
         ret = QTreeView.setModel(self, smodel)
         c = len(model.columns)
-        for i in xrange(c):
+        for i in range(c):
             self.resizeColumnToContents(i)
         return ret
 
@@ -184,4 +173,178 @@ class VqtView(QTreeView):
 
     def getModelRow(self, idx):
         idx = self.model().mapToSource(idx)
-        return idx.row(),idx.internalPointer()
+        return idx.row(), idx.internalPointer()
+
+
+class DynamicDialog(QDialog):
+    '''
+    Pop up and ask the questions.  If "OK", returns a dict with answers.  
+    Intended for easy access by extensions, and possibly for envi.Config items.
+    eg:
+
+    >>> dynd = vcmn.DynamicDialog('Test Dialog')
+    >>> dynd.addComboBox('testbox', ["a", 'b', 'c'], dfltidx=2)
+    >>> dynd.addTextField('foo', dflt="blah blah")
+    >>> dynd.addIntHexField('bar', dflt=47145)
+    >>> results = dynd.prompt()
+        <when returns, after user clicks OK>
+    >>> print(results)
+    {'testbox': 'c', 'foo': 'blah blah', 'bar': 47145}
+
+            or...
+
+    >>> results = dynd.prompt()
+        <if user hits cancel>
+    >>> print(results)
+    {}
+
+    '''
+    _TEXT = 0
+    _COMBO = 1
+    _INTHEX = 2
+
+    def __init__(self, title, height=100, width=300, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle(title)
+        self.items = {}
+        self.resize(width, height)
+        self.vbox = QVBoxLayout()
+        self.setLayout(self.vbox)
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel);
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+    def addComboBox(self, fieldname, itemlist, dfltidx=None, title=None):
+        '''
+        Adds a Combo Box to the dialog.  The returned value will be one of the 
+        options provided in itemlist.
+
+        dfltidx is the index in the itemlist which should start out selected.
+        default is the first item.
+        '''
+        if fieldname in self.items:
+            raise Exception("ComboBox: Adding field to DynamicDialog twice: %r (existing: %r)"\
+                    % (fieldname, self.items.get(fieldname)))
+
+        cb = QComboBox()
+        cb.addItems(itemlist)
+        self.items[fieldname] = (self._COMBO, cb)
+
+        if dfltidx is not None:
+            cb.setCurrentIndex(dfltidx)
+        if title is None:
+            title = fieldname
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(QLabel(title))
+        hbox.addWidget(cb)
+        self.vbox.addLayout(hbox)
+
+    def addTextField(self, fieldname, dflt=None, title=None):
+        '''
+        Adds a standard Text Box (QLineEdit) to the dialog.
+        Return value is basically untouched.
+        '''
+        if fieldname in self.items:
+            raise Exception("Text: Adding field to DynamicDialog twice: %r (existing: %r)"\
+                    % (fieldname, self.items.get(fieldname)))
+
+        le = QLineEdit()
+        self.items[fieldname] = (self._TEXT, le)
+
+        if dflt is not None:
+            le.setText(dflt)
+        if title is None:
+            title = fieldname
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(QLabel(title))
+        hbox.addWidget(le)
+        self.vbox.addLayout(hbox)
+
+    def addIntHexField(self, fieldname, dflt=None, title=None):
+        '''
+        Adds a number field to the dialog.  It's a QLineEdit field with a 
+        QRegExpValidator, using regex for Hexidecimal numbers, which also
+        allows for Decimal.  
+        Returned value is an int.
+        The value is interpreted as decimal (ie. int(foo)) unless non-numeric digits 
+        encountered, in which case it's interpreted as hex (ie. int(foo, 16))
+        '''
+        if fieldname in self.items:
+            raise Exception("IntHex: Adding field to DynamicDialog twice: %r (existing: %r)"\
+                    % (fieldname, self.items.get(fieldname)))
+
+        le = QLineEdit()
+        le.setValidator(QRegExpValidator(QtCore.QRegExp("^(-)?(0x)?[0-9a-fA-F]+$")))
+        self.items[fieldname] = (self._INTHEX, le)
+
+        if dflt is not None:
+            le.setText(str(dflt))
+        if title is None:
+            title = fieldname
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(QLabel(title))
+        hbox.addWidget(le)
+        self.vbox.addLayout(hbox)
+
+    def prompt(self):
+        '''
+        Temporarily adds a ButtonBox with "OK" and "Cancel", and shows the 
+        dialog to the user.  Then removes the buttonBox.
+        '''
+        self.vbox.addWidget(self.buttonBox);
+        res = self.exec_()
+        self.vbox.removeWidget(self.buttonBox);
+
+        retval = {}
+        if res:
+            for key, (ftype, field) in self.items.items():
+                if ftype == self._INTHEX:
+                    val = field.text()
+                    if len(val):
+                        try:
+                            val = int(val)
+                        except ValueError:
+                            val = int(val, 16)
+                    else:
+                        val = 0
+
+                elif ftype == self._TEXT:
+                    val = field.text()
+
+                elif ftype == self._COMBO:
+                    val = field.currentText()
+
+                retval[key] = val
+
+        return retval
+
+@idlethread
+def warning(msg, info):
+    msgbox = QMessageBox()
+    msgbox.setWindowTitle('Warn: %s' % msg)
+    msgbox.setText('Warn: %s' % msg)
+    msgbox.setInformativeText(info)
+    msgbox.setIcon(QMessageBox.Warning)
+    msgbox.exec_()
+
+@idlethread
+def information(msg, info):
+    msgbox = QMessageBox()
+    msgbox.setWindowTitle('%s' % msg)
+    msgbox.setText('%s' % msg)
+    msgbox.setInformativeText(info)
+    msgbox.setIcon(QMessageBox.Information)
+    msgbox.exec_()
+
+@idlethread
+def scripterr(msg, info):
+    msgbox = QMessageBox()
+    msgbox.setWindowTitle('Script Error: %s' % msg)
+    msgbox.setText('Script Error: %s' % msg)
+    msgbox.setInformativeText(info)
+    msgbox.exec_()
+

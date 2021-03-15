@@ -5,6 +5,7 @@ apitypes = {
 
 api = {
     # libc
+    'plt___libc_start_main':( 'int', None, 'cdecl', '*.__libc_start_main', (('int', 'main'), ('int', 'argc'), ('int', 'argv')) ),
     'plt_main_entry':( 'int', None, 'stdcall', '*.main_entry', (('int', None), ('int', None), ('int', None)) ),
     'plt__cicos':( 'int', None, 'cdecl', '*._CIcos', () ),
     'plt__cilog':( 'int', None, 'cdecl', '*._CIlog', () ),
@@ -742,7 +743,7 @@ api = {
     'plt__y0':( 'int', None, 'cdecl', '*._y0', () ),
     'plt__y1':( 'int', None, 'cdecl', '*._y1', () ),
     'plt__yn':( 'int', None, 'cdecl', '*._yn', () ),
-    'plt_abort':( 'int', None, 'stdcall', '*.abort', (('int', None),) ),
+    'plt_abort':( 'int', None, 'stdcall', '*.abort', () ),
     'plt_abs':( 'int', None, 'cdecl', '*.abs', (('int', None),) ),
     'plt_acos':( 'int', None, 'cdecl', '*.acos', () ),
     'plt_asctime':( 'int', None, 'cdecl', '*.asctime', (('int', None),) ),
@@ -937,5 +938,6 @@ api = {
     'plt_wctomb':( 'int', None, 'cdecl', '*.wctomb', (('void *', 'ptr'), ('int', None)) ),
     'plt_wprintf':( 'int', None, 'cdecl', '*.wprintf', (('int', None),) ),
     'plt_wscanf':( 'int', None, 'cdecl', '*.wscanf', (('int', None),) ),
+    'plt___ctype_b_loc':( 'int', None, 'cdecl', '*.__ctype_b_loc', () ),
 
 } # END

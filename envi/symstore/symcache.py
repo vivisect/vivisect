@@ -1,10 +1,11 @@
 import os
 import json
-import time
+import logging
 
-import cobra
-#import cobra.http as c_http
+import envi.exc as e_exc
 import envi.config as e_config
+
+logger = logging.getLogger(__name__)
 
 def symCacheHashFromPe(pe):
     checksum = pe.IMAGE_NT_HEADERS.OptionalHeader.CheckSum
@@ -27,8 +28,8 @@ class SymbolCache:
     '''
     def __init__(self, dirname=None):
 
-        if dirname == None:
-            dirname = e_config.gethomedir('.envi','symcache')
+        if dirname is None:
+            dirname = e_config.gethomedir('.envi', 'symcache')
 
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
@@ -44,15 +45,15 @@ class SymbolCache:
             cache = SymbolCache()
             cache.setCacheSyms( vhash, tups )
         '''
-        cachefile = os.path.join( self._sym_cachedir, vhash )
+        cachefile = os.path.join(self._sym_cachedir, vhash)
 
         abspath = os.path.abspath(cachefile)
-        if not abspath.startswith( self._sym_cachedir ):
-            raise Exception('Invalid Symbol Cache Hash: %s' % vhash)
+        if not abspath.startswith(self._sym_cachedir):
+            raise e_exc.InvalidSymbolCache(vhash)
 
         # FIXME check input path
-        fd = file(cachefile,'wb')
-        return json.dump(symcache, fd)
+        with open(cachefile, 'wb') as fd:
+            json.dump(symcache, fd)
 
     def getCacheSyms(self, vhash):
         '''
@@ -64,23 +65,22 @@ class SymbolCache:
             for rva, size, name, stype in cache.getCacheSyms():
                 dostuff()
         '''
-        cachefile = os.path.join( self._sym_cachedir, vhash )
+        cachefile = os.path.join(self._sym_cachedir, vhash)
 
         abspath = os.path.abspath(cachefile)
-        if not abspath.startswith( self._sym_cachedir ):
-            raise Exception('Invalid Symbol Cache Hash: %s' % vhash)
+        if not abspath.startswith(self._sym_cachedir):
+            raise e_exc.InvalidSymbolCache(vhash)
 
         if not os.path.isfile(cachefile):
             return None
 
         try:
-
-            print('Loading Cache File: %s' % cachefile)
-            fd = file(cachefile,'rb')
-            return json.load(fd)
-
-        except Exception, e:
+            with open(cachefile, 'rb') as fd:
+                return json.load(fd)
+        except Exception as e:
+            logger.warning('Failed to load cachefile: %s', e)
             return None
+
 
 class SymbolCachePath:
 
@@ -94,7 +94,8 @@ class SymbolCachePath:
                 continue
 
             if path.startswith('cobra://') or path.startswith('cobrassl://'):
-                self.symcaches.append( cobra.CobraProxy( path ) )
+                import cobra
+                self.symcaches.append(cobra.CobraProxy(path))
                 continue
 
             #if path.startswith('http://') or path.startswith('https://'):
@@ -104,10 +105,9 @@ class SymbolCachePath:
 
         for symcache in self.symcaches:
             ret = symcache.getCacheSyms(symhash)
-            if ret != None:
+            if ret is not None:
                 return ret
 
     def setCacheSyms(self, symhash, symcache):
         if self.symcaches:
-            self.symcaches[0].setCacheSyms(symhash,symcache)
-
+            self.symcaches[0].setCacheSyms(symhash, symcache)

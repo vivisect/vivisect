@@ -1,9 +1,7 @@
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
-
 import logging
+
+from PyQt5.QtWidgets import *
+
 logger = logging.getLogger(__name__)
 
 class FieldAdder:
@@ -18,7 +16,7 @@ class FieldAdder:
         kid = self
         for p in plist:
             kid = parent.kids.get(p)
-            if kid == None:
+            if kid is None:
                 kid = VQMenu(p, parent=parent, splitchar=self.splitchar)
                 action = parent.addMenu(kid)
                 parent.kids[p] = kid
@@ -42,7 +40,7 @@ class FieldAdder:
         Example:
             def callback(name=None):
 
-                if name == None:
+                if name is None:
                     return ('one', 'two', 'three')
 
                 print('SELECTED: %s' % name)
@@ -91,4 +89,4 @@ class ActionCall:
             retval = self.callback(*self.args, **self.kwargs)
             return retval
         except Exception as e:
-            logger.exception("ActionCall: %r" % self.callback)
+            logger.exception("ActionCall failed on %s with error: %s ", repr(self.callback), str(e))

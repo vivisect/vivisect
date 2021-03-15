@@ -1,10 +1,7 @@
 '''
 A unified context menu builder for all address context clicks.
 '''
-try:
-    from PyQt5.QtWidgets import QMenu
-except:
-    from PyQt4.QtGui import QMenu
+from PyQt5.QtWidgets import QMenu
 
 import envi
 import envi.bits as e_bits
@@ -15,8 +12,6 @@ from vqt.common import *
 from envi.threads import *
 from vivisect.const import *
 
-def cmpoffset(x,y):
-    return cmp(x[0], y[0])
 
 @firethread
 def printEmuState(vw, fva, va):
@@ -28,13 +23,14 @@ def printEmuState(vw, fva, va):
     dstack = emu.getStackCounter() - stack
 
     regs = emu.getRegisters()
-    rnames = regs.keys()
+    rnames = list(regs.keys())
     rnames.sort()
 
     vw.vprint("Showing Register/Magic State At: 0x%.8x" % va)
     vw.vprint('Stack Delta: %d' % dstack)
 
-    # FIXME: this may not be as flexible as it could be, as we don't necessarily *have* to have a location... though we certainly should.
+    # FIXME: this may not be as flexible as it could be, as we don't necessarily *have* to have a location...
+    # though we certainly should.
     loc = vw.getLocation(va)
     if loc is None:
         vw.vprint("ARG! can't find location info for 0x%x" % va)
@@ -45,7 +41,7 @@ def printEmuState(vw, fva, va):
     vw.canvas.addVaText("0x%.8x: " % va, va)
     op.render(vw.canvas)
     vw.canvas.addText("\n")
-    for i in xrange(len(op.opers)):
+    for i in range(len(op.opers)):
         o = op.opers[i]
         o.render(vw.canvas, op, i)
         oaddr = o.getOperAddr(op, emu)
@@ -124,10 +120,10 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         if nav:
             funcmenu.addAction(funcname[:80], ACT(nav.enviNavGoto, funcname))
 
-        rtype,rname,cconv,cname,cargs = vw.getFunctionApi(fva)
+        rtype, rname, cconv, cname, cargs = vw.getFunctionApi(fva)
         if cargs:
             argmenu = funcmenu.addMenu('args')
-            for i,(atype,aname) in enumerate(cargs):
+            for i, (atype, aname) in enumerate(cargs):
                 act = ACT(vw.getVivGui().setFuncArgName, fva, i, atype, aname)
                 argmenu.addAction(aname, act)
 
@@ -207,7 +203,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
                     immmenu.addAction('chars (%s)' % cstr,  ACT(vw.setSymHint, va, idx, cstr))
 
                     names = vw.vsconsts.revLookup(val)
-                    if names != None:
+                    if names is not None:
                         for name in names:
                             immmenu.addAction(name, ACT(vw.setSymHint, va, idx, name))
             menu.addAction('make code xref->', ACT(vw.getVivGui().addVaXref, va))
@@ -216,6 +212,10 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         menu.addAction('undefine (U)',   ACT(vw.delLocation, va))
 
     e_q_memcanvas.initMemSendtoMenu(expr, menu)
+
+    # give any extensions a chance to play
+    for extname, exthook in vw._ext_ctxmenu_hooks.items():
+        logger.info('exthook: %r', exthook)
+        exthook(vw, va, expr, menu, parent, nav)
+
     return menu
-
-

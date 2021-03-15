@@ -39,6 +39,14 @@ def signed(value, size):
         x = (x - u_maxes[size]) - 1
     return x
 
+def bsigned(value, size):
+    """
+    Make a value signed based on it's size.
+    """
+    if value & bsign_bits[size]:
+        value = (value - bu_maxes[size]) - 1
+    return value
+
 def is_signed(value, size):
     x = unsigned(value, size)
     return bool(x & sign_bits[size])
@@ -150,16 +158,33 @@ master_fmts = (fmt_chars, fmt_schars)
 
 fmt_sizes =  (None,1,2,4,4,8,8,8,8)
 
+le_fmt_float = (None, None, None, None, '<f', None, None, None, '<d')
+be_fmt_float = (None, None, None, None, '>f', None, None, None, '>d')
+
+fmt_floats = (le_fmt_float, be_fmt_float)
+
+
 def getFormat(size, big_endian=False, signed=False):
     '''
     Returns the proper struct format for numbers up to 8 bytes in length
     Endianness and Signedness aware.
-
+    
     Only useful for *full individual* numbers... ie. 1, 2, 4, 8.  Numbers
     of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted 
     for here and will return None.
     '''
     return master_fmts[signed][big_endian][size]
+
+def getFloatFormat(size, big_endian=False):
+    '''
+    Returns the proper struct format for numbers up to 8 bytes in length
+    Endianness and Signedness aware.
+    
+    Only useful for *full individual* numbers... ie. 1, 2, 4, 8.  Numbers
+    of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted 
+    for here and will return None.
+    '''
+    return fmt_floats[big_endian][size]
 
 def parsebytes(bytes, offset, size, sign=False, bigend=False):
     """
@@ -171,7 +196,7 @@ def parsebytes(bytes, offset, size, sign=False, bigend=False):
         f = be_fmt_chars[size]
     else:
         f = le_fmt_chars[size]
-    if f == None:
+    if f is None:
         return slowparsebytes(bytes, offset, size, sign=sign, bigend=bigend)
     d = bytes[offset:offset+size]
     x = struct.unpack(f, d)[0]
@@ -191,7 +216,7 @@ def slowparsebytes(bytes, offset, size, sign=False, bigend=False):
     ioff = 0
     for x in range(size):
         ret = ret << 8
-        ret |= ord(bytes[begin+ioff])
+        ret |= bytes[begin+ioff]
         ioff += inc
     if sign:
         ret = signed(ret, size)
@@ -203,7 +228,7 @@ def buildbytes(value, size, bigend=False):
         f = be_fmt_chars[size]
     else:
         f = le_fmt_chars[size]
-    if f == None:
+    if f is None:
         raise Exception("envi.bits.buildbytes needs slowbuildbytes")
     return struct.pack(f, value)
 
@@ -232,11 +257,11 @@ def intwidth(val):
     return ret
 
 def hex(value, size=None):
-    if size == None:
+    if size is None:
         size = intwidth(value)
 
     fmt = hex_fmt.get(size)
-    if fmt != None:
+    if fmt is not None:
         return fmt % value
 
     x = []
@@ -259,7 +284,7 @@ def binrepr(intval, bitwidth=None):
         intval >>= 1
     ret.reverse()
     binstr = ''.join(ret)
-    if bitwidth != None:
+    if bitwidth is not None:
         binstr = binstr.rjust(bitwidth, '0')
     return binstr
 
@@ -294,11 +319,11 @@ def parsebits(bytes, offset, bitoff, bitsize):
     while cnt < bitsize:
 
         addbit = bitoff + cnt
-        addoff = offset + (addbit / 8)
+        addoff = offset + (addbit >> 3)
 
         modoff = addbit % 8
 
-        o = ord(bytes[addoff])
+        o = bytes[addoff]
         val = (val << 1) + ((o >> (7 - modoff)) & 1)
 
         cnt += 1
@@ -314,7 +339,7 @@ def masktest(s):
     example:
         opcode = 0x4388e234
         if masktest('1011xxxx0000')(opcode):
-            print 'MATCHED!'
+            print('MATCHED!')
 
     NOTE: For performance reasons, it is recommeneded that
     masktest be used to initialize a static list of tests
@@ -326,9 +351,3 @@ def masktest(s):
     def domask(testval):
         return testval & maskin == matchval
     return domask
-
-# if __name__ == '__main__':
-    # print hex(parsebits('\x0f\x00', 0, 4, 8))
-    # print hex(parsebits('\x0f\x0f', 0, 4, 12))
-    # print hex(parsebits('\x0f\x0f\xf0', 1, 4, 4))
-

@@ -39,12 +39,11 @@ class TestSymbolikCache(unittest.TestCase):
         self.assertIsNotNone(s.kids[1].cache.get('solve'))
 
         solved2 = s.solve()
-        self.assertEqual(str(s),'(y + 30)')
+        self.assertEqual(str(s), '(y + 30)')
 
-        self.assertNotEqual(solved1,solved2)
+        self.assertNotEqual(solved1, solved2)
 
         # be *really* mean and manually slice a kid
         # then confirm that the cache still hits..
-        s.kids[0] = Var('x',4)
+        s.kids[0] = Var('x', 4)
         self.assertEqual(s.solve(), solved2)
-
