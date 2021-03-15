@@ -103,7 +103,6 @@ class AnalysisMonitor(EmulationMonitor):
 
                 vw.guessDataPointer(val, tsize)
 
-
         for va, callname, argv in self.callcomments:
             reprargs = [emu.reprVivValue(val) for val in argv]
             self.vw.setComment(va, '%s(%s)' % (callname, ','.join(reprargs)))

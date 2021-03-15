@@ -185,7 +185,6 @@ class VivisectTest(unittest.TestCase):
         # even missing a bunch, there still should be more than 76k here)
         self.assertTrue(len(vw.getLocations()) > 76000)
 
-        breakpoint()
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
         ans = {0: ('Undefined', 0, 53924, 14),
                1: ('Num/Int',   715, 3738, 0),
