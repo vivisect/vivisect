@@ -537,25 +537,25 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqBuildDockWidget('VQPythonView', area=QtCore.Qt.RightDockWidgetArea)
 
     def _menuViewStrings(self):
-        self.newStringsView(self)
+        self.newStringsView()
     def _menuViewStructs(self):
-        self.newStructsView(self)
+        self.newStructsView()
     def _menuViewSegments(self):
-        self.newSegmentsView(self)
+        self.newSegmentsView()
     def _menuViewImports(self):
-        self.newImportsView(self)
+        self.newImportsView()
     def _menuViewExports(self):
-        self.newExportsView(self)
+        self.newExportsView()
     def _menuViewFunctions(self):
-        self.newFunctionsView(self)
+        self.newFunctionsView()
     def _menuViewNames(self):
-        self.newNamesView(self)
+        self.newNamesView()
     def _menuViewMemory(self):
-        self.newMemoryView(self)
+        self.newMemoryView()
     def _menuViewFuncGraph(self):
-        self.newFuncGraphView(self)
+        self.newFuncGraphView()
     def _menuViewSymboliks(self):
-        self.newSymbolikFuncView(self)
+        self.newSymbolikFuncView()
 
     def newPythonView(self, floating=False):
         dwidget = self.vqBuildDockWidget('VQPythonView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
