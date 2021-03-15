@@ -202,10 +202,13 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if ok:
             self.vw.setVaSetRow('Bookmarks', (va, str(bname)))
 
-    def getWindowsByName(self, name='viv', firstonly=True):
+    def getMemoryWidgets(self):
+        return self.views.get('VQVivMemoryView')
+
+    def getMemWidgetsByName(self, name='viv', firstonly=True):
         '''
-        Returns a list of Envi Nav Widgets with the given name.
-        If "firstonly" is True, only return the first one (not a list)
+        Returns a list of Memory View Widgets with the given name.
+        If "firstonly" is True, only return the first one or None(not a list)
 
         Returns a tuple of (Widget, DockWidget).  The "Widget" is obtained from
         the DockWidget, but they both have different powers.
@@ -213,36 +216,72 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         logger.debug("getWindowsByName(%r, firstonly=%r)", name, firstonly)
         out = []
 
-        for vqDW in self.vqGetDockWidgets():
+        for vqDW in self.getMemoryWidgets():
             w = vqDW.widget()
-            if hasattr(w, 'getEnviNavName'):
-                logger.debug("enn: " + w.getEnviNavName())
-                if w.getEnviNavName() == name:
-                    if firstonly:
-                        return w, vqDW
+            logger.debug("enn: " + w.getEnviNavName())
+            if w.getEnviNavName() == name:
+                if firstonly:
+                    return w, vqDW
 
-                    out.append((w,vqDW))
+                out.append((w,vqDW))
 
-        if not len(out):
+        if firstonly:   # if firstonly and we don't have one, return None
             return None
 
         return out
 
-    def sendVivTo(self, va, wname='viv'):
+    def getFuncGraphs(self):
+        return self.views.get('VQVivFuncgraphView')
+
+    def getFuncGraphsByName(self, name='FuncGraph0', firstonly=True):
+        '''
+        Returns a list of Dock Widgets which have a "getEnviNavName"
+        This includes MemoryViews and FuncGraphs
+        '''
+        logger.debug("getFuncGraphsByName()")
+
+        out = []
+        for vqDW in self.getFuncGraphs():
+            w = vqDW.widget()
+            logger.debug("enn: " + w.getEnviNavName())
+            if firstonly:
+                return w, vqDW
+
+            out.append((w, vqDW))
+
+        if firstonly:   # if firstonly and we don't have one, return None
+            return None
+
+        return out
+
+    def sendMemWidgetTo(self, va, wname='viv', firstonly=False):
         '''
         Tells the named Envi Nav Widget to navigate to the given VA
         '''
-        logger.debug("sendVivTo(0x%x, wname=%r)", va, wname)
-        win = self.getWindowsByName(wname, firstonly=True)
-        if win is None:
-            logger.debug('  no window named %r', wname)
-            return False
+        logger.debug("sendMemWidgetsTo(0x%x, wname=%r)", va, wname)
+        for win in self.getMemWidgetsByName(wname, firstonly=False):
+            logger.debug("sendMemWidgetsTo gets %r", repr(win))
+            w, vqFW = win
 
-        logger.debug("sendVivTo gets %r", repr(win))
-        w, vqFW = win
+            logger.debug("sending %r to %r", w, hex(va))
+            w.enviNavGoto(hex(va))
+            if firstonly:
+                break
+        return True
 
-        logger.debug("sending %r to %r", w, hex(va))
-        w.enviNavGoto(hex(va))
+    def sendFuncGraphTo(self, va, wname='funcgraph0', firstonly=False):
+        '''
+        Tells the named Envi Nav Widget to navigate to the given VA
+        '''
+        logger.debug("sendFuncGraphTo(0x%x, wname=%r)", va, wname)
+        for win in self.getFuncGraphsByName(wname, firstonly=False):
+            logger.debug("sendFuncGraphTo gets %r", repr(win))
+            w, vqFW = win
+
+            logger.debug("sending %r to %r", w, hex(va))
+            w.enviNavGoto(hex(va))
+            if firstonly:
+                break
         return True
 
     def getCliBar(self):
@@ -269,22 +308,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         logger.debug("setCliText(%r)" % text)
         cli = self.getCliBar()
         cli.input.setText(text)
-
-    def getEnviNavWidgets(self):
-        '''
-        Returns a list of Dock Widgets which have a "getEnviNavName"
-        This includes MemoryViews and FuncGraphs
-        '''
-        logger.debug("getEnviNavWidgets()")
-
-        out = []
-        for vqDW in self.vqGetDockWidgets():
-            w = vqDW.widget()
-            if hasattr(w, 'getEnviNavName'):
-                logger.debug("enn: " + w.getEnviNavName())
-                out.append((w, vqDW))
-
-        return out
 
     def _menuEditPrefs(self):
         configs = []
@@ -530,7 +553,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def _menuViewMemory(self):
         self.newMemoryView(self)
     def _menuViewFuncGraph(self):
-        self.newFuncgraphView(self)
+        self.newFuncGraphView(self)
     def _menuViewSymboliks(self):
         self.newSymbolikFuncView(self)
 
