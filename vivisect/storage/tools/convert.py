@@ -1,10 +1,13 @@
+'''
+Convert from one vivisect storage format to another.
+'''
+
 import os
 import sys
 import argparse
 
 import vivisect
 import vivisect.parsers as v_parsers
-import vivisect.storage as v_storage
 
 storemap = {
     'viv': 'vivisect.storage.basicfile',

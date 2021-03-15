@@ -128,6 +128,8 @@ class VQVivStringsView(VQVivLocView):
         s = self.vw.readMemory(lva, lsize)
         if ltype == LOC_UNI:
             s = s.decode('utf-16le', 'ignore')
+        else:
+            s = s.decode('utf-8', 'ignore')
         self.vivAddRow(lva, '0x%.8x' % lva, repr(s))
 
 class VQVivImportsView(VQVivLocView):

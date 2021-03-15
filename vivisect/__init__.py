@@ -1360,29 +1360,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     # If we don't already know what type this location is,
                     # lets make it either a pointer or a number...
                     if self.getLocation(ref) is None:
-
-                        offset, _ = self.getByteDef(ref)
-
-                        val = self.parseNumber(ref, o.tsize)
-                        # So we need the size check to avoid things like "aaaaa", maybe
-                        # but maybe if we do something like the tsize must be either the
-                        # target pointer size or in a set of them that the arch defines?
-                        nloc = None
-                        try:
-                            if self.isProbablyUnicode(val):
-                                nloc = self.makeUnicode(val)
-                            elif self.isProbablyString(val):
-                                nloc = self.makeString(val)
-                        except e_exc.SegmentationViolation:
-                            pass
-                        except Exception as e:
-                            logger.warning('makeOpcode string making hit error %s', str(e))
-                        if not nloc:
-                            if (self.psize == o.tsize and self.isValidPointer(val)):
-                                self.makePointer(ref, tova=val)
-                            else:
-                                self.makeNumber(ref, o.tsize)
-
+                        self.guessDataPointer(ref, o.tsize)
             else:
                 ref = o.getOperValue(op)
                 if brdone.get(ref, False):
@@ -1983,6 +1961,36 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         offset, bytes = self.getByteDef(va)
         return e_bits.parsebytes(bytes, offset, self.psize, bigend=self.bigend)
+
+    def guessDataPointer(self, ref, tsize):
+        '''
+        Trust vivisect to do the right thing and make a value and a
+        pointer to that value
+        '''
+        # So we need the size check to avoid things like "aaaaa", maybe
+        # but maybe if we do something like the tsize must be either the
+        # target pointer size or in a set of them that the arch defines?
+        nloc = None
+        try:
+            if self.isProbablyUnicode(ref):
+                nloc = self.makeUnicode(ref)
+            elif self.isProbablyString(ref):
+                nloc = self.makeString(ref)
+        except e_exc.SegmentationViolation:
+            # Usually means val is 0 and we can just ignore this error
+            nloc = None
+        except Exception as e:
+            logger.warning('makeOpcode string making hit error %s', str(e))
+            nloc = None
+
+        if not nloc:
+            val = self.parseNumber(ref, tsize)
+            if (self.psize == tsize and self.isValidPointer(val)):
+                nloc = self.makePointer(ref, tova=val)
+            else:
+                nloc = self.makeNumber(ref, tsize)
+
+        return nloc
 
     def makePointer(self, va, tova=None, follow=True):
         """
@@ -2657,7 +2665,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if fmtname is None:
             fmtname = viv_parsers.guessFormatFilename(filename)
 
-        # TODO: Ugh. Make this cleaner by having it pci
         if fmtname in STORAGE_MAP:
             self.setMeta('StorageModule', STORAGE_MAP[fmtname])
             self.loadWorkspace(filename)

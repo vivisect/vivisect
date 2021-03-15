@@ -97,33 +97,12 @@ class AnalysisMonitor(EmulationMonitor):
 
             # Only infer things about the workspace based on discrete operands
             if vw.isValidPointer(val) and discrete:
-
                 vw.addXref(va, val, REF_DATA)
                 if vw.getLocation(val) is not None:
                     continue
 
-                offset, bytes = vw.getByteDef(val)
-                pval = e_bits.parsebytes(bytes, offset, tsize)
-                if (vw.psize == tsize and vw.isValidPointer(pval)):
-                    vw.makePointer(val, tova=pval)
-                else:
-                    vw.makeNumber(val, tsize)
+                vw.guessDataPointer(val, tsize)
 
-                nloc = None
-                try:
-                    if vw.isProbablyUnicode(val):
-                        nloc = vw.makeUnicode(val)
-                    elif vw.isProbablyString(val):
-                        nloc = vw.makeString(val)
-                except e_exc.SegmentationViolation:
-                    pass
-                except Exception as e:
-                    logger.warning('addAnalysisResults string making hit error %s', str(e))
-                if not nloc:
-                    if (vw.psize == tsize and vw.isValidPointer(val)):
-                        vw.makePointer(val, tova=pval)
-                    else:
-                        vw.makeNumber(val, tsize)
 
         for va, callname, argv in self.callcomments:
             reprargs = [emu.reprVivValue(val) for val in argv]

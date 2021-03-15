@@ -125,14 +125,14 @@ def openServerAndWorkspace(vw, parent=None):
     host = dia.getServer()
     if host is None:
         return
-    port = 16500
+    port = viv_server.viv_port
     if ':' in host:
         host, port = host.split(':')
 
     connServerAndWorkspace(vw, str(host), int(port), parent=parent)
 
 
-def connServerAndWorkspace(vw, host, port=16500, parent=None):
+def connServerAndWorkspace(vw, host, port=viv_server.viv_port, parent=None):
     # NOTE: do *not* touch parent (or qt) in here!
     try:
         server = viv_server.connectToServer(host, port=port)
