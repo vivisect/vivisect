@@ -557,49 +557,52 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def _menuViewSymboliks(self):
         self.newSymbolikFuncView()
 
+    @idlethread
     def newPythonView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VQPythonView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
-        return dwidget
+        self.vqBuildDockWidget('VQPythonView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
+    @idlethread
     def newStringsView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VQVivStringsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
-        return dwidget
+        self.vqBuildDockWidget('VQVivStringsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
+    @idlethread
     def newStructsView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VQVivStructsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
-        return dwidget
+        self.vqBuildDockWidget('VQVivStructsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
+    @idlethread
     def newSegmentsView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VQVivSegmentsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
-        return dwidget
+        self.vqBuildDockWidget('VQVivSegmentsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
+    @idlethread
     def newImportsView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VQVivImportsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
-        return dwidget
+        self.vqBuildDockWidget('VQVivImportsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
+    @idlethread
     def newExportsView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VQVivExportsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
-        return dwidget
+        self.vqBuildDockWidget('VQVivExportsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
+    @idlethread
     def newFunctionsView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VQVivFunctionsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
-        return dwidget
+        self.vqBuildDockWidget('VQVivFunctionsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
+    @idlethread
     def newNamesView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VQVivNamesView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
-        return dwidget
+        self.vqBuildDockWidget('VQVivNamesView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
+    @idlethread
     def newMemoryView(self, name='viv', floating=False):
-        dwidget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
-        return dwidget
+        dock, widget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
+        widget.setMemWindowName(name)
 
-    def newFuncGraphView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VQVivFuncgraphView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
-        return dwidget
+    @idlethread
+    def newFuncGraphView(self, name=None, floating=False):
+        dock, widget = self.vqBuildDockWidget('VQVivFuncgraphView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
+        if name is not None:
+            widget.setMemWindowName(name)
 
+    @idlethread
     def newSymbolikFuncView(self, floating=False):
-        dwidget = self.vqBuildDockWidget('VivSymbolikFuncPane', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
-        return dwidget
+        self.vqBuildDockWidget('VivSymbolikFuncPane', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
 
 
     def _menuWindowFullscreen(self):
