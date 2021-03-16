@@ -54,7 +54,7 @@ def loadExtensions(vw, vwgui):
         logger.debug('loadExtensions %r', mod)
         try:
             mod.vivExtension(vw, vwgui)
-        except Exception, e:
+        except Exception as e:
             vw.vprint(traceback.format_exc())
             vw.vprint('Extension Error: %s' % filepath)
 
