@@ -1,20 +1,8 @@
-
 from envi.archs.arm import *
 
-import disasm as th_disasm
+from . import disasm as th_disasm
 
-class Thumb16Module(ArmModule):
 
+class Thumb16Module(ThumbModule):
     def __init__(self):
-        self._arch_dis = th_disasm.Thumb16Disasm()
-        ArmModule.__init__(self, name='thumb16')
-
-
-class Thumb2Module(Thumb16Module):
-
-    def __init__(self):
-        self._arch_dis = th_disasm.Thumb2Disasm()
-        ArmModule.__init__(self, name='thumb2')
-
-
-
+        ThumbModule.__init__(self, name='thumb16')

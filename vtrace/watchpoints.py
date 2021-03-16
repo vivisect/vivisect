@@ -30,7 +30,7 @@ class Watchpoint(Breakpoint):
     def activate(self, trace):
         trace.requireAttached()
         if not self.active:
-            if self.address != None:
+            if self.address is not None:
                 trace.archAddWatchpoint(self.address, size=self.wpsize, perms=self.wpperms)
                 self.active = True
         return self.active
@@ -87,4 +87,3 @@ class PageWatchpoint(Watchpoint):
             trace.protectMemory(self.address, self.wpsize, self._orig_perms)
             self.active = False
         return self.active
-

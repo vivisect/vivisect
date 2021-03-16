@@ -10,11 +10,12 @@ dictionary.
 """
 
 rep_mods = [
-    ('Undefined Xrefs/Names','vivisect.reports.undeftargets'),
-    ('Overlapped Locations','vivisect.reports.overlaplocs'),
+    ('Undefined Xrefs/Names', 'vivisect.reports.undeftargets'),
+    ('Overlapped Locations', 'vivisect.reports.overlaplocs'),
     ('Function Complexity', 'vivisect.reports.funccomplexity'),
     ('Location Distribution', 'vivisect.reports.locationdist'),
 ]
+
 
 def listReportModules():
     '''
@@ -23,7 +24,7 @@ def listReportModules():
     '''
     return list(rep_mods)
 
+
 def runReportModule(vw, modname):
     mod = vw.loadModule(modname)
     return mod.report(vw)
-

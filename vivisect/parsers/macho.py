@@ -1,5 +1,4 @@
-import os
-import struct
+import binascii
 
 import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
@@ -16,20 +15,26 @@ macho_magics = (
 def isParser(bytez):
     bytemagic = struct.unpack('<I', bytez[:4])[0]
     if bytemagic in macho_magics:
-        return 'macho'
+        return True
 
 def parseFile(vw, filename, baseaddr=None):
-    fbytes = file(filename, 'rb').read()
+    with open(filename, 'rb') as f:
+        fbytes = f.read()
     return _loadMacho(vw, fbytes, filename=filename, baseaddr=baseaddr)
+
 
 def parseBytes(vw, filebytes, baseaddr=None):
     return _loadMacho(vw, filebytes, baseaddr=baseaddr)
 
+
 archcalls = {
-    'i386':'cdecl',
-    'amd64':'sysvamd64call',
-    'arm':'armcall',
+    'i386': 'cdecl',
+    'amd64': 'sysvamd64call',
+    'arm': 'armcall',
+    'thumb': 'armcall',
+    'thumb16': 'armcall',
 }
+
 
 def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
@@ -38,10 +43,14 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         baseaddr = vw.config.viv.parsers.macho.baseaddr
 
     if filename is None:
-        filename = 'macho_%.8x' % baseaddr # FIXME more than one!
+        filename = 'macho_%.8x' % baseaddr  # FIXME more than one!
+
+    # grab md5 and sha256 hashes before we modify the bytes
+    fhash = viv_parsers.md5Bytes(filebytes)
+    sha256 = viv_parsers.sha256Bytes(filebytes)
 
     # Check for the FAT binary magic...
-    if filebytes[:4].encode('hex') in ('cafebabe', 'bebafeca'):
+    if binascii.hexlify(filebytes[:4]) in ('cafebabe', 'bebafeca'):
 
         archhdr = None
         fatarch = vw.config.viv.parsers.macho.fatarch
@@ -51,14 +60,14 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         offset = 0
         fat = vs_macho.fat_header()
         offset = fat.vsParse(filebytes, offset=offset)
-        for i in xrange(fat.nfat_arch):
+        for i in range(fat.nfat_arch):
             ar = vs_macho.fat_arch()
             offset = ar.vsParse(filebytes, offset=offset)
             archname = vs_macho.mach_cpu_names.get(ar.cputype)
             if archname == fatarch:
                 archhdr = ar
                 break
-            archlist.append((archname,ar))
+            archlist.append((archname, ar))
 
         if not archhdr:
             # If we don't have a specified arch, exception!
@@ -82,15 +91,12 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     vw.setMeta("Platform", "Darwin")
     vw.setMeta("Format", "macho")
 
-    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
+    vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
 
     # Add the file entry
-    hash = "unknown hash"
-    if os.path.exists(filename):
-        hash = viv_parsers.md5File(filename)
 
-    fname = vw.addFile(filename, baseaddr, hash)
-    vw.setFileMeta(fname, 'sha256', v_parsers.sha256File(filename))
+    fname = vw.addFile(filename, baseaddr, fhash)
+    vw.setFileMeta(fname, 'sha256', sha256)
 
     # Add the memory maps and segments from the macho definition
     for segname, rva, perms, segbytes in macho.getSegments():
@@ -107,6 +113,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
     return fname
 
-def parseMemory(vw, memobj, baseaddr):
-    pass
 
+def parseMemory(vw, memobj, baseaddr):
+    # TODO: implement
+    pass

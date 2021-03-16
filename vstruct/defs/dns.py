@@ -196,7 +196,7 @@ class DnsName(vstruct.VArray):
     '''
     def __init__(self, name=None):
         vstruct.VArray.__init__(self)
-        if name != None:
+        if name is not None:
             for part in name.split('.'):
                 self.vsAddElement( DnsNameLabel( part ) )
             self.vsAddElement( DnsNameLabel('') )
@@ -260,7 +260,7 @@ class DnsQuestionArray(vstruct.VArray):
     '''
     def __init__(self, reccnt):
         vstruct.VArray.__init__(self)
-        for i in xrange(reccnt):
+        for i in range(reccnt):
             self.vsAddElement(DnsQuestion())
 
 class DnsResourceRecord(vstruct.VStruct):
@@ -318,7 +318,7 @@ class DnsResourceRecordArray(vstruct.VArray):
     '''
     def __init__(self, reccnt):
         vstruct.VArray.__init__(self)
-        for i in xrange(reccnt):
+        for i in range(reccnt):
             self.vsAddElement(DnsResourceRecord())
 
 class DnsMessage(vstruct.VStruct):
@@ -371,7 +371,7 @@ class DnsMessage(vstruct.VStruct):
         self._cache_qrs = None
         self._cache_ars = None
         self._dns_bytes = bytez
-        self._dns_offset = offset       
+        self._dns_offset = offset
         return vstruct.VStruct.vsParse(self, bytez, offset=offset)
 
     def _getLabelPointerRef(self, msgofs):
@@ -381,7 +381,7 @@ class DnsMessage(vstruct.VStruct):
         of its getTypeVal() method (a (nametype, nameval) tuple).
         '''
         # msgofs is relative to the beginning of the message, not necessarily the stream
-        if not self._nptr.has_key(msgofs):
+        if msgofs not in self._nptr:
             # these are often repeated within a message, so we cache them
             self._nptr[msgofs] = DnsName()
             self._nptr[msgofs].vsParse(self._dns_bytes, self._dns_offset + msgofs)

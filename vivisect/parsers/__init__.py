@@ -11,8 +11,6 @@ for vivisect.  Each parser module must implement the following functions:
 """
 # Some parser utilities
 
-import imp
-import md5
 import sys
 import glob
 import struct
@@ -26,23 +24,23 @@ parserpaths = glob.glob(join(dirname(__file__), "*.py"))
 __all__ = [ basename(f)[:-3] for f in parserpaths if isfile(f) and not f.endswith('__init__.py')]
 
 def md5File(filename):
-    d = md5.md5()
-    f = file(filename,"rb")
-    bytes = f.read(4096)
-    while len(bytes):
-        d.update(bytes)
+    d = hashlib.md5()
+    with open(filename, 'rb') as f:
         bytes = f.read(4096)
+        while len(bytes):
+            d.update(bytes)
+            bytes = f.read(4096)
     return d.hexdigest()
 
 def md5Bytes(bytes):
-    d = md5.md5()
+    d = hashlib.md5()
     d.update(bytes)
     return d.hexdigest()
 
 def sha256File(filename):
     with open(filename, 'rb') as f:
         return hashlib.sha256(f.read()).hexdigest().upper()
-  
+
 def sha256Bytes(bytes):
     return hashlib.sha256(bytes).hexdigest().upper()
 
@@ -63,25 +61,29 @@ def getParsers():
 
     return parsers
 
-def guessFormat(bytes):
-    if bytes.startswith('VIV'):
+def guessFormat(bytez):
+    if bytez.startswith('VIV'):
         return 'viv'
 
+    elif bytez.startswithc('MSGVIV'):
+        return 'mpviv'
+
     for parser in getParsers():
-        if parser.isParser(bytes):
+        if parser.isParser(bytez):
             return parser.__mname__
 
     return 'blob'
 
+
 def guessFormatFilename(filename):
-    bytez = file(filename, "rb").read(32)
-    return guessFormat(bytez)
+    with open(filename, 'rb') as f:
+        return guessFormat(f.read(32))
+
 
 def getParserModule(fmt):
     mname = "vivisect.parsers.%s" % fmt
     mod = sys.modules.get(mname)
-    if mod == None:
+    if mod is None:
         __import__(mname)
         mod = sys.modules[mname]
     return mod
-

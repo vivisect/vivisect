@@ -2,6 +2,7 @@ import hashlib
 import operator
 import functools
 import itertools
+import collections
 
 import vstruct
 import envi.bits as e_bits
@@ -30,8 +31,8 @@ def varsolve(name, width, emu=None):
     if emu is not None:
         name += emu.getRandomSeed()
 
-    md5sum = hashlib.md5(name).hexdigest()
-    return long(md5sum[:width*2], 16)
+    md5sum = hashlib.md5(name.encode('utf-8')).hexdigest()
+    return int(md5sum[:width*2], 16)
 
 def evalSymbolik(reprstr):
     '''
@@ -74,7 +75,7 @@ class SymbolikBase:
     commutative = False
 
     def __init__(self):
-        self._sym_id = self.idgen.next()
+        self._sym_id = next(self.idgen)
         self.kids = []
         self.parents = []
         self.cache = {}
@@ -133,10 +134,13 @@ class SymbolikBase:
     def __imul__(self, other):
         return o_mul(self, other, self.getWidth())
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         return o_div(self, other, self.getWidth())
 
     def __idiv__(self, other):
+        return o_div(self, other, self.getWidth())
+
+    def __floordiv__(self, other):
         return o_div(self, other, self.getWidth())
 
     def __pow__(self, other):
@@ -150,13 +154,49 @@ class SymbolikBase:
         if other is None:
             return False
 
-        if type(other) in (int, long):
+        if isinstance(other, int):
             return self.solve() == other
 
         return self.solve() == other.solve()
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __le__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() <= other
+
+        return self.solve() <= other.solve()
+
+    def __lt__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() < other
+
+        return self.solve() < other.solve()
+
+    def __ge__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() >= other
+
+        return self.solve() >= other.solve()
+
+    def __gt__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() > other
+
+        return self.solve() > other.solve()
 
     def clearCache(self):
         '''
@@ -234,6 +274,37 @@ class SymbolikBase:
 
     def setSymKid(self, idx, kid):
         '''
+        Creates or sets a child for the current symbolik object
+
+        The sticky bit here is when the child already exists and we're setting it to a new value
+        (as in the case of things like symbolik reduction). In that case we have to invalidate
+        the symcaches of every parent node up all of the ASTs that the child exists in. However,
+        that can get exceedingly repetative and expensive, especially in the reduction cases
+        where we don't need to constantly clear the ASTs, since during the traversal they'll be
+        cleared once and then only really need to be cleared if any of the cached methods
+        (isDiscrete, __repr__, or __str__) are called again (which doesn't happen during
+        reduction).
+
+        We can take advantage of this behavior when clearing the parent caches during setSymKid.
+        If the cache of a parent node is cleared, we don't need to traverse up the tree to clear
+        the caches of the rest of the parents, since those should already be cleared. During
+        reduction this should generally hold true. During other types of walks, calling any of the
+        cache methods recursively populates the cache downwards, and replacing a child would still
+        force setSymKid to traverse up the parent chain to clear all the parent caches, so custom
+        walks, such as in vivisect.symboliks.archind.wipeAstArch, will still work as expected.
+
+        Usage of setSymKid outside of walkTree should see little impact, though it is best to have
+        clear caches depending on your use case. Both the new child and the new parent should have
+        clear caches or populated caches, a mix is not recommended.
+
+        On the downside, this does impose the constraints that if you mean to do any out of API
+        ASTs manipulations such as merging trees or node replacement without doing a walkTree,
+        you had best make sure the caches are clear or that there are no gaps in the caches
+        of the consecutive levels of the AST. This can easily be achieved using the clearCache()
+        method on the root node of the AST (or ASTs in the case of multiple), like so:
+
+        for obj in root_symobjs:
+            obj.clearCache()
         '''
         if idx > len(self.kids)-1:
             self.kids.append(kid)
@@ -244,25 +315,26 @@ class SymbolikBase:
             if oldkid._sym_id == kid._sym_id:
                 return
 
-            # invalidate the cache
-            todo = list(oldkid.parents)
-            todo.append(self)
-
+            # invalidate the cache, but be careful not to repopulate it
+            todo = {p._sym_id: p for p in oldkid.parents}
             done = set()
             while todo:
-                parent = todo.pop()
-                if parent._sym_id in done:
+                pid, parent = todo.popitem()
+                if pid in done:
                     continue
 
                 # track the objects whose cache has been cleared
-                done.add(parent._sym_id)
+                done.add(pid)
                 parent.cache.clear()
                 # grow our todo list
-                todo.extend(list(parent.parents))
+                for prnt in parent.parents:
+                    if prnt.cache:
+                        todo[prnt._sym_id] = prnt
+                    else:
+                        done.add(prnt._sym_id)
 
             # remove ourselves as the parent
             if oldkid.parents:
-                # oldkid.parents.remove(self)
                 for i, obj in enumerate(oldkid.parents):
                     if obj._sym_id == self._sym_id:
                         oldkid.parents.pop(i)
@@ -293,7 +365,7 @@ class SymbolikBase:
         '''
         path = []
         idxs = []
-        done = []
+        done = set()
 
         cur = self
         idx = 0
@@ -315,20 +387,15 @@ class SymbolikBase:
                 cur = kid
                 idx = 0
                 continue
-            #else:
-            #    sys.stdout.write('.')
 
             # do self
-            #sys.stdout.write(' >> %r' % cur.__class__)
             path.append(cur)    # old walkTree expects cur to be on the top of the stack
             newb = cb(path, cur, ctx)
             path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
-            #sys.stdout.write(' << ')
 
-            done.append(cur._sym_id)
+            done.add(cur._sym_id)
 
             if not len(path):
-                #sys.stdout.write('=')
                 if newb:
                     return newb
                 return cur
@@ -339,7 +406,6 @@ class SymbolikBase:
 
             # tie newb in
             if newb is not None:
-                # print("setSymKid: %s :: %d" % (len(path), idx))
                 cur.setSymKid(idx, newb)
 
             idx += 1
@@ -442,6 +508,12 @@ class Call(SymbolikBase):
 
         canvas.addText(')')
 
+    def _reduce(self, emu=None):
+        args = []
+        for symkid in self.kids[1:]:
+            args.append(symkid.reduce(emu=emu))
+        return Call(self.kids[0].reduce(emu=emu), self.width, args)
+
     def _solve(self, emu=None, vals=None):
         ret = 0
         for s in [k.solve(emu=emu, vals=vals) for k in self.kids]:
@@ -502,12 +574,15 @@ class Mem(SymbolikBase):
 
         addrval = self.kids[0].solve(emu=emu, vals=vals)
         sizeval = self.kids[1].solve(emu=emu, vals=vals)
-        # FIXME higher entropy!
-        return hash(str(addrval)) & 0xffffffff
+
+        return varsolve(f'[{addrval}:{sizeval}]', 32)
 
     def getWidth(self):
         # FIXME should we do something about that?
         return self.kids[1].solve()
+
+    def _reduce(self, emu):
+        return Mem(self.kids[0].reduce(), self.kids[1].reduce())
 
 class Var(SymbolikBase):
 
@@ -529,7 +604,7 @@ class Var(SymbolikBase):
 
         sym = vw.getSymByName(strval)
         if sym is not None:
-            value = long(sym)
+            value = int(sym)
             canvas.addVaText(strval, va=value)
             return
 
@@ -554,7 +629,7 @@ class Var(SymbolikBase):
 
     def update(self, emu):
         ret = emu.getSymVariable(self.name, create=False)
-        if ret != None:
+        if ret is not None:
             return ret
         return Var(self.name, width=self.width)
 
@@ -595,10 +670,10 @@ class LookupVar(Var):
     def _solve(self, emu=None):
         name = 'LookupVar:%s:%s' % (self.name, self.offset)
 
-        if emu != None:
+        if emu is not None:
             name += emu.getRandomSeed()
 
-        return long(hashlib.md5(name).hexdigest()[:self.width*2], 16)
+        return int(hashlib.md5(name).hexdigest()[:self.width*2], 16)
 
     def update(self, emu):
         offset = self.offset.update(emu=emu)
@@ -688,12 +763,12 @@ class Const(SymbolikBase):
             return
 
         # if our const is a named pointer...
-        if vw.isValidPointer( self.value ):
-            name = str(vw.getSymByAddr( self.value ))
+        if vw.isValidPointer(self.value):
+            name = str(vw.getSymByAddr(self.value))
             canvas.addText('&')
             canvas.addVaText(name, va=self.value)
             return
-        canvas.addNameText( str(self) )
+        canvas.addNameText(str(self))
 
     def _solve(self, emu=None, vals=None):
         return self.value
@@ -841,7 +916,7 @@ class o_mul(Operator):
     commutative = True
 
 class o_div(Operator):
-    oper        = operator.div # should this be floordiv?
+    oper        = operator.floordiv
     operstr     = '/'
     symtype     = SYMT_OPER_DIV
 
@@ -1009,3 +1084,4 @@ oppose(ne, eq)
 oppose(le, gt)
 oppose(lt, ge)
 oppose(UNK, NOTUNK)
+

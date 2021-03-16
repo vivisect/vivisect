@@ -1,18 +1,14 @@
-import sys
-
-import vivisect
-import vivisect.impemu as viv_imp
+import vivisect.exc as v_exc
 import vivisect.impemu.monitor as viv_monitor
 
 import envi
 import envi.archs.amd64 as e_amd64
-from envi.registers import RMETA_NMASK
 
 from vivisect.const import *
 
 import vivisect.analysis.generic.switchcase as vag_switch
 
-regops = set(['cmp','sub'])
+regops = set(['cmp', 'sub'])
 
 class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
@@ -25,7 +21,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
     def prehook(self, emu, op, starteip):
 
         if op in self.badops:
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (starteip, repr(op) ))
+            raise v_exc.BadOpBytes(op.va)
 
         viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
@@ -43,6 +39,7 @@ sysvamd64argnames = {
     5: ('r9',  e_amd64.REG_R9),
 }
 
+
 msx64argnames = {
     0: ('rcx', e_amd64.REG_RCX),
     1: ('rdx', e_amd64.REG_RDX),
@@ -50,31 +47,24 @@ msx64argnames = {
     3: ('r9',  e_amd64.REG_R9),
 }
 
+
 arch_bindings = {
     'msx64call': msx64argnames,
     'sysvamd64call': sysvamd64argnames,
     None: [],
 }
 
-def sysvamd64name(idx):
-    ret = sysvamd64argnames.get(idx)
-    if ret == None:
+
+def getName(names, idx):
+    ret = names.get(idx)
+    if ret is None:
         name = 'arg%d' % idx
     else:
         name, idx = ret
     return name
 
-def msx64name(idx):
-    ret = msx64argnames.get(idx)
-    if ret == None:
-        name = 'arg%d' % idx
-    else:
-        name, idx = ret
-    return name
-#####
 
 def buildFunctionApi(vw, fva, emu, emumon):
-    
     argc = 0
     funcargs = []
     callconv = vw.getMeta('DefaultCall')
@@ -90,36 +80,31 @@ def buildFunctionApi(vw, fva, emu, emumon):
     if callconv == 'msx64call':
         # For msx64call there's the shadow space..
         if emumon.stackmax >= 40:
-            #argc += ((emumon.stackmax - 40) / 8)
-            targc = (emumon.stackmax / 8) - 1
+            targc = (emumon.stackmax >> 3) - 1
             if targc > 40:
                 emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
-                #argc = 0
             else:
                 argc = targc
 
         # Add the shadow space "locals"
-        vw.setFunctionLocal(fva, 8,  LSYM_NAME, ('void *','shadow0'))
-        vw.setFunctionLocal(fva, 16, LSYM_NAME, ('void *','shadow1'))
-        vw.setFunctionLocal(fva, 24, LSYM_NAME, ('void *','shadow2'))
-        vw.setFunctionLocal(fva, 32, LSYM_NAME, ('void *','shadow3'))
-
-        funcargs = [ ('int',msx64name(i)) for i in xrange(argc) ]
+        vw.setFunctionLocal(fva, 8,  LSYM_NAME, ('void *', 'shadow0'))
+        vw.setFunctionLocal(fva, 16, LSYM_NAME, ('void *', 'shadow1'))
+        vw.setFunctionLocal(fva, 24, LSYM_NAME, ('void *', 'shadow2'))
+        vw.setFunctionLocal(fva, 32, LSYM_NAME, ('void *', 'shadow3'))
 
     elif callconv == 'sysvamd64call':
         if emumon.stackmax > 0:
-            targc = (emumon.stackmax / 8) + 6
+            targc = (emumon.stackmax >> 3) + 6
             if targc > 40:
                 emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
-                #argc = 0
             else:
                 argc = targc
 
-        funcargs = [ ('int',sysvamd64name(i)) for i in xrange(argc) ]
-
-    api = ('int',None,callconv,None,funcargs)
+    funcargs = [('int', getName(argnames, i)) for i in range(argc)]
+    api = ('int', None, callconv, None, funcargs)
     vw.setFunctionApi(fva, api)
     return api
+
 
 def analyzeFunction(vw, fva):
 
@@ -132,10 +117,10 @@ def analyzeFunction(vw, fva):
     # Do we already have API info in meta?
     # NOTE: do *not* use getFunctionApi here, it will make one!
     api = vw.getFunctionMeta(fva, 'api')
-    if api == None:
+    if api is None:
         api = buildFunctionApi(vw, fva, emu, emumon)
 
-    rettype,retname,callconv,callname,callargs = api
+    rettype, retname, callconv, callname, callargs = api
 
     argc = len(callargs)
     cc = emu.getCallingConvention(callconv)
@@ -144,9 +129,7 @@ def analyzeFunction(vw, fva):
     baseoff = cc.getStackArgOffset(emu, argc)
 
     # Register our stack args as function locals
-    for i in xrange( stcount ):
-
-        vw.setFunctionLocal(fva, baseoff + ( i * 8 ), LSYM_FARG, i+stackidx)
+    for i in range(stcount):
+        vw.setFunctionLocal(fva, baseoff + (i * 8), LSYM_FARG, i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)
-

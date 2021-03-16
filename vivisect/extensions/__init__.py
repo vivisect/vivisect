@@ -1,8 +1,3 @@
-import os
-import imp
-import logging
-import traceback
-
 '''
 Extensions for vivisect may be implemented as python
 modules which contain the function "vivExtension".
@@ -15,8 +10,13 @@ The module's vivExtension function takes a vivisect workspace
 (vw) and an vivisect gui reference (if present).
 '''
 
-logger = logging.getLogger(__name__)
+import os
+import sys
+import logging
+import importlib
+import traceback
 
+logger = logging.getLogger(__name__)
 
 def earlyExtensions(vw):
     logger.debug('earlyLoad')
@@ -67,31 +67,47 @@ def impExtensions():
         return
 
     logger.info('impExtensions: VIV_EXT_PATH == %r', extdir)
-    for dirname in extdir.split(';'):
+    for dirname in extdir.split(os.pathsep):
         logger.info('impExtensions: %r', dirname)
 
         if not os.path.isdir(dirname):
             logger.warn('Invalid VIV_EXT_PATH dir: %s' % dirname)
             continue
 
-        for fname in os.listdir(dirname):
+        if dirname not in sys.path:
+            sys.path.append(dirname)
 
-            if not fname.endswith('.py'):
+        for fname in os.listdir(dirname):
+            modpath = os.path.join(dirname, fname)
+            # dig into first level of directories and exec the __init__.py
+            if os.path.isdir(modpath):
+                modname = fname
+                modpath = os.path.join(modpath, '__init__.py')
+                if not os.path.exists(modpath):
+                    continue
+
+            # otherwise, run all the .py files in the VIV_EXT_PATH dir
+            elif not modpath.endswith('.py'):
                 continue
 
-            logger.info('impExtensions: %s/%s', dirname, fname)
-            # Build code objects from the module files
-            mod = imp.new_module('viv_ext')
-            filepath = os.path.join(dirname, fname)
-            filebytes = file(filepath, 'r').read()
-            mod.__file__ = filepath
+            else:
+                # it's a .py file
+                modname = fname[:-3]
+
             try:
-                exec filebytes in mod.__dict__
-                extensions.append(mod)
-                
+                logger.info('impExtensions: %s', modpath)
+                # Build code objects from the module files
+                spec = importlib.util.spec_from_file_location(fname, modpath)
+                module = importlib.util.module_from_spec(spec)
+                module.vw = vw
+                spec.loader.exec_module(module)
+
+                module.vivExtension(vw, vwgui)
+                vw.addExtension(fname, module)
+
             except Exception as e:
                 logger.warn(traceback.format_exc())
-                logger.warn('Extension Error (load:%r): %s' % (filepath, e))
+                logger.warn('Extension Error (load:%r): %s' % (modpath, e))
 
 impExtensions()
 logger.info("EXTENSIONS: %s", repr(extensions))

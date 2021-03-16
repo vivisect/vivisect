@@ -93,6 +93,12 @@ REF_CODE   = 1 # A branch/call
 REF_DATA   = 2 # A memory dereference
 REF_PTR    = 3 # A pointer immediate (may be in operand *or* part of LOC_PTR)
 
+ref_type_names = {
+    REF_CODE: "Code",
+    REF_DATA: "Data",
+    REF_PTR: "Pointer",
+}
+
 #NOTE: The flag values for REF_CODE are the envi.BR_FOO flags
 #      which describe opcode branches.
 
@@ -100,7 +106,7 @@ REF_PTR    = 3 # A pointer immediate (may be in operand *or* part of LOC_PTR)
 LOC_UNDEF   = 0  # An undefined "non-location"
 LOC_NUMBER  = 1  # A numerical value (non-pointer)
 LOC_STRING  = 2  # A null terminated string
-LOC_UNI     = 3  # A null terminiated unicode string
+LOC_UNI     = 3  # A null terminated unicode string
 LOC_POINTER = 4  # A type to hold a known-derefable pointer that is of appropriate length for arch
 LOC_OP      = 5  # An opcode
 LOC_STRUCT  = 6  # A custom structure (struct name is in tinfo)
@@ -109,6 +115,8 @@ LOC_VFTABLE = 8  # A c++ vftable
 LOC_IMPORT  = 9  # An import dword ptr
 LOC_PAD     = 10  # A sequence of bytes which is a pad (string nulls, MS hotpatch... (char is tinfo)
 LOC_MAX     = 11
+
+loc_lookups = {v:k for k,v in globals().items() if k.startswith('LOC_')}
 
 loc_type_names = {
         LOC_UNDEF: 'Undefined',
@@ -166,6 +174,9 @@ EXP_DATA     = 1
 # Relocation types
 RTYPE_BASERELOC = 0 # VA contains a pointer to a va (and is assumed fixed up by parser)
 RTYPE_BASEOFF   = 1 # Add Base and Offset to a pointer at a memory location
+RTYPE_BASEPTR   = 2 # Like BASEOFF, but treated as a Pointer, not part of an instruction/etc.
+
+REBASE_TYPES = (RTYPE_BASEOFF, RTYPE_BASEPTR)
 
 # Function Local Symbol Types
 LSYM_NAME   = 0 # syminfo is a (typestr,name) tuple

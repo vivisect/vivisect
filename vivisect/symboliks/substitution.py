@@ -4,7 +4,7 @@ Symboliks algebraic substitution helpers (SubStates)
 Users of this API probably want the following two classes:
 
 sset - Produces a given set of values ( ie. [1,3,33,9384] )
-srange - Iterates similar to xrange (ie. max,min,inc )
+srange - Iterates similar to range (ie. max,min,inc )
 
 Once instanciated, any SubState may be multiplied or added to
 others to create the implied set of states.
@@ -45,6 +45,7 @@ multiplied:
 =======================================
 '''
 
+
 class SubState:
     '''
     The base SubState class designed to help out creating
@@ -55,17 +56,17 @@ class SubState:
         self.icount = icount
 
     def getCombState(self, i, d=None):
-        if d == None:
+        if d is None:
             d = {}
         d[self.iname] = self[i]
         return d
 
     def __iter__(self):
-        for i in xrange(len(self)):
+        for i in range(len(self)):
             yield self.getCombState(i)
 
     def __getslice__(self, x, y):
-        for i in xrange(x,y+1):
+        for i in range(x, y+1):
             yield self.getCombState(i)
 
     def __add__(self, x):
@@ -79,6 +80,7 @@ class SubState:
 
     def __getitem__(self, i):
         raise Exception('SubState must implement __getitem__!')
+
 
 class AddSubState(SubState):
     '''
@@ -96,7 +98,7 @@ class AddSubState(SubState):
         self.comb2len = comb2len
 
     def getCombState(self, i, d=None):
-        if d == None:
+        if d is None:
             d = {}
 
         if i >= self.comb1len:
@@ -115,6 +117,7 @@ class AddSubState(SubState):
 
         return d
 
+
 class MultSubState(SubState):
 
     def __init__(self, comb1, comb2):
@@ -128,7 +131,7 @@ class MultSubState(SubState):
         self.comb2len = comb2len
 
     def getCombState(self, i, d=None):
-        if d == None:
+        if d is None:
             d = {}
 
         c2, c1 = divmod(i, self.comb1len)
@@ -137,24 +140,26 @@ class MultSubState(SubState):
         self.comb2.getCombState(c2, d=d)
         return d
 
+
 class srange(SubState):
     '''
     A SubState class which produces values over a range similar
-    to the python builtin xrange.
+    to the python builtin range.
 
     Example:
         # substitute arg0 from 4 to 29 (inclusive)
         srange('arg0', 30, 4)
     '''
     def __init__(self, iname, imax, imin=0, iinc=1):
-        icount = (imax - imin) / iinc
+        icount = int((imax - imin) / iinc)
         SubState.__init__(self, iname, icount)
         self.imin = imin
         self.imax = imax
         self.iinc = iinc
 
     def __getitem__(self, i):
-        return self.imin + ( self.iinc * i )
+        return self.imin + (self.iinc * i)
+
 
 class sset(SubState):
     '''
@@ -172,23 +177,3 @@ class sset(SubState):
 
     def __getitem__(self, i):
         return self.combitems[i]
-
-
-if __name__ == '__main__':
-
-    from vivisect.symboliks.common import *
-
-    symobj = (Var('x',4) * Const(3, 4) ) + Var('y',4)
-    print str(symobj)
-
-    x = srange('x', 3)
-    y = sset('y', [1,9,0xffffffff])
-
-    print('added:')
-    for i in (x+y):
-        print ('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
-
-    print('multiplied:')
-    for i in (x*y):
-        print ('solved: %s %d' % (repr(i),symobj.solve(vals=i),))
-

@@ -1,9 +1,5 @@
-try:
-    from PyQt5 import QtCore, QtGui
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import *
 
 import vtrace
 from vtrace.const import *
@@ -23,12 +19,6 @@ from vqt.main import workthread, idlethread, idlethreadsync
 QtGui objects which assist in GUIs which use vtrace parts.
 '''
 
-try:
-    QString = unicode
-except NameError:
-    # Python 3
-    QString = str
-
 class VQTraceNotifier(vtrace.Notifier):
     '''
     A bit of shared mixin code for the handling of vtrace
@@ -37,7 +27,7 @@ class VQTraceNotifier(vtrace.Notifier):
     def __init__(self, trace=None):
         self.trace = trace
         vtrace.Notifier.__init__(self)
-        if trace != None:
+        if trace is not None:
             self.trace.registerNotifier(NOTIFY_ALL, self)
 
     @idlethreadsync
@@ -226,7 +216,7 @@ class RegistersView(QWidget):
         splitview.addWidget(statusreg_widget)
         vbox.addWidget(splitview)
 
-        sig = QtCore.SIGNAL('currentIndexChanged(QString)')
+        sig = QtCore.SIGNAL('currentIndexChanged(str)')
         self.viewnames.connect(self.viewnames, sig, self.regViewNameSelected)
 
         self.setLayout(vbox)
@@ -304,7 +294,7 @@ class VQProcessListModel(vq_tree.VQTreeModel):
 class VQProcessListView(vq_tree.VQTreeView):
     def __init__(self, trace=None, parent=None):
         vq_tree.VQTreeView.__init__(self, parent=parent)
-        if trace == None:
+        if trace is None:
             trace = vtrace.getTrace()
         self.trace = trace
 
@@ -438,7 +428,7 @@ class VQTraceToolBar(QToolBar, vtrace.Notifier):
 
     def actAttach(self, *args, **kwargs):
         pid = getProcessPid(trace=self.trace)
-        if pid != None:
+        if pid is not None:
             workthread(self.trace.attach)(pid)
 
     @workthread
@@ -536,12 +526,13 @@ class VQThreadsView(vq_tree.VQTreeView, VQTraceNotifier):
         self.selectthread = selectthread
 
     def selectionChanged(self, selected, deselected):
-        idx = self.selectedIndexes()[0]
-        node = idx.internalPointer()
-        if node:
-            self.trace.selectThread(node.rowdata[0])
+        if len(self.selectedIndexes()) > 0:
+            idx = self.selectedIndexes()[0]
+            node = idx.internalPointer()
+            if node:
+                self.trace.selectThread(node.rowdata[0])
 
-        return vq_tree.VQTreeView.selectionChanged(self, selected, deselected)
+            return vq_tree.VQTreeView.selectionChanged(self, selected, deselected)
 
     def vqLoad(self):
 

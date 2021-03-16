@@ -1,7 +1,5 @@
 import envi
 
-# TODO: f0 0f c7 4d 00 75 f0 5d 5b - this is NOT right in disasm
-
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *
 
@@ -15,10 +13,10 @@ class i386Module(envi.ArchitectureModule):
         return i386RegisterContext()
 
     def archGetBreakInstr(self):
-        return '\xcc'
+        return b'\xcc'
 
     def archGetNopInstr(self):
-        return '\x90'
+        return b'\x90'
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)

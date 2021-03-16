@@ -2,15 +2,17 @@
 Home for the i386 emulation code.
 """
 import struct
+import operator
 
 import envi
 from envi.const import *
+import envi.exc as e_exc
 import envi.bits as e_bits
-import envi.memory as e_mem
 
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *
 from envi.archs.i386 import i386Module
+
 
 def shiftMask(val, size):
     if size == 1:
@@ -22,7 +24,20 @@ def shiftMask(val, size):
     elif size == 8:
         return val & 0x3f
     else:
-        raise Exception("shiftMask is broke in envi/intel.py")
+        raise Exception("shiftMask is broke in envi/arch/i386/emu.py")
+
+
+def yieldPacked(valu, size, subsize):
+    '''
+    For the fun SIMD instructions like psrld, chunk the valu into <subsize> sections
+    and return those shifted down
+    '''
+    mask = e_bits.u_maxes[subsize]
+
+    for i in range(int(size/subsize)):
+        sub = valu >> (i * subsize)
+        yield (sub & mask)
+
 
 # The indexes for the list of segments in the emulator
 SEG_CS = 0
@@ -70,11 +85,22 @@ class BFastCall(ThisCall):
     arg_def = [(CC_REG, REG_EAX), (CC_REG, REG_EDX), (CC_REG, REG_ECX),
                 (CC_STACK_INF, 4)]
 
+class ThisCall_Caller(ThisCall):
+    flags = CC_CALLER_CLEANUP
+class MsFastCall_Caller(MsFastCall):
+    flags = CC_CALLER_CLEANUP
+class BFastCall_Caller(BFastCall):
+    flags = CC_CALLER_CLEANUP
+
 stdcall = StdCall()
-thiscall = ThisCall()
 cdecl = Cdecl()
+thiscall = ThisCall()
 msfastcall = MsFastCall()
 bfastcall = BFastCall()
+
+thiscall_caller = ThisCall_Caller()
+msfastcall_caller = MsFastCall_Caller()
+bfastcall_caller = BFastCall_Caller()
 
 class IntelEmulator(i386RegisterContext, envi.Emulator):
 
@@ -84,23 +110,27 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def __init__(self, archmod=None):
         # Set ourself up as an arch module *and* register context
         #i386Module.__init__(self)
-        if archmod == None:
+        if archmod is None:
             archmod = i386Module()
 
         envi.Emulator.__init__(self, archmod=archmod)
         self.initEmuOpt('i386:reponce',False,'Set to True to short circuit rep prefix')
 
-        for i in xrange(6):
+        for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
 
         i386RegisterContext.__init__(self)
 
         # Add our known calling conventions
         self.addCallingConvention('stdcall', stdcall)
-        self.addCallingConvention('thiscall', thiscall)
         self.addCallingConvention('cdecl', cdecl)
+        self.addCallingConvention('thiscall', thiscall)
         self.addCallingConvention('msfastcall', msfastcall)
         self.addCallingConvention('bfastcall', bfastcall)
+
+        self.addCallingConvention('thiscall_caller', thiscall_caller)
+        self.addCallingConvention('msfastcall_caller', msfastcall_caller)
+        self.addCallingConvention('bfastcall_caller', bfastcall_caller)
 
     def getSegmentIndex(self, op):
         # FIXME this needs to account for push/pop/etc
@@ -134,7 +164,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def readMemValue(self, addr, size):
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         #FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
@@ -176,7 +206,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def readMemSignedValue(self, addr, size):
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         if size == 1:
             return struct.unpack("b", bytes)[0]
@@ -188,15 +218,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
         #       other than None, that is the new eip
-        if op.va != None:
+        if op.va is not None:
             self.setProgramCounter(op.va)
 
         meth = self.op_methods.get(op.mnem, None)
-        if meth == None:
-            raise envi.UnsupportedInstruction(self, op)
+        if meth is None:
+            raise e_exc.UnsupportedInstruction(self, op)
 
         newpc = meth(op)
-        if newpc != None:
+        if newpc is not None:
             self.setProgramCounter(newpc)
             return
 
@@ -348,10 +378,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ures = udst - usrc
         sres = sdst - ssrc
 
-        #print "dsize/ssize: %d %d" % (dsize, ssize)
-        #print "unsigned: %d %d %d" % (usrc, udst, ures)
-        #print "signed: %d %d %d" % (ssrc, sdst, sres)
-
         self.setFlag(EFLAGS_OF, e_bits.is_signed_overflow(sres, dsize))
         self.setFlag(EFLAGS_AF, e_bits.is_aux_carry_sub(usrc, udst))
         self.setFlag(EFLAGS_CF, e_bits.is_unsigned_carry(ures, dsize))
@@ -402,7 +428,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     # Beginning of Instruction methods
 
-    def i_adc(self, op):
+    def i_adc(self, op, isDX=False):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
@@ -427,16 +453,22 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         tsize = op.opers[0].tsize
 
-        self.setFlag(EFLAGS_CF, e_bits.is_unsigned_carry(res, tsize))
-        self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
-        self.setFlag(EFLAGS_AF, e_bits.is_aux_carry(src, dst))
-        self.setFlag(EFLAGS_ZF, not res)
-        self.setFlag(EFLAGS_SF, e_bits.is_signed(res, tsize))
-        self.setFlag(EFLAGS_OF, e_bits.is_signed_overflow(sres, dsize))
+        if isDX:
+            self.setFlag(EFLAGS_CF, e_bits.is_unsigned_carry(res, tsize))
+        else:
+            self.setFlag(EFLAGS_CF, e_bits.is_unsigned_carry(res, tsize))
+            self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
+            self.setFlag(EFLAGS_AF, e_bits.is_aux_carry(src, dst))
+            self.setFlag(EFLAGS_ZF, not res)
+            self.setFlag(EFLAGS_SF, e_bits.is_signed(res, tsize))
+            self.setFlag(EFLAGS_OF, e_bits.is_signed_overflow(sres, dsize))
 
         self.setOperValue(op, 0, res)
 
-    def i_add(self, op):
+    def i_adcx(self, op):
+        self.i_adc(op, isDX=True)
+
+    def i_add(self, op, isDOX=False):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
@@ -455,6 +487,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ures = udst + usrc
         sres = sdst + ssrc
 
+        if isDOX:
+            cf = self.getFlag(EFLAGS_CF)
+            ures = ures + cf
+
         self.setFlag(EFLAGS_CF, e_bits.is_unsigned_carry(ures, dsize))
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(ures))
         self.setFlag(EFLAGS_AF, e_bits.is_aux_carry(src, dst))
@@ -464,10 +500,78 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, ures)
 
+    def i_adox(self, op):
+        self.i_add(op, isDOX=True)
+
+    def i_paddb(self, op, width=1, off=0):
+        tsize = op.opers[0].tsize
+        src1 = self.getOperValue(op, off)
+        src2 = self.getOperValue(op, off+1)
+        res = 0
+        mask = e_bits.u_maxes[width]
+        valus = zip(yieldPacked(src1, tsize, width),
+                    yieldPacked(src2, tsize, width))
+        for idx, (lft, rgt) in enumerate(valus):
+            s = (lft + rgt) & mask
+            res |= s << (idx * (8 * width))
+
+    def i_paddw(self, op):
+        self.i_paddb(op, width=2)
+
+    def i_paddd(self, op):
+        self.i_paddb(op, width=4)
+
+    def i_paddq(self, op):
+        self.i_paddb(op, width=8)
+
+    def i_vpaddb(self, op):
+        self.i_paddb(op, off=1)
+
+    def i_vpaddw(self, op):
+        self.i_paddb(op, width=2, off=1)
+
+    def i_vpaddd(self, op):
+        self.i_paddb(op, width=4, off=1)
+
+    def i_vpaddq(self, op):
+        self.i_paddb(op, width=8, off=1)
+
+    def i_bsf(self, op):
+        src = self.getOperValue(op, 1)
+        res = 0
+        if res == 0:
+            self.setFlag(EFLAGS_ZF, 1)
+        indx = 0
+        while src != 0:
+            if src & 0x1:
+                res = indx
+            src >>= 1
+            indx += 1
+        self.setOperValue(op, 0, res)
+
     def i_and(self, op):
         #FIXME 24 and 25 opcodes should *not* get sign-extended.
         res = self.logicalAnd(op)
         self.setOperValue(op, 0, res)
+
+    def _ands(self, op, off=0):
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        res = dst & src
+
+    def i_andsd(self, op):
+        self._ands(op)
+
+    i_andss = i_andsd
+    i_andps = i_andsd
+    i_andpd = i_andsd
+
+    def i_vandsd(self, op):
+        self._ands(op, off=1)
+
+    i_vandss = i_vandsd
+    i_vandps = i_vandsd
+    i_vandpd = i_vandsd
 
     def i_arpl(self, op):
         v1 = self.getOperValue(op, 0)
@@ -723,7 +827,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_dec(self, op):
         val = self.getOperValue(op, 0)
         uval = e_bits.unsigned(val, op.opers[0].tsize)
-        if val == None:
+        if val is None:
             self.undefFlags()
             return
         val -= 1
@@ -741,15 +845,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         #FIXME this is probably broke
         oper = op.opers[0]
         val = self.getOperValue(op, 1)
-        if val == 0: raise envi.DivideByZero(self)
+        if val == 0:
+            raise envi.DivideByZero(self)
 
         if oper.tsize == 1:
             ax = self.getRegister(REG_AX)
-            quot = ax / val
+            quot = int(ax / val)
             rem  = ax % val
             #if quot > 255:
-                #FIXME stuff
-                #print "FIXME: division exception"
+                #"FIXME: division exception"
             self.setRegister(REG_EAX, (quot << 8) + rem)
 
         elif oper.tsize == 4:
@@ -757,11 +861,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             eax = self.getRegister(REG_EAX)
             edx = self.getRegister(REG_EDX)
             tot = (edx << 32) + eax
-            quot = tot / val
+            quot = int(tot / val)
             rem = tot % val
 
             #if quot > 0xffffffff:
-                #print "FIXME: division exception"
+                #"FIXME: division exception"
 
             self.setRegister(REG_EAX, quot)
             self.setRegister(REG_EDX, rem)
@@ -770,7 +874,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             rax = self.getRegisterByName("rax")
             rdx = self.getRegisterByName("rdx")
             tot = (rdx << 64) + rax
-            quot = tot / val
+            quot = int(tot / val)
             rem = tot % val
 
             if tot > (2**64)-1:
@@ -803,6 +907,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_fldz(self, op):
         pass
 
+    def i_fld(self, op):
+        pass
+
     def i_fild(self, op):
         pass
 
@@ -818,7 +925,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 1)
             if d == 0: raise envi.DivideByZero(self)
-            q = ax / d
+            q = int(ax / d)
             r = ax % d
             res = ((r & 0xff) << 8) | (q & 0xff)
             self.setRegister(REG_AX, res)
@@ -829,7 +936,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 2)
             if d == 0: raise envi.DivideByZero(self)
-            q = val / d
+            q = int(val / d)
             r = val % d
 
             self.setRegister(REG_AX, q)
@@ -841,7 +948,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 4)
             if d == 0: raise envi.DivideByZero(self)
-            q = val / d
+            q = int(val / d)
             r = val % d
 
             self.setRegister(REG_EAX, q)
@@ -917,8 +1024,16 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_AF, (sval & 0xf == 0))
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(sval))
 
+    def i_ud0(self, op):
+        raise envi.BadOpcode(op)
+    i_ud1 = i_ud0
+    i_ud2 = i_ud0
+
     def i_int(self, op):
-        raise envi.UnsupportedInstruction(self, op)
+        raise envi.BreakpointHit(self)
+
+    def i_int1(self, op):
+        raise envi.BreakpointHit(self)
 
     def i_int3(self, op):
         raise envi.BreakpointHit(self)
@@ -945,7 +1060,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         else:
             esi -= 1
         self.setRegister(REG_ESI, esi)
-        
+
     def i_lodsd(self, op):
         esi = self.getRegister(REG_ESI)
         neweax = self.readMemoryFormat(esi, "<L")[0]
@@ -981,9 +1096,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
 
-    def i_movq(self, op):
-        val = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, val)
+    i_movq = i_mov
 
     def i_movsb(self, op):
         esi = self.getRegister(REG_ESI)
@@ -1016,9 +1129,95 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         val = e_bits.sign_extend(val, osize, nsize)
         self.setOperValue(op, 0, val)
 
+    i_movsxd = i_movsx
+
     def i_movzx(self, op):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
+
+    i_movd  = i_mov
+    i_movd_q = i_mov
+    i_vmovd_q = i_mov
+    i_movdqu = i_mov
+    i_vmovdqu = i_mov
+    i_movdqa = i_mov
+    i_vmovdqa = i_mov
+    i_movaps = i_mov
+    i_vmovaps = i_mov
+    i_movapd = i_mov
+    i_vmovapd = i_mov
+    i_movups = i_mov
+    i_vmovups = i_mov
+    i_movupd = i_mov
+    i_vmovupd = i_mov
+    i_movnti = i_mov
+    i_movntpd = i_mov
+    i_vmovntpd = i_mov
+    i_movntps = i_mov
+    i_vmovntps = i_mov
+    i_movntdq = i_mov
+    i_vmovntdq = i_mov
+    i_movntdqa = i_mov
+    i_vmovntdqa = i_mov
+
+    def i_movlps(self, op):
+        if op.opers[0].isReg():
+            mask = e_bits.u_maxes[8]
+            dst = self.getRegisterByName(self.getRealRegisterNameByIdx(op.opers[0].reg)) & (~mask)
+            src = self.getOperValue(op, 1)
+            self.setOperValue(op, 0, dst | (src & mask))
+        else:
+            self.i_mov(op)
+
+    def i_movhps(self, op, off=0):
+        mask = e_bits.u_maxes[8]
+        lvalu = self.getOperValue(op, off)
+        self.setOperValue(op, 0, lvalu & mask)
+
+    i_movlpd = i_movlps
+    i_movhpd = i_movhps
+
+    def i_vmovlps(self, op):
+        if op.opers[0].isReg():
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+            mask = e_bits.u_maxes[8]
+            res = ((src1 & mask) << 64) | (src2 & mask)
+            self.setOperValue(op, 0, res)
+        else:
+            self.i_mov(op)
+
+    def i_vmovhps(self, op):
+        if op.opers[0].isReg():
+            src1 = self.getOperValue(op, 1)
+            src2 = self.getOperValue(op, 2)
+            mask = e_bits.u_maxes[8]
+            res = (src1 & mask) | ((src2 & mask) << 64)
+            self.setOperValue(op, 0, res)
+        else:
+            self.i_mov(op)
+
+    i_vmovlpd = i_vmovlps
+    i_vmovhpd = i_vmovhps
+
+    def i_movss(self, op, off=0):
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+
+        if op.opers[off].isReg() and op.opers[off+1].isReg():
+            mask = 0x000000000000000000000000FFFFFFFF
+            dst &= ~mask
+            dst |= src & mask
+        else:
+            # so technically we're supposed to zero out the upper ymm bits
+            mask = 0xFFFFFFFFFFFFFFFFFFFFFFFF00000000
+            dst &= ~mask
+            dst | src & 0xFFFFFFFF
+
+        self.setOperValue(op, 0, dst)
+
+    def i_vmovss(self, op):
+        self.i_movss(op, off=1)
 
     def i_mul(self, op):
         #FIXME make sure these work right
@@ -1047,6 +1246,26 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             self.setFlag(EFLAGS_CF, False)
             self.setFlag(EFLAGS_OF, False)
 
+    def _muls(self, op, off=0):
+        opA = self.getOperValue(op, off)
+        opB = self.getOperValue(op, off+1)
+        res = opA * opB
+        self.setOperValue(op, 0, res)
+
+    def i_mulsd(self, op):
+        self._muls(op)
+
+    i_mulss = i_mulsd
+    #i_mulps = i_mulsd
+    #i_mulpd = i_mulsd
+
+    def i_vmulsd(self, op):
+        self._muls(op, 1)
+
+    i_vmulss = i_vmulsd
+    #i_vmulps = i_vmulsd
+    #i_vmulpd = i_vmulsd
+
     def _emu_setGpReg(self, reg, val, tsize):
         """
         Automagically map all general purpose register accesses
@@ -1057,7 +1276,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             reg += 0x00080000
         elif tsize == 2:
             reg += 0x00100000
-        self.setRegister(reg, value)
+        self.setRegister(reg, val)
 
     def _emu_getGpReg(self, reg, tsize):
         """
@@ -1085,12 +1304,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_nop(self, op):
         pass
-
-    def i_prefetch(self, op):
-        pass
-
-    def i_prefetchw(self, op):
-        pass
+    i_lfence = i_nop
+    i_clflush = i_nop
+    i_prefetch = i_nop
+    i_prefetchw = i_nop
 
     def i_not(self, op):
         val = self.getOperValue(op, 0)
@@ -1121,7 +1338,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, val)
 
     def i_popad(self, op):
-        #FIXME 16 bit?
+        # FIXME 16 bit?
         self.setRegister(REG_EDI, self.doPop())
         self.setRegister(REG_ESI, self.doPop())
         self.setRegister(REG_EBP, self.doPop())
@@ -1138,7 +1355,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_push(self, op):
         val = self.getOperValue(op, 0)
         if isinstance(op.opers[0], i386ImmOper):
-            val = e_bits.sign_extend(val, op.opers[0].tsize, 4) #FIXME 64bit
+            val = e_bits.sign_extend(val, self.getPointerSize(), 4)
         self.doPush(val)
 
     def i_pushad(self, op):
@@ -1289,7 +1506,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 self.setFlag(EFLAGS_OF, e_bits.msb(val, dstSize) ^ cf)
             else:
                 self.setFlag(EFLAGS_OF, False)
-        
+
     def i_ror(self, op):
         dstSize = op.opers[0].tsize
         count = self.getOperValue(op, 1)
@@ -1299,7 +1516,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             while tempCount:
                 val = self.getOperValue(op, 0)
                 tempCf = e_bits.lsb(val)
-                self.setOperValue(op, 0, (val / 2) + (tempCf * (2 ** dstSize)))
+                self.setOperValue(op, 0, (val >> 1) + (tempCf * (2 ** dstSize)))
                 tempCount -= 1
             val = self.getOperValue(op, 0)
             self.setFlag(EFLAGS_CF, e_bits.msb(val, dstSize))
@@ -1482,6 +1699,33 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, ret)
 
+    def i_shlx(self, op):
+        base = self.getOperValue(op, 1)
+        shft = self.getOperValue(op, 2)
+        base <<= shft
+        self.setOperValue(op, 0, base)
+
+    def i_shrx(self, op):
+        base = self.getOperValue(op, 1)
+        shft = self.getOperValue(op, 2)
+        base >>= shft
+        self.setOperValue(op, 0, base)
+
+    def i_sarx(self, op):
+        base = self.getOperValue(op, 1)
+        shft = self.getOperValue(op, 2)
+
+        dsize = op.opers[1].tsize
+        msb = e_bits.msb(res, dsize)
+
+        base >>= shft
+        if msb:
+            # propagate the MSB down
+            for i in range(shft):
+                base |= (2 ** (32-shft))
+
+        self.setOperValue(op, 0, base)
+
     def i_scasb(self, op):
         al = self.getRegister(REG_AL)
         edi = self.getRegister(REG_EDI)
@@ -1511,11 +1755,22 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         al = self.getRegister(REG_AL)
         edi = self.getRegister(REG_EDI)
         base,size = self._emu_segments[SEG_ES]
-        self.writeMemory(base+edi, chr(al))
+        self.writeMemory(base+edi, bytes(al))
         if self.getFlag(EFLAGS_DF):
             edi -= 1
         else:
             edi += 1
+        self.setRegister(REG_EDI, edi)
+
+    def i_stosw(self, op):
+        ax = self.getRegister(REG_AX)
+        edi = self.getRegister(REG_EDI)
+        base,size = self._emu_segments[SEG_ES]
+        self.writeMemory(base+edi, struct.pack("<H", ax))
+        if self.getFlag(EFLAGS_DF):
+            edi -= 2
+        else:
+            edi += 2
         self.setRegister(REG_EDI, edi)
 
     def i_stosd(self, op):
@@ -1570,7 +1825,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # Much like "integer subtraction" but we need
         # too add in the carry flag
-        if src == None or dst == None:
+        if src is None or dst is None:
             self.undefFlags()
             return None
 
@@ -1599,7 +1854,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         x = self.integerSubtraction(op)
         dsize = op.opers[0].tsize
         x = e_bits.unsigned(x, dsize)
-        if x != None:
+        if x is not None:
             self.setOperValue(op, 0, x)
 
     def i_syscall(self, op):
@@ -1611,7 +1866,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_wait(self, op):
         pass
-        #print "i_wait() is a stub..."
+        # XXX: "i_wait() is a stub..."
 
     def i_xadd(self, op):
         val1 = self.getOperValue(op, 0)
@@ -1642,8 +1897,581 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(ret))
         self.setFlag(EFLAGS_AF, False) # Undefined but actually cleared on amd64 X2
 
+    def i_xorps(self, op, off=0):
+        opA = self.getOperValue(op, off)
+        opB = self.getOperValue(op, off+1)
+
+        res = opA ^ opB
+
+        self.setOperValue(op, 0, res)
+    i_xorpd = i_xorps
+
+    def i_vxorps(self, op):
+        self.i_xorps(op, off=1)
+    i_vxorpd = i_vxorps
+
     def i_pxor(self, op):
-        return self.i_xor(op)
+        self.i_xorps(op)
+
+    def i_vpxor(self, op):
+        self.i_xorps(op, off=1)
+
+    def i_orps(self, op, off=0):
+        opA = self.getOperValue(op, off)
+        opB = self.getOperValue(op, off+1)
+
+        res = opA | opB
+
+        self.setOperValue(op, 0, res)
+    i_orpd = i_orps
+
+    def i_vorps(self, op):
+        self.i_orps(op, off=1)
+    i_vorpd = i_vorps
+
+    def i_por(self, op):
+        # TODO: 128 bit non-vex doesn't modify upper ymm bits
+        self.i_orps(op)
+
+    def i_vpor(self, op):
+        self.i_orps(op, off=1)
+
+    def _psrl(self, op, off=0):
+        value = self.getOperValue(op, off)
+        imm = self.getOperValue(op, off+1)
+        if imm > 15:
+            return self.setOperValue(op, 0, 0)
+
+        res = value >> (imm*8)
+        self.setOperValue(op, 0, res)
+
+    def _simdshift(self, op, shiftfunc, width, off):
+        res = 0
+        valu = self.getOperValue(op, off)
+        tsize = op.opers[off].tsize
+        shift = self.getOperValue(op, off+1)
+        mask = e_bits.u_maxes[width]
+        for idx, valu in enumerate(yieldPacked(valu, tsize, width)):
+            valu = shiftfunc(valu, shift) & mask
+            res |= valu << (idx * 8 * width)
+
+        self.setOperValue(op, 0, res)
+
+    # right shifts
+    def i_psrlw(self, op):
+        self._simdshift(op, operator.rshift, 2, 0)
+
+    def i_psrld(self, op):
+        self._simdshift(op, operator.rshift, 4, 0)
+
+    def i_psrlq(self, op):
+        self._simdshift(op, operator.rshift, 8, 0)
+
+    def i_psrldq(self, op):
+        self._simdshift(op, operator.rshift, 16, 0)
+
+    # vex right shifts
+    def i_vpsrlw(self, op):
+        self._simdshift(op, operator.rshift, 2, 1)
+
+    def i_vpsrld(self, op):
+        self._simdshift(op, operator.rshift, 4, 1)
+
+    def i_vpsrlq(self, op):
+        self._simdshift(op, operator.rshift, 8, 1)
+
+    def i_vpsrldq(self, op):
+        self._simdshift(op, operator.rshift, 16, 1)
+
+    # left shifts
+    def i_psllw(self, op):
+        self._simdshift(op, operator.lshift, 2, 0)
+
+    def i_pslld(self, op):
+        self._simdshift(op, operator.lshift, 4, 0)
+
+    def i_psllq(self, op):
+        self._simdshift(op, operator.lshift, 8, 0)
+
+    def i_pslldq(self, op):
+        self._simdshift(op, operator.lshift, 16, 0)
+
+    # vex left shifts
+    def i_vpsllw(self, op):
+        self._simdshift(op, operator.lshift, 2, 1)
+
+    def i_vpslld(self, op):
+        self._simdshift(op, operator.lshift, 4, 1)
+
+    def i_vpsllq(self, op):
+        self._simdshift(op, operator.lshift, 8, 1)
+
+    def i_vpslldq(self, op):
+        self._simdshift(op, operator.lshift, 16, 1)
+
+    def i_pshufb(self, op, off=0):
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off)
+        res = 0
+
+        if op.opers[0].tsize == 8:
+            mask = 0x07
+        else:
+            mask = 0x0F
+
+        for i in range(op.opers[0].tsize):
+            shfl = src & (1 << ((i * 8) + 7))
+            if shfl:
+                s = 0
+            else:
+                indx = (src >> (i * 8)) & mask
+                s = (src >> (indx * 8)) & 0xFF
+            res |= (s << (i * 8))
+
+        self.setOperValue(op, 0, res)
+
+    def i_vpshufb(self, op):
+        self.i_pshufb(op, off=1)
+
+    def i_pshufd(self, op, bwidth=32):
+        mask = e_bits.u_maxes[4]
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        order = self.getOperValue(op, 2)
+        res = 0
+
+        # lower portion, 128 / 32 = 4
+        for i in range(4):
+            indx = (order >> (2 * i)) & 0x3
+            res |= ((src >> (indx * bwidth)) & mask) << (i * bwidth)
+
+        # only comes into play when using the ymm registers
+        if op.opers[0].tsize == 32:
+            src >>= 128
+            for i in range(4):
+                indx = (order >> (2 * i)) & 0x3
+                res |= ((src >> (indx * bwidth)) & mask) << ((i * bwidth) + 128)
+
+        self.setOperValue(op, 0, res)
+
+    i_vpshufd = i_pshufd
+
+    def i_pshufw(self, op):
+        mask = e_bits.u_maxes[2]
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        order = self.getOperValue(op, 2)
+        res = 0
+        for i in range(4):
+            indx = (order >> (2*i)) & 3
+            valu = (src >> (indx & 16)) & mask
+            res |= valu << (i * 16)
+
+        self.setOperValue(op, 0, res)
+
+    def i_pshuflw(self, op, offset=0):
+        mask = e_bits.u_maxes[2] << offset
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        order = self.getOperValue(op, 2)
+        clear = e_bits.u_maxes[8] << (64 - offset)
+        res = src & clear
+
+        for i in range(4):
+            indx = (order >> (2*i)) & 0x3
+            valu = ((src >> (indx * 16)) >> offset) & mask
+            res |= valu << ((i * 16) + offset)
+
+        if op.opers[0].tsize == 32:
+            src >>= 128
+            res |= (src & clear) << 128
+            for i in range(4):
+                indx = (order >> (2 * i)) & 0x3
+                valu = ((src >> (indx * 16)) >> offset) & mask
+                res |= valu << ((i * 16) + 128 + offset)
+
+        self.setOperValue(op, 0, res)
+
+    i_vpshuflw = i_pshuflw
+
+    def i_pshufhw(self, op):
+        self.i_pshuflw(op, offset=64)
+    i_vpshufhw = i_pshufhw
+
+    def _interleave_low(self, dst, src, tsize, width, limit):
+        res = 0
+        values = zip(yieldPacked(dst, tsize, width),
+                     yieldPacked(src, tsize, width))
+
+        mask = e_bits.u_maxes[width]
+        consumed = 0
+        for i, (dst, src) in enumerate(values):
+            res |= dst << (width*i)
+            res |= src << (width * (i+1))
+            consumed += 2 * width
+            if consumed >= limit:
+                break
+
+        return res
+
+    def _interleave_high(self, dst, src, tsize, width, limit):
+        consumed = 0
+        res = 0
+        values = zip(yieldPacked(dst, tsize, width),
+                     yieldPacked(src, tsize, width))
+        values = list(values)
+        values = values[(len(values) >> 1):]
+        for i, (dst, src) in enumerate(values):
+            res |= dst << (8 * width * i)
+            res |= src << (8 * width * (i + 1))
+            consumed += 2 * width
+            if consumed >= limit:
+                break
+        return res
+
+
+    def i_punpcklbw(self, op, width=1, off=0, override=False):
+        name = self.getRealRegisterNameByIdx(op.opers[0].reg)
+        realreg = self.getRegisterByName(name)
+
+        mask = ~e_bits.u_maxes[width]
+        valu = realreg & mask
+
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+        tsize = op.opers[0].tsize
+        res = self._interleave_low(dst, src, op.opers[0].tsize, width, op.opers[0].tsize)
+
+        # manual says to leave the upper bits of the ymm regs alone
+        if not override:
+            res |= valu
+
+        self.setOperValue(op, 0, res)
+
+    def i_punpcklwd(self, op):
+        # interleave words
+        self.i_punpcklbw(op, width=2)
+
+    def i_punpckldq(self, op):
+        # interleave dwords
+        self.i_punpcklbw(op, width=4)
+
+    def i_punpcklqdq(self, op):
+        # interleave qwords
+        self.i_punpcklbw(op, width=8)
+
+    def i_punpckhbw(self, op, width=1, off=0, override=False):
+        name = self.getRealRegisterNameByIdx(op.opers[0].reg)
+        realreg = self.getRegisterByName(name)
+
+        mask = ~e_bits.u_maxes[width]
+        valu = realreg & mask
+
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+        tsize = op.opers[0].tsize
+        res = self._interleave_high(dst, src, op.opers[0].tsize, width, op.opers[0].tsize)
+
+        # manual says to leave the lower bits of the ymm regs alone
+        if not override:
+            res |= valu
+        self.setOperValue(op, 0, res)
+
+    def i_punpckhwd(self, op):
+        self.i_punpckhbw(op, width=2)
+
+    def i_punpckhdq(self, op):
+        self.i_punpckhbw(op, width=4)
+
+    def i_punpckhqdq(self, op):
+        self.i_punpckhbw(op, width=8)
+
+    def i_vpunpcklbw(self, op, width=1):
+        tsize = op.opers[0].tsize
+        if tsize == 16:
+            self.i_punpcklbw(op, width=width, off=1, override=True)
+        elif tsize == 32:
+            # TODO
+            pass
+    def i_vpunpcklwd(self, op):
+        self.i_vpunpcklbw(op, width=2)
+    def i_vpunpckldq(self, op):
+        self.i_vpunpcklbw(op, width=4)
+    def i_vpunpcklqdq(self, op):
+        self.i_vpunpcklbw(op, width=8)
+
+    def i_vpunpckhbw(self, op, width=1):
+        tsize = op.opers[0].tsize
+        if tsize == 16:
+            self.i_punpckhbw(op, width=width, off=1, override=True)
+        elif tsize == 32:
+            # TODO
+            pass
+    def i_vpunpckhwd(self, op):
+        self.i_vpunpckhbw(self, op, width=2)
+    def i_vpunpckhdq(self, op):
+        self.i_vpunpckhbw(self, op, width=4)
+    def i_vpunpckhqdq(self, op):
+        self.i_vpunpckhbw(self, op, width=8)
+
+    def _simdcmpr(self, op, cmpr, width, off):
+        res = 0
+        dest = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+        packed = zip(yieldPacked(dest, op.opers[off].tsize, width),
+                     yieldPacked(src, op.opers[off+1].tsize, width))
+
+        eql = e_bits.u_maxes[width]
+        for idx, (lft, rgt) in enumerate(packed):
+            valu = cmpr(lft, rgt)
+            res |= valu << (8 * width * idx)
+        self.setOperValue(op, 0, res)
+
+    def i_pcmpeqb(self, op, width=1, off=0):
+        res = 0
+        dest = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+        packed = zip(yieldPacked(dest, op.opers[off].tsize, width),
+                     yieldPacked(src, op.opers[off+1].tsize, width))
+
+        eql = e_bits.u_maxes[width]
+        for idx, (lft, rgt) in enumerate(packed):
+            if lft == rgt:
+                cmp = eql
+            else:
+                cmp = 0
+            res |= cmp << (width * idx)
+        self.setOperValue(op, 0, res)
+
+    def i_por(self, op, off=0):
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+
+        res = src | dst
+
+        self.setOperValue(op, 0, res)
+
+    def i_pcmpeqw(self, op):
+        self.i_pcmpeqb(op, width=2, off=0)
+    def i_pcmpeqd(self, op):
+        self.i_pcmpeqb(op, width=4, off=0)
+    def i_pcmpeqq(self, op):
+        self.i_pcmpeqb(op, width=8, off=0)
+
+    def i_vpcmpeqw(self, op):
+        self.i_pcmpeqb(op, off=1)
+    def i_vpcmpeqw(self, op):
+        self.i_pcmpeqb(op, width=2, off=1)
+    def i_vpcmpeqd(self, op):
+        self.i_pcmpeqb(op, width=4, off=1)
+    def i_vpcmpeqq(self, op):
+        self.i_pcmpeqb(op, width=8, off=1)
+
+    def i_pminsb(self, op, width=1, off=0):
+        def cmpr(a, b):
+            return e_bits.unsigned(min(e_bits.signed(a, width), e_bits.signed(b, width)), width)
+        self._simdcmpr(op, cmpr, width, off)
+
+    def i_pminsw(self, op):
+        self.i_pminsb(op, width=2)
+    def i_pminsd(self, op):
+        self.i_pminsb(op, width=4)
+    def i_pminsq(self, op):
+        self.i_pminsb(op, width=8)
+
+    def i_vpminsb(self, op):
+        self.i_pminsb(op, width=1, off=1)
+    def i_vpminsw(self, op):
+        self.i_pminsb(op, width=2, off=1)
+    def i_vpminsd(self, op):
+        self.i_pminsb(op, width=4, off=1)
+    def i_vpminsq(self, op):
+        self.i_pminsb(op, width=8, off=1)
+
+    def i_pmaxsb(self, op, width=1, off=0):
+        def cmpr(a, b):
+            return e_bits.unsigned(max(e_bits.signed(a, width), e_bits.signed(b, width)), width)
+        self._simdcmpr(op, cmpr, width, off)
+
+    def i_pmaxsw(self, op):
+        self.i_pmaxsb(op, width=2, off=0)
+    def i_pmaxsd(self, op):
+        self.i_pmaxsb(op, width=4, off=0)
+    def i_pmaxsq(self, op):
+        self.i_pmaxsb(op, width=8, off=0)
+
+    def i_vpmaxsb(self, op):
+        self.i_pmaxsb(op, off=1)
+    def i_vpmaxsw(self, op):
+        self.i_pmaxsb(op, width=2, off=1)
+    def i_vpmaxsd(self, op):
+        self.i_pmaxsb(op, width=4, off=1)
+    def i_vpmaxsq(self, op):
+        self.i_pmaxsb(op, width=8, off=1)
+
+    def i_pmovmskb(self, op):
+        res = 0
+        src = self.getOperValue(op, 1)
+        dsize = op.opers[0].tsize
+        ssize = op.opers[1].tsize
+
+        if dsize < 4:
+            raise envi.UnsupportedInstruction(self, op)
+        for i in range(ssize >> 3):
+            res |= (src & (1 << (7 + i*8))) << i
+        self.setOperValue(op, 0, res)
+
+    i_vpmovmskb = i_pmovmskb
 
     def i_lahf(self, op):
         self.setRegister(REG_AH, self.getRegister(REG_EFLAGS) & 0b11010101)
+
+    def i_sahf(self, op):
+        self.setRegister(REG_EFLAGS, (self.getRegister(REG_AH) & 0b11010101) | 0b00100000)
+
+    def i_pinsrb(self, op, width=1):
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        select = self.getOperValue(op, 2)
+        mask = e_bits.u_maxes[width]
+        bitwidth = width * 8
+        if width == 1:
+            select &= 0xF
+            src &= 0xFF
+        elif width == 2:
+            select &= 0x7
+        elif width == 4:
+            select &= 0x3
+        elif width == 8:
+            select &= 1
+
+        mask <<= bitwidth * select
+        tmp = (src << (select * bitwidth)) & mask
+        dst = dst &  (~mask) | tmp
+        self.setOperValue(op, 0, dst)
+
+    def i_pinsrw(self, op):
+        self.i_pinsrb(op, width=2)
+
+    def i_pinsrd(self, op):
+        self.i_pinsrb(op, width=4)
+
+    # psubq and variants
+    def i_psubb(self, op, width=1, off=0):
+        tsize = op.opers[0].tsize
+        src1 = self.getOperValue(op, off)
+        src2 = self.getOperValue(op, off + 1)
+        res = 0
+        mask = e_bits.u_maxes[width]
+
+        valus = zip(yieldPacked(src1, tsize, width),
+                    yieldPacked(src1, tsize, width))
+
+        for idx, (lft, rgt) in enumerate(valus):
+            s = (lft - rgt) & mask
+            res |= s << (idx * 8 * width)
+
+        self.setOperValue(op, 0, res)
+
+    def i_psubw(self, op):
+        self.i_psubb(op, width=2)
+
+    def i_psubd(self, op):
+        self.i_psubb(op, width=4)
+
+    def i_psubq(self, op):
+        self.i_psubb(op, width=8)
+
+    def i_vpsubb(self, op):
+        self.i_psubb(op, width=1, off=1)
+    def i_vpsubw(self, op):
+        self.i_psubb(op, width=2, off=1)
+    def i_vpsubd(self, op):
+        self.i_psubb(op, width=4, off=1)
+    def i_vpsubq(self, op):
+        self.i_psubb(op, width=8, off=1)
+
+    # signed variants of the above
+    def i_psubsb(self, op, width=1, off=0):
+        '''
+        like i_psubb, but with an extra fun check for saturation!
+        '''
+        tsize = op.opers[0].tsize
+        src1 = self.getOperValue(op, off)
+        src2 = self.getOperValue(op, off + 1)
+        res = 0
+        mask = e_bits.u_maxes[width]
+        bitwidth = width * 8
+        valus = zip(yieldPacked(src1, tsize, width),
+                    yieldPacked(src1, tsize, width))
+
+        shigh = e_bits.signed((2 ** (bitwidth - 1)) - 1, width)
+        slow = e_bits.signed((2 ** (bitwidth - 1)), width)
+        for idx, (lft, rgt) in enumerate(valus):
+            s = lft - rgt
+            if s > shigh:
+                s = shigh
+            elif s < slow:
+                s = slow
+            res |= s << (idx * bitwidth)
+
+    def i_psubsw(self, op):
+        self.i_psubsb(op, width=2)
+
+    def i_psubsd(self, op):
+        self.i_psubsb(op, width=4)
+
+    def i_psubsq(self, op):
+        self.i_psubsb(op, width=8)
+
+    def i_vpsubsb(self, op):
+        self.i_psubsb(op, width=1, off=1)
+
+    def i_vpsubsw(self, op):
+        self.i_psubsb(op, width=2, off=1)
+
+    def i_vpsubsd(self, op):
+        self.i_psubsb(op, width=4, off=1)
+
+    def i_vpsubsq(self, op):
+        self.i_psubsb(op, width=8, off=1)
+
+    def i_pand(self, op, off=0):
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+
+        ret = dst & src
+
+        self.setOperValue(op, 0, ret)
+
+    def i_pandn(self, op, off=0):
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
+
+        ret = (~dst) & src
+
+        self.setOperValue(op, 0, ret)
+
+    def i_vpand(self, op):
+        self.i_pand(op, off=1)
+
+    def i_vpandn(self, op):
+        self.i_pandn(op, off=1)
+
+    def i_pextrb(self, op, width=1):
+        dst = self.getOperValue(op, 0)
+        src = self.getOperValue(op, 1)
+        sel = self.getOperValue(op, 2)
+
+        src = (src >> (sel*width*8)) & e_bits.u_maxes[width]
+        # clear the bits only on pextrb
+        if width != 1:
+            dst = dst & (~e_bits.u_maxes[width])
+            src |= dst
+        self.setOperValue(op, 0, src)
+
+    def i_pextrw(self, op):
+        self.i_pextrb(op, width=2)
+
+    def i_pextrd(self, op):
+        self.i_pextrb(op, width=4)

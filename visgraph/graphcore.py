@@ -3,26 +3,30 @@ Graphcore contains all the base graph manipulation objects.
 '''
 import os
 import json
-import itertools
 import threading
 import collections
 
 from binascii import hexlify
 
-from exc import *
+from visgraph.exc import *
 import visgraph.pathcore as vg_pathcore
 
+
 def guid(size=16):
-    return hexlify(os.urandom(size))
+    return hexlify(os.urandom(size)).decode('utf-8')
+
 
 def zdict():
     return collections.defaultdict(int)
 
+
 def ldict():
     return collections.defaultdict(list)
 
+
 def pdict():
     return collections.defaultdict(ldict)
+
 
 class Graph:
 
@@ -163,7 +167,7 @@ class Graph:
             for edge in g.getEdgesByProp("score",300):
                 print(edge)
         '''
-        if val != None:
+        if val is not None:
             return self.edgeprops.get(prop,{}).get(val,[])
 
         ret = []
@@ -184,11 +188,11 @@ class Graph:
         edge[3][prop] = value
 
         try:
-            if curval != None:
+            if curval is not None:
                 curlist = self.edgeprops[prop][curval]
                 curlist.remove( edge )
             self.edgeprops[prop][value].append(edge)
-        except TypeError, e:
+        except TypeError:
             pass
 
         return True
@@ -201,7 +205,7 @@ class Graph:
         Example:
             g.setNodeProp(node, 'Description', 'My Node Is Awesome!')
         '''
-        if value == None:
+        if value is None:
             raise Exception('graph prop values may not be None! %r' % (node,))
 
         curval = node[1].get(prop)
@@ -211,12 +215,12 @@ class Graph:
         node[1][prop] = value
 
         try:
-            if curval != None:
+            if curval is not None:
                 curlist = self.nodeprops[prop][curval]
                 curlist.remove( node )
 
             self.nodeprops[prop][value].append(node)
-        except TypeError, e:
+        except TypeError:
             pass # no value indexing for un-hashable values
 
         return True
@@ -229,7 +233,7 @@ class Graph:
             for node in g.getNodesByProp("awesome",1):
                 print(node)
         '''
-        if val != None:
+        if val is not None:
             return self.nodeprops.get(prop,{}).get(val,[])
 
         ret = []
@@ -241,31 +245,31 @@ class Graph:
         Add a Node object to the graph.  Returns the node. (nid,nprops)
 
         Example: node = g.addNode()
-                 - or - 
+                 - or -
                  node = g.addNode('woot', {'height':20, 'width':20})
 
         NOTE: If nid is unspecified, it is considered an 'anonymous'
               node and will have an ID automagically assigned.
         '''
-        if nid == None:
+        if nid is None:
             nid = guid()
 
         p = self.nodes.get(nid)
-        if p != None:
+        if p is not None:
             raise DuplicateNode(nid)
 
         myprops = {}
         myprops.update(kwargs)
-        if nprops != None:
+        if nprops is not None:
             myprops.update(nprops)
 
-        node = (nid,myprops)
+        node = (nid, myprops)
         self.nodes[nid] = node
 
-        for k,v in myprops.items():
+        for k, v in myprops.items():
             try:
                 self.nodeprops[k][v].append(node)
-            except TypeError, e:
+            except TypeError:
                 pass
 
         return node
@@ -292,7 +296,7 @@ class Graph:
         '''
         with self.formlock:
             node = self.formnodes.get( (prop,value) )
-            if node != None:
+            if node is not None:
                 return node
 
             nid = guid()
@@ -303,7 +307,7 @@ class Graph:
             self.nodeprops[prop][value].append(node)
 
             # fire ctor with lock to prevent an un-initialized retrieve.
-            if ctor != None:
+            if ctor is not None:
                 ctor(node)
             return node
 
@@ -315,7 +319,7 @@ class Graph:
             g.delNodeProp(node,"foo")
         '''
         pval = node[1].pop(prop,None)
-        if pval != None:
+        if pval is not None:
             vlist = self.nodeprops[prop][pval]
             vlist.remove(node)
             if not vlist:
@@ -360,7 +364,7 @@ class Graph:
         '''
         Return a list of (nid, nprops) tuples.
         '''
-        return self.nodes.values()
+        return list(self.nodes.values())
 
     def getNodeCount(self):
         return len(self.nodes)
@@ -378,15 +382,15 @@ class Graph:
         return len(self.getRefsTo(node)) == 0
 
     def hasEdge(self, edgeid):
-        return self.edges.get(edgeid) != None
+        return self.edges.get(edgeid) is not None
 
     def hasNode(self, nid):
         '''
         Check if a given node is present within the graph.
 
-        Example: if g.hasNode('yermom'): print 'woot'
+        Example: if g.hasNode('yermom'): print('woot')
         '''
-        return self.getNode(nid) != None
+        return self.getNode(nid) is not None
 
     def addEdgeByNids(self, n1, n2, eid=None, eprops=None, **kwargs):
         node1 = self.getNode(n1)
@@ -399,11 +403,11 @@ class Graph:
 
         Example: g.addEdge(node1, node2, eprops={'name':'Woot Edge'})
         '''
-        if eprops == None:
+        if eprops is None:
             eprops = {}
 
         eprops.update(kwargs)
-        if eid == None:
+        if eid is None:
             eid = guid()
 
         n1 = node1[0]
@@ -415,29 +419,28 @@ class Graph:
         self.edge_by_to[n2].append(edge)
         self.edge_by_from[n1].append(edge)
 
-        for k,v in eprops.items():
+        for k, v in eprops.items():
             try:
                 self.edgeprops[k][v].append(edge)
-            except TypeError, e:
+            except TypeError:
                 pass # no value indexes for unhashable types
 
         return edge
 
     def delEdge(self, edge):
-        '''
-        Delete an edge from the graph (by eid).
-
-        Example: g.delEdge(eid)
-        '''
         eid,n1,n2,eprops = edge
-
-        [ self.delEdgeProp(edge,k) for k in eprops.keys() ]
+        [ self.delEdgeProp(edge,k) for k in list(eprops.keys()) ]
 
         self.edges.pop(eid)
         self.edge_by_to[n2].remove(edge)
         self.edge_by_from[n1].remove(edge)
 
     def delEdgeByEid(self, eid):
+        '''
+        Delete an edge from the graph (by eid).
+
+        Example: g.delEdge(eid)
+        '''
         edge = self.getEdge(eid)
         return self.delEdge(edge)
 
@@ -445,7 +448,7 @@ class Graph:
         '''
         '''
         v = edge[3].pop(prop,None)
-        if v != None:
+        if v is not None:
             vlist = self.edgeprops[prop][v]
             vlist.remove(edge)
             if not vlist:
@@ -496,9 +499,8 @@ class Graph:
 
         nodes = self.getNodes()
         done = {}
-        while len(nodes):
+        for nid, nprops in nodes:
 
-            nid,nprops = nodes.pop()
             if done.get(nid):
                 continue
 
@@ -514,7 +516,7 @@ class Graph:
                 if not g.hasNode(gnid):
                     g.addNode(nid=gnid, nprops=gnprops)
 
-                for eid,n1,n2,eprops in self.getRefsFromByNid(gnid):
+                for eid, n1, n2, eprops in self.getRefsFromByNid(gnid):
 
                     if not g.getNode(n2):
                         n2props = self.getNodeProps(n2)
@@ -524,7 +526,7 @@ class Graph:
                     if not g.getEdge(eid):
                         g.addEdgeByNids(n1, n2, eid=eid, eprops=eprops)
 
-                for eid,n1,n2,eprops in self.getRefsToByNid(gnid):
+                for eid, n1, n2, eprops in self.getRefsToByNid(gnid):
 
                     if not g.getNode(n1):
                         n1props = self.getNodeProps(n1)
@@ -537,7 +539,7 @@ class Graph:
             ret.append(g)
 
         return ret
-                
+
 
     def pathSearchOne(self, *args, **kwargs):
         for p in self.pathSearch(*args, **kwargs):
@@ -564,7 +566,7 @@ class Graph:
         Returns a list of edge ids...
         '''
 
-        if n2 == None and tocb == None:
+        if n2 is None and tocb is None:
             raise Exception('You must use either n2 or tocb!')
 
         root = vg_pathcore.newPathNode(nid=n1, eid=None)
@@ -586,7 +588,7 @@ class Graph:
                     continue
 
                 # Check if the callback is present and likes us...
-                if edgecb != None:
+                if edgecb is not None:
                     if not edgecb(self, edge, depth):
                         continue
 
@@ -606,7 +608,7 @@ class Graph:
                     ret = []
                     for ppnode, pkids, pprops in path:
                         eid = pprops.get('eid')
-                        if eid != None:
+                        if eid is not None:
                             ret.append(eid)
 
                     yield ret
@@ -715,7 +717,7 @@ class HierGraph(Graph):
         nodes = self.getNodes()
 
         # Lets make the list of nodes *ordered* by weight
-        nodes.sort(cmp=weightcmp)
+        nodes.sort(key=lambda k: k[1]['weight'])
 
         # Here's the magic... In *hierarchy order* each node
         # gets the sum of the paths of his parents.
@@ -741,7 +743,7 @@ class HierGraph(Graph):
             maxpath - maximum number of paths to yield
             maxlen  - maximum "length" of a path ( trunc if too long )
 
-        NOTE: The last tuple in the list will have edge == None.
+        NOTE: The last tuple in the list will have edge is None.
               However, if the last element in the list represents a
               truncated loop, the last tuple's "edge" field will be
               filled in with the loop's edge.
@@ -767,7 +769,7 @@ class HierGraph(Graph):
                 yield path
 
                 cnt += 1
-                if maxpath != None and cnt >= maxpath:
+                if maxpath is not None and cnt >= maxpath:
                     return
 
                 continue
@@ -787,7 +789,7 @@ class HierGraph(Graph):
                     yield newpath
 
                     cnt += 1
-                    if maxpath != None and cnt >= maxpath:
+                    if maxpath is not None and cnt >= maxpath:
                         return
 
                     continue
@@ -808,7 +810,7 @@ class HierGraph(Graph):
             for pathfrom in self.getHierPathsFrom(node, maxpath=maxpath, maxlen=maxlen):
                 yield pathto[:-1] + pathfrom
                 cnt += 1
-                if maxpath != None and cnt >= maxpath:
+                if maxpath is not None and cnt >= maxpath:
                     return
 
     def getHierPathsTo(self, node, maxpath=None, maxlen=None):
@@ -833,7 +835,7 @@ class HierGraph(Graph):
                 yield path
 
                 cnt += 1
-                if maxpath != None and cnt >= maxpath:
+                if maxpath is not None and cnt >= maxpath:
                     return
 
                 continue

@@ -29,19 +29,11 @@ Greetz:
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
 import re
-import sys
 import code
-import copy
 import time
 import types
-import struct
-import getopt
-import signal
-import inspect
+import logging
 import platform
-import traceback
-
-import cPickle as pickle
 
 import envi
 import envi.bits as e_bits
@@ -51,10 +43,10 @@ import envi.expression as e_expr
 import envi.symstore.resolver as e_resolv
 import envi.symstore.symcache as e_symcache
 
-import cobra
 import vstruct
 from vtrace.const import *
 
+logger = logging.getLogger(__name__)
 remote = None       # If set, we're a vtrace client (set to serverhost)
 cobra_daemon = None
 port = 0x5656
@@ -188,7 +180,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             va = self.getProgramCounter()
 
         ops = []
-        for i in xrange(0, num):
+        for i in range(0, num):
             op = self.parseOpcode(va)
             ops.append(op)
             va += op.size
@@ -345,9 +337,9 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         "normalized" library names.  This method returns
         the list of normalized names for the loaded libraries.
 
-        (probably only useful for writting symbol browsers...)
+        (probably only useful for writing symbol browsers...)
         """
-        return self.getMeta("LibraryBases").keys()
+        return list(self.getMeta("LibraryBases").keys())
 
     def getSymsForFile(self, libname):
         """
@@ -422,7 +414,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
         except Exception as e:
             # getTargets->readMemory error on bva
-            print('getSymByAddrThunkAware: %s' % repr(e))
+            logger.warning('getSymByAddrThunkAware: %s', e)
 
         return None, False
 
@@ -456,7 +448,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         Example:  for sym in trace.searchSymbols('.*CreateFile.*', 'kernel32'):
         '''
         reobj = re.compile(regex)
-        if libname != None:
+        if libname is not None:
             libs = [libname, ]
         else:
             libs = self.getNormalizedLibNames()
@@ -475,7 +467,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         specified thread.  Use this API to iterate over threads
         register values without setting the global tracer thread context.
         """
-        if threadid == None:
+        if threadid is None:
             threadid = self.getMeta("ThreadId")
         return self._cacheRegs(threadid)
 
@@ -524,14 +516,14 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         back as \x00s (this probably goes in a mixin soon)
         """
         self.requireNotRunning()
-        return self.platformReadMemory(long(address), long(size))
+        return self.platformReadMemory(int(address), int(size))
 
     def writeMemory(self, address, bytez):
         """
         Write the given bytes to the address in the current trace.
         """
         self.requireNotRunning()
-        self.platformWriteMemory(long(address), bytez)
+        self.platformWriteMemory(int(address), bytez)
 
     def searchMemory(self, needle, regex=False):
         """
@@ -579,7 +571,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         be set to the default specified.
         """
         if default is not None:
-            if not self.metadata.has_key(name):
+            if name not in self.metadata:
                 self.metadata[name] = default
         return self.metadata.get(name, None)
 
@@ -589,7 +581,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         as getMeta() with a default will set the key to the default
         if non-existant.
         """
-        return self.metadata.has_key(name)
+        return name in self.metadata
 
     def getMode(self, name, default=False):
         """
@@ -607,7 +599,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         This way, platform sections can cleanly setmodes
         and such.
         """
-        if not self.modes.has_key(name):
+        if name not in self.modes:
             raise Exception("Mode %s not supported on this platform" % name)
         self.modes[name] = bool(value)
 
@@ -684,7 +676,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             self.deferred.append(breakpoint)
             return breakpoint.id
 
-        if self.breakpoints.has_key(addr):
+        if addr in self.breakpoints:
             raise Exception("ERROR: Duplicate break for address 0x%.8x" % addr)
 
         self.bpbyid[breakpoint.id] = breakpoint
@@ -702,7 +694,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         self.requireAttached()
         bp = self.bpbyid.pop(id, None)
-        if bp != None:
+        if bp is not None:
             bp.deactivate(self)
             if bp in self.deferred:
                 self.deferred.remove(bp)
@@ -743,7 +735,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         Return a list of the current breakpoints.
         """
-        return self.bpbyid.values()
+        return list(self.bpbyid.values())
 
     def getBreakpointEnabled(self, bpid):
         """
@@ -752,7 +744,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         NOTE: code which wants to be remote-safe should use this
         """
         bp = self.getBreakpoint(bpid)
-        if bp == None:
+        if bp is None:
             raise Exception("Breakpoint %d Not Found" % bpid)
         return bp.isEnabled()
 
@@ -763,7 +755,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         NOTE: code which wants to be remote-safe should use this
         """
         bp = self.getBreakpoint(bpid)
-        if bp == None:
+        if bp is None:
             raise Exception("Breakpoint %d Not Found" % bpid)
         if not enabled: # To catch the "disable" of fastbreaks...
             bp.deactivate(self)
@@ -778,7 +770,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         to set the python code for this breakpoint.
         """
         bp = self.getBreakpoint(bpid)
-        if bp == None:
+        if bp is None:
             raise Exception("Breakpoint %d Not Found" % bpid)
         bp.setBreakpointCode(pystr)
 
@@ -788,7 +780,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         when this breakpoint is hit.
         """
         bp = self.getBreakpoint(bpid)
-        if bp != None:
+        if bp is not None:
             return bp.getBreakpointCode()
         return None
 
@@ -882,8 +874,8 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         Example:
         import envi.memory as e_mem
         vaddr, vperm = trace.getMemoryFault()
-        if vaddr != None:
-            print 'Memory Fault At: 0x%.8x (perm: %d)' % (vaddr, vperm)
+        if vaddr is not None:
+            print('Memory Fault At: 0x%.8x (perm: %d)' % (vaddr, vperm))
         '''
         return self.platformGetMemFault()
 
@@ -943,8 +935,8 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
         Example: trace.parseExpression("ispoi(ecx+ntdll.RtlAllocateHeap)")
         """
-        locs = VtraceExpressionLocals(self)
-        return long(e_expr.evaluate(expression, locs))
+        vlocs = VtraceExpressionLocals(self)
+        return int(e_expr.evaluate(expression, vlocs))
 
     def sendBreak(self):
         """
@@ -1206,12 +1198,10 @@ class TraceGroup(Notifier, v_util.TraceManager):
     def addTrace(self, proc):
         """
         Add a new tracer to this group the "proc" argument
-        may be either an long() for a pid (which we will attach
+        may be either an int for a pid (which we will attach
         to) or an already attached (and broken) tracer object.
         """
-
-        if (type(proc) == types.IntType or
-            type(proc) == types.LongType):
+        if isinstance(proc, int):
             trace = getTrace()
             self._initTrace(trace)
             self.traces[proc] = trace
@@ -1221,7 +1211,7 @@ class TraceGroup(Notifier, v_util.TraceManager):
                 self.delTrace(proc)
                 raise
 
-        else: # Hopefully a tracer object... if not.. you're dumb.
+        else:  # Hopefully a tracer object... if not.. you're dumb.
             trace = proc
             self._initTrace(trace)
             self.traces[trace.getPid()] = trace
@@ -1262,7 +1252,7 @@ class TraceGroup(Notifier, v_util.TraceManager):
         """
         Return a list of the current traces
         """
-        return self.traces.values()
+        return list(self.traces.values())
 
     def getTraceByPid(self, pid):
         """
@@ -1378,7 +1368,7 @@ class VtraceExpressionLocals(e_expr.MemoryExpressionLocals):
 
 def reqTargOpt(opts, targ, opt, valstr='<value>'):
     val = opts.get( opt )
-    if val == None:
+    if val is None:
         raise Exception('Target "%s" requires option: %s=%s' % (targ, opt, valstr))
     return val
 
@@ -1502,10 +1492,10 @@ def getTrace(target=None, **kwargs):
             #print '(put your username in there unless you want to put me in too... ;)'
             #raise Exception('procmod group membership required')
         if os.getuid() != 0:
-            print 'For NOW you *must* be root.  There are some crazy MACH perms...'
+            logger.error('For NOW you *must* be root.  There are some crazy MACH perms...')
             raise Exception('You must be root for now (on OSX)....')
 
-        print 'Also... the darwin port is not even REMOTELY working yet.  Solid progress though...'
+        logger.warning('Also... the darwin port is not even REMOTELY working yet.  Solid progress though...')
 
         #'sudo dscl . append /Groups/procmod GroupMembership invisigoth'
         #'sudo dscl . read /Groups/procmod GroupMembership'
@@ -1544,7 +1534,7 @@ def interact(pid=0, server=None, trace=None):
     global remote
     remote = server
 
-    if trace == None:
+    if trace is None:
         trace = getTrace()
         if pid:
             trace.attach(pid)

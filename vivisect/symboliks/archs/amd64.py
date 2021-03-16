@@ -34,7 +34,7 @@ class VMCS_Field(Var):
         if emu is not None:
             name += emu.getRandomSeed()
 
-        return long(hashlib.md5(name).hexdigest()[:self.width*2], 16)
+        return int(hashlib.md5(name).hexdigest()[:self.width*2], 16)
 
     def update(self, emu):
         offset = self.offset.update(emu=emu)
@@ -63,7 +63,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8)
+        val = Var(rname, rbitwidth >> 3)
 
         # Translate to native if needed...
         if ridx != regidx:
@@ -82,9 +82,9 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
                 # cut hole in mask
                 finalmask = basemask ^ (mask << lshift)
                 if lshift != 0:
-                    obj <<= Const(lshift, rbitwidth / 8)
+                    obj <<= Const(lshift, rbitwidth >> 3)
 
-                obj = obj | (val & Const(finalmask, rbitwidth / 8))
+                obj = obj | (val & Const(finalmask, rbitwidth >> 3))
 
         self.effSetVariable(rname, obj)
 
@@ -102,10 +102,15 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
 
         return vsym_i386.IntelSymbolikTranslator.getOperObj(self, op, idx)
 
+    # TODO: support callf and all that nonsense
+
+    def i_pextrd_q(self, op):
+        self.i_pextrb(op, width=op.opers[0].tsize)
+
     def i_movsxd(self, op):
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-        v2 = o_sextend(self.getOperObj(op, 1), Const(ssize, self._psize))
+        v2 = o_sextend(self.getOperObj(op, 1), Const(dsize, self._psize))
         self.setOperObj(op, 0, v2)
 
     def _div(self, op, isInvalid=None):
@@ -138,9 +143,6 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
     def i_div(self, op):
         return self._div(op)
 
-    def i_cdq(self, op):
-        v1 = o_sextend(self.getRegObj(e_amd64.REG_EAX), Const(self._psize, self._psize))
-        self.effSetVariable('rax', v1)
 
     def i_jecxz(self, op):
         return vsym_i386.IntelSymbolikTranslator.i_jecxz(self, op)
@@ -259,7 +261,7 @@ class Amd64SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
 
     def __init__(self, vw, initial_sp=0xbfbff000):
         vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
-        self.setStackBase(0xbfbff000, 8192)
+        self.setStackBase(0xbfbff000, 16384)
         self.addCallingConvention('sysvamd64call', SysVAmd64CallSym())
         self.addCallingConvention('msx64call', msx64callsym)
 
