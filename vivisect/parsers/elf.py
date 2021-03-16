@@ -15,7 +15,7 @@ from io import StringIO
 logger = logging.getLogger(__name__)
 
 def isParser(bytez):
-    return bytez.startswith("\x7fELF")
+    return bytez.startswith(b"\x7fELF")
 
 # FIXME: So this is terrible, but until we unite everything under one package
 # namespace to rule them all, we need this to avoid a stupid amount of logspam
