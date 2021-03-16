@@ -1,3 +1,4 @@
+import struct
 import binascii
 
 import vivisect.parsers as viv_parsers
