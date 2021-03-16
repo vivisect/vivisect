@@ -28,7 +28,7 @@ def earlyExtensions(vw):
         logger.debug('earlyLoad: %r', mod)
         try:
             mod.earlyLoad(vw)
-        except Exception, e:
+        except Exception as e:
             vw.vprint(traceback.format_exc())
             vw.vprint('Extension Error (early): %s' % filepath)
 
