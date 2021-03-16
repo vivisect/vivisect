@@ -20,58 +20,63 @@ logger = logging.getLogger(__name__)
 
 def earlyExtensions(vw):
     logger.debug('earlyLoad')
-    for mod in extensions:
-        if not hasattr(mod, 'earlyLoad'):
-            logger.debug('earlyLoad: %r (no earlyLoad() function)', mod)
-            continue
-
-        logger.debug('earlyLoad: %r', mod)
+    for mname, mod in vw.getExtensions():
         try:
+            if not hasattr(mod, 'earlyLoad'):
+                logger.debug('earlyLoad: %r (no earlyLoad() function)', mod)
+                continue
+
+            logger.debug('earlyLoad: %r', mod)
             mod.earlyLoad(vw)
+
         except Exception as e:
-            vw.vprint(traceback.format_exc())
-            vw.vprint('Extension Error (early): %s' % filepath)
+            logger.warning(traceback.format_exc())
+            logger.warning('Extension Error (load:%r): %s' % (mod, e))
 
 
 def preFileLoadExtensions(vw, fname, bytez, fd):
     logger.debug('preFileLoad')
-    for mod in extensions:
-        if not hasattr(mod, 'preFileLoadHook'):
-            logger.debug('preFileLoad: %r (no preFileLoadHook() function)', mod)
-            continue
-
-        logger.debug('preFileLoad: %r', mod)
+    for mname, mod in vw.getExtensions():
         try:
+            if not hasattr(mod, 'preFileLoadHook'):
+                logger.debug('preFileLoad: %r (no preFileLoadHook() function)', mod)
+                continue
+
+            logger.debug('preFileLoad: %r', mod)
             mod.preFileLoadHook(vw, fname, bytez, fd)
+
         except Exception as e:
-            vw.vprint(traceback.format_exc())
-            vw.vprint('Extension Error (preFileLoad): %s' % filepath)
+            logger.warning(traceback.format_exc())
+            logger.warning('Extension Error (load:%r): %s' % (mod, e))
 
 
 def loadExtensions(vw, vwgui):
     logger.debug('loadExtensions')
-    for mod in extensions:
+    for mname, mod in vw.getExtensions():
         logger.debug('loadExtensions %r', mod)
         try:
-            mod.vivExtension(vw, vwgui)
-        except Exception as e:
-            vw.vprint(traceback.format_exc())
-            vw.vprint('Extension Error: %s' % filepath)
+            if not hasattr(mod, 'vivExtension'):
+                logger.debug('loadExtensions: %r (no vivExtension() function)', mod)
+                continue
 
-extensions = []
-def impExtensions():
-    global extensions
+            mod.vivExtension(vw, vwgui)
+
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            logger.warning('Extension Error (load:%r): %s' % (mod, e))
+
+def importExtensions(vw):
     extdir = os.getenv('VIV_EXT_PATH')
 
     if extdir is None:
         return
 
-    logger.info('impExtensions: VIV_EXT_PATH == %r', extdir)
+    logger.info('importExtensions: VIV_EXT_PATH == %r', extdir)
     for dirname in extdir.split(os.pathsep):
-        logger.info('impExtensions: %r', dirname)
+        logger.info('importExtensions: %r', dirname)
 
         if not os.path.isdir(dirname):
-            logger.warn('Invalid VIV_EXT_PATH dir: %s', dirname)
+            logger.warning('Invalid VIV_EXT_PATH dir: %s', dirname)
             continue
 
         if dirname not in sys.path:
@@ -95,19 +100,16 @@ def impExtensions():
                 modname = fname[:-3]
 
             try:
-                logger.info('impExtensions: %s', modpath)
+                logger.info('importExtensions: %s', modpath)
                 # Build code objects from the module files
                 spec = importlib.util.spec_from_file_location(fname, modpath)
                 module = importlib.util.module_from_spec(spec)
                 module.vw = vw
                 spec.loader.exec_module(module)
 
-                module.vivExtension(vw, vwgui)
                 vw.addExtension(fname, module)
 
             except Exception as e:
-                logger.warn(traceback.format_exc())
-                logger.warn('Extension Error (load:%r): %s' % (modpath, e))
+                logger.warning(traceback.format_exc())
+                logger.warning('Extension Error (load:%r): %s' % (modpath, e))
 
-impExtensions()
-logger.info("EXTENSIONS: %s", repr(extensions))

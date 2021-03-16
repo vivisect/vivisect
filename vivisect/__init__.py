@@ -174,6 +174,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
 
+        viv_ext.importExtensions(self)
         viv_ext.earlyExtensions(self)
 
 
@@ -239,9 +240,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def delExtension(self, name):
         '''
-        Remove's extension module from the list of extensions.
+        Removes extension module from the list of extensions.
         '''
         self._extensions.pop(name, None)
+
+    def getExtensions(self):
+        '''
+        Returns the extensions registered with the workspace.
+        '''
+        return self._extensions.items()
+
+    def getExtension(self, mname):
+        '''
+        Lookup and return an extension
+        '''
+        if mname in self._extensions:
+            return self._extensions[mname]
 
     def getVivGuid(self):
         '''
