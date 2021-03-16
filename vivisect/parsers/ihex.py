@@ -16,7 +16,7 @@ archcalls = {
 }
 
 def isParser(bytez):
-    return bytez[0] == ':'
+    return bytez[0:1] == b':'
 
 def parseFile(vw, filename, baseaddr=None):
 

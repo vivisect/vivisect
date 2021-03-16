@@ -62,10 +62,10 @@ def getParsers():
     return parsers
 
 def guessFormat(bytez):
-    if bytez.startswith('VIV'):
+    if bytez.startswith(b'VIV'):
         return 'viv'
 
-    elif bytez.startswithc('MSGVIV'):
+    elif bytez.startswith(b'MSGVIV'):
         return 'mpviv'
 
     for parser in getParsers():

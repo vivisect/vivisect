@@ -32,7 +32,7 @@ for mod in (PE, vtrace):
 
 
 def isParser(bytez):
-    return bytez.startswith("MZ")
+    return bytez.startswith(b"MZ")
 
 def parseFile(vw, filename, baseaddr=None):
     pe = PE.PE(open(filename, "rb"))
