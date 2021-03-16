@@ -130,7 +130,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
     def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.TopDockWidgetArea):
         res = self._dock_classes.get(clsname)
         if res is None:
-            logger.error('vqBuildDockWidget Failed For: %s', clsname)
+            logger.warning('vqBuildDockWidget Failed For: %s (No class constructor found)', clsname)
             return
         cls, args = res
         obj = cls(*args)
@@ -143,6 +143,9 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
             for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d' % i
                 try:
+                    # we haven't loaded the extensions yet, so all we'll have is the base clases
+                    if str(clsname) not in self._dock_classes:
+                        continue
                     tup = self.vqBuildDockWidget(str(clsname), floating=False)
                     if tup is not None:
                         d, obj = tup
