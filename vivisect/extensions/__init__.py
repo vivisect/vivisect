@@ -43,7 +43,7 @@ def preFileLoadExtensions(vw, fname, bytez, fd):
         logger.debug('preFileLoad: %r', mod)
         try:
             mod.preFileLoadHook(vw, fname, bytez, fd)
-        except Exception, e:
+        except Exception as e:
             vw.vprint(traceback.format_exc())
             vw.vprint('Extension Error (preFileLoad): %s' % filepath)
 
