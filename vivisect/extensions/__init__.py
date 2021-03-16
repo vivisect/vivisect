@@ -51,7 +51,7 @@ def preFileLoadExtensions(vw, fname, bytez, fd):
 def loadExtensions(vw, vwgui):
     logger.debug('loadExtensions')
     for mod in extensions:
-        logger.debug('loadExtensionsL %r', mod)
+        logger.debug('loadExtensions %r', mod)
         try:
             mod.vivExtension(vw, vwgui)
         except Exception, e:
