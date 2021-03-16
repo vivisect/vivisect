@@ -71,7 +71,7 @@ def impExtensions():
         logger.info('impExtensions: %r', dirname)
 
         if not os.path.isdir(dirname):
-            logger.warn('Invalid VIV_EXT_PATH dir: %s' % dirname)
+            logger.warn('Invalid VIV_EXT_PATH dir: %s', dirname)
             continue
 
         if dirname not in sys.path:
