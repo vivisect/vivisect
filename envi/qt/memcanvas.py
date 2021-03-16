@@ -2,7 +2,7 @@ import html
 import binascii
 
 from PyQt5 import QtCore, QtGui, QtWebEngine, QtWebEngineWidgets
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QObject, qInstallMessageHandler
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import *
 from PyQt5.QtWidgets import *
@@ -45,6 +45,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         # (but pyqt5 won't throw an exception, because ugh).
         self._log_page = LoggerPage()
         self.setPage(self._log_page)
+        # https://stackoverflow.com/questions/58906917/warnings-when-instantiating-qwebchannel-object-in-javascript
+        # silence all the "property <foo>  of object <bar> has no notify signal messages
+        qInstallMessageHandler(lambda *args: None)
         self.channel = QWebChannel()
         self.page().setWebChannel(self.channel)
         self.channel.registerObject('vnav', self)
