@@ -7,6 +7,7 @@ import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
 import envi.memcanvas as e_memcanvas
 import envi.qt.memory as e_qt_memory
+import vivisect.qt.views as viv_q_views
 import envi.qt.memcanvas as e_qt_memcanvas
 
 import visgraph.layouts.dynadag as vg_dynadag
@@ -298,7 +299,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         QtWidgets.QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=3)
 
-        # TODO: Transition theses to the above pattern (since escape/ctrl-c
+        # TODO: Transition these to the above pattern (since escape/ctrl-c)
         # See: https://stackoverflow.com/questions/56890831/qwidget-cannot-catch-escape-backspace-or-c-x-key-press-events
         self.addHotKey('ctrl+0', 'funcgraph:resetzoom')
         self.addHotKeyTarget('funcgraph:resetzoom', self._hotkey_resetzoom)
@@ -314,6 +315,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.addHotKeyTarget('funcgraph:paintdown', self._hotkey_paintDown)
         self.addHotKey('ctrl+m', 'funcgraph:paintmerge')
         self.addHotKeyTarget('funcgraph:paintmerge', self._hotkey_paintMerge)
+        self.addHotKey('x', 'viv:xrefsto')
+        self.addHotKeyTarget('viv:xrefsto', self._viv_xrefsto)
+
 
     def _nav_expr(self):
         expr = self.addr_entry.text()
@@ -351,6 +355,19 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             newzoom -= .25
 
         self.mem_canvas.setZoomFactor(newzoom)
+
+    def _viv_xrefsto(self):
+
+        if self.mem_canvas._canv_curva is not None:
+            xrefs = self.vw.getXrefsTo(self.mem_canvas._canv_curva)
+            if len(xrefs) == 0:
+                self.vw.vprint('No xrefs found!')
+                return
+
+            title = 'Xrefs To: 0x%.8x' % self.mem_canvas._canv_curva
+            view = viv_q_views.VQXrefView(self.vw, self.vwqgui, xrefs=xrefs, title=title)
+            dock = self.vwqgui.vqDockWidget(view, floating=True)
+            dock.resize(800, 600)
 
     def refresh(self):
         '''

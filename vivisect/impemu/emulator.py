@@ -473,6 +473,15 @@ class WorkspaceEmulator:
 
                         if self.emustop:
                             return
+
+                    # if we are going to follow the call, we need an anchor to
+                    # continue this codepath.
+                    if op.iflags & envi.IF_CALL and not self._func_only:
+                        esnap = self.getEmuSnap()
+                        bva = starteip + len(op)
+                        bpath = self.getBranchNode(self.curpath, bva)
+                        todo.append((bva, esnap, bpath))
+
                     # Execute the opcode
                     self.executeOpcode(op)
                     vg_path.getNodeProp(self.curpath, 'valist').append(starteip)
