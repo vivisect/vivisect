@@ -748,8 +748,8 @@ class CobraConnectionHandler:
                 mtype,name,data = csock.recvMessage()
             except CobraClosedException:
                 break
-            except socket.error:
-                logger.warning("Cobra socket error in handleClient")
+            except socket.error as e:
+                logger.warning("Cobra socket error in handleClient. Err: %s", str(e))
                 break
 
             # If they re-auth ( app layer ) later, lets handle it...
