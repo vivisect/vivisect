@@ -3,10 +3,12 @@ from io import StringIO
 
 import PE
 import PE.carve as pe_carve
+import PE.cofflib as pe_coff
 
 import vstruct
 import vivisect
 import vivisect.parsers as v_parsers
+import vivisect.parsers.dwarf as v_p_dwarf
 # Steal symbol parsing from vtrace
 import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
@@ -520,5 +522,17 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
             rva = pe.offsetToRva(offset) + baseaddr
             vw.markDeadData(rva, rva+len(pebytes))
+
+    coffstrs = 0
+    symoff = pe.IMAGE_NT_HEADERS.FileHeader.PointerToSymbolTable
+    if symoff:
+        entries = pe.IMAGE_NT_HEADERS.FileHeader.NumberOfSymbols
+        elems = vstruct.VArray(elems=[pe_coff.IMAGE_COFF_SYMBOL() for i in range(entries)])
+        coffstrs = symoff + len(elems)
+        strtab = pe.readAtOffset(coffstrs, 128)
+        names = strtab.split(b'\x00')
+        if b'.debug_info' in names and b'.debug_abbrev' in names:
+            dwarf = v_p_dwarf.parseDwarf(vw, pe, strtab)
+            v_p_dwarf.addDwarfToWorkspace(vw, dwarf)
 
     return fname
