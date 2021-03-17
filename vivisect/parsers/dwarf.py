@@ -377,7 +377,6 @@ def _add_children(vw, parent, offsets, children):
             if not hasattr(child, 'low_pc'):
                 continue
             hasAbstract = child.vsHasField('abstract_origin')
-            hasInline = child.vsHasField('inline')
             if hasAbstract and child.abstract_origin:
                 # So...this highly depends on what type of ref we've got, so we need to
                 # plumb not just what type of ref we're looking at, but also the various different
