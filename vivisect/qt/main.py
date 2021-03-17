@@ -203,7 +203,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             self.vw.setVaSetRow('Bookmarks', (va, str(bname)))
 
     def getMemoryWidgets(self):
-        return self.views.get('VQVivMemoryView')
+        return self.views.get('VQVivMemoryView', [])
 
     def getMemWidgetsByName(self, name='viv', firstonly=True):
         '''
@@ -218,7 +218,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         for vqDW in self.getMemoryWidgets():
             w = vqDW.widget()
-            logger.debug("enn: " + w.getEnviNavName())
             if w.getEnviNavName() == name:
                 if firstonly:
                     return w, vqDW
@@ -231,7 +230,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         return out
 
     def getFuncGraphs(self):
-        return self.views.get('VQVivFuncgraphView')
+        return self.views.get('VQVivFuncgraphView', [])
 
     def getFuncGraphsByName(self, name='FuncGraph0', firstonly=True):
         '''
@@ -243,7 +242,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         out = []
         for vqDW in self.getFuncGraphs():
             w = vqDW.widget()
-            logger.debug("enn: " + w.getEnviNavName())
             if firstonly:
                 return w, vqDW
 
@@ -260,7 +258,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         '''
         logger.debug("sendMemWidgetsTo(0x%x, wname=%r)", va, wname)
         for win in self.getMemWidgetsByName(wname, firstonly=False):
-            logger.debug("sendMemWidgetsTo gets %r", repr(win))
             w, vqFW = win
 
             logger.debug("sending %r to %r", w, hex(va))
@@ -275,7 +272,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         '''
         logger.debug("sendFuncGraphTo(0x%x, wname=%r)", va, wname)
         for win in self.getFuncGraphsByName(wname, firstonly=False):
-            logger.debug("sendFuncGraphTo gets %r", repr(win))
             w, vqFW = win
 
             logger.debug("sending %r to %r", w, hex(va))
@@ -288,16 +284,14 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         '''
         Returns the CLI Bar object
         '''
-        logger.debug("getCliBar()")
         for c in self.children():
-            if type(c) == vq_cli.VQCli:
+            if isinstance(c, vq_cli.VQCli):
                 return c
 
     def getCliText(self):
         '''
         Get the text from the GUI's CLI Bar (at the bottom)
         '''
-        logger.debug("getCliText()")
         cli = self.getCliBar()
         return cli.input.text()
 

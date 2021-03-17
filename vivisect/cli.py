@@ -244,7 +244,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         '''
         parser = e_cli.VOptionParser()
-        parser.add_option('-f', action='store', dest='funcva', type='long')
+        parser.add_option('-f', action='store', dest='funcva', type='int')
         parser.add_option('-c', action='store_true', dest='searchComments')
         parser.add_option('-o', action='store_true', dest='searchOperands')
         parser.add_option('-t', action='store_true', dest='searchText')
@@ -340,9 +340,13 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
                 # search full text
                 if options.searchText or defaultSearchAll:
+                    # search through the rendering of the opcode, as well as the comment
                     canv.clearCanvas()
                     op.render(canv)
                     oprepr = canv.strval
+                    cmt = self.getComment(va)
+                    if cmt is not None:
+                        oprepr += "  ; " + cmt
 
                     if options.is_regex:
                         if len(re.findall(pattern, oprepr)):
