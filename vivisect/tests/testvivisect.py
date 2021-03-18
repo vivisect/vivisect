@@ -50,14 +50,14 @@ class VivisectTest(unittest.TestCase):
         '''
         Test that VivCli.do_searchopcodes works
         '''
-        self.chgrp_vw.do_searchopcodes('ret')
+        #TODO: make real tests with asserts
         self.chgrp_vw.do_searchopcodes('foo')
         self.chgrp_vw.do_searchopcodes('-f 0x08050200 ret')
-        self.chgrp_vw.do_searchopcodes('-c ret')
-        self.chgrp_vw.do_searchopcodes('-o ret')
-        self.chgrp_vw.do_searchopcodes('-t ret')
-        self.chgrp_vw.do_searchopcodes('-M red ret')
-        self.chgrp_vw.do_searchopcodes('-R r.t')
+        self.chgrp_vw.do_searchopcodes('-c rol')
+        self.chgrp_vw.do_searchopcodes('-o rol')
+        self.chgrp_vw.do_searchopcodes('-t rol')
+        self.chgrp_vw.do_searchopcodes('-M red rol')
+        self.chgrp_vw.do_searchopcodes('-f 0x08050200 -R r.t')
 
     def test_loc_types(self):
         '''
