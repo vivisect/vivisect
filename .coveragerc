@@ -1,0 +1,50 @@
+[run]
+branch=True
+
+[report]
+omit =
+    */vdb/qt/*
+    */envi/qt/*
+    */vstruct/qt/*
+    */vivisect/qt/*
+    */visgraph/drawing/*
+    */vdb/tests/__init__.py
+    */vdb/tests/teststalker.py*
+    */vtrace/qt.py
+    */vivisect/symboliks/tests/__init__.py
+    */vivisect/symboliks/tests/test*
+    */vivisect/tests/__init__.py
+    */vivisect/tests/test*
+    */vivisect/tests/helpers.py
+    */vivisect/tests/vivbins.py
+    */vivisect/tests/samplecode.py
+    */vivisect/BP*
+    */vtrace/tests/*
+    */envi/test_*
+    */envi/tests/*
+    */vdb/tests/*
+    */visgraph/tests/__init__.py
+    */visgraph/tests/test*
+    */vivisect/contrib/*
+    */PE/tests/__init__.py
+    */PE/tests/test*
+    */cobra/tests/__init__.py
+    */cobra/tests/test*
+    */vstruct/tests/__init__.py
+    */vstruct/tests/test*
+    */vqt/*
+
+[paths]
+source =
+    */vivisect/*
+    */PE/*
+    */Elf/*
+    */vdb/*
+    */vtrace/*
+    */vstruct/*
+    */visgraph/*
+    */envi/*
+    */cobra/*
+
+[html]
+directory = coverage_html_report

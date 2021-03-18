@@ -1,33 +1,36 @@
 '''
 A home for the vdb specific memory renderers.
 '''
+import logging
+import binascii
 
 import envi
 import vtrace
-import envi.bits as e_bits
-import envi.memory as e_mem
 import envi.memcanvas as e_canvas
 import vivisect.impapi as viv_impapi
 import envi.memcanvas.renderers as e_canvas_rend
+
+
+logger = logging.getLogger(__name__)
 
 class OpcodeRenderer(e_canvas.MemoryRenderer):
 
     def __init__(self, trace, arch=envi.ARCH_DEFAULT):
         self.arch = arch
-        self.emu_cache = {} # arch_num: emu instance
+        self.emu_cache = {}  # arch_num: emu instance
         self.pwidth = trace.getPointerSize()
-        self.pformat = '0x%%.%dx' % ( self.pwidth * 2 )
+        self.pformat = '0x%%.%dx' % (self.pwidth * 2)
 
     def _getOpcodePrefix(self, trace, va, op):
         regs = trace.getRegisters()
-        regs = dict([ (rval,rname) for (rname,rval) in regs.items() if rval != 0 ])
+        regs = dict([(rval, rname) for (rname, rval) in regs.items() if rval != 0])
 
         bp = trace.getBreakpointByAddr(va)
-        if bp != None:
+        if bp is not None:
             return ('bp[%d]' % bp.id).ljust(8)
 
-        rname = regs.get( va )
-        if rname != None:
+        rname = regs.get(va)
+        if rname is not None:
             return rname[:7].ljust(8)
 
         return '        '
@@ -50,7 +53,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
                 rova = trace.readMemoryFormat(ova, '<P')[0]
                 sym = trace.getSymByAddr(rova)
 
-            if sym == None:
+            if sym is None:
                 sym = trace.getSymByAddr(ova)
 
             if sym:
@@ -78,7 +81,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
         # NOTE: we assume the memobj is a trace
         trace = mcanv.mem
         sym = trace.getSymByAddr(va)
-        if sym != None:
+        if sym is not None:
             mcanv.addText('\n')
             mcanv.addVaText(str(sym), va=va)
             mcanv.addText(':\n')
@@ -90,14 +93,14 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
         mcanv.addText(prefix)
 
         mcanv.addVaText(vastr, va=va)
-        mcanv.addText(": %s " % obytes.encode('hex').ljust(17))
+        mcanv.addText(": %s " % binascii.hexlify(obytes).ljust(17))
         op.render(mcanv)
 
         try:
             suffix = self._getOpcodeSuffix(trace, va, op)
             if suffix:
                 mcanv.addText(' ;'+suffix)
-        except Exception, e:
+        except Exception as e:
             mcanv.addText('; suffix error: %s' % e)
 
         mcanv.addText("\n")
@@ -130,12 +133,13 @@ class SymbolRenderer(e_canvas.MemoryRenderer):
 
         if isptr:
             sym = trace.getSymByAddr(p, exact=False)
-            if sym != None:
-                mcanv.addText(' %s + %d' % (repr(sym), p-long(sym)))
+            if sym is not None:
+                mcanv.addText(' %s + %d' % (repr(sym), p-int(sym)))
 
         mcanv.addText('\n')
 
         return self.pwidth
+
 
 class DerefRenderer(e_canvas.MemoryRenderer):
     def __init__(self, trace):
@@ -155,7 +159,7 @@ class DerefRenderer(e_canvas.MemoryRenderer):
         preg = ""
 
         regs = trace.getRegisters()
-        for name,val in regs.items():
+        for name, val in regs.items():
             if val == 0:
                 continue
             if val == va:
@@ -204,6 +208,7 @@ class DerefRenderer(e_canvas.MemoryRenderer):
         mcanv.addText('\n')
         return self.arch.getPointerSize()
 
+
 class StackRenderer(DerefRenderer):
     def __init__(self, trace):
         DerefRenderer.__init__(self, trace)
@@ -215,7 +220,7 @@ class StackRenderer(DerefRenderer):
 
         pc = trace.getProgramCounter()
         sym, is_thunk = trace.getSymByAddrThunkAware(pc)
-        if sym == None:
+        if sym is None:
             return DerefRenderer.render(self, mcanv, va)
 
         # TODO: this code also exists in win32stealth and in hookbreakpoint
@@ -227,9 +232,9 @@ class StackRenderer(DerefRenderer):
         emu = vtrace.getEmu(trace)
         cc = emu.getCallingConvention(cc_name)
         args_def = impapi.getImpApiArgs(sym)
-        if args_def == None:
+        if args_def is None:
             # sym did not exist in impapi :(
-            print('sym but no impapi match: {}'.format(sym))
+            logger.warning('sym but no impapi match: {}'.format(sym))
             return DerefRenderer.render(self, mcanv, va)
 
         argc = len(args_def)

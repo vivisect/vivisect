@@ -8,27 +8,21 @@ import os
 import re
 import sys
 import time
-import Queue
+import queue
 import string
-import struct
-import weakref
 import hashlib
+import logging
+import binascii
 import itertools
 import traceback
 import threading
 import collections
 
-from binascii import hexlify
-from StringIO import StringIO
-from collections import deque
-from ConfigParser import ConfigParser
 
-import vivisect.contrib # This should go first
-
-# The envi imports...
-import vdb
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
+import envi.common as e_common
 import envi.memory as e_mem
 import envi.config as e_config
 import envi.bytesig as e_bytesig
@@ -50,30 +44,62 @@ from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
 
+
+logger = logging.getLogger(__name__)
+
+STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
+STORAGE_MAP = {
+    'viv': 'vivisect.storage.basicfile',
+    'mpviv': 'vivisect.storage.mpfile',
+}
+
+
 def guid(size=16):
-    return hexlify(os.urandom(size))
+    return binascii.hexlify(os.urandom(size))
+
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
+    '''
+    VivWorkspace is the heart of vivisect's binary analysis. Most APIs accept a VivWorkspace
+    as their first parameter, and the workspace is responsible for all the user facing functions
+    of getters/adders, running analysis passes, making the various locations, loading files, and
+    more.
 
-    def __init__(self):
+    Current keyword arguments:
+    * confdir:
+      * Type: String (path to directory)
+      * Description: A path to a directory to save/load vivisect's analysis configuration options (options will be saved to/loaded from the viv.json file in the directory
+      * Default: $HOME/.viv/
+    * autosave (boolean):
+      * Type: Boolean
+      * Description: If true, autosave any configuration changes to the <confdir>/viv.json upon changing them.
+      * Default: False
+    '''
+    def __init__(self, **kwargs):
 
         e_mem.MemoryObject.__init__(self)
         viv_base.VivWorkspaceCore.__init__(self)
 
-        self.vivhome = e_config.gethomedir(".viv")
+        autosave = kwargs.get('autosave', False)
+        cfgdir = kwargs.get('confdir', None)
+        if cfgdir:
+            self.vivhome = os.path.abspath(cfgdir)
+        else:
+            self.vivhome = e_config.gethomedir(".viv", makedir=autosave)
         self._viv_gui = None    # If a gui is running, he will put a ref here...
+        self._ext_ctxmenu_hooks = {}
+        self._extensions = {}
 
-        self.saved = True
+        self.saved = False  # TODO: Have a warning when we try to close the UI if the workspace hasn't been saved
         self.rchan = None
         self.server = None
-        self.verbose = False
         self.chanids = itertools.count()
 
-        self.arch = None # The placeholder for the Envi architecture module
-        self.psize = None # Used so much, optimization is appropriate
+        self.arch = None  # The placeholder for the Envi architecture module
+        self.psize = None  # Used so much, optimization is appropriate
 
-        cfgpath = os.path.join(self.vivhome,'viv.json')
-        self.config = e_config.EnviConfig( filename=cfgpath, defaults=defconfig, docs=docconfig )
+        cfgpath = os.path.join(self.vivhome, 'viv.json')
+        self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig, autosave=autosave)
 
         # Ideally, *none* of these are modified except by _handleFOO funcs...
         self.segments = []
@@ -92,11 +118,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.greedycode = 0
 
         self.metadata = {}
-        self.comments = {} # Comment by VA.
+        self.comments = {}  # Comment by VA.
         self.symhints = {}
 
-        self.filemeta = {} # Metadata Dicts stored by filename
-        self.transmeta = {} # Metadata that is *not* saved/evented
+        self.filemeta = {}  # Metadata Dicts stored by filename
+        self.transmeta = {}  # Metadata that is *not* saved/evented
 
         self.cfctx = viv_base.VivCodeFlowContext(self)
 
@@ -110,7 +136,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.reloc_by_va = {}
 
         self.func_args = {}
-        self.funcmeta = {} # Function metadata stored in the workspace
+        self.funcmeta = {}  # Function metadata stored in the workspace
         self.frefs = {}
 
         # Extended analysis modules
@@ -125,6 +151,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         self._cached_emus = {}
 
+        self.parsedbin = None
         # The function entry signature decision tree
         # FIXME add to export
         self.sigtree = e_bytesig.SignatureTree()
@@ -140,18 +167,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.setMeta("StorageModule", "vivisect.storage.basicfile")
 
         # There are a few default va sets for use in analysis
-        self.addVaSet('EntryPoints', (('va',VASET_ADDRESS),))
-        self.addVaSet('NoReturnCalls', (('va',VASET_ADDRESS),))
-        self.addVaSet("Emulation Anomalies", (("va",VASET_ADDRESS),("Message",VASET_STRING)))
-        self.addVaSet("Bookmarks", (("va",VASET_ADDRESS),("Bookmark Name", VASET_STRING)))
-        self.addVaSet('DynamicBranches', (('va',VASET_ADDRESS),('opcode', VASET_STRING),('bflags',VASET_INTEGER)))
-
-    def verbprint(self, msg):
-        if self.verbose:
-            return self.vprint(msg)
+        self.addVaSet('EntryPoints', (('va', VASET_ADDRESS),))
+        self.addVaSet('NoReturnCalls', (('va', VASET_ADDRESS),))
+        self.addVaSet("Emulation Anomalies", (("va", VASET_ADDRESS), ("Message", VASET_STRING)))
+        self.addVaSet("Bookmarks", (("va", VASET_ADDRESS), ("Bookmark Name", VASET_STRING)))
+        self.addVaSet('DynamicBranches', (('va', VASET_ADDRESS), ('opcode', VASET_STRING), ('bflags', VASET_INTEGER)))
+        self.addVaSet('SwitchCases', (('va', VASET_ADDRESS), ('setup_va', VASET_ADDRESS), ('Cases', VASET_INTEGER)))
+        self.addVaSet('PointersFromFile', (('va', VASET_ADDRESS), ('target', VASET_ADDRESS), ('file', VASET_STRING), ('comment', VASET_STRING), ))
+        self.addVaSet('CodeFragments', (('va', VASET_ADDRESS), ('calls_from', VASET_COMPLEX)))
+        self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
+        self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
 
     def vprint(self, msg):
-        print msg
+        logger.info(msg)
 
     def getVivGui(self):
         '''
@@ -166,18 +194,68 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return self._viv_gui
 
+    def addCtxMenuHook(self, name, handler):
+        '''
+        Extensions can add Context Menu hooks to modify the menu as they wish.
+        This would most often happen from the Extension's vivExtension() init function.
+        see vivisect.qt.ctxmenu for more details
+
+        handler should have the following prototype (inc. example code):
+
+
+        from vqt.common import ACT
+        def myExtCtxMenuHandler(vw, menu):
+            toymenu = menu.addMenu('myToys')
+            toymenu.addAction('Voodoo Wizbang ZeroDay Finder Thingy', ACT(doCoolShit, vw, va))
+
+        Currently, this should live in a loaded module, not in your Viv Extension's main py file.
+        '''
+        if name in self._ext_ctxmenu_hooks:
+            cur = self._ext_ctxmenu_hooks[name]
+            logger.warning("Attempting to hook the context menu: %r is already registered \
+                    (cur: %r new: %r)", name, cur, handler)
+            return
+
+        self._ext_ctxmenu_hooks[name] = handler
+
+    def delCtxMenuHook(self, name):
+        '''
+        Remove a context-menu hook that has been installed by an extension
+        '''
+        self._ext_ctxmenu_hooks.pop(name, None)
+
+    def addExtension(self, name, extmod):
+        '''
+        Add extension module to a list of extensions.
+        This keeps a list of installed extension modules, with the added value
+        of keeping the loaded module in memory.
+        '''
+        if name in self._extensions:
+            cur = self._extensions[name]
+            logger.warning("Attempting to register an extension: %r is already registered \
+                    (cur: %r new: %r)", name, cur, handler)
+            return
+
+        self._extensions[name] = extmod
+
+    def delExtension(self, name):
+        '''
+        Remove's extension module from the list of extensions.
+        '''
+        self._extensions.pop(name, None)
+
     def getVivGuid(self):
         '''
-        Return the GUID for this workspace.  Every newly created VivWorkspace 
+        Return the GUID for this workspace.  Every newly created VivWorkspace
         should have a unique GUID, for identifying a particular workspace for
-        a given binary/process-space versus another created at a different 
+        a given binary/process-space versus another created at a different
         time.  Filesystem-copies of the same workspace will have the same GUID
         by design.  This easily allows for workspace-specific GUI layouts as
         well as comparisons of Server-based workspaces to the original file-
         based workspace used to store to the server.
         '''
         vivGuid = self.getMeta('GUID')
-        if vivGuid == None:
+        if vivGuid is None:
             vivGuid = guid()
             self.setMeta('GUID', vivGuid)
 
@@ -202,7 +280,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         the stack pointer at function entry.
         """
         # FIXME this should probably be an argument
-        r = (va,idx,val)
+        r = (va, idx, val)
         self._fireEvent(VWE_ADDFREF, r)
 
     def getFref(self, va, idx):
@@ -210,9 +288,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Get back the fref value (or None) for the given operand index
         from the instruction at va.
         """
-        return self.frefs.get((va,idx))
+        return self.frefs.get((va, idx))
 
-    def getEmulator(self, logwrite=False, logread=False):
+    def getEmulator(self, **kwargs):
         """
         Get an instance of a WorkspaceEmulator for this workspace.
 
@@ -221,14 +299,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         plat = self.getMeta('Platform')
         arch = self.getMeta('Architecture')
 
-        eclass = viv_imp_lookup.workspace_emus.get( (plat,arch) )
-        if eclass == None:
+        eclass = viv_imp_lookup.workspace_emus.get((plat, arch))
+        if eclass is None:
             eclass = viv_imp_lookup.workspace_emus.get(arch)
 
-        if eclass == None:
+        if eclass is None:
             raise Exception("WorkspaceEmulation not supported on %s yet!" % arch)
 
-        emu = eclass(self, logwrite=logwrite, logread=logread)
+        emu = eclass(self, **kwargs)
         emu.setEndian(self.getEndian())
 
         return emu
@@ -240,7 +318,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
 
         emu = self._cached_emus.get(emuname)
-        if emu == None:
+        if emu is None:
             emu = self.getEmulator()
             self._cached_emus[emuname] = emu
         return emu
@@ -254,7 +332,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # FIXME this needs to be event enabled... either plumb it special,
         # or allow the get/append/set race...
         dl = self.getMeta("DepLibs", None)
-        if dl == None:
+        if dl is None:
             dl = []
         dl.append(libname)
         self.setMeta("DepLibs", dl)
@@ -264,7 +342,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Retrieve the list of *normalized* library dependancies.
         '''
         dl = self.getMeta("DepLibs", None)
-        if dl == None:
+        if dl is None:
             return []
         return list(dl)
 
@@ -279,7 +357,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         if check and self.comments.get(va):
             return
-        self._fireEvent(VWE_COMMENT, (va,comment))
+        self._fireEvent(VWE_COMMENT, (va, comment))
 
     def getComment(self, va):
         '''
@@ -299,15 +377,21 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         Example:
             for va,cmnt in vw.getComments():
-                print 'Comment at 0x%.8x: %s' % (va, cmnt)
+                print('Comment at 0x%.8x: %s' % (va, cmnt))
         '''
-        return self.comments.items()
+        return list(self.comments.items())
 
-    def addRelocation(self, va, rtype):
+    def addRelocation(self, va, rtype, data=None):
         """
         Add a relocation entry for tracking.
+        Expects data to have whatever is necessary for the reloc type. eg. addend
         """
-        self._fireEvent(VWE_ADDRELOC, (va, rtype))
+        # split "current" va into fname and offset.  future relocations will want to base all va's from an image base
+        mmva, mmsz, mmperm, fname = self.getMemoryMap(va)    # FIXME: getFileByVa does not obey file defs
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        offset = va - imgbase
+
+        self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
 
     def getRelocations(self):
         """
@@ -332,7 +416,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def getFuncAnalysisModuleNames(self):
         return list(self.fmodlist)
 
-    def addFunctionSignatureBytes(self, bytes, mask=None):
+    def addFunctionSignatureBytes(self, bytez, mask=None):
         """
         Add a function signature entry by bytes.  This is mostly used by
         file parsers/loaders to manually tell the workspace about known
@@ -340,8 +424,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         see envi.bytesig for details.
         """
-        self.sigtree.addSignature(bytes, mask)
-        self.siglist.append((bytes,mask))
+        self.sigtree.addSignature(bytez, mask)
+        self.siglist.append((bytez, mask))
 
     def isFunctionSignature(self, va):
         """
@@ -352,6 +436,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return False
         offset, bytes = self.getByteDef(va)
         return self.sigtree.isSignature(bytes, offset=offset)
+
+    def addNoReturnVa(self, va):
+        noretva = self.getMeta('NoReturnApisVa', {})
+        noretva[va] = True
+        self.setMeta('NoReturnApisVa', noretva)
+
+        self.cfctx.addNoReturnAddr(va)
 
     def addNoReturnApi(self, funcname):
         """
@@ -367,11 +458,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         noretva = self.getMeta('NoReturnApisVa', {})
 
         # If we already have an import entry, we need to update codeflow
-        for lva,lsize,ltype,linfo in self.getImports():
+        for lva, lsize, ltype, linfo in self.getImports():
             if linfo.lower() != funcname:
                 continue
-            self.cfctx.addNoReturnAddr( lva )
-            noretva[lva] = True 
+            self.cfctx.addNoReturnAddr(lva)
+            noretva[lva] = True
         self.setMeta('NoReturnApisVa', noretva)
 
     def addNoReturnApiRegex(self, funcre):
@@ -382,10 +473,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         c = re.compile(funcre, re.IGNORECASE)
         m = self.getMeta('NoReturnApisRegex', [])
-        m.append( funcre )
-        self.setMeta('NoReturnApisRegex', m )
+        m.append(funcre)
+        self.setMeta('NoReturnApisRegex', m)
 
-        for lva,lsize,ltype,linfo in self.getImports():
+        for lva, lsize, ltype, linfo in self.getImports():
             if c.match(linfo):
                 self.addNoReturnApi(linfo)
 
@@ -393,7 +484,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Check if a VA is a no return API
         '''
-        return self.getMeta('NoReturnApisVa', {}).get(va, False)
+        isva = self.getMeta('NoReturnApisVa', {}).get(va, False)
+        iscall = self.getVaSetRow('NoReturnCalls', va) is not None
+        return isva or iscall
 
     def checkNoRetApi(self, apiname, va):
         '''
@@ -402,16 +495,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         noretva = self.getMeta('NoReturnApisVa', {})
 
-        for funcre in self.getMeta('NoReturnApisRegex',[]):
+        for funcre in self.getMeta('NoReturnApisRegex', []):
             c = re.compile(funcre, re.IGNORECASE)
             if c.match(apiname):
-                self.cfctx.addNoReturnAddr( va )
-                noretva[va] = True 
+                self.cfctx.addNoReturnAddr(va)
+                noretva[va] = True
 
         for funcname in self.getMeta('NoReturnApis', {}).keys():
             if funcname.lower() == apiname.lower():
-                self.cfctx.addNoReturnAddr( va )
-                noretva[va] = True 
+                self.cfctx.addNoReturnAddr(va)
+                noretva[va] = True
 
         self.setMeta('NoReturnApisVa', noretva)
 
@@ -419,20 +512,21 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Add an analysis module by python import path
         """
-        if self.amods.has_key(modname):
+        if modname in self.amods:
             return
         mod = self.loadModule(modname)
         self.amods[modname] = mod
         self.amodlist.append(modname)
+        logger.debug('Adding Analysis Module: %s', modname)
 
     def delAnalysisModule(self, modname):
         """
         Remove an analysis module from the list used during analysis()
         """
-        if not self.amods.has_key(modname):
+        if modname not in self.amods:
             raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
         x = self.amods.pop(modname, None)
-        if x != None:
+        if x is not None:
             self.amodlist.remove(modname)
 
     def loadModule(self, modname):
@@ -445,11 +539,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         will be triggered during the creation of a new function
         (makeFunction).
         """
-        if self.fmods.has_key(modname):
+        if modname in self.fmods:
             return
         mod = self.loadModule(modname)
         self.fmods[modname] = mod
         self.fmodlist.append(modname)
+        logger.debug('Adding Function Analysis Module: %s', modname)
 
     def delFuncAnalysisModule(self, modname):
         '''
@@ -458,15 +553,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Example:
             vw.delFuncAnalysisModule('mypkg.mymod')
         '''
-        if not self.fmods.has_key(modname):
-            raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
         x = self.fmods.pop(modname, None)
-        if x != None:
-            self.fmodlist.remove(modname)
+        if x is None:
+            raise Exception("Unknown Module in delAnalysisModule: %s" % modname)
+        self.fmodlist.remove(modname)
 
     def createEventChannel(self):
-        chanid = self.chanids.next()
-        self.chan_lookup[chanid] = Queue.Queue()
+        chanid = next(self.chanids)
+        self.chan_lookup[chanid] = queue.Queue()
         return chanid
 
     def importWorkspace(self, wsevents):
@@ -477,7 +571,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # During import, if we have a server, be sure not to notify
         # the server about the events he just gave us...
         local = False
-        if self.server != None:
+        if self.server is not None:
             local = True
 
         # Process the events from the import data...
@@ -524,10 +618,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         The thread that monitors events on a server to stay
         in sync.
         """
-        if self.server == None:
+        if self.server is None:
             raise Exception("_clientThread() with no server?!?!")
 
-        while self.server != None:
+        while self.server is not None:
             event, einfo = self.server.waitForEvent(self.rchan)
             self._fireEvent(event, einfo, local=True)
 
@@ -536,7 +630,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return an event,eventinfo tuple.
         """
         q = self.chan_lookup.get(chanid)
-        if q == None:
+        if q is None:
             raise Exception("Invalid Channel")
         return q.get(timeout=timeout)
 
@@ -547,31 +641,62 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         self.chan_lookup.pop(chanid)
 
+    def reprPointer(vw, va):
+        """
+        Do your best to create a humon readable name for the
+        value of this pointer.
+
+        note: This differs from parent function from envi.cli:
+        * Locations database is checked
+        * Strings are returned, not named (partially)
+        * <function> + 0x<offset> is returned if inside a function
+        * <filename> + 0x<offset> is returned instead of loc_#####
+        """
+        if va == 0:
+            return "NULL"
+
+        loc = vw.getLocation(va)
+        if loc is not None:
+            locva, locsz, lt, ltinfo = loc
+            if lt in (LOC_STRING, LOC_UNI):
+                return vw.reprVa(locva)
+
+        mbase, msize, mperm, mfile = vw.getMemoryMap(va)
+        ret = mfile + " + 0x%x" % (va - mbase)
+
+        sym = vw.getName(va, smart=True)
+        if sym is not None:
+            ret = sym
+        return ret
+
     def reprVa(self, va):
         """
         A quick way for scripts to get a string for a given virtual address.
         """
         loc = self.getLocation(va)
-        if loc != None:
+        if loc is not None:
             return self.reprLocation(loc)
         return "None"
 
     def reprLocation(self, loctup):
-        if loctup == None:
+        if loctup is None:
             return 'no loc info'
 
         lva,lsize,ltype,tinfo = loctup
         if ltype == LOC_OP:
-            op = self.parseOpcode(lva)
+            op = self.parseOpcode(lva, arch=tinfo & envi.ARCH_MASK)
             return repr(op)
 
         elif ltype == LOC_STRING:
-            return repr(self.readMemory(lva, lsize))
+            return repr(self.readMemory(lva, lsize).decode('utf-8'))
 
         elif ltype == LOC_UNI:
-            #FIXME super ghetto "simple" unicode handling for now
-            bytes = self.readMemory(lva, lsize)
-            return "u'%s'" % string.join(bytes.split("\x00"),sep="")
+            # FIXME super ghetto "simple" unicode handling for now
+            bytes = b''.join(self.readMemory(lva, lsize).split(b'\x00'))
+            try:
+                return f"u'%s'" % bytes.decode('utf-8')
+            except:
+                return bytes.hex()
 
         elif ltype == LOC_STRUCT:
             lstruct = self.getStructure(lva, tinfo)
@@ -594,9 +719,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         else:
             n = self.getName(lva)
-            if n != None:
+            if n is not None:
                 return n
-            return self.readMemory(lva, lsize).encode('hex')
+            return binascii.hexlify(self.readMemory(lva, lsize)).decode('utf-8')
 
     def followPointer(self, va):
         """
@@ -604,7 +729,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         by creating locations etc...
         """
         ltype = self.analyzePointer(va)
-        if ltype == None:
+        if ltype is None:
             return False
 
         # Note, we only implement the types possibly
@@ -612,6 +737,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if ltype == LOC_OP:
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
+            logger.debug('discovered new function (followPointer(0x%x))', va)
             self.makeFunction(va)
             return True
 
@@ -625,15 +751,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return False
 
-    def analyze(self):
-        """
-        Call this to ask any available analysis modules
-        to do their thing...
-        """
-        if self.verbose: self.vprint('Beginning analysis...')
-        if self.verbose: self.vprint('...analyzing exports.')
-
-        starttime = time.time()
+    def processEntryPoints(self):
+        '''
+        Roll through EntryPoints and make them into functions (if not already)
+        '''
         for eva in self.getEntryPoints():
             if self.isFunction(eva):
                 continue
@@ -641,34 +762,63 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 continue
             self.makeFunction(eva)
 
-        # Now lets engage any extended analysis modules.  If any modules return
+    def analyze(self):
+        """
+        Call this to ask any available analysis modules
+        to do their thing...
+        """
+        self.vprint('Beginning analysis...')
+
+        starttime = time.time()
+        # Now lets engage any analysis modules.  If any modules return
         # true, they managed to change things and we should run again...
         for mname in self.amodlist:
             mod = self.amods.get(mname)
-            if self.verbose: self.vprint("Extended Analysis: %s" % mod.__name__)
+            self.vprint("Extended Analysis: %s" % mod.__name__)
             try:
                 mod.analyze(self)
-            except Exception, e:
-                if self.verbose:
-                    traceback.print_exc()
-                self.verbprint("Extended Analysis Exception %s: %s" % (mod.__name__,e))
+            except Exception as e:
+                self.vprint("Extended Analysis Exception %s: %s" % (mod.__name__, e))
 
         endtime = time.time()
-        if self.verbose: 
-            self.vprint('...analysis complete! (%d sec)' % (endtime-starttime))
-            self.printDiscoveredStats()
+        self.vprint('...analysis complete! (%d sec)' % (endtime-starttime))
+        self.printDiscoveredStats()
         self._fireEvent(VWE_AUTOANALFIN, (endtime, starttime))
+
+    def analyzeFunction(self, fva):
+        for fmname in self.fmodlist:
+            fmod = self.fmods.get(fmname)
+            try:
+                fmod.analyzeFunction(self, fva)
+            except Exception as e:
+                self.vprint("Function Analysis Exception for function 0x%x, module: %s" % (fva, fmod.__name__))
+                self.vprint("Exception Traceback: %s" % traceback.format_exc())
+                self.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
 
     def getStats(self):
         stats = {
-            'functions':len(self.funcmeta),
-            'relocations':len(self.relocations),
+            'functions': len(self.funcmeta),
+            'relocations': len(self.relocations),
         }
         return stats
 
     def printDiscoveredStats(self):
-        disc, undisc = self.getDiscoveredInfo()
+        (disc,
+         undisc,
+         numXrefs,
+         numLocs,
+         numFuncs,
+         numBlocks,
+         numOps,
+         numUnis,
+         numStrings,
+         numNumbers,
+         numPointers,
+         numVtables) = self.getDiscoveredInfo()
+
         self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (disc*100.0/(disc+undisc), disc, disc+undisc))
+        self.vprint("   Xrefs/Blocks/Funcs:                             (%s / %s / %s)" % (numXrefs, numBlocks, numFuncs))
+        self.vprint("   Locs,  Ops/Strings/Unicode/Nums/Ptrs/Vtables:   (%s:  %s / %s / %s / %s / %s / %s)" % (numLocs, numOps, numStrings, numUnis, numNumbers, numPointers, numVtables))
 
     def getDiscoveredInfo(self):
         """
@@ -683,19 +833,31 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             off = 0
             while off < msz:
                 loc = self.getLocation(mva+off)
-                if loc == None:
+                if loc is None:
                     off += 1
                     undisc += 1
                 else:
                     off += loc[L_SIZE]
                     disc += loc[L_SIZE]
-        return disc, undisc
+
+        numXrefs = len(self.getXrefs())
+        numLocs = len(self.getLocations())
+        numFuncs = len(self.getFunctions())
+        numBlocks = len(self.getCodeBlocks())
+        numOps = len(self.getLocations(LOC_OP))
+        numUnis = len(self.getLocations(LOC_UNI))
+        numStrings = len(self.getLocations(LOC_STRING))
+        numNumbers = len(self.getLocations(LOC_NUMBER))
+        numPointers = len(self.getLocations(LOC_POINTER))
+        numVtables = len(self.getLocations(LOC_VFTABLE))
+
+        return disc, undisc, numXrefs, numLocs, numFuncs, numBlocks, numOps, numUnis, numStrings, numNumbers, numPointers, numVtables
 
     def getImports(self):
         """
-        Return a list of imports in location tuple format.
+        Return a list of imports, including delay imports, in location tuple format.
         """
-        return self.getLocations(LOC_IMPORT)
+        return list(self.getLocations(LOC_IMPORT))
 
     def makeImport(self, va, libname, impname):
         """
@@ -713,13 +875,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return list(self.exports)
 
-    def addExport(self, va, etype, name, filename):
+    def addExport(self, va, etype, name, filename, makeuniq=False):
         """
         Add an already created export object.
+
+        makeuniq allows Vivisect to append some number to make the name unique.
+        This behavior allows for colliding names (eg. different versions of a function)
+        to coexist in the same workspace.
         """
         rname = "%s.%s" % (filename,name)
-        if self.vaByName(rname) != None:
-            raise Exception("Duplicate Name: %s" % rname)
+
+        # check if it exists and is *not* what we're trying to make it
+        curval = self.vaByName(rname)
+
+        if curval is not None and curval != va and not makeuniq:
+            # if we don't force it to make a uniq name, bail
+            raise Exception("Duplicate Name: %s => 0x%x  (cur: 0x%x)" % (rname, va, curval))
+
+        rname = self.makeName(va, rname, makeuniq=makeuniq)
         self._fireEvent(VWE_ADDEXPORT, (va,etype,name,filename))
 
     def getExport(self, va):
@@ -735,12 +908,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if you can find pointers there...  Returns a list of tuples
         where the tuple is (<ptr at>,<pts to>).
         """
+        align = self.arch.archGetPointerAlignment()
         if cache:
             ret = self.getTransMeta('findPointers')
-            if ret != None:
+            if ret is not None:
                 # Filter locations added since last run...
-                ret = [ (va,x) for (va,x) in ret if self.getLocation(va) == None ]
-                self.setTransMeta('findPointers',ret)
+                ret = [(va, x) for (va, x) in ret if self.getLocation(va) is None and not (va % align)]
+                self.setTransMeta('findPointers', ret)
                 return ret
 
         ret = []
@@ -751,13 +925,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             offset, bytes = self.getByteDef(mva)
             maxsize = len(bytes) - size
 
+            # if our memory map is not starting off aligned appropriately
+            if offset % align:
+                offset &= -align
+                offset += align
+
             while offset + size < maxsize:
-                dbg = 0
                 va = mva + offset
 
                 loctup = self.getLocation(va)
-                if loctup != None:
+                if loctup is not None:
                     offset += loctup[L_SIZE]
+                    if offset % align:
+                        offset += align
+                        offset &= -align
                     continue
 
                 x = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
@@ -765,9 +946,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     ret.append((va, x))
                     offset += size
                     continue
-                        
 
-                offset += 1
+                offset += align
+                offset &= -align
 
         if cache:
             self.setTransMeta('findPointers', ret)
@@ -779,35 +960,45 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         If the address appears to be the start of a string, then
         return the string length in bytes, else return -1.
         '''
-        plen = 0 # pascal string length
-        dlen = 0 # delphi string length
-        if self.isReadable(va-4):
-            plen = self.readMemValue(va-2, 2) # pascal string length
-            dlen = self.readMemValue(va-4, 4) # delphi string length
+        plen = 0  # pascal string length
+        dlen = 0  # delphi string length
+        left = self.getMemoryMap(va-4)
+        # DEV: Make sure there's space left in the map
+        if self.isReadable(va-4) and left and (left[MAP_VA] + left[MAP_SIZE] - va + 4) >= 4:
+            plen = self.readMemValue(va - 2, 2)  # pascal string length
+            dlen = self.readMemValue(va - 4, 4)  # delphi string length
 
-        offset, bytes = self.getByteDef(va)
-        maxlen = len(bytes) - offset
+        offset, bytez = self.getByteDef(va)
+        maxlen = len(bytez) - offset
         count = 0
         while count < maxlen:
             # If we hit another thing, then probably not.
             # Ignore when count==0 so detection can check something
             # already set as a location.
-            if (count > 0):
+            if count > 0:
                 loc = self.getLocation(va+count)
-                if loc != None:
+                if loc is not None:
                     if loc[L_LTYPE] == LOC_STRING:
+                        if loc[L_VA] == va:
+                            return loc[L_SIZE]
+                        if bytez[offset+count] != 0:
+                            # we probably hit a case where the string at the lower va is
+                            # technically the start of the full string, but the binary does
+                            # some optimizations and just ref's inside the full string to save 
+                            # some space
+                            return count + loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
-            c = bytes[offset+count]
+            c = bytez[offset+count]
             # The "strings" algo basically says 4 or more...
-            if ord(c) == 0 and count >= 4:
+            if c == 0 and count >= 4:
                 return count
 
-            elif ord(c) == 0 and (count == dlen or count == plen):
+            elif c == 0 and (count == dlen or count == plen):
                 return count
 
-            if c not in string.printable:
+            if chr(c) not in string.printable:
                 return -1
 
             count += 1
@@ -826,41 +1017,51 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         This will return true if the memory location is likely
         *simple* UTF16-LE unicode (<ascii><0><ascii><0><0><0>).
         '''
-        #FIXME this does not detect Unicode...
+        # FIXME this does not detect Unicode...
 
         offset, bytes = self.getByteDef(va)
-        maxlen = len(bytes) + offset
+        maxlen = len(bytes) - offset
         count = 0
+        if maxlen < 2:
+            return -1
+        charset = bytes[offset + 1]
         while count < maxlen:
             # If we hit another thing, then probably not.
             # Ignore when count==0 so detection can check something
             # already set as a location.
             if (count > 0):
                 loc = self.getLocation(va+count)
-                if loc and loc[L_LTYPE] == LOC_UNI:
-                    return loc[L_VA] - (va + count) + loc[L_SIZE]
-                return -1
+                if loc:
+                    if loc[L_LTYPE] == LOC_UNI:
+                        if loc[L_VA] == va:
+                            return loc[L_SIZE]
+                        if bytes[offset+count] != 0:
+                            # same thing as in the string case, a binary can ref into a string
+                            # only part of the full string.
+                            return count + loc[L_SIZE]
+                        return loc[L_VA] - (va + count) + loc[L_SIZE]
+                    return -1
 
             c0 = bytes[offset+count]
-            if offset+count+1 >= len(bytes):
+            if offset + count+1 >= len(bytes):
                 return -1
             c1 = bytes[offset+count+1]
 
-            # If it's not null,char,null,char then it's
-            # not simple unicode...
-            if ord(c1) != 0:
-                return -1
-
             # If we find our null terminator after more
             # than 4 chars, we're probably a real string
-            if ord(c0) == 0:
+            if c0 == 0:
                 if count > 8:
                     return count
                 return -1
 
             # If the first byte char isn't printable, then
             # we're probably not a real "simple" ascii string
-            if c0 not in string.printable:
+            if chr(c0) not in string.printable:
+                return -1
+
+            # If it's not null,char,null,char then it's
+            # not simple unicode...
+            if c1 != charset:
                 return -1
 
             count += 2
@@ -871,9 +1072,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
         return False
 
-    def isProbablyCode(self, va):
+    def isProbablyCode(self, va, **kwargs):
         """
-        Most of the time, absolute pointes which point to code
+        Most of the time, absolute pointers which point to code
         point to the function entry, so test it for the sig.
         """
         if not self.isExecutable(va):
@@ -881,20 +1082,30 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         ret = self.isFunctionSignature(va)
         if ret:
             return ret
-        if self.iscode.get(va):
-            return False
+
+        rerun = kwargs.pop('rerun', False)
+        if va in self.iscode and not rerun:
+            return self.iscode[va]
+
         self.iscode[va] = True
-        emu = self.getEmulator()
+        # because we're doing partial emulation, demote some of the logging
+        # messages to low priority.
+        kwargs['loglevel'] = e_common.EMULOG
+        emu = self.getEmulator(**kwargs)
         wat = v_emucode.watcher(self, va)
         emu.setEmulationMonitor(wat)
         try:
             emu.runFunction(va, maxhit=1)
-        except Exception, e:
+        except Exception as e:
+            self.iscode[va] = False
             return False
- 
+
         if wat.looksgood():
-            return True
-        return False
+            self.iscode[va] = True
+        else:
+            self.iscode[va] = False
+
+        return self.iscode[va]
 
     #################################################################
     #
@@ -911,33 +1122,170 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
             loctup = self.getLocation(va)
-            # XXX - in the case where we've set a location on what should be an 
+            # XXX - in the case where we've set a location on what should be an
             # opcode lets make sure L_LTYPE == LOC_OP if not lets reset L_TINFO = original arch param
             # so that at least parse opcode wont fail
-            if loctup != None and loctup[ L_TINFO ] and loctup[ L_LTYPE ] == LOC_OP:
-                arch = loctup[ L_TINFO ]
+            if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
+                arch = loctup[L_TINFO]
 
-        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
+        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+
+    def iterJumpTable(self, startva, step=None, maxiters=None, rebase=False):
+        if not step:
+            step = self.psize
+        fname = self.getMemoryMap(startva)
+        if fname is None:
+            return
+
+        fname = fname[3]
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        iters = 0
+        ptrbase = startva
+        rdest = self.readMemValue(ptrbase, step)
+        if rebase and rdest < imgbase:
+            rdest += imgbase
+
+        while self.isValidPointer(rdest) and self.isProbablyCode(rdest):
+            if self.analyzePointer(ptrbase) in STOP_LOCS:
+                break
+
+            yield rdest
+
+            ptrbase += step
+            if len(self.getXrefsTo(ptrbase)):
+                break
+            rdest = self.readMemValue(ptrbase, step)
+            if rebase and rdest < imgbase:
+                rdest += imgbase
+
+            iters += 1
+            if maxiters is not None and iters >= maxiters:
+                break
+
+    def moveCodeBlock(self, cbva, newfva):
+        cb = self.getCodeBlock(cbva)
+
+        if cb is None:
+            return
+
+        if cb[CB_FUNCVA] == newfva:
+            return
+
+        self.delCodeBlock(cb)
+        self.addCodeBlock((cb[CB_VA], cb[CB_SIZE], newfva))
+
+    def splitJumpTable(self, callingVa, prevRefVa, newTablAddr, rebase=False, psize=4):
+        '''
+        So we have the case where if we have two jump tables laid out consecutively in memory (let's
+        call them tables Foo and Bar, with Foo coming before Bar), and we see Foo first, we're going to
+        recognize Foo as being a giant table, with all of Bar overlapping with Foo
+
+        So we need to construct a list of now invalid references from prevRefVa, starting at newTablAddr
+        newTablAddr should point to the new jump table, and those new codeblock VAs should be removed from
+        the list of references that prevRefVa refs to (and delete the name)
+
+        We also need to check to see if the functions themselves line up (ie, do these two jump tables
+        even belong to the same function, or should we remove the code block from the function entirely?)
+        '''
+        # Due to how codeflow happens, we have no guarantee if these two adjacent jump tables are
+        # even in the same function
+        codeblocks = set()
+        curfva = self.getFunction(callingVa)
+        # collect all the entries for the new jump table
+        for cb in self.iterJumpTable(newTablAddr, rebase=rebase, step=psize):
+            codeblocks.add(cb)
+            prevcb = self.getCodeBlock(cb)
+            if prevcb is None:
+                continue
+            # we may also have to break these codeblocks from the old function
+            # 1 -- new func is none, old func is none
+            #   * can't happen. if the codeblock is defined, we at least have an old function
+            # 2 -- new func is not none, old func is none
+            #   * Can't happen. see above
+            # 3 -- new func is none, old func is not none
+            #   * delete the codeblock. we've dropped into a new function that is different from the old
+            #     since how codeflow discover functions, we should have all the code blocks for function
+            # 4 -- neither are none
+            #   * moveCodeBlock -- that func will handle whether or not functions are the same
+            if curfva is not None:
+                self.moveCodeBlock(cb, curcb[CB_FUNCVA])
+            else:
+                self.delCodeBlock(prevcb[CB_VA])
+
+        # now delete those entries from the previous jump table
+        oldrefs = self.getXrefsFrom(prevRefVa)
+        todel = [xref for xref in self.getXrefsFrom(prevRefVa) if xref[1] in codeblocks]
+        for va in todel:
+            self.setComment(va[1], None)
+            self.delXref(va)
+
+    def makeJumpTable(self, op, tova, rebase=False, psize=4):
+        fname = self.getMemoryMap(tova)[3]
+        imgbase = self.getFileMeta(fname, 'imagebase')
+
+        ptrbase = tova
+        rdest = self.readMemValue(ptrbase, psize)
+        if rebase and rdest < imgbase:
+            rdest += imgbase
+
+        # if there's already an Xref to this address from another jump table, we overshot
+        # the other table, and need to cut that one short, delete its Xrefs starting at this one
+        # and then let the rest of this function build the new jump table
+        # This jump table also may not be in the same function as the other jump table, so we need
+        # to remove those codeblocks (and child codeblocks) from this function
+
+        # at this point, rdest should be the first codeblock in the jumptable, so get all the xrefs to him
+        # (but skipping over the current jumptable base address we're looking at)
+        for xrfrom, xrto, rtype, rflags in self.getXrefsTo(rdest):
+            if tova == xrfrom:
+                continue
+
+            refva, refsize, reftype, refinfo = self.getLocation(xrfrom)
+            if reftype != LOC_OP:
+                continue
+            # If we've already constructed this opcode location and made the xref to the new codeblock,
+            # that should mean we've already made the jump table, so there should be no need to split this
+            # jump table.
+            if refva == op.va:
+                continue
+            refop = self.parseOpcode(refva)
+            for refbase, refbflags in refop.getBranches():
+                if refbflags & envi.BR_TABLE:
+                    self.splitJumpTable(op.va, refva, tova, psize=psize)
+
+        tabdone = {}
+        for i, rdest in enumerate(self.iterJumpTable(ptrbase, rebase=rebase, step=psize)):
+            if not tabdone.get(rdest):
+                tabdone[rdest] = True
+                self.addXref(op.va, rdest, REF_CODE, envi.BR_COND)
+                if self.getName(rdest) is None:
+                    self.makeName(rdest, "case%d_%.8x" % (i, op.va))
+            else:
+                cmnt = self.getComment(rdest)
+                if cmnt is None:
+                    self.setComment(rdest, "Other Case(s): %d" % i)
+                else:
+                    cmnt += ", %d" % i
+                    self.setComment(rdest, cmnt)
+
+        # This must be second (len(xrefsto))
+        self.addXref(op.va, tova, REF_PTR)
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """
         Create a single opcode location.  If you have already parsed the
         opcode object, you may pass it in.
         """
-        if op == None:
+        if op is None:
             try:
-
                 op = self.parseOpcode(va, arch=arch)
-
-            except envi.InvalidInstruction, msg:
-                #FIXME something is just not right about this...
-                bytes = self.readMemory(va, 16)
-                print "Invalid Instruct Attempt At:",hex(va),bytes.encode("hex")
-                raise InvalidLocation(va,msg)
-
-            except Exception, msg:
-                traceback.print_exc()
-                raise InvalidLocation(va,msg)
+            except envi.InvalidInstruction as msg:
+                # FIXME something is just not right about this...
+                bytez = self.readMemory(va, 16)
+                logger.warning("Invalid Instruct Attempt At:", hex(va), binascii.hexlify(bytez))
+                raise InvalidLocation(va, msg)
+            except Exception as msg:
+                raise InvalidLocation(va, msg)
 
         # Add our opcode location first (op flags become ldata)
         loc = self.addLocation(va, op.size, LOC_OP, op.iflags)
@@ -946,64 +1294,53 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         brdone = {}
         brlist = op.getBranches()
-        for tova,bflags in brlist:
+        for tova, bflags in brlist:
 
             # If there were unresolved dynamic branches, oh well...
-            if tova == None: continue
-            if not self.isValidPointer(tova): continue
+            if tova is None:
+                continue
+            if not self.isValidPointer(tova):
+                continue
 
             brdone[tova] = True
 
             # Special case, if it's a table branch, lets resolve it now.
             if bflags & envi.BR_TABLE:
-                ptrbase = tova
-                rdest = self.castPointer(ptrbase)
-
-                i = 0
-                tabdone = {}
-                while self.isValidPointer(rdest):
-
-                    if not tabdone.get(rdest):
-                        tabdone[rdest] = True
-                        self.addXref(va, rdest, REF_CODE, envi.BR_COND)
-                        if self.getName(rdest) == None:
-                            self.makeName(rdest, "case%d_%.8x" % (i,rdest))
-
-                    ptrbase += self.psize
-                    if len(self.getXrefsTo(ptrbase)):
-                        break # Another xref means not our table anymore
-                    i += 1
-                    rdest = self.castPointer(ptrbase)
-
-                # This must be second (len(xrefsto))
-                self.addXref(va, tova, REF_PTR, None)
+                self.makeJumpTable(op, tova)
 
             elif bflags & envi.BR_DEREF:
 
                 self.addXref(va, tova, REF_DATA)
                 ptrdest = None
-                if self.getLocation(tova) == None:
+                if self.getLocation(tova) is None:
                     ptrdest = self.makePointer(tova, follow=False)
 
                 # If the actual dest is executable, make a code ref fixup
                 # which *removes* the deref flag...
-                if ptrdest and self.probeMemory(ptrdest, 1, e_mem.MM_EXEC):
-                    self.addXref(va, ptrdest, REF_CODE, bflags & ~envi.BR_DEREF)
+                # If we're an xref to something real, rip out the deref flag, but if we're
+                # an xref to a big fat 0, fuggedaboutit
+                if ptrdest and self.analyzePointer(ptrdest[0]):
+                    self.addXref(va, ptrdest[0], REF_CODE, bflags & ~envi.BR_DEREF)
                 else:
                     self.addXref(va, tova, REF_CODE, bflags)
+
 
             else:
                 # vivisect does NOT create REF_CODE entries for
                 # instruction fall through
-                if bflags & envi.BR_FALL: continue
+                if bflags & envi.BR_FALL:
+                    continue
 
                 self.addXref(va, tova, REF_CODE, bflags)
 
         # Check the instruction for static d-refs
-        for o in op.opers:
+        for oidx, o in op.genRefOpers(emu=None):
             # FIXME it would be nice if we could just do this one time
             # in the emulation pass (or hint emulation that some have already
             # been done.
+            # unfortunately, emulation pass only occurs for code identified
+            # within a marked function.
+            # future fix: move this all into VivCodeFlowContext.
 
             # Does the operand touch memory ?
             if o.isDeref():
@@ -1013,7 +1350,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 if brdone.get(ref, False):
                     continue
 
-                if ref != None and self.isValidPointer(ref):
+                if ref is not None and self.isValidPointer(ref):
 
                     # It's a data reference. lets also check if the data is
                     # a pointer.
@@ -1022,27 +1359,38 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                     # If we don't already know what type this location is,
                     # lets make it either a pointer or a number...
-                    if self.getLocation(ref) == None:
-
-                        offset, bytes = self.getByteDef(ref)
-
-                        val = self.parseNumber(ref, o.tsize)
-
-                        if (self.psize == o.tsize and self.isValidPointer(val)):
-                            self.makePointer(ref, tova=val)
-                        else:
-                            self.makeNumber(ref, o.tsize)
-
+                    if self.getLocation(ref) is None:
+                        self.guessDataPointer(ref, o.tsize)
             else:
                 ref = o.getOperValue(op)
                 if brdone.get(ref, False):
                     continue
-                if ref != None and self.isValidPointer(ref):
+                if ref is not None and type(ref) is int and self.isValidPointer(ref):
                     self.addXref(va, ref, REF_PTR)
 
         return loc
 
-    def makeCode(self, va, arch=envi.ARCH_DEFAULT):
+    def _dbgLocEntry(self, va):
+        """
+        Display the human-happy version of a location
+        """
+        loc = self.getLocation(va)
+        if loc is None:
+            return 'None'
+
+        lva, lsz, ltype, ltinfo = loc
+        ltvar = loc_lookups.get(ltype)
+        ltdesc = loc_type_names.get(ltype)
+        locrepr = '(0x%x, %d, %s, %r)  # %s' % (lva, lsz, ltvar, ltinfo, ltdesc)
+        return locrepr
+
+    def updateCallsFrom(self, fva, ncalls):
+        function = self.getFunction(fva)
+        prev_call = self.getFunctionMeta(function, 'CallsFrom')
+        newcall = set(prev_call).union(set(ncalls))
+        self.setFunctionMeta(function, 'CallsFrom', list(newcall))
+
+    def makeCode(self, va, arch=envi.ARCH_DEFAULT, fva=None):
         """
         Attempt to begin code-flow based disassembly by
         starting at the given va.  The va will be made into
@@ -1054,13 +1402,25 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return
 
         calls_from = self.cfctx.addCodeFlow(va, arch=arch)
+        if fva is None:
+            self.setVaSetRow('CodeFragments', (va, calls_from))
+        else:
+            self.updateCallsFrom(fva, calls_from)
+        return calls_from
 
     def previewCode(self, va, arch=envi.ARCH_DEFAULT):
         '''
         Show the repr of an instruction in the current canvas *before* making it that
         '''
-        op = self.parseOpcode(va, arch)
-        self.vprint("0x%x  (%d bytes)  %s" % (va, len(op), repr(op)))
+        try:
+            op = self.parseOpcode(va, arch)
+            if op is None:
+                self.vprint("0x%x - None")
+            else:
+                self.vprint("0x%x  (%d bytes)  %s" % (va, len(op), repr(op)))
+        except Exception:
+            self.vprint("0x%x - decode exception" % va)
+            logger.exception("preview opcode exception:")
 
     #################################################################
     #
@@ -1071,24 +1431,34 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return True if funcva is a function entry point.
         """
-        return self.funcmeta.get(funcva) != None
+        return self.funcmeta.get(funcva) is not None
+
+    def isFunctionThunk(self, funcva):
+        """
+        Return True if funcva is a function thunk
+        """
+        # TODO: could we do more here?
+        try:
+            return self.getFunctionMeta(funcva, 'Thunk') is not None
+        except InvalidFunction:
+            return False
 
     def getFunctions(self):
         """
         Return a list of the function virtual addresses
         defined in the workspace.
         """
-        return self.funcmeta.keys()
+        return list(self.funcmeta.keys())
 
     def getFunction(self, va):
         """
         Return the VA for this function.  This will search code blocks
         and check for a function va.
         """
-        if self.funcmeta.get(va) != None:
+        if self.funcmeta.get(va) is not None:
             return va
         cbtup = self.getCodeBlock(va)
-        if cbtup != None:
+        if cbtup is not None:
             return cbtup[CB_FUNCVA]
         return None
 
@@ -1101,23 +1471,25 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if self.isFunction(va):
             return
 
-        if meta == None:
-            meta = {}
-
         if not self.isValidPointer(va):
             raise InvalidLocation(va)
 
         loc = self.getLocation(va)
-        if loc != None and loc[L_TINFO] != None and loc[L_LTYPE] == LOC_OP:
+        if loc is not None and loc[L_TINFO] is not None and loc[L_LTYPE] == LOC_OP:
             arch = loc[L_TINFO]
 
-        self.cfctx.addEntryPoint(va, arch=arch)
+        realfva = self.cfctx.addEntryPoint(va, arch=arch)
+
+        if meta is not None:
+            for key, val in meta.items():
+                self.setFunctionMeta(realfva, key, val)
+        return realfva
 
     def delFunction(self, funcva):
         """
         Remove a function, it's code blocks and all associated meta
         """
-        if self.funcmeta.get(funcva) == None:
+        if self.funcmeta.get(funcva) is None:
             raise InvalidLocation(funcva)
 
         self._fireEvent(VWE_DELFUNCTION, funcva)
@@ -1147,7 +1519,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             for typename,argname in vw.getFunctionArgs(fva):
                 print('Takes: %s %s' % (typename,argname))
         '''
-        rettype,retname,callconv,callname,callargs = self.getFunctionApi(fva)
+        rettype, retname, callconv, callname, callargs = self.getFunctionApi(fva)
         return list(callargs)
 
     def getFunctionApi(self, fva):
@@ -1158,11 +1530,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             ( rettype, retname, callconv, funcname, ( (argtype, argname), ...) )
         '''
         ret = self.getFunctionMeta(fva, 'api')
-        if ret != None:
+        if ret is not None:
             return ret
 
         defcall = self.getMeta('DefaultCall','unkcall')
-        return ('void',None,defcall,None,())
+        return ('void', None, defcall, None, ())
 
     def setFunctionApi(self, fva, apidef):
         '''
@@ -1183,7 +1555,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         if not self.isFunction(fva):
             raise InvalidFunction(fva)
-        return self.localsyms[fva].values()
+        return list(self.localsyms[fva].values())
 
     def getFunctionLocal(self, fva, spdelta):
         '''
@@ -1201,7 +1573,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 print('%s %s;' % (symtype,symname))
         '''
         locsym = self.localsyms[fva].get(spdelta)
-        if locsym == None:
+        if locsym is None:
             return None
 
         fva,spdelta,symtype,syminfo = locsym
@@ -1211,7 +1583,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if symtype == LSYM_FARG:
 
             apidef = self.getFunctionApi(fva)
-            if apidef == None:
+            if apidef is None:
                 return None
 
             funcargs = apidef[-1]
@@ -1255,7 +1627,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getFunctionMeta(self, funcva, key, default=None):
         m = self.funcmeta.get(funcva)
-        if m == None:
+        if m is None:
             raise InvalidFunction(funcva)
         return m.get(key, default)
 
@@ -1271,11 +1643,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return the code-block objects for the given function va
         """
         ret = self.codeblocks_by_funcva.get(funcva)
-        if ret == None:
+        if ret is None:
             ret = []
         return ret
 
-    def makeFunctionThunk(self, fva, thname):
+    def makeFunctionThunk(self, fva, thname, addVa=True, filelocal=False):
         """
         Inform the workspace that a given function is considered a "thunk" to another.
         This allows the workspace to process argument inheritance and several other things.
@@ -1287,13 +1659,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         n = self.getName(fva)
 
         base = thname.split(".")[-1]
-        self.makeName(fva, "%s_%.8x" % (base,fva))
+        if addVa:
+            name = "%s_%.8x" % (base,fva)
+        else:
+            name = base
+        newname = self.makeName(fva, name, filelocal=filelocal, makeuniq=True)
 
         api = self.getImpApi(thname)
         if api:
             # Set any argument names that are None
             rettype,retname,callconv,callname,callargs = api
-            callargs = [ callargs[i] if callargs[i][1] else (callargs[i][0],'arg%d' % i) for i in xrange(len(callargs)) ]
+            callargs = [ callargs[i] if callargs[i][1] else (callargs[i][0],'arg%d' % i) for i in range(len(callargs)) ]
             self.setFunctionApi(fva, (rettype,retname,callconv,callname,callargs))
 
     def getCallers(self, va):
@@ -1339,7 +1715,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # If it's a local function, do that too..
         fva = self.vaByName(name)
-        if fva != None and self.isFunction(fva):
+        if fva is not None and self.isFunction(fva):
             ret = self.getCallers(fva)
 
         for fva in self.getFunctions():
@@ -1377,9 +1753,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         ret = []
         xrefs = self.xrefs_by_from.get(va, None)
-        if xrefs == None:
+        if xrefs is None:
             return ret
-        if rtype == None:
+        if rtype is None:
             return xrefs
         return [ xtup for xtup in xrefs if xtup[XR_RTYPE] == rtype ]
 
@@ -1391,9 +1767,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # FIXME make xrefs use MapLookup!
         ret = []
         xrefs = self.xrefs_by_to.get(va, None)
-        if xrefs == None:
+        if xrefs is None:
             return ret
-        if rtype == None:
+        if rtype is None:
             return xrefs
         return [ xtup for xtup in xrefs if xtup[XR_RTYPE] == rtype ]
 
@@ -1443,7 +1819,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         graph view than function chunks.
         """
         loc = self.getLocation( va )
-        if loc == None:
+        if loc is None:
             raise Exception('Adding Codeblock on *non* location?!?: 0x%.8x' % va)
         self._fireEvent(VWE_ADDCODEBLOCK, (va,size,funcva))
 
@@ -1459,7 +1835,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Remove a code-block definition from the codeblock namespace.
         """
         cb = self.getCodeBlock(va)
-        if cb == None:
+        if cb is None:
             raise Exception("Unknown Code Block: 0x%x" % va)
         self._fireEvent(VWE_DELCODEBLOCK, cb)
 
@@ -1495,17 +1871,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def analyzePointer(self, va):
         """
         Assume that a new pointer has been created.  Check if it's
-        target has a defined location and if not, try to figgure out
-        wtf is there...  Will return the location type of the location
+        target has a defined location and if not, try to figure out
+        what's there. Will return the location type of the location
         it recommends or None if a location is already there or it has
         no idea.
         """
-        if self.getLocation(va) != None:
+        if self.getLocation(va) is not None:
             return None
-        if self.isProbablyString(va):
-            return LOC_STRING
-        elif self.isProbablyUnicode(va):
+        if self.isProbablyUnicode(va):
             return LOC_UNI
+        elif self.isProbablyString(va):
+            return LOC_STRING
         elif self.isProbablyCode(va):
             return LOC_OP
         return None
@@ -1521,20 +1897,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def markDeadData(self, start, end):
         """
-        mark a virtual range as dead code. 
+        mark a virtual range as dead code.
         """
         self.setMeta("deaddata:0x%08x" % start, (start, end))
 
     def unmarkDeadData(self, start, end):
         """
         unmark a virtual range as dead code
-        """ 
+        """
         self._dead_data.remove( (start,end) )
 
     def _mcb_deaddata(self, name, value):
         """
-        callback from setMeta with namespace 
-        deaddata: 
+        callback from setMeta with namespace
+        deaddata:
         that indicates a range has been added
         as dead data.
         """
@@ -1543,13 +1919,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def isDeadData(self, va):
         """
-        Return boolean indicating va is in 
+        Return boolean indicating va is in
         a dead data range.
         """
         for start,end in self._dead_data:
             if va >= start and va <= end:
                 return True
-        return False 
+        return False
 
     def initMeta(self, name, value):
         """
@@ -1557,7 +1933,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         way return the value of the meta key.
         """
         m = self.getMeta(name)
-        if m == None:
+        if m is None:
             self.setMeta(name, value)
             m = value
         return m
@@ -1586,16 +1962,52 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytes = self.getByteDef(va)
         return e_bits.parsebytes(bytes, offset, self.psize, bigend=self.bigend)
 
+    def guessDataPointer(self, ref, tsize):
+        '''
+        Trust vivisect to do the right thing and make a value and a
+        pointer to that value
+        '''
+        # So we need the size check to avoid things like "aaaaa", maybe
+        # but maybe if we do something like the tsize must be either the
+        # target pointer size or in a set of them that the arch defines?
+        nloc = None
+        try:
+            if self.isProbablyUnicode(ref):
+                nloc = self.makeUnicode(ref)
+            elif self.isProbablyString(ref):
+                nloc = self.makeString(ref)
+        except e_exc.SegmentationViolation:
+            # Usually means val is 0 and we can just ignore this error
+            nloc = None
+        except Exception as e:
+            logger.warning('makeOpcode string making hit error %s', str(e))
+            nloc = None
+
+        if not nloc:
+            val = self.parseNumber(ref, tsize)
+            if (self.psize == tsize and self.isValidPointer(val)):
+                nloc = self.makePointer(ref, tova=val)
+            else:
+                nloc = self.makeNumber(ref, tsize)
+
+        return nloc
+
     def makePointer(self, va, tova=None, follow=True):
         """
         Create a new pointer location in the workspace.  If you have already
         parsed out the pointers value, you may specify tova to speed things
         up.
         """
+        loctup = self.getLocation(va)
+        if loctup is not None:
+            if loctup[L_LTYPE] != LOC_POINTER or loctup[L_VA] != va:
+                logger.warning("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
+            return None
+
         psize = self.psize
 
         # Get and document the xrefs created for the new location
-        if tova == None:
+        if tova is None:
             tova = self.castPointer(va)
 
         self.addXref(va, tova, REF_PTR)
@@ -1632,34 +2044,103 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytes = self.getByteDef(va)
         return e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
 
+    def _getSubstrings(self, va, size, ltyp):
+        # rip through the desired memory range to populate any substrings
+        subs = set()
+        end = va + size
+        for offs in range(va, end, 1):
+            loc = self.getLocation(offs, range=True)
+            if loc and loc[L_LTYPE] == LOC_STRING and loc[L_VA] > va:
+                subs.add((loc[L_VA], loc[L_SIZE]))
+                if loc[L_TINFO]:
+                    subs = subs.union(set(loc[L_TINFO]))
+        return list(subs)
+
+    def _getStrTinfo(self, va, size, subs):
+        ploc = self.getLocation(va, range=False)
+        if ploc:
+            # the string we're making is a substring of some outer one
+            # still make this string location, but let the parent know about us too and our
+            # children as well. Ultimately, the outermost parent should be responsible for
+            # knowing about all it's substrings
+            modified = False
+            pva, psize, ptype, pinfo = ploc
+            if ptype not in (LOC_STRING, LOC_UNI):
+                return va, size, subs
+            if (va, size) not in pinfo:
+                modified = True
+                pinfo.append((va, size))
+
+            for sva, ssize in subs:
+                if (sva, ssize) not in pinfo:
+                    modified = True
+                    pinfo.append((sva, ssize))
+
+            tinfo = pinfo
+            if modified:
+                va = pva
+                size = psize
+        else:
+            tinfo = subs
+
+        return va, size, tinfo
+
     def makeString(self, va, size=None):
         """
         Create a new string location at the given VA.  You may optionally
         specify size.  If size==None, the string will be parsed as a NULL
         terminated ASCII string.
+
+        Substrings are also handled here. Generally, the idea is:
+        * if the memory range is completey undefined, we just create a new string at the VA specified (provided that asciiStringSize return a size greater than 0 or the parameter size is greater than 0)
+
+        * if we create a string A at virtual address 0x40 with size 20, and then later a string B at virtual
+          address 0x44, we won't actually make a new location for the string B, but rather add info to the
+          tinfo portion of the location tuple for string A, and when trying to retrieve string B via getLocation,
+          we'll make up a (sort of) fake location tuple for string B, provided that range=True is passed to
+          getLocation
+
+        * if we create string A at virtual address 0x40, and then later a string B at virtual 0x30
+          that has a size of 16 or more, we overwrite the string A with the location information for string B,
+          and demote string A to being a tuple of (VA, size) inside of string B's location information.
+
+        This method only captures suffixes, but perhaps in the future we'll have symbolik resolution that can
+        capture true substrings that aren't merely suffixes.
+
+        This same formula is applied to unicode detection as well
         """
-        if size == None:
+        if size is None:
             size = self.asciiStringSize(va)
 
         if size <= 0:
             raise Exception("Invalid String Size: %d" % size)
 
-        if self.getName(va) == None:
-            m = self.readMemory(va, size-1).replace("\n","")
-            self.makeName(va, "str_%s_%.8x" % (m[:16],va))
-        return self.addLocation(va, size, LOC_STRING)
+        # rip through the desired memory range to populate any substrings
+        subs = self._getSubstrings(va, size, LOC_STRING)
+        pva, psize, tinfo = self._getStrTinfo(va, size, subs)
+
+        if self.getName(va) is None:
+            m = self.readMemory(va, size-1).replace(b'\n', b'')
+            self.makeName(va, "str_%s_%.8x" % (m[:16].decode('utf-8'), va))
+        return self.addLocation(pva, psize, LOC_STRING, tinfo=tinfo)
 
     def makeUnicode(self, va, size=None):
-        if size == None:
+        if size is None:
             size = self.uniStringSize(va)
 
         if size <= 0:
             raise Exception("Invalid Unicode Size: %d" % size)
 
-        if self.getName(va) == None:
-            m = self.readMemory(va, size-1).replace("\n","").replace("\0","")
-            self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
-        return self.addLocation(va, size, LOC_UNI)
+        subs = self._getSubstrings(va, size, LOC_UNI)
+        pva, psize, tinfo = self._getStrTinfo(va, size, subs)
+
+        if self.getName(va) is None:
+            m = self.readMemory(va, size-1).replace(b'\n', b'').replace(b'\0', b'')
+            try:
+                self.makeName(va, "wstr_%s_%.8x" % (m[:16].decode('utf-8'), va))
+            except:
+                self.makeName(va, "wstr_%s_%.8x" % (m[:16],va))
+        return self.addLocation(pva, psize, LOC_UNI, tinfo=tinfo)
 
     def addConstModule(self, modname):
         '''
@@ -1691,9 +2172,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         and will not create one (use makeStructure).
         """
         s = vstruct.getStructure(vstructname)
-        if s == None:
+        if s is None:
             s = self.vsbuilder.buildVStruct(vstructname)
-        if s != None:
+        if s is not None:
             bytes = self.readMemory(va, len(s))
             s.vsParse(bytes)
         return s
@@ -1705,7 +2186,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         you wish to have at the location.  Returns a vstruct from the
         location.
         """
-        if vs == None:
+        if vs is None:
             vs = self.getStructure(va, vstructname)
         self.addLocation(va, len(vs), LOC_STRUCT, vstructname)
 
@@ -1729,7 +2210,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         Example:
             for name in vw.getUserStructNames():
-                print 'Structure Name: %s' % name
+                print('Structure Name: %s' % name)
         '''
         return self.vsbuilder.getVStructCtorNames()
 
@@ -1767,8 +2248,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         at the specified location (or -1 if no terminator
         is found in the memory map)
         """
-        offset,bytes = self.getByteDef(va)
-        foff = bytes.find('\x00', offset)
+        offset, bytez = self.getByteDef(va)
+        foff = bytez.find(b'\x00', offset)
         if foff == -1:
             return foff
         return (foff - offset) + 1
@@ -1779,8 +2260,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         at the specified location (or -1 if no terminator
         is found in the memory map)
         """
-        offset,bytes = self.getByteDef(va)
-        foff = bytes.find('\x00\x00', offset)
+        offset, bytez = self.getByteDef(va)
+        foff = bytez.find(b'\x00\x00', offset)
         if foff == -1:
             return foff
         return (foff - offset) + 2
@@ -1791,7 +2272,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         ltup = (va, size, ltype, tinfo)
         #loc = self.locmap.getMapLookup(va)
-        #if loc != None:
+        #if loc is not None:
             #raise Exception('Duplicate Location: (is: %r wants: %r)' % (loc,ltup))
 
         self._fireEvent(VWE_ADDLOCATION, ltup)
@@ -1802,10 +2283,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return a list of location objects from the workspace
         of a particular type.
         """
-        if ltype == None:
+        if ltype is None:
             return list(self.loclist)
 
-        if linfo == None:
+        if linfo is None:
             return [ loc for loc in self.loclist if loc[2] == ltype ]
 
         return [ loc for loc in self.loclist if (loc[2] == ltype and loc[3] == linfo) ]
@@ -1814,7 +2295,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return True if the va represents a location already.
         """
-        if self.getLocation(va, range=range) != None:
+        if self.getLocation(va, range=range) is not None:
             return True
         return False
 
@@ -1825,20 +2306,41 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         example:
         if vw.isLocType(0x41414141, LOC_STRING):
-            print "string at: 0x41414141"
+            print("string at: 0x41414141")
         """
+        # make it operate like py2 did
+        if va is None:
+            return False
         tup = self.getLocation(va)
-        if tup == None:
+        if tup is None:
             return False
         return tup[L_LTYPE] == ltype
 
-    def getLocation(self, va, range=False):
+    def getLocation(self, va, range=True):
         """
         Return the va,size,ltype,tinfo tuple for the given location.
         (specify range=True to potentially match a va that is inside
-        a location rather than the beginning of one)
+        a location rather than the beginning of one, this behavior
+        only affects strings/substring retrieval currently)
         """
-        return self.locmap.getMapLookup(va)
+        loc = self.locmap.getMapLookup(va)
+        if not loc:
+            return loc
+
+        if range and loc[L_LTYPE] in (LOC_STRING, LOC_UNI):
+            # dig into any sublocations that may have been created, trying to find the best match
+            # possible, where "best" means the substring that both contains the va, and has no substrings
+            # that contain the va.
+            if not loc[L_TINFO]:
+                return loc
+            subs = sorted(loc[L_TINFO], key=lambda k: k[0], reverse=False)
+            ltup = loc
+            for sva, ssize in subs:
+                if sva <= va < sva + ssize:
+                    ltup = (sva, ssize, loc[L_LTYPE], [])
+            return ltup
+        else:
+            return loc
 
     def getLocationRange(self, va, size):
         """
@@ -1851,19 +2353,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         undefva = None
         while va < endva:
             ltup = self.getLocation(va)
-            if ltup == None:
-                if undefva == None:
+            if ltup is None:
+                if undefva is None:
                     undefva = va
                 va += 1
             else:
-                if undefva != None:
+                if undefva is not None:
                     ret.append((undefva, va-undefva, LOC_UNDEF, None))
                     undefva = None
                 ret.append(ltup)
                 va += ltup[L_SIZE]
 
         # Mop up any hanging udefs
-        if undefva != None:
+        if undefva is not None:
             ret.append((undefva, va-undefva, LOC_UNDEF, None))
 
         return ret
@@ -1877,7 +2379,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         an exact match for the beginning of a location.
         """
         loc = self.getLocation(va)
-        if loc == None:
+        if loc is None:
             raise InvalidLocation(va)
         # remove xrefs from this location
         for xref in self.getXrefsFrom(va):
@@ -1905,11 +2407,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             isfunc = self.isFunction(lva)
             cmnt = self.getComment(lva)
 
-            if name != None:
+            if name is not None:
                 names[lva] = name
             if isfunc == True:
                 funcs[lva] = True
-            if cmnt != None:
+            if cmnt is not None:
                 comments[lva] = cmnt
 
             if ltype == LOC_UNDEF:
@@ -1918,9 +2420,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 while lva < endva:
                     uname = self.getName(lva)
                     ucmnt = self.getComment(lva)
-                    if uname != None:
+                    if uname is not None:
                         names[lva] = uname
-                    if ucmnt != None:
+                    if ucmnt is not None:
                         comments[lva] = ucmnt
                     #ret.append(((lva, 1, LOC_UNDEF, None), self.getName(lva), False, self.getComment(lva)))
                     lva += 1
@@ -1942,14 +2444,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         va -= 1
         ret = self.locmap.getMapLookup(va)
-        if ret != None:
+        if ret is not None:
             return ret
         if adjacent:
             return None
         va -= 1
         while va > 0:
             ret = self.locmap.getMapLookup(va)
-            if ret != None:
+            if ret is not None:
                 return ret
             va -= 1
         return None
@@ -1963,7 +2465,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         location.
         """
         va = self.vaByName(name)
-        if va == None:
+        if va is None:
             raise InvalidLocation(0, "Unknown Name: %s" % name)
         return self.getLocation(va)
 
@@ -1971,7 +2473,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of tuples containing (va, name)
         """
-        return self.name_by_va.items()
+        return list(self.name_by_va.items())
 
     def getName(self, va, smart=False):
         '''
@@ -1983,38 +2485,54 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         name = self.name_by_va.get(va)
 
-        if name != None or not smart:
+        if name is not None or not smart:
             return name
 
+        # TODO: by previous symbol?
+
+        # by function
         baseva = self.getFunction(va)
         basename = self.name_by_va.get(baseva, None)
 
-        if basename == None:
+        if self.isFunction(va):
+            basename = 'sub_0%x' % va
+
+        # by filename
+        if basename is None:
             basename = self.getFileByVa(va)
-            if basename == None:
+            if basename is None:
                 return None
 
             baseva = self.getFileMeta(basename, 'imagebase')
 
         delta = va - baseva
 
-        pom = ('','+')[delta>=0]
-        name = "%s%s%s" % (basename, pom, hex(delta))
+        if delta:
+            pom = ('', '+')[delta>0]
+            name = "%s%s%s" % (basename, pom, hex(delta))
+        else:
+            name = basename
         return name
 
-    def makeName(self, va, name, filelocal=False):
+    def makeName(self, va, name, filelocal=False, makeuniq=False):
         """
         Set a readable name for the given location by va. There
         *must* be a Location defined for the VA before you may name
         it.  You may set a location's name to None to remove a name.
+
+        makeuniq allows Vivisect to append some number to make the name unique.
+        This behavior allows for colliding names (eg. different versions of a function)
+        to coexist in the same workspace.
+
+        default behavior is to fail on duplicate (False).
         """
         if filelocal:
             segtup = self.getSegment(va)
-            if segtup == None:
-                print "Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name)
-            if segtup != None:
+            if segtup is None:
+                self.vprint("Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name))
+            if segtup is not None:
                 fname = segtup[SEG_FNAME]
-                if fname != None:
+                if fname is not None:
                     name = "%s.%s" % (fname, name)
 
         oldva = self.vaByName(name)
@@ -2022,21 +2540,40 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if oldva == va:
             return
 
-        if oldva != None:
-            raise DuplicateName(oldva, va, name)
+        if oldva is not None:
+            if not makeuniq:
+                raise DuplicateName(oldva, va, name)
+
+            else:
+                logger.debug('makeName: %r already lives at 0x%x', name, oldva)
+                # tack a number on the end
+                index = 0
+                newname = "%s_%d" % (name, index)
+                newoldva = self.vaByName(newname)
+                while self.vaByName(newname) not in (None, newname):
+                    # if we run into the va we're naming, that's the name still
+                    if newoldva == va:
+                        return newname
+                    logger.debug('makeName: %r already lives at 0x%x', newname, newoldva)
+                    index += 1
+                    newname = "%s_%d" % (name, index)
+                    newoldva = self.vaByName(newname)
+
+                name = newname
 
         self._fireEvent(VWE_SETNAME, (va,name))
+        return name
 
     def saveWorkspace(self, fullsave=True):
 
-        if self.server != None:
+        if self.server is not None:
             return
 
         modname = self.getMeta("StorageModule")
         filename = self.getMeta("StorageName")
-        if modname == None:
+        if modname is None:
             raise Exception("StorageModule not specified!")
-        if filename == None:
+        if filename is None:
             raise Exception("StorageName not specified!")
 
         # Usually this is "vivisect.storage.basicfile
@@ -2051,9 +2588,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         self._createSaveMark()
 
-
-
-    def loadFromFd(self, fd, fmtname=None):
+    def loadFromFd(self, fd, fmtname=None, baseaddr=None):
         """
         Read the first bytes of the file descriptor and see if we can identify the type.
         If so, load up the parser for that file type, otherwise raise an exception.
@@ -2062,7 +2597,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         mod = None
         fd.seek(0)
-        if fmtname == None:
+        if fmtname is None:
             bytes = fd.read(32)
             fmtname = viv_parsers.guessFormat(bytes)
 
@@ -2071,8 +2606,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.mergeConfig(mod.config)
 
         fd.seek(0)
-        filename = hashlib.md5( fd.read() ).hexdigest()
-        fname = mod.parseFd(self, fd, filename)
+        filename = hashlib.md5(fd.read()).hexdigest()
+        fname = mod.parseFd(self, fd, filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")
 
@@ -2097,28 +2632,28 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             imgbases[ fname ] = self.getFileMeta(fname,'imagebase')
 
         for va,name in self.name_by_va.items():
-            map = self.getMemoryMap(va)
-            if map == None:
+            mmap = self.getMemoryMap(va)
+            if mmap is None:
                 continue
 
-            symva = va - imgbases.get( map[3], va )
+            symva = va - imgbases.get(mmap[3], va)
             if symva:
 
                 symtype = e_resolv.SYMSTOR_SYM_SYMBOL
                 if self.isFunction(va):
                     symtype = e_resolv.SYMSTOR_SYM_FUNCTION
 
-                symsbyfile[ map[3] ].append( (symva, 0, name, symtype) )
+                symsbyfile[mmap[3]].append((symva, 0, name, symtype))
 
         for filenorm, symtups in symsbyfile.items():
             symhash = self.getFileMeta(filenorm, 'SymbolCacheHash')
-            if symhash == None:
+            if symhash is None:
                 continue
 
             self.vprint('Saving Symbol Cache: %s (%d syms)' % (symhash,len(symtups)))
             symcache.setCacheSyms( symhash, symtups )
 
-    def loadFromFile(self, filename, fmtname=None):
+    def loadFromFile(self, filename, fmtname=None, baseaddr=None):
         """
         Read the first bytes of the file and see if we can identify the type.
         If so, load up the parser for that file type, otherwise raise an exception.
@@ -2127,11 +2662,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Returns the basename the file was given on load.
         """
         mod = None
-        if fmtname == None:
+        if fmtname is None:
             fmtname = viv_parsers.guessFormatFilename(filename)
 
+        if fmtname in STORAGE_MAP:
+            self.setMeta('StorageModule', STORAGE_MAP[fmtname])
+            self.loadWorkspace(filename)
+            return self.normFileName(filename)
+
         mod = viv_parsers.getParserModule(fmtname)
-        fname = mod.parseFile(self, filename)
+        fname = mod.parseFile(self, filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")
 
@@ -2146,10 +2686,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         from the memory object's map at baseaddr.
         """
         mod = None
-        if fmtname == None:
-            bytes = memobj.readMemory(baseaddr, 32)
-            fmtname = viv_parsers.guessFormat(bytes)
+        if fmtname is None:
+            bytez = memobj.readMemory(baseaddr, 32)
+            fmtname = viv_parsers.guessFormat(bytez)
 
+        # TODO: Load workspace from memory?
         mod = viv_parsers.getParserModule(fmtname)
         mod.parseMemory(self, memobj, baseaddr)
 
@@ -2166,7 +2707,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Return the current list of file objects in this
         workspace.
         """
-        return self.filemeta.keys()
+        return list(self.filemeta.keys())
 
     def normFileName(self, filename):
         normname = os.path.basename(filename).lower()
@@ -2176,10 +2717,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             parts = normname.split('.')
             normname = '_'.join(parts[:-1])
 
-        ok = string.letters + string.digits + '_'
+        ok = string.ascii_letters + string.digits + '_'
 
         chars = list(normname)
-        for i in xrange(len(chars)):
+        for i in range(len(chars)):
             if chars[i] not in ok:
                 chars[i] = '_'
 
@@ -2197,7 +2738,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         add imports/exports/segments etc...
         """
         nname = self.normFileName(filename)
-        if self.filemeta.has_key(nname):
+        if nname in self.filemeta:
             raise Exception("Duplicate File Name: %s" % nname)
         self._fireEvent(VWE_ADDFILE, (nname, imagebase, md5sum))
         return nname
@@ -2225,7 +2766,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Store a piece of file specific metadata (python primatives are best for values)
         """
-        if not self.filemeta.has_key(fname):
+        if fname not in self.filemeta:
             raise Exception("Invalid File: %s" % fname)
         self._fireEvent(VWE_SETFILEMETA, (fname, key, value))
 
@@ -2234,7 +2775,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Retrieve a piece of file specific metadata
         """
         d = self.filemeta.get(filename)
-        if d == None:
+        if d is None:
             raise Exception("Invalid File: %s" % filename)
         return d.get(key, default)
 
@@ -2243,24 +2784,24 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Retrieve the file metadata for this file as a key:val dict.
         '''
         d = self.filemeta.get(filename)
-        if d == None:
+        if d is None:
             raise Exception('Invalid File: %s' % filename)
         return d
 
     def getFileByVa(self, va):
         segtup = self.getSegment(va)
-        if segtup == None:
+        if segtup is None:
             return None
         return segtup[SEG_FNAME]
 
     def getLocationDistribution(self):
         # NOTE: if this changes, don't forget the report module!
-        totsize = float(0)
+        totsize = 0
         for mapva, mapsize, mperm, mname in self.getMemoryMaps():
             totsize += mapsize
         loctot = 0
         ret = {}
-        for i in xrange(LOC_MAX):
+        for i in range(LOC_MAX):
             cnt = 0
             size = 0
             for lva,lsize,ltype,tinfo in self.getLocations(i):
@@ -2269,11 +2810,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             loctot += size
 
             tname = loc_type_names.get(i, 'Unknown')
-            ret[i] = (tname, cnt, size, int((size/totsize)*100))
+            ret[i] = (tname, cnt, size, int((size/float(totsize))*100))
 
         # Update the undefined based on totals...
         undeftot = totsize-loctot
-        ret[LOC_UNDEF] = ('Undefined', 0, undeftot, int((undeftot/totsize)*100))
+        ret[LOC_UNDEF] = ('Undefined', 0, undeftot, int((undeftot/float(totsize)) * 100))
 
         return ret
 
@@ -2286,7 +2827,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Get a list of the names of the current VA lists.
         """
-        return self.vasets.keys()
+        return list(self.vasets.keys())
 
     def getVaSetDef(self, name):
         """
@@ -2295,7 +2836,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         you can name it as you like...)
         """
         x = self.vasetdefs.get(name)
-        if x == None: raise InvalidVaSet(name)
+        if x is None:
+            raise InvalidVaSet(name)
         return x
 
     def getVaSetRows(self, name):
@@ -2303,15 +2845,18 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Get a list of the rows in this VA set.
         """
         x = self.vasets.get(name)
-        if x == None: InvalidVaSet(name)
-        return x.values()
+        if x is None:
+            raise InvalidVaSet(name)
+        # yes, this is weird. but it's how python2 returns values()
+        return list(x.values())
 
     def getVaSet(self, name):
         """
         Get the dictionary of va:<rowdata> entries.
         """
         x = self.vasets.get(name)
-        if x == None: raise InvalidVaSet(name)
+        if x is None:
+            raise InvalidVaSet(name)
         return x
 
     def addVaSet(self, name, defs, rows=()):
@@ -2328,15 +2873,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Delete a VA set by name.
         """
-        if not self.vasets.has_key(name):
+        if name not in self.vasets:
             raise Exception("Unknown VA Set: %s" % name)
         self._fireEvent(VWE_DELVASET, name)
 
     def setVaSetRow(self, name, rowtup):
         """
         Use this API to update the row data for a particular
-        entry in the VA set. Create a new empty set if one
-        does not already exist.
+        entry in the VA set.
         """
         self._fireEvent(VWE_SETVASETROW, (name, rowtup))
 
@@ -2348,7 +2892,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             row = vw.getVaSetRow('WootFunctions', fva)
         '''
         vaset = self.vasets.get( name )
-        if vaset == None:
+        if vaset is None:
             return None
         return vaset.get( va )
 
@@ -2357,7 +2901,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Use this API to delete the rowdata associated
         with the specified VA from the set.
         """
-        if not self.vasets.has_key(name):
+        if name not in self.vasets:
             raise Exception("Unknown VA Set: %s" % name)
         self._fireEvent(VWE_DELVASETROW, (name, va))
 
@@ -2407,7 +2951,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return a list of the names of the given color maps
         """
-        return self.colormaps.keys()
+        return list(self.colormaps.keys())
 
     def addColorMap(self, mapname, colormap):
         """
@@ -2425,6 +2969,55 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         return self.colormaps.get(mapname)
 
+    def _getNameParts(self, name, va):
+        '''
+        Return the given name in three parts:
+        fpart: filename, if applicable (for file-local names)
+        npart: base name
+        vapart: address, if tacked on the end
+
+        If any of these are not applicable, they will return None for that field.
+        '''
+        fpart = None
+        npart = name
+        vapart = None
+        fname = self.getFileByVa(va)
+        vastr = '_%.8x' % va
+
+        if name.startswith(fname + '.'):
+            fpart, npart = name.split('.', 1)
+        elif name.startswith('*.'):
+            skip, npart = name.split('.', 1)
+
+        if npart.endswith(vastr) and not npart == 'sub' + vastr:
+            npart, vapart = npart.rsplit('_', 1)
+
+        return fpart, npart, vapart
+
+
+    def _addNamePrefix(self, name, va, prefix, joinstr=''):
+        '''
+        Add a prefix to the given name paying attention to the filename prefix, and
+        any VA suffix which may exist.
+
+        This is used by multiple analysis modules.
+        Uses _getNameParts.
+        '''
+        fpart, npart, vapart = self._getNameParts(name, va)
+        if fpart is None and vapart is None:
+            name = joinstr.join([prefix, npart])
+
+        elif vapart is None:
+            name = fpart + '.' + joinstr.join([prefix, npart])
+
+        elif fpart is None:
+            name = joinstr.join([prefix, npart])
+
+        else:
+            name = fpart + '.' + joinstr.join([prefix, npart]) + '_%s' % vapart
+        return name
+
+
 ##########################################################
 #
 # The envi.symstore.resolver.SymbolResolver API...
@@ -2433,21 +3026,21 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # Check for a sym
         va = self.vaByName(name)
-        if va != None:
+        if va is not None:
             return e_resolv.Symbol(name, va, 0)
 
         # check for the need for a deref.
         d = self.filemeta.get(name)
-        if d != None:
+        if d is not None:
             return VivFileSymbol(self, name, d.get("imagebase"), 0, self.psize)
 
     def getSymByAddr(self, addr, exact=True):
         name = self.getName(addr)
-        if name == None:
+        if name is None:
             if self.isValidPointer(addr):
                 name = "loc_%.8x" % addr
 
-        if name != None:
+        if name is not None:
             #FIXME fname
             #FIXME functions/segments/etc...
             return e_resolv.Symbol(name, addr, 0)
@@ -2459,17 +3052,18 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         You may also set hint=None to delete sym hints.
         '''
-        self._fireEvent(VWE_SYMHINT, (va,idx,hint))
+        self._fireEvent(VWE_SYMHINT, (va, idx, hint))
 
     def getSymHint(self, va, idx):
         h = self.getFref(va, idx)
-        if h != None:
+        if h is not None:
             f = self.getFunction(va)
             loctup = self.getFunctionLocal(f, h)
             if loctup:
                 return loctup[1]
 
-        return self.symhints.get((va,idx), None)
+        return self.symhints.get((va, idx), None)
+
 
 class VivFileSymbol(e_resolv.FileSymbol):
     # A namespace tracker thingie...
@@ -2479,6 +3073,7 @@ class VivFileSymbol(e_resolv.FileSymbol):
 
     def getSymByName(self, name):
         return self.vw.getSymByName("%s.%s" % (self.name, name))
+
 
 def getVivPath(*pathents):
     dname = os.path.dirname(__file__)

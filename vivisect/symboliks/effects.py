@@ -1,7 +1,4 @@
-import vivisect.symboliks.functions as vsym_funcs
-
 from vivisect.symboliks.common import *
-from vivisect.symboliks.constraints import *
 
 from vivisect.const import *
 
@@ -23,14 +20,18 @@ class SymbolikEffect:
     def reduce(self, emu=None):
         raise Exception('%s must implement reduce()!' % (self.__class__.__name__))
 
-    def walkTree(self, cb, ctx=None):
+    # Needed for compatibility w/ SymbolikExpressionParser calling Symbolik{Effect, Base}
+    def update(self, emu):
+        return self.applyEffect(emu)
+
+    def walkTree(self, cb, ctx=None, once=True):
         raise Exception('%s must implement walkTree()!' % (self.__class__.__name__))
 
     def applyEffect(self, emu):
         raise Exception('%s must implement applyEffect!' % (self.__class__.__name__,))
 
     def render(self, canvas, vw):
-        canvas.addText( str(self) )
+        canvas.addText(str(self))
 
 class DebugEffect(SymbolikEffect):
     '''
@@ -46,13 +47,13 @@ class DebugEffect(SymbolikEffect):
         self.msg = msg
 
     def __repr__(self):
-        return 'DebugEffect(0x%.8x, %s)' % (self.va, self.msg) 
+        return 'DebugEffect( 0x%.8x, %s )' % (self.va, self.msg)
 
     def __str__(self):
-        return '%s' % self.msg 
+        return '%s' % self.msg
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -61,7 +62,7 @@ class DebugEffect(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
+    def walkTree(self, cb, ctx=None, once=True):
         pass
 
     def reduce(self, emu=None):
@@ -80,7 +81,7 @@ class SetVariable(SymbolikEffect):
         self.symobj = symobj
 
     def __repr__(self):
-        return 'SetVariable(0x%.8x, %s, %s)' % (self.va, repr(self.varname), repr(self.symobj))
+        return 'SetVariable( 0x%.8x, %s, %s )' % (self.va, repr(self.varname), repr(self.symobj))
 
     def __str__(self):
         return '%s = %s' % (self.varname, str(self.symobj))
@@ -91,7 +92,7 @@ class SetVariable(SymbolikEffect):
         self.symobj.render(canvas, vw)
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -102,8 +103,8 @@ class SetVariable(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
-        self.symobj = self.symobj.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self.symobj = self.symobj.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
         self.symobj = self.symobj.reduce(emu=emu)
@@ -135,7 +136,7 @@ class ReadMemory(SymbolikEffect):
         return '[ %s : %s ]' % (str(self.symaddr), str(self.symsize))
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -146,9 +147,9 @@ class ReadMemory(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
-        self.symaddr = self.symaddr.walkTree(cb, ctx=ctx)
-        self.symsize = self.symsize.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self.symaddr = self.symaddr.walkTree(cb, ctx=ctx, once=once)
+        self.symsize = self.symsize.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
         self.symaddr = self.symaddr.reduce(emu=emu)
@@ -171,14 +172,14 @@ class WriteMemory(SymbolikEffect):
 
     def __repr__(self):
         t = (self.va, repr(self.symaddr), repr(self.symsize), repr(self.symval))
-        return 'WriteMemory( 0x%.8x, %s, %s, %s)' % t
+        return 'WriteMemory( 0x%.8x, %s, %s, %s )' % t
 
     def __str__(self):
         t = (str(self.symaddr), str(self.symsize), str(self.symval))
         return '[ %s : %s ] = %s' % t
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -191,15 +192,15 @@ class WriteMemory(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
-        self.symval = self.symval.walkTree(cb, ctx=ctx)
-        self.symaddr = self.symaddr.walkTree(cb, ctx=ctx)
-        self.symsize = self.symsize.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        self.symval = self.symval.walkTree(cb, ctx=ctx, once=once)
+        self.symaddr = self.symaddr.walkTree(cb, ctx=ctx, once=once)
+        self.symsize = self.symsize.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
         self.symaddr = self.symaddr.reduce(emu=emu)
         self.symsize = self.symsize.reduce(emu=emu)
-        self.symval  = self.symval.reduce(emu=emu)
+        self.symval = self.symval.reduce(emu=emu)
 
     def applyEffect(self, emu):
         symaddr = self.symaddr.update(emu)
@@ -229,12 +230,12 @@ class CallFunction(SymbolikEffect):
 
     def __str__(self):
         argstr = '?'
-        if self.argsyms != None:
-            argstr = ','.join( str(x) for x in self.argsyms )
+        if self.argsyms is not None:
+            argstr = ','.join(str(x) for x in self.argsyms)
         return '%s(%s)' % (self.funcsym, argstr)
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -245,14 +246,14 @@ class CallFunction(SymbolikEffect):
 
         return True
 
-    def walkTree(self, cb, ctx=None):
-        self.funcsym = self.funcsym.walkTree(cb, ctx=ctx)
-        if self.argsyms != None:
-            self.argsyms = [ a.walkTree(cb,ctx=ctx) for a in self.argsyms ]
+    def walkTree(self, cb, ctx=None, once=True):
+        self.funcsym = self.funcsym.walkTree(cb, ctx=ctx, once=once)
+        if self.argsyms is not None:
+            self.argsyms = [ a.walkTree(cb,ctx=ctx, once=once) for a in self.argsyms ]
 
     def reduce(self, emu=None):
         self.funcsym = self.funcsym.reduce(emu=emu)
-        if self.argsyms != None:
+        if self.argsyms is not None:
             self.argsyms = [ x.reduce(emu=emu) for x in self.argsyms ]
 
     def applyEffect(self, emu):
@@ -261,8 +262,8 @@ class CallFunction(SymbolikEffect):
 
         # If we have argsyms, the function's work has been broken out
         # already (probably by applying effects once already...)
-        if self.argsyms != None:
-            argsyms = [ x.update(emu) for x in self.argsyms ]
+        if self.argsyms is not None:
+            argsyms = [x.update(emu) for x in self.argsyms]
             return CallFunction(self.va, funcsym, argsyms)
 
         # Without argsyms, we are probably a call who is being applied to
@@ -276,14 +277,12 @@ class CallFunction(SymbolikEffect):
         self.funcsym.render(canvas, vw)
         canvas.addText('(')
 
-        if self.argsyms == None:
+        if self.argsyms is None:
             canvas.addText('?')
-
         else:
-
             argmax = len(self.argsyms) - 1
 
-            for i,argsym in enumerate(self.argsyms):
+            for i, argsym in enumerate(self.argsyms):
                 argsym.render(canvas, vw)
 
                 if i < argmax:
@@ -300,8 +299,9 @@ class ConstrainPath(SymbolikEffect):
         self.addrsym = addrsym
         self.cons = cons
 
-    def walkTree(self, cb, ctx=None):
-        self.cons.walkTree(cb, ctx=ctx)
+    def walkTree(self, cb, ctx=None, once=True):
+        # TODO: Should be also walk the addrsym here?
+        self.cons.walkTree(cb, ctx=ctx, once=once)
 
     def reduce(self, emu=None):
         self.addrsym = self.addrsym.reduce(emu=emu)
@@ -319,7 +319,7 @@ class ConstrainPath(SymbolikEffect):
         canvas.addText(')')
 
     def __eq__(self, other):
-        if other == None:
+        if other is None:
             return False
         if self.__class__ != other.__class__:
             return False
@@ -334,4 +334,3 @@ class ConstrainPath(SymbolikEffect):
         addrsym = self.addrsym.update(emu)
         cons = self.cons.update(emu)
         return ConstrainPath(self.va, addrsym, cons)
-

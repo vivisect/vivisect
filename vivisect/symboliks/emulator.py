@@ -1,4 +1,5 @@
 import os
+import binascii
 
 import vivisect.symboliks.expression as v_s_expr
 
@@ -27,17 +28,16 @@ class SymbolikEmulator:
         self._sym_expr_parser = v_s_expr.SymbolikExpressionParser(defwidth=vw.psize)
 
     def getSymSnapshot(self):
-        return ( dict( self._sym_meta ),
-                 dict( self._sym_vars ),
-                 dict( self._sym_mem ),
-                 self._sym_rseed )
-            
+        return (dict(self._sym_meta),
+                dict(self._sym_vars),
+                dict(self._sym_mem),
+                self._sym_rseed)
 
     def setSymSnapshot(self, snap):
-        ( self._sym_meta,
-          self._sym_vars,
-          self._sym_mem,
-          self._sym_rseed ) = snap
+        (self._sym_meta,
+         self._sym_vars,
+         self._sym_mem,
+         self._sym_rseed) = snap
 
     def setMeta(self, name, val):
         '''
@@ -68,7 +68,7 @@ class SymbolikEmulator:
         Apply the given effects to the emulator.  Return a list of updated
         effects which reflect the state during emulation.
         '''
-        return [ e.applyEffect(self) for e in effects ]
+        return [e.applyEffect(self) for e in effects]
 
     def applyFunctionCall(self, funcsym):
         '''
@@ -88,7 +88,7 @@ class SymbolikEmulator:
         by solving for deltas between two symbols in different seed
         inputs to see if they are likely arithmetically related.
         '''
-        self._sym_rseed = os.urandom(10).encode('hex')
+        self._sym_rseed = binascii.hexlify(os.urandom(10))
 
     def getRandomSeed(self):
         return self._sym_rseed
@@ -104,17 +104,16 @@ class SymbolikEmulator:
 
         # check for a previous write first...
         symmem = self._sym_mem.get(addrval)
-        if symmem != None:
+        if symmem is not None:
             symaddr, symval = symmem
             return symval
 
         # If we have a workspace, check it for meaningful
         # symbols etc...
-        if self._sym_vw != None:
-
+        if self._sym_vw is not None:
             # Make a special check for imports...
             loc = self._sym_vw.getLocation(addrval)
-            if loc != None:
+            if loc is not None:
                 lva, lsize, ltype, linfo = loc
                 if ltype == LOC_IMPORT:
                     return Var(linfo, self.__width__)
@@ -125,11 +124,11 @@ class SymbolikEmulator:
         # FIXME handle memory offsets etc...
         # FIXME handle write size.. (using isDiscrete?)
         addrval = symaddr.solve(emu=self, vals=vals)
-        #sizeval = symsize.solve(slvctx=self)
+        # sizeval = symsize.solve(slvctx=self)
         self._sym_mem[addrval] = (symaddr, symval)
 
     def setSymVariable(self, name, symval, width=None):
-        if width == None:
+        if width is None:
             width = self.__width__
         self._sym_vars[name] = symval
 
@@ -141,7 +140,7 @@ class SymbolikEmulator:
             v = self.getSymVariable('eax')
         '''
         ret = self._sym_vars.get(name)
-        if ret == None and create:
+        if ret is None and create:
             return Var(name, self.__width__)
 
         return ret
@@ -152,6 +151,6 @@ class SymbolikEmulator:
 
         Example:
             for vname, vsym in t.getSymVariables():
-                print '%s = %s' % (vname, str(vsym))
+                print('%s = %s' % (vname, str(vsym)))
         '''
-        return self._sym_vars.items()
+        return list(self._sym_vars.items())

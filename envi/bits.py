@@ -4,24 +4,24 @@ A file full of bit twidling helpers
 
 import struct
 
-MAX_WORD = 32 # usually no more than 8, 16 is for SIMD register support
+MAX_WORD = 32  # usually no more than 8, 16 is for SIMD register support
 
 # Masks to use for unsigned anding to size
-u_maxes = [ (2 ** (8*i)) - 1 for i in range(MAX_WORD+1) ]
-u_maxes[0] = 0 # powers of 0 are 1, but we need 0
-bu_maxes = [ (2 ** (i)) - 1 for i in range(8*MAX_WORD+1) ]
+u_maxes = [(2 ** (8*i)) - 1 for i in range(MAX_WORD+1)]
+u_maxes[0] = 0  # powers of 0 are 1, but we need 0
+bu_maxes = [(2 ** (i)) - 1 for i in range(8*MAX_WORD+1)]
 
 # Masks of just the sign bit for different sizes
-sign_bits = [ (2 ** (8*i)) >> 1 for i in range(MAX_WORD+1) ]
-sign_bits[0] = 0 # powers of 0 are 1, but we need 0
-bsign_bits = [ (2 ** i)>>1 for i in range(8*MAX_WORD+1) ]
+sign_bits = [(2 ** (8*i)) >> 1 for i in range(MAX_WORD+1)]
+sign_bits[0] = 0  # powers of 0 are 1, but we need 0
+bsign_bits = [(2 ** i) >> 1 for i in range(8*MAX_WORD+1)]
 
 # Max *signed* masks (all but top bit )
-s_maxes = [ u_maxes[i] ^ sign_bits[i] for i in range(len(u_maxes))]
+s_maxes = [u_maxes[i] ^ sign_bits[i] for i in range(len(u_maxes))]
 s_maxes[0] = 0
 
-# bit width masks 
-b_masks = [ (2**i)-1 for i in range(MAX_WORD*8) ]
+# bit width masks
+b_masks = [(2**i)-1 for i in range(MAX_WORD*8)]
 b_masks[0] = 0
 
 def unsigned(value, size):
@@ -39,6 +39,14 @@ def signed(value, size):
         x = (x - u_maxes[size]) - 1
     return x
 
+def bsigned(value, size):
+    """
+    Make a value signed based on it's size.
+    """
+    if value & bsign_bits[size]:
+        value = (value - bu_maxes[size]) - 1
+    return value
+
 def is_signed(value, size):
     x = unsigned(value, size)
     return bool(x & sign_bits[size])
@@ -46,7 +54,7 @@ def is_signed(value, size):
 def sign_extend(value, cursize, newsize):
     """
     Take a value and extend it's size filling
-    in the space with the value of the high 
+    in the space with the value of the high
     order bit.
     """
     x = unsigned(value, cursize)
@@ -66,7 +74,7 @@ def bsign_extend(value, cursize, newsize):
             highbits = bu_maxes[delta]
             x |= highbits << (cursize)
     return x
-  
+
 def is_parity(val):
     s = 0
     while val:
@@ -104,7 +112,7 @@ def is_signed_half_carry(value, size, src):
 
     p1 = value & mask
     p2 = src & mask
-    
+
     return ((p1 ^ p2) != 0)
 
 def is_signed_carry(value, size, src):
@@ -138,8 +146,8 @@ def is_aux_carry_sub(src, dst):
     return src & 0xf > dst & 0xf
 
 # set of format lists which make size, endianness, and signedness fast and easy
-le_fmt_chars = (None,"B","<H",None,"<I",None,None,None,"<Q")
-be_fmt_chars = (None,"B",">H",None,">I",None,None,None,">Q")
+le_fmt_chars = (None, "B", "<H", None, "<I", None, None, None, "<Q")
+be_fmt_chars = (None, "B", ">H", None, ">I", None, None, None, ">Q")
 fmt_chars = (le_fmt_chars, be_fmt_chars)
 
 le_fmt_schars = (None,"b","<h",None,"<i",None,None,None,"<q")
@@ -150,9 +158,33 @@ master_fmts = (fmt_chars, fmt_schars)
 
 fmt_sizes =  (None,1,2,4,4,8,8,8,8)
 
+le_fmt_float = (None, None, None, None, '<f', None, None, None, '<d')
+be_fmt_float = (None, None, None, None, '>f', None, None, None, '>d')
 
-fmt_schars = (le_fmt_schars, be_fmt_schars)
+fmt_floats = (le_fmt_float, be_fmt_float)
 
+
+def getFormat(size, big_endian=False, signed=False):
+    '''
+    Returns the proper struct format for numbers up to 8 bytes in length
+    Endianness and Signedness aware.
+    
+    Only useful for *full individual* numbers... ie. 1, 2, 4, 8.  Numbers
+    of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted 
+    for here and will return None.
+    '''
+    return master_fmts[signed][big_endian][size]
+
+def getFloatFormat(size, big_endian=False):
+    '''
+    Returns the proper struct format for numbers up to 8 bytes in length
+    Endianness and Signedness aware.
+    
+    Only useful for *full individual* numbers... ie. 1, 2, 4, 8.  Numbers
+    of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted 
+    for here and will return None.
+    '''
+    return fmt_floats[big_endian][size]
 
 def parsebytes(bytes, offset, size, sign=False, bigend=False):
     """
@@ -164,7 +196,7 @@ def parsebytes(bytes, offset, size, sign=False, bigend=False):
         f = be_fmt_chars[size]
     else:
         f = le_fmt_chars[size]
-    if f == None:
+    if f is None:
         return slowparsebytes(bytes, offset, size, sign=sign, bigend=bigend)
     d = bytes[offset:offset+size]
     x = struct.unpack(f, d)[0]
@@ -184,7 +216,7 @@ def slowparsebytes(bytes, offset, size, sign=False, bigend=False):
     ioff = 0
     for x in range(size):
         ret = ret << 8
-        ret |= ord(bytes[begin+ioff])
+        ret |= bytes[begin+ioff]
         ioff += inc
     if sign:
         ret = signed(ret, size)
@@ -196,7 +228,7 @@ def buildbytes(value, size, bigend=False):
         f = be_fmt_chars[size]
     else:
         f = le_fmt_chars[size]
-    if f == None:
+    if f is None:
         raise Exception("envi.bits.buildbytes needs slowbuildbytes")
     return struct.pack(f, value)
 
@@ -225,11 +257,11 @@ def intwidth(val):
     return ret
 
 def hex(value, size=None):
-    if size == None:
+    if size is None:
         size = intwidth(value)
 
     fmt = hex_fmt.get(size)
-    if fmt != None:
+    if fmt is not None:
         return fmt % value
 
     x = []
@@ -252,7 +284,7 @@ def binrepr(intval, bitwidth=None):
         intval >>= 1
     ret.reverse()
     binstr = ''.join(ret)
-    if bitwidth != None:
+    if bitwidth is not None:
         binstr = binstr.rjust(bitwidth, '0')
     return binstr
 
@@ -260,7 +292,7 @@ def binary(binstr):
     '''
     Decode a binary string of 1/0's into a python number
     '''
-    return int(binstr,2)
+    return int(binstr, 2)
 
 def binbytes(binstr):
     '''
@@ -269,29 +301,29 @@ def binbytes(binstr):
     '''
     if len(binstr) % 8 != 0:
         raise Exception('Byte padded binary strings only for now!')
-    bytes = ''
+    bytez = ''
     while binstr:
-        bytes += chr( binary(binstr[:8]) )
+        bytez += chr(binary(binstr[:8]))
         binstr = binstr[8:]
-    return bytes
+    return bytez
 
 def parsebits(bytes, offset, bitoff, bitsize):
     '''
     Parse bitsize bits from the bit offset bitoff beginning
     at offset bytes.
 
-    Example: 
+    Example:
     '''
     val = 0
     cnt = 0
     while cnt < bitsize:
 
         addbit = bitoff + cnt
-        addoff = offset + (addbit / 8)
+        addoff = offset + (addbit >> 3)
 
         modoff = addbit % 8
 
-        o = ord(bytes[addoff])
+        o = bytes[addoff]
         val = (val << 1) + ((o >> (7 - modoff)) & 1)
 
         cnt += 1
@@ -307,20 +339,15 @@ def masktest(s):
     example:
         opcode = 0x4388e234
         if masktest('1011xxxx0000')(opcode):
-            print 'MATCHED!'
+            print('MATCHED!')
 
     NOTE: For performance reasons, it is recommeneded that
     masktest be used to initialize a static list of tests
     that are re-used rather than reconstructed.
     '''
-    maskin = binary( s.replace('0','1').replace('x','0') )
-    matchval = binary( s.replace('x','0') )
+    maskin = binary(s.replace('0', '1').replace('x', '0'))
+    matchval = binary(s.replace('x', '0'))
+
     def domask(testval):
         return testval & maskin == matchval
     return domask
-
-#if __name__ == '__main__':
-    #print hex(parsebits('\x0f\x00', 0, 4, 8))
-    #print hex(parsebits('\x0f\x0f', 0, 4, 12))
-    #print hex(parsebits('\x0f\x0f\xf0', 1, 4, 4))
-

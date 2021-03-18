@@ -2,175 +2,139 @@
 Analysis plugin for supporting WorkspaceEmulators during analysis pass.
 Finds and connects Switch Cases, most specifically from Microsoft.
 '''
+
 import envi
 import envi.archs.i386 as e_i386
+import envi.const as e_const
 
-import vivisect
+import vivisect.const as v_const
 import vivisect.analysis.generic.codeblocks as vagc
 
+
 def analyzeJmp(amod, emu, op, starteip):
-    ''' 
+    '''
     Top level logic
     '''
-    test, ctx = testSwitch(emu.vw, op, starteip, emu)
-    if test:
-        output = makeSwitch(emu.vw, starteip, ctx['offarraybase'], ctx['indiroffbase'])
+    vw = emu.vw
+    ctx = getSwitchBase(vw, op, starteip, emu)
+    if ctx is not None:
+        tova, scale = ctx
+        fva = vw.getFunction(starteip)
+        vw.makePointer(tova, follow=False)
+        vw.makeJumpTable(op, tova, rebase=True, psize=scale)
+        # so the codeblocks this jumptable points to aren't proper locations...yet.
+        # let's fix that up and kick off codeblock analysis to make the codeblocks
+        for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(op.va, rtype=v_const.REF_CODE):
+            vw.makeCode(xrto, fva=fva)
+        vagc.analyzeFunction(vw, fva)
 
 
-def testSwitch(vw, op, vajmp, emu=None):
-    '''
-    identifies and enumerates microsoft's switch-case methods.
-    '''
+def getRealRegIdx(emu, regidx):
+    return emu.getRegisterIndex(emu.getRealRegisterNameByIdx(regidx))
+
+
+def findOp(vw, emu, startOp, mnem, regidx=None):
+    cb = vw.getCodeBlock(startOp.va)
+    backLoc = vw.getLocation(startOp.va - 1)
+    while backLoc is not None and vw.getCodeBlock(backLoc[v_const.L_VA]) == cb:
+        backOp = vw.parseOpcode(backLoc[0])
+        if len(backOp.opers):
+            oper = backOp.opers[0]
+            if backOp.mnem == mnem:
+                if regidx is not None:
+                    if oper.isReg() and getRealRegIdx(emu, oper.reg) == regidx:
+                        return backOp
+                else:
+                    return backOp
+        backLoc = vw.getLocation(backLoc[0] - 1)
+
+
+def scanUp(vw, emu, startva, regidx, valu):
+    cb = vw.getCodeBlock(startva)
+    loc = vw.getLocation(startva)
+    while loc is not None and vw.getCodeBlock(loc[v_const.L_VA]) == cb:
+        op = vw.parseOpcode(loc[0])
+        if len(op.opers) > 1 and op.opers[0].isReg() and getRealRegIdx(emu, op.opers[0].reg) == regidx:
+            if valu == emu.getOperValue(op, 1):
+                return True
+        loc = vw.getLocation(loc[0] - 1)
+
+    return False
+
+
+def getSwitchBase(vw, op, vajmp, emu=None):
     if not (op.iflags & envi.IF_BRANCH):
-        # vw.verbprint( "indirect branch is not correct type")
-        return False,None
+        return
 
-    backone = vw.getLocation(vajmp-1)
-    if backone == None:
-        #vw.verbprint( "previous instruction isn't defined")
-        return False,None
-
-    backtwo = vw.getLocation(backone[0]-1)
-    if backtwo == None:
-        #vw.verbprint( "two previous instruction isn't defined")
-        return False,None
-    
     filename = vw.getMemoryMap(vajmp)[3]
-    imagebase = vw.getFileMeta(filename, 'imagebase')
+    imgbase = vw.getFileMeta(filename, 'imagebase')
 
-    op1 = vw.parseOpcode(backone[0])
-    if op1.mnem != 'add':
-        #vw.verbprint( "previous instruction isn't an 'add'")
-        return False,None
+    if not op.opers[0].isReg():
+        return
 
-    baseoper = op1.opers[1]
-    if not isinstance(baseoper, e_i386.i386RegOper):
-        #vw.verbprint( "baseoper is not an i386RegOper: %s" % repr(baseoper))
-        return False,None
+    reg = op.opers[0].reg
+    if reg & e_const.RMETA_NMASK != reg:
+        reg = getRealRegIdx(emu, reg)
 
-    # this is a weak analysis failure, but a powerful confirmation.
-    if emu != None:
-        regbase = op1.getOperValue(1, emu)
-        if regbase != imagebase:
-            vw.verbprint( "reg != imagebase")
-            return False,None
+    # Search up instructions until we get to the actual assignment of our
+    # jump register, which should be an add in 64 bit town
+    addOp = findOp(vw, emu, op, 'add', reg)
+    if addOp is None:
+        return
 
-    # now check the instruction before that
-    op2 = vw.parseOpcode(backtwo[0])
-    if op2.mnem != 'mov':
-        vw.verbprint( "2nd previous instruction isn't an 'mov'")
-        return False,None
+    regbase = addOp.getOperValue(1, emu)
+    if regbase != imgbase:
+        # just in case let's check a few more instructions up, because the first register could be
+        # being used as the base instead (which means the second register is being used as the selector)
+        if not scanUp(vw, emu, addOp.va, reg, imgbase):
+            vw.vprint("0x%x: reg != imagebase (0x%x != 0x%x)" % (op.va, regbase, imgbase))
+            return
 
-    arrayoper = op2.opers[1]
-    if not (isinstance(arrayoper, e_i386.i386SibOper) and arrayoper.scale == 4):
-        vw.verbprint( "arrayoper is not an i386SibOper of size 4: %s" % repr(baseoper))
-        return False,None
-    ao_reg = arrayoper.reg & e_i386.RMETA_NMASK
-    if  ao_reg != baseoper.reg:
-        vw.verbprint( "arrayoper.reg != baseoper.reg: %s != %s" % (ao_reg, baseoper.reg))
-        return False,None
+    # Now find the instruction before the add that does the actual mov
+    movOp = findOp(vw, emu, addOp, 'mov', reg)
+    if movOp is None:
+        # try the other one just in case
+        reg = getRealRegIdx(emu, addOp.opers[1].reg)
+        movOp = findOp(vw, emu, addOp, 'mov', reg)
+        if movOp is None:
+            return
 
-    offarraybase = arrayoper.disp
-    #initial check of the array.  should point to the next va.  we'll scrape it up later
-    offarrayfirst = vw.readMemValue(offarraybase+imagebase, 4)
-    if offarrayfirst+imagebase != vajmp+2:
-        vw.verbprint( "first ref is not the va after the jmp: %x != %x" % (offarrayfirst+imagebase, vajmp+2))
+    # TODO: Want a more arch-independent way of doing this
+    arrayOper = movOp.opers[1]
+    if not isinstance(arrayOper, e_i386.i386SibOper):
+        vw.vprint("0x%x: arrayOper is not an i386SibOper: %s" % (op.va, repr(arrayOper)))
+        return
 
-    indiroffbase = None
-    # now check for the byte array before that
-    backthree = vw.getLocation(backtwo[0]-1)    # this one is optional. first two are not.
-    if backthree != None:
-        op = vw.parseOpcode(backthree[0])
-        if op.mnem == 'movzx' and isinstance(op.opers[1], e_i386.i386SibOper) and \
-                op.opers[1].scale == 1:
-            vw.verbprint( "this is a double deref (hitting a byte array offset into the offset-array)")
-            indiroffbase = op.opers[1].disp
+    if arrayOper.scale % 4 != 0:
+        vw.vprint("0x%x: arrayoper scale is wrong: (%d mod 4 != 0)" % (op.va, arrayOper.scale))
+        return
 
-    return True, {'indiroffbase':indiroffbase, 'offarraybase':offarraybase, }
-        
-def makeSwitch(vw, vajmp, offarraybase, indiroffbase=None):
-    '''
-    Makes the changes to the Workspace for the given jmp location.  Handles 
-    naming for all cases because naming wants to indicate larger context.
+    scale = arrayOper.scale
+    disp = arrayOper.disp
+    tova = disp + imgbase
 
-    (future)If indiroffbase is not None, the indirection "database" is analyzed for naming
-    '''
-    filename = vw.getMemoryMap(vajmp)[3]
-    imagebase = vw.getFileMeta(filename, 'imagebase')
-    # we have identified this is a switch case
-    vw.verbprint( "FOUND MS SWITCH CASE SPRAY at 0x%x" % vajmp)
+    # now check for the byte array before that. this one is optional. first two are not.
+    # but honestly, not a whole lot to do here other than make an xref
+    indirOp = findOp(vw, emu, movOp, 'movzx', None)
+    if indirOp is not None:
+        if len(indirOp.opers):
+            oper = indirOp.opers[1]
+            if isinstance(oper, e_i386.i386SibOper) and oper.scale == 1:
+                vw.vprint("0x%.8x (i:0x%.8x): Double deref (hitting a byte array offset into the offset-array)" % (vajmp, indirOp.va))
+                indirVa = oper.disp + imgbase
+                vw.addLocation(indirVa, 1, v_const.LOC_NUMBER, "DerefTable")
+                vw.addXref(indirOp.va, indirVa, v_const.REF_DATA)
 
-    # roll through the offset array until imagebase+offset is not a valid pointer, points to non-op locations or splits instructions
-    count = 0
-    tracker = []
-    ptr = offarraybase
-
-    while True:
-        off = vw.readMemValue(ptr+imagebase, 4)
-        ova = imagebase + off
-
-        tgtva = makeSwitchCase(vw, vajmp, ova)
-        if not tgtva:
-            break
-        
-        tracker.append((count, tgtva))
-        count += 1
-        ptr += 4
-       
-    # FIXME: this doesn't take into account two-level derefs (indiroffbase)
-    naming = {}
-    for idx,va in tracker:
-        lst = naming.get(va)
-        if lst == None:
-            lst = []
-            naming[va] = lst
-        lst.append("%xh" % idx)
-
-    #TODO: analyze indiroffbase to determine case information
-    
-    for va, opts in naming.items():
-        options = "_".join(opts)
-        name = "switch_case_%s_%.8x" % (options, va)
-        vw.makeName(va, name)
-
-    #TODO: analyze which paths handle which cases, name accordingly
-    #TODO: determine good hint for symbolik constraints
-    funcva = vw.getFunction(vajmp)
-    vw.makeName(vajmp, "jmp_switch_%.8x" % vajmp)
-    vagc.analyzeFunction(vw, funcva)
-    return tracker
-
-def makeSwitchCase(vw, vaSwitch, vaCase):
-    '''
-    Handle minutia of each case, specifically, checking for validity and
-    making Xref and making code (if necessary)
-    '''
-    if not vw.isValidPointer(vaCase):
-        return False
-        
-    loc = vw.getLocation(vaCase)
-    if loc != None:
-        if loc[0] != vaCase:
-            return False
-        if loc[vivisect.L_LTYPE] != vivisect.LOC_OP:
-            return False
-    else:
-        vw.makeCode(vaCase)
-    
-    #if we reach here, we're going to assume the location is valid.
-    vw.verbprint( "0x%x MS Switch Case Spray: emu.getBranchNode( emu.curpath , 0x%x )" % (vaSwitch, vaCase))
-    vw.addXref(vaSwitch, vaCase, vivisect.REF_CODE)
-
-    return vaCase
+    return (tova, scale)
 
 
-if globals().get('vw'):
-    verbose = vw.verbose
-    vw.verbose = True
-
-    vw.vprint("Starting...")
-    findSwitchCase(vw)
-    vw.vprint("Done")
-    
-    vw.verbose = verbose
-    
+if 'vw' in globals():
+    vw = globals()['vw']
+    vw.vprint("Starting Switchcase Module...")
+    for va, reprOp, flags in vw.getVaSetRows('DynamicBranches'):
+        op = vw.parseOpcode(va)
+        if op is None:
+            vw.vprint("Cannot analyze none op at 0x%x" % va)
+            continue
+        analyzeJmp(None, vw.getEmulator(), op, va)  # it doesn't use archmod anyway
+    vw.vprint("Switchcase Done")

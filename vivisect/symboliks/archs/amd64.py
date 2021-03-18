@@ -1,4 +1,6 @@
-from envi.const import *
+import hashlib
+
+import envi
 import envi.archs.amd64 as e_amd64
 
 from vivisect.symboliks.common import *
@@ -7,7 +9,7 @@ import vivisect.symboliks.analysis as vsym_analysis
 import vivisect.symboliks.callconv as vsym_callconv
 from envi.archs.amd64.vmcslookup import VMCS_NAMES
 
-class VMCS_Field (Var):
+class VMCS_Field(Var):
     def __init__(self, offset, width):
         SymbolikBase.__init__(self)
         self.offset = offset
@@ -29,17 +31,17 @@ class VMCS_Field (Var):
     def _solve(self, emu=None):
         name = 'vmcs%s' % self.offset
 
-        if emu != None:
+        if emu is not None:
             name += emu.getRandomSeed()
 
-        return long(hashlib.md5(name).hexdigest()[:self.width*2], 16)
+        return int(hashlib.md5(name).hexdigest()[:self.width*2], 16)
 
     def update(self, emu):
         offset = self.offset.update(emu=emu)
         return VMCS_Field(offset, width=self.width)
 
     def _reduce(self, emu=None):
-        self.offset._reduce(emu=emu) 
+        self.offset._reduce(emu=emu)
         return self
 
     def getWidth(self):
@@ -51,9 +53,9 @@ class VMCS_Field (Var):
 
 class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
     __arch__ = e_amd64.Amd64Module
-    __ip__ = 'rip' # we could use regctx.getRegisterName if we want.
-    __sp__ = 'rsp' # we could use regctx.getRegisterName if we want.
-    __bp__ = 'rbp' # we could use regctx.getRegisterName if we want.
+    __ip__ = 'rip'  # we could use regctx.getRegisterName if we want.
+    __sp__ = 'rsp'  # we could use regctx.getRegisterName if we want.
+    __bp__ = 'rbp'  # we could use regctx.getRegisterName if we want.
     __srcp__ = 'rsi'
     __destp__ = 'rdi'
 
@@ -61,7 +63,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8 )
+        val = Var(rname, rbitwidth >> 3)
 
         # Translate to native if needed...
         if ridx != regidx:
@@ -74,15 +76,15 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
                 # obviously is NOT symboliks aware (2nd op in | operation is NOT
                 # a symbolik); so we do it manually here since we are symbolik
                 # aware.
-                #obj = self._reg_ctx._xlateToNativeReg(regidx, obj)
+                # obj = self._reg_ctx._xlateToNativeReg(regidx, obj)
                 basemask = (2**rbitwidth) - 1
                 rreg, lshift, mask = self._reg_ctx.getMetaRegInfo(regidx)
                 # cut hole in mask
                 finalmask = basemask ^ (mask << lshift)
                 if lshift != 0:
-                    obj <<= Const(lshift, rbitwidth / 8)
+                    obj <<= Const(lshift, rbitwidth >> 3)
 
-                obj = obj | (val & Const(finalmask, rbitwidth / 8))
+                obj = obj | (val & Const(finalmask, rbitwidth >> 3))
 
         self.effSetVariable(rname, obj)
 
@@ -96,54 +98,57 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
     def getOperObj(self, op, idx):
         oper = op.opers[idx]
         if isinstance(oper, e_amd64.Amd64RipRelOper):
-            return Mem( Const( op.va + len(op) + oper.imm, 8), Const(oper.tsize, 8))
+            return Mem(Const(op.va + len(op) + oper.imm, 8), Const(oper.tsize, 8))
 
         return vsym_i386.IntelSymbolikTranslator.getOperObj(self, op, idx)
+
+    # TODO: support callf and all that nonsense
+
+    def i_pextrd_q(self, op):
+        self.i_pextrb(op, width=op.opers[0].tsize)
 
     def i_movsxd(self, op):
         dsize = op.opers[0].tsize
         ssize = op.opers[1].tsize
-        v2 = o_sextend( self.getOperObj(op,1), Const(ssize, self._psize))
+        v2 = o_sextend(self.getOperObj(op, 1), Const(dsize, self._psize))
         self.setOperObj(op, 0, v2)
 
-
-
-    def i_div(self, op):
+    def _div(self, op, isInvalid=None):
         oper = op.opers[0]
-        denom = self.getOperObj(op, 1)
+        denom = self.getOperObj(op, 0)
         if denom == 0:
             # TODO: make effect
-            raise Exception('#DE, divide by zero')
+            raise envi.DivideByZero('AMD64 Divide by zero')
+
+        if isInvalid is None:
+            limit = (2 ** (oper.tsize * 8)) - 1
+            isInvalid = lambda val: val > limit
 
         if oper.tsize == 8:
             rax = Var('rax', self._psize)
             rdx = Var('rdx', self._psize)
             num = (rdx << Const(64, self._psize)) + rax
             temp = num / denom
-            if temp > (2**64)-1:
+            if temp.isDiscrete() and isInvalid(temp):
                 # TODO: make effect
-                raise Exception('#DE, divide error')
+                raise envi.DivideError('AMD64 i_div #DE')
 
             self.effSetVariable('rax', temp)
             self.effSetVariable('rdx', num % denom)
 
             return
 
-        return vsym_i386.IntelSymbolikTranslator.i_div(self, op)
+        return vsym_i386.IntelSymbolikTranslator._div(self, op, isInvalid=isInvalid)
+
+    def i_div(self, op):
+        return self._div(op)
+
 
     def i_jecxz(self, op):
         return vsym_i386.IntelSymbolikTranslator.i_jecxz(self, op)
 
     def i_jrcxz(self, op):
         return self._cond_jmp(op, eq(Var('rcx', self._psize), Const(0, self._psize)))
-
-    def i_movsq(self, op):
-        si = Var(self.__srcp__, self._psize)
-        di = Var(self.__destp__, self._psize)
-        mem = Mem(si, Const(8))
-        self.effWriteMemory(di, Const(8, self._psize), mem)
-        self.effSetVariable(self.__srcp__, si + Const(8, self._psize))
-        self.effSetVariable(self.__destp__, di + Const(8, self._psize))
 
     def i_pushfd(self, op):
         sp = self.getRegObj(self._reg_ctx._rctx_spindex)
@@ -230,6 +235,15 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
     i_cmovz = i_cmove
     i_cmovnz = i_cmovne
 
+    def i_movsq(self, op):
+        return self._movs(op, width=8)
+
+    def i_stosq(self, op):
+        return self._stos(op, width=8)
+
+    def i_cmpsq(self, op):
+        return self._cmps(op, width=8)
+
 class Amd64ArgDefSymEmu(vsym_i386.ArgDefSymEmu):
     __xlator__ = Amd64SymbolikTranslator
 
@@ -247,7 +261,7 @@ class Amd64SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
 
     def __init__(self, vw, initial_sp=0xbfbff000):
         vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
-        self.setStackBase(0xbfbff000, 8192)
+        self.setStackBase(0xbfbff000, 16384)
         self.addCallingConvention('sysvamd64call', SysVAmd64CallSym())
         self.addCallingConvention('msx64call', msx64callsym)
 

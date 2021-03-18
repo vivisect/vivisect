@@ -6,13 +6,16 @@ if they are code by emulation behaviorial analysis.
 """
 import envi
 import vivisect
-import vivisect.reports as viv_rep
+import vivisect.exc as v_exc
 from envi.archs.i386.opconst import *
 import vivisect.impemu.monitor as viv_imp_monitor
 
+import logging
+
 from vivisect.const import *
 
-verbose = False
+logger = logging.getLogger(__name__)
+
 
 class watcher(viv_imp_monitor.EmulationMonitor):
 
@@ -31,16 +34,14 @@ class watcher(viv_imp_monitor.EmulationMonitor):
     def logAnomaly(self, emu, eip, msg):
         self.badcode = True
         emu.stopEmu()
-        
-        #self.vw.verbprint("Emucode: 0x%.8x (f:0x%.8x) %s" % (eip, self.tryva, msg))
 
     def looksgood(self):
-        if not self.hasret or self.badcode: 
+        if not self.hasret or self.badcode:
             return False
 
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
         for mnem, count in self.mndist.items():
-            if round(float( float(count) / float(self.insn_count)), 3) >= .67:
+            if round(float( float(count) / float(self.insn_count)), 3) >= .67 and self.insn_count > 4:
                 return False
 
         return True
@@ -61,36 +62,34 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         return True
 
-
     def prehook(self, emu, op, eip):
-        if op.mnem == "out": #FIXME arch specific. see above idea.
+        if op.mnem == "out":  # FIXME arch specific. see above idea.
             emu.stopEmu()
-            raise Exception("Out instruction...")
+            raise v_exc.BadOutInstruction(op.va)
 
         if op in self.badops:
             emu.stopEmu()
-            raise Exception("Hit known BADOP at 0x%.8x %s" % (eip,repr(op)))
+            raise v_exc.BadOpBytes(op.va)
 
         if op.iflags & envi.IF_RET:
             self.hasret = True
             emu.stopEmu()
 
         self.lastop = op
-        # Make sure we didn't run into any other
-        # defined locations...
-        if self.vw.isFunction(eip):
-            emu.stopEmu()
-            raise Exception("Fell Through Into Function: %.8x" % eip)
 
         loc = self.vw.getLocation(eip)
-        if loc != None:
+        if loc is not None:
             va, size, ltype, linfo = loc
             if ltype != vivisect.LOC_OP:
                 emu.stopEmu()
-                raise Exception("HIT %d AT %.8x" % (ltype, va))
+                raise Exception("HIT LOCTYPE %d AT 0x%.8x" % (ltype, va))
+
         cnt = self.mndist.get(op.mnem, 0)
-        self.mndist[ op.mnem ] = cnt+1
+        self.mndist[op.mnem] = cnt + 1
         self.insn_count += 1
+        if self.vw.isNoReturnVa(eip):
+            self.hasret = True
+            emu.stopEmu()
 
         # FIXME do we need a way to terminate emulation here?
     def apicall(self, emu, op, pc, api, argv):
@@ -103,19 +102,26 @@ def analyze(vw):
 
     flist = vw.getFunctions()
 
-    tried = {}
-    vasetrows = []
+    tried = set()
     while True:
         docode = []
         bcode  = []
-       
+
         vatodo = []
-        vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) == None ]
-        vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) == None] )
+        vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) is None ]
+        vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None] )
 
         for va in set(vatodo):
-            if vw.getLocation(va) != None:
+            loc = vw.getLocation(va)
+            if loc is not None:
+                if loc[L_LTYPE] == LOC_STRING:
+                    vw.makeString(va)
+                    tried.add(va)
+                elif loc[L_LTYPE] == LOC_UNI:
+                    vw.makeUnicode(va)
+                    tried.add(va)
                 continue
+
             if vw.isDeadData(va):
                 continue
 
@@ -124,16 +130,17 @@ def analyze(vw):
                 continue
 
             # Skip it if we've tried it already.
-            if tried.get(va):
+            if va in tried:
                 continue
 
-            tried[va] = True
+            tried.add(va)
             emu = vw.getEmulator()
             wat = watcher(vw, va)
             emu.setEmulationMonitor(wat)
+
             try:
                 emu.runFunction(va, maxhit=1)
-            except Exception, e:
+            except Exception:
                 continue
             if wat.looksgood():
                 docode.append(va)
@@ -142,32 +149,35 @@ def analyze(vw):
             elif wat.iscode() and vw.greedycode:
                 bcode.append(va)
             else:
-                if vw.isProbablyString(va):
-                    vw.makeString(va)
-                elif vw.isProbablyUnicode(va):
+                if vw.isProbablyUnicode(va):
                     vw.makeUnicode(va)
+                elif vw.isProbablyString(va):
+                    vw.makeString(va)
 
         if len(docode) == 0:
             break
 
         docode.sort()
         for va in docode:
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
-            # XXX - RP 
             try:
+                logger.debug('discovered new function: 0x%x', va)
                 vw.makeFunction(va)
-            except: 
+            except:
                 continue
-            vasetrows.append((va,))
-    
+
         bcode.sort()
         for va in bcode:
-            if vw.getLocation(va) != None:
+            if vw.getLocation(va) is not None:
                 continue
+            # TODO: consider elevating to functions?
             vw.makeCode(va)
 
     dlist = vw.getFunctions()
 
-    vw.verbprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))
+    newfuncs = set(dlist) - set(flist)
+    for fva in newfuncs:
+        vw.setVaSetRow('EmucodeFunctions', (fva,))
 
+    vw.vprint("emucode: %d new functions defined (now total: %d)" % (len(dlist)-len(flist), len(dlist)))

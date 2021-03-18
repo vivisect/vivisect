@@ -1,11 +1,11 @@
-import types
 import collections
 
 # Symbol Type Constants ( for serialization )
-SYMSTOR_SYM_SYMBOL      = 0
-SYMSTOR_SYM_FUNCTION    = 1
-SYMSTOR_SYM_SECTION     = 2
-SYMSTOR_SYM_MODULE      = 3
+SYMSTOR_SYM_SYMBOL = 0
+SYMSTOR_SYM_FUNCTION = 1
+SYMSTOR_SYM_SECTION = 2
+SYMSTOR_SYM_MODULE = 3
+
 
 class Symbol:
 
@@ -17,28 +17,113 @@ class Symbol:
         self.size = size
         self.fname = fname
 
+    def __ge__(self, other):
+        return int(self) >= int(other)
+    def __le__(self, other):
+        return int(self) <= int(other)
+    def __gt__(self, other):
+        return int(self) > int(other)
+    def __lt__(self, other):
+        return int(self) < int(other)
     def __eq__(self, other):
         if not isinstance(other, Symbol):
             return False
-        return long(self) == long(other)
+        return int(self) == int(other)
+    def __add__(self, other):
+        return int(self) + int(other)
+    def __sub__(self, other):
+        return int(self) - int(other)
+    def __mul__(self, other):
+        return int(self) * int(other)
+    def __div__(self, other):
+        return int(self) / int(other)
+    def __floordiv__(self, other):
+        return int(self) // int(other)
+    def __mod__(self, other):
+        return int(self) % int(other)
+    def __divmod__(self, other):
+        return divmod(int(self), int(other))
+    def __pow__(self, other, modulo=None):
+        return pow(int(self), int(other), modulo)
+    def __lshift__(self, other):
+        return int(self) << int(other)
+    def __rshift__(self, other):
+        return int(self) >> int(other)
+    def __and__(self, other):
+        return int(self) & int(other)
+    def __xor__(self, other):
+        return int(self) ^ int(other)
+    def __or__(self, other):
+        return int(self) | int(other)
+    # Operator swapped variants
+    def __radd__(self, other):
+        return int(other) + int(self)
+    def __rsub__(self, other):
+        return int(other) - int(self)
+    def __rmul__(self, other):
+        return int(other) * int(self)
+    def __rdiv__(self, other):
+        return int(other) / int(self)
+    def __rfloordiv__(self, other):
+        return int(other) // int(self)
+    def __rmod__(self, other):
+        return int(other) % int(self)
+    def __rdivmod__(self, other):
+        return divmod(int(other), int(self))
+    def __rpow__(self, other, modulo=None):
+        return pow(int(other), int(self), modulo)
+    def __rlshift__(self, other):
+        return int(other) << int(self)
+    def __rrshift__(self, other):
+        return int(other) >> int(self)
+    def __rand__(self, other):
+        return int(other) & int(self)
+    def __rxor__(self, other):
+        return int(other) ^ int(self)
+    def __ror__(self, other):
+        return int(other) | int(self)
 
-    def __coerce__(self, value):
-        t = type(value)
-
-        if t == types.NoneType:
-            return (True, False)
-
-        if t in (int,long):
-            return (t(self.value), value)
-
-        if isinstance( value, Symbol ):
-            return ( long(self.value), long(value.value) )
+    # Inplace variants
+    def __iadd__(self, other):
+        self.value += int(other)
+        return self
+    def __isub__(self, other):
+        self.value -= int(other)
+        return self
+    def __imul__(self, other):
+        self.value *= int(other)
+        return self
+    def __idiv__(self, other):
+        self.value = int(self.value / int(other))
+        return self
+    def __ifloordiv__(self, other):
+        self.value //= int(other)
+        return self
+    def __imod__(self, other):
+        self.vsSetValue(self % other)
+        self.value %= int(other)
+        return self
+    def __ipow__(self, other, modulo=None):
+        self.value = pow(self.value, other, modulo)
+        return self
+    def __ilshift__(self, other):
+        self.value <<= other
+        return self
+    def __irshift__(self, other):
+        self.value >>= other
+        return self
+    def __iand__(self, other):
+        self.value &= other
+        return self
+    def __ixor__(self, other):
+        self.value ^= other
+        return self
+    def __ior__(self, other):
+        self.value |= other
+        return self
 
     def __hash__(self):
-        return hash(long(self))
-
-    def __long__(self):
-        return long(self.value)
+        return hash(int(self))
 
     def __int__(self):
         return int(self.value)
@@ -47,28 +132,33 @@ class Symbol:
         return self.size
 
     def __str__(self):
-        if self.fname != None:
+        if self.fname is not None:
             return "%s.%s" % (self.fname, self.name)
         return self.name
 
     def __repr__(self):
         return str(self)
 
+
 class FunctionSymbol(Symbol):
     """
     Used to represent functions.
     """
     symtype = SYMSTOR_SYM_FUNCTION
+
     def __repr__(self):
         return "%s.%s()" % (self.fname, self.name)
+
 
 class SectionSymbol(Symbol):
     """
     Used for file sections/segments.
     """
     symtype = SYMSTOR_SYM_SECTION
+
     def __repr__(self):
         return "%s[%s]" % (self.fname, self.name)
+
 
 class SymbolResolver:
     """
@@ -93,25 +183,25 @@ class SymbolResolver:
         self.symaddrs = {}
 
         # caches that hold instantiated Symbol objects
-        self.symobjsbyaddr  = {}
-        self.symobjsbyname  = {}
+        self.symobjsbyaddr = {}
+        self.symobjsbyname = {}
 
     def delSymbol(self, sym):
         """
         Delete a symbol from the resolver's namespace
         """
-        symval = long(sym)
+        symval = int(sym)
         self.symaddrs.pop(symval, None)
 
-        bbase = symval & self.bucketmask
-        #self.objbuckets[bbase].remove(sym)
+        # bbase = symval & self.bucketmask
+        # self.objbuckets[bbase].remove(sym)
 
         subres = None
-        if sym.fname != None:
+        if sym.fname is not None:
             subres = self.symnames.get(sym.fname)
 
         # Potentially del it from the sub resolver's namespace
-        if subres != None:
+        if subres is not None:
             subres.delSymbol(sym)
 
         # Otherwise del it from our namespace
@@ -126,10 +216,10 @@ class SymbolResolver:
         Add a symbol to the resolver.
         """
         # Fake these out for the API ( optimized implementations should *not* call this )
-        symtup = ( sym.value, sym.size, sym.name, sym.symtype, sym.fname )
-        symtups = [symtup,]
+        symtup = (sym.value, sym.size, sym.name, sym.symtype, sym.fname)
+        symtups = [symtup]
 
-        self._nomSymTupAddrs( symtups )
+        self._nomSymTupAddrs(symtups)
 
         subres = self.symobjsbyname.get(sym.fname)
         if subres:
@@ -151,25 +241,25 @@ class SymbolResolver:
 
         # Do we have a cached object?
         sym = self.symobjsbyname.get(name)
-        if sym != None:
+        if sym is not None:
             return sym
 
         # Do we have a symbol tuple?
         symtup = self.symnames.get(name)
-        if symtup != None:
-            return self._symFromTup( symtup )
+        if symtup is not None:
+            return self._symFromTup(symtup)
 
     def delSymByName(self, name):
         if not self.casesens:
             name = name.lower()
 
         sym = self.symnames.get(name, None)
-        if sym != None:
+        if sym is not None:
             self.delSymbol(self._symFromTup(sym))
 
     def _symFromTup(self, symtup):
         # Create a symbol object and cache it...
-        symaddr,symsize,symname,symtype,symfname = symtup
+        symaddr, symsize, symname, symtype, symfname = symtup
         symclass = symclasses[symtype]
         if symtype == SYMSTOR_SYM_MODULE:
             sym = FileSymbol(symname, symaddr, symsize, width=self.width)
@@ -189,7 +279,7 @@ class SymbolResolver:
 
         if sym.fname:
             subres = self.symobjsbyname.get(sym.fname)
-            if subres != None:
+            if subres is not None:
                 subres._addSymObject(sym)
                 return
 
@@ -206,7 +296,7 @@ class SymbolResolver:
         va = va & self.widthmask
 
         sym = self.symobjsbyaddr.get(va)
-        if sym != None:
+        if sym is not None:
             return sym
 
         symtup = self.symaddrs.get(va)
@@ -225,7 +315,7 @@ class SymbolResolver:
                 b1.sort()
                 symtup = b1[-1]
                 sym = self.symobjsbyaddr.get(symtup[0])
-                if sym != None:
+                if sym is not None:
                     return sym
 
                 return self._symFromTup(symtup)
@@ -234,8 +324,7 @@ class SymbolResolver:
         """
         Return a list of the symbols which are contained in this resolver.
         """
-        names = self.symnames.keys()
-        return [ self.getSymByName(name) for name in names ]
+        return [self.getSymByName(name) for name in self.symnames]
 
     def getSymHint(self, va, hidx):
         """
@@ -253,19 +342,19 @@ class SymbolResolver:
     def _nomSymTupAddrs(self, symtups):
 
         # Ugly list comprehensions for speed...
-        [ self.symaddrs.__setitem__( n[0], n ) for n in symtups ]
+        [self.symaddrs.__setitem__(n[0], n) for n in symtups]
 
         for symtup in symtups:
             # do the size range...
-            self.buckets[ symtup[0] & self.bucketmask ].append( symtup )
+            self.buckets[symtup[0] & self.bucketmask].append(symtup)
             if symtup[1]:
-                [ self.buckets[b].append(symtup) for b in range(symtup[0], symtup[0] + symtup[1], self.bucketsize) ]
+                [self.buckets[b].append(symtup) for b in range(symtup[0], symtup[0] + symtup[1], self.bucketsize)]
 
     def _nomSymTupNames(self, symtups):
         if not self.casesens:
-            [ self.symnames.__setitem__( n[2].lower(), n ) for n in symtups ]
+            [self.symnames.__setitem__( n[2].lower(), n ) for n in symtups]
         else:
-            [ self.symnames.__setitem__( n[2], n ) for n in symtups ]
+            [self.symnames.__setitem__( n[2], n ) for n in symtups]
 
     def impSymCache(self, symcache, symfname=None, baseaddr=0):
         '''
@@ -273,10 +362,10 @@ class SymbolResolver:
         given base address ( and for the given sub-file )
         '''
         # Recieve a "cache" list and make it into our kind of tuples.
-        symtups = [ (symaddr+baseaddr,symsize,symname,symtype,symfname) for (symaddr,symsize,symname,symtype) in symcache ]
+        symtups = [(symaddr + baseaddr, symsize, symname, symtype, symfname) for (symaddr, symsize, symname, symtype) in symcache]
 
         # Either way, index the addresses
-        self._nomSymTupAddrs( symtups )
+        self._nomSymTupAddrs(symtups)
 
         if symfname:
             # If we have a sub-resolver, no need to add the names to
@@ -289,6 +378,7 @@ class SymbolResolver:
 
         self._nomSymTupNames(symtups)
 
+
 class FileSymbol(Symbol, SymbolResolver):
     """
     A file symbol is both a symbol resolver of it's own, and
@@ -299,8 +389,9 @@ class FileSymbol(Symbol, SymbolResolver):
     that the parent Resolver of the FileSymbol takes care of addr lookups.
     """
     symtype = SYMSTOR_SYM_MODULE
+
     def __init__(self, fname, base, size, width=4):
-        if fname == None:
+        if fname is None:
             raise Exception('fname must not be None for a FileSymbol')
 
         SymbolResolver.__init__(self, width=width, baseaddr=base)
@@ -312,8 +403,8 @@ class FileSymbol(Symbol, SymbolResolver):
         symbols within them.
         """
         ret = self.getSymByName(name)
-        if ret == None:
-            raise AttributeError("%s has no symbol %s" % (self.name,name))
+        if ret is None:
+            raise AttributeError("%s has no symbol %s" % (self.name, name))
         return ret
 
     def __getitem__(self, name):
@@ -321,8 +412,8 @@ class FileSymbol(Symbol, SymbolResolver):
         Allow dictionary style access for mangled incompatible names...
         """
         ret = self.getSymByName(name)
-        if ret == None:
-            raise KeyError("%s has no symbol %s" % (self.name,name))
+        if ret is None:
+            raise KeyError("%s has no symbol %s" % (self.name, name))
         return ret
 
     # we need __getstate__ and __setstate__ because of serialization.  if
@@ -357,7 +448,4 @@ class FileSymbol(Symbol, SymbolResolver):
     def __nonzero__(self):
         return True
 
-    def __unicode__(self):
-        return Symbol.__str__(self)
-
-symclasses = ( Symbol, FunctionSymbol, SectionSymbol, FileSymbol )
+symclasses = (Symbol, FunctionSymbol, SectionSymbol, FileSymbol)

@@ -1,16 +1,15 @@
 
 import os
 import re
-import code
 import time
 import socket
 import struct
-import platform
+import logging
+import binascii
 import tempfile
 import threading
 
 import PE
-import vdb
 import envi
 import vtrace
 
@@ -28,8 +27,8 @@ debugStub.listen.guest32.remote = "TRUE"
 
 debugStub.hideBreakpoints = "TRUE" # Enable breakpoints
 
-From GDB stuff...  
-===== i386 
+From GDB stuff...
+===== i386
 src/gdb/i386-tdep.c
 src/gdb/regformats/reg-i386.dat
 ===== amd64
@@ -65,6 +64,8 @@ expedite:r11,sp,pc
 32:fps
 32:cpsr
 '''
+
+logger = logging.getLogger(__name__)
 
 gdb_reg_defs = {
     'i386': (
@@ -166,7 +167,7 @@ class GdbStubMixin:
 
             self._gdb_sock.sendall('+')
 
-            #print 'RECV: ->%s<-' % bytes
+            logger.debug('RECV: ->%s<-', bytes)
             return bytes
 
     def _gdbAddMemBreak(self, addr, size):
@@ -183,7 +184,7 @@ class GdbStubMixin:
             return self._recvPkt()
 
     def _sendPkt(self, cmd):
-        #print 'SEND: ->%s<-' % cmd
+        logger.debug('SEND: ->%s<-', cmd)
         with self._gdb_tx_lock:
 
             self._gdb_sock.sendall(pkt(cmd))
@@ -192,7 +193,7 @@ class GdbStubMixin:
                 raise Exception('Retrans! ->%s<-' % b)
 
     def _connectSocket(self):
-        if self._gdb_sock != None:
+        if self._gdb_sock is not None:
             self._gdb_sock.shutdown(2)
 
         tries = 0
@@ -207,25 +208,25 @@ class GdbStubMixin:
                     self._gdb_sock.recv(1)
                     self._gdb_sock.sendall('+')
 
-                except socket.timeout, t:
+                except socket.timeout:
                     pass
 
                 self._gdb_sock.settimeout(None)
                 break
 
-            except Exception, e:
+            except Exception:
                 time.sleep(0.2)
                 tries += 1
 
     def _monitorCommand(self, cmd):
         resp = ''
-        cmd = 'qRcmd,%s' % cmd.encode('hex')
+        cmd = 'qRcmd,%s' % binascii.hexlify(cmd)
         pkt = self._cmdTransact(cmd)
         while not pkt.startswith('OK'):
             self._raiseIfError(pkt)
             if not pkt.startswith('O'):
-                return pkt.decode('hex')
-            resp += pkt[1:].decode('hex')
+                return binascii.unhexlify(pkt)
+            resp += binascii.unhexlify(pkt[1:])
             pkt = self._recvPkt()
         return resp
 
@@ -249,7 +250,7 @@ class GdbStubMixin:
     def platformContinue(self):
         sig = self.getCurrentSignal()
         cmd = 'c'
-        if sig != None:
+        if sig is not None:
             cmd = 'C%.2x' % sig
         self._sendPkt(cmd)
 
@@ -280,7 +281,6 @@ class GdbStubMixin:
         while True:
             pkt = self._recvPkt()
             if pkt.startswith('O'):
-                print 'GDBSTUB SAID: %s' % pkt[1:].decode('hex')
                 continue
             break
         return pkt
@@ -296,7 +296,7 @@ class GdbStubMixin:
             self._findLibraryMaps(self._gdb_filemagic, always=True)
 
     def platformProcessEvent(self, event):
-        #print 'EVENT ->%s<-' % event
+        logger.debug('EVENT ->%s<-', str(event))
 
         if len(event) == 0:
             self.setMeta('ExitCode', 0xffffffff)
@@ -311,24 +311,24 @@ class GdbStubMixin:
         # Is this a thread specific signal?
         if atype == 'T':
 
-            #print 'SIGNAL',sig
+            logger.debug('Signal: %s', str(sig))
 
             dictbytes = event[3:]
 
             evdict = {}
             for kvstr in dictbytes.split(';'):
-                if not kvstr: break
-                #print 'KVSTR ->%s<-' % kvstr
+                if not kvstr:
+                    break
                 key, value = kvstr.split(':', 1)
                 evdict[key.lower()] = value
 
             # Did we get a specific thread?
             tidstr = evdict.get('thread')
-            if tidstr != None:
+            if tidstr is not None:
                 tid = int(tidstr, 16)
                 self.setMeta('ThreadId', tid)
-            #else:
-                #print "WE SHOULD ASK FOR THE CURRENT THREAD HERE!"
+            else:
+                logger.warning("We should ask for the current thread here!")
 
         elif atype == 'S':
             pass
@@ -340,9 +340,9 @@ class GdbStubMixin:
             return
 
         else:
-            print 'Unhandled Gdb Server Event: %s' % event
+            logger.warning('Unhandled Gdb Server Event: %s', str(event))
 
-        #if self.attaching and signo in trap_sigs:
+        # if self.attaching and signo in trap_sigs:
         if self.attaching:
             self.attaching = False
 
@@ -350,7 +350,7 @@ class GdbStubMixin:
             self._gdbLoadLibraries()
             self._gdbCreateThreads()
 
-            self.runAgain(False) # Clear this, if they want BREAK to run, it will
+            self.runAgain(False)  # Clear this, if they want BREAK to run, it will
             self.fireNotifiers(vtrace.NOTIFY_BREAK)
 
         elif self.breaking and signo in trap_sigs:
@@ -408,16 +408,16 @@ class GdbStubMixin:
 
 
         #for i,name in enumerate(names):
-            #if name == None: # So we can skip parts of the gdb definition...
+            #if name is None: # So we can skip parts of the gdb definition...
                 #continue
             #j = self.getRegisterIndex(name)
-            #if j != None:
+            #if j is not None:
                 #self._gdb_reg_xlat.append( (i, j) )
 
     def _gdbSetArch(self, arch):
 
         reginfo = gdb_reg_defs.get(arch)
-        if reginfo == None:
+        if reginfo is None:
             raise Exception('No known register mappings for gdbstub on %s!' % arch)
 
         regnames, regfmt = reginfo
@@ -439,7 +439,7 @@ class GdbStubMixin:
 
         for i,regval in enumerate(rvals):
             regname = self._gdb_regnames[i]
-            if regname != None:
+            if regname is not None:
                 ctx.setRegisterByName( regname, regval )
 
         return ctx
@@ -449,14 +449,14 @@ class GdbStubMixin:
         Set the target stub's register context from the envi register context
         '''
         # FIXME tid!
-        regbytes = self._cmdTransact('g').decode('hex')
+        regbytes = binascii.unhexlify(self._cmdTransact('g'))
         regremain = regbytes[self._gdb_regsize:]
         rvals = struct.unpack(self._gdb_regfmt, regbytes[:self._gdb_regsize])
         rvals = list(rvals) # So we can assign to them...
         for myidx, enviidx in self._gdb_reg_xlat:
             rvals[myidx] = ctx.getRegister(enviidx)
         newbytes = struct.pack(self._gdb_regfmt, rvals) + regremain
-        return self._cmdTransact('G'+newbytes.encode('hex'))
+        return self._cmdTransact('G' + binascii.hexlify(newbytes))
 
     def platformGetThreads(self):
 
@@ -492,12 +492,12 @@ class GdbStubMixin:
 
             i = buf.find('*')
 
-        return buf.decode('hex')
+        return binascii.unhexlify(buf)
 
     def platformReadMemory(self, addr, size):
         mbytes = ''
         offset = 0
-        #print('READ: 0x%.8x (%d)' % (addr, size))
+        logger.debug('READ: 0x%.8x (%d)', addr, size)
         while len(mbytes) < size:
             # FIXME is this 256 problem just in the VMWare gdb stub?
             cmd = 'm%x,%x' % (addr + offset, min(256, size-offset))
@@ -509,7 +509,7 @@ class GdbStubMixin:
         return mbytes
 
     def platformWriteMemory(self, addr, mbytes):
-        cmd = 'M%x,%x:%s' % (addr, len(mbytes), mbytes.encode('hex'))
+        cmd = 'M%x,%x:%s' % (addr, len(mbytes), binascii.hexlify(mbytes))
         pkt = self._cmdTransact(cmd)
 
     def platformGetMaps(self):
@@ -547,7 +547,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         self.setMeta('BinaryFormat', None)
 
         arch_reg_info = gdb_reg_defs.get(aname)
-        if arch_reg_info == None:
+        if arch_reg_info is None:
             raise Exception('We dont know the GDB register definition for arch: %s' % name)
 
         self._arch_regnames, self._arch_regfmt = arch_reg_info
@@ -556,10 +556,10 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         self._arch_rctx = self.arch.archGetRegCtx()
         self._arch_reg_xlat = []
         for i,name in enumerate(self._arch_regnames):
-            if name == None: # So we can skip parts of the gdb definition...
+            if name is None: # So we can skip parts of the gdb definition...
                 continue
             j = self._arch_rctx.getRegisterIndex(name)
-            if j != None:
+            if j is not None:
                 self._arch_reg_xlat.append((i,j))
 
         # Load up our register definition!
@@ -578,18 +578,18 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         return basename.split(".")[0].split("-")[0].lower()
 
     def platformParseBinary(self, filename, baseaddr, normname):
-        print 'platformParseBinary: 0x%.8x %s' % (baseaddr, normname)
+        logger.warning('Not implemented: platformParseBinary: 0x%.8x %s', baseaddr, normname)
 
     def platformParseBinaryPe(self, filename, baseaddr, normname):
 
         # If we're on windows, fake out the PE header and use dbghelp
         if False:
             # FIXME this code is stolen and should be a function!
+            import ctypes
             import vtrace.platforms.win32 as vt_win32
             fakepe = self.readMemory(baseaddr, 1024)
             tfile = tempfile.NamedTemporaryFile(delete=False)
             tfilename = tfile.name
-            import ctypes
             pebuf = ctypes.create_string_buffer(fakepe)
             try:
                 try:
@@ -601,8 +601,8 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                     parser.loadSymsIntoTrace(self, normname)
                 finally:
                     os.unlink(tfilename)
-            except Exception, e:
-                print e
+            except Exception as e:
+                logger.warning(str(e))
 
         else:
             pe = PE.peFromMemoryObject(self, baseaddr)
@@ -625,7 +625,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
     def _getVmwareIdtr(self):
         istr = self._monitorCommand('r idtr')
         m = re.match('.* base=(0x\w+) .*', istr)
-        idtr = long(m.groups()[0], 0)
+        idtr = int(m.groups()[0], 0)
         return idtr
 
     def _getNtOsKrnl(self, idtr):
@@ -635,7 +635,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
             while not self.readMemory(kptr, 16).startswith('MZ\x90\x00'):
                 kptr -= 4096
             return kptr
-        except Exception, e:
+        except Exception as e:
             return None
 
     def _enumTargetOs(self, fsbase):
@@ -656,9 +656,6 @@ class GdbStubMixin_old(e_registers.RegisterContext):
 
             kpcr = self.getStruct('nt.KPCR', fsbase)
             kver = self.getStruct('nt.DBGKD_GET_VERSION64', kpcr.KdVersionBlock)
-
-            #print kpcr.tree()
-            #print kver.tree()
 
             kernbase = kver.KernBase & self.bigmask
             modlist = kver.PsLoadedModuleList & self.bigmask
@@ -702,12 +699,12 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 parts = line.split()
                 fsbase = int(parts[2], 16)
                 break
-                
+
             self._enumTargetOs(fsbase)
-            #print monreg
+            #logger.debug(monreg)
             #m = re.match('FS =\w+ (\w+)', monreg, re.G)
             #fsbase = long(m.groups()[0], 0)
-            #print 'FSBASE',hex(fsbase)
+            #logger.debug('FSBASE',hex(fsbase))
 
         elif monhelp.find('linuxoffsets') != -1:
 
@@ -727,8 +724,8 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 fields = [-1,]
                 try:
                     fields = self.readMemoryFormat(win_kpcr, '<7Q')
-                except Exception, e:
-                    print 'Exception:',e
+                except Exception as e:
+                    logger.warning(str(e))
 
                 # FIXME other heuristics for linux/bsd/etc...
                 if fields[-1] == win_kpcr:
@@ -742,7 +739,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
                 #fs_fields = self.readMemoryFormat(fsbase, '<8I')
 
                 #nt = self._getNtOsKrnl(idtr)
-                #if nt != None:
+                #if nt is not None:
                     # We are 64bit windows!
                     #import vstruct.defs.windows.win_6_1_amd64.ntoskrnl as vs_w_ntoskrnl
                     #self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
@@ -760,7 +757,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
             self.fireNotifiers(vtrace.NOTIFY_ATTACH)
 
         else:
-            print 'Unidentified gdbstub: %s' % vercmd
+            logger.warning('Unidentified gdbstub: %s', vercmd)
             self.fireNotifiers(vtrace.NOTIFY_ATTACH)
 
 
@@ -771,7 +768,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
         self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
         self._initWinBase()
                 #nt = self._getNtOsKrnl(idtr)
-                #if nt != None:
+                #if nt is not None:
                     # We are 64bit windows!
                     #import vstruct.defs.windows.win_6_1_amd64.ntoskrnl as vs_w_ntoskrnl
                     #self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
@@ -810,13 +807,13 @@ class GdbStubMixin_old(e_registers.RegisterContext):
 
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheck'))
-        except Exception, e:
-            print 'Error Seting KeBugCheck Bp: %s' % e
+        except Exception as e:
+            logger.warning('Error Seting KeBugCheck Bp: %s', e)
 
         try:
             self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheckEx'))
-        except Exception, e:
-            print 'Error Seting KeBugCheck Bp: %s' % e
+        except Exception as e:
+            logger.warning('Error Seting KeBugCheck Bp: %s', e)
 
 
 GDB_BP_SOFTWARE     = 0
@@ -878,7 +875,7 @@ class GdbStubTrace(
         ## Steal a reference because the step should
         ## clear curbp...
         #bp = self.curbp
-        #if bp != None and bp.isEnabled():
+        #if bp is not None and bp.isEnabled():
             ## We had to remove a check for active and a deactivate here...
             #orig = self.getMode("FastStep")
             #self.setMode("FastStep", True)

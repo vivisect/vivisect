@@ -1,15 +1,4 @@
 import envi
-import envi.bits as e_bits
-
-#TODO
-# f0 0f c7 4d 00 75 f0 5d 5b - this is NOT right in disasm
-
-import copy
-import struct
-import traceback
-
-# Gank in our bundled libdisassemble
-import opcode86
 
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *
@@ -24,10 +13,10 @@ class i386Module(envi.ArchitectureModule):
         return i386RegisterContext()
 
     def archGetBreakInstr(self):
-        return '\xcc'
+        return b'\xcc'
 
     def archGetNopInstr(self):
-        return '\x90'
+        return b'\x90'
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
@@ -51,4 +40,3 @@ class i386Module(envi.ArchitectureModule):
 
 # NOTE: This one must be after the definition of i386Module
 from envi.archs.i386.emu import *
-

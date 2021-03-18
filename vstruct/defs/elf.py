@@ -60,10 +60,30 @@ class Elf32Reloc(vstruct.VStruct):
         self.r_offset = v_ptr32(bigend=bigend)
         self.r_info   = v_uint32(bigend=bigend)
 
+    def __eq__(self, other):
+        if self.name != other.name:
+            return False
+        if self.r_offset != other.r_offset:
+            return False
+        if self.r_info != other.r_info:
+            return False
+        return True
+
 class Elf32Reloca(Elf32Reloc):
     def __init__(self, bigend=False):
         Elf32Reloc.__init__(self)
         self.r_addend = v_uint32(bigend=bigend)
+
+    def __eq__(self, other):
+        if self.name != other.name:
+            return False
+        if self.r_offset != other.r_offset:
+            return False
+        if self.r_info != other.r_info:
+            return False
+        if self.r_addend != other.r_addend:
+            return False
+        return True
 
 class Elf32Symbol(vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -75,12 +95,33 @@ class Elf32Symbol(vstruct.VStruct):
         self.st_other = v_uint8()
         self.st_shndx = v_uint16(bigend=bigend)
 
+    def __eq__(self, other):
+        if self.st_value != other.st_value:
+            return False
+        if self.st_name != other.st_name:
+            return False
+        if self.st_size != other.st_size:
+            return False
+        if self.st_info != other.st_info:
+            return False
+        if self.st_other != other.st_other:
+            return False
+        if self.st_shndx != other.st_shndx:
+            return False
+        return True
+
 class Elf32Dynamic(vstruct.VStruct):
     def __init__(self, bigend=False):
         vstruct.VStruct.__init__(self)
         self.d_tag   = v_uint32(bigend=bigend)
         self.d_value = v_uint32(bigend=bigend)
 
+    def __eq__(self, other):
+        if self.d_tag != other.d_tag:
+            return False
+        if self.d_value != other.d_value:
+            return False
+        return True
 
 class Elf64(vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -139,6 +180,15 @@ class Elf64Reloc(vstruct.VStruct):
         self.r_offset = v_ptr64(bigend=bigend)
         self.r_info   = v_uint64(bigend=bigend)
 
+    def __eq__(self, other):
+        if self.name != other.name:
+            return False
+        if self.r_offset != other.r_offset:
+            return False
+        if self.r_info != other.r_info:
+            return False
+        return True
+
 class Elf64Reloca(Elf64Reloc):
     def __init__(self, bigend=False):
         #Elf64Reloc.__init__(self)
@@ -146,6 +196,17 @@ class Elf64Reloca(Elf64Reloc):
         self.r_offset = v_uint64(bigend=bigend)
         self.r_info   = v_uint64(bigend=bigend)
         self.r_addend = v_uint64(bigend=bigend)
+
+    def __eq__(self, other):
+        if self.name != other.name:
+            return False
+        if self.r_offset != other.r_offset:
+            return False
+        if self.r_info != other.r_info:
+            return False
+        if self.r_addend != other.r_addend:
+            return False
+        return True
 
 class Elf64Symbol(vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -156,6 +217,21 @@ class Elf64Symbol(vstruct.VStruct):
         self.st_shndx = v_uint16(bigend=bigend)
         self.st_value = v_uint64(bigend=bigend)
         self.st_size  = v_uint64(bigend=bigend)
+
+    def __eq__(self, other):
+        if self.st_value != other.st_value:
+            return False
+        if self.st_name != other.st_name:
+            return False
+        if self.st_size != other.st_size:
+            return False
+        if self.st_info != other.st_info:
+            return False
+        if self.st_other != other.st_other:
+            return False
+        if self.st_shndx != other.st_shndx:
+            return False
+        return True
 
 class Elf64Dynamic(Elf32Dynamic):
     def __init__(self, bigend=False):
@@ -174,9 +250,12 @@ class ElfNote(vstruct.VStruct):
         self.desc   = vstruct.VArray()
 
     def pcb_namesz(self):
-        self['name'].vsSetLength( self.namesz )
+        # padded to 4 byte alignment
+        namesz = ((self.namesz +3) >> 2) << 2
+        self['name'].vsSetLength( namesz )
 
     def pcb_descsz(self):
-        elems = [ v_uint32() for i in xrange(self.descsz / 4) ]
+        # padded to 4 byte alignment
+        descct = ((self.descsz +3) >> 2)
+        elems = [ v_uint32() for i in range(descct) ]
         self.desc = vstruct.VArray(elems=elems)
-

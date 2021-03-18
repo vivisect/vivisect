@@ -2,7 +2,7 @@
 Utilities for generating "archetecture independant" ASTs.
 '''
 from vivisect.const import *
-from vivisect.symboliks.common import * 
+from vivisect.symboliks.common import *
 
 def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
     '''
@@ -46,9 +46,10 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
     # for constants to map new symobj id -> oldsym
     idtova = {}
     # for registers to map new symobj id -> oldsym
-    idtoold = {} 
+    idtoold = {}
+
     # a tree walker to frob reg vars
-    def normast(path,oldsym,ctx):
+    def normast(path, oldsym, ctx):
         # are we wipping away consts?
         if wipeva and oldsym.symtype == SYMT_CONST:
             if symctx.vw.isValidPointer(oldsym.value):
@@ -66,35 +67,36 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
             return None
 
         # check if this is a register
-        if archemu.getRegisterIndex(oldsym.name) == None:
+        if archemu.getRegisterIndex(oldsym.name) is None:
             return None
 
         # do *not* change the var name below.  it's value is
         # intrinsic to the comparibility of results over time
-        newobj = Var('archindreg',4) # norm all to 4...
+        newobj = Var('archindreg', 4)  # norm all to 4...
 
         idtoold[newobj._sym_id] = oldsym
         return newobj
 
     # frob regs
-    symobjs = [ s.walkTree(normast) for s in symobjs ]
+    symobjs = [s.walkTree(normast) for s in symobjs]
     # force the solver cache to populate
-    [ s.solve(emu=emu) for s in symobjs ]
+    [s.solve(emu=emu) for s in symobjs]
     # retrieve all "position hashes" or whatever...
     vapos = []
     sympos = []
-    def gatherpos(path,symobj,ctx):
-        if idtova.get(symobj._sym_id) != None:
-            poshash = 'va:' + (':'.join([ '%.8x' % s.solve(emu=emu) for s in path ]))
-            vapos.append( (poshash, symobj._sym_id) )
+
+    def gatherpos(path, symobj, ctx):
+        if idtova.get(symobj._sym_id) is not None:
+            poshash = 'va:' + (':'.join(['%.8x' % s.solve(emu=emu) for s in path]))
+            vapos.append((poshash, symobj._sym_id))
             return
 
-        if idtoold.get(symobj._sym_id) != None:
-            poshash = 'sym:' + (':'.join([ '%.8x' % s.solve(emu=emu) for s in path ]))
-            sympos.append( (poshash,symobj._sym_id) )
+        if idtoold.get(symobj._sym_id) is not None:
+            poshash = 'sym:' + (':'.join(['%.8x' % s.solve(emu=emu) for s in path]))
+            sympos.append((poshash, symobj._sym_id))
             return
 
-    [ s.walkTree(gatherpos) for s in symobjs ]
+    [s.walkTree(gatherpos) for s in symobjs]
 
     # sort them by the "order stabilized" "position hashes"
     vapos.sort()
@@ -102,13 +104,13 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
 
     # generate the variable mapping
     indregs = {}
-    for poshash,symid in sympos:
+    for poshash, symid in sympos:
         origreg = idtoold.get(symid).name
         indreg = indregs.get(origreg)
-        if indreg == None:
+        if indreg is None:
             # do *not* modify this register name convention
             # (all previously calcualated results are only
-            # compairible while these are the same. Additionally,
+            # comparable while these are the same. Additionally,
             # having the number "early" in the string, helps
             # spread the entropy further... (python hash)
             indreg = '%dindreg' % len(indregs)
@@ -118,22 +120,22 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
     # Narchindva
     basename = "%darchindva"
     idx = 0
-    for poshash,symid in vapos:
+    for poshash, symid in vapos:
         origva = idtova.get(symid).value
         indva = indvas.get(origva)
-        if indva == None:
+        if indva is None:
             indva = basename % idx
             indvas[origva] = indva
-            idx+=1
+            idx += 1
 
     # re-build the tree with the new "ind reg" vars
-    def makeind(path,symobj,ctx):
+    def makeind(path, symobj, ctx):
         oldsym = idtoold.get(symobj._sym_id)
-        if oldsym != None:
+        if oldsym is not None:
             return Var(indregs.get(oldsym.name), 4)
 
         oldsym = idtova.get(symobj._sym_id)
-        if oldsym != None:
+        if oldsym is not None:
             obj = Var(indvas.get(oldsym.value), 4)
             ploc = symctx.vw.getLocation(oldsym.value)
             if ploc:
@@ -141,70 +143,5 @@ def wipeAstArch(symctx, symobjs, emu=None, wipeva=False):
                 if ltype == LOC_STRING or ltype == LOC_UNI:
                     obj._str_repr = symctx.vw.reprLocation(ploc)
             return obj
-    symobjs = [ s.walkTree(makeind) for s in symobjs ]
+    symobjs = [s.walkTree(makeind) for s in symobjs]
     return symobjs
-
-if __name__ == '__main__':
-
-    # FIXME this will become a unit test... once it works well enough
-
-    import vivisect
-    import vivisect.symboliks.analysis as v_sym_analysis
-
-    from vivisect.symboliks.common import *
-
-    # wouldn't a default width parser/generator be nice?
-    base = Mem(Const(0x56560020,4),Const(4,4)) - ( Var('arg0',4) + Var('ecx',4) ) * ( Var('ebx',4) + Var('ebx',4) ) + Const(9999,4)
-
-    eqs = [
-        Mem(Const(0x56560020,4),Const(4,4)) - ( Var('arg0',4) + Var('ebx',4) ) * ( Var('ecx',4) + Var('ecx',4) ) + Const(9999,4) ,
-        Mem(Const(0x56560020,4),Const(4,4)) - ( Var('eax',4) + Var('eax',4) ) * ( Var('edx',4) + Var('arg0',4) ) + Const(9999,4) ,
-        Mem(Const(0x56560020,4),Const(4,4)) - ( Var('arg0',4) + Var('ecx',4) ) * ( Var('ebx',4) + Var('ebx',4) ) + Const(9999,4) ,
-        Mem(Const(0x56560056,4),Const(4,4)) - ( Var('arg0',4) + Var('ecx',4) ) * ( Var('ebx',4) + Var('ebx',4) ) + Const(9999,4),
-    ]
-
-    nes = [
-        Mem(Const(0x56560020,4),Const(4,4)) - ( Var('arg0',4) + Var('ebx',4) ) * ( Var('ebx',4) + Var('ecx',4) ) + Const(9999,4) ,
-        Mem(Const(0x56560020,4),Const(4,4)) - ( Var('eax',4) + Var('arg1',4) ) * ( Var('edx',4) + Var('arg0',4) ) + Const(9999,4) ,
-        Mem(Const(0x56560020,4),Const(4,4)) - ( Var('arg0',4) + Var('ecx',4) ) * ( Var('ebx',4) + Var('ebx',4) ) + Const(8888,4) ,
-        Mem(Const(0x56560020,4),Const(4,4)) - ( Var('arg0',4) + Var('ecx',4) ) * ( Var('ebx',4) + Var('ebx',4) ) + Const(0x56560020,4) ,
-        Mem(Const(0x56560020,4),Const(4,4)) - ( Var('arg0',4) + Var('ecx',4) ) * ( Var('ebx',4) + Var('ebx',4) ) + Const(0x56560040,4) ,
-    ]
-
-    vw = vivisect.VivWorkspace()
-    vw.addMemoryMap(0x56560000, 7, 'woot', 'A'*8192)
-    vw.setMeta('Architecture','i386')
-
-    symctx = v_sym_analysis.getSymbolikAnalysisContext(vw)
-
-    print('Before...')
-    print('BASE: %s' % str(base))
-
-    for i in xrange(len(eqs)):
-        print('EQ%d: %s' % (i,str(eqs[i])))
-
-    for i in xrange(len(nes)):
-        print('NE%d: %s' % (i,str(nes[i])))
-
-    base = wipeAstArch(symctx, [base,], wipeva=True)[0]
-    eqs = [ wipeAstArch(symctx, [eqs[i],], wipeva=True)[0] for i in xrange(len(eqs)) ]
-    nes = [ wipeAstArch(symctx, [nes[i],], wipeva=True)[0] for i in xrange(len(nes)) ]
-
-    print('After...')
-    print('BASE: %s' % str(base))
-
-    for i in xrange(len(eqs)):
-        print('EQ%d: %s' % (i,str(eqs[i])))
-
-    for i in xrange(len(nes)):
-        print('NE%d: %s' % (i,str(nes[i])))
-
-    emu = None
-
-    baseval = base.solve(emu=emu)
-    for i in xrange(len(eqs)):
-        print('BASE == EQ%d: %s' % (i, eqs[i].solve() == baseval))
-
-    for i in xrange(len(nes)):
-        print('BASE == NE%d: %s' % (i, nes[i].solve() == baseval))
-

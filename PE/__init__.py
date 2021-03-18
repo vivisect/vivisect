@@ -1,12 +1,30 @@
+import io
+import logging
 import os
 import struct
 
-from cStringIO import StringIO
 
 import vstruct
 import vstruct.defs.pe as vs_pe
 
-import ordlookup
+from . import ordlookup
+
+IMAGE_FILE_RELOCS_STRIPPED = 0x0001
+IMAGE_FILE_EXECUTABLE_IMAGE = 0x0002
+IMAGE_FILE_LINE_NUMS_STRIPPED = 0x0004
+IMAGE_FILE_LOCAL_SYMS_STRIPED = 0x0008
+IMAGE_FILE_AGGRESSIVE_WS_TRIM = 0x00010
+IMAGE_FILE_LARGE_ADDRESS_AWARE = 0x00020
+# 0x0040 is reserved for future use
+IMAGE_FILE_BYTES_REVERSED_LO = 0x0080
+IMAGE_FILE_32BIT_MACHINE = 0x0100
+IMAGE_FILE_DEBUG_STRIPPED = 0x0200
+IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP = 0x0400
+IMAGE_FILE_NET_RUN_FROM_SWAP = 0x0800
+IMAGE_FILE_SYSTEM = 0x1000
+IMAGE_FILE_DLL = 0x2000
+IMAGE_FILE_UP_SYSTEM_ONLY = 0x4000
+IMAGE_FILE_REVERSED_HI = 0x8000
 
 IMAGE_DLLCHARACTERISTICS_RESERVED_1      = 1
 IMAGE_DLLCHARACTERISTICS_RESERVED_2      = 2
@@ -41,10 +59,20 @@ IMAGE_FILE_MACHINE_I386  = 0x014c
 IMAGE_FILE_MACHINE_IA64  = 0x0200
 IMAGE_FILE_MACHINE_AMD64 = 0x8664
 
+IMAGE_FILE_MACHINE_ARM   = 0x1c0
+IMAGE_FILE_MACHINE_ARM64 = 0xaa64
+IMAGE_FILE_MACHINE_ARMNT = 0x1c4  # ARMv7 or higher thumb mode only
+IMAGE_FILE_MACHINE_THUMB = 0x1c2  # interworking arm/thumb
+
 machine_names = {
     IMAGE_FILE_MACHINE_I386: 'i386',
     IMAGE_FILE_MACHINE_IA64: 'ia64',
     IMAGE_FILE_MACHINE_AMD64: 'amd64',
+
+    IMAGE_FILE_MACHINE_ARM: 'arm',
+    IMAGE_FILE_MACHINE_ARM64: 'arm64',
+    IMAGE_FILE_MACHINE_ARMNT: 'thumb',
+    IMAGE_FILE_MACHINE_THUMB: 'thumb16',
 }
 
 IMAGE_REL_BASED_ABSOLUTE              = 0
@@ -56,35 +84,35 @@ IMAGE_REL_BASED_MIPS_JMPADDR          = 5
 IMAGE_REL_BASED_IA64_IMM64            = 9
 IMAGE_REL_BASED_DIR64                 = 10
 
-IMAGE_DIRECTORY_ENTRY_EXPORT          =0   # Export Directory
-IMAGE_DIRECTORY_ENTRY_IMPORT          =1   # Import Directory
-IMAGE_DIRECTORY_ENTRY_RESOURCE        =2   # Resource Directory
-IMAGE_DIRECTORY_ENTRY_EXCEPTION       =3   # Exception Directory
-IMAGE_DIRECTORY_ENTRY_SECURITY        =4   # Security Directory
-IMAGE_DIRECTORY_ENTRY_BASERELOC       =5   # Base Relocation Table
-IMAGE_DIRECTORY_ENTRY_DEBUG           =6   # Debug Directory
-IMAGE_DIRECTORY_ENTRY_COPYRIGHT       =7   # (X86 usage)
-IMAGE_DIRECTORY_ENTRY_ARCHITECTURE    =7   # Architecture Specific Data
-IMAGE_DIRECTORY_ENTRY_GLOBALPTR       =8   # RVA of GP
-IMAGE_DIRECTORY_ENTRY_TLS             =9   # TLS Directory
-IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG    =10   # Load Configuration Directory
-IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT   =11   # Bound Import Directory in headers
-IMAGE_DIRECTORY_ENTRY_IAT            =12   # Import Address Table
-IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   =13   # Delay Load Import Descriptors
-IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR =14   # COM Runtime descriptor
+IMAGE_DIRECTORY_ENTRY_EXPORT          = 0   # Export Directory
+IMAGE_DIRECTORY_ENTRY_IMPORT          = 1   # Import Directory
+IMAGE_DIRECTORY_ENTRY_RESOURCE        = 2   # Resource Directory
+IMAGE_DIRECTORY_ENTRY_EXCEPTION       = 3   # Exception Directory
+IMAGE_DIRECTORY_ENTRY_SECURITY        = 4   # Security Directory
+IMAGE_DIRECTORY_ENTRY_BASERELOC       = 5   # Base Relocation Table
+IMAGE_DIRECTORY_ENTRY_DEBUG           = 6   # Debug Directory
+IMAGE_DIRECTORY_ENTRY_COPYRIGHT       = 7   # (X86 usage)
+IMAGE_DIRECTORY_ENTRY_ARCHITECTURE    = 7   # Architecture Specific Data
+IMAGE_DIRECTORY_ENTRY_GLOBALPTR       = 8   # RVA of GP
+IMAGE_DIRECTORY_ENTRY_TLS             = 9   # TLS Directory
+IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG     = 10   # Load Configuration Directory
+IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT    = 11   # Bound Import Directory in headers
+IMAGE_DIRECTORY_ENTRY_IAT             = 12   # Import Address Table
+IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT    = 13   # Delay Load Import Descriptors
+IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR  = 14   # COM Runtime descriptor
 
-IMAGE_DEBUG_TYPE_UNKNOWN          =0
-IMAGE_DEBUG_TYPE_COFF             =1
-IMAGE_DEBUG_TYPE_CODEVIEW         =2
-IMAGE_DEBUG_TYPE_FPO              =3
-IMAGE_DEBUG_TYPE_MISC             =4
-IMAGE_DEBUG_TYPE_EXCEPTION        =5
-IMAGE_DEBUG_TYPE_FIXUP            =6
-IMAGE_DEBUG_TYPE_OMAP_TO_SRC      =7
-IMAGE_DEBUG_TYPE_OMAP_FROM_SRC    =8
-IMAGE_DEBUG_TYPE_BORLAND          =9
-IMAGE_DEBUG_TYPE_RESERVED10       =10
-IMAGE_DEBUG_TYPE_CLSID            =11
+IMAGE_DEBUG_TYPE_UNKNOWN          = 0
+IMAGE_DEBUG_TYPE_COFF             = 1
+IMAGE_DEBUG_TYPE_CODEVIEW         = 2
+IMAGE_DEBUG_TYPE_FPO              = 3
+IMAGE_DEBUG_TYPE_MISC             = 4
+IMAGE_DEBUG_TYPE_EXCEPTION        = 5
+IMAGE_DEBUG_TYPE_FIXUP            = 6
+IMAGE_DEBUG_TYPE_OMAP_TO_SRC      = 7
+IMAGE_DEBUG_TYPE_OMAP_FROM_SRC    = 8
+IMAGE_DEBUG_TYPE_BORLAND          = 9
+IMAGE_DEBUG_TYPE_RESERVED10       = 10
+IMAGE_DEBUG_TYPE_CLSID            = 11
 
 IMAGE_SCN_CNT_CODE                  = 0x00000020
 IMAGE_SCN_CNT_INITIALIZED_DATA      = 0x00000040
@@ -152,12 +180,15 @@ RT_ANIICON          = 22
 RT_HTML             = 23
 RT_MANIFEST         = 24
 
+logger = logging.getLogger('vivisect')
+
 class VS_VERSIONINFO:
     '''
     A simple (read-only) VS_VERSIONINFO parser
     '''
     def __init__(self, bytes):
         self._version_info = {}
+        self._fixed_file_info = None
         self._parseBytes(bytes)
 
     def getVersionValue(self, key, default=None):
@@ -172,7 +203,7 @@ class VS_VERSIONINFO:
         '''
         Return a list of the keys in this VS_VERSIONINFO struct.
 
-        Example: for keyname in vs.getVersionKeys(): print keyname
+        Example: for keyname in vs.getVersionKeys(): print(keyname)
         '''
         return self._version_info.keys()
 
@@ -181,7 +212,7 @@ class VS_VERSIONINFO:
         Return dictionary style key,val tuples for the version keys
         in this VS_VERSIONINFO structure.
 
-        Example: for vskey,vsdata in vs.getVersionItems(): print vskey,vsdata
+        Example: for vskey,vsdata in vs.getVersionItems(): print(vskey,vsdata)
         '''
         return self._version_info.items()
 
@@ -196,6 +227,7 @@ class VS_VERSIONINFO:
         if valsize and valsize >= len(vs_pe.VS_FIXEDFILEINFO()):
             ffinfo = vs_pe.VS_FIXEDFILEINFO()
             ffinfo.vsParse(bytes[offset:offset+valsize])
+            self._fixed_file_info = ffinfo
 
         offset += valsize
         offmod = offset % 4
@@ -209,9 +241,9 @@ class VS_VERSIONINFO:
             i += 1
 
     def _eatStringAndAlign(self, bytes, offset):
-        ret = ''
+        ret = b''
         blen = len(bytes)
-        while bytes[offset:offset+2] != '\x00\x00':
+        while bytes[offset:offset+2] != b'\x00\x00':
             ret += bytes[offset:offset+2]
             offset += 2
             if offset >= blen:
@@ -284,7 +316,7 @@ class VS_VERSIONINFO:
         mysize, valsize, stype = struct.unpack('<HHH', bytes[offset:offset+6])
 
         if mysize == 0:
-            return -1 
+            return -1
 
         xoffset += 6
         xoffset, strkey = self._eatStringAndAlign(bytes, xoffset)
@@ -298,8 +330,6 @@ class VS_VERSIONINFO:
             value = value.decode('utf-16le','ignore')
             value = value.split('\x00')[0]
 
-        #print 'VALSIZE',valsize,'MYSIZE',mysize
-        #print 'Key: ->%s<-, ->%s<-' % (strkey,repr(value))
         self._version_info[strkey] = value
 
         # No matter what we parse, believe the headers...
@@ -332,11 +362,11 @@ class ResourceDirectory:
         This should *only* be called on the root node!
         '''
         typedir = self._rsrc_subdirs.get(restype)
-        if typedir == None:
+        if typedir is None:
             return None
 
         datadir = typedir._rsrc_subdirs.get(name_id)
-        if datadir == None:
+        if datadir is None:
             return None
 
         if len(datadir._rsrc_data) == 0:
@@ -358,6 +388,7 @@ class PE(object):
         object.__init__(self)
         self.inmem = inmem
         self.filesize = None
+        self.max_rva = None
 
         if not inmem:
             fd.seek(0, os.SEEK_END)
@@ -369,27 +400,30 @@ class PE(object):
         self.pe32p = False
         self.psize = 4
         self.high_bit_mask = 0x80000000
-
         self.IMAGE_DOS_HEADER = vstruct.getStructure("pe.IMAGE_DOS_HEADER")
         dosbytes = self.readAtOffset(0, len(self.IMAGE_DOS_HEADER))
         self.IMAGE_DOS_HEADER.vsParse(dosbytes)
 
-        nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew,
-                                "pe.IMAGE_NT_HEADERS")
+        nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew, "pe.IMAGE_NT_HEADERS")
 
         # Parse in a default 32 bit, and then check for 64...
         if nt.FileHeader.Machine in [ IMAGE_FILE_MACHINE_AMD64, IMAGE_FILE_MACHINE_IA64 ]:
-            nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew,
-                                "pe.IMAGE_NT_HEADERS64")
+            nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew, "pe.IMAGE_NT_HEADERS64")
             self.pe32p = True
             self.psize = 8
             self.high_bit_mask = 0x8000000000000000
 
         self.IMAGE_NT_HEADERS = nt
 
+    def __del__(self):
+        try:
+            self.fd.close()
+        except:
+            pass  # whatever. we're tearing down anyway
+
     def getPdataEntries(self):
         sec = self.getSectionByName('.pdata')
-        if sec == None:
+        if sec is None:
             return ()
         ret = []
         rbytes = self.readAtRva(sec.VirtualAddress, sec.VirtualSize)
@@ -405,9 +439,9 @@ class PE(object):
         Return the "dll name" from the Name field of the IMAGE_EXPORT_DIRECTORY
         if one is present.  If not, return None.
         '''
-        if self.IMAGE_EXPORT_DIRECTORY != None:
+        if self.IMAGE_EXPORT_DIRECTORY is not None:
             rawname = self.readAtRva(self.IMAGE_EXPORT_DIRECTORY.Name, 32)
-            return rawname.split('\x00')[0]
+            return rawname.split(b'\x00')[0].decode('utf-8')
         return None
 
     def getImports(self):
@@ -416,6 +450,13 @@ class PE(object):
         are in the format (rva, libname, funcname).
         """
         return self.imports
+
+    def getDelayImports(self):
+        """
+        Return the list of delay import tuples for this PE. The tuples
+        are in the format (rva, libname, funcname).
+        """
+        return self.delayImports
 
     def getExports(self):
 
@@ -433,7 +474,7 @@ class PE(object):
 
     def getSections(self):
         return self.sections
-         
+
     def rvaToOffset(self, rva):
         if self.inmem:
             return rva
@@ -441,18 +482,26 @@ class PE(object):
             return rva
         for s in self.sections:
             sbase = s.VirtualAddress
-            ssize = max(s.SizeOfRawData, s.VirtualSize)
-            if rva >= sbase and rva < sbase+ssize:
+            if s.SizeOfRawData + s.PointerToRawData > self.getMaxRva():
+                # SizeOfRawData can be misleading.
+                ssize = s.VirtualSize
+            else:
+                ssize = max(s.SizeOfRawData, s.VirtualSize)
+            if rva >= sbase and rva < sbase + ssize:
                 return s.PointerToRawData + (rva - sbase)
         return 0
 
     def offsetToRva(self, offset):
         if self.inmem:
-            return offset 
+            return offset
 
         for s in self.sections:
             sbase = s.PointerToRawData
-            ssize = s.SizeOfRawData
+            if s.SizeOfRawData + s.PointerToRawData > self.getMaxRva():
+                # SizeOfRawData can be misleading.
+                ssize = s.VirtualSize
+            else:
+                ssize = max(s.SizeOfRawData, s.VirtualSize)
             if sbase <= offset and offset < sbase + ssize:
                 return offset - s.PointerToRawData + s.VirtualAddress
         return 0
@@ -513,7 +562,7 @@ class PE(object):
         None if not found.
         '''
         rsdef = self.getResourceDef(rtype, name_id)
-        if rsdef == None:
+        if rsdef is None:
             return None
         rsrva, rssize, rscpage = rsdef
         return self.readAtRva(rsrva, rssize)
@@ -528,7 +577,7 @@ class PE(object):
         drva = ddir.VirtualAddress
         dsize = ddir.Size
         d = self.readStructAtRva(drva, 'pe.IMAGE_DEBUG_DIRECTORY', check=True)
-        if d == None:
+        if d is None:
             return None
 
         if d.Type != IMAGE_DEBUG_TYPE_CODEVIEW:
@@ -550,7 +599,7 @@ class PE(object):
         (returns None if version resource is not found)
         '''
         vbytes = self.readResource(RT_VERSION, 1)
-        if vbytes == None:
+        if vbytes is None:
             return None
         return VS_VERSIONINFO(vbytes)
 
@@ -570,20 +619,20 @@ class PE(object):
         while len(rsrc_todo):
             rsrva, rsdirobj = rsrc_todo.pop()
             rsdir = self.readStructAtRva( rsrva, 'pe.IMAGE_RESOURCE_DIRECTORY', check=True )
-            if rsdir == None:
+            if rsdir is None:
                 continue
 
             totcount = rsdir.NumberOfIdEntries + rsdir.NumberOfNamedEntries
             # check if our to do is too many, limit borrowed from pefile
             if totcount > 4096:
                 continue
-            
+
             offset = len(rsdir)
-            for i in xrange(totcount):
+            for i in range(totcount):
                 dentrva = rsrva + offset
 
                 dirent = self.readStructAtRva( dentrva, 'pe.IMAGE_RESOURCE_DIRECTORY_ENTRY', check=True )
-                if dirent == None:
+                if dirent is None:
                     break
 
                 # We use name/id interchangably in the python dict...
@@ -603,7 +652,7 @@ class PE(object):
 
                 else:
                     name_id = dirent.Name
-                
+
                 # if OffsetToData & IMAGE_RESOURCE_DATA_IS_DIRECTORY then we have another directory
                 if dirent.OffsetToData & 0x80000000:
                     # This points to a subdirectory
@@ -620,24 +669,26 @@ class PE(object):
                     subdata = self.readStructAtRva( dresc.VirtualAddress + dirent.OffsetToData, 'pe.IMAGE_RESOURCE_DATA_ENTRY')
                     # RP BUG FIX - sanity check the subdata
                     if subdata and self.checkRva(subdata.OffsetToData, size=subdata.Size):
-                        langid = name_id & 0x3ff
-                        sublangid = name_id >> 10
-                        langinfo = (subdata.CodePage, langid, sublangid )
-                        rsdirobj.addRsrcData(subdata.OffsetToData, subdata.Size, langinfo )
-
-                    #print 'Data %s : 0x%.8x (%d)' % (name_id, sec.VirtualAddress + subdata.OffsetToData, subdata.Size)
-                    #print repr(self.readAtRva(subdata.OffsetToData, min(subdata.Size, 40) ))
+                        # sometimes people are bad and they lie to us
+                        try:
+                            langid = name_id & 0x3ff
+                            sublangid = name_id >> 10
+                        except:
+                            langid = None
+                            sublangid = None
+                        langinfo = (subdata.CodePage, langid, sublangid)
+                        rsdirobj.addRsrcData(subdata.OffsetToData, subdata.Size, langinfo)
 
                 offset += len(dirent)
-                #print dirent.tree()
 
     def parseSections(self):
 
         self.sections = []
         off = self.IMAGE_DOS_HEADER.e_lfanew + len(self.IMAGE_NT_HEADERS)
+        off -= len(self.IMAGE_NT_HEADERS.OptionalHeader.DataDirectory)
+        off += self.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes * len(vstruct.getStructure("pe.IMAGE_DATA_DIRECTORY"))
 
         secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
-
         sbytes = self.readAtOffset(off, secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections)
         while sbytes:
             s = vstruct.getStructure("pe.IMAGE_SECTION_HEADER")
@@ -655,12 +706,12 @@ class PE(object):
         return self.readAtOffset(offset, size, shortok)
 
     def readAtOffset(self, offset, size, shortok=False):
-        ret = ""
+        ret = b""
         self.fd.seek(offset)
         while len(ret) != size:
             rlen = size - len(ret)
             x = self.fd.read(rlen)
-            if x == "":
+            if x == b"":
                 if not shortok:
                     return None
                 return ret
@@ -686,7 +737,19 @@ class PE(object):
         return self.readPointerAtOffset(off)
 
     def getMaxRva(self):
-        return self.IMAGE_NT_HEADERS.OptionalHeader.SizeOfImage
+        '''
+        Maximum RVA is the largest virtual address that might be observed.
+        '''
+        if not self.max_rva:
+            max_sec = 0
+            for sec in self.getSections():
+                sec_end = sec.VirtualAddress + sec.VirtualSize
+                align = self.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
+                if (align > 0):
+                    sec_end = align * (int(sec_end / align) + 1)
+                    max_sec = max(max_sec, sec_end)
+            self.max_rva = max_sec
+        return self.max_rva
 
     def checkRva(self, rva, size=None):
         '''
@@ -702,56 +765,88 @@ class PE(object):
             #raise Exception('too high! %d > %d' % (rva, isize))
             return False
 
-        if size != None and (rva + size) > isize:
+        if size is not None and (rva + size) > isize:
             #raise Exception('too big! %d > %d' % (rva+size, isize))
             return False
-        
+
         return True
 
     def readStringAtRva(self, rva, maxsize=None):
-        ret = ''
+        ret = b''
         while True:
             if maxsize and maxsize <= len(ret):
                 break
             x = self.readAtRva(rva, 1)
-            if x == '\x00' or x == None:
+            if x == b'\x00' or x is None:
                 break
             ret += x
             rva += 1
         return ret
-        
-    def parseImports(self):
-        self.imports = []
 
+    def parseImports(self):
         idir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)
 
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = idir.VirtualAddress
         x = self.readStructAtRva(irva, 'pe.IMAGE_IMPORT_DIRECTORY', check=True)
-        if x == None:
+        if x is None:
+            self.imports = []
             return
 
+        self.imports = self.parseImportTable(x, irva, is_imports=True)
+
+    def parseDelayImports(self):
+        didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
+
+        # RP BUG FIX - invalid IAT entry will point of range of file
+        irva = didir.VirtualAddress
+        x = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
+        if x is None:
+            self.delayImports = []
+            return
+
+        self.delayImports = self.parseImportTable(x, irva, is_imports=False)
+
+    def parseImportTable(self, x, irva, is_imports=True):
+        '''
+        Parse a standard or delayed import table, adding to imports_list.
+        Start with x and irva set to the first entry in the table.
+        '''
+        imports_list = []
         isize = len(x)
-        
-        while self.checkRva(x.Name):
+
+        while True:
+            if is_imports:
+                entry_name = x.Name
+            else:
+                entry_name = x.rvaDLLName
+
+            if not self.checkRva(entry_name):
+                break
 
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(x.Name, maxsize=256)
+            libname = self.readStringAtRva(entry_name, maxsize=256).decode('utf-8')
             idx = 0
 
-            imp_by_name = x.OriginalFirstThunk
-            if imp_by_name == 0:
-                imp_by_name = x.FirstThunk
+            if is_imports:
+                imp_by_name = x.OriginalFirstThunk
+                if imp_by_name == 0:
+                    imp_by_name = x.FirstThunk
+                save_name = x.FirstThunk
+            else:
+                imp_by_name = x.rvaINT
+                if imp_by_name == 0:
+                    imp_by_name = x.rvaIAT
+                save_name = x.rvaIAT
 
             if not self.checkRva(imp_by_name):
                 break
-                
+
             while True:
 
                 arrayoff = self.psize * idx
-                if self.filesize != None and arrayoff > self.filesize:
-                    self.imports = [] # we probably put grabage in  here..
-                    return
+                if self.filesize is not None and arrayoff > self.filesize:
+                    return [] # we probably put garbage in the list
 
                 ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
                 if ibn_rva == 0:
@@ -770,11 +865,11 @@ class PE(object):
 
                     diff = self.getMaxRva() - ibn_rva - 2
                     ibn = vstruct.getStructure("pe.IMAGE_IMPORT_BY_NAME")
-                    ibn.vsGetField('Name').vsSetLength( min(diff, 128) )
+                    ibn.vsGetField('Name').vsSetLength(min(diff, 128))
                     bytes = self.readAtRva(ibn_rva, len(ibn), shortok=True)
                     if not bytes:
                         break
-                    try: 
+                    try:
                         ibn.vsParse(bytes)
                     except:
                         idx+=1
@@ -782,10 +877,10 @@ class PE(object):
 
                     funcname = ibn.Name
 
-                self.imports.append((x.FirstThunk+arrayoff,libname,funcname))
+                imports_list.append((save_name + arrayoff, libname, funcname))
 
                 idx += 1
-                
+
             irva += isize
 
             # RP BUG FIX - if the import table is at the end of the file we can't count on the ending to be null
@@ -793,6 +888,8 @@ class PE(object):
                 break
 
             x.vsParse(self.readAtRva(irva, isize))
+
+        return imports_list
 
     def getRelocations(self):
         """
@@ -805,11 +902,11 @@ class PE(object):
         edir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_BASERELOC)
         rva = edir.VirtualAddress
         rsize = edir.Size
-        
+
         # RP BUG FIX - don't watn to read past the end of the file
         if not self.checkRva(rva):
             return
-        
+
         reloff = self.rvaToOffset(rva)
         relbytes = self.readAtOffset(reloff, rsize)
 
@@ -820,7 +917,7 @@ class PE(object):
 
             pageva, chunksize = struct.unpack("<II", relbytes[:8])
             relcnt = (chunksize - 8) / 2
-            
+
             # if chunksize == 0 bail
             if not chunksize:
                 return
@@ -828,10 +925,10 @@ class PE(object):
             # RP BUG FIX - sometimes the chunksize is invalid we do a quick check to make sure we dont overrun the buffer
             if chunksize > len(relbytes):
                 return
-            
+
             if relcnt < 0:
                 return
-            
+
             rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
             for r in rels:
                 rtype = r >> 12
@@ -846,7 +943,7 @@ class PE(object):
 
         '''
         e = self.IMAGE_EXPORT_DIRECTORY
-        if e == None:
+        if e is None:
             return None
 
         return self.readAtRva(e.Name, 128).split('\x00')[0]
@@ -881,11 +978,11 @@ class PE(object):
         if not funcoff or funcsize > 0x7FFF or ((ordoff > 0) ^ (nameoff > 0)):
             self.IMAGE_EXPORT_DIRECTORY = None
             return
-        
+
         if funcsize == 0:
             self.IMAGE_EXPORT_DIRECTORY = None
             return
-    
+
         funcbytes = self.readAtOffset(funcoff, funcsize)
 
         if not funcbytes:
@@ -902,31 +999,33 @@ class PE(object):
             namelist = struct.unpack("%dI" % (len(namebytes) / 4), namebytes)
             ordlist = struct.unpack("%dH" % (len(ordbytes) / 2), ordbytes)
 
-            #for i in range(len(funclist)):
             for i in range(len(namelist)):
 
-                ord = ordlist[i]
+                ordl = ordlist[i]
                 nameoff = self.rvaToOffset(namelist[i])
-                if ord > len(funclist):
+                if ordl > len(funclist):
                     self.IMAGE_EXPORT_DIRECTORY = None
                     return
 
-                funcoff = funclist[ord]
+                funcoff = funclist[ordl]
                 ffoff = self.rvaToOffset(funcoff)
 
                 name = None
 
                 if nameoff != 0:
-                    name = self.readAtOffset(nameoff, 256, shortok=True).split("\x00", 1)[0]
+                    name = self.readAtOffset(nameoff, 256, shortok=True).split(b"\x00", 1)[0]
                 else:
-                    name = "ord_%.4x" % ord
+                    name = b'ord_%.4x' % ordl
 
                 # RP BUG FIX - Export forwarding range check is done using RVA's
                 if funcoff >= edir.VirtualAddress and funcoff < edir.VirtualAddress + edir.Size:
-                    fwdname = self.readAtRva(funcoff, 260, shortok=True).split("\x00", 1)[0]
-                    self.forwarders.append((funclist[ord],name,fwdname))
+                    fwdname = self.readAtRva(funcoff, 260, shortok=True).split(b'\x00', 1)[0]
+                    self.forwarders.append((funclist[ordl], name.decode('utf-8'), fwdname))
                 else:
-                    self.exports.append((funclist[ord], ord, name))
+                    try:
+                        self.exports.append((funclist[ordl], ordl, name.decode('utf-8')))
+                    except UnicodeDecodeError:
+                        logger.warning('Invalid name for export ordinal %i: %s', ordl, name[:16].hex())
 
         # unnamed function exports
         else:
@@ -945,8 +1044,8 @@ class PE(object):
                 # exported function. An element with a value of 0 indicates the element in
                 # the array is a placeholder to preserve the length of the array.
                 if funcoff > 0:
-                    ord = self.IMAGE_EXPORT_DIRECTORY.Base + i
-                    self.exports.append((funcoff, ord, None))
+                    ordl = self.IMAGE_EXPORT_DIRECTORY.Base + i
+                    self.exports.append((funcoff, ordl, None))
 
     def getSignature(self):
         '''
@@ -977,7 +1076,7 @@ class PE(object):
 
         sig = self.getSignature()
 
-        if sig == None:
+        if sig is None:
             return ()
 
         # Runtime import these so they are optional dependancies
@@ -1033,7 +1132,7 @@ class PE(object):
             cbytes = pyasn1.codec.der.encoder.encode( i['certificate'] )
 
             iparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["issuer"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["issuer"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
@@ -1042,7 +1141,7 @@ class PE(object):
             issuer = ','.join( iparts )
 
             sparts = []
-            for rdnsequence in i["certificate"]["tbsCertificate"]["subject"]:
+            for _, rdnsequence in i["certificate"]["tbsCertificate"]["subject"].items():
                 for rdn in rdnsequence:
                     rtype = rdn[0]["type"]
                     rvalue = rdn[0]["value"][2:]
@@ -1073,6 +1172,14 @@ class PE(object):
             self.parseImports()
             return self.imports
 
+        elif name == "IMAGE_DELAY_IMPORT_DIRECTORY":
+            self.parseDelayImports()
+            return self.IMAGE_DELAY_IMPORT_DIRECTORY
+
+        elif name == "delayImports":
+            self.parseDelayImports()
+            return self.delayImports
+
         elif name == "IMAGE_EXPORT_DIRECTORY":
             self.parseExports()
             return self.IMAGE_EXPORT_DIRECTORY
@@ -1100,43 +1207,19 @@ class PE(object):
         else:
             raise AttributeError
 
-
-class MemObjFile:
-    """
-    A file like object that wraps a MemoryObject (envi) compatable
-    object with a file-like object where seek == VA.
-    """
-
-    def __init__(self, memobj, baseaddr):
-        self.baseaddr = baseaddr
-        self.offset = baseaddr
-        self.memobj = memobj
-
-    def seek(self, offset):
-        self.offset = self.baseaddr + offset
-
-    def read(self, size):
-        ret = self.memobj.readMemory(self.offset, size)
-        self.offset += size
-        return ret
-        
-    def write(self, bytes):
-        self.memobj.writeMemory(self.offset, bytes)
-        self.offset += len(bytes)
-
 def peFromMemoryObject(memobj, baseaddr):
-    fd = MemObjFile(memobj, baseaddr)
+    fd = vstruct.MemObjFile(memobj, baseaddr)
     return PE(fd, inmem=True)
 
 def peFromFileName(fname):
     """
-    Utility helper that assures that the file is opened in 
+    Utility helper that assures that the file is opened in
     binary mode which is required for proper functioning.
     """
-    f = file(fname, "rb")
-    return PE(f)
+    # TODO api change to make context handler
+    return PE(open(fname, 'rb'))
 
 def peFromBytes(fbytes):
-    fd = StringIO(fbytes)
+    fd = io.BytesIO(fbytes)
     return PE(fd)
 

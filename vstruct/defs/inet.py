@@ -172,12 +172,3 @@ class ICMP(vstruct.VStruct):
         self.code       = v_uint8()
         self.checksum   = v_uint16(bigend=True)
         #union field starting at offset 4 not included here
-
-if __name__ == '__main__':
-    eII = ETHERII()
-    eII.vsParse('AAAAAABBBBBB\x08\x00')
-    print eII.tree()
-    eII = ETHERII()
-    eII.vsParse('AAAAAABBBBBB\x81\x00\x02\x02\x08\x00')
-    print eII.tree()
-

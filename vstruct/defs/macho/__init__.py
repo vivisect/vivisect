@@ -20,7 +20,7 @@ class mach_o(vstruct.VStruct):
         self.load_commands = vstruct.VStruct()
 
     def getSymbols(self):
-        if self._symbols != None:
+        if self._symbols is not None:
             return self._symbols
 
         self._symbols = []
@@ -28,18 +28,14 @@ class mach_o(vstruct.VStruct):
             if vs.cmd != LC_SYMTAB:
                 continue
             strbytes = self._raw_bytes[vs.stroff:vs.stroff+vs.strsize]
-            #print repr(strbytes)
             strtab = strbytes.split('\x00')
-            #print strtab
             offset = vs.symoff
-            for i in xrange(vs.nsyms):
+            for i in range(vs.nsyms):
                 n = nlist() # FIXME 64!
                 offset = n.vsParse(self._raw_bytes, offset)
                 #symstr = strtab[n.n_strx]
                 # FIXME this is slow!
                 symstr = strbytes[n.n_strx:].split('\x00', 1)[0]
-                #print n.tree()
-                #print symstr
 
     def getLibDeps(self):
         '''
@@ -60,7 +56,6 @@ class mach_o(vstruct.VStruct):
         ret = []
         for fname, vs in self.load_commands:
             if vs.cmd != LC_SEGMENT:
-                #print hex(vs.cmd),hex(vs.cmdsize) # 2, 5, b, e
                 continue
             # Slice the segment bytes from raw bytes
             fbytes = self._raw_bytes[ vs.fileoff: vs.fileoff + vs.filesize ]
@@ -73,8 +68,7 @@ class mach_o(vstruct.VStruct):
     def vsParse(self, bytes, offset=0):
         self._raw_bytes = bytes[offset:]
         offset = self.mach_header.vsParse(bytes, offset=offset)
-        #print bytes[offset:].encode('hex')
-        for i in xrange(self.mach_header.ncmds):
+        for i in range(self.mach_header.ncmds):
             # should we use endian from header?
             cmdtype, cmdlen = struct.unpack('<II', bytes[offset:offset+8])
             cmdclass = getCommandClass(cmdtype)
@@ -82,4 +76,3 @@ class mach_o(vstruct.VStruct):
             cmdobj.vsParse(bytes, offset=offset)
             self.load_commands.vsAddField('cmd%d' % i, cmdobj)
             offset += cmdobj.cmdsize
-

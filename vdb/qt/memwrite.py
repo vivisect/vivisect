@@ -1,4 +1,4 @@
-from PyQt4 import QtGui
+from PyQt5.QtWidgets import QVBoxLayout
 
 import vdb.qt.base
 import envi.qt.memwrite as e_qt_mw
@@ -11,14 +11,14 @@ class VdbMemWriteWindow(vdb.qt.base.VdbWidgetWindow):
         vdb.qt.base.VdbWidgetWindow.__init__(self, db, dbt, parent=parent)
 
         self.memWriteWidget = e_qt_mw.MemWriteWindow(expr=expr, esize=esize, emu=dbt, parent=parent)
-        vbox = QtGui.QVBoxLayout()
+        vbox = QVBoxLayout()
         vbox.addWidget(self.memWriteWidget)
         self.setLayout(vbox)
 
         self.memWriteWidget.writeToMemory.connect(self.writeMemory)
         self.setWindowTitle('Write Memory')
 
-        vqtconnect( self.vdbWriteMem, 'vdb:writemem' )
+        vqtconnect(self.vdbWriteMem, 'vdb:writemem')
 
     def vdbWriteMem(self, event, einfo):
         self.vqLoad()

@@ -1,5 +1,6 @@
 import os
 import sys
+import binascii
 
 import vstruct
 from vstruct.primitives import *
@@ -15,8 +16,8 @@ from vstruct.primitives import *
 #HEAD_TYPE_SUBBLOCK      = 0x7a          #subblock
 
 SFX_MODMAX  = 1024000 # one meg
-RAR4_SIGNATURE = '526172211a0700'.decode('hex')
-RAR5_SIGNATURE = '526172211a070100'.decode('hex')
+RAR4_SIGNATURE = binascii.unhexlify('526172211a0700')
+RAR5_SIGNATURE = binascii.unhexlify('526172211a070100')
 
 def getRarOffset(fd):
     cur = fd.tell()
@@ -154,7 +155,6 @@ class FILE_HEADER(Rar4Block):
             raise Exception("FIXME supprort LHD_EXTTIME")
 
         def setFileNameSize(x):
-            #print 'NAME SIZE',self.HEAD_DATA.NameSize 
             filename.vsSetLength( self.HEAD_DATA.NameSize )
 
         self.HEAD_DATA.vsAddParseCallback('NameSize',setFileNameSize)
@@ -204,7 +204,6 @@ class FILE_HEADER(Rar4Block):
                 #raise Exception("FIXME supprort LHD_EXTTIME")
 
             #def setFileNameSize(x):
-                #print 'NAME SIZE',self.HEAD_DATA.NameSize 
                 #filename.vsSetLength( self.HEAD_DATA.NameSize )
 
             #self.HEAD_DATA.vsAddParseCallback('NameSize',setFileNameSize)
@@ -246,7 +245,7 @@ class FILE_HEADER(Rar4Block):
 import hashlib
 rounds = 0x40000
 roundsdiv = rounds / 16
-#iblist = [ struct.pack('<I',i)[:3] for i in xrange(rounds) ]
+#iblist = [ struct.pack('<I',i)[:3] for i in range(rounds) ]
 
 def initIvKey30(passwd,salt):
     aesiv = [None] * 16
@@ -254,40 +253,29 @@ def initIvKey30(passwd,salt):
 
     passb = passwd.encode('utf-16le')
     initkey = passb + salt
-    print 'PASS','->%s<-' % passwd
-    print 'SALT',salt.encode('hex')
-    print 'INIT',initkey.encode('hex')
 
     sha1hash = hashlib.sha1()
     #sha1hash = rarsha()
     # crazy russian awesomeness/paranoia
-    for i in xrange(rounds): # srsly?!?! fscking russians ;)
+    for i in range(rounds): # srsly?!?! fscking russians ;)
         sha1hash.update(initkey)
-        #print "INITKEY",initkey.encode("hex")
         ib = struct.pack('<I',i)
         sha1hash.update( ib[:3] )
         #sha1hash.update( iblist[i] )
 
-        #print "pswnum",ib[:3].encode('hex')
         if i % roundsdiv == 0:
             digest = sha1hash.digest()
             #digest = sha1hash.done()
-            #print 'shaiv',digest.encode('hex')
             aesiv[ i / roundsdiv ] = digest[-1]
-            #print 'AESINIT',i/roundsdiv,digest[-1].encode('hex')
-            #raise 'WOOT'
 
-    print 'IV',(''.join(aesiv)).encode('hex')
     endswap = struct.unpack_from('<4I', sha1hash.digest())
     aeskey  = struct.pack('>4I', *endswap)
-    print 'KEY',aeskey.encode('hex')
     #digest = sha1hash.digest()
-    #print 'PREKEY',digest.encode('hex')
-    #for i in xrange(4):
-        #for j in xrange(4):
+    #for i in range(4):
+        #for j in range(4):
             #aeskey[ (i*4) + j ] = chr( (digest[i] >> (j*8)) & 0xff )
 
-    return ''.join(aesiv),aeskey
+    return ''.join(aesiv), aeskey
 
 def aesInit(iv,key):
     from Crypto.Cipher import AES
@@ -313,13 +301,13 @@ class Rar:
         self.mainhead = None
 
 
-        if fd != None:
+        if fd is not None:
             self.parseRarHeader(fd)
 
     def parseRarHeader(self, fd):
 
         veroff = getRarOffset(fd)
-        if veroff == None:
+        if veroff is None:
             raise MissingRarSig()
 
         self.fd = fd
@@ -334,7 +322,7 @@ class Rar:
             self.salt = self.fd.read( SIZE_SALT30 )
 
     def _req_fd(self):
-        if self.fd == None:
+        if self.fd is None:
             raise NoRarFd()
 
     def tryFilePasswd(self, passwd):
@@ -342,17 +330,15 @@ class Rar:
         Check the passwd agains the next encrypted header
         ( which should be of type FILE_HEAD )
         '''
-        if self.trybuf == None:
+        if self.trybuf is None:
             curloc = self.fd.tell()
             self.trybuf = self.fd.read(16)
             self.fd.seek(curloc)
-        
+
         iv,key = initIvKey30(passwd,self.salt)
         aes = aesInit(iv,key)
         clearbuf = aes.decrypt(self.trybuf)
-        #print 'CLEAR',clearbuf.encode('hex')
         crc,ctype,cflags,csize = struct.unpack_from('<HBHH', clearbuf)
-        #print 'CTYPE',hex(ctype),hex(FILE_HEAD)
         return ctype == FILE_HEAD
 
     def setFilePasswd(self, passwd):
@@ -363,13 +349,12 @@ class Rar:
         self.aes = aesInit(iv,key)
 
     def read(self, size):
-        if self.aes == None:
+        if self.aes is None:
             return self.fd.read(size)
 
         while len(self.clearbuf) < size:
             crypted = self.fd.read(4096)
             self.clearbuf += self.aes.decrypt(crypted)
-            print 'CLEARBUF',self.clearbuf.encode('hex')
 
         ret = self.clearbuf[:size]
         self.clearbuf = self.clearbuf[size:]
@@ -377,13 +362,13 @@ class Rar:
 
     #def read(self, size):
         #buf = self.fd.read(size)
-        #if self.aes != None:
+        #if self.aes is not None:
             #buf = self.aes.decrypt(buf)
         #return buf
 
     def iterRar4Files(self):
 
-        if self.salt != None and self.aes == None:
+        if self.salt is not None and self.aes is None:
             raise PasswordRequired()
 
         while True:
@@ -394,22 +379,22 @@ class Rar:
             rar4 = Rar4Block()
             rar4.vsParse( hdr )
 
-            #if self.salt != None:
+            #if self.salt is not None:
                 #remain = csize % 16
                 #if remain:
                     #pad = self.read( 16 - remain )
-                    #print 'PAD',pad.encode('hex')
+                    #logger.info('PAD %s', binascii.hexlify(pad))
 
             cls = rar4blocks.get(rar4.HEAD_TYPE)
-            if cls != None:
+            if cls is not None:
                 rar4 = cls()
                 rar4.vsParse(hdr+body)
 
-            print rar4.tree()
-            import sys; sys.stdin.readline()
+            logger.info(rar4.tree())
+            sys.stdin.readline()
 
             #if ctype == MAIN_HEAD and cflags & MHD_PASSWORD:
-                #if passwd == None:
+                #if passwd is None:
                     #raise PasswordRequired()
 
                 #salt30 = fd.read(SIZE_SALT30)
@@ -426,59 +411,56 @@ class Rar:
         #self.HEAD_SIZE      = v_uint16()
 
 def main():
+    # TODO: Does this even work anymore?
 
     offset = 0
-    fd = file(sys.argv[1], 'rb')
-    testpass = sys.argv[2]
+    with open(sys.argv[1], 'rb') as fd:
+        testpass = sys.argv[2]
 
-    rar = Rar()
-    rar.parseRarHeader(fd)
-    rar.mainhead.tree()
+        rar = Rar()
+        rar.parseRarHeader(fd)
+        rar.mainhead.tree()
 
-    #print "FAIL TEST",rar.tryFilePasswd('asdf')
-    #print "PASS TEST",rar.tryFilePasswd(testpass)
+        #logger.info("FAIL TEST",rar.tryFilePasswd('asdf'))
+        #logger.info("PASS TEST",rar.tryFilePasswd(testpass))
 
-    rar.setFilePasswd(testpass)
-    #print rar.read(4096).encode('hex')
-    rar.iterRar4Files()
-    #for x in rar.iterRar4Chunks():
-        #print x
-    return
+        rar.setFilePasswd(testpass)
+        rar.iterRar4Files()
+        #for x in rar.iterRar4Chunks():
+            #print x
+        return
 
-    buf = fd.read(1024000)
+        buf = fd.read(1024000)
 
-    offset = 0
+        offset = 0
 
-    rar4 = Rar4Block()
-    offset = rar4.vsParse(buf,offset=offset)
-    print rar4.tree()
+        rar4 = Rar4Block()
+        offset = rar4.vsParse(buf,offset=offset)
+        print(rar4.tree())
 
-    #print 'PRE',buf[offset:offset+32].encode('hex')
-    salt = buf[offset:offset+SIZE_SALT30]
-    print 'SALT',salt.encode('hex')
-    offset += SIZE_SALT30
+        salt = buf[offset:offset+SIZE_SALT30]
+        print('SALT %s' % binascii.hexlify(salt))
+        offset += SIZE_SALT30
 
-    iv,key = initIvKey30(testpass,salt)
-    #print 'IV',iv.encode('hex')
-    #print 'KEY',key.encode('hex')
-    aes = aesInit(iv,key)
-    #raise 'woot'
-    #print aes.decrypt(buf[offset:offset+64]).encode('hex')
-    x = aes.decrypt(buf[offset:offset+64])
+        iv,key = initIvKey30(testpass,salt)
+        #print('IV %s' % binascii.hexlify(iv))
+        #print('KEY %s' % binascii.hexlify(key))
+        aes = aesInit(iv,key)
+        #print(binascii.hexlify(aes.decrypt(buf[offset:offset+64])))
+        x = aes.decrypt(buf[offset:offset+64])
 
-    rar4 = Rar4Block()
-    rar4.vsParse(x)
-    #offset = rar4.vsParse(buf,offset=offset)
-    print rar4.tree()
+        rar4 = Rar4Block()
+        rar4.vsParse(x)
+        #offset = rar4.vsParse(buf,offset=offset)
+        print(rar4.tree())
 
-    #while offset < len(b):
-        #r = RarBlock()
-        #newoff = r.vsParse(b, offset=offset)
-        #print 'CRC',r.HEAD_CRC,r.HEAD_TYPE
-        #print r.tree(va=offset)
+        #while offset < len(b):
+            #r = RarBlock()
+            #newoff = r.vsParse(b, offset=offset)
+            #print 'CRC',r.HEAD_CRC,r.HEAD_TYPE
+            #print r.tree(va=offset)
 
-        #offset = newoff
-        
+            #offset = newoff
 
 if __name__ == '__main__':
     sys.exit(main())

@@ -2,11 +2,11 @@
 Posix Signaling Module
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
-import sys
 import os
+import sys
 import struct
 import signal
-import platform
+import logging
 
 
 import vtrace
@@ -21,7 +21,7 @@ import envi.cli as e_cli
 import envi.memory as e_mem
 import envi.symstore.resolver as e_resolv
 
-
+logger = logging.getLogger(__name__)
 libc = None
 
 class PosixMixin:
@@ -50,22 +50,22 @@ class PosixMixin:
         os.kill(self.pid, signo)
 
     def platformSendBreak(self):
-        self.sendSignal(signal.SIGTRAP) # FIXME maybe change to SIGSTOP
+        self.sendSignal(signal.SIGTRAP)  # FIXME maybe change to SIGSTOP
 
     def platformWait(self):
-        return os.waitpid(self.pid,0)
+        return os.waitpid(self.pid, 0)
 
     def handleAttach(self):
         self.fireNotifiers(vtrace.NOTIFY_ATTACH)
-        self._findLibraryMaps('\x7fELF')
+        self._findLibraryMaps(b'\x7fELF', always=True)
         self._simpleCreateThreads()
         # We'll emulate windows here and send an additional
         # break after our library load events to make things easy
-        self.runAgain(False) # Clear this, if they want BREAK to run, it will
+        self.runAgain(False)  # Clear this, if they want BREAK to run, it will
         self.fireNotifiers(vtrace.NOTIFY_BREAK)
 
     def platformProcessEvent(self, event):
-        pid,status = event
+        pid, status = event
         if os.WIFEXITED(status):
             tid = self.getMeta("ThreadId", -1)
             exitcode = os.WEXITSTATUS(status)
@@ -78,17 +78,17 @@ class PosixMixin:
                 self._fireExitThread(tid, exitcode)
 
             else:
-                self._fireExit( exitcode )
+                self._fireExit(exitcode)
 
         elif os.WIFSIGNALED(status):
-            self._fireExit( os.WTERMSIG( status ) )
+            self._fireExit(os.WTERMSIG(status))
 
         elif os.WIFSTOPPED(status):
             sig = os.WSTOPSIG(status)
             self.handlePosixSignal(sig)
 
         else:
-            print "OMG WTF JUST HAPPENED??!?11/!?1?>!"
+            logger.error("Unhandled posix status code: %d", status)
 
     def handlePosixSignal(self, sig):
         """
@@ -99,7 +99,7 @@ class PosixMixin:
 
             # Traps on posix systems are a little complicated
             if self.stepping:
-                #FIXME try out was single step thing for intel
+                # FIXME try out was single step thing for intel
                 self.stepping = False
                 self._fireStep()
 
@@ -118,7 +118,7 @@ class PosixMixin:
                 self._fireSignal(sig)
 
         elif sig == signal.SIGSTOP:
-            #FIXME only on attaching..
+            # FIXME only on attaching..
             self.handleAttach()
 
         else:
@@ -130,16 +130,24 @@ class ElfMixin:
     A platform mixin to parse Elf binaries
     """
     def __init__(self):
-        self.setMeta('Format','elf')
+        self.setMeta('Format', 'elf')
 
     def platformParseBinary(self, filename, baseaddr, normname):
         typemap = {
-            Elf.STT_FUNC:e_resolv.FunctionSymbol,
-            Elf.STT_SECTION:e_resolv.SectionSymbol,
+            Elf.STT_FUNC: e_resolv.FunctionSymbol,
+            Elf.STT_SECTION: e_resolv.SectionSymbol,
         }
 
-        fd = self.platformOpenFile(filename)
-        elf = Elf.Elf(fd)
+        try:
+            fd = self.platformOpenFile(filename)
+            elf = Elf.Elf(fd)
+        except IOError:
+            try:
+                # it's possible we hit vdso or something similar
+                elf = Elf.elfFromMemoryObject(self, baseaddr)
+            except:
+                raise
+        # elf = Elf.Elf(fd)
         addbase = 0
         if not elf.isPreLinked() and elf.isSharedObject():
             addbase = baseaddr
@@ -240,10 +248,8 @@ class PtraceMixin:
             pad = self.readMemory(address+(len(bytes)-remainder), wordsize)
             bytes += pad[remainder:]
 
-        for i in range(len(bytes)/wordsize):
-            offset = wordsize*i
+        for i in range(int(len(bytes)/wordsize)):
+            offset = wordsize * i
             dword = struct.unpack("L",bytes[offset:offset+wordsize])[0]
-            if ptrace(PT_WRITE_D, self.pid, long(address+offset), long(dword)) != 0:
+            if ptrace(PT_WRITE_D, self.pid, int(address+offset), int(dword)) != 0:
                 raise Exception("ERROR ptrace PT_WRITE_D failed!")
-
-

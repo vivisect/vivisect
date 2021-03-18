@@ -3,11 +3,8 @@ Similar to the memory subsystem, this is a unified way to
 access information about objects which contain registers
 """
 
-import envi.bits as e_bits
+import envi.exc as e_exc
 from envi.const import *
-
-class InvalidRegisterName(Exception):
-    pass
 
 class RegisterContext:
 
@@ -131,7 +128,7 @@ class RegisterContext:
             if (idx & 0xffff) != idx:
                 continue
             x = getattr(sobj, name, None)
-            if x != None:
+            if x is not None:
                 self._rctx_vals[idx] = x
 
     def _rctx_Export(self, sobj):
@@ -193,7 +190,7 @@ class RegisterContext:
         '''
         Returns True if this context is aware of a status register.
         '''
-        if self._rctx_srindex == None:
+        if self._rctx_srindex is None:
             return False
 
         return True
@@ -229,14 +226,14 @@ class RegisterContext:
 
     def getRegisterByName(self, name):
         idx = self._rctx_names.get(name)
-        if idx == None:
-            raise InvalidRegisterName("Unknown Register: %s" % name)
+        if idx is None:
+            raise e_exc.InvalidRegisterName("Unknown Register: %s" % name)
         return self.getRegister(idx)
 
     def setRegisterByName(self, name, value):
         idx = self._rctx_names.get(name)
-        if idx == None:
-            raise InvalidRegisterName("Unknown Register: %s" % name)
+        if idx is None:
+            raise e_exc.InvalidRegisterName("Unknown Register: %s" % name)
         self.setRegister(idx, value)
 
     def getRegisterNames(self):
@@ -346,16 +343,16 @@ class RegisterContext:
         (used when setting a meta register)
         '''
         ridx = index & 0xffff
+        width = (index >> 16) & 0xff
         offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
 
-        #FIXME is it faster to generate or look thses up?
-        mask = (2**width)-1
+        # FIXME is it faster to generate or look these up?
+        mask = (2 ** width) - 1
         mask = mask << offset
 
         # NOTE: basewidth is in *bits*
         basewidth = self._rctx_widths[ridx]
-        basemask  = (2**basewidth)-1
+        basemask = (2 ** basewidth) - 1
 
         # cut a whole in basemask at the size/offset of mask
         finalmask = basemask ^ mask
@@ -388,7 +385,7 @@ class RegisterContext:
         of meta-registers) or the name of the register.
         (by Index)
         """
-        return self.getRegisterName(regidx& RMETA_NMASK)
+        return self.getRegisterName(regidx & RMETA_NMASK)
 
     def getRealRegisterName(self, regname):
         """
@@ -396,7 +393,7 @@ class RegisterContext:
         of meta-registers) or the name of the register.
         """
         ridx = self.getRegisterIndex(regname)
-        if ridx != None:
+        if ridx is not None:
             return self.getRegisterName(ridx & RMETA_NMASK)
         return regname
 
@@ -427,5 +424,5 @@ def addLocalMetas(l, metas):
     Update a dictionary (or module locals) with REG_FOO index
     values for all meta registers defined in metas.
     """
-    for name,idx,offset,width in metas:
+    for name, idx, offset, width in metas:
         l["REG_%s" % name.upper()] = (offset << 24) | (width << 16) | idx

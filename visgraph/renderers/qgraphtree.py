@@ -1,26 +1,30 @@
-from PyQt4 import QtCore, QtGui, QtWebKit
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import *
 
-class NodeColumn(QtGui.QGraphicsItem):
+
+class NodeColumn(QGraphicsItem):
 
     def __init__(self, vg, nodes, scene, left=None, right=None):
-        QtGui.QGraphicsItem.__init__(self, scene=scene)
-        self.setZValue( -100 ) # Get behind click events...
+        QGraphicsItem.__init__(self)
+        if scene is not None:
+            scene.addItem(self)
+        self.setZValue(-100)  # Get behind click events...
 
         self._v_vg = vg
         self._v_lines = []
         self._v_nodes = nodes
 
         # Remember if we srarted with something on our right or left
-        self._v_goleft = (left == None)
-        self._v_goright = (right == None)
+        self._v_goleft = (left is None)
+        self._v_goright = (right is None)
 
         self._v_left = left
         self._v_right = right
 
         offset = 0
-        for nid,nprops in nodes:
+        for nid, nprops in nodes:
             txt = QGraphNode(vg, self, nid, nprops, scene=scene)
-            txt.setY( offset )
+            txt.setY(offset)
             offset += txt.boundingRect().height()
 
     def takeOverView(self):
@@ -48,8 +52,8 @@ class NodeColumn(QtGui.QGraphicsItem):
     def removeColumn(self):
         scene = self.scene()
         for item in self._v_lines:
-            scene.removeItem( item )
-        scene.removeItem( self )
+            scene.removeItem(item)
+        scene.removeItem(self)
 
     def boundingRect(self):
         return self.childrenBoundingRect()
@@ -64,7 +68,7 @@ class NodeColumn(QtGui.QGraphicsItem):
         return self.x()
 
     def getYMid(self):
-        return self.y() + (self.boundingRect().height() / 2)
+        return self.y() + (int(self.boundingRect().height()) / 2)
 
     def drawLinesTo(self, colnode):
         '''
@@ -76,21 +80,20 @@ class NodeColumn(QtGui.QGraphicsItem):
         colrect = colnode.boundingRect()
 
         ecolor = self._v_vg.getMeta('edgecolor', '#000')
-        pen = QtGui.QPen( QtGui.QColor( ecolor ) )
+        pen = QtGui.QPen(QtGui.QColor( ecolor))
 
         for item in self.childItems():
             itpos = item.scenePos()
             itrect = item.boundingRect()
 
             x1 = colpos.x() + colrect.width()
-            y1 = colpos.y() + (colrect.height() / 2 )
+            y1 = colpos.y() + (int(colrect.height()) >> 1)
 
             x2 = itpos.x()
-            y2 = itpos.y() + ( itrect.height() / 2)
+            y2 = itpos.y() + (int(itrect.height()) >> 1)
 
             lineitem = scene.addLine(x1, y1, x2, y2, pen=pen)
-            self._v_lines.append( lineitem )
-            #lineitem.setParentItem(self)
+            self._v_lines.append(lineitem)
 
     def drawLinesFrom(self, colnode):
         '''
@@ -102,21 +105,20 @@ class NodeColumn(QtGui.QGraphicsItem):
         colrect = colnode.boundingRect()
 
         ecolor = self._v_vg.getMeta('edgecolor', '#000')
-        pen = QtGui.QPen( QtGui.QColor( ecolor ) )
+        pen = QtGui.QPen(QtGui.QColor(ecolor))
 
         for item in self.childItems():
             itpos = item.scenePos()
             itrect = item.boundingRect()
 
             x1 = itpos.x() + itrect.width()
-            y1 = itpos.y() + ( itrect.height() / 2 )
+            y1 = itpos.y() + (int(itrect.height()) >> 1)
 
             x2 = colpos.x()
-            y2 = colpos.y() + ( colrect.height() / 2)
+            y2 = colpos.y() + (int(colrect.height()) >> 1)
 
             lineitem = scene.addLine(x1, y1, x2, y2, pen=pen)
-            self._v_lines.append( lineitem )
-            #lineitem.setParentItem(self)
+            self._v_lines.append(lineitem)
 
     def expandNode(self, colnode):
 
@@ -158,10 +160,12 @@ class NodeColumn(QtGui.QGraphicsItem):
             col.drawLinesTo( colnode )
             self._v_right = col
 
-class QGraphNode(QtGui.QGraphicsSimpleTextItem):
+class QGraphNode(QGraphicsSimpleTextItem):
 
     def __init__(self, vg, column, nid, nprops, scene=None):
-        QtGui.QGraphicsSimpleTextItem.__init__(self, nprops.get('repr', 'node:{}'.format(nid) ), scene=scene, parent=column)
+        QGraphicsSimpleTextItem.__init__(self, nprops.get('repr', 'node:{}'.format(nid) ), parent=column)
+        if scene is not None:
+            scene.addItem(self)
 
         self._v_vg = vg
         self._v_nid = nid
@@ -184,14 +188,14 @@ class QGraphNode(QtGui.QGraphicsSimpleTextItem):
         pos = event.screenPos()
         self.scene().parent()._sig_NodeContextMenu.emit(pos, self._v_nid, self._v_nprops)
 
-class QGraphTreeView(QtGui.QGraphicsView):
+class QGraphTreeView(QGraphicsView):
 
     _sig_NodeSelected = QtCore.pyqtSignal(object, dict)
     _sig_NodeContextMenu = QtCore.pyqtSignal( object, object, dict ) # pos, nid, nprops
 
     def __init__(self, vg, nodes, parent=None):
-        QtGui.QGraphicsView.__init__(self, parent=parent)
-        scene = QtGui.QGraphicsScene(parent=self)
+        QGraphicsView.__init__(self, parent=parent)
+        scene = QGraphicsScene(parent=self)
 
         self.setScene( scene )
         self._v_nodecol = NodeColumn(vg, nodes, scene)
@@ -215,10 +219,10 @@ if __name__ == '__main__':
     import sys
     import visgraph.graphcore as vg_graphcore
 
-    app = QtGui.QApplication(sys.argv)
+    app = QApplication(sys.argv)
     app.setFont( QtGui.QFont('Courier') )
 
-    initnodes = [ (i, {'repr':'node%d' % i}) for i in xrange( 30 ) ]
+    initnodes = [ (i, {'repr':'node%d' % i}) for i in range( 30 ) ]
 
     # Build up a fake graph
     vg = vg_graphcore.Graph()
@@ -235,4 +239,3 @@ if __name__ == '__main__':
 
     win.show()
     app.exec_()
-

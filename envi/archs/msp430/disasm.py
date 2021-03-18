@@ -358,7 +358,7 @@ class Msp430Opcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -425,13 +425,13 @@ class Msp430Opcode(envi.Opcode):
 #FIXME: This should just be wrapped into envi
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
-    if sym != None:
+    if sym is not None:
         return repr(sym)
     return "0x%.4x" % va
 
 def renderPossibleLocation(mcanv, op, idx, value):
     hint = mcanv.syms.getSymHint(op.va, idx)
-    if hint != None:
+    if hint is not None:
         if mcanv.mem.isValidPointer(value):
             mcanv.addVaText(hint, value)
         else:
@@ -455,7 +455,7 @@ class Msp430Operand(envi.Operand):
 
     def renderReg(self, mcanv, op, idx, reg):
         hint = mcanv.syms.getSymHint(op.va, idx)
-        if hint != None:
+        if hint is not None:
             mcanv.addNameText(hint, typename="registers")
         else:
             name = self._dis_regctx.getRegisterName(reg)
@@ -623,7 +623,7 @@ class Msp430RegIndirOper(Msp430Operand):
         if self.val in (REG_SR, REG_CG):
             return (None, None, 4, 2)[self.val]
 
-        if emu == None:
+        if emu is None:
             return None
 
         addr = self.getOperAddr(op, emu)
@@ -634,7 +634,7 @@ class Msp430RegIndirOper(Msp430Operand):
         if self.val == REG_PC:
             return op.va + op.size
 
-        if emu == None:
+        if emu is None:
             return None
 
         return emu.getRegister(self.val)
@@ -705,14 +705,14 @@ class Msp430RegIndirAutoincOper(Msp430Operand):
         elif self.val == REG_CG:
             return -1
 
-        if emu == None:
+        if emu is None:
             return None
         addr = self.getOperAddr(op, emu)
         val = emu.readMemValue(addr, self.tsize)
         return val
 
     def getOperAddr(self, op, emu=None):
-        if emu == None:
+        if emu is None:
             return None
 
         addr = emu.getRegister(self.val)

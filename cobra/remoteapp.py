@@ -19,24 +19,27 @@ import multiprocessing
 import cobra
 import cobra.dcode
 
+
 class RemoteAppServer:
     def __init__(self):
         pass
+
 
 def shareRemoteApp(name, appsrv=None, daemon=None, port=443):
     '''
     Fire an appropriate dcode enabled cobra daemon and share
     the appsrv object with the given name.
     '''
-    if appsrv == None:
+    if appsrv is None:
         appsrv = RemoteAppServer()
 
-    if daemon == None:
+    if daemon is None:
         daemon = cobra.CobraDaemon(msgpack=True, port=port)
         daemon.fireThread()
 
     cobra.dcode.enableDcodeServer(daemon=daemon)
     return daemon.shareObject(appsrv, name)
+
 
 def getAndRunApp(uri):
     # We dont want our *local* code, we want the remote code.
@@ -49,8 +52,8 @@ def getAndRunApp(uri):
     duri = cobra.swapCobraObject(uri, 'DcodeServer')
     cobra.dcode.addDcodeUri(duri)
 
-    server = cobra.CobraProxy(uri,msgpack=True)
-    scheme, host, port, name, urlparams = cobra.chopCobraUri( uri )
+    server = cobra.CobraProxy(uri, msgpack=True)
+    scheme, host, port, name, urlparams = cobra.chopCobraUri(uri)
 
     module = importlib.import_module(name)
 
@@ -59,21 +62,25 @@ def getAndRunApp(uri):
     else:
         module.main()
 
+
 def runRemoteApp(uri, join=True):
     p = multiprocessing.Process(target=getAndRunApp, args=(uri,))
     p.start()
     if join:
         p.join()
 
+
 def execRemoteApp(uri):
     '''
-    Exec a remoteapp without using multiprocessig ( may be needed if fork()
-    causes the child to have an unacceptably dirty environment )
+    Exec a remoteapp without using multiprocessing (may be needed if fork()
+    causes the child to have an unacceptably dirty environment)
     '''
     subprocess.Popen([sys.executable, '-m', 'cobra.remoteapp', uri])
 
+
 def main():
-    runRemoteApp(argv[0])
+    runRemoteApp(sys.argv[1])
+
 
 if __name__ == '__main__':
     sys.exit(main())

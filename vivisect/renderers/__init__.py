@@ -1,25 +1,20 @@
 """
 A package for any of the vivisect workspace renderers.
 """
-import envi
 import string
-import urllib
+import logging
+import binascii
+import traceback
+import urllib.parse
 
 from vivisect.const import *
 
 import vstruct.primitives as vs_prims
-import envi.cli as e_cli
 import envi.memcanvas as e_canvas
 
-location_tags = {
-    LOC_PAD:"pad",
-    LOC_OP:"code",
-    LOC_STRING:"string",
-    LOC_UNI:"string",
-}
 
-def cmpoffset(x,y):
-    return cmp(x[0], y[0])
+logger = logging.getLogger(__name__)
+
 
 class WorkspaceRenderer(e_canvas.MemoryRenderer):
     def __init__(self, vw):
@@ -33,7 +28,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
     def render(self, mcanv, va):
 
         loc = self.vw.getLocation(va)
-        if loc == None:
+        if loc is None:
             loc = (va, 1, LOC_UNDEF, None)
 
         lva, lsize, ltype, tinfo = loc
@@ -58,16 +53,13 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
         If there is *any* function to optimize, this is it... it renders EVERYTHING...
         """
-        lva,lsize,ltype,tinfo = loc
+        lva, lsize, ltype, tinfo = loc
 
         vatag = mcanv.getVaTag(lva)
         cmnttag = mcanv.getTag("comment")
 
         seg = self.vw.getSegment(lva)
-        if seg == None:
-            segname = "map"
-        else:
-            segname = seg[SEG_NAME]
+        segname = "map" if seg is None else seg[SEG_NAME]
 
         vastr = self.vw.arch.pointerString(lva)
         linepre = "%s:%s  " % (segname, vastr)
@@ -76,7 +68,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
         xrcount = len(xrefs)
 
-        if seg != None and self._show_segment:
+        if seg is not None and self._show_segment:
             segva, segsize, segname, segfname = seg
             if segva == lva:
                 mcanv.addText(linepre, tag=vatag)
@@ -90,7 +82,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText("FUNC: ")
 
             api = self.vw.getFunctionApi(lva)
-            rtype,rname,convname,apiname,apiargs = api
+            rtype, rname, convname, apiname, apiargs = api
             mcanv.addNameText(rtype)
             mcanv.addText(' ')
             mcanv.addNameText(convname)
@@ -98,7 +90,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(name, tag=vatag)
 
             mcanv.addText("( ")
-            for typename,argname in apiargs:
+            for typename, argname in apiargs:
                 mcanv.addNameText(typename)
                 mcanv.addText(' ')
                 mcanv.addNameText(argname)
@@ -122,9 +114,9 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             funclocals.sort()
             funclocals.reverse()
 
-            for _,spdelta,_,_ in funclocals:
+            for _, spdelta, _, _ in funclocals:
                 # Make the workspace do the resolving for us
-                typename, varname = self.vw.getFunctionLocal(lva,spdelta)
+                typename, varname = self.vw.getFunctionLocal(lva, spdelta)
                 mcanv.addText(linepre, tag=vatag)
                 mcanv.addText('        ')
                 mcanv.addText('%4d: ' % spdelta)
@@ -136,11 +128,11 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, tag=vatag)
             mcanv.addText('\n')
 
-        elif xrcount > 0 or name != None:
+        elif xrcount > 0 or name is not None:
             mcanv.addText(linepre, tag=vatag)
-            if name == None:
+            if name is None:
                 name = "loc_%.8x" % lva
-            mcanv.addText(urllib.quote_plus(name), tag=vatag)
+            mcanv.addText(urllib.parse.quote_plus(name), tag=vatag)
             mcanv.addText(": ")
             xrtag = mcanv.getTag("xrefs")
             mcanv.addText('[%d XREFS]\n' % xrcount, tag=xrtag)
@@ -148,17 +140,15 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
         if ltype == LOC_OP:
             mcanv.addText(linepre, tag=vatag)
             opbytes = mcanv.mem.readMemory(lva, lsize)
-            mcanv.addText(opbytes[:8].encode('hex').ljust(17))
+            mcanv.addText(binascii.hexlify(opbytes[:8]).ljust(17).decode('utf-8'))
 
             # extra is the opcode object
             try:
                 extra.render(mcanv)
-            except Exception, e:
-                import traceback
-                traceback.print_exc()
+            except Exception as e:
                 mcanv.addText("Opcode Render Failed: %s\n" % repr(extra))
 
-            if cmnt != None:
+            if cmnt is not None:
                 mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
 
             mcanv.addText("\n")
@@ -178,9 +168,9 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
                 totag = None
                 if isinstance(sobj, vs_prims.v_ptr):
-                    stova = long(sobj)
+                    stova = int(sobj)
                     stoname = self.vw.getName(stova)
-                    if stoname == None:
+                    if stoname is None:
                         stoname = repr(sobj)
                     if self.vw.isValidPointer(stova):
                         totag = mcanv.getVaTag(stova)
@@ -192,7 +182,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
                 # Insert the sobj info (if it's a primitive)
                 if isinstance(sobj, vs_prims.v_prim):
-                    if totag != None:
+                    if totag is not None:
                         mcanv.addText(stoname, tag=totag)
                     else:
                         mcanv.addText(repr(sobj))
@@ -205,16 +195,14 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
                 # Handle the comment if present
                 cmnt = self.vw.getComment(sva)
-                if cmnt != None:
+                if cmnt is not None:
                     mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
 
                 mcanv.addText("\n")
 
         elif ltype == LOC_POINTER:
 
-            fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0] #FIXME hardcoded one
-        
-            pstr = self.vw.arch.pointerString(tova)
+            fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0]  # FIXME hardcoded one
 
             mcanv.addText(linepre, tag=vatag)
             mcanv.addNameText("ptr: ")
@@ -225,26 +213,34 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(pstr, tag=totag)
 
             name = self.vw.getName(tova)
-            if name == None:
-                name = "loc_%.8x" % tova #FIXME 64bit
+            if name is None:
+                name = "loc_%.8x" % tova  # FIXME 64bit
 
             mcanv.addText(" (")
             mcanv.addText(name, tag=totag)
             mcanv.addText(")")
-            if cmnt != None:
+            if cmnt is not None:
                 mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
             mcanv.addText("\n")
 
         elif ltype == LOC_UNDEF:
 
             mcanv.addText(linepre, vatag)
-            offset,bytes = self.vw.getByteDef(lva)
-            b = bytes[offset]
-            mcanv.addNameText(b.encode('hex'), typename="undefined")
-            if b in string.printable:
-                mcanv.addText('    %s' % repr(b), tag=cmnttag)
-            if cmnt != None:
+            offset, bytez = self.vw.getByteDef(lva)
+            b = bytez[offset:offset+1]
+            mcanv.addNameText(b.hex(), typename="undefined")
+
+            try:
+                b = b.decode('utf-8')
+                if b in string.printable:
+                    mcanv.addText('    %s' % repr(b), tag=cmnttag)
+            except:
+                # if we don't decode correctly, don't print it.
+                pass
+
+            if cmnt is not None:
                 mcanv.addText('    ;%s' % cmnt, tag=cmnttag)
+
             mcanv.addText("\n")
 
         elif ltype == LOC_IMPORT:
@@ -252,19 +248,19 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, vatag)
             tva = self.vw.vaByName(tinfo)
             mcanv.addText('IMPORT: ')
-            if tva != None:
+            if tva is not None:
                 mcanv.addVaText(tinfo, tva)
             else:
                 mcanv.addText(tinfo)
 
-            if cmnt != None:
+            if cmnt is not None:
                 mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
 
             mcanv.addText("\n")
 
         else:
-            tagname = location_tags.get(ltype, None)
-            if tagname == None:
+            tagname = loc_type_names.get(ltype, None)
+            if tagname is None:
                 tagname = "location"
 
             ltag = mcanv.getTag(tagname)
@@ -274,7 +270,6 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
                 mcanv.addText(line, ltag)
                 if not cdone:
                     cdone = True
-                    if cmnt != None:
+                    if cmnt is not None:
                         mcanv.addText("    ;%s" % cmnt, tag=cmnttag)
                 mcanv.addText("\n")
-

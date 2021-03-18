@@ -4,18 +4,15 @@ os:
 env:
     - VIVTESTFILES=/tmp/vivtestfiles
 
-sudo: required
-dist: trusty
+dist: bionic
 
 language: python
 
 python:
-    - "2.7_with_system_site_packages"
+    - "3.7"
 
 install:
-    - "travis_retry sudo apt-get update"
     - git clone https://github.com/vivisect/vivtestfiles.git /tmp/vivtestfiles
-    - "travis_retry sudo apt-get -qq install libfreetype6-dev liblcms2-dev python-qt4 ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick"
-    - pip install msgpack-python
+    - pip install -r requirements.txt
 
-script: py.test
+script: python -m unittest discover

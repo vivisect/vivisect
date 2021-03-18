@@ -1,13 +1,13 @@
 import struct
 from contextlib import contextmanager
 
-import envi
 import envi.archs.i386 as e_i386
 from envi.archs.i386.regs import *
 import envi.archs.amd64 as e_amd64
 from envi.archs.amd64.regs import *
 
 import vdb.testmods as v_testmods
+
 
 @contextmanager
 def constantStackCounter(trace):
@@ -18,6 +18,7 @@ def constantStackCounter(trace):
     sp = trace.getStackCounter()
     yield
     assert(sp == trace.getStackCounter())
+
 
 class i386StdCallCallingConventionTest(v_testmods.VtracePythonTest):
     modname = 'vdb.testmods.callingconventions'
@@ -30,7 +31,6 @@ class i386StdCallCallingConventionTest(v_testmods.VtracePythonTest):
         for index, arg in enumerate(args):
             arg_addr = va + index * self.psize
             read_arg = struct.unpack('<%s' % self.ssize, self.trace.readMemory(arg_addr, self.psize))[0]
-            #print('checkMem: 0x{:x} 0x{:x}'.format(read_arg, arg))
             assert(read_arg == arg)
 
     def checkReturnAddress(self):
@@ -40,18 +40,18 @@ class i386StdCallCallingConventionTest(v_testmods.VtracePythonTest):
 
     def checkPreCallStackArgs(self, args, skipnum=0):
         sp = self.trace.getStackCounter()
-        sp += self.psize * skipnum # for easy x64 support of homing params
+        sp += self.psize * skipnum  # for easy x64 support of homing params
         self.checkMem(args, sp)
 
     def checkCallStackArgs(self, args, skipnum=0):
         sp = self.trace.getStackCounter()
-        sp += self.psize # skip ret addr
-        sp += self.psize * skipnum # for easy x64 support of homing params
+        sp += self.psize  # skip ret addr
+        sp += self.psize * skipnum  # for easy x64 support of homing params
         self.checkMem(args, sp)
 
     def checkRegisterArgs(self, reglist, args):
         argc_in_regs = min(len(reglist), len(self.args))
-        for index in xrange(0, argc_in_regs):
+        for index in range(0, argc_in_regs):
             assert(args[index] == self.trace.getRegister(reglist[index]))
 
     def checkReadArgs(self, args, read_args):
@@ -83,7 +83,7 @@ class i386StdCallCallingConventionTest(v_testmods.VtracePythonTest):
         # specified to constructor.
         start = 0x41
         self.args = []
-        for i in xrange(0, self.argc):
+        for i in range(0, self.argc):
             val = start+i
             bytez = val << 24 | val << 16 | val << 8 | val
             self.args.append(bytez)
@@ -160,6 +160,7 @@ class i386StdCallCallingConventionTest(v_testmods.VtracePythonTest):
         self.cc.allocateCallSpace(self.trace, len(self.args))
         assert(sp - 4*len(self.args)-4 == self.trace.getStackCounter())
 
+
 class i386CdeclCallingConventionTest(i386StdCallCallingConventionTest):
     modname = 'vdb.testmods.callingconventions'
 
@@ -177,15 +178,14 @@ class i386CdeclCallingConventionTest(i386StdCallCallingConventionTest):
         assert(eax == self.retval)
         assert(eip == self.retaddr)
 
+
 class i386ThisCallCallingConventionTest(i386StdCallCallingConventionTest):
 
     def resetMemory(self):
-        #for reg in self.trace.getRegisters():
-        #    print(reg)
         self.trace.setRegister(REG_ECX, 0xFFFFFFFF)
 
         sp = self.trace.getStackCounter()
-        for i in xrange(0, len(self.args)*2):
+        for i in range(0, len(self.args)*2):
             self.trace.writeMemory(sp+4*i, struct.pack('<I', 0xEEEEEEEE))
 
     def prepTest(self):
@@ -284,7 +284,7 @@ class i386MsFastCallCallingConventionTest(i386StdCallCallingConventionTest):
             self.trace.setRegister(i, 0xFFFFFFFF)
 
         sp = self.trace.getStackCounter()
-        for i in xrange(0, len(self.args)*2):
+        for i in range(0, len(self.args)*2):
             self.trace.writeMemory(sp+4*i, struct.pack('<I', 0xEEEEEEEE))
 
     def prepTest(self):
@@ -396,7 +396,7 @@ class x64MSx64CallCallingConventionTest(i386MsFastCallCallingConventionTest):
 
         sp = self.trace.getStackCounter()
         # write a bunch
-        for i in xrange(0, len(self.args)*2):
+        for i in range(0, len(self.args)*2):
             self.trace.writeMemory(sp+8*i, struct.pack('<Q', 0xEEEEEEEEEEEEEEEE))
 
     def prepTest(self):
@@ -488,7 +488,7 @@ class SysVAmd64CallCallingConventionTest(i386MsFastCallCallingConventionTest):
 
         sp = self.trace.getStackCounter()
         # write a bunch
-        for i in xrange(0, len(self.args)*2):
+        for i in range(0, len(self.args)*2):
             self.trace.writeMemory(sp+8*i, struct.pack('<Q', 0xEEEEEEEEEEEEEEEE))
 
     def prepTest(self):

@@ -25,7 +25,7 @@ class SymbolikFunctionGraph(v_graphcore.HierGraph):
         seperate "block" refs )
         '''
         #node = self.getNode(va)
-        #if node == None:
+        #if node is None:
 
     #def addNodeOpcode(self, node, op):
         #'''
@@ -93,7 +93,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
             if emu.isStackLocal(reg):
                 print('regfoo is in the stack')
         '''
-        return self.getStackOffset(symvar) != None
+        return self.getStackOffset(symvar) is not None
 
     def isLocalMemory(self, symvar):
         '''
@@ -116,13 +116,13 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         Example:
             reg = emu.getSymbolikVariable('regfoo')
             off = emu.getStackOffset(reg)
-            if off != None:
+            if off is not None:
                 print('regfoo is stack offset: %d' % off)
         '''
-        if self.stackbase == None or self.stacksize == None:
+        if self.stackbase is None or self.stacksize is None:
             return None
 
-        va = symvar.solve(emu=self) # solver cache will help out...
+        va = symvar.solve(emu=self)  # solver cache will help out...
         if self.stackdown and va > self.stackbase:
             return None
 
@@ -154,18 +154,18 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         # Setup our calling convention based on what the workspace says
         # for this function...
         apictx = self._sym_vw.getFunctionApi(fva)
-        if apictx == None:
+        if apictx is None:
             raise Exception('No API context for function %x' % fva)
-        
+
         ccname = apictx[API_CCONV]
         self.cconv = self.getCallingConvention(ccname)
-        if self.cconv == None:
-            raise Exception('Unknown CallingConvention (%s) for: 0x%.8x' % (ccname,fva))
+        if self.cconv is None:
+            raise Exception('Unknown CallingConvention (%s) for: 0x%.8x' % (ccname, fva))
 
-        if args == None:
+        if args is None:
             # Initialize arguments by setting variables based on their arg indexes
-            argc = len( self._sym_vw.getFunctionArgs(fva) )
-            args = [ Var('arg%d' % i, self.__width__) for i in xrange( argc ) ]
+            argc = len(self._sym_vw.getFunctionArgs(fva))
+            args = [Var('arg%d' % i, self.__width__) for i in range(argc)]
 
         self.cconv.setSymbolikArgs(self, args)
 
@@ -209,13 +209,13 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
                 thunk = vw.getFunctionMeta(fva, 'Thunk')
 
                 apictx = self._sym_vw.getFunctionApi(fva)
-                if apictx == None:
+                if apictx is None:
                     defcall = vw.getMeta("DefaultCall")
-                    if defcall == None:
+                    if defcall is None:
                         raise Exception('No API context for function %x and DefaultCall metadata not set' % fva)
                     # fake out 4 args
                     argv = (('int', None), ('int', None), ('int', None), ('int', None))
-                    apictx = ( 'int', None, defcall, fname, argv)
+                    apictx = ('int', None, defcall, fname, argv)
 
                 ccname = apictx[API_CCONV]
 
@@ -223,18 +223,18 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
                 # Either way, if we have a calling convention and a function def
                 # lets parse out our arguments so the FofX() effect can have
                 # more info
-                if cconv != None:
+                if cconv is not None:
                     symargs = cconv.getSymbolikArgs(self, argv, update=True)
 
                 # First of all, if the name of the function has a callback
                 funccb = self.getFunctionCallback(fname)
-                if funccb != None:
+                if funccb is not None:
                     fret = funccb(self, fname, symargs)
 
                 # Next highest priority is "thunks" where there is a callback
-                elif thunk != None:
+                elif thunk is not None:
                     funccb = self.getFunctionCallback(thunk)
-                    if funccb != None:
+                    if funccb is not None:
                         fret = funccb(self, thunk, symargs)
 
         else:
@@ -242,31 +242,31 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
             funcname = str(funcsym)     # Not necessarily the name but...
 
             # Attempt to use import api definitions...
-            apidef = self._sym_vw.getImpApi( funcname )
-            if apidef == None:
+            apidef = self._sym_vw.getImpApi(funcname)
+            if apidef is None:
                 defcall = vw.getMeta("DefaultCall")
-                if defcall == None:
+                if defcall is None:
                     raise Exception('No API context for function %x and DefaultCall metadata not set' % fva)
                 # fake out 4 args
                 argv = (('int', None), ('int', None), ('int', None), ('int', None))
-                apidef = ( 'int', None, defcall, funcname, argv)
+                apidef = ('int', None, defcall, funcname, argv)
 
-            #( 'int', None, 'stdcall', 'wininet.FindFirstUrlCacheContainerW', (('int', None), ('void *', 'ptr'), ('int', None), ('int', None)) ),
-            rt,rn,cc,fn,argv = apidef
-            cconv = self.getCallingConvention( cc )
+            # ( 'int', None, 'stdcall', 'wininet.FindFirstUrlCacheContainerW', (('int', None), ('void *', 'ptr'), ('int', None), ('int', None)) ),
+            rt, rn, cc, fn, argv = apidef
+            cconv = self.getCallingConvention(cc)
 
             # If we managed to get a calling convention *and* argument def...
-            if cconv != None and argv != None:
+            if cconv is not None and argv is not None:
                 symargs = cconv.getSymbolikArgs(self, argv, update=True)
 
             # Give the function callback a shot...
             funccb = self.getFunctionCallback(funcname)
-            if funccb != None:
+            if funccb is not None:
                 fret = funccb(self, funcname, symargs)
 
         # If we have a calling convention here, set the return state
-        if cconv != None:
-            if fret == None:
+        if cconv is not None:
+            if fret is None:
                 # TODO: yuck. take ez way out and use width on emu.
                 # should get return value def from cc and set width according
                 # to width of that?
@@ -297,7 +297,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         Retrieve a list of (name, ccobj) tuples for the registered *symbolik*
         calling convention objects in this context.
         '''
-        return self.cconvs.items()
+        return list(self.cconvs.items())
 
     def addFunctionCallback(self, funcname, callback):
         '''
@@ -331,11 +331,12 @@ class SymbolikAnalysisContext:
     allows over-rides for things like symbolik imports during runtime.
     '''
 
-    def __init__(self, vw):
+    def __init__(self, vw, consolve=False):
         self.vw = vw
         self.funccb = {}    # Callbacks
-        self.consolve = False
-        self._sym_resolve = False 
+        self.consolve = consolve
+        # TODO: is this used?
+        self._sym_resolve = False
         self.preeffects = []
         self.preconstraints = []
 
@@ -371,12 +372,11 @@ class SymbolikAnalysisContext:
         is stored in 'symbolik_effects' list in the node properties.
         '''
         xlate = self.getTranslator()
-        graph = SymbolikFunctionGraph()
 
-        if fgraph == None:
+        if fgraph is None:
             fgraph = viv_graph.buildFunctionGraph(self.vw, fva)
 
-        for nodeva,ninfo in fgraph.getNodes():
+        for nodeva, ninfo in fgraph.getNodes():
 
             cbva = ninfo.get('cbva')
             cbsize = ninfo.get('cbsize')
@@ -391,7 +391,7 @@ class SymbolikAnalysisContext:
             for op in oplist:
                 xlate.translateOpcode(op)
 
-            efflist = xlate.getEffects() # we needn't copy
+            efflist = xlate.getEffects()  # we needn't copy
             conlist = xlate.getConstraints()
             xlate.clearEffects()
             # Put constraints into a dictionary lookup by target address
@@ -399,7 +399,7 @@ class SymbolikAnalysisContext:
             for coneff in conlist:
                 addrva = coneff.addrsym.solve()
                 clist = con_lookup.get(addrva)
-                if clist == None:
+                if clist is None:
                     clist = []
                     con_lookup[addrva] = clist
                 clist.append(coneff)
@@ -409,9 +409,9 @@ class SymbolikAnalysisContext:
             ninfo['symbolik_effects'] = efflist
 
             # Add the constraints to the edges
-            for eid,fromid,toid,einfo in fgraph.getRefsFromByNid(nodeva):
+            for eid, fromid, toid, einfo in fgraph.getRefsFromByNid(nodeva):
                 clist = con_lookup.pop(toid, None)
-                if clist == None:
+                if clist is None:
                     continue
                 einfo['symbolik_constraints'] = clist
 
@@ -453,23 +453,23 @@ class SymbolikAnalysisContext:
         '''
         graph = self.getSymbolikGraph(fva)
         tocb = self.vw.getCodeBlock(tova)
-        if tocb == None:
+        if tocb is None:
             raise Exception("No codeblock for 'tova': 0x%x" % tova)
 
         paths = viv_graph.getCodePathsTo(graph, tocb[0])
         spaths = self.getSymbolikPaths(fva, paths=paths, args=args, maxpath=maxpath, graph=graph)
         for emu, effs in spaths:
-            # we have symboliks up to the codeblock, but not into it.  
+            # we have symboliks up to the codeblock, but not into it.
             seffs = graph.getNodeProps(tocb[0]).get('symbolik_effects')
             for idx in range(len(seffs)):
                 if tova == seffs[idx].va:
                     break
             effs.extend(emu.applyEffects(seffs[:idx+1]))
-            yield emu,effs
+            yield emu, effs
 
     def walkSymbolikPaths(self, fva, graph=None, maxpath=1000, loopcnt=0):
         '''
-        walkSymbolikPaths is a function-focused symbolik path generator, using the 
+        walkSymbolikPaths is a function-focused symbolik path generator, using the
         walkCodePaths generator foundation.  Symbolik effects are dragged through
         each code block, and constraints are evaluated in-process to determine and
         trim dead code paths.
@@ -477,13 +477,13 @@ class SymbolikAnalysisContext:
         Begins first node by applying self.preeffects and self.preconstraints
         '''
 
-        if graph == None:
+        if graph is None:
             graph = self.getSymbolikGraph(fva)
 
         # our callback routine for code path walking
         def codewalker(ppath, edge, path):
             # first, test for the "entry" case
-            if ppath == None and edge == None:
+            if ppath is None and edge is None:
                 emu = self.getFuncEmu(fva)
                 for fname, funccb in self.funccb.items():
                     emu.addFunctionCallback(fname, funccb)
@@ -496,8 +496,8 @@ class SymbolikAnalysisContext:
                 patheffs.extend(emu.applyEffects(effects))
 
                 vg_pathcore.setNodeProp(path, 'pathemu', emu)
-                vg_pathcore.setNodeProp(path, 'pathcons', pathcons )
-                vg_pathcore.setNodeProp(path, 'patheffs', patheffs )
+                vg_pathcore.setNodeProp(path, 'pathcons', pathcons)
+                vg_pathcore.setNodeProp(path, 'patheffs', patheffs)
                 return True
 
             # we are now in the "walking" case
@@ -520,11 +520,10 @@ class SymbolikAnalysisContext:
             for coneff in newcons:
                 # bail if the constraint is dorked
                 if coneff.cons.isDiscrete():
-                    if not coneff.cons.prove():
-                        print('TRIM: %s' % (str(coneff.cons),))
+                    if not coneff.cons._solve():
                         return False
                     continue
-                    
+
                 # bail if the constraint is mutex
                 # FIXME
                 #if any([ oldconeff.isMutualExclusion( coneff ) for oldconeff in pathcons ]):
@@ -553,14 +552,14 @@ class SymbolikAnalysisContext:
         effects in an emulator instance and yield
         emu, effects tuples...
         '''
-        if graph == None:
+        if graph is None:
             graph = self.getSymbolikGraph(fva)
 
-        if args == None:
-            argdef = self.vw.getFunctionArgs( fva )
-            args = [ Arg(i, width=self.vw.psize) for i in xrange(len(argdef)) ]
+        if args is None:
+            argdef = self.vw.getFunctionArgs(fva)
+            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
-        if paths == None:
+        if paths is None:
             paths = viv_graph.getCodePaths(graph, maxpath=maxpath)
 
         pcnt = 0
@@ -568,7 +567,7 @@ class SymbolikAnalysisContext:
             if pcnt > maxpath:
                 break
 
-            pcnt+=1
+            pcnt += 1
             skippath = False
             emu = self.getFuncEmu(fva, fargs=args)
 
@@ -578,46 +577,33 @@ class SymbolikAnalysisContext:
             opcodes = []
 
             patheffects = emu.applyEffects(self.preeffects)
-            pathconstraints = emu.applyEffects(self.preconstraints)
 
             for nid, eid in path:
                 # This is the edge that *got us here* so it has to
                 # be processed first!
-                if eid != None:
+                if eid is not None:
                     constraints = graph.getEdgeProps(eid).get('symbolik_constraints', ())
                     constraints = emu.applyEffects(constraints)
-                    #[ c.reduce() for c in constraints ]
 
-                    #print 'EDGE GOT CONSTRAINTS',[ str(c) for c in constraints]
-                    # FIXME check if constraints are discrete, and possibly skip path!
-                    # FIXME: if constraints are Const vs Const, and one Const is a loop var, don't skip!
-                
-                    cons = [ c.cons for c in constraints ]
                     if self.consolve:
                         # If any of the constraints are discrete and false we skip the path
-                        [ c.reduce() for c in constraints ]
-                        discs = [ c.cons.prove() for c in constraints if c.cons.isDiscrete() ]
-                        #print 'CONS',constraints
-                        #print 'DISCS',discs
-                        if not all( discs ): # emtpy discs is True...
-                            #print('SKIP: %s %s' % (repr(discs),[str(c) for c in constraints ]))
+                        [c.reduce() for c in constraints]
+                        discs = [c.cons._solve() for c in constraints if c.cons.isDiscrete()]
+                        if not all(discs):  # emtpy discs is True...
                             skippath = True
                             break
 
                         # reduce/remove constraints that were discrete and passed
-                        constraints = [ c for c in constraints if not c.cons.isDiscrete() ]
-                        cons = [ c.cons for c in constraints ]
+                        constraints = [c for c in constraints if not c.cons.isDiscrete()]
 
-                    patheffects.extend(constraints)
-                    pathconstraints.extend( cons )
+                    patheffects += constraints
 
                 if skippath:
                     break
 
-                effects = emu.applyEffects( graph.getNodeProps(nid).get('symbolik_effects',()) )
-                patheffects.extend(effects)
+                patheffects += emu.applyEffects(graph.getNodeProps(nid).get('symbolik_effects', ()))
 
-                opcodes.extend( graph.getNodeProps(nid).get('opcodes',() ) )
+                opcodes += graph.getNodeProps(nid).get('opcodes', ())
 
             if not skippath:
                 # Store off some info into emu meta for analysis to use
@@ -635,9 +621,9 @@ class SymbolikAnalysisContext:
             functions called (with args)
             output registers modified
         '''
-        if args == None:
+        if args is None:
             argdef = self.vw.getFunctionArgs( fva )
-            args = [ Arg(i, width=self.vw.psize) for i in xrange(len(argdef)) ]
+            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
         for emu, effects in self.getSymbolikPaths(fva, args=args):
 
@@ -659,7 +645,7 @@ class SymbolikAnalysisContext:
             self.vw.vprint('RETURN VALUE %s' % ret)
             self.vw.vprint('='*80)
 
-            yield ret, outputeffects 
+            yield ret, outputeffects
 
     def getTranslator(self):
         '''
@@ -683,11 +669,11 @@ class SymbolikAnalysisContext:
         '''
         emu = self.__emu__(self.vw, *args)
         emu._sym_resolve = self._sym_resolve
-        if fva != None:
+        if fva is not None:
             emu.setupFunctionCall(fva, args=fargs)
         return emu
 
-def getSymbolikAnalysisContext(vw):
+def getSymbolikAnalysisContext(vw, consolve=False):
     '''
     Return a symbolik analysis context which is appropriate for the given
     VivWorkspace.  Returns None if the given arch/platform does not support
@@ -697,11 +683,10 @@ def getSymbolikAnalysisContext(vw):
     arch = vw.getMeta('Architecture')
     if arch == 'i386':
         import vivisect.symboliks.archs.i386 as vsym_i386
-        return vsym_i386.i386SymbolikAnalysisContext(vw)
+        return vsym_i386.i386SymbolikAnalysisContext(vw, consolve=consolve)
 
     elif arch == 'amd64':
         import vivisect.symboliks.archs.amd64 as vsym_amd64
-        return vsym_amd64.Amd64SymbolikAnalysisContext(vw)
+        return vsym_amd64.Amd64SymbolikAnalysisContext(vw, consolve=consolve)
 
     return None
-
