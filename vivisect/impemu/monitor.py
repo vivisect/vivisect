@@ -1,4 +1,5 @@
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 
 import logging
@@ -96,21 +97,18 @@ class AnalysisMonitor(EmulationMonitor):
 
             # Only infer things about the workspace based on discrete operands
             if vw.isValidPointer(val) and discrete:
-
                 vw.addXref(va, val, REF_DATA)
                 if vw.getLocation(val) is not None:
                     continue
 
-                offset, bytes = vw.getByteDef(val)
-                pval = e_bits.parsebytes(bytes, offset, tsize)
-                if (vw.psize == tsize and vw.isValidPointer(pval)):
-                    vw.makePointer(val, tova=pval)
-                else:
-                    vw.makeNumber(val, tsize)
+                vw.guessDataPointer(val, tsize)
 
         for va, callname, argv in self.callcomments:
             reprargs = [emu.reprVivValue(val) for val in argv]
             self.vw.setComment(va, '%s(%s)' % (callname, ','.join(reprargs)))
+            cva = self.vw.vaByName(callname)
+            if cva:
+                self.vw.addXref(va, cva, REF_CODE, envi.BR_PROC)
 
     def addDynamicBranchHandler(self, cb):
         '''

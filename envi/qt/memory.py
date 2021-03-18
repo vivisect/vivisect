@@ -42,7 +42,7 @@ class EnviNavMixin:
         pass
 
     def enviNavExpr(self, event, einfo):
-        name,expr,sizeexpr = einfo
+        name, expr, sizeexpr = einfo
         if self._envi_navname == name:
             self.enviNavGoto(expr,sizeexpr=sizeexpr)
 
@@ -124,7 +124,8 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.mem_canvas = self.initMemoryCanvas(memobj, syms=syms)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
 
-        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback)
+        # https://doc.qt.io/qt-5/qt.html#ShortcutContext-enum
+        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=3)
 
         self.loadDefaultRenderers()
         self.loadRendSelect()

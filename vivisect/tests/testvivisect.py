@@ -3,6 +3,7 @@ import logging
 import unittest
 
 import envi
+import envi.memory as e_memory
 
 import vivisect
 import vivisect.exc as v_exc
@@ -185,10 +186,10 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 53840, 14),
-               1: ('Num/Int',   727, 3922, 1),
-               2: ('String',    256, 6448, 1),
-               3: ('Unicode',   172, 5530, 1),
+        ans = {0: ('Undefined', 0, 53924, 14),
+               1: ('Num/Int',   715, 3738, 0),
+               2: ('String',    265, 6485, 1),
+               3: ('Unicode',   174, 5593, 1),
                4: ('Pointer',   360, 2880, 0),
                5: ('Opcode',    72565, 279449, 74),
                6: ('Structure', 1009, 12380, 3),
@@ -776,3 +777,27 @@ class VivisectTest(unittest.TestCase):
                 cb = vw.getCodeBlock(nid)
                 self.assertEqual(nid, cb[0])
                 self.assertEqual(fva, cb[2])
+
+    def test_firefox_segments(self):
+        vw = self.firefox_vw
+        ans = {
+            'PE_Header': (0x140000000, 0x1000, e_memory.MM_READ),
+            '.text': (0x140001000, 0x48f80, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.rdata': (0x14004a000, 0xbf7c, e_memory.MM_READ),
+            '.data': (0x140056000, 0x2998, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.pdata': (0x140059000, 0x2f28, e_memory.MM_READ),
+            '.00cfg': (0x14005c000, 0x10, e_memory.MM_READ),
+            '.freestd': (0x14005d000, 0x10, e_memory.MM_READ),
+            '.tls': (0x14005e000, 0x11, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.reloc': (0x140092000, 0x338, e_memory.MM_READ),
+        }
+        for sva, ssize, sname, sfname in vw.getSegments():
+            self.assertEqual(ans[sname][0], sva)
+            self.assertEqual(ans[sname][1], ssize)
+            self.assertEqual(sfname, 'firefox')
+
+            mva, msize, flags, mfname = vw.getMemoryMap(sva)
+            self.assertEqual(mva, sva)
+            self.assertEqual(msize, ssize)
+            self.assertEqual(flags, ans[sname][2])
+            self.assertEqual(mfname, sfname)

@@ -296,7 +296,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         vwqgui.addEventCore(self)
         vwqgui.vivMemColorSignal.connect(self.mem_canvas._applyColorMap)
 
-        QtWidgets.QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=3)
 
         # TODO: Transition theses to the above pattern (since escape/ctrl-c
         # See: https://stackoverflow.com/questions/56890831/qwidget-cannot-catch-escape-backspace-or-c-x-key-press-events
@@ -489,7 +489,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         js = 'var sizes = {};'
 
         for nid, nprops in self.graph.getNodes():
-            cbname = 'codeblock_%.8x' % nid
+            try:
+                cbname = 'codeblock_%.8x' % nid
+            except:
+                self.vw.vprint('Failed to build cbname during funcgraph building')
+                return
             js += f'''
             sizes[{nid}] = [document.getElementById("{cbname}").offsetWidth, document.getElementById("{cbname}").offsetHeight];
             '''

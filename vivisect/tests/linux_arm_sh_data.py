@@ -1100,6 +1100,8 @@ sh_data = {
         (0x353a0, 'sh.ptr_stdout_000353a0'),
         (0x354b0, 'sh.ptr_stdout_000354b0'),
         (0x370c8, 'sh.fini_function'),
+        (0x25878, 'ptr_wstr_          _00025878'),
+        (0x3d4e8, 'wstr_          _0003d4e8'),
         (0x49394, 'sh.ptr_init_function_0_00049394'),
         (0x49398, 'sh.ptr_fini_function_0_00049398'),
         (0x4949c, '*.recvfrom_0004949c'),
