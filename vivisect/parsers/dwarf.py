@@ -5,7 +5,6 @@ import envi.bits as e_bits
 import vivisect.exc as v_exc
 import vstruct
 import vstruct.primitives as vs_prim
-import vstruct.defs.dwarf as vs_dwarf
 
 from vstruct.defs.dwarf import *
 
@@ -264,10 +263,10 @@ class DwarfInfo:
             version = vs_prim.v_uint32(bigend=vw.bigend)
             if version == 0xFFFFFFFF:
                 consumed += 4
-                header = vs_dwarf.Dwarf64CompileHeader(bigend=vw.bigend)
+                header = Dwarf64CompileHeader(bigend=vw.bigend)
                 is64BitDwarf = True
             else:
-                header = vs_dwarf.Dwarf32CompileHeader(bigend=vw.bigend)
+                header = Dwarf32CompileHeader(bigend=vw.bigend)
                 # So it says it's 12 bytes, but the first 4 are ffffffff
 
             header.vsParse(bytez[consumed:])
@@ -382,10 +381,10 @@ def _add_children(vw, parent, offsets, children):
                 # plumb not just what type of ref we're looking at, but also the various different
                 # offsets (file, compunit, etc) all the way through
                 origin = child.abstract_origin
-                parent = offsets.get(origin)
-                if parent:
+                concrete = offsets.get(origin)
+                if concrete:
                     try:
-                        vw.makeName(child.low_pc, parent.name, filelocal=False)
+                        vw.makeName(child.low_pc, concrete.name, filelocal=False)
                     except v_exc.DuplicateName:
                         pass
             else:
