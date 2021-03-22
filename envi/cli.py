@@ -656,7 +656,7 @@ class EnviCli(Cmd):
             self.vprint(repr(e))
             return self.do_help('search')
 
-        pattern = ' '.join(args)
+        pattern = (' '.join(args)).encode('utf-8')
         if len(pattern) == 0:
             self.vprint('you must specify a pattern')
             return self.do_help('search')
@@ -671,9 +671,11 @@ class EnviCli(Cmd):
 
         if options.encode_as is not None:
             if options.encode_as == 'hex':
-                pattern = binascii.hexlify(patter)
+                pattern = binascii.hexlify(pattern)
             else:
-                pattern = pattern.encode(options.encode_as)
+                import codecs
+                patternutf8 = pattern.decode('utf-8')
+                pattern = codecs.encode(patternutf8, encoding=options.encode_as)
 
         if options.range_search:
             try:
