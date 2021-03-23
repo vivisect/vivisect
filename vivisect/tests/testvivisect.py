@@ -60,7 +60,7 @@ class VivisectTest(unittest.TestCase):
         self.chgrp_vw.do_search("-r 0x4141.*42 -c")
         self.chgrp_vw.do_search("-c -r qsort")
         self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x200")
-        self.chgrp_vw.do_search("-c -r qsort -R 0x4808000:0x2000")
+        self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x2000")
 
     def test_cli_searchopcode(self):
         '''
