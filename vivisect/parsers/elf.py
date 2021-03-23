@@ -590,7 +590,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         vw.makeImport(rlva, "*", dmglname)
                         vw.setComment(rlva, name)
 
-                    elif rtype in (Elf.R_386_32, Elf.R_386_COPY):
+                    elif rtype in (Elf.R_386_32, Elf.R_386_COPY, Elf.R_X86_64_TPOFF64):
                         pass
 
                     else:
@@ -746,6 +746,9 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     if len(name):
                         vw.makeName(rlva, dmglname, makeuniq=True)
                         vw.setComment(rlva, name)
+
+                elif rtype == Elf.R_ARM_COPY:
+                    pass
 
                 else:
                     logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
