@@ -16,8 +16,6 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 
 
 logger = logging.getLogger(__name__)
-#import envi.common as e_common
-#e_common.initLogging(logger, logging.WARN)
 
 
 GOOD_TESTS = 231
@@ -279,7 +277,7 @@ class RXv2InstructionSet(unittest.TestCase):
         bademu = 0
 
         for bytez, va, reprOp, iflags, emutests in instrs:
-            print("Test: %r" % bytez)
+            logger.debug("Test: %r" % bytez)
             op = vw.arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
             redoprepr = repr(op).replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()
@@ -287,8 +285,7 @@ class RXv2InstructionSet(unittest.TestCase):
             bytezlen = len(bytez) // 2 # hex encoded
             oplen = len(op)
 
-            if oplen != bytezlen:
-                print("Length mismatch: %r: %r  (decoded: %r, test: %r)" % (bytez, op, oplen, bytezlen))
+            self.assertEqual(oplen, bytezlen, msg="Length mismatch: %r: %r  (decoded: %r, test: %r)" % (bytez, op, oplen, bytezlen))
 
             if redoprepr != redgoodop:
                 badcount += 1
