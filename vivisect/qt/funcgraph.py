@@ -93,6 +93,8 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         cb(data)
 
     def _renderMemoryCallback(self, cb, data):
+        if not data:
+            return
         va = int(data[0])
         size = int(data[1])
         self._canv_rendtagid = '#codeblock_%.8x' % va
@@ -106,7 +108,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         js = '''var node = document.querySelector("#%s");
         if (node == null) {
             canv = document.querySelector("#memcanvas");
-            canv.innerHTML += '<div class="codeblock" id="%s"></div>'
+            if (canv != null) {
+                canv.innerHTML += '<div class="codeblock" id="%s"></div>'
+            }
         }
         [%d, %d]
         ''' % (selector, selector, va, size)
