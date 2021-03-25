@@ -119,6 +119,9 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                     self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
                     logger.info("0x%x: (%r) ERROR: %s", op.va, op, e)
 
+        except v_exc.BadOpBytes:
+            raise
+
         except Exception as e:
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
             logger.warning("0x%x: (%r)  ERROR: %s", op.va, op, e)

@@ -244,7 +244,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         '''
         parser = e_cli.VOptionParser()
-        parser.add_option('-f', action='store', dest='funcva', type='long')
+        parser.add_option('-f', action='store', dest='funcva', type='int')
         parser.add_option('-c', action='store_true', dest='searchComments')
         parser.add_option('-o', action='store_true', dest='searchOperands')
         parser.add_option('-t', action='store_true', dest='searchText')
@@ -268,7 +268,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if options.funcva:
             # setup valist from function data
             try:
-                fva = int(args[0], 0)
+                fva = options.funcva
                 graph = viv_graph.buildFunctionGraph(self, fva)
             except Exception as e:
                 self.vprint(repr(e))
@@ -340,9 +340,13 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
                 # search full text
                 if options.searchText or defaultSearchAll:
+                    # search through the rendering of the opcode, as well as the comment
                     canv.clearCanvas()
                     op.render(canv)
                     oprepr = canv.strval
+                    cmt = self.getComment(va)
+                    if cmt is not None:
+                        oprepr += "  ; " + cmt
 
                     if options.is_regex:
                         if len(re.findall(pattern, oprepr)):
@@ -358,7 +362,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 self.vprint(''.join(traceback.format_exception(*sys.exc_info())))
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
             return
 
         # set the color for each finding
@@ -368,7 +372,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             from vqt.main import vqtevent
             vqtevent('viv:colormap', colormap)
 
-        self.vprint('matches for: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+        self.vprint('matches for: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
         for va in res:
             mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
             pname = e_mem.reprPerms(mperm)

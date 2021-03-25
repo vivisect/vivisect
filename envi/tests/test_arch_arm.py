@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 GOOD_TESTS = 5953
-GOOD_EMU_TESTS = 1175
+GOOD_EMU_TESTS = 1183
 '''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -1719,6 +1719,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setMeta('forrealz', True)
         emu._forrealz = True
         emu.logread = emu.logwrite = True
+        emusnap = emu.getEmuSnap()
         badcount = 0
         goodcount = 0
         goodemu = 0
@@ -1747,6 +1748,7 @@ class ArmInstructionSet(unittest.TestCase):
                     if not len(emutests):
                         try:
                             # if we don't have special tests, let's just run it in the emulator anyway and see if things break
+                            emu.setEmuSnap(emusnap)
                             if not self.validateEmulation(emu, op, (), ()):
                                 goodemu += 1
                             else:
@@ -1765,6 +1767,7 @@ class ArmInstructionSet(unittest.TestCase):
                                 if 'setup' in sCase:
                                     setters = sCase['setup']
                                 tests = sCase['tests']
+                                emu.setEmuSnap(emusnap)
                                 if not self.validateEmulation(emu, op, (setters), (tests), tidx):
                                     goodcount += 1
                                     goodemu += 1
