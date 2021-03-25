@@ -915,7 +915,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         """
         mystr = 'Elf Binary:'
         mystr+= "\n= Intimate Details:"
-        mystr+= "\n==Magic:\t\t\t\t"       + self.e_ident.decode('utf-8')
+        mystr+= "\n==Magic:\t\t\t\t%r"       % self.e_ident.decode('utf-8')
         mystr+= "\n==Type:\t\t\t\t\t"        + e_types.get(self.e_type)
         mystr+= "\n==Machine Arch:\t\t\t\t"  + e_machine_types.get(self.e_machine)
         mystr+= "\n==Version:\t\t\t\t%d"     % (self.e_version)
