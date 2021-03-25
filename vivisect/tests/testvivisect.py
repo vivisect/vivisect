@@ -46,6 +46,35 @@ class VivisectTest(unittest.TestCase):
                 self.assertEqual((xflags, isint(xflags)),
                                  (xflags, True))
 
+    def test_cli_search(self):
+        '''
+        Test that EnviCli.do_search works
+        '''
+        #TODO: make real tests with asserts
+        self.chgrp_vw.do_search("-e utf-16le foo")
+        self.chgrp_vw.do_search("-e utf-16le foo")
+        self.chgrp_vw.do_search("-X 41414141")
+        self.chgrp_vw.do_search("-E 0x41414141")
+        self.chgrp_vw.do_search("-E 0x41414142")
+        self.chgrp_vw.do_search("-r 0x4141.*42")
+        self.chgrp_vw.do_search("-r 0x4141.*42 -c")
+        self.chgrp_vw.do_search("-c -r qsort")
+        self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x200")
+        self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x2000")
+
+    def test_cli_searchopcode(self):
+        '''
+        Test that VivCli.do_searchopcodes works
+        '''
+        #TODO: make real tests with asserts
+        self.chgrp_vw.do_searchopcodes('foo')
+        self.chgrp_vw.do_searchopcodes('-f 0x08050200 ret')
+        self.chgrp_vw.do_searchopcodes('-c rol')
+        self.chgrp_vw.do_searchopcodes('-o rol')
+        self.chgrp_vw.do_searchopcodes('-t rol')
+        self.chgrp_vw.do_searchopcodes('-M red rol')
+        self.chgrp_vw.do_searchopcodes('-f 0x08050200 -R r.t')
+
     def test_loc_types(self):
         '''
         Test that we have data consistency in locations
