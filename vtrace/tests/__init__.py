@@ -29,8 +29,12 @@ class VtraceProcessTest(unittest.TestCase):
             self.trace.run()
         try:
             self.proc.wait(timeout=120)
-        except:
+        except subprocess.TimeoutExpired:
+            pass
+        finally:
             # whatever. shoot the process and keep going. Ain't nobody got time for that.
+            self.proc.stdout.close()
+            self.proc.stdin.close()
             self.proc.kill()
         self.trace.release()
 
