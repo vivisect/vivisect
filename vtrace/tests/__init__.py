@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import unittest
 import subprocess
 
@@ -47,6 +48,7 @@ class VtraceProcessTest(unittest.TestCase):
         self.proc.stdin.write('testmod\n')
         self.proc.stdin.flush()
         self.trace.run()
+        time.sleep(1)
 
         self.assertEqual(self.trace.getMeta('ExitCode'), 33)
 
