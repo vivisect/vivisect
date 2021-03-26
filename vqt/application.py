@@ -41,12 +41,21 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QDockWidget):
     def closeEvent(self, event):
 
         self.hide()
+        parent = self.parent()
 
         w = self.widget()
+
+        # remove widget from the views dict
+        clsname = w.__class__.__name__
+        dwidgets = parent.views.get(clsname)
+        if self in dwidgets:
+            dwidgets.remove(self)
+
         w.setParent(None)
         w.close()
 
-        self.parent().vqRemoveDockWidget(self)
+        # remove widget from main _vq_dockwidgets list
+        parent.vqRemoveDockWidget(self)
 
         event.accept()
 
@@ -83,6 +92,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
 
         self._vq_appname = appname
         self._vq_dockwidgets = []
+        self.views = {}
 
         self._vq_settings = QtCore.QSettings('invisigoth', application=appname, parent=self)
         self._vq_histfile = os.path.join(os.path.expanduser('~'), '.%s_history' % appname)
@@ -124,7 +134,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
             return
         cls, args = res
         obj = cls(*args)
-        return self.vqDockWidget(obj, area, floating=floating), obj
+        return (self.vqDockWidget(obj, area, floating=floating), obj)
 
     def vqRestoreGuiSettings(self, settings, stub=''):
         dwcls = settings.value('DockClasses')
@@ -200,6 +210,15 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
         d.setFloating(floating)
         self.addDockWidget(area, d)
         self._vq_dockwidgets.append(d)
+
+        # store the widget by classname
+        clsname = widget.__class__.__name__
+        dwidgets = self.views.get(clsname)
+        if dwidgets is None:
+            dwidgets = []
+            self.views[clsname] = dwidgets
+        dwidgets.append(d)
+
         self.restoreDockWidget(d)
         d.show()
         return d
