@@ -37,7 +37,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
         if idx.isValid() and self._viv_navcol is not None:
             pnode = idx.internalPointer()
             expr = pnode.rowdata[self._viv_navcol]
-            vqtevent('envi:nav:expr', ('viv',expr,None))
+            vqtevent('envi:nav:expr', ('viv', expr, None))
             return True
 
     def contextMenuEvent(self, event):
@@ -128,6 +128,8 @@ class VQVivStringsView(VQVivLocView):
         s = self.vw.readMemory(lva, lsize)
         if ltype == LOC_UNI:
             s = s.decode('utf-16le', 'ignore')
+        else:
+            s = s.decode('utf-8', 'ignore')
         self.vivAddRow(lva, '0x%.8x' % lva, repr(s))
 
 class VQVivImportsView(VQVivLocView):

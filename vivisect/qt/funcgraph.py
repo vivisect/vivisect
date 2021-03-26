@@ -413,6 +413,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         expr = state.get('expr','')
         self.enviNavGoto(expr)
 
+    def setMemWindowName(self, mwname):
+        '''
+        Set the memory window name/title prefix to the given string.
+        '''
+        self.setEnviNavName(mwname)
+        self.updateWindowTitle()
+
     def updateWindowTitle(self, data=None):
         ename = self.getEnviNavName()
         expr = str(self.addr_entry.text())
@@ -489,7 +496,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         js = 'var sizes = {};'
 
         for nid, nprops in self.graph.getNodes():
-            cbname = 'codeblock_%.8x' % nid
+            try:
+                cbname = 'codeblock_%.8x' % nid
+            except:
+                self.vw.vprint('Failed to build cbname during funcgraph building')
+                return
             js += f'''
             sizes[{nid}] = [document.getElementById("{cbname}").offsetWidth, document.getElementById("{cbname}").offsetHeight];
             '''
