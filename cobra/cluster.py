@@ -9,14 +9,14 @@ import time
 import struct
 import socket
 import logging
-import urllib2
 import traceback
 import threading
 import subprocess
 import multiprocessing
+import urllib.request as url_req
 
 import cobra
-import dcode
+from . import dcode
 
 logger = logging.getLogger(__name__)
 
@@ -316,7 +316,7 @@ class ClusterServer:
 
         else:
             buf = "cobra:%s:%s:%d" % (self.name, self.cobraname, self.cobrad.port)
-            self.sendsock.sendto(buf, (cluster_ip, cluster_port))
+            self.sendsock.sendto(buf.encode('utf-8'), (cluster_ip, cluster_port))
 
     def runServer(self, firethread=False):
 
@@ -355,7 +355,7 @@ class ClusterServer:
 
         # If this work has no ID, give it one
         if work.id is None:
-            work.id = self.widiter.next()
+            work.id = next(self.widiter)
 
         self.qcond.acquire()
         if self.maxsize is not None:
@@ -502,7 +502,7 @@ class ClusterClient:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(("",cluster_port))
-        mreq = struct.pack("4sL", socket.inet_aton(cluster_ip), socket.INADDR_ANY)
+        mreq = struct.pack(b"4sL", socket.inet_aton(cluster_ip), socket.INADDR_ANY)
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
     def processWork(self):
@@ -514,6 +514,9 @@ class ClusterClient:
             buf, sockaddr = self.sock.recvfrom(4096)
             if self.width >= self.maxwidth:
                 continue
+
+            # make it a string again..
+            buf = buf.decode('utf-8')
 
             server, svrport = sockaddr
 
@@ -531,6 +534,7 @@ class ClusterClient:
                 continue
 
             if (self.name != name) and (self.name != "*"):
+                logger.debug("skipping work, not me...(%r != %r)", name, self.name)
                 continue
 
             port = int(portstr)
@@ -571,7 +575,7 @@ class ClusterQueen:
         # Get the host IP from the connection information
         host, x = cobra.getCallerInfo()
         buf = "cobra:%s:%s:%d:%s" % (name, cobraname, port, host)
-        self.sendsock.sendto(buf, (cluster_ip, cluster_port))
+        self.sendsock.sendto(buf.encode('utf-8'), (cluster_ip, cluster_port))
 
 def getHostPortFromUri(uri):
     """
@@ -579,9 +583,9 @@ def getHostPortFromUri(uri):
     host and port for use in building the
     dcode uri.
     """
-    x = urllib2.Request(uri)
+    x = url_req.Request(uri)
     port = None
-    hparts = x.get_host().split(":")
+    hparts = x.host.split(":")
     host = hparts[0]
     if len(hparts):
         port = int(hparts[1])
@@ -633,6 +637,7 @@ def runAndWaitWork(server, work):
 def getAndDoWork(uri, docode=False):
 
     # If we wanna use dcode, set it up
+    logger.debug("getAndDoWork: uri=", uri)
     try:
         if docode:
             host,port = getHostPortFromUri(uri)
