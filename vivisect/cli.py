@@ -37,7 +37,6 @@ import envi.memcanvas.renderers as e_render
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'WARNING')
 
 
 class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
@@ -112,15 +111,11 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             return
 
         g = v_t_graph.buildFunctionGraph(self, fva)
-        # Lets find the "bottom" nodes...
-        endblocks = []
-        for nid, ninfo in g.getNodes():
-            if len(g.getRefsFrom(nid)) == 0:
-                endblocks.append((nid, ninfo))
-
-        for nid, ninfo in endblocks:
-            paths = list(g.pathSearch(0, toid=nid))
-            self.vprint('paths to 0x%.8x: %d' % (ninfo.get('cbva'), len(paths)))
+        pathcnt = 0
+        for path in v_t_graph.getCodePaths(g):
+            self.vprint('Path through 0x%.8x: %s' % (fva, [hex(p[0]) for p in path]))
+            pathcnt += 1
+        self.vprint('Total Paths: %d' % pathcnt)
 
     def do_symboliks(self, line):
         '''
@@ -232,12 +227,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         for func in fptr:
             for xrfr, xrto, rtype, rflags in func(va):
-                xrfr = hex(xrfr)
-                xrto = hex(xrto)
-                rflags = hex(rflags)
                 tname = ref_type_names.get(rtype, 'Unknown')
-                self.vprint('\tFrom: %s, To: %s, Type: %s, Flags: %s' % (xrfr, xrto, tname, rflags))
-
+                self.vprint('\tFrom: 0x%.8x, To: 0x%.8x, Type: %s, Flags: 0x%.8x' % (xrfr, xrto, tname, rflags))
 
     def do_searchopcodes(self, line):
         '''
@@ -253,7 +244,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         '''
         parser = e_cli.VOptionParser()
-        parser.add_option('-f', action='store', dest='funcva', type='long')
+        parser.add_option('-f', action='store', dest='funcva', type='int')
         parser.add_option('-c', action='store_true', dest='searchComments')
         parser.add_option('-o', action='store_true', dest='searchOperands')
         parser.add_option('-t', action='store_true', dest='searchText')
@@ -277,7 +268,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if options.funcva:
             # setup valist from function data
             try:
-                fva = int(args[0], 0)
+                fva = options.funcva
                 graph = viv_graph.buildFunctionGraph(self, fva)
             except Exception as e:
                 self.vprint(repr(e))
@@ -349,9 +340,13 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
                 # search full text
                 if options.searchText or defaultSearchAll:
+                    # search through the rendering of the opcode, as well as the comment
                     canv.clearCanvas()
                     op.render(canv)
                     oprepr = canv.strval
+                    cmt = self.getComment(va)
+                    if cmt is not None:
+                        oprepr += "  ; " + cmt
 
                     if options.is_regex:
                         if len(re.findall(pattern, oprepr)):
@@ -367,7 +362,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 self.vprint(''.join(traceback.format_exception(*sys.exc_info())))
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
             return
 
         # set the color for each finding
@@ -377,7 +372,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             from vqt.main import vqtevent
             vqtevent('viv:colormap', colormap)
 
-        self.vprint('matches for: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+        self.vprint('matches for: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
         for va in res:
             mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
             pname = e_mem.reprPerms(mperm)
@@ -482,7 +477,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 return
             edict = {line: x}
 
-        fnames = edict.keys()
+        fnames = list(edict.keys())
         fnames.sort()
         for fname in fnames:
             self.canvas.addNameText(fname, fname)

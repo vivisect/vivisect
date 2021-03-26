@@ -1,11 +1,13 @@
 import os
 import sys
+import time
 import unittest
 import subprocess
 
 import vtrace
 
 import envi.tests as e_test
+
 
 class VtraceProcessTest(unittest.TestCase):
 
@@ -14,7 +16,7 @@ class VtraceProcessTest(unittest.TestCase):
     @e_test.skip('darwin')
     def setUp(self):
         self.exitrun = False
-        self.proc = subprocess.Popen([sys.executable, self.pypath], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        self.proc = subprocess.Popen([sys.executable, self.pypath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
         assert(self.proc.stdout.readline().strip() == 'testwait')
         self.trace = vtrace.getTrace()
         self.trace.attach(self.proc.pid)
@@ -23,14 +25,20 @@ class VtraceProcessTest(unittest.TestCase):
         if not self.exitrun and self.trace.isAttached():
             self.trace.setMode('RunForever', True)
             self.proc.stdin.write('testmod\n')
+            self.proc.stdin.flush()
             self.trace.run()
-        self.proc.wait()
+        try:
+            self.proc.wait(timeout=120)
+        except:
+            # whatever. shoot the process and keep going. Ain't nobody got time for that.
+            self.proc.kill()
         self.trace.release()
 
     def runProcess(self):
         self.trace.setMode('RunForever', True)
         self.trace.setMode('NonBlocking', True)
         self.proc.stdin.write('testmod\n')
+        self.proc.stdin.flush()
         self.trace.run()
 
     def runUntilExit(self):
@@ -38,9 +46,12 @@ class VtraceProcessTest(unittest.TestCase):
         self.trace.setMode('RunForever', True)
         self.trace.setMode('NonBlocking', False)
         self.proc.stdin.write('testmod\n')
+        self.proc.stdin.flush()
         self.trace.run()
+        time.sleep(1)
 
         self.assertEqual(self.trace.getMeta('ExitCode'), 33)
+
 
 class VtraceExecTest(VtraceProcessTest):
 

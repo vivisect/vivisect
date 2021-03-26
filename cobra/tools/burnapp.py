@@ -11,7 +11,6 @@ import cobra.remoteapp as c_remoteapp
 import envi.common as e_common
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'INFO')
 
 
 def release():
@@ -66,6 +65,7 @@ def dumpfile(hexbytes, filepath):
 
 
 def main(uri, cacrt=None, sslcert=None, sslkey=None):
+    e_common.initLogging(logger, 'INFO')
     if any([cacrt, sslcert, sslkey]):
         scheme, host, port, name, urlparams = cobra.chopCobraUri(uri)
         builder = cobra.initSocketBuilder(host, port)

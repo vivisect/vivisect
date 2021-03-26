@@ -1,9 +1,9 @@
-import mfc42
-import oledlg
-import ws2_32
-import comctl32
-import msvbvm60
-import oleaut32
+from . import mfc42
+from . import oledlg
+from . import ws2_32
+from . import comctl32
+from . import msvbvm60
+from . import oleaut32
 
 '''
 A small module for keeping a database of ordinal to symbol

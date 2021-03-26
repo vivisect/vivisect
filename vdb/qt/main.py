@@ -2,12 +2,8 @@ import cmd
 import logging
 import collections
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
 import envi.cli
 import vtrace.qt
@@ -22,7 +18,6 @@ import vqt.cli
 import vqt.main
 import vqt.colors
 import vqt.qpython
-import vqt.shortcut
 import vqt.hotkeys as vq_hotkeys
 import vqt.application as vq_app
 

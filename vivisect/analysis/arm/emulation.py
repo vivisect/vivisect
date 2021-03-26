@@ -119,6 +119,9 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                     self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
                     logger.info("0x%x: (%r) ERROR: %s", op.va, op, e)
 
+        except v_exc.BadOpBytes:
+            raise
+
         except Exception as e:
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
             logger.warning("0x%x: (%r)  ERROR: %s", op.va, op, e)
@@ -159,13 +162,13 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
     if callconv == 'armcall':
         if emumon.stackmax > 0:
-            targc = (emumon.stackmax / 8) + 6
+            targc = (emumon.stackmax >> 3) + 6
             if targc > 40:
                 emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
             else:
                 argc = targc
 
-        funcargs = [('int',archargname(i)) for i in range(argc)]
+        funcargs = [('int', archargname(i)) for i in range(argc)]
 
     api = ('int', None, callconv, None, funcargs)
     vw.setFunctionApi(fva, api)
@@ -184,7 +187,7 @@ def analyzeFunction(vw, fva):
             if (lti & envi.ARCH_MASK) != envi.ARCH_ARMV7:
                 emu.setFlag(PSR_T_bit, 1)
     else:
-        logger.warn("NO LOCATION at FVA: 0x%x", fva)
+        logger.warning("NO LOCATION at FVA: 0x%x", fva)
 
     emu.runFunction(fva, maxhit=1)
 

@@ -7,13 +7,12 @@ import json
 import getpass
 import logging
 
-try:
-    from ConfigParser import ConfigParser
-except:
-    from configparser import ConfigParser
-
+import envi.exc as e_exc
 
 logger = logging.getLogger(__name__)
+
+CONFIG_PATH = 0
+CONFIG_ENTRY = 1
 
 
 def gethomedir(*paths, **kwargs):
@@ -25,45 +24,14 @@ def gethomedir(*paths, **kwargs):
         try:
             os.makedirs(path)
         except Exception as err:
-            logger.warning('FIXME - invalid homedir, playing along...')
+            logger.warning('FIXME - invalid homedir, playing along... (%s)', err)
 
     return path
+
 
 def getusername():
     return getpass.getuser()
 
-compattypes = {
-    int: (int,long),
-    str: (str,unicode),
-    bool: (bool,),
-    long: (int,long),
-    unicode: (str,unicode),
-    type(None): (int,str,bool,long,unicode),
-}
-
-CONFIG_PATH = 0
-CONFIG_ENTRY = 1
-
-class ConfigNoAssignment(Exception):
-    def __init__(self, optstr):
-        Exception.__init__(self)
-        self.optstr = optstr
-    def __str__(self):
-        return "No value given in option %s" % self.optstr
-
-class ConfigInvalidName(Exception):
-    def __init__(self, optpath):
-        Exception.__init__(self)
-        self.optpath = optpath
-    def __str__(self):
-        return 'Invalid Config Name: %s' % self.optpath
-
-class ConfigInvalidOption(Exception):
-    def __init__(self, optname):
-        Exception.__init__(self)
-        self.optname = optname
-    def __str__(self):
-        return 'Invalid Config Option: %s' % self.optname
 
 class EnviConfig:
     '''
@@ -91,7 +59,7 @@ class EnviConfig:
         self.cfgsubsys = {}
 
         if defaults is not None:
-            self.setConfigPrimitive( defaults )
+            self.setConfigPrimitive(defaults)
 
         if filename is not None and os.path.isfile(filename):
             self.loadConfigFile(filename)
@@ -118,7 +86,7 @@ class EnviConfig:
         represents a subconfig or an actual key/value pair
         '''
         paths = []
-        todo = [ ([], self) ]
+        todo = [([], self)]
 
         while todo:
             path, config = todo.pop()
@@ -126,7 +94,7 @@ class EnviConfig:
             cfgkeys = config.keys()
             if cfgkeys:
                 pathstr = '.'.join(path) + "."
-                newpaths = [ (CONFIG_ENTRY, "%s%s" % (pathstr, key), "%s" % (config[key]))  for key in cfgkeys]
+                newpaths = [(CONFIG_ENTRY, "%s%s" % (pathstr, key), "%s" % (config[key])) for key in cfgkeys]
                 paths.extend(newpaths)
 
             subnames = config.getSubConfigNames()
@@ -138,7 +106,7 @@ class EnviConfig:
                 newpath = path[:]
                 newpath.append(subname)
                 newconfig = config.getSubConfig(subname, add=False)
-                todo.append( (newpath, newconfig,) )
+                todo.append((newpath, newconfig))
 
         return paths
 
@@ -148,13 +116,13 @@ class EnviConfig:
         and optionally values.  Useful for printing helper data.
         '''
         configpaths = self.getConfigPaths()
-        out = [ "Valid Config Entries:\n    " ]
-        reprs = ['%s = %s' % (ckey, cval) for ctype, ckey, cval in configpaths if ctype==CONFIG_ENTRY]
+        out = ["Valid Config Entries:\n    "]
+        reprs = ['%s = %s' % (ckey, cval) for ctype, ckey, cval in configpaths if ctype == CONFIG_ENTRY]
         out.append("\n    ".join(reprs))
         out.append("\n")
 
         out.append("\nValid Config Paths:\n    ")
-        reprs = [ckey for ctype, ckey, cval in configpaths if ctype==CONFIG_PATH]
+        reprs = [ckey for ctype, ckey, cval in configpaths if ctype == CONFIG_PATH]
         out.append("\n    ".join(reprs))
         out.append("\n")
         return ''.join(out)
@@ -165,9 +133,9 @@ class EnviConfig:
         the current config.
         '''
         if '=' not in optstr:
-            raise ConfigNoAssignment(optstr)
+            raise e_exc.ConfigNoAssignment(optstr)
 
-        optpath,valstr = optstr.split('=',1)
+        optpath, valstr = optstr.split('=', 1)
 
         optparts = optpath.split('.')
 
@@ -175,11 +143,11 @@ class EnviConfig:
         for opart in optparts[:-1]:
             config = config.getSubConfig(opart, add=False)
             if config is None:
-                raise ConfigInvalidName(optpath)
+                raise e_exc.ConfigInvalidName(optpath)
 
         optname = optparts[-1]
         if optname not in config.cfginfo:
-            raise ConfigInvalidOption(optname)
+            raise e_exc.ConfigInvalidOption(optname)
 
         # json madness
         if valstr.startswith('0x'):
@@ -197,10 +165,10 @@ class EnviConfig:
                 except:
                     valstr = '"' + valstr + '"'
 
-        config[ optname ] = json.loads(valstr)
+        config[optname] = json.loads(valstr)
 
     def getSubConfig(self, name, add=True):
-        subcfg = self.cfgsubsys.get( name )
+        subcfg = self.cfgsubsys.get(name)
         if subcfg is None and add:
             subcfg = EnviConfig()
             self.cfgsubsys[name] = subcfg
@@ -210,15 +178,15 @@ class EnviConfig:
         return subcfg
 
     def getSubConfigNames(self):
-        return self.cfgsubsys.keys()
+        return list(self.cfgsubsys.keys())
 
     def setDocsPrimitive(self, docsdict):
 
-        for key,val in docsdict.items():
+        for key, val in docsdict.items():
 
             if isinstance(val, dict):
                 subcfg = self.getSubConfig(key)
-                subcfg.setDocsPrimitive( val )
+                subcfg.setDocsPrimitive(val)
                 continue
 
             self.cfgdocs[key] = val
@@ -229,19 +197,19 @@ class EnviConfig:
         self.cfgdocs[optname] = optdoc
 
     def getConfigPrimitive(self):
-        ret = dict( self.cfginfo )
-        for subname,subcfg in self.cfgsubsys.items():
-            ret[ subname ] = subcfg.getConfigPrimitive()
+        ret = dict(self.cfginfo)
+        for subname, subcfg in self.cfgsubsys.items():
+            ret[subname] = subcfg.getConfigPrimitive()
         return ret
 
     def setConfigPrimitive(self, cfgdict):
-        for key,val in cfgdict.items():
+        for key, val in cfgdict.items():
             if isinstance(val, dict):
                 subcfg = self.getSubConfig(key)
-                subcfg.setConfigPrimitive( val )
+                subcfg.setConfigPrimitive(val)
                 continue
 
-            self.cfginfo[ key ] = val
+            self.cfginfo[key] = val
 
     def saveConfigFile(self, filename=None):
         '''
@@ -249,9 +217,15 @@ class EnviConfig:
         '''
         if filename is None:
             filename = self.filename
+        base = os.path.dirname(filename)
+        if not os.path.exists(base):
+            try:
+                os.makedirs(base)
+            except Exception as err:
+                logger.warning('FIXME - invalid homedir, playing along... (%s)', err)
 
         cfgdict = self.getConfigPrimitive()
-        with open(filename, 'wb') as fd:
+        with open(filename, encoding='utf-8', mode='wt') as fd:
             json.dump(cfgdict, fd, indent=2)
 
     def loadConfigFile(self, filename=None):
@@ -260,7 +234,7 @@ class EnviConfig:
         '''
         if filename is None:
             filename = self.filename
-        with open(filename, 'rb') as fd:
+        with open(filename, encoding='utf-8', mode='rt') as fd:
             cfgdict = json.load(fd)
         self.setConfigPrimitive(cfgdict)
 
@@ -280,8 +254,8 @@ class EnviConfig:
     # A few things so it smells kinda like a dictionary
     def __setitem__(self, key, val):
         curval = self.cfginfo.get(key)
-        if type(val) not in compattypes.get(type(curval)):
-            raise ValueError('%r incompatible with %r' % (val,curval))
+        if curval is not None and (type(val) is not type(curval)):
+            raise ValueError('%r incompatible with %r' % (val, curval))
 
         self.cfginfo[key] = val
 
@@ -289,7 +263,7 @@ class EnviConfig:
             self.saveConfigFile()
 
     def __getitem__(self, key, default=None):
-        return self.cfginfo.get(key,default)
+        return self.cfginfo.get(key, default)
 
     def get(self, key, default=None):
         return self.cfginfo.get(key, default)

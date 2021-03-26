@@ -104,7 +104,7 @@ def getGOT(vw, fileva):
                 FGOT += imgbase
 
             if FGOT != gotva:
-                logger.warn("Dynamics and Sections have different GOT entries: S:0x%x D:0x%x. using Dynamics", gotva, FGOT)
+                logger.warning("Dynamics and Sections have different GOT entries: S:0x%x D:0x%x. using Dynamics", gotva, FGOT)
 
             # since Dynamics don't store the GOT size, just use to the end of the memory map
             mmva, mmsz, mmperm, mmname = vw.getMemoryMap(FGOT)
@@ -174,7 +174,7 @@ def analyzePLT(vw, ssva, ssize):
         while sva < nextseg:
             logger.debug('analyzePLT(0x%x, 0x%x) first pass:  sva: 0x%x   nextseg: 0x%x', ssva, ssize, sva, nextseg)
             if vw.getLocation(sva) is None:
-                logger.info('making code: 0x%x', sva)
+                logger.debug('making code: 0x%x', sva)
                 try:
                     vw.makeCode(sva)
                 except Exception:
@@ -193,10 +193,10 @@ def analyzePLT(vw, ssva, ssize):
                             not op.iflags & envi.IF_COND:
 
                         # we grab all unconditional branches, and tag them.
-                        # some compilers pepper conditional branches between 
+                        # some compilers pepper conditional branches between
                         # PLT entries, for lazy-loading tricks.  We skip those.
 
-                        # quickly, check the branch target is not the section 
+                        # quickly, check the branch target is not the section
                         # start address.
                         tbrva = op.opers[-1].getOperValue(op, emu=emu)
                         tbrref = op.opers[-1].getOperAddr(op, emu=emu)
@@ -258,7 +258,7 @@ def analyzePLT(vw, ssva, ssize):
                 sva += lsz
                 logger.debug('incrementing to next va: 0x%x', sva)
             else:
-                logger.warn('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
+                logger.warning('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
                 sva += 1
 
         if not len(branchvas):
@@ -302,7 +302,7 @@ def analyzePLT(vw, ssva, ssize):
 
         # there should be only one heuristic
         if len(heurlist) > 1:
-            logger.warn("heuristics have more than one tracked branch: investigate!  PLT analysis may be wrong (%r)", heurlist)
+            logger.warning("heuristics have more than one tracked branch: investigate!  PLT analysis may be wrong (%r)", heurlist)
 
         # distance should be the greatest value.
         if len(heurlist):
@@ -318,7 +318,7 @@ def analyzePLT(vw, ssva, ssize):
         # *don't* use the first entry, because the trampoline is often oddly sized...
         logger.debug('finding plt_size...')
         plt_size = 0
-        # let's start at the end, since with or without a tramp, we have to have *one* good one, 
+        # let's start at the end, since with or without a tramp, we have to have *one* good one,
         # or we just don't care.
         bridx = len(branchvas)-1
 
@@ -435,12 +435,12 @@ def analyzeFunction(vw, funcva):
             logging.debug("0x%x: %r", opva, op)
             count += 1
     except Exception as e:
-        logger.warn('failure analyzing PLT func 0x%x: %r', funcva, e)
+        logger.warning('failure analyzing PLT func 0x%x: %r', funcva, e)
         return
 
     # we've reached the branch instruction or we've gone through too many opcodes
     if op.iflags & envi.IF_BRANCH == 0:
-        logger.warn("PLT: 0x%x - Could not find a branch!", funcva)
+        logger.warning("PLT: 0x%x - Could not find a branch!", funcva)
         return
 
     # cycle through the opcode's "branches" to make connections and look for funcname.
@@ -483,7 +483,7 @@ def analyzeFunction(vw, funcva):
                 funcname = vw.getName(ltinfo)
                 logger.debug("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
             else:
-                logger.warn("0x%x: (0x%x) not LOC_IMPORT or LOC_POINTER?? by BR_DEREF %r", funcva, opval, loctup)
+                logger.warning("0x%x: (0x%x) not LOC_IMPORT or LOC_POINTER?? by BR_DEREF %r", funcva, opval, loctup)
 
         else:
             # check the taint tracker to determine if it's an import (the opval value is pointless if it is)
@@ -492,7 +492,7 @@ def analyzeFunction(vw, funcva):
                 # if it is an import taint
                 taintva, ttype, loctup = taint
                 if ttype != 'import':
-                    logger.warn('getBranches(): returned a Taint which is *not* an import: %r', taint)
+                    logger.warning('getBranches(): returned a Taint which is *not* an import: %r', taint)
                     return
 
                 lva, lsz, ltype, ltinfo = loctup
@@ -508,7 +508,7 @@ def analyzeFunction(vw, funcva):
 
                 if loctup is None:
                     if opval is None:
-                        logger.warn("PLT: 0x%x - branch deref not defined: (opval is None!)", opva)
+                        logger.warning("PLT: 0x%x - branch deref not defined: (opval is None!)", opva)
                         return
                     else:
                         aopval, aflags = vw.arch.archModifyFuncAddr(opval, {'arch': envi.ARCH_DEFAULT})
@@ -554,7 +554,7 @@ def analyzeFunction(vw, funcva):
     # now make the thunk with appropriate naming
     # if we can't resolve a name, don't make it a thunk
     if funcname is None:
-        logger.warn('0x%x: FAIL: could not resolve name for 0x%x.  Skipping.', funcva, opval)
+        logger.warning('0x%x: FAIL: could not resolve name for 0x%x.  Skipping.', funcva, opval)
         return
 
     # trim up the name

@@ -77,7 +77,7 @@ class SymbolikCallingConvention(object):
         rname = self.argdefemu.xlator._reg_ctx.getRegisterName(aval)
         emu.setSymVariable(rname, sym)
 
-        spdelta = self.deallocateCallSpace(self.argdefemu, Const(len(argv), self._width), precall=precall)
+        spdelta = self.deallocateCallSpace(self.argdefemu, len(argv), precall=precall)
 
         spidx = self.argdefemu.xlator._reg_ctx._rctx_spindex
         spname = self.argdefemu.xlator._reg_ctx.getRegisterName(spidx)

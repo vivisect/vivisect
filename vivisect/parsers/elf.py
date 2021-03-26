@@ -52,7 +52,7 @@ def makeStringTable(vw, va, maxva):
                 l = vw.makeString(va)
                 va += l[vivisect.L_SIZE]
             except Exception as e:
-                logger.warn("makeStringTable\t%r", e)
+                logger.warning("makeStringTable\t%r", e)
                 return
 
 def makeSymbolTable(vw, va, maxva):
@@ -146,6 +146,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform', platform)
     vw.setMeta('Format', 'elf')
+    vw.parsedbin = elf
 
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
@@ -187,6 +188,13 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     fname = vw.addFile(filename.lower(), baseaddr, md5hash)
     vw.setFileMeta(fname, 'sha256', sha256)
+    vw.setFileMeta(fname, 'relro', getRelRo(elf))
+    vw.setFileMeta(fname, 'canaries', hasStackCanaries(vw))
+    vw.setFileMeta(fname, 'nx', hasNX(elf))
+    vw.setFileMeta(fname, 'pie', hasPIE(elf))
+    vw.setFileMeta(fname, 'rpath', hasRPATH(elf))
+    vw.setFileMeta(fname, 'runpath', hasRUNPATH(elf))
+    vw.setFileMeta(fname, 'stripped', isStripped(elf))
 
     strtabs = {}
     secnames = []
@@ -202,11 +210,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 continue
             logger.info('Loading: %s', pgm)
             bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
-            bytez += "\x00" * (pgm.p_memsz - pgm.p_filesz)
+            bytez += b"\x00" * (pgm.p_memsz - pgm.p_filesz)
             pva = pgm.p_vaddr
             if addbase:
                 pva += baseaddr
-            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez)  # FIXME perms
+            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez)
         else:
             logger.info('Skipping: %s', pgm)
 
@@ -528,7 +536,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     vw.makeName(sva, dmglname, filelocal=True, makeuniq=True)
 
             except Exception as e:
-                logger.warn("%s" % str(e))
+                logger.warning("%s" % str(e))
 
         if s.st_info == Elf.STT_FUNC:
             new_functions.append(("STT_FUNC", sva))
@@ -594,7 +602,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         pass
 
                     else:
-                        logger.warn('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
+                        logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                         logger.info(r.tree())
 
                 else:
@@ -619,7 +627,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             vw.makeImport(rlva, fn, symname)
 
                     else:
-                        logger.warn('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
+                        logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                         logger.info(r.tree())
 
 
@@ -748,11 +756,11 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         vw.setComment(rlva, name)
 
                 else:
-                    logger.warn('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
+                    logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                     logger.info(r.tree())
 
         except vivisect.InvalidLocation as e:
-            logger.warn("NOTE\t%r", e)
+            logger.warning("NOTE\t%r", e)
 
 def isPLT(vw, va):
     '''
@@ -787,3 +795,77 @@ def demangle(name):
         logger.debug('failed to demangle name (%r): %r', name, e)
 
     return name
+
+def getRelRo(elf):
+    status = 0
+    for phdr in elf.getPheaders():
+        if phdr.p_type == Elf.PT_GNU_RELRO:
+            status = 1
+            break
+
+    if status:
+        for dyn in elf.getDynamics():
+            if dyn.d_tag == Elf.DT_FLAGS:
+                if dyn.d_value == Elf.DF_BIND_NOW:
+                    status = 2
+
+    return ('NONE', 'Partial', 'FULL')[status]
+
+def hasStackCanaries(vw):
+    '''
+    Check through imports looking for __stack_chk_fail
+    '''
+    for impva, impsz, imptype, impname in vw.getImports():
+        if impname == '*.__stack_chk_fail':
+            return True
+
+    return False
+
+def hasNX(elf):
+    '''
+    Check through ELF Pheaders
+    '''
+    for phdr in elf.getPheaders():
+        if phdr.p_type == Elf.PT_GNU_STACK:
+            if phdr.p_flags == 6:
+                return True
+
+    return False
+
+def hasPIE(elf):
+    '''
+    Check through ELF Headers and Dynamics
+    '''
+    if elf.e_type == Elf.ET_DYN:
+        if elf.dyns.get(Elf.DT_DEBUG) is not None:
+            return True
+        return "DSO"
+
+    return False
+
+def hasRPATH(elf):
+    '''
+    Check through ELF Dynamics
+    '''
+    if elf.dyns.get(Elf.DT_RPATH) is not None:
+        return True
+
+    return False
+
+def hasRUNPATH(elf):
+    '''
+    Check through ELF Dynamics
+    '''
+    if elf.dyns.get(Elf.DT_RUNPATH) is not None:
+        return True
+
+    return False
+
+def isStripped(elf):
+    '''
+    Check through ELF Symbols
+    '''
+    if len(elf.getSymbols()) == 0:
+        return True
+
+    return False

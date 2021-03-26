@@ -1,23 +1,14 @@
 from collections import deque
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import *
 
-import envi
-import envi.memcanvas as e_memcanvas
 import envi.qt.memcanvas as e_memcanvas_qt
 import envi.memcanvas.renderers as e_render
 
-import vqt.main as vq_main
 import vqt.tree as vq_tree
-import vqt.colors as vq_colors
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
-import vqt.menubuilder as vqt_menu
 
 from vqt.main import *
 from vqt.common import *
@@ -51,7 +42,7 @@ class EnviNavMixin:
         pass
 
     def enviNavExpr(self, event, einfo):
-        name,expr,sizeexpr = einfo
+        name, expr, sizeexpr = einfo
         if self._envi_navname == name:
             self.enviNavGoto(expr,sizeexpr=sizeexpr)
 
@@ -74,7 +65,7 @@ class EnviNavMixin:
     def dropEvent(self, e):
         mdata = e.mimeData()
         if mdata.hasFormat('envi/expression'):
-            expr = str(mdata.data('envi/expression').data())
+            expr = mdata.data('envi/expression').data().decode('utf-8')
             e.setDropAction(QtCore.Qt.CopyAction)
             e.accept()
             self.enviNavGoto(expr)
@@ -93,7 +84,7 @@ class EnviNavModel(vq_tree.VQTreeModel):
         pnode = idx[0].internalPointer()
         expr = pnode.rowdata[self.navcol]
         mdata = QtCore.QMimeData()
-        mdata.setData('envi/expression',str(expr))
+        mdata.setData('envi/expression', expr.encode('utf-8'))
         return mdata
 
 class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget, QWidget):
@@ -133,8 +124,8 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.mem_canvas = self.initMemoryCanvas(memobj, syms=syms)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
 
-        self.addHotKey('esc', 'mem:histback')
-        self.addHotKeyTarget('mem:histback', self._hotkey_histback)
+        # https://doc.qt.io/qt-5/qt.html#ShortcutContext-enum
+        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=3)
 
         self.loadDefaultRenderers()
         self.loadRendSelect()
@@ -311,7 +302,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         mhist = (expr, sizeexpr, rname)
         if mhist not in self.mem_history:
-            self.mem_history.appendleft( mhist )
+            self.mem_history.appendleft(mhist)
             while len(self.mem_history) > 100:
                 self.mem_history.pop()
 

@@ -22,7 +22,7 @@ def analyze(vw):
             continue
 
         for xfr, xto, xtype, xinfo in vw.getXrefsFrom(rva):
-            logger.info('pointer(1): 0x%x -> 0x%x', xfr, xto)
+            logger.debug('pointer(1): 0x%x -> 0x%x', xfr, xto)
             vw.analyzePointer(xto)
             done.append((xfr, xto))
 
@@ -30,9 +30,9 @@ def analyze(vw):
     for pva, tva, fname, pname in vw.getVaSetRows('PointersFromFile'):
         if vw.getLocation(pva) is None:
             if tva is None:
-                logger.info('making pointer(2) 0x%x (%r)', pva, pname)
+                logger.debug('making pointer(2) 0x%x (%r)', pva, pname)
             else:
-                logger.info('making pointer(2) 0x%x -> 0x%x (%r)', pva, tva, pname)
+                logger.debug('making pointer(2) 0x%x -> 0x%x (%r)', pva, tva, pname)
             vw.makePointer(pva, tva, follow=True)
             done.append((pva, tva))
 
@@ -42,11 +42,14 @@ def analyze(vw):
             continue
 
         if vw.getLocation(tva) is not None:
+            # event if it's a pointer, we may not have made a name for it
+            if vw.getName(lva) is None:
+                done.append((lva, tva))
             continue
 
-        logger.info('following previously discovered pointer 0x%x -> 0x%x', lva, tva)
+        logger.debug('following previously discovered pointer 0x%x -> 0x%x', lva, tva)
         try:
-            logger.info('pointer(3): 0x%x -> 0x%x', lva, tva)
+            logger.debug('pointer(3): 0x%x -> 0x%x', lva, tva)
             vw.followPointer(tva)
             done.append((lva, tva))
         except Exception as e:
@@ -57,29 +60,32 @@ def analyze(vw):
         if vw.isDeadData(pval):
             continue
         try:
-            logger.info('pointer(4): 0x%x -> 0x%x', addr, pval)
+            logger.debug('pointer(4): 0x%x -> 0x%x', addr, pval)
             vw.makePointer(addr, follow=True)
             done.append((addr, pval))
         except Exception as e:
             logger.error('makePointer() failed for 0x%.8x (pval: 0x%.8x) (err: %s)', addr, pval, e)
 
     # Now let's see what these guys should be named (if anything)
-    for ptr, tgt in done:
-        try:
-            pname = vw.getName(ptr)
-            if pname is not None:
-                logger.info('skipping renaming of ptr 0x%x (currently: %r)', ptr, pname)
-                continue
+    for _, _ in done:
+        for ptr, tgt in done:
+            try:
+                pname = vw.getName(ptr)
+                if pname is not None:
+                    logger.info('skipping renaming of ptr 0x%x (currently: %r)', ptr, pname)
+                    continue
 
-            loc = vw.getLocation(ptr)
-            if loc is not None and loc[L_LTYPE] != LOC_POINTER:
-                logger.info('skipping naming of 0x%x (no longer a pointer: %s)', ptr, vw.reprLocation(loc))
-                continue
-            tgtname = vw.getName(tgt)
-            if tgtname is not None:
-                name = vw._addNamePrefix(tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
-                logger.info('   name(0x%x): %r  (%r)', tgt, tgtname, name)
-                vw.makeName(ptr, name)
-        except Exception as e:
-            logger.error('naming failed (0x%x -> 0x%x), (err: %s)', ptr, tgt, e)
-            sys.excepthook(*sys.exc_info())
+                loc = vw.getLocation(ptr)
+                if loc is not None and loc[L_LTYPE] != LOC_POINTER:
+                    logger.info('skipping naming of 0x%x (no longer a pointer: %s)', ptr, vw.reprLocation(loc))
+                    continue
+                tgtname = vw.getName(tgt)
+                if tgtname is not None:
+                    name = vw._addNamePrefix(tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
+                    logger.debug('0x%x: adding name prefix: %r  (%r)', tgt, tgtname, name)
+                    vw.makeName(ptr, name)
+                else:
+                    logger.debug('0x%x: Skipping naming due to no target name' % tgt)
+            except Exception as e:
+                logger.error('naming failed (0x%x -> 0x%x), (err: %s)', ptr, tgt, e)
+                sys.excepthook(*sys.exc_info())

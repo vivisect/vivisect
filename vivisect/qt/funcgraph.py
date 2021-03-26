@@ -1,6 +1,10 @@
+import functools
+import itertools
+import traceback
+import collections
+
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
-import envi.qt.memory as e_mem_qt
 import envi.memcanvas as e_memcanvas
 import envi.qt.memory as e_qt_memory
 import envi.qt.memcanvas as e_qt_memcanvas
@@ -13,16 +17,11 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
-try:
-    from PyQt5.QtCore   import pyqtSignal, QPoint, PYQT_VERSION_STR
-    from PyQt5          import QtCore, QtGui, QtWebKit
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtCore   import pyqtSignal, QPoint, PYQT_VERSION_STR
-    from PyQt4          import QtCore, QtGui, QtWebKit
-    from PyQt4.QtGui    import *
+from PyQt5 import Qt, QtCore, QtGui, QtWebEngine, QtWidgets
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import *
 
-from vqt.main       import idlethread, idlethreadsync, eatevents, vqtconnect, workthread, vqtevent
+from vqt.main import idlethread, eatevents, workthread, vqtevent
 
 from vqt.common import *
 from vivisect.const import *
@@ -37,18 +36,38 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         vq_memory.VivCanvasBase.__init__(self, *args, **kwargs)
         self.curs = QtGui.QCursor()
 
-    def wheelEvent(self, event):
+    # These have changed because QtWebEngine suxxs: https://bugreports.qt.io/browse/QTBUG-43602
+    def event(self, evt):
+        if evt.type() == Qt.QEvent.ChildAdded:
+            evt.child().installEventFilter(self)
+        elif evt.type() == Qt.QEvent.ChildRemoved:
+            evt.child().removeEventFilter(self)
+        return vq_memory.VivCanvasBase.event(self, evt)
+
+    def eventFilter(self, src, evt):
+        if evt.type() == Qt.QEvent.Wheel:
+            return self._wheelEvent(evt)
+        if evt.type() == Qt.QEvent.MouseMove:
+            self._mouseMoveEvent(evt)
+            return True
+        return vq_memory.VivCanvasBase.eventFilter(self, src, evt)
+
+    def _wheelEvent(self, event):
         mods = QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
             delta = event.angleDelta().y()
             factord = delta / 1000.0
-            self.setZoomFactor( self.zoomFactor() + factord )
+            self.setZoomFactor(self.zoomFactor() + factord)
             event.accept()
-            return
-        
-        return e_qt_memcanvas.VQMemoryCanvas.wheelEvent(self, event)
+            return True
 
-    def mouseMoveEvent (self, event):
+        # e_qt_memcanvas.VQMemoryCanvas.wheelEvent(self, event)
+        return False
+
+    def _setMousePos(self, data):
+        self.curs.setPos(*self.basepos)
+
+    def _mouseMoveEvent(self, event):
         mods = QApplication.keyboardModifiers()
         if mods == QtCore.Qt.ShiftModifier:
             x = event.globalX()
@@ -56,39 +75,43 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             if self.lastpos:
                 dx = -(x - self.lastpos[0])
                 dy = -(y - self.lastpos[1])
-                #dx = x - self.lastpos[0]
-                #dy = y - self.lastpos[1]
-                self.page().mainFrame().scroll(dx,dy)
-
-                self.curs.setPos(*self.basepos)
+                # dx = x - self.lastpos[0]
+                # dy = y - self.lastpos[1]
+                # TODO: Just use scrollPosition()
+                self.page().runJavaScript(f'window.scrollBy({dx}, {dy});', self._setMousePos)
             else:
-                self.lastpos = (x,y)
-                self.basepos = (x,y)
+                self.lastpos = (x, y)
+                self.basepos = (x, y)
 
             event.accept()
             return
         self.lastpos = None
         return e_qt_memcanvas.VQMemoryCanvas.mouseMoveEvent(self, event)
 
-    def renderMemory(self, va, size, rend=None):
-        # For the funcgraph canvas, this will be called once per code block
-
-        # Check if we have a codeblock element already...
-        frame = self.page().mainFrame()
-        canvelem = frame.findFirstElement('#memcanvas')
-
-        elem = frame.findFirstElement('#codeblock_%.8x' % va)
-        if elem.isNull():
-            # Lets add a codeblock element for this
-            canvelem.appendInside('<div class="codeblock" id="codeblock_%.8x"></div>' % va)
-
-        self._canv_rendtagid = '#codeblock_%.8x' % va
-
-        ret = e_memcanvas.MemoryCanvas.renderMemory(self, va, size, rend=rend)
-
+    def _renderMemoryFinish(self, cb, data):
         self._canv_rendtagid = '#memcanvas'
+        cb(data)
 
-        return ret
+    def _renderMemoryCallback(self, cb, data):
+        va = int(data[0])
+        size = int(data[1])
+        self._canv_rendtagid = '#codeblock_%.8x' % va
+        # DEV: this cannot be partialmethod. It *has* to be callable
+        runner = functools.partial(self._renderMemoryFinish, cb)
+        e_memcanvas.MemoryCanvas.renderMemory(self, va, size, cb=runner)
+
+    def renderMemory(self, va, size, cb):
+        # For the funcgraph canvas, this will be called once per code block
+        selector = 'codeblock_%.8x' % va
+        js = '''var node = document.querySelector("#%s");
+        if (node == null) {
+            canv = document.querySelector("#memcanvas");
+            canv.innerHTML += '<div class="codeblock" id="%s"></div>'
+        }
+        [%d, %d]
+        ''' % (selector, selector, va, size)
+        runner = functools.partial(self._renderMemoryCallback, cb)
+        self.page().runJavaScript(js, runner)
 
     def contextMenuEvent(self, event):
         if self._canv_curva is not None:
@@ -113,15 +136,16 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         '''
         Redraw the function graph (actually, tells the View to do it)
         '''
-        self.refreshSignal.emit()
+        self.reload()
 
     @idlethread
     def setScrollPosition(self, x, y):
         '''
         Sets the view reticle to an absolute scroll position
         '''
-        point = QPoint(x, y)
-        self.page().mainFrame().setScrollPosition(point)
+        self.page().runJavaScript(f'window.scroll({x}, {y})')
+        eatevents()
+
 
 funcgraph_js = '''
 svgns = "http://www.w3.org/2000/svg";
@@ -207,18 +231,6 @@ function drawSvgLine(svgid, lineid, points) {
 }
 '''
 
-def compat_getFrameDimensions(frame, cbname):
-    if PYQT_VERSION_STR.startswith('4'):
-        girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
-        height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
-    else:
-        girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
-        height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
-    return girth, height
-
-
-import itertools
-import collections
 
 class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
     _renderDoneSignal = pyqtSignal()
@@ -229,15 +241,16 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.vw = vw
         self.fva = None
         self.graph = None
+        self.nodes = []
         self.vwqgui = vwqgui
         self._last_viewpt = None
-        self.history = collections.deque((),100)
+        self.history = collections.deque((), 100)
 
         QWidget.__init__(self, parent=vwqgui)
         vq_hotkey.HotKeyMixin.__init__(self)
         viv_base.VivEventCore.__init__(self, vw)
         e_qt_memory.EnviNavMixin.__init__(self)
-        self.setEnviNavName('FuncGraph%d' % self.viewidx.next())
+        self.setEnviNavName('FuncGraph%d' % next(self.viewidx))
 
         self._renderDoneSignal.connect(self._refresh_cb)
 
@@ -247,12 +260,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         hbox.setSpacing(4)
 
         self.histmenu = QMenu(parent=self)
-        self.histmenu.aboutToShow.connect( self._histSetupMenu )
+        self.histmenu.aboutToShow.connect(self._histSetupMenu)
 
         self.hist_button = QPushButton('History', parent=self.top_box)
         self.hist_button.setMenu(self.histmenu)
 
-        self.addr_entry  = QLineEdit(parent=self.top_box)
+        self.addr_entry = QLineEdit(parent=self.top_box)
 
         self.mem_canvas = VQVivFuncgraphCanvas(vw, syms=vw, parent=self)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
@@ -263,7 +276,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         self.loadDefaultRenderers()
 
-        self.addr_entry.returnPressed.connect(self._renderMemory)
+        self.addr_entry.returnPressed.connect(self._nav_expr)
 
         hbox.addWidget(self.hist_button)
         hbox.addWidget(self.addr_entry)
@@ -281,10 +294,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         # Do these last so we are all setup...
         vwqgui.addEventCore(self)
-        vwqgui.vivMemColorSignal.connect( self.mem_canvas._applyColorMap )
+        vwqgui.vivMemColorSignal.connect(self.mem_canvas._applyColorMap)
 
-        self.addHotKey('esc', 'mem:histback')
-        self.addHotKeyTarget('mem:histback', self._hotkey_histback)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=3)
+
+        # TODO: Transition theses to the above pattern (since escape/ctrl-c
+        # See: https://stackoverflow.com/questions/56890831/qwidget-cannot-catch-escape-backspace-or-c-x-key-press-events
         self.addHotKey('ctrl+0', 'funcgraph:resetzoom')
         self.addHotKeyTarget('funcgraph:resetzoom', self._hotkey_resetzoom)
         self.addHotKey('ctrl+=', 'funcgraph:inczoom')
@@ -300,6 +315,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.addHotKey('ctrl+m', 'funcgraph:paintmerge')
         self.addHotKeyTarget('funcgraph:paintmerge', self._hotkey_paintMerge)
 
+    def _nav_expr(self):
+        expr = self.addr_entry.text()
+        self.history.append(expr)
+        self._renderMemory()
+
     def _hotkey_histback(self):
         if len(self.history) >= 2:
             self.history.pop()
@@ -307,7 +327,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.enviNavGoto(expr)
 
     def _hotkey_resetzoom(self):
-        self.mem_canvas.setZoomFactor( 1 )
+        self.mem_canvas.setZoomFactor(1)
 
     def _hotkey_inczoom(self):
         newzoom = self.mem_canvas.zoomFactor()
@@ -318,9 +338,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         else:
             newzoom += .25
 
-        if newzoom < 0: return
+        if newzoom < 0:
+            return
 
-        #self.vw.vprint("NEW ZOOM    %f" % newzoom)
         self.mem_canvas.setZoomFactor(newzoom)
 
     def _hotkey_deczoom(self):
@@ -330,7 +350,6 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         else:
             newzoom -= .25
 
-        #self.vw.vprint("NEW ZOOM    %f" % newzoom)
         self.mem_canvas.setZoomFactor(newzoom)
 
     def refresh(self):
@@ -339,9 +358,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         This is particularly helpful because comments and name changes don't
         immediately display.  Perhaps someday this will update only the blocks
         that have changed since last update, and be fast, so we can update
-        after every change.  
+        after every change.
         '''
-        self._last_viewpt = self.mem_canvas.page().mainFrame().scrollPosition()
+        self._last_viewpt = self.mem_canvas.page().scrollPosition()
         # FIXME: history should track this as well and return to the same place
         self.clearText()
         self.fva = None
@@ -370,7 +389,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             if sym is not None:
                 menustr += ' - %s' % repr(sym)
 
-            history.append( (menustr, expr) )
+            history.append((menustr, expr))
 
         history.reverse()
         for menustr,expr in history:
@@ -394,103 +413,135 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         expr = state.get('expr','')
         self.enviNavGoto(expr)
 
-    def updateWindowTitle(self):
+    def setMemWindowName(self, mwname):
+        '''
+        Set the memory window name/title prefix to the given string.
+        '''
+        self.setEnviNavName(mwname)
+        self.updateWindowTitle()
+
+    def updateWindowTitle(self, data=None):
         ename = self.getEnviNavName()
         expr = str(self.addr_entry.text())
         try:
             va = self.vw.parseExpression(expr)
             smartname = self.vw.getName(va, smart=True)
             self.setWindowTitle('%s: %s (0x%x)' % (ename, smartname, va))
+            return va
         except:
             self.setWindowTitle('%s: %s (0x----)' % (ename, expr))
 
+    # DEV: None of these methods are meant to be called directly by anybody but themselves,
+    # since they're setup in a way to make renderFunctionGraph play nicely with pyqt5
+    def _finishFuncRender(self, data):
+        addr = self.updateWindowTitle()
+        if addr is not None:
+            vqtevent('viv:colormap', {addr: 'orange'})
+        self._renderDoneSignal.emit()
 
-    def _buttonSaveAs(self):
-        frame = self.mem_canvas.page().mainFrame()
-        elem = frame.findFirstElement('#mainhtml')
-        h = elem.toOuterXml()
-        #h = frame.toHtml()
-        with open('test.html', 'wb') as f:
-            f.write(str(h))
+    def _edgesDone(self, data):
+        addr = self.updateWindowTitle()
+        if addr is None:
+            return
+        self.mem_canvas.page().runJavaScript('''
+        var node = document.getElementsByName("viv:0x%.8x")[0];
+        node.scrollIntoView();
+        ''' % addr, self._finishFuncRender)
 
-    def renderFunctionGraph(self, fva, graph=None):
+    def _layoutEdges(self, data):
+        edgejs = ''
+        svgid = 'funcgraph_%.8x' % self.fva
+        for eid, n1, n2, einfo in self.graph.getEdges():
+            points = einfo.get('edge_points')
+            pointstr = ' '.join(['%d,%d' % (x, y) for (x, y) in points])
 
-        self.fva = fva
-        #self.graph = self.vw.getFunctionGraph(fva)
-        if graph is None:
-            try:
-                graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
-            except Exception as e:
-                import sys
-                sys.excepthook(*sys.exc_info())
-                return
+            edgejs += f'drawSvgLine("{svgid}", "edge_%.8s", "{pointstr}");' % eid
+        self.mem_canvas.page().runJavaScript(edgejs, self._edgesDone)
 
-        self.graph = graph
-
-        # Go through each of the nodes and render them so we know sizes
-        for node in self.graph.getNodes():
-            #cbva,cbsize = self.graph.getCodeBlockBounds(node)
-            cbva = node[1].get('cbva')
-            cbsize = node[1].get('cbsize')
-            self.mem_canvas.renderMemory(cbva, cbsize)
-
-        # Let the renders complete...
-        eatevents()
-
-        frame = self.mem_canvas.page().mainFrame()
-        frame.evaluateJavaScript(funcgraph_js)
-
-        for nid,nprops in self.graph.getNodes():
-            cbva = nprops.get('cbva')
-
-            cbname = 'codeblock_%.8x' % cbva
-            #girth, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname).toInt()
-            #girth = int(frame.evaluateJavaScript('document.getElementById("%s").offsetWidth;' % cbname))
-            #height, ok = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname).toInt()
-            #height = frame.evaluateJavaScript('document.getElementById("%s").offsetHeight;' % cbname)
-            girth, height = compat_getFrameDimensions(frame, cbname)
-            self.graph.setNodeProp((nid,nprops), "size", (girth, height))
-
-        self.dylayout = vg_dynadag.DynadagLayout(self.graph)
-        self.dylayout._barry_count = 20
+    def _layoutDynadag(self, data):
+        for nid, nprops in self.graph.getNodes():
+            width, height = data[str(nid)]
+            self.graph.setNodeProp((nid, nprops), "size", (width, height+7))
+        self.dylayout = vg_dynadag.DynadagLayout(self.graph, barry=20)
         self.dylayout.layoutGraph()
 
         width, height = self.dylayout.getLayoutSize()
 
-        svgid = 'funcgraph_%.8x' % fva
-        frame.evaluateJavaScript('svgwoot("vbody", "%s", %d, %d);' % (svgid, width+18, height))
-
-        for nid,nprops in self.graph.getNodes():
-
+        svgid = 'funcgraph_%.8x' % self.fva
+        svgjs = f'svgwoot("vbody", "{svgid}", {width+18}, {height});'
+        for nid, nprops in self.graph.getNodes():
             cbva = nprops.get('cbva')
             if cbva is None:
                 continue
 
             xpos, ypos = nprops.get('position')
-            girth, height = nprops.get('size')
 
             foid = 'fo_cb_%.8x' % cbva
             cbid = 'codeblock_%.8x' % cbva
 
-            frame.evaluateJavaScript('addSvgForeignObject("%s", "%s", %d, %d);' % (svgid, foid, girth+16, height))
-            frame.evaluateJavaScript('addSvgForeignHtmlElement("%s", "%s");' % (foid, cbid))
-            frame.evaluateJavaScript('moveSvgElement("%s", %d, %d);' % (foid, xpos, ypos))
+            js = f'''
+            var node = document.getElementById("{cbid}");
+            addSvgForeignObject("{svgid}", "{foid}", node.offsetWidth+16, node.offsetHeight+7);
+            addSvgForeignHtmlElement("{foid}", "{cbid}");
+            moveSvgElement("{foid}", {xpos}, {ypos});
+            '''
+            svgjs += js
 
-        # Draw in some edge lines!
-        for eid, n1, n2, einfo in self.graph.getEdges():
-            points = einfo.get('edge_points')
-            pointstr = ' '.join(['%d,%d' % (x,y) for (x,y) in points ])
+        self.mem_canvas.page().runJavaScript(svgjs, self._layoutEdges)
 
-            frame.evaluateJavaScript('drawSvgLine("%s", "edge_%.8s", "%s");' % (svgid, eid, pointstr))
+    def _getNodeSizes(self, data):
+        '''
+        So uhh...yea. This is needed.
+        '''
+        js = 'var sizes = {};'
 
-        self.updateWindowTitle()
+        for nid, nprops in self.graph.getNodes():
+            try:
+                cbname = 'codeblock_%.8x' % nid
+            except:
+                self.vw.vprint('Failed to build cbname during funcgraph building')
+                return
+            js += f'''
+            sizes[{nid}] = [document.getElementById("{cbname}").offsetWidth, document.getElementById("{cbname}").offsetHeight];
+            '''
+        js += 'sizes;'
+        self.mem_canvas.page().runJavaScript(js, self._layoutDynadag)
 
-    # FIXME
-    #def closeEvent(self, event):
-        # FIXME this doesn't actually do anything...
-        #self.parentWidget().delEventCore(self)
-        #return e_mem_qt.VQMemoryWindow.closeEvent(self, event)
+    def _renderCodeBlock(self, data):
+        if len(self.nodes):
+            node = self.nodes.pop(0)
+            cbva = node[1].get('cbva')
+            cbsize = node[1].get('cbsize')
+            self.mem_canvas.renderMemory(cbva, cbsize, self._renderCodeBlock)
+        else:
+            self.mem_canvas.page().runJavaScript(funcgraph_js, self._getNodeSizes)
 
+    def renderFunctionGraph(self, fva=None, graph=None):
+        if fva is not None:
+            self.fva = fva
+
+        if graph is None:
+            try:
+                graph = viv_graphutil.buildFunctionGraph(self.vw, fva, revloop=True)
+            except Exception as e:
+                self.vw.vprint(f'Error building function graph for {fva} ({str(e)}')
+                self.vw.vprint(traceback.format_exc())
+                return
+
+        self.graph = graph
+
+        # Go through each of the nodes and render them so we know sizes
+        self.nodes = self.graph.getNodes()
+        if len(self.nodes):
+            node = self.nodes.pop(0)
+            cbva = node[1].get('cbva')
+            cbsize = node[1].get('cbsize')
+            self.mem_canvas.renderMemory(cbva, cbsize, self._renderCodeBlock)
+
+    def _renderedSameFva(self, data):
+        addr = self.updateWindowTitle()
+        if addr is not None:
+            vqtevent('viv:colormap', {addr: 'orange'})
 
     @idlethread
     def _renderMemory(self):
@@ -518,24 +569,20 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
                 self.vw.vprint('0x%.8x is not in a function!' % addr)
                 return
 
+            page = self.mem_canvas.page()
             if fva == self.fva:
-                self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
-                vqtevent('viv:colormap', {addr: 'orange'})
-                self.updateWindowTitle()
+                page.runJavaScript('''
+                document.getElementsByName("viv:0x%.8x")[0].scrollIntoView();
+                %d;
+                ''' % (addr, addr), self._renderedSameFva)
                 return
-
             # if we're rendering a different function, get to work!
             self.clearText()
             self.renderFunctionGraph(fva)
-            self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
-            self.updateWindowTitle()
-            self.mem_canvas.page().mainFrame().scrollToAnchor('viv:0x%.8x' % addr)
-            vqtevent('viv:colormap', {addr: 'orange'})
-            self.updateWindowTitle()
 
-            self._renderDoneSignal.emit()
         except Exception as e:
-            self.vw.vprint(str(e))
+            self.vw.vprint('_renderMemory hit exception: %s' % str(e))
+            self.vw.vprint('%s' % traceback.format_exc())
 
     def loadDefaultRenderers(self):
         vivrend = viv_rend.WorkspaceRenderer(self.vw)
@@ -544,18 +591,22 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
     def clearText(self):
         # Pop the svg and reset #memcanvas
-        frame = self.mem_canvas.page().mainFrame()
+        js = ''
         if self.fva is not None:
-            svgid = '#funcgraph_%.8x' % self.fva
-            svgelem = frame.findFirstElement(svgid)
-            svgelem.removeFromDocument()
+            svgid = 'funcgraph_%.8x' % self.fva
+            js += '''
+            var node = document.getElementById("%s");
+            if (node != null) {
+                node.remove();
+            }
+            ''' % svgid
 
-        memelem = frame.findFirstElement('#memcanvas')
-        memelem.setInnerXml(' ')
+        js += 'document.querySelector("#memcanvas").innerHTML = "";'
+        self.mem_canvas.page().runJavaScript(js)
 
     def _hotkey_paintUp(self, va=None):
         '''
-        Paint the VA's from the selected basic block up to all possible 
+        Paint the VA's from the selected basic block up to all possible
         non-looping starting points.
         '''
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
@@ -584,14 +635,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         vqtevent('viv:colormap', colormap)
         return colormap
 
-        
     def _hotkey_paintDown(self, va=None):
         '''
-        Paint the VA's from the selected basic block down to all possible 
-        non-looping blocks.  This is valuable for determining what code can 
+        Paint the VA's from the selected basic block down to all possible
+        non-looping blocks.  This is valuable for determining what code can
         execute from any starting basic block, without a loop.
         '''
-        #TODO: make overlapping colors available for multiple paintings
+        # TODO: make overlapping colors available for multiple paintings
 
         graph = viv_graphutil.buildFunctionGraph(self.vw, self.fva, revloop=True)
         startva = self.mem_canvas._canv_curva
@@ -649,9 +699,3 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.vw.vprint("Colored Blocks: %d" % count)
         vqtevent('viv:colormap', colormap)
         return colormap
-
-#@idlethread
-#def showFunctionGraph(fva, vw, vwqgui):
-    #view = VQVivFuncgraphView(fva, vw, vwqgui)
-    #view.show()
-

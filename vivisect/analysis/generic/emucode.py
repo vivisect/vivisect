@@ -41,7 +41,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
         for mnem, count in self.mndist.items():
-            if round(float( float(count) / float(self.insn_count)), 3) >= .67:
+            if round(float( float(count) / float(self.insn_count)), 3) >= .67 and self.insn_count > 4:
                 return False
 
         return True
@@ -65,7 +65,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
     def prehook(self, emu, op, eip):
         if op.mnem == "out":  # FIXME arch specific. see above idea.
             emu.stopEmu()
-            raise Exception("Out instruction...")
+            raise v_exc.BadOutInstruction(op.va)
 
         if op in self.badops:
             emu.stopEmu()
@@ -76,24 +76,20 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             emu.stopEmu()
 
         self.lastop = op
-        # Make sure we didn't run into any other
-        # defined locations...
-        if self.vw.isFunction(eip):
-            emu.stopEmu()
-            # FIXME: this is a problem.  many time legit code falls into other functions...
-            # "hydra" functions are more and more common.
-            raise v_exc.BadOpBytes(op.va)
 
         loc = self.vw.getLocation(eip)
         if loc is not None:
             va, size, ltype, linfo = loc
             if ltype != vivisect.LOC_OP:
                 emu.stopEmu()
-                raise Exception("HIT LOCTYPE %d AT %.8x" % (ltype, va))
+                raise Exception("HIT LOCTYPE %d AT 0x%.8x" % (ltype, va))
 
         cnt = self.mndist.get(op.mnem, 0)
-        self.mndist[op.mnem] = cnt+1
+        self.mndist[op.mnem] = cnt + 1
         self.insn_count += 1
+        if self.vw.isNoReturnVa(eip):
+            self.hasret = True
+            emu.stopEmu()
 
         # FIXME do we need a way to terminate emulation here?
     def apicall(self, emu, op, pc, api, argv):
@@ -116,8 +112,16 @@ def analyze(vw):
         vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None] )
 
         for va in set(vatodo):
-            if vw.getLocation(va) is not None:
+            loc = vw.getLocation(va)
+            if loc is not None:
+                if loc[L_LTYPE] == LOC_STRING:
+                    vw.makeString(va)
+                    tried.add(va)
+                elif loc[L_LTYPE] == LOC_UNI:
+                    vw.makeUnicode(va)
+                    tried.add(va)
                 continue
+
             if vw.isDeadData(va):
                 continue
 
@@ -133,6 +137,7 @@ def analyze(vw):
             emu = vw.getEmulator()
             wat = watcher(vw, va)
             emu.setEmulationMonitor(wat)
+
             try:
                 emu.runFunction(va, maxhit=1)
             except Exception:

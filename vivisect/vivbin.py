@@ -1,29 +1,21 @@
 #!/usr/bin/env python
-import imp
+import os
 import sys
 import time
-import cProfile
-import argparse
 import logging
-
-import vivisect.cli as viv_cli
-import vivisect.parsers as viv_parsers
+import argparse
+import cProfile
+import importlib.util
 
 import envi.common as e_common
 import envi.config as e_config
 import envi.threads as e_threads
 
+import vivisect.cli as viv_cli
+import vivisect.parsers as viv_parsers
+
+
 logger = logging.getLogger('vivisect')
-e_common.setLogging(logger, level='WARNING')
-
-
-loglevels = (
-    logging.CRITICAL,
-    logging.ERROR,
-    logging.WARN,
-    logging.INFO,
-    logging.DEBUG
-)
 
 
 def main():
@@ -36,7 +28,9 @@ def main():
                         help='Do *not* start the gui, just load, analyze and save')
     parser.add_argument('-C', '--cprofile', dest='cprof', default=False, action='store_true',
                         help='Output vivisect performace profiling (cProfile) info')
-    parser.add_argument('-O', '--option', dest='option', default=None, action='store',
+    parser.add_argument('-E', '--entrypoint', dest='entrypoints', default=[], action='append',
+                        help='Add Entry Point for bulk analysis (can have multiple "-E <addr>" args')
+    parser.add_argument('-O', '--option', dest='option', default=None, action='append',
                         help='<secname>.<optname>=<optval> (optval must be json syntax)')
     parser.add_argument('-p', '--parser', dest='parsemod', default=None, action='store',
                         help='Manually specify the parser module (pe/elf/blob/...)')
@@ -46,7 +40,7 @@ def main():
                         help='Enable verbose mode (multiples matter: -vvvv)')
     parser.add_argument('-V', '--version', dest='version', default=None, action='store',
                         help='Add file version (if available) to save file name')
-    parser.add_argument('-c', '--config', dest='config', default=None, action='store_true',
+    parser.add_argument('-c', '--config', dest='config', default=None,
                         help='Path to a directory to use for config data')
     parser.add_argument('-a', '--autosave', dest='autosave', default=False, action='store_true',
                         help='Autosave configuration data')
@@ -57,26 +51,30 @@ def main():
 
     # setup logging
     vw.verbose = min(args.verbose, 4)
-    logger.setLevel(loglevels[vw.verbose])
+    level = e_common.LOG_LEVELS[vw.verbose]
+    e_common.initLogging(logger, level=level)
 
+
+    # do things
     if args.option is not None:
-        if args.option in ('-h', '?'):
-            logger.critical(vw.config.reprConfigPaths())
-            sys.exit(-1)
+        for option in args.option:
+            if option in ('-h', '?'):
+                logger.critical(vw.config.reprConfigPaths())
+                sys.exit(-1)
 
-        try:
-            vw.config.parseConfigOption(args.option)
-        except e_config.ConfigNoAssignment as e:
-            logger.critical(vw.config.reprConfigPaths() + "\n")
-            logger.critical(e)
-            logger.critical("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
-            sys.exit(-1)
+            try:
+                vw.config.parseConfigOption(option)
+            except e_config.ConfigNoAssignment as e:
+                logger.critical(vw.config.reprConfigPaths() + "\n")
+                logger.critical(e)
+                logger.critical("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")
+                sys.exit(-1)
 
-        except Exception as e:
-            logger.critical(vw.config.reprConfigPaths())
-            logger.critical("With entry: %s", args.option)
-            logger.critical(e)
-            sys.exit(-1)
+            except Exception as e:
+                logger.critical(vw.config.reprConfigPaths())
+                logger.critical("With entry: %s", option)
+                logger.critical(e)
+                sys.exit(-1)
 
     if args.storage_name is not None:
         vw.setMeta("StorageModule", args.storage_name)
@@ -103,6 +101,14 @@ def main():
             logger.info('Loaded (%.4f sec) %s', (end - start), fname)
 
     if args.bulk:
+        for entryva in args.entrypoints:
+            try:
+                vw.vprint("Adding Entry Point: %s: " % entryva)
+                eva = int(entryva, 0)
+                vw.setVaSetRow('EntryPoints', (eva,))
+            except Exception as e:
+                vw.vprint("Failure: %r" % e)
+
         if args.doanalyze:
             if args.cprof:
                 cProfile.run("vw.analyze()")
@@ -113,13 +119,14 @@ def main():
                 logger.debug("ANALYSIS TIME: %s", (end-start))
 
         if args.modname is not None:
-            with open(args.modname, 'rb') as f:
-                module = imp.load_module("custom_analysis", f, args.modname, ('.py', 'U', 1))
-                module.analyze(vw)
+            modpath = os.path.abspath(args.modname)
+            spec = importlib.util.spec_from_file_location('custom_analysis', modpath)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            module.analyze(vw)
 
         logger.info('stats: %r', vw.getStats())
         logger.info("Saving workspace: %s", vw.getMeta('StorageName'))
-
         vw.saveWorkspace()
 
     else:
