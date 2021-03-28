@@ -99,15 +99,45 @@ in fact, it looks like we're looking at numerous "thunk-reg" examples, as indica
 .text:0x0201e8d2  c3               ret
 
 before this, we've got 12 switches in ld.so
+
+
+
+here's the old way (with thunk_bx):
+oldsw = [0x200704d,
+ 0x200d274,
+ 0x200d62d,
+ 0x200d6e0,
+ 0x200d8ac,
+ 0x200dd56,
+ 0x200e0e1,
+ 0x200e19c,
+ 0x200e371,
+ 0x201b438,
+ 0x201dea8,
+ 0x201e0fe]
+
+
 huh.  after changing to support all regs... we end up with 10???
-2002160
-2002d80
-200704d
-200d274
-200dd56
-201a579
-201ad11
-201b438
-201d3a8
-201e0fe
+newsw = [0x2002160,
+ 0x2002d80,
+ 0x200704d,
+ 0x200d274,
+ 0x200dd56,
+ 0x201a579,
+ 0x201ad11,
+ 0x201b438,
+ 0x201dea8,
+ 0x201e0fe]
+
+so the conversion gains us:
+Missing from old:
+In [10]: [hex(x) for x in newsw if x not in oldsw]                                                                                                                                                                                                       
+Out[10]: ['0x2002160', '0x2002d80', '0x201a579', '0x201ad11']
+
+and loses us:
+Missing from new:
+In [11]: [hex(x) for x in oldsw if x not in newsw]                                                                                                                                                                                                       
+Out[11]: ['0x200d62d', '0x200d8ac', '0x200d6e0', '0x200e0e1', '0x200e371', '0x200e19c']
+
+
 

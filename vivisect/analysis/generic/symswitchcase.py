@@ -1168,41 +1168,43 @@ def analyzeFunction(vw, fva):
     # dynamic branches to analyze.
     while lastdynlen != len(dynbranches):
         lastdynlen = len(dynbranches)
-        for jmpva, (none, oprepr, bflags) in dynbranches.items():
+        for jmpva, (none, oprepr, bflags) in list(dynbranches.items()):
             if bflags & envi.BR_PROC:   # skip calls
                 continue
 
-            funcva = vw.getFunction(jmpva)
-            if funcva != fva:
-                # jmp_indir is for the entire VivWorkspace.  
-                # we're just filtering to this function here.
-                # this should be checked again when codeblocks are allowed to 
-                #   be part of multiple functions.
-                continue
+            try:
+                funcva = vw.getFunction(jmpva)
+                if funcva != fva:
+                    # jmp_indir is for the entire VivWorkspace.  
+                    # we're just filtering to this function here.
+                    # this should be checked again when codeblocks are allowed to 
+                    #   be part of multiple functions.
+                    continue
 
-            if vw.getVaSetRow('SwitchCases', jmpva) is not None:
-                logger.info("...skipping 0x%x - SwitchCases already has it?", jmpva)
-                continue
+                if vw.getVaSetRow('SwitchCases', jmpva) is not None:
+                    logger.info("...skipping 0x%x - SwitchCases already has it?", jmpva)
+                    continue
 
-            if jmpva in done:
-                logger.info("...skipping 0x%x - already done", jmpva)
-                continue
-            done.append(jmpva)
+                if jmpva in done:
+                    logger.info("...skipping 0x%x - already done", jmpva)
+                    continue
+                done.append(jmpva)
 
-            sc = SwitchCase(vw, jmpva)
-            sc.analyze()
-            
-            '''
-            inp = raw_input("PRESS ENTER TO CONTINUE...")
-            while len(inp):
-                try:
-                    print(repr(eval(inp, globals(), locals())))
-                except:
-                    logger.exception('error')
+                sc = SwitchCase(vw, jmpva)
+                sc.analyze()
+                
+                '''inp = input("PRESS ENTER TO CONTINUE...")
+                while len(inp):
+                    try:
+                        print(repr(eval(inp, globals(), locals())))
+                    except:
+                        logger.exception('error')
 
-                inp = raw_input("PRESS ENTER TO CONTINUE...")
-            '''
-            #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+                    inp = input("PRESS ENTER TO CONTINUE...")
+                    '''
+                #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+            except:
+                logger.info('Exception processing SwitchCase in function 0x%x', fva, exc_info=1)
 
         dynbranches = vw.getVaSet('DynamicBranches')
     vw.setMeta('analyzedDynBranches', done)
