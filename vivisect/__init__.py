@@ -1271,6 +1271,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # This must be second (len(xrefsto))
         self.addXref(op.va, tova, REF_PTR)
+        self.setVaSetRow('SwitchCases', (op.va, op.va, i))
+        self.setVaSetRow('DynamicBranches', (op.va, repr(op), op.iflags))
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """

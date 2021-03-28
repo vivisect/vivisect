@@ -242,6 +242,7 @@ def peelIdxOffset(symobj):
 
     return symobj, offset
 
+# TODO: possibly only take calls in the first codeblock?
 def targetNewFunctions(vw, fva):
     '''
     scan through all direct calls in this function and force analysis of called functions
@@ -288,20 +289,32 @@ def targetNewFunctions(vw, fva):
 THUNK_BX_CALL_LEN = 5
 
 
-def thunk_bx(emu, fname, symargs):
-    vw = emu._sym_vw
-    rctx = vw.arch.archGetRegCtx()
-    ebxval = emu.getMeta('calling_va')
-    oploc = vw.getLocation(ebxval)
-    if oploc is None:
-        ebxval += THUNK_BX_CALL_LEN 
-    else:
-        ebxval += oploc[L_SIZE]
+class ThunkReg:
+    def __init__(self, regname, tgtval):
+        self.regname = regname
+        self.tgtval = tgtval
 
-    ebx = Const(ebxval, vw.psize)
-    reg = rctx.getRealRegisterName('ebx')
-    logger.debug("YAY!  Thunk_bx is being called! %s\t%s\t%s\t%s", emu, symargs, reg, ebx)
-    emu.setSymVariable(reg, ebx)
+    def thunk_reg(self, emu, fname, symargs):
+        '''
+        These thunk_reg functions return the "RETURN" address, which the calling
+        function then adds the appropriate amount to obtain the .got.plt base
+
+        This simply applies the RET address to the appropriate register for 
+        symbolik analysis
+        '''
+        vw = emu._sym_vw
+        rctx = vw.arch.archGetRegCtx()
+        regval = emu.getMeta('calling_va')
+        oploc = vw.getLocation(regval)
+        if oploc is None:
+            regval += THUNK_BX_CALL_LEN 
+        else:
+            regval += oploc[L_SIZE]
+
+        regobj = Const(regval, vw.psize)
+        reg = rctx.getRealRegisterName(self.regname)
+        logger.debug("YAY!  thunk_reg is being called! %s\t%s\t%s\t%s", emu, symargs, reg, regobj)
+        emu.setSymVariable(reg, regobj)
 
 
 UNINIT_CASE_INDEX = -2
@@ -325,13 +338,14 @@ class SwitchCase:
         self.sctx = vs_anal.getSymbolikAnalysisContext(vw)
         self.xlate = self.sctx.getTranslator()
 
-        # 32-bit i386 thunk_bx handling.  this should be the only oddity for this architecture
-        if 'thunk_bx' in vw.getVaSetNames():
+        # 32-bit i386 thunk_reg handling.  this should be the only oddity for this architecture
+        if 'thunk_reg' in vw.getVaSetNames():
             try:
-                for tva, in vw.getVaSetRows('thunk_bx'):
+                for tva, regname, tgtval in vw.getVaSetRows('thunk_reg'):
                     fname = vw.getName(tva, True)
-                    self.sctx.addSymFuncCallback(fname, thunk_bx)
-                    logger.debug( "sctx.addSymFuncCallback(%s, thunk_bx)" % fname)
+                    trobj = ThunkReg(regname, tgtval)
+                    self.sctx.addSymFuncCallback(fname, trobj.thunk_reg)
+                    logger.debug( "sctx.addSymFuncCallback(%s, thunk_reg)" % fname)
             except AttributeError:
                 pass
             except v_exc.InvalidVaSet:
