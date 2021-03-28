@@ -200,10 +200,6 @@ class PpcInstructionSet(unittest.TestCase):
 
                 logging.exception('ERROR: {}:'.format(test_bytes,))
 
-        logger.info("%s: %d of %d successes", archname, test_pass, len(test_module.instructions))
-        self.assertAlmostEqual(test_pass, len(test_module.instructions), delta=MARGIN_OF_ERROR)
-
-
         logger.info("%s: Total of %d tests completed.", archname, (goodemu + bademu))
         self.assertEqual(goodemu, emu_module.GOOD_EMU_TESTS)
 

@@ -816,4 +816,4 @@ emutests = {
 
 }
 
-GOOD_EMU_TESTS = 54
+GOOD_EMU_TESTS = 58
