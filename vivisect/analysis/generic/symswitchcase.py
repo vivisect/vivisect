@@ -696,7 +696,7 @@ class SwitchCase:
         baseoff = None
        
         try:
-            while lower is None or (lower == 0 and upper is None) or upper <= lower: # note: this will fail badly when it fails.  make this dependent on the codepathgen
+            while lower is None or (lower == 0 and upper is None) or (upper is not None and upper <= lower): # note: this will fail badly when it fails.  make this dependent on the codepathgen
                 # get the index we'll be looking for in constraints
                 lower = 0           # the smallest index used.  most often wants to be 0
                 upper = None        # the largest index used.  max=self.max_cases
