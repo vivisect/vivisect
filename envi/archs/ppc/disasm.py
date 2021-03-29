@@ -697,4 +697,3 @@ class Ppc32ServerDisasm(PpcDisasm):
     __ARCH__ = envi.ARCH_PPC_S32
     def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_SERVER, psize=4):
         PpcDisasm.__init__(self, endian, options, psize=psize)
-
