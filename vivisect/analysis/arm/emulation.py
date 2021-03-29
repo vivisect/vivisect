@@ -111,8 +111,8 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                         logger.info("0x%x: +++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", op.va)
                         if op.va not in self.infloops:
                             self.infloops.append(op.va)
-                            if 'InfiniteLoops' not in vw.getVaSetNames():
-                                vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
+                            if 'InfiniteLoops' not in self.vw.getVaSetNames():
+                                self.vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
                             self.vw.setVaSetRow('InfiniteLoops', (op.va, self.fva))
 
                 except Exception as e:
