@@ -1254,6 +1254,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 if refbflags & envi.BR_TABLE:
                     self.splitJumpTable(op.va, refva, tova, psize=psize)
 
+        i = 0
         tabdone = {}
         for i, rdest in enumerate(self.iterJumpTable(ptrbase, rebase=rebase, step=psize)):
             if not tabdone.get(rdest):

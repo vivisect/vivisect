@@ -1150,7 +1150,97 @@ cbs_i386_static_80a6920 = [
     (0x80a6a38, 0x17, 0x80a6920),
     (0x80a6a4f, 0xb, 0x80a6920),
     (0x80a6a60, 0xb, 0x80a6920),
+]
 
+cbs_i386_ld_2002160 = [
+    (0x2001dd0, 74, 0x2001dd0),
+    (0x2001e1a, 10, 0x2001dd0),
+    (0x2001e28, 13, 0x2001dd0),
+    (0x2001e35, 14, 0x2001dd0),
+    (0x2001e43, 10, 0x2001dd0),
+    (0x2001e4d, 5, 0x2001dd0),
+    (0x2001e52, 7, 0x2001dd0),
+    (0x2001e59, 10, 0x2001dd0),
+    (0x2001e63, 3, 0x2001dd0),
+    (0x2001e66, 4, 0x2001dd0),
+    (0x2001e6a, 10, 0x2001dd0),
+    (0x2001e74, 3, 0x2001dd0),
+    (0x2001e77, 10, 0x2001dd0),
+    (0x2001e81, 3, 0x2001dd0),
+    (0x2001e84, 10, 0x2001dd0),
+    (0x2001e8e, 3, 0x2001dd0),
+    (0x2001e91, 10, 0x2001dd0),
+    (0x2001e9b, 3, 0x2001dd0),
+    (0x2001e9e, 10, 0x2001dd0),
+    (0x2001ea8, 3, 0x2001dd0),
+    (0x2001eab, 10, 0x2001dd0),
+    (0x2001eb5, 3, 0x2001dd0),
+    (0x2001eb8, 10, 0x2001dd0),
+    (0x2001ec2, 3, 0x2001dd0),
+    (0x2001ec5, 10, 0x2001dd0),
+    (0x2001ecf, 3, 0x2001dd0),
+    (0x2001ed2, 10, 0x2001dd0),
+    (0x2001edc, 10, 0x2001dd0),
+    (0x2001ee6, 10, 0x2001dd0),
+    (0x2001ef0, 16, 0x2001dd0),
+    (0x2001f00, 10, 0x2001dd0),
+    (0x2001f0a, 13, 0x2001dd0),
+    (0x2001f17, 10, 0x2001dd0),
+    (0x2001f21, 13, 0x2001dd0),
+    (0x2001f2e, 14, 0x2001dd0),
+    (0x2001f3c, 14, 0x2001dd0),
+    (0x2001f4a, 8, 0x2001dd0),
+    (0x2001f52, 14, 0x2001dd0),
+    (0x2001f60, 119, 0x2001dd0),
+    (0x2001fd7, 10, 0x2001dd0),
+    (0x2001fe8, 12, 0x2001dd0),
+    (0x2001ff4, 19, 0x2001dd0),
+    (0x2002010, 16, 0x2001dd0),
+    (0x2002020, 19, 0x2001dd0),
+    (0x2002038, 8, 0x2001dd0),
+    (0x2002040, 35, 0x2001dd0),
+    (0x2002063, 9, 0x2001dd0),
+    (0x200206c, 4, 0x2001dd0),
+    (0x2002070, 44, 0x2001dd0),
+    (0x200209c, 20, 0x2001dd0),
+    (0x20020b0, 14, 0x2001dd0),
+    (0x20020be, 9, 0x2001dd0),
+    (0x20020c7, 3, 0x2001dd0),
+    (0x20020ca, 14, 0x2001dd0),
+    (0x20020d8, 21, 0x2001dd0),
+    (0x20020ed, 11, 0x2001dd0),
+    (0x20020f8, 34, 0x2001dd0),
+    (0x200211a, 33, 0x2001dd0),
+    (0x200213b, 17, 0x2001dd0),
+    (0x200214c, 11, 0x2001dd0),
+    (0x2002157, 12, 0x2001dd0),
+    (0x2002168, 16, 0x2001dd0),
+    (0x2002178, 21, 0x2001dd0),
+    (0x20021a0, 12, 0x2001dd0),
+    (0x20021ac, 5, 0x2001dd0),
+    (0x2002240, 8, 0x2001dd0),
+    (0x2002248, 19, 0x2001dd0),
+    (0x2002260, 11, 0x2001dd0),
+    (0x200226b, 19, 0x2001dd0),
+    (0x2002280, 28, 0x2001dd0),
+    (0x200229c, 33, 0x2001dd0),
+    (0x20022bd, 31, 0x2001dd0),
+    (0x20022dc, 31, 0x2001dd0),
+    (0x20022fb, 28, 0x2001dd0),
+    (0x2002317, 31, 0x2001dd0),
+    (0x2002336, 31, 0x2001dd0),
+    (0x2002355, 31, 0x2001dd0),
+    (0x2002374, 31, 0x2001dd0),
+    (0x2002393, 28, 0x2001dd0),
+    (0x2002190, 16, 0x2001dd0),
+    (0x20021b8, 17, 0x2001dd0),
+    (0x20021c9, 5, 0x2001dd0),
+    (0x20021d0, 32, 0x2001dd0),
+    (0x20021f0, 5, 0x2001dd0),
+    (0x20021f8, 25, 0x2001dd0),
+    (0x2002211, 5, 0x2001dd0),
+    (0x2002220, 18, 0x2001dd0),
+    (0x2002232, 5, 0x2001dd0),
 ]
 
 class MsSwitchTest(unittest.TestCase):
@@ -1255,6 +1345,54 @@ class i386_static32_SwitchTest(unittest.TestCase):
         _do_test_thingy(self, vw, jmpva=0x80621da, fva=0x80621a0, cbs=cbs_i386_static_80621a0, xrefcnt=7)
         _do_test_thingy(self, vw, jmpva=0x808db0a, fva=0x808dc28, cbs=cbs_i386_static_808dc28, xrefcnt=9)
         _do_test_thingy(self, vw, jmpva=0x80a6954, fva=0x80a6920, cbs=cbs_i386_static_80a6920, xrefcnt=7)
+
+
+ld_switches = [0x200704d,
+               0x200d274,
+               0x200d62d,
+               0x200d6e0,
+               0x200d8ac,
+               0x200dd56,
+               0x200e0e1,
+               0x200e19c,
+               0x200e371,
+               0x201b438,
+               0x201dea8,
+               0x201e0fe,
+               0x2002160,
+               0x2002d80,
+               0x201a579,
+               0x201ad11]
+
+class i386_ld_SwitchTest(unittest.TestCase):
+    def test_ld_switch(self):
+        self.maxDiff = None
+        vw = helpers.getTestWorkspace('linux', 'i386', 'ld-2.31.so')
+        vw.analyze()
+
+        cur_switches = [x for x, y, z in vw.getVaSetRows('SwitchCases')]
+        cur_switches.sort()
+        ld_switches.sort()
+        self.assertListEqual(cur_switches, ld_switches)
+
+        '''
+        .text:0x0200214c  loc_0200214c: [5 XREFS]
+        .text:0x0200214c  8b55d0           mov edx,dword [ebp + local52]
+        .text:0x0200214f  83ea06           sub edx,6
+        .text:0x02002152  83fa23           cmp edx,35
+        .text:0x02002155  7749             ja case_Eto13_15to28_2A_2Cto2E_20021a0
+        .text:0x02002157  8b84970030ffff   mov eax,dword [edi + edx * 4 + -53248]
+        .text:0x0200215e  01f8             add eax,edi
+        .text:0x02002160  switch_02002160: [0 XREFS]
+        .text:0x02002160  3effe0           ds: jmp eax    ;lower: 0xc, upper: 0x2f
+
+        '''
+        _do_test_thingy(self, vw, jmpva=0x2002160, fva=0x2001dd0, cbs=cbs_i386_ld_2002160, xrefcnt=6)
+        #_do_test_thingy(self, vw, jmpva=0x80621da, fva=0x80621a0, cbs=cbs_i386_static_80621a0, xrefcnt=7)
+        #_do_test_thingy(self, vw, jmpva=0x808db0a, fva=0x808dc28, cbs=cbs_i386_static_808dc28, xrefcnt=9)
+        #_do_test_thingy(self, vw, jmpva=0x80a6954, fva=0x80a6920, cbs=cbs_i386_static_80a6920, xrefcnt=7)
+
+
 
 
 def _do_test_thingy(self, vw, jmpva, fva, cbs, xrefcnt):
