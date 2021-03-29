@@ -150,8 +150,10 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable(rname, obj)
 
     def setRegByName(self, name, obj):
-        regidx = self._reg_ctx.getRegisterIndex(name)
-        ridx = regidx & 0xffff
+        ridx = self._reg_ctx.getRegisterIndex(name)
+        width = self._reg_ctx.getRegisterWidth(ridx)
+        if width > 32:
+            ridx = ridx & 0xffff
         self.setRegObj(ridx, obj)
 
     def getRegByName(self, name):

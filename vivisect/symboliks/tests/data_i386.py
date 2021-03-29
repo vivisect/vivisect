@@ -4,8 +4,8 @@ effects = {
               ('edx = TSC_HIGH',
                'eax = TSC_LOW')),
     'div16': ('66f7f2', None, (),
-              ('eax = ((((edx & 0x0000ffff) << 16) | (eax & 0x0000ffff)) / (edx & 0x0000ffff))',
-               'edx = ((((edx & 0x0000ffff) << 16) | (eax & 0x0000ffff)) % (edx & 0x0000ffff))')
+              ('eax = (((((edx & 0x0000ffff) << 16) | (eax & 0x0000ffff)) / (edx & 0x0000ffff)) | (eax & 0xffff0000))',
+               'edx = (((((edx & 0x0000ffff) << 16) | (eax & 0x0000ffff)) % (edx & 0x0000ffff)) | (edx & 0xffff0000))')
               ),
     'div32': ('f7f1', None, (),
               ('eax = (((edx << 32) | eax) / ecx)',

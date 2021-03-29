@@ -12,8 +12,8 @@ effects = {
              'rdx = (signextend((rax & 0x0000ffff), 16) >> 64)')
             ),
     'div16': ('66f7f2', None, (),
-              ('rax = ((((rdx & 0x0000ffff) << 16) | (rax & 0x0000ffff)) / (rdx & 0x0000ffff))',
-               'rdx = ((((rdx & 0x0000ffff) << 16) | (rax & 0x0000ffff)) % (rdx & 0x0000ffff))',)
+              ('rax = (((((rdx & 0x0000ffff) << 16) | (rax & 0x0000ffff)) / (rdx & 0x0000ffff)) | (rax & 0xffffffffffff0000))',
+               'rdx = (((((rdx & 0x0000ffff) << 16) | (rax & 0x0000ffff)) % (rdx & 0x0000ffff)) | (rdx & 0xffffffffffff0000))',)
               ),
     'div32': ('f7f1', None, (),
               ('rax = ((((rdx & 0xffffffff) << 32) | (rax & 0xffffffff)) / (rcx & 0xffffffff))',
@@ -122,4 +122,16 @@ effects = {
             ('rax = (((rdx << 64) | rax) / rcx)',
              'rdx = (((rdx << 64) | rax) % rcx)')
             ),
+    # not al
+    'not': ('f6d0', None, (),
+            ('rax = (((rax & 255) ^ 255) | (rax & 0xffffffffffffff00))',)),
+    # not ax
+    'not2': ('66f7d0', None, (),
+             ('rax = (((rax & 0x0000ffff) ^ 0x0000ffff) | (rax & 0xffffffffffff0000))',)),
+    # not eax
+    'not3': ('f7d0', None, (),
+             ('rax = ((rax & 0xffffffff) ^ 0xffffffff)',)),
+    # not rax
+    'not4': ('48f7d0', None, (),
+             ('rax = (rax ^ 0xffffffffffffffff)',)),
 }

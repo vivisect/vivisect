@@ -925,7 +925,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = e_bits.signed(d, 1)
             if d == 0:
                 raise envi.DivideByZero(self)
-            q = int(ax / d)
+            q = ax // d
             r = ax % d
             res = ((r & 0xff) << 8) | (q & 0xff)
             self.setRegister(REG_AX, res)
@@ -937,7 +937,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = e_bits.signed(d, 2)
             if d == 0:
                 raise envi.DivideByZero(self)
-            q = int(val / d)
+            q = val // d
             r = val % d
 
             self.setRegister(REG_AX, q)
@@ -950,24 +950,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = e_bits.signed(d, 4)
             if d == 0:
                 raise envi.DivideByZero(self)
-            q = int(val / d)
+            q = val // d
             r = val % d
 
             self.setRegister(REG_EAX, q)
             self.setRegister(REG_EDX, r)
-
-        elif tsize == 4:
-            val = self.twoRegCompound(REG_RDX, REG_RAX, 8)
-            val = e_bits.signed(val, 8)
-            d = self.getOperValue(op, 0)
-            d = e_bits.signed(d, 8)
-            if d == 0:
-                raise envi.DivideByZero(self)
-            q = int(val / d)
-            r = val % d
-
-            self.setRegister(REG_RAX, q)
-            self.setRegister(REG_RDX, r)
 
         else:
             raise envi.UnsupportedInstruction(self, op)
@@ -1263,10 +1250,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if tsize == 1:
             self.setRegister(REG_AX, res)
 
-        elif tsize == 2:
-            d,a = self.regsFromCompound(res, tsize)
+        elif tsize in (2, 4, 8):
+            d, a = self.regsFromCompound(res, tsize)
             self._emu_setGpReg(GPR_A, a, tsize)
             self._emu_setGpReg(GPR_D, d, tsize)
+        else:
+            raise Exception("i_mul called with invalid size of %d" % tsize)
 
         # If the high order stuff was used, set CF/OF
         if res >> (tsize * 8):
