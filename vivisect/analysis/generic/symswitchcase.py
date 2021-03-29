@@ -346,8 +346,6 @@ class SwitchCase:
                     trobj = ThunkReg(regname, tgtval)
                     self.sctx.addSymFuncCallback(fname, trobj.thunk_reg)
                     logger.debug( "sctx.addSymFuncCallback(%s, thunk_reg)" % fname)
-            except AttributeError:
-                pass
             except v_exc.InvalidVaSet:
                 pass
 
@@ -931,17 +929,20 @@ class SwitchCase:
 
             vagc.analyzeFunction(vw, funcva)
 
+        except StopIteration:
+            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Couldn't Find Valid Path) 0x%x  !@#$!@#$!@#$!@#$", self.jmpva)
+
         except SymIdxNotFoundException as e:
-            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx) 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (self.jmpva, e))
+            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
 
         except NoComplexSymIdxException as e:
-            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx=%r \t ComplexIdx=None) 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (e.sc.getSymIdx(), self.jmpva, e))
+            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx=%r \t ComplexIdx=None) 0x%x  !@#$!@#$!@#$!@#$ \n%r", e.sc.getSymIdx(), self.jmpva, e)
 
         except PathForceQuitException as e:
-            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r" % (self.jmpva, e))
+            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
 
         except Exception as e:
-            logger.exception("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
+            logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e, exc_info=1)
 
 
     def markDerefs(self):
