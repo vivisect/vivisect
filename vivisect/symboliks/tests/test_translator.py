@@ -44,7 +44,6 @@ class TranslatorTests(unittest.TestCase):
                 self.assertEqual(len(effs), len(testeffs))
                 self.assertEqual(len(cons), len(testcons))
             except AssertionError:
-                breakpoint()
                 failures.append(op)
                 xlate.clearEffects()
                 continue
@@ -59,7 +58,6 @@ class TranslatorTests(unittest.TestCase):
                         continue
                     self.assertTrue(str(c) in cons)
             except AssertionError:
-                breakpoint()
                 failures.append(op)
             except Exception as e:
                 logger.warning('%s failed due to exception %s', op, str(e))
