@@ -150,9 +150,18 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable(rname, obj)
 
     def setRegByName(self, name, obj):
+        '''
+        Sets the symbolik variable representing the register by name.
+
+        This is meta register aware, so if you call setRegByName('al', Var("thingy", 1))
+        it will set the eax variable (on i386) or the rax variable (on amd64) by only setting
+        the lower bits (for al/ax). The upper bits/symbolik effects will remain unchained.
+        In the case of setRegByName('eax', obj) on either i386 or amd64, it will clobber the
+        entire register.
+        '''
         ridx = self._reg_ctx.getRegisterIndex(name)
         width = self._reg_ctx.getRegisterWidth(ridx)
-        if width > 32:
+        if width >= 32:
             ridx = ridx & 0xffff
         self.setRegObj(ridx, obj)
 

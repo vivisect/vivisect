@@ -28,7 +28,7 @@ class VtraceProcessTest(unittest.TestCase):
             self.proc.stdin.flush()
             self.trace.run()
         try:
-            self.proc.wait(timeout=120)
+            self.proc.wait(timeout=300)
         except subprocess.TimeoutExpired:
             pass
         finally:
