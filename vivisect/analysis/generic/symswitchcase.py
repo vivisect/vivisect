@@ -483,6 +483,34 @@ class SwitchCase:
     def getBoundingCons(self, cplxIdx):
         return [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
 
+    def getSymbolikJmpBlock(self):
+        '''
+        Returns symbolik effects for the last codeblock, which should never change.
+        This should be small and does not require a path be generated, so it should
+        be safe for early analysis and vetting of the dynamic branch (if it's not 
+        a switchcase, don't do all the heavy lifting)
+        '''
+        vw = self.vw
+        sctx = self.sctx
+        jmpva = self.jmpva
+
+        fva = vw.getFunction(jmpva)
+        cb = vw.getCodeBlock(jmpva)
+        if cb is None:
+            raise Exception("Dynamic Branch is not currently part of a CodeBlock!")
+        cbva, cbsz, cbfva = cb
+
+        if self._sgraph is None:
+            self._sgraph = sctx.getSymbolikGraph(fva)
+
+        jnva, jnode = self._sgraph.getNode(cbva)
+
+        symemu = TrackingSymbolikEmulator(vw)
+        aeffs = symemu.applyEffects(jnode.get('symbolik_effects'))
+
+        #TODO: ? cache these?  depends on how widely we use this fucntion.
+        return jnode, symemu, aeffs
+
     def getSymbolikParts(self, next=False):
         '''
         Puts together a path from the start of the function to the jmpva, breaking off the last 
