@@ -5,6 +5,7 @@ which use pointer arithetic to determine code path for each case.
 This will not connect switch cases which are actually explicit cmp/jz in the code.
 '''
 import sys
+import time
 
 import logging
 logger = logging.getLogger(__name__)
@@ -825,6 +826,7 @@ class SwitchCase:
         '''
 
         vw = self.vw
+        start = time.time()
 
         # only support branching switch-cases (ie, not calls)
         if not (self.op.iflags & envi.IF_BRANCH):
@@ -846,7 +848,7 @@ class SwitchCase:
 
         instrcount = vw.getFunctionMeta(funcva, 'InstructionCount')
         if instrcount < self.min_func_instr_size:
-            logger.error("Ignoring jmp in too small a function: %d instructions", instrcount)
+            logger.error("Ignoring jmp in too small a function: %d instructions (0x%x)", instrcount, self.jmpva)
             return
 
         try:
@@ -860,10 +862,10 @@ class SwitchCase:
             count = upper - lower + 1
             if count > self.max_cases:
                 if count > self.case_failure:
-                    logger.warning("TOO many switch cases detected: %d.  FAILURE.  Skipping this dynamic branch", count)
+                    logger.warning("TOO many switch cases detected: %d.  FAILURE.  Skipping this dynamic branch (0x%x)", count, self.jmpva)
                     return
                 
-                logger.warning("too many switch cases during analysis: %d   limiting to %d", count, self.max_cases)
+                logger.warning("too many switch cases during analysis: %d   limiting to %d (0x%x)", count, self.max_cases, self.jmpva)
                 count = self.max_cases
 
             # determine deref-ops...  uses TrackingSymbolikEmulator
@@ -877,13 +879,14 @@ class SwitchCase:
                 # correct number handed into this function in "count", but currently we'll stop analyzing
                 # if we run into trouble.
                 if not vw.isValidPointer(addr):
-                    logger.info("found invalid pointer.  quitting.  (0x%x)" % addr)
+                    logger.info("found invalid pointer.  quitting.  (0x%x in 0x%x)" % addr, self.jmpva)
                     break
                 
                 tloc = vw.getLocation(addr)
                 if tloc is not None and tloc[0] != addr:
                     # pointing at something not right.  must be done.
-                    logger.info("found overlapping location.  quitting.")
+                    logger.info("found overlapping location at 0x%x (cur: 0x%x).  quitting. (0x%x)", \
+                            addr, tloc[0], self.jmpva)
                     break
              
                 if len(cases):
@@ -900,7 +903,7 @@ class SwitchCase:
                             good = False
 
                         if not good:
-                            logger.info("target location (0x%x) has xrefs.", addr)
+                            logger.info("target location (0x%x) has xrefs. (0x%x)", addr, self.jmpva)
                             break
                 
                 # this is a valid thing, we have locations...  match them up
@@ -973,11 +976,11 @@ class SwitchCase:
         (csemu, cseffs), aspath, fullpath = self.getSymbolikParts()
 
         idxtype, symidx = self.getSymIdx()
-        logger.info('getSymIdx: %r/%r', idxtype, symidx)
+        logger.info('getSymIdx: %r/%r (0x%x)', idxtype, symidx, self.jmpva)
 
         jmptgt = self.getSymTarget()
         lower, upper, offset = self.getBounds()
-        logger.debug( " itercases: %r %r %r %r", symidx, lower, upper, offset)
+        logger.debug( " itercases: %r %r %r %r (0x%x)", symidx, lower, upper, offset, self.jmpva)
 
         # use a TrackingSymbolikEmulator so we get the "readSymMemory()" function actually hitting 
         # the r/o data from our VivWorkspace
@@ -995,7 +998,7 @@ class SwitchCase:
             elif idxtype == SYMT_VAR:
                 symemu.setSymVariable(symidx, Const(idx, 8))
             workJmpTgt = jmptgt.update(emu=symemu)
-            logger.info(" itercases: workJmpTgt: %r", workJmpTgt)
+            logger.info(" itercases: workJmpTgt: %r (0x%x)", workJmpTgt, self.jmpva)
             coderef = workJmpTgt.solve(emu=symemu, vals={symidx:idx})
             #coderef = jmptgt.update(emu=symemu)
             logger.debug(" itercases: %r, %r", idx, hex(coderef))
@@ -1029,7 +1032,7 @@ def makeNames(vw, jmpva, cases, baseoff=0):
         else:
             outstrings.append("%X" % (case+baseoff))
 
-        logger.info("OUTSTRINGS: %s", repr(outstrings))
+        logger.info("OUTSTRINGS: %s (0x%x)", repr(outstrings), jmpva)
 
         idxs = '_'.join(outstrings)
         casename = "case_%s_%x" % (idxs, addr)
@@ -1094,7 +1097,7 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
         # correct number handed into this function in "count", but currently we'll stop analyzing
         # if we run into trouble.
         if not vw.isValidPointer(addr):
-            logger.info("found invalid pointer.  quitting.  (0x%x)" % addr)
+            logger.info("found invalid pointer.  quitting.  (0x%x in 0x%x)" % addr, jmpva)
             break
         
         tloc = vw.getLocation(addr)

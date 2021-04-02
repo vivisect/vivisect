@@ -700,8 +700,15 @@ def reduceGraph(graph, props=('up','down')):
 
 # TODO: Move into base exception file
 class PathForceQuitException(Exception):
+    def __init__(self, pathcount=None):
+        Exception.__init__(self)
+        self.pathcount = pathcount
+
     def __repr__(self):
-        return "Path Generator forced to stop seeking a new path.  Possibly Timeout."
+        if self.pathcount is None:
+            return "Path Generator forced to stop seeking a new path.  Possibly Timeout."
+
+        return "Path Generator forced to stop seeking a new path.  Possibly Timeout. (paths processed: %d)" % self.pathcount
 
 '''
 eventually, routing will include the ability to 'source-route', picking N specific points a path must go through
@@ -827,10 +834,10 @@ class PathGenerator:
 
         while todo:
             if maxtime and time.time() > maxtime:
-                raise PathForceQuitException()
+                raise PathForceQuitException(pathcnt)
 
             if not self.__go__:
-                raise PathForceQuitException()
+                raise PathForceQuitException(pathcnt)
 
             nodeid,cpath = todo.pop()
 
