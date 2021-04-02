@@ -542,7 +542,7 @@ class SwitchCase:
 
         elif symtype == SYMT_MEM:
             symloc, symsz = smplIdx.kids
-            cplxIdx = csemu.readSymMemory(symloc, symsz)
+            cplxIdx = csemu.readSymMemory(symloc.update(csemu), symsz)
 
         return cplxIdx
 
@@ -833,24 +833,32 @@ class SwitchCase:
             logger.info("makeSwitch: exiting: not a branch opcode: 0x%x: %r", self.op.va, self.op)
             return
 
+        # skip any that already have xrefs away from (already been discovered?)
         if len(vw.getXrefsFrom(self.jmpva)):
             logger.info('skipping existing switchcase: 0x%x', self.jmpva)
             return
 
+        # if we aren't a part of a function, where are we?
         funcva = self.vw.getFunction(self.jmpva)
         if funcva is None:
             logger.error("ERROR getting function for jmpva 0x%x", self.jmpva)
             return
 
+        # skip when the function is the first instruction (PLT?)
         if funcva == self.jmpva:
             logger.error("ERROR function va IS jmpva 0x%x", self.jmpva)
             return
 
+        # skip if insufficient instructions in the function to have an interesting switchcase.
         instrcount = vw.getFunctionMeta(funcva, 'InstructionCount')
         if instrcount < self.min_func_instr_size:
             logger.error("Ignoring jmp in too small a function: %d instructions (0x%x)", instrcount, self.jmpva)
             return
 
+        # skip if we don't have a multiply in the jmpva calculation (always going to be an offset 
+        # into a pointer array, most often of size 2+)
+
+        # create a tracking emulator and populate with with current "csp" state
         try:
             # relying on getBounds() to bail on non-switch-cases
             lower, upper, baseoff = self.getBounds()
@@ -879,7 +887,7 @@ class SwitchCase:
                 # correct number handed into this function in "count", but currently we'll stop analyzing
                 # if we run into trouble.
                 if not vw.isValidPointer(addr):
-                    logger.info("found invalid pointer.  quitting.  (0x%x in 0x%x)" % addr, self.jmpva)
+                    logger.info("found invalid pointer.  quitting.  (0x%x in 0x%x)", addr, self.jmpva)
                     break
                 
                 tloc = vw.getLocation(addr)
@@ -947,6 +955,8 @@ class SwitchCase:
 
         except Exception as e:
             logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e, exc_info=1)
+
+        logger.warning("--- %.3f (0x%x)", time.time() - start, self.jmpva)
 
 
     def markDerefs(self):
