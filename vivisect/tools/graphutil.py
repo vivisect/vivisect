@@ -764,10 +764,10 @@ class PathGenerator:
 
         while todo:
             if maxtime and time.time() > maxtime:
-                raise PathForceQuitException()
+                raise PathForceQuitException(pathcnt)
 
             if not self.__go__:
-                raise PathForceQuitException()
+                raise PathForceQuitException(pathcnt)
 
             nodeid,cpath = todo.pop()
 

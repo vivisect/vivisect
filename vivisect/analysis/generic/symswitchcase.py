@@ -206,6 +206,38 @@ def getUnknowns(symvar):
     symvar.walkTree(_cb_grab_vars_n_mems, unks)
     return unks
 
+def replaceObj(ast, symobj, symreplacement):
+    '''
+    Walk the AST looking for symobj, replace with symreplacement
+    '''
+    def _cb_check_and_replace(path, symobj, ctx):
+        searchobj = ctx.get('searchobj')
+        for kidx, kid in enumerate(symobj.kids):
+            if searchobj == kid:
+                replacement = ctx.get('replacewith')
+                symobj.setSymKid(kidx, replacement)
+                ctx['success'] = True
+
+    ctx = {
+        'searchobj': symobj,
+        'replacewith': symreplacement,
+        'success': False,
+    }
+
+    ast.walkTree(_cb_check_and_replace, ctx)
+    return ctx.get('success')
+
+def hasMul(symobj):
+    '''
+    Returns True or False based on whether the symobj AST has a "Mul" object
+    '''
+    def _cb_check_for_mul(path, symobj, ctx):
+        if symobj.symtype == SYMT_OPER_MUL:
+            ctx['inthere'] = True
+
+    ctx = {'inthere': False}
+    symobj.walkTree(_cb_check_for_mul, ctx)
+    return ctx['inthere']
 
 def peelIdxOffset(symobj):
     '''
@@ -483,7 +515,7 @@ class SwitchCase:
     def getBoundingCons(self, cplxIdx):
         return [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
 
-    def getSymbolikJmpBlock(self):
+    def getSymbolikJmpBlock(self, emuclass=vs_anal.SymbolikFunctionEmulator):
         '''
         Returns symbolik effects for the last codeblock, which should never change.
         This should be small and does not require a path be generated, so it should
@@ -505,7 +537,7 @@ class SwitchCase:
 
         jnva, jnode = self._sgraph.getNode(cbva)
 
-        symemu = TrackingSymbolikEmulator(vw)
+        symemu = emuclass(vw)
         aeffs = symemu.applyEffects(jnode.get('symbolik_effects'))
 
         #TODO: ? cache these?  depends on how widely we use this fucntion.
@@ -631,7 +663,7 @@ class SwitchCase:
         for symobj in longpath:
             last = count
             count = len(self.getBoundingCons(symobj))
-            logger.debug(" lp %d: %r" % (count, symobj))
+            logger.debug(" longpath constraints %d: %r" % (count, symobj))
 
             # peel off o_subs and size-limiting o_ands and o_sextends
             if isinstance(symobj, o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
@@ -651,7 +683,7 @@ class SwitchCase:
             else:
                 break
 
-        logger.debug(" lp DONE: (%r) %r" % (offset, symobj))
+        logger.debug(" longpath DONE: (%r) %r" % (offset, symobj))
         # now figure what was cut, and what impact it has.
         self.baseIdx = symobj
         self.baseoff = offset
@@ -885,6 +917,12 @@ class SwitchCase:
 
         # skip if we don't have a multiply in the jmpva calculation (always going to be an offset 
         # into a pointer array, most often of size 2+)
+        jnode, jemu, jaeffs = self.getSymbolikJmpBlock()
+        jmptgt = self.getJmpSymVar()
+        if not hasMul(jmptgt.update(jemu)):
+            logger.warning("Skipping: JmpSymVar doesn't have multiplication! (0x%x)", self.jmpva)
+            return
+
 
         # create a tracking emulator and populate with with current "csp" state
         try:
@@ -981,6 +1019,12 @@ class SwitchCase:
         except PathForceQuitException as e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
 
+        except RuntimeError as e:
+            if 'StopIteration' in repr(e):
+                logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Couldn't Find Valid Path) 0x%x  !@#$!@#$!@#$!@#$", self.jmpva)
+            else:
+                logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e, exc_info=1)
+
         except Exception as e:
             logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e, exc_info=1)
 
@@ -1025,17 +1069,16 @@ class SwitchCase:
         symemu = TrackingSymbolikEmulator(vw)
         symemu.setSymSnapshot(csemu.getSymSnapshot())
 
-        symemu.setSymVariable(symidx, None) # don't want to update this out of the symbolik state
+        logger.debug("jmpva: 0x%x\t\tsymidx: %r", self.jmpva, symidx)   # TODO: we return either a Var name string or a SymObj (for Mem types)... should we just stick with the symbolik object?  since we're removing the ties to getSymVariable() and moving to replaceObj() and our nifty 'jmpidx' variable.
+        if idxtype == SYMT_VAR:
+            symidx = Var(symidx, self.vw.psize)
+        replaceObj(jmptgt, symidx, Var('jmpidx', symidx.getWidth()))
         #workJmpTgt = jmptgt.update(emu=symemu)
 
 
         for idx in range(lower-offset, upper-offset+1):
-            #symemu.setSymVariable(symidx, Const(idx, 8))   # need to handle Memory as well.
-            if idxtype == SYMT_MEM:
-                symemu.writeSymMemory(symidx, Const(idx, vw.psize))
-            elif idxtype == SYMT_VAR:
-                symemu.setSymVariable(symidx, Const(idx, 8))
-            workJmpTgt = jmptgt.update(emu=symemu)
+            symemu.setSymVariable('jmpidx', Const(idx, 8))
+            workJmpTgt = jmptgt.update(emu=symemu)  # would "jmptgt.solve(vals={'jmpidx': idx})" work?
             logger.info(" itercases: workJmpTgt: %r (0x%x)", workJmpTgt, self.jmpva)
             coderef = workJmpTgt.solve(emu=symemu, vals={symidx:idx})
             #coderef = jmptgt.update(emu=symemu)
