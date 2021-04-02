@@ -329,9 +329,10 @@ class SwitchCase:
     Tracks the state of analysis so each component can easily do it's part 
     without handing a ton of variables around between functions.
     '''
-    def __init__(self, vw, jmpva):
+    def __init__(self, vw, jmpva, timeout=60):
         self.vw = vw
         self.jmpva = jmpva
+        self.timeout = timeout
         self.op = vw.parseOpcode(jmpva)
         logger.info('=== 0x%x: %r ===' % (jmpva, self.op))
 
@@ -512,7 +513,7 @@ class SwitchCase:
 
         if self._codepathgen is None:
             pathGenFactory = viv_graph.PathGenerator(self._sgraph)
-            self._codepathgen = pathGenFactory.getFuncCbRoutedPaths(fva, cbva, 1, timeout=20)
+            self._codepathgen = pathGenFactory.getFuncCbRoutedPaths(fva, cbva, 1, timeout=self.timeout)
 
         self._codepath = self._codepathgen.__next__()
         contextpath = self._codepath[:-1]
