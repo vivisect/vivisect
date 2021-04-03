@@ -1194,6 +1194,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         curfva = self.getFunction(callingVa)
         # collect all the entries for the new jump table
         for cb in self.iterJumpTable(newTablAddr, rebase=rebase, step=psize):
+            if cb in codeblocks:
+                continue
             codeblocks.add(cb)
             prevcb = self.getCodeBlock(cb)
             if prevcb is None:

@@ -468,6 +468,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         elif event == vtrace.NOTIFY_CONTINUE:
             pass
 
+        elif event == vtrace.NOTIFY_STEP:
+            pass
+
         elif event == vtrace.NOTIFY_DETACH:
             self.difftracks = {}
             self.vprint("Detached from %d" % pid)
@@ -991,7 +994,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         regs = self.trace.getRegisters()
-        rnames = regs.keys()
+        rnames = list(regs.keys())
         rnames.sort()
         final = []
         for r in rnames:
