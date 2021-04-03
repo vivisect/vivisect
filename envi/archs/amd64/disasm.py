@@ -3,7 +3,6 @@ import struct
 import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
-import envi.archs.i386.opconst as e_i386_const
 from . import opcode64 as opcode86
 
 from envi.const import RMETA_NMASK
@@ -16,7 +15,7 @@ from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
 from .regs import *
 from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
                                     OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
-                                    INS_VEXREQ, OP_NOVEXL
+                                    INS_VEXREQ, OP_NOVEXL, INS_VEXNOPREF, OP_NOREX
 all_tables = opcode86.tables86
 
 # Pre generate these for fast lookup. Because our REX prefixes have the same relative
@@ -89,7 +88,7 @@ class Amd64Opcode(i386Opcode):
         So oh well
         '''
         envi.Opcode.__init__(self, va, opcode, mnem, prefixes, size, operands, iflags)
-        if prefixes & PREFIX_VEX and not opcode & e_i386_const.INS_VEXNOPREF:
+        if prefixes & PREFIX_VEX and not opcode & INS_VEXNOPREF:
             mnem = 'v' + mnem
         self.mnem = mnem
 
@@ -454,7 +453,6 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             # handles tsize calculations including new REX prefixes
             tsize = self._dis_calc_tsize(opertype, prefixes, operflags)
-
             # If addrmeth is zero, we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
@@ -496,10 +494,15 @@ class Amd64Disasm(e_i386.i386Disasm):
                     else:
                         # see same code section in i386 for this rationale
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
-                        if getattr(oper, "_is_deref", False):
+                        if oper and oper.isDeref():
                             memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
                             if memsz is not None:
                                 oper.tsize = memsz
+                            elif prefixes & PREFIX_ADDR_SIZE:
+                                if getattr(oper, 'reg', None) is not None:
+                                    oper.reg |= RMETA_LOW32
+                                elif getattr(oper, 'index', None) is not None:
+                                    oper.index |= RMETA_LOW32
 
                 except struct.error:
                     # Catch struct unpack errors due to insufficient data length
@@ -582,7 +585,6 @@ class Amd64Disasm(e_i386.i386Disasm):
                     operval = (operval & RMETA_NMASK) | META_SIZES[tsize]
                 else:
                     operval |= META_SIZES[tsize]
-
             width = self._dis_regctx.getRegisterWidth(operval) >> 3
             o = i386RegOper(operval, width)
         elif operflags & opcode86.OP_IMM:
@@ -590,15 +592,15 @@ class Amd64Disasm(e_i386.i386Disasm):
         else:
             raise Exception("Unknown ameth_0! operflags: 0x%.8x" % operflags)
 
-        # If it has a builtin register, we need to check for bump prefix
-        if prefixes & PREFIX_REX_W and isinstance(o, e_i386.i386RegOper):
+        if not (operflags & OP_NOREX) and prefixes & PREFIX_REX_W and getattr(o, 'reg', None):
             o.reg &= 0xffff
+
         if prefixes & PREFIX_REX_B and isinstance(o, e_i386.i386RegOper):
             # the optable entries for AH with REX_B is terribly unhelpful.
             if o.reg & e_i386.RMETA_HIGH8 == e_i386.RMETA_HIGH8:
                 o.reg &= REX_HIGH_DROP
                 o.reg += 4
-            if not (operflags & e_i386_const.OP_NOREXB):
+            if not (operflags & OP_NOREX):
                 o.reg += REX_BUMP
         return o
 

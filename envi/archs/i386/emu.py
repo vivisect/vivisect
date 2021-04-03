@@ -773,7 +773,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         top = e_bits.unsigned(self.getRegister(topreg), size)
         bot = e_bits.unsigned(self.getRegister(botreg), size)
 
-        return ((top << (size *8)) | bot)
+        return ((top << (size * 8)) | bot)
 
     def regsFromCompound(self, val, size):
         top = e_bits.unsigned(val >> (size * 8), size)
@@ -842,13 +842,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_div(self, op):
 
-        #FIXME this is probably broke
-        oper = op.opers[0]
-        val = self.getOperValue(op, 1)
+        dsize = op.opers[0].tsize
+        val = self.getOperValue(op, 0)
         if val == 0:
             raise envi.DivideByZero(self)
 
-        if oper.tsize == 1:
+        if dsize == 1:
             ax = self.getRegister(REG_AX)
             quot = int(ax / val)
             rem  = ax % val
@@ -856,7 +855,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 #"FIXME: division exception"
             self.setRegister(REG_EAX, (quot << 8) + rem)
 
-        elif oper.tsize == 4:
+        elif dsize == 4:
             #FIXME 16 bit over-ride
             eax = self.getRegister(REG_EAX)
             edx = self.getRegister(REG_EDX)
@@ -870,7 +869,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             self.setRegister(REG_EAX, quot)
             self.setRegister(REG_EDX, rem)
 
-        elif oper.tsize == 8:
+        elif dsize == 8:
             rax = self.getRegisterByName("rax")
             rdx = self.getRegisterByName("rdx")
             tot = (rdx << 64) + rax
@@ -924,8 +923,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             ax = e_bits.signed(ax, 2)
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 1)
-            if d == 0: raise envi.DivideByZero(self)
-            q = int(ax / d)
+            if d == 0:
+                raise envi.DivideByZero(self)
+            q = ax // d
             r = ax % d
             res = ((r & 0xff) << 8) | (q & 0xff)
             self.setRegister(REG_AX, res)
@@ -935,8 +935,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             val = e_bits.signed(val, 4)
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 2)
-            if d == 0: raise envi.DivideByZero(self)
-            q = int(val / d)
+            if d == 0:
+                raise envi.DivideByZero(self)
+            q = val // d
             r = val % d
 
             self.setRegister(REG_AX, q)
@@ -947,8 +948,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             val = e_bits.signed(val, 8)
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 4)
-            if d == 0: raise envi.DivideByZero(self)
-            q = int(val / d)
+            if d == 0:
+                raise envi.DivideByZero(self)
+            q = val // d
             r = val % d
 
             self.setRegister(REG_EAX, q)
@@ -958,10 +960,25 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             raise envi.UnsupportedInstruction(self, op)
 
     def i_imul(self, op):
-        #FIXME eflags
-        # FIXME imul bugs
         ocount = len(op.opers)
-        if ocount == 2:
+        if ocount == 1:
+            dsize = op.opers[0].tsize
+            a = self._emu_getGpReg(GPR_A, dsize)
+            mult = self.getOperValue(op, 0)
+            res = a * mult
+
+            if dsize == 1:
+                self.setRegister(REG_AX, res)
+            else:
+                d, a = self.regsFromCompound(res, dsize)
+                self._emu_setGpReg(GPR_A, a, dsize)
+                self._emu_setGpReg(GPR_D, d, dsize)
+
+            sof = e_bits.is_unsigned_carry(res, dsize)
+            self.setFlag(EFLAGS_CF, sof)
+            self.setFlag(EFLAGS_OF, sof)
+
+        elif ocount == 2:
             dst = self.getOperValue(op, 0)
             src = self.getOperValue(op, 1)
             dsize = op.opers[0].tsize
@@ -1233,10 +1250,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if tsize == 1:
             self.setRegister(REG_AX, res)
 
-        elif tsize == 2:
-            d,a = self.regsFromCompound(res, tsize)
+        elif tsize in (2, 4, 8):
+            d, a = self.regsFromCompound(res, tsize)
             self._emu_setGpReg(GPR_A, a, tsize)
             self._emu_setGpReg(GPR_D, d, tsize)
+        else:
+            raise Exception("i_mul called with invalid size of %d" % tsize)
 
         # If the high order stuff was used, set CF/OF
         if res >> (tsize * 8):

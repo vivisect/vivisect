@@ -1,16 +1,14 @@
-import sys
 import binascii
-
-import envi
-import envi.memory as e_mem
-import envi.memcanvas as e_memcanvas
-import envi.memcanvas.renderers as e_rend
-import envi.archs.amd64 as e_amd64
-import vivisect
-import platform
 import unittest
 
+import envi
+import envi.memcanvas as e_memcanvas
+import envi.archs.amd64 as e_amd64
+
+import vivisect
+
 instrs = [
+    ("41b401", 0x456000, 'mov r12l, 1'),      # ndisasm and oda say "mov r12b, 1" but ia32 manual says "r12l"
     ("bf9fb44900", 0x456000, 'mov edi,0x0049b49f'),
     ("48bf9fb44900aabbccdd", 0x456000, 'mov rdi,0xddccbbaa0049b49f'),
     ("c705b58a270001000000", 0x456005, 'mov dword [rip + 2591413],1'),
@@ -19,7 +17,6 @@ instrs = [
     ('c4e2f1004141', 0x456000, 'vpshufb xmm0,xmm1,oword [rcx + 65]'),
     ('c4e2f5004141', 0x456000, 'vpshufb ymm0,ymm1,yword [rcx + 65]'),
     ('0f38004141', 0x456000, 'pshufb mm0,qword [rcx + 65]'),
-    ("41b401", 0x456000, 'mov r12l, 1'),      # ndisasm and oda say "mov r12b, 1" but ia32 manual says "r12l"
     ("4585f6", 0x456000, 'test r14d,r14d'),
 ]
 
@@ -50,8 +47,10 @@ amd64SingleByteOpcodes = [
     ('call ebx', 'ffd3', 'call rbx', 'call rbx'),
     ('call lit', 'e801010101', 'call 0x01010506', 'call 0x01010506'),
     ('mov dword', '89aa41414141', 'mov dword [rdx + 1094795585],ebp', 'mov dword [rdx + 1094795585],ebp'),
-    ('imul 1', 'f6aaaaaaaaaa', 'imul al,byte [rdx - 1431655766]', 'imul al,byte [rdx - 1431655766]'),
-    ('imul 2', 'f7aaaaaaaaaa', 'imul eax,dword [rdx - 1431655766]', 'imul eax,dword [rdx - 1431655766]'),
+    ('imul 1', 'f6aaaaaaaaaa', 'imul byte [rdx - 1431655766]', 'imul byte [rdx - 1431655766]'),
+    ('imul 2', 'f7aaaaaaaaaa', 'imul dword [rdx - 1431655766]', 'imul dword [rdx - 1431655766]'),
+    ('imul 3', '69c341410000', 'imul eax,ebx,0x00004141', 'imul eax,ebx,0x00004141'),
+    ('imul 4', '4869C341414141', 'imul rax,rbx,0x41414141', 'imul rax,rbx,0x41414141'),
     ('push', 'fff0', 'push rax', 'push rax'),
     ('push 2', '6aff', 'push 0xffffffffffffffff', 'push 0xffffffffffffffff'),
     ('push 3', '68ffffffff', 'push 0xffffffffffffffff', 'push 0xffffffffffffffff'),
@@ -87,39 +86,42 @@ amd64SingleByteOpcodes = [
     ('PREFETCH1', '0f1810', 'prefetch1 byte [rax]', 'prefetch1 byte [rax]'),
     ('PREFETCH2', '0f181b', 'prefetch2 byte [rbx]', 'prefetch2 byte [rbx]'),
     ('PREFETCHNTA', '0f1802', 'prefetchnta byte [rdx]', 'prefetchnta byte [rdx]'),
-    #('PREFETCH0', '670f1809', 'prefetch0 byte [ecx]', 'prefetch0 byte [ecx]'),
-    #('PREFETCH1', '670f1810', 'prefetch1 byte [eax]', 'prefetch1 byte [eax]'),
-    #('PREFETCH2', '670f181b', 'prefetch2 byte [ebx]', 'prefetch2 byte [ebx]'),
-    #('PREFETCHNTA', '670f1802', 'prefetchnta byte [edx]', 'prefetchnta byte [edx]'),
+    ('PREFETCH0', '670f1809', 'prefetch0 byte [ecx]', 'prefetch0 byte [ecx]'),
+    ('PREFETCH1', '670f1810', 'prefetch1 byte [eax]', 'prefetch1 byte [eax]'),
+    ('PREFETCH2', '670f181b', 'prefetch2 byte [ebx]', 'prefetch2 byte [ebx]'),
+    ('PREFETCHNTA', '670f1802', 'prefetchnta byte [edx]', 'prefetchnta byte [edx]'),
     # ('CDQE', '4898', 'cdqe ', 'cdqe '), # It bothers me that this doesn't work
     ('BSWAP (eax)', 'f30fc8', 'rep: bswap eax', 'rep: bswap eax'),
+    ('DIV 1', '66f7f2', 'div dx', 'div dx'),
+    ('DIV 2', 'f7f1', 'div ecx', 'div ecx'),
+    ('DIV 3', '49f7f3', 'div r11', 'div r11'),
+    ('ROL', '49d3c3', 'rol r11,cl', 'rol r11,cl'),
 ]
 
 amd64MultiByteOpcodes = [
     # These are all valid tests, but our current impl of prefix 67 is borked
-    #('BLSR 2', '67C4E278F30B', 'blsr eax,dword [ebx]', 'blsr eax,dword [ebx]'),
-    #('PUSH 2', '67FF37', 'push qword [edi]', 'push dword [edi]'),
-    #('MOV w/ size', '67488B16', 'mov rdx,qword [esi]', 'mov rdx,qword [esi]'),
-    #('HSUBPS', '67F20F7D9041414141', 'hsubps xmm1,oword [eax + 0x41414141]', 'hsubps xmm1,oword [eax + 0x41414141]'),
-    #('PEXTRD 3', '67660F3A162A11', 'pextrd_q dword [eax],xmm2,17', 'pextrd_q dword [eax],xmm2,17'),
-    #('PEXTRQ 3', '6766480F3A16A34141414175', 'pextrd_q qword [ebx+0x41414141],,xmm4,117', 'pextrd_q qword [ebx+0x41414141],,xmm4,117'),
-    #('TEST', '67F70078563412', 'test dword [eax], 0x12345678', 'test dword [eax], 0x12345678'),
-    #('HSUBPS 4', '67F20F7D12', 'hsubps xmm2,oword [edx]', 'hsubps xmm2,oword [edx]'),
-    #('CVTSI2SS 3', '67f3440f2a02', 'cvtsi2ss xmm8,[edx]', 'cvtsi2ss xmm8,[edx]'),
-    #('RCPSS 3', '67f3440f531a', 'rcpss xmm11,dword [edx]', 'rcpss xmm11,dword [edx]'),
-    #('UNPCKHPD', '67660F158841414141', 'unpckhpd xmm1,oword [eax + 1094795585]', 'unpckhpd xmm1,oword [eax + 1094795585]'),
+    ('BLSR 2', '67C4E278F30B', 'blsr eax,dword [ebx]', 'blsr eax,dword [ebx]'),
+    ('PUSH 2', '67FF37', 'push qword [edi]', 'push qword [edi]'),
+    ('MOV w/ size', '67488B16', 'mov rdx,qword [esi]', 'mov rdx,qword [esi]'),
+    ('HSUBPS', '67F20F7D9041414141', 'hsubps xmm2,oword [eax + 1094795585]', 'hsubps xmm2,oword [eax + 1094795585]'),
+    ('PEXTRD 3', '67660F3A162A11', 'pextrd_q dword [edx],xmm5,17', 'pextrd_q dword [edx],xmm5,17'),
+    ('PEXTRQ 3', '6766480F3A16A34141414175', 'pextrd_q qword [ebx + 1094795585],xmm4,117', 'pextrd_q qword [ebx + 1094795585],xmm4,117'),
+    ('TEST', '67F70078563412', 'test dword [eax],0x12345678', 'test dword [eax],0x12345678'),
+    ('HSUBPS 4', '67F20F7D12', 'hsubps xmm2,oword [edx]', 'hsubps xmm2,oword [edx]'),
+    ('CVTSI2SS 3', '67f3440f2a02', 'cvtsi2ss xmm8,dword [edx]', 'cvtsi2ss xmm8,dword [edx]'),
+    ('RCPSS 3', '67f3440f531a', 'rcpss xmm11,dword [edx]', 'rcpss xmm11,dword [edx]'),
+    ('UNPCKHPD', '67660F158841414141', 'unpckhpd xmm1,oword [eax + 1094795585]', 'unpckhpd xmm1,oword [eax + 1094795585]'),
 
     ('INSERTPS', '660F3A21CB59', 'insertps xmm1,xmm3,89', 'insertps xmm1,xmm3,89'),
     ('INSERTPS 2', '660F3A21500449', 'insertps xmm2,dword [rax + 4],73', 'insertps xmm2,dword [rax + 4],73'),
     ('INSERTPS 3', '660F3A2114254141414149', 'insertps xmm2,dword [0x41414141],73', 'insertps xmm2,dword [0x41414141],73'),
     ('HSUBPS 2', 'F20F7D9041414141', 'hsubps xmm2,oword [rax + 1094795585]', 'hsubps xmm2,oword [rax + 1094795585]'),
     ('HSUBPS 3', 'F20F7D10', 'hsubps xmm2,oword [rax]', 'hsubps xmm2,oword [rax]'),
-    # TODO: Do we really want to embed the ax/eax/rax registers here?
-    ('MUL 1', 'f6e4', 'mul al,ah', 'mul al,ah'),
+    ('MUL 1', 'f6e4', 'mul ah', 'mul ah'),
     # ('MUL 2', '48f6e4', 'mul al,spl', 'mul al,spl'),  # TODO: Valid?
-    ('MUL 3', 'f7e2', 'mul eax,edx', 'mul eax,edx'),
-    ('MUL 4', '49f7e3', 'mul rax,r11', 'mul rax,r11'),
-    ('MUL 5', 'f620', 'mul al,byte [rax]', 'mul al,byte [rax]'),
+    ('MUL 3', 'f7e2', 'mul edx', 'mul edx'),
+    ('MUL 4', '49f7e3', 'mul r11', 'mul r11'),
+    ('MUL 5', 'f620', 'mul byte [rax]', 'mul byte [rax]'),
     #('MUL (REX)', '', 'mul ax,al', 'mul '),
     ('NOT', '66F7D0', 'not ax', 'not ax'),
     ('NOT 2', 'F7D0', 'not eax', 'not eax'),
@@ -206,7 +208,7 @@ amd64MultiByteOpcodes = [
     ('SQRTSS', 'f30f51d9', 'sqrtss xmm3,xmm1', 'sqrtss xmm3,xmm1'),
     ('VMXON', 'f30fc73541414100', 'vmxon qword [rip + 4276545]', 'vmxon qword [rip + 4276545]'),
     ('VMPTRST', '0FC73C2541414141', 'vmptrst qword [0x41414141]', 'vmptrst qword [0x41414141]'),
-    ('VMREAD', '0F78D8', 'vmread rax,rbx', 'vmread rax,rbx'), #XXX: This will change on 32bit
+    ('VMREAD', '0F78D8', 'vmread rax,rbx', 'vmread rax,rbx'),  # XXX: This will change on 32bit
     ('VMREAD 2', '0F781C2541414141', 'vmread qword [0x41414141],rbx', 'vmread qword [0x41414141],rbx'),
     ('VMWRITE', '0F79CB', 'vmwrite rcx,rbx', 'vmwrite rcx,rbx'),
     ('VMWRITE 2', '0F790C2541414141', 'vmwrite rcx,qword [0x41414141]', 'vmwrite rcx,qword [0x41414141]'),
@@ -536,10 +538,10 @@ amd64VexOpcodes = [
     ('SHRX 2', 'C4E2F3F7C3', 'shrx rax,rbx,rcx', 'shrx rax,rbx,rcx'),
     ('SHRX 3', 'C4E273F7042541414141', 'shrx eax,dword [0x41414141],ecx', 'shrx eax,dword [0x41414141],ecx'),
     ('SHRX 4', 'C4E2f3F7042541414141', 'shrx rax,qword [0x41414141],rcx', 'shrx rax,qword [0x41414141],rcx'),
-    ('MULX 1', 'C4E273f6c3', 'mulx eax,ecx,edx,ebx', 'mulx eax,ecx,edx,ebx'),
-    ('MULX 2', 'C4E2f3f6c3', 'mulx rax,rcx,rdx,rbx', 'mulx rax,rcx,rdx,rbx'),
-    ('MULX 3', 'C4E263F60C2541414141', 'mulx ecx,ebx,edx,dword [0x41414141]', 'mulx ecx,ebx,edx,dword [0x41414141]'),
-    ('MULX 4', 'C4E2E3F60C2541414141', 'mulx rcx,rbx,rdx,qword [0x41414141]', 'mulx rcx,rbx,rdx,qword [0x41414141]'),
+    ('MULX 1', 'C4E273f6c3', 'mulx eax,ecx,ebx', 'mulx eax,ecx,ebx'),
+    ('MULX 2', 'C4E2f3f6c3', 'mulx rax,rcx,rbx', 'mulx rax,rcx,rbx'),
+    ('MULX 3', 'C4E263F60C2541414141', 'mulx ecx,ebx,dword [0x41414141]', 'mulx ecx,ebx,dword [0x41414141]'),
+    ('MULX 4', 'C4E2E3F60C2541414141', 'mulx rcx,rbx,qword [0x41414141]', 'mulx rcx,rbx,qword [0x41414141]'),
     ('PDEP 1', 'C4E263F5C1', 'pdep eax,ebx,ecx', 'pdep eax,ebx,ecx'),
     ('PDEP 2', 'C4E2E3F5C1', 'pdep rax,rbx,rcx', 'pdep rax,rbx,rcx'),
     ('PDEP 3', 'C4E263F5042541414141', 'pdep eax,ebx,dword [0x41414141]', 'pdep eax,ebx,dword [0x41414141]'),
@@ -555,6 +557,7 @@ amd64VexOpcodes = [
     ('PSRLW (VEX)', 'C5E9D1CB', 'vpsrlw xmm1,xmm2,xmm3', 'vpsrlw xmm1,xmm2,xmm3'),
     ('PSRLW (VEX) 1', 'C5F171D208', 'vpsrlw xmm1,xmm2,8', 'vpsrlw xmm1,xmm2,8'),
     ('PSRLW (VEX) 2', 'C5E9D10C2541414141', 'vpsrlw xmm1,xmm2,oword [0x41414141]', 'vpsrlw xmm1,xmm2,oword [0x41414141]'),
+    ('PSRLW (VEX) 3', '67C5E9D108', 'vpsrlw xmm1,xmm2,oword [eax]', 'vpsrlw xmm1,xmm2,oword [eax]'),
     ('ANDN', 'C4E260F2C1', 'andn eax,ebx,ecx', 'andn eax,ebx,ecx'),
     ('ANDN 2', 'C4E2E0F2C1', 'andn rax,rbx,rcx', 'andn rax,rbx,rcx'),
     ('BEXTR', 'C4E270F7D3', 'bextr edx,ebx,ecx', 'bextr edx,ebx,ecx'),
@@ -583,15 +586,13 @@ amd64VexOpcodes = [
     ('VLDDQU', 'C5FFF01C2541414141', 'vlddqu ymm3,yword [0x41414141]', 'vlddqu ymm3,yword [0x41414141]'),
     ('VLDDQU 2', 'C5FFF034D504000000', 'vlddqu ymm6,yword [0x00000004 + rdx * 8]', 'vlddqu ymm6,yword [0x00000004 + rdx * 8]'),
     ('VLDDQU 3', 'C5FBF00CF504000000', 'vlddqu xmm1,oword [0x00000004 + rsi * 8]', 'vlddqu xmm1,oword [0x00000004 + rsi * 8]'),
+    ('VLDDQU 4', '67C5FBF00CF504000000', 'vlddqu xmm1,oword [0x00000004 + esi * 8]', 'vlddqu xmm1,oword [0x00000004 + esi * 8]'),
 
     ('INSERTPS 4', 'C4E36921D94C', 'vinsertps xmm3,xmm2,xmm1,76', 'vinsertps xmm3,xmm2,xmm1,76'),
     ('INSERTPS 5', 'C4E369211C25414141414C', 'vinsertps xmm3,xmm2,dword [0x41414141],76', 'vinsertps xmm3,xmm2,dword [0x41414141],76'),
     ('INSERTPS 6', 'C4E3692198454141414C', 'vinsertps xmm3,xmm2,dword [rax + 1094795589],76', 'vinsertps xmm3,xmm2,dword [rax + 1094795589],76'),
 
-    # Address size override is TODO
-    #('PSRLW (VEX) 3', '67C5E9D108', 'vpsrlw xmm1,xmm2,[eax]', 'vpsrlw xmm1,xmm2,[eax]'),
-    #('VLDDQU', '67C5FBF00CF504000000', 'vlddqu xmm1,[esi*8+4]', 'vlddqu xmm1,[esi*8+4]'),
-    #('VMOVSD 3', '67C5FB1118', 'vmovsd oword [eax],xmm3', 'vmovsd oword [eax],xmm3'),
+    ('VMOVSD 3', '67C5FB1118', 'vmovsd oword [eax],xmm3', 'vmovsd oword [eax],xmm3'),
     ('VPSLLDQ', 'C5F173D208', 'vpsrlq xmm1,xmm2,8', 'vpsrlq xmm1,xmm2,8'),
     ('VPSRLD', 'C5E172D41B', 'vpsrld xmm3,xmm4,27', 'vpsrld xmm3,xmm4,27'),
     ('VPSRLD', 'c5e172d063', 'vpsrld xmm3,xmm0,99', 'vpsrld xmm3,xmm0,99'),
@@ -1133,6 +1134,7 @@ amd64VexOpcodes = [
     ('VPMOVSXWD (MEM)', 'c4e2792310', 'vpmovsxwd xmm2,qword [rax]', 'vpmovsxwd xmm2,qword [rax]'),
     ('VPMOVSXWQ (MEM)', 'c4e2792410', 'vpmovsxwq xmm2,dword [rax]', 'vpmovsxwq xmm2,dword [rax]'),
     ('VPMOVSXDQ (MEM)', 'c4e2792510', 'vpmovsxdq xmm2,qword [rax]', 'vpmovsxdq xmm2,qword [rax]'),
+
     # The opersize here fails :(
     # ('VPMOVSXBW (MEM256)', 'c4e27d2010', 'vpmovsxbw ymm2,oword [rax]', 'vpmovsxbw ymm2,oword [rax]'),
 
@@ -1159,7 +1161,6 @@ class Amd64InstructionSet(unittest.TestCase):
         scanv = e_memcanvas.StringMemoryCanvas(vw)
 
         for name, bytez, reprOp, renderOp in opers:
-
             try:
                 op = self._arch.archParseOpcode(binascii.unhexlify(bytez), 0, 0x400)
             except envi.InvalidInstruction:
