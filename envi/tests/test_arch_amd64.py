@@ -524,6 +524,8 @@ amd64MultiByteOpcodes = [
 ]
 
 amd64VexOpcodes = [
+    ('vpblendvb', 'C4E3694CCB40', 'vpblendvb xmm1,xmm2,xmm3,xmm4', 'vpblendvb xmm1,xmm2,xmm3,xmm4'),
+    ('vpblendvb (256)', 'C4E36D4CCB40', 'vpblendvb ymm1,ymm2,ymm3,ymm4', 'vpblendvb ymm1,ymm2,ymm3,ymm4'),
     ('SARX 1', 'c4e272f7c3', 'sarx eax,ebx,ecx', 'sarx eax,ebx,ecx'),
     ('SARX 2', 'c4e2f2f7c3', 'sarx rax,rbx,rcx', 'sarx rax,rbx,rcx'),
     ('SARX 3', 'c4e262f7042541414141', 'sarx eax,dword [0x41414141],ebx', 'sarx eax,dword [0x41414141],ebx'),
