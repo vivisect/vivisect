@@ -127,7 +127,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         if oper.tsize == 8:
             rax = Var('rax', self._psize)
             rdx = Var('rdx', self._psize)
-            num = (rdx << Const(64, self._psize)) + rax
+            num = (rdx << Const(64, self._psize)) | rax
             temp = num / denom
             if temp.isDiscrete() and isInvalid(temp):
                 # TODO: make effect
@@ -142,7 +142,6 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
 
     def i_div(self, op):
         return self._div(op)
-
 
     def i_jecxz(self, op):
         return vsym_i386.IntelSymbolikTranslator.i_jecxz(self, op)
@@ -159,40 +158,6 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
     def i_vmread(self, op):
         vmcsoff = self.getOperObj(op, 1)
         self.setOperObj(op, 0, LookupVar("VMCS", vmcsoff, VMCS_NAMES, vmcsoff.getWidth()))
-
-    def i_bt(self, op):
-        oper = self.getOperObj(op, 0)
-        bit = self.getOperObj(op, 1)
-        cf = (oper >> bit) & Const(1, 1)
-        self.effSetVariable('eflags_cf', cf)
-
-    def i_bts(self, op):
-        oper = self.getOperObj(op, 0)
-        opersize = oper.getWidth()
-        bit = self.getOperObj(op, 1)
-        if bit.isDiscrete():
-            mask = Const(1 << bit.solve(), opersize)
-        else:
-            mask = Const(1, self._psize) << bit
-        val = oper | mask
-        bitinfo = (oper >> bit) & Const(1, opersize)
-
-        self.effSetVariable('eflags_cf', bitinfo)
-        self.setOperObj(op, 0, val)
-
-    def i_btr(self, op):
-        oper = self.getOperObj(op, 0)
-        opersize = oper.getWidth()
-        bit = self.getOperObj(op, 1)
-        if bit.isDiscrete():
-            mask = Const(-1 ^ (1 << bit.solve()), opersize)
-        else:
-            mask = Const(-1, opersize) ^ (Const(1, opersize) << bit)
-        val = oper & mask
-        bitinfo = (oper >> bit) & Const(1, opersize)
-
-        self.effSetVariable('eflags_cf', bitinfo)
-        self.setOperObj(op, 0, val)
 
     # FIXME CATASTROPHIC THIS CONTAINS BRANCHING LOGIC STATE!
     # FOR NOW WE JUST DO IT WITHOUT ANY CONDITIONAL (see i386.i_cmpxchg)

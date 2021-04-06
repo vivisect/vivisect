@@ -91,6 +91,9 @@ class VivisectTest(unittest.TestCase):
                     self.assertTrue(type(linfo) in (int, str, list))
 
     def test_vaset_populate(self):
+        '''
+        Make sure the the VASEts are populated in roughly the way we expect
+        '''
         vw = self.vdir_vw
         ans = {
             'FileSymbols': [('', 0), ('filenamecat-lgpl.c', 0), ('gettime.c', 0),
