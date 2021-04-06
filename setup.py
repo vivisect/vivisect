@@ -1,15 +1,17 @@
 from setuptools import find_packages, setup
 from os import path
 
+VERSION = '1.0.1'
+
 dirn = path.abspath(path.dirname(__file__))
 with open(path.join(dirn, 'README.md'), 'r') as fd:
     desc = fd.read()
 
 setup(
     name='vivisect',
-    author='Vivisect',
+    author='The Vivisect Peeps',
     author_email='',
-    version='1.0.1',
+    version=VERSION,
     url='https://github.com/vivisect/vivisect',
     packages=find_packages(),
     zip_safe=False,

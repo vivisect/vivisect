@@ -44,7 +44,6 @@ from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
 
-
 logger = logging.getLogger(__name__)
 
 STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
@@ -3083,3 +3082,9 @@ def getVivPath(*pathents):
     return os.path.join(dname, *pathents)
 
 
+##############################################################################
+# The following are touched during the release process by bumpversion.
+# Do not modify these directly.
+version = (1, 0, 1)
+verstring = '.'.join([str(x) for x in version])
+commit = ''
