@@ -1007,8 +1007,8 @@ class SwitchCase:
 
             vagc.analyzeFunction(vw, funcva)
 
-        except StopIteration:
-            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Couldn't Find Valid Path) 0x%x  !@#$!@#$!@#$!@#$", self.jmpva)
+        except StopIteration as e:
+            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Couldn't Find Valid Path) 0x%x  !@#$!@#$!@#$!@#$\n%r", self.jmpva, e)
 
         except SymIdxNotFoundException as e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
@@ -1017,7 +1017,7 @@ class SwitchCase:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx=%r \t ComplexIdx=None) 0x%x  !@#$!@#$!@#$!@#$ \n%r", e.sc.getSymIdx(), self.jmpva, e)
 
         except PathForceQuitException as e:
-            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
+            logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
 
         except RuntimeError as e:
             if 'StopIteration' in repr(e):

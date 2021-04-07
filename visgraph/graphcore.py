@@ -351,7 +351,7 @@ class Graph:
             self.delEdge(edge)
         for edge in self.getRefsTo(node)[:]:
             self.delEdge(edge)
-        [ self.delNodeProp(node, k) for k in node[1].keys() ]
+        [ self.delNodeProp(node, k) for k in list(node[1].keys()) ]
         return self.nodes.pop(node[0])
 
     def getNode(self, nid):
