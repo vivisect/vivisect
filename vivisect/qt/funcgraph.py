@@ -449,7 +449,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             return
         self.mem_canvas.page().runJavaScript('''
         var node = document.getElementsByName("viv:0x%.8x")[0];
-        node.scrollIntoView();
+        if (node != null) {
+            node.scrollIntoView();
+        }
         ''' % addr, self._finishFuncRender)
 
     def _layoutEdges(self, data):

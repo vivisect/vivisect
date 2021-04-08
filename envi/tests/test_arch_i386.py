@@ -276,6 +276,11 @@ i386MultiByteOpcodes = [
     ('MFENCE', '0faef0', 0x40, 'mfence ', 'mfence '),
     ('XSAVE', '0FAE2541414141', 0x40, 'xsave dword [0x41414141]', 'xsave dword [0x41414141]'),
 
+    ('ptest', '660F3817242541414141', 0x40, 'ptest xmm4,oword [0x41414141]', 'ptest xmm4,oword [0x41414141]'),
+    # TODO: Should we add the implicit xmm0 to these? It's only in non-vex mode
+    ('blendvps', '660F3814CB', 0x40, 'blendvps xmm1,xmm3', 'blendvps xmm1,xmm3'),
+    ('pblendvb', '660F3815CB', 0x40, 'blendvpd xmm1,xmm3', 'blendvpd xmm1,xmm3'),
+
     # AES-NI feature set
     ('AESENC', '660F38DCEA', 0x40, 'aesenc xmm5,xmm2', 'aesenc xmm5,xmm2'),
     ('AESENC (MEM)', '660f38DC3A', 0x40, 'aesenc xmm7,oword [edx]', 'aesenc xmm7,oword [edx]'),

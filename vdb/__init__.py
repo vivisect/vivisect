@@ -2287,3 +2287,10 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if not text:
             return libnames
         return [ i for i in libnames if i.startswith( text ) ]
+
+##############################################################################
+# The following are touched during the release process by bump2version.
+# You should have no reason to modify these yourself
+version = (1, 0, 1)
+verstring = '.'.join([str(x) for x in version])
+commit = ''
