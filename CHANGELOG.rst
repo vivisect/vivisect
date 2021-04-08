@@ -78,7 +78,7 @@ Features
   (`#331 <https://github.com/vivisect/vivisect/pull/331>`_)
 - New noret pass/several API refreshes/intel emulator fixes/emucode hydra function fixes
   (`#333 <https://github.com/vivisect/vivisect/pull/333>`_)
-- Migrate to CircleCI for Continuous Integratoin
+- Migrate to CircleCI for Continuous Integration
   (`#336 <https://github.com/vivisect/vivisect/pull/336>`_)
 - Enhance UI extensions
   (`#341 <https://github.com/vivisect/vivisect/pull/341>`_)
