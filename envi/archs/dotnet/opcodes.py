@@ -137,7 +137,8 @@ opcodes = {
     0x6D: (INS_CONV, (TYPE_NONE, TYPE_NONE), (TYPE_ANY, TYPE_NONE), (TYPE_INT32, TYPE_NONE), 'conv.u4'),
     0x6E: (INS_CONV, (TYPE_NONE, TYPE_NONE), (TYPE_ANY, TYPE_NONE), (TYPE_INT64, TYPE_NONE), 'conv.u8'),
 
-    0x6F: (INS_, (TYPE_, TYPE_), (TYPE_, TYPE_), (TYPE_, TYPE_), ''),
+    0x6F: (INS_CALLVIRT, (TYPE_, TYPE_), (TYPE_, TYPE_), (TYPE_, TYPE_), ''),
+
     0x70: (INS_, (TYPE_, TYPE_), (TYPE_, TYPE_), (TYPE_, TYPE_), ''),
     0x71: (INS_, (TYPE_, TYPE_), (TYPE_, TYPE_), (TYPE_, TYPE_), ''),
     0x72: (INS_, (TYPE_, TYPE_), (TYPE_, TYPE_), (TYPE_, TYPE_), ''),

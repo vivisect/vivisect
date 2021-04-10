@@ -2,11 +2,15 @@ import envi
 import envi.archs.dotnet.emu as e_emu
 import envi.archs.dotnet.disasm as e_dotnet
 
+from envi.archs.dotnet.disasm import *
+
 
 class DotNetModule(envi.ArchitectureModule):
     def __init__(self):
         envi.ArchitectureModule(self, 'dotnet')
+
         self._arch_dis = e_dotnet.DotNetDisasm()
+
 
     def archGetRegCtx(self):
         return None
@@ -24,7 +28,7 @@ class DotNetModule(envi.ArchitectureModule):
         pass
 
     def pointerString(self, va):
-        pass
+        return '0x%.8x' % va
 
     def archParseOpcode(self, bytez, offset=0, va=0):
         return self._arch_dis.disasm(bytez, offset, va)
