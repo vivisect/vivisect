@@ -1,5 +1,8 @@
+import os
 import bs4
+import pickle
 import requests
+import tempfile
 '''
 Downloads lots of pages, parses, and pulls out function declarations for impapi
 
@@ -13,8 +16,28 @@ works for 1500+ other functions, we just modified the output manually.
 '''
 
 BASE_URL = "https://www.gnu.org/software/libc/manual/html_node/"
+def cache_store(name, obj):
+    tmpfile = os.sep.join([tempfile.gettempdir(), ".impapi.posix."+name])
+    print(repr(tmpfile))
+    outfile = open(tmpfile, 'wb')
+    pcklstr = pickle.dumps(obj)
+    outfile.write(pcklstr)
+
+def cache_retr(name):
+    tmpfile = os.sep.join([tempfile.gettempdir(), ".impapi.posix."+name])
+    try:
+        outf = open(tmpfile, 'rb')
+        return pickle.load(outf)
+    except Exception as e:
+        print(e)
+    return None
+
 
 def getAllFrontUrls(sess):
+    cached = cache_retr('urls')
+    if cached is not None:
+        return cached
+
     frontpage = sess.get(BASE_URL + 'Function-Index.html') 
     soup = bs4.BeautifulSoup(frontpage.text)
     urls = []
@@ -29,6 +52,8 @@ def getAllFrontUrls(sess):
 
         urls.append(uurl)
 
+    cache_store('urls', urls)
+
     return urls
 
 
@@ -41,11 +66,21 @@ def getAllFuncProtos(funcs=None):
 
 
 def getRawDataLines():
-    sess = requests.session()
+    pages = cache_retr('pages')
+    if pages is not None:
+        print("using cached `pages`: %s" % repr(pages)[:20])
 
-    # get all 1500+ urls and downselect them to functions 
-    urls = getAllFrontUrls(sess)
-    pages = [sess.get(BASE_URL + url) for url in urls]
+    else:
+        print("no cache, pulling pages from source...")
+        sess = requests.session()
+
+        # get all 1500+ urls and downselect them to functions 
+        urls = getAllFrontUrls(sess)
+        pages = [sess.get(BASE_URL + url) for url in urls]
+
+        # store the cache in /tmp
+        cache_store('pages', pages)
+
     bss = [bs4.BeautifulSoup(page.text) for page in pages]
 
     dts = []
@@ -67,7 +102,7 @@ def parseDataLines(funcs):
     # parse each line and populate the api dict
     api = {}
     for func in funcs:
-        func = func.replace("*", "* ")
+        func = func.replace("*", "* ").replace(';', '')
         print(func)
         # split at the (
         leftside, rightside = func.split('(', 1)
@@ -92,7 +127,13 @@ def parseDataLines(funcs):
                 else:
                     aname = chunk.pop()
 
-                atype = ' '.join(chunk)
+                # handle variadic args (...):
+                if aname in ('...', b'\xe2\x80\xa6'.decode('utf8')):
+                    atype = 'variadic'
+                    aname = ''
+                else:
+                    atype = ' '.join(chunk)
+
                 argout.append((atype, aname))
             else:
                 input("FIXME: lost args at the end")
