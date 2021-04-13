@@ -122,13 +122,13 @@ def parseDataLines(funcs):
         for chunk in argchunks:
             chunk = [foo.strip() for foo in chunk if len(foo.strip())]
             if len(chunk):
-                if chunk[-1].endswith(')'):
+                if chunk[-1].endswith(')') or len(chunk) == 1:
                     aname = None
                 else:
                     aname = chunk.pop()
 
                 # handle variadic args (...):
-                if aname in ('...', b'\xe2\x80\xa6'.decode('utf8')):
+                if len(chunk) and chunk[-1] in ('...', b'\xe2\x80\xa6'.decode('utf8')):
                     atype = 'variadic'
                     aname = ''
                 else:
