@@ -329,7 +329,7 @@ api = {
     'plt_difftime': ('double', None, 'cdecl', '*.difftime', (('time_t', 'end'), ('time_t', 'begin'))),
     'plt_dirfd': ('int', None, 'cdecl', '*.dirfd', (('DIR *', 'dirstream'),)),
     'plt_dirname': ('char *', None, 'cdecl', '*.dirname', (('char *', 'path'),)),
-    'plt_div': ('div_t', None, 'cdecl', '*.div', (('int', 'numerator'), ('int', 'denominator'))),
+    'plt_div': ('div_t', None, 'stdcall', '*.div', (('int', 'numerator'), ('int', 'denominator'))),
     'plt_dmull': ('double', None, 'cdecl', '*.dmull', (('long double', 'x'), ('long double', 'y'))),
     'plt_dngettext': ('char *', None, 'cdecl', '*.dngettext', (('const char *', 'domain'), ('const char *', 'msgid1'), ('const char *', 'msgid2'), ('unsigned long int', 'n'))),
     'plt_drand48': ('double', None, 'cdecl', '*.drand48', (('', 'void'),)),
@@ -748,7 +748,7 @@ api = {
     'plt_inet_addr': ('uint32_t', None, 'cdecl', '*.inet_addr', (('const char *', 'name'),)),
     'plt_inet_aton': ('int', None, 'cdecl', '*.inet_aton', (('const char *', 'name'), ('struct in_addr *', 'addr'))),
     'plt_inet_lnaof': ('uint32_t', None, 'cdecl', '*.inet_lnaof', (('struct in_addr', 'addr'),)),
-    'plt_inet_makeaddr': ('struct in_addr', None, 'cdecl', '*.inet_makeaddr', (('uint32_t', 'net'), ('uint32_t', 'local'))),
+    'plt_inet_makeaddr': ('struct in_addr', None, 'stdcall', '*.inet_makeaddr', (('uint32_t', 'net'), ('uint32_t', 'local'))),
     'plt_inet_netof': ('uint32_t', None, 'cdecl', '*.inet_netof', (('struct in_addr', 'addr'),)),
     'plt_inet_network': ('uint32_t', None, 'cdecl', '*.inet_network', (('const char *', 'name'),)),
     'plt_inet_ntoa': ('char *', None, 'cdecl', '*.inet_ntoa', (('struct in_addr', 'addr'),)),
@@ -820,7 +820,7 @@ api = {
     'plt_ldexpfN': ('_FloatN', None, 'cdecl', '*.ldexpfN', (('_FloatN', 'value'), ('int', 'exponent'))),
     'plt_ldexpfNx': ('_FloatNx', None, 'cdecl', '*.ldexpfNx', (('_FloatNx', 'value'), ('int', 'exponent'))),
     'plt_ldexpl': ('long double', None, 'cdecl', '*.ldexpl', (('long double', 'value'), ('int', 'exponent'))),
-    'plt_ldiv': ('ldiv_t', None, 'cdecl', '*.ldiv', (('long int', 'numerator'), ('long int', 'denominator'))),
+    'plt_ldiv': ('ldiv_t', None, 'stdcall', '*.ldiv', (('long int', 'numerator'), ('long int', 'denominator'))),
     'plt_lfind': ('void *', None, 'cdecl', '*.lfind', (('const void *', 'key'), ('const void *', 'base'), ('size_t *', 'nmemb'), ('size_t', 'size'), ('comparison_fn_t', 'compar'))),
     'plt_lgamma': ('double', None, 'cdecl', '*.lgamma', (('double', 'x'),)),
     'plt_lgamma_r': ('double', None, 'cdecl', '*.lgamma_r', (('double', 'x'), ('int *', 'signp'))),
@@ -838,7 +838,7 @@ api = {
     'plt_lio_listio64': ('int', None, 'cdecl', '*.lio_listio64', (('int', 'mode'), ('struct aiocb64 * const', 'list[]'), ('int', 'nent'), ('struct sigevent *', 'sig'))),
     'plt_listen': ('int', None, 'cdecl', '*.listen', (('int', 'socket'), ('int', 'n'))),
     'plt_llabs': ('long long int', None, 'cdecl', '*.llabs', (('long long int', 'number'),)),
-    'plt_lldiv': ('lldiv_t', None, 'cdecl', '*.lldiv', (('long long int', 'numerator'), ('long long int', 'denominator'))),
+    'plt_lldiv': ('lldiv_t', None, 'stdcall', '*.lldiv', (('long long int', 'numerator'), ('long long int', 'denominator'))),
     'plt_llogb': ('long int', None, 'cdecl', '*.llogb', (('double', 'x'),)),
     'plt_llogbf': ('long int', None, 'cdecl', '*.llogbf', (('float', 'x'),)),
     'plt_llogbfN': ('long int', None, 'cdecl', '*.llogbfN', (('_FloatN', 'x'),)),
@@ -907,7 +907,7 @@ api = {
     'plt_lutimes': ('int', None, 'cdecl', '*.lutimes', (('const char *', 'filename'), ('const struct timeval', 'tvp[2]'))),
     'plt_madvise': ('int', None, 'cdecl', '*.madvise', (('void *', 'addr'), ('size_t', 'length'), ('int', 'advice'))),
     'plt_makecontext': ('void', None, 'cdecl', '*.makecontext', (('ucontext_t *', 'ucp'), ('void (* func', '(void'), ('int', 'argc'), ('variadic', ''))),
-    'plt_mallinfo': ('struct mallinfo', None, 'cdecl', '*.mallinfo', (('', 'void'),)),
+    'plt_mallinfo': ('struct mallinfo', None, 'stdcall', '*.mallinfo', (('', 'void'),)),
     'plt_malloc': ('void *', None, 'cdecl', '*.malloc', (('size_t', 'size'),)),
     'plt_mallopt': ('int', None, 'cdecl', '*.mallopt', (('int', 'param'), ('int', 'value'))),
     'plt_mblen': ('int', None, 'cdecl', '*.mblen', (('const char *', 'string'), ('size_t', 'size'))),
@@ -1593,4 +1593,19 @@ api = {
     'plt_ynfN': ('_FloatN', None, 'cdecl', '*.ynfN', (('int', 'n'), ('_FloatN', 'x'))),
     'plt_ynfNx': ('_FloatNx', None, 'cdecl', '*.ynfNx', (('int', 'n'), ('_FloatNx', 'x'))),
     'plt_ynl': ('long double', None, 'cdecl', '*.ynl', (('int', 'n'), ('long double', 'x'))),
+    # taken from libc directly:
+    'plt___libc_rpc_getport': ('int', None, 'stdcall', '*.__libc_rpc_getport', [('int', 'arg0'), ('int', 'arg1'), ('int', 'arg2')]),
+    'plt___nss_services_lookup2': ('int', None, 'stdcall', '*.__nss_services_lookup2', [('int', 'arg0')]),
+    'plt___nss_passwd_lookup2', ('int', None, 'stdcall', '*.__nss_passwd_lookup2', [('int', 'arg0')]),
+    #'plt_div', ('int', None, 'stdcall', '*.div', [('int', 'arg0')]),   # fixed above
+    #'plt_lldiv', ('int', None, 'stdcall', None, [('int', 'arg0')]),    # fixed above
+    #'plt_ldiv', ('int', None, 'stdcall', None, [('int', 'arg0')]), # fixed above
+    'plt__dl_addr', ('int', None, 'stdcall', '*._dl_addr', [('int', 'arg0')]),
+    #'plt_inet_makeaddr', ('int', None, 'stdcall', None, [('int', 'arg0')]),    # fixed above
+    #'plt_mallinfo', ('int', None, 'stdcall', None, [('int', 'arg0')]), # fixed above
+    'plt__dl_vsym', ('int', None, 'stdcall', None, [('int', 'arg0')]),
+    'plt___nss_group_lookup2', ('int', None, 'stdcall', '*.__nss_group_lookup2', [('int', 'arg0')]),
+    'plt___nss_hosts_lookup2', ('int', None, 'stdcall', '*.__nss_hosts_lookup2', [('int', 'arg0')]),
+
+
 }
