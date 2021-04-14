@@ -1592,16 +1592,12 @@ api = {
     'plt_ynfNx': ('_FloatNx', None, 'cdecl', '*.ynfNx', (('int', 'n'), ('_FloatNx', 'x'))),
     'plt_ynl': ('long double', None, 'cdecl', '*.ynl', (('int', 'n'), ('long double', 'x'))),
     # taken from libc directly:
-    'plt___libc_rpc_getport': ('int', None, 'stdcall', '*.__libc_rpc_getport', [('int', 'arg0'), ('int', 'arg1'), ('int', 'arg2')]),
-    'plt___nss_services_lookup2': ('int', None, 'stdcall', '*.__nss_services_lookup2', [('int', 'arg0')]),
-    'plt___nss_passwd_lookup2': ('int', None, 'stdcall', '*.__nss_passwd_lookup2', [('int', 'arg0')]),
-    #'plt_div': ('int', None, 'stdcall', '*.div', [('int', 'arg0')]),   # fixed above
-    #'plt_lldiv': ('int', None, 'stdcall', None, [('int', 'arg0')]),    # fixed above
-    #'plt_ldiv': ('int', None, 'stdcall', None, [('int', 'arg0')]), # fixed above
-    'plt__dl_addr': ('int', None, 'stdcall', '*._dl_addr', [('int', 'arg0')]),
-    #'plt_inet_makeaddr': ('int', None, 'stdcall', None, [('int', 'arg0')]),    # fixed above
-    #'plt_mallinfo': ('int', None, 'stdcall', None, [('int', 'arg0')]), # fixed above
-    'plt__dl_vsym': ('int', None, 'stdcall', None, [('int', 'arg0')]),
-    'plt___nss_group_lookup2': ('int', None, 'stdcall', '*.__nss_group_lookup2', [('int', 'arg0')]),
-    'plt___nss_hosts_lookup2': ('int', None, 'stdcall', '*.__nss_hosts_lookup2', [('int', 'arg0')]),
+    'plt___libc_rpc_getport': ('int', None, 'stdcall', '*.__libc_rpc_getport', (('int', 'arg0'), ('int', 'arg1'), ('int', 'arg2'))),
+    'plt___nss_services_lookup2': ('int', None, 'stdcall', '*.__nss_services_lookup2', (('int', 'arg0'),)),
+    'plt___nss_passwd_lookup2': ('int', None, 'stdcall', '*.__nss_passwd_lookup2', (('int', 'arg0'),)),
+    'plt__dl_addr': ('int', None, 'stdcall', '*._dl_addr', (('int', 'arg0'),)),
+    'plt__dl_vsym': ('int', None, 'stdcall', None, (('int', 'arg0'),)),
+    'plt___nss_group_lookup2': ('int', None, 'stdcall', '*.__nss_group_lookup2', (('int', 'arg0'),)),
+    'plt___nss_hosts_lookup2': ('int', None, 'stdcall', '*.__nss_hosts_lookup2', (('int', 'arg0'),)),
+    
 }

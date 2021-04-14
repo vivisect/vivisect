@@ -119,33 +119,44 @@ def parseDataLines(funcs):
         argchunks = [arg.split(' ') for arg in args]
 
         argout = []
-        for chunk in argchunks:
-            chunk = [foo.strip() for foo in chunk if len(foo.strip())]
-            if len(chunk):
-                if chunk[-1].endswith(')') or len(chunk) == 1:
-                    aname = None
-                else:
-                    aname = chunk.pop()
+        if argchunks != [['void']]:     # skip "(void)" entries
+            for chunk in argchunks:
+                chunk = [foo.strip() for foo in chunk if len(foo.strip())]
+                if len(chunk):
+                    if chunk[-1].endswith(')') or len(chunk) == 1:
+                        aname = None
+                    else:
+                        aname = chunk.pop()
 
-                # handle variadic args (...):
-                if len(chunk) and chunk[-1] in ('...', b'\xe2\x80\xa6'.decode('utf8')):
-                    atype = 'variadic'
-                    aname = ''
-                else:
-                    atype = ' '.join(chunk)
+                    # handle variadic args (...):
+                    if len(chunk) and chunk[-1] in ('...', b'\xe2\x80\xa6'.decode('utf8')):
+                        atype = 'variadic'
+                        aname = ''
+                    else:
+                        atype = ' '.join(chunk)
 
-                argout.append((atype, aname))
-            else:
-                input("FIXME: lost args at the end")
+                    argout.append((atype, aname))
+                else:
+                    input("FIXME: lost args at the end")
 
         if 'printf' in func:
             #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
             pass
 
-        api['plt_%s' % funcname] = (rettype, None, 'cdecl', '*.%s' % funcname, tuple(argout))
+
+        cconv = cconvs.get(funcname, 'cdecl')
+        
+        api['plt_%s' % funcname] = (rettype, None, cconv, '*.%s' % funcname, tuple(argout))
 
     return api
 
+cconvs = {
+        'div': 'stdcall',
+        'ldiv': 'stdcall',
+        'lldiv': 'stdcall',
+        'mallinfo': 'stdcall',
+        'inet_makeaddr': 'stdcall',
+        }
 
 
 def reprAllFuncProtos(funcs=None):
@@ -153,13 +164,25 @@ def reprAllFuncProtos(funcs=None):
     keys = list(api.keys())
     keys.sort()
 
-    out = ['api = {']
+    out = ['apitypes = {\n}','','api = {']
+    out.append("    'plt___libc_start_main':( 'int', None, 'cdecl', '*.__libc_start_main', (('int', 'main'), ('int', 'argc'), ('int', 'argv')) ),")
+    out.append("    'main':( 'int', None, 'stdcall', '*.main_entry', (('int', None), ('int', None), ('int', None)) ),")
+
     for key in keys:
         data = api.get(key)
         out.append("    %r: %r," % (key, data)
                 )
+    out.append('''    # taken from libc directly:
+    'plt___libc_rpc_getport': ('int', None, 'stdcall', '*.__libc_rpc_getport', (('int', 'arg0'), ('int', 'arg1'), ('int', 'arg2'))),
+    'plt___nss_services_lookup2': ('int', None, 'stdcall', '*.__nss_services_lookup2', (('int', 'arg0'),)),
+    'plt___nss_passwd_lookup2': ('int', None, 'stdcall', '*.__nss_passwd_lookup2', (('int', 'arg0'),)),
+    'plt__dl_addr': ('int', None, 'stdcall', '*._dl_addr', (('int', 'arg0'),)),
+    'plt__dl_vsym': ('int', None, 'stdcall', None, (('int', 'arg0'),)),
+    'plt___nss_group_lookup2': ('int', None, 'stdcall', '*.__nss_group_lookup2', (('int', 'arg0'),)),
+    'plt___nss_hosts_lookup2': ('int', None, 'stdcall', '*.__nss_hosts_lookup2', (('int', 'arg0'),)),
+    ''')
     out.append('}')
-    return '\n'.join(out)
+    return '\n'.join(out) + "\n"
 
 def writeAllFuncProtos():
     open('i386.py', 'w').write(reprAllFuncProtos())
