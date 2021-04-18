@@ -540,10 +540,10 @@ class SwitchCase:
         symemu = emuclass(vw)
         aeffs = symemu.applyEffects(jnode.get('symbolik_effects'))
 
-        #TODO: ? cache these?  depends on how widely we use this fucntion.
+        #TODO: ? cache these?  depends on how widely we use this function.
         return jnode, symemu, aeffs
 
-    def getSymbolikParts(self, next=False):
+    def getSymbolikParts(self, doNext=False):
         '''
         Puts together a path from the start of the function to the jmpva, breaking off the last 
         codeblock, and returning the symbolik path for both sections:
@@ -554,7 +554,7 @@ class SwitchCase:
         this allows the Symbolik Parts to be easily accessible from various parts of the algorithm without handing around
         a lot of state as function args.
         '''
-        if not next and self.cspath is not None and self.aspath is not None and self.fullpath is not None:
+        if not doNext and self.cspath is not None and self.aspath is not None and self.fullpath is not None:
             return self.cspath, self.aspath, self.fullpath
         
         self.clearCache()
@@ -762,7 +762,7 @@ class SwitchCase:
                 upper = None        # the largest index used.  max=self.max_cases
 
                 if count != 0:
-                    (csemu, cseffs), asp, fullp = self.getSymbolikParts(next=True)
+                    (csemu, cseffs), asp, fullp = self.getSymbolikParts(doNext=True)
 
                 count += 1
 
@@ -1296,6 +1296,20 @@ def analyzeFunction(vw, fva):
     vw.setMeta('analyzedDynBranches', done)
     # TODO: we need a better way to store changing lists/dicts, that don't show up in the UI.  VaSet would be great, but ugly
 
+
+def pathGenConvert(pathgen):
+    '''
+    this takes in a HierGraph path-generator and converts each path to the kind needed by Symboliks
+    '''
+    for path in pathgen:
+        newpath = []
+        prevedge = [ None ]
+        for node, nextedge in path:
+            newpath.append((node[0], prevedge[0]))
+            prevedge = nextedge
+
+        pprint(newpath)
+        yield newpath
 
 
 # for use as vivisect script
