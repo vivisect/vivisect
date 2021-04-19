@@ -22,10 +22,6 @@ def printEmuState(vw, fva, va):
     emu.runFunction(fva, stopva=va, maxhit=2)
     dstack = emu.getStackCounter() - stack
 
-    regs = emu.getRegisters()
-    rnames = list(regs.keys())
-    rnames.sort()
-
     vw.vprint("Showing Register/Magic State At: 0x%.8x" % va)
     vw.vprint('Stack Delta: %d' % dstack)
 
