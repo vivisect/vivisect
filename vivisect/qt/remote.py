@@ -93,11 +93,11 @@ class VivServerDialog(QDialog):
             cfg['server'] = str(self.wsserver.text())
             self.vw.config.saveConfigFile()
 
-class VivSaveServerDialog(QDialog):
+class VivSaveServerDialog(VivServerDialog):
 
     def __init__(self, vw, parent=None):
-        self.wsname = QLineEdit(vw.getMeta('StorageName', ''), parent=self)
         VivServerDialog.__init__(self, vw, parent=parent)
+        self.wsname = QLineEdit(vw.getMeta('StorageName', ''), parent=self)
         self.setWindowTitle('Save to Workspace Server...')
 
     def getNameAndServer(self):
