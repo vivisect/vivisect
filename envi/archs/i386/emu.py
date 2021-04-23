@@ -114,7 +114,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             archmod = i386Module()
 
         envi.Emulator.__init__(self, archmod=archmod)
-        self.initEmuOpt('i386:reponce',False,'Set to True to short circuit rep prefix')
+        self.initEmuOpt('i386:reponce', False, 'Set to True to short circuit rep prefix')
 
         for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
@@ -334,16 +334,16 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     ###### End Conditional Callbacks #####
 
-    def doPush(self, val):
+    def doPush(self, val, size=4):
         esp = self.getRegister(REG_ESP)
-        esp -= 4
-        self.writeMemValue(esp, val, 4)
+        esp -= size
+        self.writeMemValue(esp, val, size)
         self.setRegister(REG_ESP, esp)
 
-    def doPop(self):
+    def doPop(self, size=4):
         esp = self.getRegister(REG_ESP)
-        val = self.readMemValue(esp, 4)
-        self.setRegister(REG_ESP, esp+4)
+        val = self.readMemValue(esp, size)
+        self.setRegister(REG_ESP, esp+size)
         return val
 
     def integerSubtraction(self, op):
@@ -594,7 +594,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, e_bits.byteswap(val, tsize))
 
     def i_bsr(self, op):
-        val = self.getOperValue(op, 0)
+        val = self.getOperValue(op, 1)
 
         if val == 0:
             # If the src is 0, set ZF and get out
@@ -607,7 +607,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         rmax = (tsize*8) - 1
         while rmax >= 0:
             if val & (1<<rmax):
-                self.setOperValue(op, 1, rmax)
+                self.setOperValue(op, 0, rmax)
                 return
             rmax -= 1
 
@@ -855,8 +855,17 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 #"FIXME: division exception"
             self.setRegister(REG_EAX, (quot << 8) + rem)
 
+        elif dsize == 2:
+            ax = self.getRegister(REG_AX)
+            dx = self.getRegister(REG_DX)
+            tot = (dx << 16) + ax
+            quot = int(tot / val)
+            rem = tot % val
+
+            self.setRegister(REG_AX, quot)
+            self.setRegister(REG_DX, rem)
+
         elif dsize == 4:
-            #FIXME 16 bit over-ride
             eax = self.getRegister(REG_EAX)
             edx = self.getRegister(REG_EDX)
             tot = (edx << 32) + eax
@@ -1353,7 +1362,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
 
     def i_pop(self, op):
-        val = self.doPop()
+        val = self.doPop(size=op.opers[0].tsize)
         self.setOperValue(op, 0, val)
 
     def i_popad(self, op):
@@ -1375,7 +1384,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         val = self.getOperValue(op, 0)
         if isinstance(op.opers[0], i386ImmOper):
             val = e_bits.sign_extend(val, self.getPointerSize(), 4)
-        self.doPush(val)
+        self.doPush(val, size=op.opers[0].tsize)
 
     def i_pushad(self, op):
         tmp = self.getRegister(REG_ESP)
