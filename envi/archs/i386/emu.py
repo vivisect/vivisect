@@ -16,9 +16,21 @@ from envi.archs.i386 import i386Module
 
 def shiftMask(val, size):
     if size == 1:
-        return (val & 0x1f) % 9
+        return (val & 0x1f) % 8
     elif size == 2:
-        return (val & 0x1f) % 17
+        return (val & 0x1f) % 16
+    elif size == 4:
+        return val & 0x1f
+    elif size == 8:
+        return val & 0x3f
+    else:
+        raise Exception("shiftMask is broke in envi/arch/i386/emu.py")
+
+def shiftMaskRC(val, size):
+    if size == 1:
+        return (val & 0x1f) % 9     # RCL and RCR only
+    elif size == 2:
+        return (val & 0x1f) % 17    # RCL and RCR only
     elif size == 4:
         return val & 0x1f
     elif size == 8:
@@ -334,16 +346,16 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     ###### End Conditional Callbacks #####
 
-    def doPush(self, val):
+    def doPush(self, val, size=4):
         esp = self.getRegister(REG_ESP)
-        esp -= 4
-        self.writeMemValue(esp, val, 4)
+        esp -= size
+        self.writeMemValue(esp, val, size)
         self.setRegister(REG_ESP, esp)
 
-    def doPop(self):
+    def doPop(self, size=4):
         esp = self.getRegister(REG_ESP)
-        val = self.readMemValue(esp, 4)
-        self.setRegister(REG_ESP, esp+4)
+        val = self.readMemValue(esp, size)
+        self.setRegister(REG_ESP, esp+size)
         return val
 
     def integerSubtraction(self, op):
@@ -594,7 +606,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, e_bits.byteswap(val, tsize))
 
     def i_bsr(self, op):
-        val = self.getOperValue(op, 0)
+        val = self.getOperValue(op, 1)
 
         if val == 0:
             # If the src is 0, set ZF and get out
@@ -607,13 +619,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         rmax = (tsize*8) - 1
         while rmax >= 0:
             if val & (1<<rmax):
-                self.setOperValue(op, 1, rmax)
+                self.setOperValue(op, 0, rmax)
                 return
             rmax -= 1
 
     def doBitTest(self, op):
+        dsize = op.opers[0].tsize
         val = self.getOperValue(op, 0)
         shift = self.getOperValue(op, 1)
+        shift %= (dsize << 3)
         mask = 1 << shift
         self.setFlag(EFLAGS_CF, val & mask)
         # Return the source and mask for btc/btr
@@ -630,7 +644,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_btr(self, op):
         # bit test (and clear in the source)
         val, mask = self.doBitTest(op)
-        mask = e_bits.unsigned(~val, op.opers[0].tsize)
+        mask = e_bits.unsigned(~mask, op.opers[0].tsize)
         self.setOperValue(op, 0, val & mask)
 
     def i_bts(self, op):
@@ -1353,7 +1367,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
 
     def i_pop(self, op):
-        val = self.doPop()
+        tsize = op.opers[0].tsize
+        val = self.doPop(tsize)
         self.setOperValue(op, 0, val)
 
     def i_popad(self, op):
@@ -1372,10 +1387,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setRegister(self.flagidx, eflags)
 
     def i_push(self, op):
+        tsize = op.opers[0].tsize
         val = self.getOperValue(op, 0)
         if isinstance(op.opers[0], i386ImmOper):
             val = e_bits.sign_extend(val, self.getPointerSize(), 4)
-        self.doPush(val)
+        self.doPush(val, tsize)
 
     def i_pushad(self, op):
         tmp = self.getRegister(REG_ESP)
@@ -1453,6 +1469,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 1)
 
         src = src & 0x1f
+        if dsize < 3:
+            src %= (0, 9, 17)[dsize] # TODO: use shiftMask?
 
         # Put that carry bit up there.
         if self.getFlag(EFLAGS_CF):
@@ -1460,7 +1478,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # Add one to account for carry
         x = ((8*dsize) - src) + 1
-        #FIXME is this the one that can end up negative?
 
         res = (dst << src) | (dst >> x)
         cf = (res >> (8*dsize)) & 1
@@ -1480,6 +1497,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 1)
 
         src = src & 0x1f
+        if dsize < 3:
+            src %= (0, 9, 17)[dsize]
+
         # Put that carry bit up there.
         if self.getFlag(EFLAGS_CF):
             dst = dst | (1 << (8 * dsize))
@@ -1530,12 +1550,14 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dstSize = op.opers[0].tsize
         count = self.getOperValue(op, 1)
         tempCount = shiftMask(count, dstSize)
+        dbitSize = dstSize << 3
 
         if tempCount > 0: # Yeah, i know...weird. See the intel manual
             while tempCount:
                 val = self.getOperValue(op, 0)
                 tempCf = e_bits.lsb(val)
-                self.setOperValue(op, 0, (val >> 1) + (tempCf * (2 ** dstSize)))
+                newval = (val >> 1) | (tempCf << ((dbitSize)-1))
+                self.setOperValue(op, 0, newval)
                 tempCount -= 1
             val = self.getOperValue(op, 0)
             self.setFlag(EFLAGS_CF, e_bits.msb(val, dstSize))
