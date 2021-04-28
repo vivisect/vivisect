@@ -630,7 +630,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_btr(self, op):
         # bit test (and clear in the source)
         val, mask = self.doBitTest(op)
-        mask = e_bits.unsigned(~val, op.opers[0].tsize)
+        mask = e_bits.unsigned(~mask, op.opers[0].tsize)
         self.setOperValue(op, 0, val & mask)
 
     def i_bts(self, op):

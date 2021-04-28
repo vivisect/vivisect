@@ -61,6 +61,8 @@ i386Tests = [
     ('c1c805', {'eax': 0x79}, {}, {'eax': 0xc8000003, 'eflags': 1}, {}),
     # ror eax, cl
     ('d3c8', {'eax': 0x79, 'cl': 1}, {}, {'eax': 0x8000003c, 'eflags': 0x801}, {}),
+    # btr ecx, 17
+    ('0fbaf111', {'ecx': 0xF002000F}, {}, {'eflags': 1, 'ecx': 0xF000000F}, {}),
 ]
 
 
