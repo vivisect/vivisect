@@ -1533,18 +1533,19 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 cf = self.getFlag(EFLAGS_CF)
                 self.setFlag(EFLAGS_OF, e_bits.msb(val, dstSize) ^ cf)
             else:
-                self.setFlag(EFLAGS_OF, False)
+                self.setFlag(EFLAGS_OF, 0)
 
     def i_ror(self, op):
         dstSize = op.opers[0].tsize
         count = self.getOperValue(op, 1)
         tempCount = shiftMask(count, dstSize)
+        bitlen = dstSize * 8
 
         if tempCount > 0: # Yeah, i know...weird. See the intel manual
             while tempCount:
                 val = self.getOperValue(op, 0)
                 tempCf = e_bits.lsb(val)
-                self.setOperValue(op, 0, (val >> 1) + (tempCf * (2 ** dstSize)))
+                self.setOperValue(op, 0, (val >> 1) + (tempCf * (2 ** (bitlen-1))))
                 tempCount -= 1
             val = self.getOperValue(op, 0)
             self.setFlag(EFLAGS_CF, e_bits.msb(val, dstSize))
@@ -1554,7 +1555,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 # FIXME: This may be broke...the manual is kinda flaky here
                 self.setFlag(EFLAGS_OF, e_bits.msb(val, dstSize) ^ (e_bits.msb(val, dstSize) - 1))
             else:
-                self.setFlag(EFLAGS_OF, False)
+                self.setFlag(EFLAGS_OF, 0)
 
     def i_ret(self, op):
         ret = self.doPop()
