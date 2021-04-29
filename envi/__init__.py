@@ -605,10 +605,20 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     def snap(self):
         '''
         Utility function to try something with an emulator, and then revert it.
+        If we fail to get a valid snap, we raise a base EmuException. Otherwise,
+        we yield out the snap we received.
+
+        On close, we try to rollback the emulator using the snap.
         '''
-        snap = self.getEmuSnap()
-        yield snap
-        self.setEmuSnap(snap)
+        try:
+            snap = self.getEmuSnap()
+        except Exception as e:
+            raise EmuException(self, str(e)) from None
+
+        try:
+            yield snap
+        finally:
+            self.setEmuSnap(snap)
 
     def executeOpcode(self, opobj):
         """

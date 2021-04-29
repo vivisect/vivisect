@@ -424,6 +424,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         return ret
 
     def doRepzPrefix(self, meth, op):
+        # TODO
         pass
 
     # Beginning of Instruction methods

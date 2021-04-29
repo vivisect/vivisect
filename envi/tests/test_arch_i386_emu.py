@@ -34,35 +34,65 @@ STACKBASE = 0x80
 
 i386Tests = [
     # push 0x12345678
-    ('6878563412', {}, {}, {'esp': STACKBASE-4}, {'esp': b'\x78\x56\x34\x12'}),
+    {'bytes': '6878563412',
+     'setup': ({}, {}),
+     'tests': ({'esp': STACKBASE-4}, {'esp': b'\x78\x56\x34\x12'})},
     # push fs
-    ('0fa0', {'fs': 0xBAD1}, {}, {}, {'esp': b'\xD1\xBA'}),
+    {'bytes': '0fa0',
+     'setup': ({'fs': 0xBAD1}, {}),
+     'tests': ({}, {'esp': b'\xD1\xBA'})},
     # mov ebx, 47
-    ('bb2f000000', {}, {}, {'ebx': 47}, {}),
+    {'bytes': 'bb2f000000',
+     'setup': ({}, {}),
+     'tests': ({'ebx': 47}, {})},
     # bsr ecx, edx
-    ('0FBDCA', {'ecx': 0x47}, {}, {'ecx': 23}, {}),
+    {'bytes': '0FBDCA',
+     'setup': ({'ecx': 0x47}, {}),
+     'tests': ({'ecx': 23}, {})},
     # push word [esp+2]
-    ('66ff742402', {}, {'esp': b'\xCD\xFE\x89\x43'}, {'esp': STACKBASE-2}, {'esp': b'\x89\x43'}),
+    {'bytes': '66ff742402',
+     'setup': ({}, {'esp': b'\xCD\xFE\x89\x43'}),
+     'tests': ({'esp': STACKBASE-2}, {'esp': b'\x89\x43'})},
     # push [esp]
-    ('FF3424', {}, {'esp': b'\x01\x02\x03\x04'}, {'esp': STACKBASE-4}, {'esp+4': b'\x01\x02\x03\x04'}),
+    {'bytes': 'FF3424',
+     'setup': ({}, {'esp': b'\x01\x02\x03\x04'}),
+     'tests': ({'esp': STACKBASE-4}, {'esp+4': b'\x01\x02\x03\x04'})},
     # add byte [ecx],al
-    ('0001', {'ecx': 0x80, 'eax': 57}, {'esp': b'\x15\x00\x00\x00'}, {}, {'esp': b'\x4e\x00\x00\x00'}),
+    {'bytes': '0001',
+     'setup': ({'ecx': 0x80, 'eax': 57}, {'esp': b'\x15\x00\x00\x00'}),
+     'tests': ({}, {'esp': b'\x4e\x00\x00\x00'})},
     # sub edx, ecx
-    ('29ca', {'edx': 0xf9e7cd45, 'ecx': 0xbfcdef00}, {}, {'edx': 0x3a19de45}, {}),
+    {'bytes': '29ca',
+     'setup': ({'edx': 0xf9e7cd45, 'ecx': 0xbfcdef00}, {}),
+     'tests': ({'edx': 0x3a19de45, 'eflags': 0}, {})},
     # mul edx
-    ('f7e2', {'eax': 0x47b3, 'edx': 0x898937}, {}, {'eax': 0x85393275, 'edx': 0x26}, {}),
+    {'bytes': 'f7e2',
+     'setup': ({'eax': 0x47b3, 'edx': 0x898937}, {}),
+     'tests': ({'eax': 0x85393275, 'edx': 0x26}, {})},
     # div ax
-    ('66f7f0', {'eax': 48, 'edx': 1}, {}, {'eax': 1366, 'edx': 16}, {}),
+    {'bytes': '66f7f0',
+     'setup': ({'eax': 48, 'edx': 1}, {}),
+     'tests': ({'eax': 1366, 'edx': 16}, {})},
     # rol eax, 4
-    ('c1c004', {'eax': 5}, {}, {'eax': 80}, {}),
+    {'bytes': 'c1c004',
+     'setup': ({'eax': 5}, {}),
+     'tests': ({'eax': 80}, {})},
     # rol eax, 8
-    ('c1c008', {'eax': 0xABCD0000}, {}, {'eax': 0xCD0000AB, 'eflags': 1}, {}),
+    {'bytes': 'c1c008',
+     'setup': ({'eax': 0xABCD0000}, {}),
+     'tests': ({'eax': 0xCD0000AB, 'eflags': 1}, {})},
     # ror eax, 5
-    ('c1c805', {'eax': 0x79}, {}, {'eax': 0xc8000003, 'eflags': 1}, {}),
+    {'bytes': 'c1c805',
+     'setup': ({'eax': 0x79}, {}),
+     'tests': ({'eax': 0xc8000003, 'eflags': 1}, {})},
     # ror eax, cl
-    ('d3c8', {'eax': 0x79, 'cl': 1}, {}, {'eax': 0x8000003c, 'eflags': 0x801}, {}),
+    {'bytes': 'd3c8',
+     'setup': ({'eax': 0x79, 'cl': 1}, {}),
+     'tests': ({'eax': 0x8000003c, 'eflags': 0x801}, {})},
     # btr ecx, 17
-    ('0fbaf111', {'ecx': 0xF002000F}, {}, {'eflags': 1, 'ecx': 0xF000000F}, {}),
+    {'bytes': '0fbaf111',
+     'setup': ({'ecx': 0xF002000F}, {}),
+     'tests': ({'eflags': 1, 'ecx': 0xF000000F}, {})},
 ]
 
 
@@ -77,18 +107,19 @@ class IntelEmulatorTests(unittest.TestCase):
     def run_emulator_tests(self, arch, tests):
         emu = arch.getEmulator()
         self.setEmuDefaults(emu)
-        for opbytes, sreg, sstack, preg, pstack in tests:
+        for test in tests:
+            byts = test['bytes']
             try:
-                op = arch.archParseOpcode(binascii.unhexlify(opbytes), 0, 0x40)
+                op = arch.archParseOpcode(binascii.unhexlify(byts), 0, 0x40)
             except envi.InvalidInstruction:
-                self.fail('Failed to parse opcode bytes: %s' % opbytes)
+                self.fail('Failed to parse opcode bytes: %s' % byts)
 
             with emu.snap():
-                # do the required setup
-                for name, valu in sreg.items():
+                # do any required setup
+                for name, valu in test['setup'][0].items():
                     emu.setRegisterByName(name, valu)
 
-                for expr, valu in sstack.items():
+                for expr, valu in test['setup'][1].items():
                     addr = e_expr.evaluate(expr, emu.getRegisters())
                     valu = emu.writeMemory(addr, valu)
 
@@ -96,11 +127,11 @@ class IntelEmulatorTests(unittest.TestCase):
                 emu.executeOpcode(op)
 
                 # test both the registers and stack values
-                for name, valu in preg.items():
+                for name, valu in test['tests'][0].items():
                     reg = emu.getRegisterByName(name)
-                    self.assertEqual(reg, valu, msg='Given != Got for %s (%s)' % (opbytes, str(op)))
+                    self.assertEqual(reg, valu, msg='Given != Got for %s (%s)' % (byts, str(op)))
 
-                for expr, valu in pstack.items():
+                for expr, valu in test['tests'][1].items():
                     addr = e_expr.evaluate(expr, emu.getRegisters())
                     mem = emu.readMemory(addr, len(valu))
                     self.assertEqual(mem, valu)
