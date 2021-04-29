@@ -1,4 +1,4 @@
-import os
+import base64
 import struct
 import logging
 
@@ -146,6 +146,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.setMeta('Platform', platform)
     vw.setMeta('Format', 'elf')
     vw.parsedbin = elf
+    # Treat the event system veeery carefully
+    vw.setMeta('FileBytes', base64.urlsafe_b64encode(elf.getFileBytes()))
 
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 

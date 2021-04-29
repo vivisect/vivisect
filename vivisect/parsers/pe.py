@@ -1,5 +1,6 @@
+import base64
 import logging
-from io import StringIO
+from io import BytesIO
 
 import PE
 import PE.carve as pe_carve
@@ -37,7 +38,7 @@ def parseFile(vw, filename, baseaddr=None):
 
 
 def parseBytes(vw, bytes, baseaddr=None):
-    fd = StringIO(bytes)
+    fd = BytesIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
     return loadPeIntoWorkspace(vw, pe, baseaddr=baseaddr)
@@ -92,6 +93,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
     vw.parsedbin = pe
+    vw.setMeta('FileBytes', base64.urlsafe_b64encode(pe.getFileBytes()))
 
     platform = 'windows'
 
@@ -225,7 +227,10 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     for idx, sec in enumerate(pe.sections):
         mapflags = 0
-
+        offset = sec.vsGetMeta("Offset", None)
+        if offset:
+            addr = baseaddr + offset
+            vw.makeStructure(addr, 'pe.IMAGE_SECTION_HEADER')
         chars = sec.Characteristics
         if chars & PE.IMAGE_SCN_MEM_READ:
             mapflags |= e_mem.MM_READ

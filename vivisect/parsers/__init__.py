@@ -1,4 +1,3 @@
-
 """
 The vivisect.parsers package contains all the known file format parsers
 for vivisect.  Each parser module must implement the following functions:
@@ -88,3 +87,13 @@ def getParserModule(fmt):
         __import__(mname)
         mod = sys.modules[mname]
     return mod
+
+
+def getBytesParser(fmt):
+    if fmt == 'pe':
+        import PE
+        return PE.peFromBytes
+    elif fmt == 'elf':
+        import Elf
+        return Elf.elfFromBytes
+    return None
