@@ -1468,9 +1468,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        src = src & 0x1f
-        if dsize < 3:
-            src %= (0, 9, 17)[dsize] # TODO: use shiftMask?
+        src = shiftMaskRC(src, dsize)
 
         # Put that carry bit up there.
         if self.getFlag(EFLAGS_CF):
@@ -1496,9 +1494,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        src = src & 0x1f
-        if dsize < 3:
-            src %= (0, 9, 17)[dsize]
+        src = shiftMaskRC(src, dsize)
 
         # Put that carry bit up there.
         if self.getFlag(EFLAGS_CF):
