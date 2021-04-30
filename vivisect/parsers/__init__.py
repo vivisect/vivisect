@@ -10,9 +10,11 @@ for vivisect.  Each parser module must implement the following functions:
 """
 # Some parser utilities
 
+import io
 import sys
 import struct
 import hashlib
+import zipfile
 
 import vstruct.defs.macho as vs_macho
 
@@ -97,3 +99,20 @@ def getBytesParser(fmt):
         import Elf
         return Elf.elfFromBytes
     return None
+
+
+ZIPKEY = 'filebytes'
+
+
+def compressBytes(byts):
+    with io.BytesIO() as fd:
+        with zipfile.ZipFile(fd, mode='w', compression=zipfile.ZIP_DEFLATED) as zipr:
+            zipr.writestr(ZIPKEY, byts)
+        fd.seek(0)
+        return fd.read()
+
+
+def uncompressBytes(byts):
+    with io.BytesIO(byts) as fd:
+        with zipfile.ZipFile(fd, mode='r', compression=zipfile.ZIP_DEFLATED) as zipr:
+            return zipr.read(ZIPKEY)

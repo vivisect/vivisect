@@ -649,7 +649,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     def _mcb_FileBytes(self, name, value):
         if not self.parsedbin:
-            byts = base64.urlsafe_b64decode(value)
+            byts = viv_parsers.uncompressBytes(value)
             fmt = viv_parsers.guessFormat(byts)
             parser = viv_parsers.getBytesParser(fmt)
             if parser:

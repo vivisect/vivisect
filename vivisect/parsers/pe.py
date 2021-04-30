@@ -93,7 +93,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
     vw.parsedbin = pe
-    vw.setMeta('FileBytes', base64.urlsafe_b64encode(pe.getFileBytes()))
+    byts = pe.getFileBytes()
+    vw.setMeta('FileBytes', v_parsers.compressBytes(byts))
 
     platform = 'windows'
 
@@ -129,9 +130,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     # grab the file bytes for hashing
     pe.fd.seek(0)
-    bytez = pe.fd.read()
-    fhash = v_parsers.md5Bytes(bytez)
-    sha256 = v_parsers.sha256Bytes(bytez)
+    fhash = v_parsers.md5Bytes(byts)
+    sha256 = v_parsers.sha256Bytes(byts)
 
     # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)

@@ -71,13 +71,13 @@ class VivisectRemoteTests(unittest.TestCase):
                 retry = 0
                 while retry < 5:
                     locs = othr.getLocations()
-                    if len(locs) != 1380:
+                    if len(locs) != 1389:
                         retry += 1
                         time.sleep(0.2)
                     else:
                         break
 
-                self.assertEqual(len(othr.getLocations()), 1380)
+                self.assertEqual(len(othr.getLocations()), 1389)
                 self.assertEqual(set(othr.getLocations()), set(good.getLocations()))
                 self.assertEqual(set(othr.getXrefs()), set(good.getXrefs()))
 
