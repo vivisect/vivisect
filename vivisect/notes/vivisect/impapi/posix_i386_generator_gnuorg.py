@@ -16,28 +16,7 @@ works for 1500+ other functions, we just modified the output manually.
 '''
 
 BASE_URL = "https://www.gnu.org/software/libc/manual/html_node/"
-def cache_store(name, obj):
-    tmpfile = os.sep.join([tempfile.gettempdir(), ".impapi.posix."+name])
-    print(repr(tmpfile))
-    outfile = open(tmpfile, 'wb')
-    pcklstr = pickle.dumps(obj)
-    outfile.write(pcklstr)
-
-def cache_retr(name):
-    tmpfile = os.sep.join([tempfile.gettempdir(), ".impapi.posix."+name])
-    try:
-        outf = open(tmpfile, 'rb')
-        return pickle.load(outf)
-    except Exception as e:
-        print(e)
-    return None
-
-
 def getAllFrontUrls(sess):
-    cached = cache_retr('urls')
-    if cached is not None:
-        return cached
-
     frontpage = sess.get(BASE_URL + 'Function-Index.html') 
     soup = bs4.BeautifulSoup(frontpage.text)
     urls = []
@@ -52,8 +31,6 @@ def getAllFrontUrls(sess):
 
         urls.append(uurl)
 
-    cache_store('urls', urls)
-
     return urls
 
 
@@ -66,37 +43,28 @@ def getAllFuncProtos(funcs=None):
 
 
 def getRawDataLines():
-    pages = cache_retr('pages')
-    if pages is not None:
-        print("using cached `pages`: %s" % repr(pages)[:20])
-
-    else:
-        print("no cache, pulling pages from source...")
-        sess = requests.session()
+    with requests.session() as sess:
 
         # get all 1500+ urls and downselect them to functions 
         urls = getAllFrontUrls(sess)
         pages = [sess.get(BASE_URL + url) for url in urls]
 
-        # store the cache in /tmp
-        cache_store('pages', pages)
+        bss = [bs4.BeautifulSoup(page.text) for page in pages]
 
-    bss = [bs4.BeautifulSoup(page.text) for page in pages]
+        dts = []
+        funcdts = []
+        for b in bss:
+            dt = b.find_all('dt')
 
-    dts = []
-    funcdts = []
-    for b in bss:
-        dt = b.find_all('dt')
+            for item in dt:
+                if 'Function:' in repr(item):
+                    if item not in funcdts:
+                        funcdts.append(item)
 
-        for item in dt:
-            if 'Function:' in repr(item):
-                if item not in funcdts:
-                    funcdts.append(item)
-
-    # strip out the text and whittle each function down to a prototype line
-    functext = [fdt.text for fdt in funcdts]
-    funcs = [line[10:] for line in functext]
-    return funcs
+        # strip out the text and whittle each function down to a prototype line
+        functext = [fdt.text for fdt in funcdts]
+        funcs = [line[10:] for line in functext]  # skip first 10 chars, "Function: "
+        return funcs
 
 def parseDataLines(funcs):
     # parse each line and populate the api dict
