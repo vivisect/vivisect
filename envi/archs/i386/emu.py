@@ -126,7 +126,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             archmod = i386Module()
 
         envi.Emulator.__init__(self, archmod=archmod)
-        self.initEmuOpt('i386:reponce',False,'Set to True to short circuit rep prefix')
+        self.initEmuOpt('i386:reponce', False, 'Set to True to short circuit rep prefix')
 
         for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
@@ -436,6 +436,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         return ret
 
     def doRepzPrefix(self, meth, op):
+        # TODO
         pass
 
     # Beginning of Instruction methods
@@ -869,8 +870,17 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 #"FIXME: division exception"
             self.setRegister(REG_EAX, (quot << 8) + rem)
 
+        elif dsize == 2:
+            ax = self.getRegister(REG_AX)
+            dx = self.getRegister(REG_DX)
+            tot = (dx << 16) + ax
+            quot = int(tot / val)
+            rem = tot % val
+
+            self.setRegister(REG_AX, quot)
+            self.setRegister(REG_DX, rem)
+
         elif dsize == 4:
-            #FIXME 16 bit over-ride
             eax = self.getRegister(REG_EAX)
             edx = self.getRegister(REG_EDX)
             tot = (edx << 32) + eax
@@ -1367,8 +1377,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
 
     def i_pop(self, op):
-        tsize = op.opers[0].tsize
-        val = self.doPop(tsize)
+        val = self.doPop(size=op.opers[0].tsize)
         self.setOperValue(op, 0, val)
 
     def i_popad(self, op):
@@ -1540,20 +1549,19 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 cf = self.getFlag(EFLAGS_CF)
                 self.setFlag(EFLAGS_OF, e_bits.msb(val, dstSize) ^ cf)
             else:
-                self.setFlag(EFLAGS_OF, False)
+                self.setFlag(EFLAGS_OF, 0)
 
     def i_ror(self, op):
         dstSize = op.opers[0].tsize
         count = self.getOperValue(op, 1)
         tempCount = shiftMask(count, dstSize)
-        dbitSize = dstSize << 3
+        bitlen = dstSize * 8
 
         if tempCount > 0: # Yeah, i know...weird. See the intel manual
             while tempCount:
                 val = self.getOperValue(op, 0)
                 tempCf = e_bits.lsb(val)
-                newval = (val >> 1) | (tempCf << ((dbitSize)-1))
-                self.setOperValue(op, 0, newval)
+                self.setOperValue(op, 0, (val >> 1) + (tempCf * (2 ** (bitlen-1))))
                 tempCount -= 1
             val = self.getOperValue(op, 0)
             self.setFlag(EFLAGS_CF, e_bits.msb(val, dstSize))
@@ -1563,7 +1571,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 # FIXME: This may be broke...the manual is kinda flaky here
                 self.setFlag(EFLAGS_OF, e_bits.msb(val, dstSize) ^ (e_bits.msb(val, dstSize) - 1))
             else:
-                self.setFlag(EFLAGS_OF, False)
+                self.setFlag(EFLAGS_OF, 0)
 
     def i_ret(self, op):
         ret = self.doPop()
