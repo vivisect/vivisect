@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 from os import path
 
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 
 dirn = path.abspath(path.dirname(__file__))
 with open(path.join(dirn, 'README.md'), 'r') as fd:

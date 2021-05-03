@@ -2,6 +2,32 @@
 Vivisect Changelog
 ******************
 
+v1.0.2 - 2021-05-02
+===================
+
+Features
+--------
+- Refactor and update the posix impapi
+  (`#390 <https://github.com/vivisect/vivisect/pull/390>`_)
+
+Fixes
+-----
+- Ancient visgraph bug
+  (`#387 <https://github.com/vivisect/vivisect/pull/387>`_)
+- Easier version engineering
+  (`#388 <https://github.com/vivisect/vivisect/pull/388>`_)
+- Remove Travis CI config and fully cut over to Circle CI
+  (`#389 <https://github.com/vivisect/vivisect/pull/389>`_)
+- Add check to prevent divide by zero in print stats
+  (`#392 <https://github.com/vivisect/vivisect/pull/392>`_)
+- Fix SaveToWorkspaceServer
+  (`#393 <https://github.com/vivisect/vivisect/pull/393>`_)
+- Intel emulator bug fixes
+  (`#394 <https://github.com/vivisect/vivisect/pull/394>`_)
+- Tests for intel emulator and more fixes
+  (`#395 <https://github.com/vivisect/vivisect/pull/395>`_)
+
+
 v1.0.1 - 2021-04-05
 ===================
 
