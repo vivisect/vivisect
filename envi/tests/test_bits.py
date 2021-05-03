@@ -11,3 +11,6 @@ class EnviBitsTest(unittest.TestCase):
 
     def test_ieee754_encode(self):
         pass
+
+    def test_byteswap(self):
+        self.assertEqual(0x12345678, e_bits.byteswap(0x78563412, 4))

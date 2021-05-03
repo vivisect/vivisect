@@ -16,9 +16,21 @@ from envi.archs.i386 import i386Module
 
 def shiftMask(val, size):
     if size == 1:
-        return (val & 0x1f) % 9
+        return (val & 0x1f) % 8
     elif size == 2:
-        return (val & 0x1f) % 17
+        return (val & 0x1f) % 16
+    elif size == 4:
+        return val & 0x1f
+    elif size == 8:
+        return val & 0x3f
+    else:
+        raise Exception("shiftMask is broke in envi/arch/i386/emu.py")
+
+def shiftMaskRC(val, size):
+    if size == 1:
+        return (val & 0x1f) % 9     # RCL and RCR only
+    elif size == 2:
+        return (val & 0x1f) % 17    # RCL and RCR only
     elif size == 4:
         return val & 0x1f
     elif size == 8:
@@ -613,8 +625,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             rmax -= 1
 
     def doBitTest(self, op):
+        dsize = op.opers[0].tsize
         val = self.getOperValue(op, 0)
         shift = self.getOperValue(op, 1)
+        shift %= (dsize << 3)
         mask = 1 << shift
         self.setFlag(EFLAGS_CF, val & mask)
         # Return the source and mask for btc/btr
@@ -1382,10 +1396,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setRegister(self.flagidx, eflags)
 
     def i_push(self, op):
+        tsize = op.opers[0].tsize
         val = self.getOperValue(op, 0)
         if isinstance(op.opers[0], i386ImmOper):
             val = e_bits.sign_extend(val, self.getPointerSize(), 4)
-        self.doPush(val, size=op.opers[0].tsize)
+        self.doPush(val, tsize)
 
     def i_pushad(self, op):
         tmp = self.getRegister(REG_ESP)
@@ -1462,7 +1477,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        src = src & 0x1f
+        src = shiftMaskRC(src, dsize)
 
         # Put that carry bit up there.
         if self.getFlag(EFLAGS_CF):
@@ -1470,7 +1485,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # Add one to account for carry
         x = ((8*dsize) - src) + 1
-        #FIXME is this the one that can end up negative?
 
         res = (dst << src) | (dst >> x)
         cf = (res >> (8*dsize)) & 1
@@ -1489,7 +1503,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        src = src & 0x1f
+        src = shiftMaskRC(src, dsize)
+
         # Put that carry bit up there.
         if self.getFlag(EFLAGS_CF):
             dst = dst | (1 << (8 * dsize))

@@ -362,7 +362,7 @@ class RegisterContext:
         if offset:
             value <<= offset
 
-        return value | (curval & finalmask)
+        return (value & mask) | (curval & finalmask)
 
     def setRegister(self, index, value):
         """
