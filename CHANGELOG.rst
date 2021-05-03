@@ -2,6 +2,18 @@
 Vivisect Changelog
 ******************
 
+v1.0.3 - 2021-05-02
+===================
+
+Features
+--------
+- Loosen requirements and bring setup and requirements.txt in line with each other
+  (`#399 <https://github.com/vivisect/vivisect/pull/399>`_)
+
+Fixes
+-----
+- N/A
+
 v1.0.2 - 2021-05-02
 ===================
 

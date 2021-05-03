@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 from os import path
 
-VERSION = '1.0.2'
+VERSION = '1.0.3'
 
 dirn = path.abspath(path.dirname(__file__))
 with open(path.join(dirn, 'README.md'), 'r') as fd:
@@ -29,11 +29,11 @@ setup(
         ]
     },
     install_requires=[
-        'pyasn1==0.4.5',
-        'pyasn1-modules==0.2.4',
-        'cxxfilt==0.2.1',
-        'msgpack==1.0.0',
-        'pycparser==2.20',
+        'pyasn1>=0.4.5,<0.5.0',
+        'pyasn1-modules>=0.2.4,<0.3.0',
+        'cxxfilt>=0.2.1,<0.3.0',
+        'msgpack>=1.0.0,<1.1.0',
+        'pycparser>=2.20',
     ],
     extras_require={
         'gui': [
@@ -47,6 +47,7 @@ setup(
         'Topic :: Software Development :: Debuggers',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'License :: OSI Approved :: Apache Software License',
     ],
