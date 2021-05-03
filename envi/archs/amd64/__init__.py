@@ -110,7 +110,7 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         self.writeMemValue(rsp, val, size)
         self.setRegister(REG_RSP, rsp)
 
-    def doPop(self, size=4):
+    def doPop(self, size=8):
         rsp = self.getRegister(REG_RSP)
         val = self.readMemValue(rsp, size)
         self.setRegister(REG_RSP, rsp+size)
