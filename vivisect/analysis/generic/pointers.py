@@ -72,12 +72,12 @@ def analyze(vw):
             try:
                 pname = vw.getName(ptr)
                 if pname is not None:
-                    logger.info('skipping renaming of ptr 0x%x (currently: %r)', ptr, pname)
+                    logger.debug('skipping renaming of ptr 0x%x (currently: %r)', ptr, pname)
                     continue
 
                 loc = vw.getLocation(ptr)
                 if loc is not None and loc[L_LTYPE] != LOC_POINTER:
-                    logger.info('skipping naming of 0x%x (no longer a pointer: %s)', ptr, vw.reprLocation(loc))
+                    logger.debug('skipping naming of 0x%x (no longer a pointer: %s)', ptr, vw.reprLocation(loc))
                     continue
                 tgtname = vw.getName(tgt)
                 if tgtname is not None:

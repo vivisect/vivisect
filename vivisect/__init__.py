@@ -20,6 +20,7 @@ import collections
 
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.common as e_common
 import envi.memory as e_mem
@@ -43,10 +44,13 @@ from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
 
-
 logger = logging.getLogger(__name__)
 
 STOP_LOCS = (LOC_STRING, LOC_UNI, LOC_STRUCT, LOC_CLSID, LOC_VFTABLE, LOC_IMPORT, LOC_PAD, LOC_NUMBER)
+STORAGE_MAP = {
+    'viv': 'vivisect.storage.basicfile',
+    'mpviv': 'vivisect.storage.mpfile',
+}
 
 
 def guid(size=16):
@@ -811,7 +815,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
          numPointers,
          numVtables) = self.getDiscoveredInfo()
 
-        self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (disc*100.0/(disc+undisc), disc, disc+undisc))
+        percentage = disc*100.0/(disc+undisc) if disc or undisc else 0
+        self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (percentage, disc, disc+undisc))
         self.vprint("   Xrefs/Blocks/Funcs:                             (%s / %s / %s)" % (numXrefs, numBlocks, numFuncs))
         self.vprint("   Locs,  Ops/Strings/Unicode/Nums/Ptrs/Vtables:   (%s:  %s / %s / %s / %s / %s / %s)" % (numLocs, numOps, numStrings, numUnis, numNumbers, numPointers, numVtables))
 
@@ -1188,6 +1193,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         curfva = self.getFunction(callingVa)
         # collect all the entries for the new jump table
         for cb in self.iterJumpTable(newTablAddr, rebase=rebase, step=psize):
+            if cb in codeblocks:
+                continue
             codeblocks.add(cb)
             prevcb = self.getCodeBlock(cb)
             if prevcb is None:
@@ -1355,18 +1362,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     # If we don't already know what type this location is,
                     # lets make it either a pointer or a number...
                     if self.getLocation(ref) is None:
-
-                        offset, _ = self.getByteDef(ref)
-
-                        val = self.parseNumber(ref, o.tsize)
-                        # So we need the size check to avoid things like "aaaaa", maybe
-                        # but maybe if we do something like the tsize must be either the
-                        # target pointer size or in a set of them that the arch defines?
-                        if (self.psize == o.tsize and self.isValidPointer(val)):
-                            self.makePointer(ref, tova=val)
-                        else:
-                            self.makeNumber(ref, o.tsize)
-
+                        self.guessDataPointer(ref, o.tsize)
             else:
                 ref = o.getOperValue(op)
                 if brdone.get(ref, False):
@@ -1884,10 +1880,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         if self.getLocation(va) is not None:
             return None
-        if self.isProbablyString(va):
-            return LOC_STRING
-        elif self.isProbablyUnicode(va):
+        if self.isProbablyUnicode(va):
             return LOC_UNI
+        elif self.isProbablyString(va):
+            return LOC_STRING
         elif self.isProbablyCode(va):
             return LOC_OP
         return None
@@ -1967,6 +1963,36 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         offset, bytes = self.getByteDef(va)
         return e_bits.parsebytes(bytes, offset, self.psize, bigend=self.bigend)
+
+    def guessDataPointer(self, ref, tsize):
+        '''
+        Trust vivisect to do the right thing and make a value and a
+        pointer to that value
+        '''
+        # So we need the size check to avoid things like "aaaaa", maybe
+        # but maybe if we do something like the tsize must be either the
+        # target pointer size or in a set of them that the arch defines?
+        nloc = None
+        try:
+            if self.isProbablyUnicode(ref):
+                nloc = self.makeUnicode(ref)
+            elif self.isProbablyString(ref):
+                nloc = self.makeString(ref)
+        except e_exc.SegmentationViolation:
+            # Usually means val is 0 and we can just ignore this error
+            nloc = None
+        except Exception as e:
+            logger.warning('makeOpcode string making hit error %s', str(e))
+            nloc = None
+
+        if not nloc:
+            val = self.parseNumber(ref, tsize)
+            if (self.psize == tsize and self.isValidPointer(val)):
+                nloc = self.makePointer(ref, tova=val)
+            else:
+                nloc = self.makeNumber(ref, tsize)
+
+        return nloc
 
     def makePointer(self, va, tova=None, follow=True):
         """
@@ -2051,8 +2077,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 if (sva, ssize) not in pinfo:
                     modified = True
                     pinfo.append((sva, ssize))
+
+            tinfo = pinfo
             if modified:
-                tinfo = pinfo
                 va = pva
                 size = psize
         else:
@@ -2640,7 +2667,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if fmtname is None:
             fmtname = viv_parsers.guessFormatFilename(filename)
 
-        if fmtname in ('viv', 'mpviv'):
+        if fmtname in STORAGE_MAP:
+            self.setMeta('StorageModule', STORAGE_MAP[fmtname])
             self.loadWorkspace(filename)
             return self.normFileName(filename)
 
@@ -3055,3 +3083,9 @@ def getVivPath(*pathents):
     return os.path.join(dname, *pathents)
 
 
+##############################################################################
+# The following are touched during the release process by bump2version.
+# You should have no reason to modify these directly
+version = (1, 0, 3)
+verstring = '.'.join([str(x) for x in version])
+commit = ''

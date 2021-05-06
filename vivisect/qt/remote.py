@@ -22,7 +22,8 @@ class WorkspaceListView(vq_tree.VQTreeView):
         for wsname in workspaces:
             model.append((wsname,))
 
-class VivServerDialog(QDialog):
+
+class BaseServerDialog(QDialog):
 
     def __init__(self, workspaces, parent=None):
         QDialog.__init__(self, parent=parent)
@@ -32,8 +33,8 @@ class VivServerDialog(QDialog):
         self.wslist = WorkspaceListView(workspaces, parent=self)
 
         self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.buttons.accepted.connect( self.accept )
-        self.buttons.rejected.connect( self.reject )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
 
         layout = VBox()
         layout.addWidget(self.wslist)
@@ -58,6 +59,7 @@ class VivServerDialog(QDialog):
 
         return QDialog.accept(self)
 
+
 class VivServerDialog(QDialog):
     def __init__(self, vw, parent=None):
         QDialog.__init__(self, parent=parent)
@@ -80,7 +82,6 @@ class VivServerDialog(QDialog):
         serverlayout.addWidget(self.setdef)
 
         layout = QFormLayout()
-        layout.addRow('Workspace Name', self.wsname)
         layout.addRow('Workspace Server', serverlayout)
         layout.addWidget(self.buttons)
         self.setLayout(layout)
@@ -92,11 +93,11 @@ class VivServerDialog(QDialog):
             cfg['server'] = str(self.wsserver.text())
             self.vw.config.saveConfigFile()
 
-class VivSaveServerDialog(QDialog):
+class VivSaveServerDialog(VivServerDialog):
 
     def __init__(self, vw, parent=None):
+        VivServerDialog.__init__(self, vw, parent=parent)
         self.wsname = QLineEdit(vw.getMeta('StorageName', ''), parent=self)
-        VivServerDialog.__init__(self, parent=parent)
         self.setWindowTitle('Save to Workspace Server...')
 
     def getNameAndServer(self):
@@ -106,10 +107,10 @@ class VivSaveServerDialog(QDialog):
         wsserver = str(self.wsserver.text())
         return (wsname, wsserver)
 
-class VivConnectServerDialog(VivServerDialog):
 
+class VivConnectServerDialog(VivServerDialog):
     def __init__(self, vw, parent=None):
-        VivServerDialog.__init__(self, parent=parent)
+        VivServerDialog.__init__(self, vw, parent=parent)
         self.setWindowTitle('Workspace Server...')
 
     def getServer(self):
@@ -119,29 +120,30 @@ class VivConnectServerDialog(VivServerDialog):
         return wsserver
 
 
-@vq_main.idlethread
 def openServerAndWorkspace(vw, parent=None):
     dia = VivConnectServerDialog(vw, parent=parent)
     host = dia.getServer()
     if host is None:
         return
+    port = viv_server.viv_port
+    if ':' in host:
+        host, port = host.split(':')
 
-    connServerAndWorkspace(vw, str(host), parent=parent)
+    connServerAndWorkspace(vw, str(host), int(port), parent=parent)
 
-@vq_main.workthread
-def connServerAndWorkspace(vw, host,parent=None):
+
+def connServerAndWorkspace(vw, host, port=viv_server.viv_port, parent=None):
     # NOTE: do *not* touch parent (or qt) in here!
     try:
-        server = viv_server.connectToServer(host)
+        server = viv_server.connectToServer(host, port=port)
         wslist = server.listWorkspaces()
         selectServerWorkspace(vw, server, wslist, parent=parent)
     except Exception as e:
         vw.vprint('Server Error: %s' % e)
         return
 
-@vq_main.idlethread
 def selectServerWorkspace(vw, server, workspaces, parent=None):
-    dia = VivServerDialog(workspaces, parent=parent)
+    dia = BaseServerDialog(workspaces, parent=parent)
     workspace = dia.getWorkspaceName()
     if workspace is None:
         return
@@ -155,7 +157,6 @@ def loadServerWorkspace(oldvw, server, workspace):
     import vivisect.qt.main as viv_q_main
     viv_q_main.runqt(vw, closeme=oldvw.getVivGui())
 
-@vq_main.idlethread
 def saveToServer(vw, parent=None):
     dia = VivSaveServerDialog(vw, parent=parent)
     wsname, wsserver = dia.getNameAndServer()

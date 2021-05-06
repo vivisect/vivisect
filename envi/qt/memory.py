@@ -42,7 +42,7 @@ class EnviNavMixin:
         pass
 
     def enviNavExpr(self, event, einfo):
-        name,expr,sizeexpr = einfo
+        name, expr, sizeexpr = einfo
         if self._envi_navname == name:
             self.enviNavGoto(expr,sizeexpr=sizeexpr)
 

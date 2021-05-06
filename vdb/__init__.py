@@ -468,6 +468,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         elif event == vtrace.NOTIFY_CONTINUE:
             pass
 
+        elif event == vtrace.NOTIFY_STEP:
+            pass
+
         elif event == vtrace.NOTIFY_DETACH:
             self.difftracks = {}
             self.vprint("Detached from %d" % pid)
@@ -991,7 +994,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         regs = self.trace.getRegisters()
-        rnames = regs.keys()
+        rnames = list(regs.keys())
         rnames.sort()
         final = []
         for r in rnames:
@@ -2284,3 +2287,10 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if not text:
             return libnames
         return [ i for i in libnames if i.startswith( text ) ]
+
+##############################################################################
+# The following are touched during the release process by bump2version.
+# You should have no reason to modify these yourself
+version = (1, 0, 3)
+verstring = '.'.join([str(x) for x in version])
+commit = ''

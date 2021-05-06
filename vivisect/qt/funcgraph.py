@@ -93,6 +93,8 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         cb(data)
 
     def _renderMemoryCallback(self, cb, data):
+        if not data:
+            return
         va = int(data[0])
         size = int(data[1])
         self._canv_rendtagid = '#codeblock_%.8x' % va
@@ -106,7 +108,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         js = '''var node = document.querySelector("#%s");
         if (node == null) {
             canv = document.querySelector("#memcanvas");
-            canv.innerHTML += '<div class="codeblock" id="%s"></div>'
+            if (canv != null) {
+                canv.innerHTML += '<div class="codeblock" id="%s"></div>'
+            }
         }
         [%d, %d]
         ''' % (selector, selector, va, size)
@@ -413,6 +417,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         expr = state.get('expr','')
         self.enviNavGoto(expr)
 
+    def setMemWindowName(self, mwname):
+        '''
+        Set the memory window name/title prefix to the given string.
+        '''
+        self.setEnviNavName(mwname)
+        self.updateWindowTitle()
+
     def updateWindowTitle(self, data=None):
         ename = self.getEnviNavName()
         expr = str(self.addr_entry.text())
@@ -438,7 +449,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             return
         self.mem_canvas.page().runJavaScript('''
         var node = document.getElementsByName("viv:0x%.8x")[0];
-        node.scrollIntoView();
+        if (node != null) {
+            node.scrollIntoView();
+        }
         ''' % addr, self._finishFuncRender)
 
     def _layoutEdges(self, data):
@@ -489,7 +502,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         js = 'var sizes = {};'
 
         for nid, nprops in self.graph.getNodes():
-            cbname = 'codeblock_%.8x' % nid
+            try:
+                cbname = 'codeblock_%.8x' % nid
+            except:
+                self.vw.vprint('Failed to build cbname during funcgraph building')
+                return
             js += f'''
             sizes[{nid}] = [document.getElementById("{cbname}").offsetWidth, document.getElementById("{cbname}").offsetHeight];
             '''

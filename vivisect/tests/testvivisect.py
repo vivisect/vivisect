@@ -46,6 +46,35 @@ class VivisectTest(unittest.TestCase):
                 self.assertEqual((xflags, isint(xflags)),
                                  (xflags, True))
 
+    def test_cli_search(self):
+        '''
+        Test that EnviCli.do_search works
+        '''
+        #TODO: make real tests with asserts
+        self.chgrp_vw.do_search("-e utf-16le foo")
+        self.chgrp_vw.do_search("-e utf-16le foo")
+        self.chgrp_vw.do_search("-X 41414141")
+        self.chgrp_vw.do_search("-E 0x41414141")
+        self.chgrp_vw.do_search("-E 0x41414142")
+        self.chgrp_vw.do_search("-r 0x4141.*42")
+        self.chgrp_vw.do_search("-r 0x4141.*42 -c")
+        self.chgrp_vw.do_search("-c -r qsort")
+        self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x200")
+        self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x2000")
+
+    def test_cli_searchopcode(self):
+        '''
+        Test that VivCli.do_searchopcodes works
+        '''
+        #TODO: make real tests with asserts
+        self.chgrp_vw.do_searchopcodes('foo')
+        self.chgrp_vw.do_searchopcodes('-f 0x08050200 ret')
+        self.chgrp_vw.do_searchopcodes('-c rol')
+        self.chgrp_vw.do_searchopcodes('-o rol')
+        self.chgrp_vw.do_searchopcodes('-t rol')
+        self.chgrp_vw.do_searchopcodes('-M red rol')
+        self.chgrp_vw.do_searchopcodes('-f 0x08050200 -R r.t')
+
     def test_loc_types(self):
         '''
         Test that we have data consistency in locations
@@ -62,6 +91,9 @@ class VivisectTest(unittest.TestCase):
                     self.assertTrue(type(linfo) in (int, str, list))
 
     def test_vaset_populate(self):
+        '''
+        Make sure the the VASEts are populated in roughly the way we expect
+        '''
         vw = self.vdir_vw
         ans = {
             'FileSymbols': [('', 0), ('filenamecat-lgpl.c', 0), ('gettime.c', 0),
@@ -186,10 +218,10 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 53840, 14),
-               1: ('Num/Int',   727, 3922, 1),
-               2: ('String',    256, 6448, 1),
-               3: ('Unicode',   172, 5530, 1),
+        ans = {0: ('Undefined', 0, 53924, 14),
+               1: ('Num/Int',   715, 3738, 0),
+               2: ('String',    265, 6485, 1),
+               3: ('Unicode',   174, 5593, 1),
                4: ('Pointer',   360, 2880, 0),
                5: ('Opcode',    72565, 279449, 74),
                6: ('Structure', 1009, 12380, 3),

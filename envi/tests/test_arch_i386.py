@@ -18,8 +18,8 @@ i386SingleByteOpcodes = [
     ('call ebx', 'ffd3', 0x40, 'call ebx', 'call ebx'),
     ('call lit', 'e801010101', 0x40, 'call 0x01010146', 'call 0x01010146'),
     ('mov dword', '89aa41414141', 0x40, 'mov dword [edx + 1094795585],ebp', 'mov dword [edx + 1094795585],ebp'),
-    ('imul 1', 'f6aaaaaaaaaa', 0x40, 'imul al,byte [edx - 1431655766]', 'imul al,byte [edx - 1431655766]'),
-    ('imul 2', 'f7aaaaaaaaaa', 0x40, 'imul eax,dword [edx - 1431655766]', 'imul eax,dword [edx - 1431655766]'),
+    ('imul 1', 'f6aaaaaaaaaa', 0x40, 'imul byte [edx - 1431655766]', 'imul byte [edx - 1431655766]'),
+    ('imul 2', 'f7aaaaaaaaaa', 0x40, 'imul dword [edx - 1431655766]', 'imul dword [edx - 1431655766]'),
     ('push', 'fff0', 0x40, 'push eax', 'push eax'),
     ('push 2', '6aff', 0x40, 'push 0xffffffff', 'push 0xffffffff'),
     ('push 3', '68ffffffff', 0x40, 'push 0xffffffff', 'push 0xffffffff'),
@@ -57,14 +57,20 @@ i386SingleByteOpcodes = [
     ('nop', '0f1dfa', 0x40, 'nop edx', 'nop edx'),
     ('nop', '0f1efa', 0x40, 'nop edx', 'nop edx'),
     ('nop', '0f1ffa', 0x40, 'nop edx', 'nop edx'),
+    ('DIV 1', '66f7f2', 0x40, 'div dx', 'div dx'),
+    ('DIV 2', 'f7f1', 0x40, 'div ecx', 'div ecx'),
+    ('RCR 1', '66d1d8', 0x40, 'rcr ax,1', 'rcr ax,1'),
+    ('ROL', 'd3c3', 0x40, 'rol ebx,cl', 'rol ebx,cl'),
 ]
 
 i386MultiByteOpcodes = [
     ('CMPXCH8B', 'f00fc74d00', 0x40, 'lock: cmpxch8b qword [ebp]', 'lock: cmpxch8b qword [ebp]'),
     ('jmp 2', 'FF248D3A3A3A3A', 0x40, 'jmp dword [0x3a3a3a3a + ecx * 4]', 'jmp dword [0x3a3a3a3a + ecx * 4]'),
     ('MOV', '8B148541414141', 0x40, 'mov edx,dword [0x41414141 + eax * 4]', 'mov edx,dword [0x41414141 + eax * 4]'),
-    # ('MOV 2r', '678B14', 0x40, 'mov edx,dword [si]', 'mov edx,dword [si]'),
-    # ('PUSH 2', '67FF37', 0x40, 'push dword [bx]', 'push dword [bx]'),
+    ('MOV 2r', '678B14', 0x40, 'mov edx,dword [si]', 'mov edx,dword [si]'),
+    ('PUSH 2', '67FF37', 0x40, 'push dword [bx]', 'push dword [bx]'),
+    ('PUSH 3', '67ff30', 0x40, 'push dword [bx + si]', 'push dword [bx + si]'),
+    ('PUSH 4', '67ff7020', 0x40, 'push dword [bx + si + 32]', 'push dword [bx + si + 32]'),
     ('ROR', '66d3c8', 0x40, 'ror ax,cl', 'ror ax,cl'),
     ('PEXTRB', '660F3A14D011', 0x40, 'pextrb eax,xmm2,17', 'pextrb eax,xmm2,17'),
     ('PEXTRB 2', '660F3A141011', 0x40, 'pextrb byte [eax],xmm2,17', 'pextrb byte [eax],xmm2,17'),
@@ -83,8 +89,8 @@ i386MultiByteOpcodes = [
     ('MOVAPS', '0f28aa41414141', 0x40, 'movaps xmm5,oword [edx + 1094795585]', 'movaps xmm5,oword [edx + 1094795585]'),
     ('MOVAPD', '660f28aa41414141', 0x40, 'movapd xmm5,oword [edx + 1094795585]', 'movapd xmm5,oword [edx + 1094795585]'),
     ('RSM', '0faa', 0x40, 'rsm ', 'rsm '),
-    ('MUL', 'f7e3', 0x40, 'mul eax,ebx', 'mul eax,ebx'),
-    ('MUL 2', '66f7e3', 0x40, 'mul ax,bx', 'mul ax,bx'),
+    ('MUL', 'f7e3', 0x40, 'mul ebx', 'mul ebx'),
+    ('MUL 2', '66f7e3', 0x40, 'mul bx', 'mul bx'),
     ('PMULLW (66)', '660fd5cd', 0x40, 'pmullw xmm1,xmm5', 'pmullw xmm1,xmm5'),
     ('PMULLW', '0fd5e2', 0x40, 'pmullw mm4,mm2', 'pmullw mm4,mm2'),
     ('CMPXCH8B', '0fc70a', 0x40, 'cmpxch8b qword [edx]', 'cmpxch8b qword [edx]'),
@@ -269,6 +275,11 @@ i386MultiByteOpcodes = [
     ('LFENCE', '0faee8', 0x40, 'lfence ', 'lfence '),
     ('MFENCE', '0faef0', 0x40, 'mfence ', 'mfence '),
     ('XSAVE', '0FAE2541414141', 0x40, 'xsave dword [0x41414141]', 'xsave dword [0x41414141]'),
+
+    ('ptest', '660F3817242541414141', 0x40, 'ptest xmm4,oword [0x41414141]', 'ptest xmm4,oword [0x41414141]'),
+    # TODO: Should we add the implicit xmm0 to these? It's only in non-vex mode
+    ('blendvps', '660F3814CB', 0x40, 'blendvps xmm1,xmm3', 'blendvps xmm1,xmm3'),
+    ('pblendvb', '660F3815CB', 0x40, 'blendvpd xmm1,xmm3', 'blendvpd xmm1,xmm3'),
 
     # AES-NI feature set
     ('AESENC', '660F38DCEA', 0x40, 'aesenc xmm5,xmm2', 'aesenc xmm5,xmm2'),

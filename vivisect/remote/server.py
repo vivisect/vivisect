@@ -4,9 +4,11 @@ import cobra
 import queue
 import logging
 import argparse
+import binascii
 import threading
 
-import vivisect
+import vivisect.cli as v_cli
+import vivisect.parsers as v_parsers
 import vivisect.storage.basicfile as viv_basicfile
 
 import cobra.dcode
@@ -63,8 +65,8 @@ class VivServerClient:
         # Retrieve the big initial list of viv events
         return self.server.getNextEvents(self.chan)
 
-    def waitForEvent(self, chan):
-        return self.q.get()
+    def waitForEvent(self, chan, timeout=None):
+        return self.q.get(timeout=timeout)
 
 
 class VivServer:
@@ -151,8 +153,7 @@ class VivServer:
             if not os.path.isfile(wsinfo[1]):
                 self.wsdict.pop(wsname, None)
 
-        def checkWorkspaceDir(arg, dirname, filenames):
-
+        for dirname, dirnames, filenames in os.walk(self.path):
             for filename in filenames:
                 wspath = os.path.join(dirname, filename)
                 wsname = os.path.relpath(wspath, self.path)
@@ -161,9 +162,12 @@ class VivServer:
                     continue
 
                 with open(wspath, 'rb') as f:
-                    ext = f.read(3)
+                    ext = f.read(6)
 
-                if ext == 'VIV':
+                if not ext:
+                    continue
+
+                if not v_parsers.guessFormat(ext) in ('viv', 'mpviv'):
                     continue
 
                 wsinfo = self.wsdict.get(wsname)
@@ -173,8 +177,6 @@ class VivServer:
                     wsinfo = [lock, wspath, [], {}]
                     logger.debug('loaded: %s', wsname)
                     self.wsdict[wsname] = wsinfo
-
-        os.path.walk(self.path, checkWorkspaceDir, None)
 
     def getNextEvents(self, chan):
         chaninfo = self.chandict.get(chan)
@@ -197,7 +199,7 @@ class VivServer:
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
-        chan = binascii.hexlify(os.urandom(16))
+        chan = binascii.hexlify(os.urandom(16)).decode('utf-8')
 
         lock, fpath, pevents, users = wsinfo
         with lock:
@@ -213,7 +215,7 @@ class VivServer:
 
 
 def getServerWorkspace(server, wsname):
-    vw = vivisect.cli.VivCli()
+    vw = v_cli.VivCli()
     cliproxy = VivServerClient(vw, server, wsname)
     vw.initWorkspaceClient(cliproxy)
     return vw
@@ -252,7 +254,7 @@ def main(argv):
         logger.error('%s is not a valid directory!', vdir)
         return -1
 
-    logger.debug('Server starting (port: %d)', viv_port)
+    print(f'Server starting (port: {viv_port})')
     runMainServer(vdir, opts.port)
 
 

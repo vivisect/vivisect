@@ -128,6 +128,7 @@ INS_SHL = INS_ARITH | 0x07
 INS_SHR = INS_ARITH | 0x08
 INS_ROL = INS_ARITH | 0x09
 INS_ROR = INS_ARITH | 0x0A
+INS_ABS = INS_ARITH | 0x0B
 
 INS_AND = INS_LOGIC | 0x01
 INS_OR = INS_LOGIC | 0x02
@@ -238,8 +239,7 @@ OP_OFF = 0x700
 OP_SIGNED = 0x001000
 OP_STRING = 0x002000
 OP_CONST = 0x004000
-
-OP_NOREXB = 0x008000  # ugh. sneaking this here for now, but the mul and div instructions basically require this
+OP_NOREX = 0x008000
 
 ARG_NONE = 0
 cpu_8086 = 0x00001000

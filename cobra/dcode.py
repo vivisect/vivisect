@@ -7,6 +7,7 @@ Particularly useful for clustering and workunit stuff.
 
 """
 import os
+import imp
 import sys
 import logging
 import importlib
