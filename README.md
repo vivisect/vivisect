@@ -56,33 +56,6 @@ that aren't) are directly accessible for use writing your own custom
 research tools. The interface should be nearly the same when dealing with
 a real process (via vdb/vtrace) and dealing with an emulator / viv workspace.
 
-## Installing
-
-Unlike previous releases, version v1.x.x and up of vivisect/vdb should be entirely
-pip installable, so just running `pip install vivisect` should get you the latest
-release and all of the baseline dependencies in order to run vivisect in a headless
-mode.
-
-However, should you also desire a GUI, you can run `pip install vivisect[gui]` to
-also install the pyqt5 based gui dependencies.
-
-For convenience, setup.py for vivisect installs the main user facing scripts of
-vivbin and vdbbin to the local path, so instead of having to run:
-
-```
-python3 -m vivisect.vivbin <binaryfile>
-python3 -m vdb.vdbbin
-```
-
-You should just be able to run
-
-```
-vivbin -B <binaryfile>
-vdbbin
-```
-
-and have things work as normal.
-
 ## Versioning
 
 All releases prior to v1.0.0 are python2 only. As of v1.0.0, vivisect/vdb/vstruct
@@ -103,56 +76,3 @@ be loadable in python3 vivisect.
 ## Build Status
 
 [![CircleCI](https://circleci.com/gh/vivisect/vivisect/tree/master.svg?style=svg)](https://circleci.com/gh/vivisect/vivisect/tree/master)
-
-## Extending Vivisect / Vdb
-
-Vivisect allows you to extend it's functionality through the use of Vivisect 
-Extensions.  Extensions are loaded with the GUI, and they give nearly complete
-access to the entire Vivisect Workspace and GUI.
-
-Extensions are Python modules loaded from directories contained in the 
-`VIV_EXT_PATH` environment variable.  Like DOS or Unix paths, this is a set
-of directories separated by the OS-specific separator (Windows=';', Unix=':').
-
-Like all Python modules, they can be either a `<modulename>.py` file or a 
-directory with a `__init__.py` file inside it.  Each module will be loaded into
-the namespace and the `vivExtension(vw, vwgui)` function executed (for Vdb, the
-`vdbExtension(vdb, vdbgui)` function will be executed).  It is up to the module
-to make any modifications (adding menu entries or toolbars, hooking the context
-menu, etc) within this function.  Submodules may be included in the directory-
-version of the extensions, and may be accessed with `from . import <blah>`.
-
-In addition to your private zero-day finding extensions, outside plugins may
-be wrapped into Vivisect by simply copying/symlinking them into one of your
-extension directories (listed in the `VIV_EXT_PATH`).
-
-If no `VIV_EXT_PATH` environment variable has been defined, Vivisect will
-look for extensions in `$HOME/.viv/plugins/` if it exists.  If `VIV_EXT_PATH`
-is defined, you much choose to add `$HOME/.viv/plugins/` to it or not.  It will
-not be checked unless it is explicitly listed in `VIV_EXT_PATH`.
-
-For examples of using this powerful capability, look at the example file at:
-`vivisect/extensions/example_gui_extension.py`
-
-## The Power of Scripts with Vivisect
-
-You can script up menial tasks or powerful techniques using simple Python
-scripts from either the command-line or the GUI.  
-
-Scripts are loaded and run as any python code is run from the command line.  
-The key diffenece is that Vivisect places a VivWorkspace object in the global
-namespace with the name `vw`.  The GUI, if one exists (Vivisect can be run 
-headless), can be accessed using `vw.getVivGui()`.  
-
-From the CommandLine, analysis modules can be run in the following fashion:
-`$ vivbin -M attackmodule.py targetbin.viv`
-If your module makes any changes to the VivWorkspace, be sure it saves:
-`vw.saveWorkspace()`
-
-To run a script from the GUI, the command bar at the bottom of the screen is
-used. Simply enter:
-`script attackmodule.py <args>`
-This method does not need to save to the workspace, as you can choose to do 
-that through standard GUI methods (Ctrl-S or File->Save).
-This method has the added benefit of being able to provide arguments, which
-are placed in the namespace as `argv`.  
