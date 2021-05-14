@@ -1,4 +1,4 @@
-.. _parsing:
+.. _gettingstarted:
 
 Getting Started
 ###############
