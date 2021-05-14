@@ -64,9 +64,6 @@ def getLongPath(g):
         leafmax = weightmax
         invalidret = True
 
-    pcnt = 0
-    rpaths = []
-    fva = g.getMeta('fva')
     # this is our loop that we want to yield out of..
     # start at the bottom of the graph and work our way back up
     for weight in range(leafmax, -1, -1):
