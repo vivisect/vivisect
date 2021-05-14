@@ -1,4 +1,7 @@
-## The Power of Scripts with Vivisect
+.. _scripting:
+
+The Power of Scripts with Vivisect
+##################################
 
 You can script up menial tasks or powerful techniques using simple Python scripts from either the command-line or the GUI.  
 

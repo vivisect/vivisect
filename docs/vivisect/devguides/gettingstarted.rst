@@ -1,5 +1,8 @@
 .. _parsing:
 
+Getting Started
+###############
+
 Parsing a binary
 ================
 
@@ -25,10 +28,22 @@ If you want a fully populated workspace, you can run::
 
 Once the call to `analyze()` returns, auto-analysis has finished, and the `vw` variable is fully populated with the knowledge of function boundaries, locations of interest, binary structures, etc.
 
-Interrogating the Workspace
-===========================
+If you've already read a file into memory, you can instead use the `loadFromFd` method on the workspace variable::
 
-Location Types
-##############
+    import vivisect
+    with open("/path/to/my/binary/file", 'rb') as fd:
+        vw = vivisect.VivWorkspace()
+        vw.loadFromFd(fd)
+        vw.analyze()
 
-Most pieces of importance in vivisect are represented as a tuple of four elements.
+Loading a Binary
+================
+
+If you've already loaded and parsed a binary into a PE or Elf object provided by vivisect's parser modules, then all you should need to do to get it into a proper workspace is::
+
+    import vivisect
+    vw = vivisect.VivWorkspace()
+    vw.loadParsedBin(binary_object)
+    vw.analyze()
+
+where `binary_object` is your PE or Elf class object.

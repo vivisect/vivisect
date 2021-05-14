@@ -2618,6 +2618,29 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return fname
 
+    def loadParsedBin(self, pbin, fmtname=None, baseaddr=None):
+        fd = pbin.fd
+        fd.seek(0)
+        if fmtname is None:
+            byts = fd.read(32)
+            fmtname = viv_parsers.guessFormat(byts)
+
+        filename = hashlib.md5(fd.read()).hexdigest()
+
+        mod = viv_parsers.getParserModule(fmtname)
+        if hasattr(mod, "config"):
+            self.mergeConfig(mod.config)
+
+        if fmtname == 'pe':
+            mod.loadPeIntoWorkspace(self, pbin)
+        elif fmtname == 'elf':
+            mod.loadElfIntoWorkspace(self, pbin)
+
+        self.initMeta("StorageName", filename+".viv")
+        self._snapInAnalysisModules()
+
+        return fname
+
     def _saveSymbolCaches(self):
 
         if not self.config.vdb.SymbolCacheActive:

@@ -14,9 +14,10 @@ Welcome to vivisect's documentation!
 
    vivisect/intro
    vivisect/quickstart
-   vivisect/devguide
+   vivisect/devguides
    vivisect/extensions
    vivisect/scripting
+   vivisect/remote
 
 
 Indices and tables

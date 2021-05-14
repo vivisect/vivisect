@@ -72,6 +72,7 @@ Running the Vdb UI
 ==================
 
 Simimlarly, for vivbin, these commands also work::
+
     python -v vdbbin.vdbin -Q
     vdbbin -Q
 
