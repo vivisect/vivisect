@@ -258,6 +258,7 @@ def analyzePLT(vw, ssva, ssize):
                 logger.warning('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
                 sva += 1
 
+        '''
         if not len(branchvas):
             return
 
@@ -387,12 +388,14 @@ def analyzePLT(vw, ssva, ssize):
             logger.info('making PLT function: 0x%x', sva)
             vw.makeFunction(sva)
 
+    '''
+
     except Exception as e:
         logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
 
 
-MAX_OPS = 10
 
+MAX_OPS = 10
 
 def analyzeFunction(vw, funcva):
     # check to make sure we're in the PLT
