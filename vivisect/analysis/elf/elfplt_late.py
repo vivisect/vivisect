@@ -1,5 +1,7 @@
-from . import elfplt
 import logging
+import vivisect
+
+from . import elfplt
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,15 @@ def analyze(vw):
                 toGOT = False
                 for xrfr, xrto, xrtype, xrtinfo in xrefsfrom:
                     if gotva <= xrto < gotva+gotsz:
+                        # make sure we're pointing at a valid import
+                        toloc = vw.getLocation(xrto)
+                        if toloc is None:
+                            continue
+
+                        tlva, tlsz, tltype, tlinfo = toloc
+                        if tltype != vivisect.LOC_IMPORT:
+                            continue
+
                         toGOT = True
 
                 if toGOT:
