@@ -152,8 +152,6 @@ def analyzePLT(vw, ssva, ssize):
         emu = None
         sva = ssva
         nextseg = sva + ssize
-        trampbr = None
-        has_tramp = False
         gotva, gotsize = getGOT(vw, ssva)
 
         ###### make code for every opcode in PLT
@@ -243,10 +241,6 @@ def analyzePLT(vw, ssva, ssize):
                                                 logger.debug("0x%x: tbrref not in GOT (DT_PLTGOT)", tbrref)
                                                 realplt = False
 
-                        if not realplt:
-                            has_tramp = True
-                            logger.debug("HAS_TRAMP!")
-
                         branchvas.append((op.va, realplt, tbrva, op))
 
                     # after analyzing the situation, emulate the opcode
@@ -257,138 +251,6 @@ def analyzePLT(vw, ssva, ssize):
             else:
                 logger.warning('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
                 sva += 1
-
-        '''
-        if not len(branchvas):
-            return
-
-        # plt entries have:
-        #   a distance between starts/finish 
-        #   a size
-        # they are not the same.
-
-        if has_tramp:
-            # find the tramp's branch
-            trampbr = ssva
-            loc = vw.getLocation(trampbr)
-            while loc is not None and (loc[vivisect.L_TINFO] & envi.IF_BRANCH == 0):
-                lva, lsz, ltype, ltinfo = loc
-                trampbr += lsz
-                loc = vw.getLocation(trampbr)
-
-            # set our branchva list straight.  trampoline is *not* a realplt.
-            if branchvas[0][0] == trampbr:
-                branchvas[0] = (trampbr, False, branchvas[0][2], branchvas[0][3])
-            else:
-                logger.debug("has_tramp: trampbr: 0x%x    branchvas[0][0]: 0x%x -> 0x%x", trampbr, branchvas[0][0], branchvas[0][2])
-
-        ###### heuristically determine PLT entry size and distance
-        heur = {}
-        lastva = ssva
-        # first determine distance between GOT branches:
-        for vidx in range(1, len(branchvas)):
-            bva, realplt, brtgt, bop = branchvas[vidx]
-            if not realplt:
-                continue
-
-            delta = bva - lastva
-            lastva = bva
-            heur[delta] = heur.get(delta, 0) + 1
-
-        heurlist = [(y, x) for x, y in heur.items()]
-        heurlist.sort()
-
-        # there should be only one heuristic
-        if len(heurlist) > 1:
-            logger.warning("heuristics have more than one tracked branch: investigate!  PLT analysis may be wrong (%r)", heurlist)
-
-        # distance should be the greatest value.
-        if len(heurlist):
-            plt_distance = heurlist[-1][1]
-            logger.debug('plt_distance : 0x%x\n%r', plt_distance, heurlist)
-        else:
-            # if we don't have a heurlist, this shouldn't matter:
-            plt_distance = 16
-            logger.debug('plt_distance (fallback): 0x%x', plt_distance)
-
-
-        ###### now determine plt_size (basically, how far to backup from the branch to find the start of function
-        # *don't* use the first entry, because the trampoline is often oddly sized...
-        logger.debug('finding plt_size...')
-        plt_size = 0
-        # let's start at the end, since with or without a tramp, we have to have *one* good one,
-        # or we just don't care.
-        bridx = len(branchvas)-1
-
-        brva, realplt, brtgtva, op = branchvas[bridx]
-        while brva != trampbr and not realplt:
-            bridx -= 1
-            brva, realplt, brtgtva, op = branchvas[bridx]
-
-        # start off pointing at the branch location which bounces through GOT.
-        loc = vw.getLocation(brva)
-
-        # get the arch-dependent list of badops and the nop instruction bytes
-        badops = vw.arch.archGetBadOps()
-        nopbytes = vw.arch.archGetNopInstr()
-
-        # we're searching *backwards* for a point where either we hit:
-        #  * another branch/NO_FALL (ie. lazy-loader) or
-        #  * non-Opcode (eg. literal pool)
-        #  * or a NOP
-        # bounded to what we know is the distance between PLT branches
-        loc = vw.getLocation(loc[vivisect.L_VA] - 1)
-        while loc is not None and \
-                plt_size <= plt_distance:
-            # first we back up one location
-            lva, lsz, ltype, ltinfo = loc
-
-            # if we run past the beginning of the PLT section, we're done.
-            if lva < ssva:
-                break
-
-            if ltype != vivisect.LOC_OP:
-                # we've run into a non-opcode location: bail!
-                break
-
-            if ltinfo & envi.IF_BRANCH:
-                # we've hit another branch instruction.  stop!
-                break
-
-            op = vw.parseOpcode(lva)
-            if op.mnem == 'nop' or vw.readMemory(lva, len(nopbytes)) == nopbytes:
-                # we've run into inter-plt padding - curse you, gcc!
-                break
-
-            if op in badops:
-                # we've run into a "bad opcode" like \x00\x00 or \xff\xff...
-                break
-
-            # if we get through all those checks, the previous location is part
-            # of the PLT function.
-            plt_size += lsz
-            loc = vw.getLocation(loc[vivisect.L_VA] - 1)
-
-        logger.debug('plt_size : 0x%x', plt_size)
-
-        ###### now get start of first real PLT entry
-        bridx = 0
-        brlen = len(branchvas)
-        logger.debug('plt branchvas: %r', [(hex(x), y, z, a) for x, y, z, a in branchvas])
-
-        if has_tramp:
-            logger.debug('First function in PLT is not a PLT entry.  Found Lazy Loader Trampoline.')
-            vw.makeName(ssva, 'LazyLoaderTrampoline', filelocal=True, makeuniq=True)
-
-        # scroll through arbitrary length functions and make functions
-        for brva, realplt, brtgtva, op in branchvas:
-            if not realplt:
-                continue
-            sva = brva - plt_size
-            logger.info('making PLT function: 0x%x', sva)
-            vw.makeFunction(sva)
-
-    '''
 
     except Exception as e:
         logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))

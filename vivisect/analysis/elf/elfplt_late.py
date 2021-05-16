@@ -1,17 +1,19 @@
 from . import elfplt
+import logging
+
+logger = logging.getLogger(__name__)
 
 def analyze(vw):
     try:
-        print('PLT: ' + '\nPLT: '.join([hex(x) for x,y in elfplt.getPLTs(vw)]))
-        print(elfplt.getPLTs(vw))
+        logger.info('ELFPLT late-analysis')
 
         for pltva, pltsz in elfplt.getPLTs(vw):
-            print("PLT: --- 0x%x:%d" % (pltva, pltsz))
+            logger.debug("PLT Section:  0x%x:%d", pltva, pltsz)
             # find functions currently defined in this PLT
             curplts = []
             for fva in vw.getFunctions():
                 if pltva <= fva < (pltva+pltsz) and fva not in curplts:
-                    print(hex(fva))
+                    logger.debug("PLT Function: 0x%x", fva)
                     curplts.append(fva)
 
             # now figure out the distance from function start to the GOT xref:
@@ -34,12 +36,12 @@ def analyze(vw):
             if not len(heur):
                 continue
 
-            print("GOT: 0x%x" % gotva)
+            logger.debug("GOT/size: 0x%x/0x%x", gotva, gotsz)
             # if we have what we need... scroll through all the non-functioned area
             # looking for GOT-xrefs
             offbycnt = [(cnt, off) for off, cnt in heur.items()]
             offbycnt.sort(reverse=True)
-            print(vw.getSegment(pltva))
+            logger.debug("PLT Segment Data: %r", vw.getSegment(pltva))
             cnt, realoff = offbycnt[0]
 
             # now roll through the PLT space and look for GOT-references from 
@@ -49,7 +51,7 @@ def analyze(vw):
                 locva, lsz, ltype, ltinfo = vw.getLocation(pltva + offset)
 
                 xrefsfrom = vw.getXrefsFrom(locva)
-                print("loc: 0x%x   xrefs: %r" % (locva, xrefsfrom))
+                logger.debug("loc: 0x%x   xrefs: %r", locva, xrefsfrom)
                 toGOT = False
                 for xrfr, xrto, xrtype, xrtinfo in xrefsfrom:
                     if gotva <= xrto < gotva+gotsz:
@@ -58,15 +60,13 @@ def analyze(vw):
                 if toGOT:
                     # we have an xref into the GOT and no function.  go!
                     funcstartva = locva - realoff
-                    print("PLT Function: 0x%x (GOT jmp: 0x%x)" % (funcstartva, locva))
                     if vw.getFunction(locva) != funcstartva:
-                        print("NEW!!!!!")
+                        logger.debug("New PLT Function: 0x%x (GOT jmp: 0x%x)" % (funcstartva, locva))
                     vw.makeFunction(funcstartva)
 
                 offset += lsz
-                print("offset: %d" % offset)
 
-            import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+            #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
     except Exception as e:
         import sys
