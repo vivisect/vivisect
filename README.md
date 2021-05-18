@@ -103,7 +103,6 @@ be loadable in python3 vivisect.
 ## Build Status
 
 [![CircleCI](https://circleci.com/gh/vivisect/vivisect/tree/master.svg?style=svg)](https://circleci.com/gh/vivisect/vivisect/tree/master)
-[![Build Status](https://travis-ci.org/vivisect/vivisect.svg?branch=master)](https://travis-ci.org/vivisect/vivisect)
 
 ## Extending Vivisect / Vdb
 

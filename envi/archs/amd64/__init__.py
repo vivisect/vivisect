@@ -104,17 +104,16 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         self.addCallingConvention("sysvamd64systemcall", sysvamd64systemcall)
         self.addCallingConvention("msx64call", msx64call)
 
-
-    def doPush(self, val):
+    def doPush(self, val, size=8):
         rsp = self.getRegister(REG_RSP)
-        rsp -= 8
-        self.writeMemValue(rsp, val, 8)
+        rsp -= size
+        self.writeMemValue(rsp, val, size)
         self.setRegister(REG_RSP, rsp)
 
-    def doPop(self):
+    def doPop(self, size=8):
         rsp = self.getRegister(REG_RSP)
-        val = self.readMemValue(rsp, 8)
-        self.setRegister(REG_RSP, rsp+8)
+        val = self.readMemValue(rsp, size)
+        self.setRegister(REG_RSP, rsp+size)
         return val
 
     def i_aam(self, op):

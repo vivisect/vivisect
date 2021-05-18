@@ -16,9 +16,21 @@ from envi.archs.i386 import i386Module
 
 def shiftMask(val, size):
     if size == 1:
-        return (val & 0x1f) % 9
+        return (val & 0x1f) % 8
     elif size == 2:
-        return (val & 0x1f) % 17
+        return (val & 0x1f) % 16
+    elif size == 4:
+        return val & 0x1f
+    elif size == 8:
+        return val & 0x3f
+    else:
+        raise Exception("shiftMask is broke in envi/arch/i386/emu.py")
+
+def shiftMaskRC(val, size):
+    if size == 1:
+        return (val & 0x1f) % 9     # RCL and RCR only
+    elif size == 2:
+        return (val & 0x1f) % 17    # RCL and RCR only
     elif size == 4:
         return val & 0x1f
     elif size == 8:
@@ -114,7 +126,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             archmod = i386Module()
 
         envi.Emulator.__init__(self, archmod=archmod)
-        self.initEmuOpt('i386:reponce',False,'Set to True to short circuit rep prefix')
+        self.initEmuOpt('i386:reponce', False, 'Set to True to short circuit rep prefix')
 
         for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
@@ -334,16 +346,16 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     ###### End Conditional Callbacks #####
 
-    def doPush(self, val):
+    def doPush(self, val, size=4):
         esp = self.getRegister(REG_ESP)
-        esp -= 4
-        self.writeMemValue(esp, val, 4)
+        esp -= size
+        self.writeMemValue(esp, val, size)
         self.setRegister(REG_ESP, esp)
 
-    def doPop(self):
+    def doPop(self, size=4):
         esp = self.getRegister(REG_ESP)
-        val = self.readMemValue(esp, 4)
-        self.setRegister(REG_ESP, esp+4)
+        val = self.readMemValue(esp, size)
+        self.setRegister(REG_ESP, esp+size)
         return val
 
     def integerSubtraction(self, op):
@@ -424,6 +436,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         return ret
 
     def doRepzPrefix(self, meth, op):
+        # TODO
         pass
 
     # Beginning of Instruction methods
@@ -594,7 +607,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, e_bits.byteswap(val, tsize))
 
     def i_bsr(self, op):
-        val = self.getOperValue(op, 0)
+        val = self.getOperValue(op, 1)
 
         if val == 0:
             # If the src is 0, set ZF and get out
@@ -607,13 +620,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         rmax = (tsize*8) - 1
         while rmax >= 0:
             if val & (1<<rmax):
-                self.setOperValue(op, 1, rmax)
+                self.setOperValue(op, 0, rmax)
                 return
             rmax -= 1
 
     def doBitTest(self, op):
+        dsize = op.opers[0].tsize
         val = self.getOperValue(op, 0)
         shift = self.getOperValue(op, 1)
+        shift %= (dsize << 3)
         mask = 1 << shift
         self.setFlag(EFLAGS_CF, val & mask)
         # Return the source and mask for btc/btr
@@ -630,7 +645,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_btr(self, op):
         # bit test (and clear in the source)
         val, mask = self.doBitTest(op)
-        mask = e_bits.unsigned(~val, op.opers[0].tsize)
+        mask = e_bits.unsigned(~mask, op.opers[0].tsize)
         self.setOperValue(op, 0, val & mask)
 
     def i_bts(self, op):
@@ -855,8 +870,17 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 #"FIXME: division exception"
             self.setRegister(REG_EAX, (quot << 8) + rem)
 
+        elif dsize == 2:
+            ax = self.getRegister(REG_AX)
+            dx = self.getRegister(REG_DX)
+            tot = (dx << 16) + ax
+            quot = int(tot / val)
+            rem = tot % val
+
+            self.setRegister(REG_AX, quot)
+            self.setRegister(REG_DX, rem)
+
         elif dsize == 4:
-            #FIXME 16 bit over-ride
             eax = self.getRegister(REG_EAX)
             edx = self.getRegister(REG_EDX)
             tot = (edx << 32) + eax
@@ -1353,7 +1377,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
 
     def i_pop(self, op):
-        val = self.doPop()
+        val = self.doPop(size=op.opers[0].tsize)
         self.setOperValue(op, 0, val)
 
     def i_popad(self, op):
@@ -1372,10 +1396,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setRegister(self.flagidx, eflags)
 
     def i_push(self, op):
+        tsize = op.opers[0].tsize
         val = self.getOperValue(op, 0)
         if isinstance(op.opers[0], i386ImmOper):
             val = e_bits.sign_extend(val, self.getPointerSize(), 4)
-        self.doPush(val)
+        self.doPush(val, tsize)
 
     def i_pushad(self, op):
         tmp = self.getRegister(REG_ESP)
@@ -1452,7 +1477,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        src = src & 0x1f
+        src = shiftMaskRC(src, dsize)
 
         # Put that carry bit up there.
         if self.getFlag(EFLAGS_CF):
@@ -1460,7 +1485,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # Add one to account for carry
         x = ((8*dsize) - src) + 1
-        #FIXME is this the one that can end up negative?
 
         res = (dst << src) | (dst >> x)
         cf = (res >> (8*dsize)) & 1
@@ -1479,7 +1503,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        src = src & 0x1f
+        src = shiftMaskRC(src, dsize)
+
         # Put that carry bit up there.
         if self.getFlag(EFLAGS_CF):
             dst = dst | (1 << (8 * dsize))
@@ -1524,18 +1549,19 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 cf = self.getFlag(EFLAGS_CF)
                 self.setFlag(EFLAGS_OF, e_bits.msb(val, dstSize) ^ cf)
             else:
-                self.setFlag(EFLAGS_OF, False)
+                self.setFlag(EFLAGS_OF, 0)
 
     def i_ror(self, op):
         dstSize = op.opers[0].tsize
         count = self.getOperValue(op, 1)
         tempCount = shiftMask(count, dstSize)
+        bitlen = dstSize * 8
 
         if tempCount > 0: # Yeah, i know...weird. See the intel manual
             while tempCount:
                 val = self.getOperValue(op, 0)
                 tempCf = e_bits.lsb(val)
-                self.setOperValue(op, 0, (val >> 1) + (tempCf * (2 ** dstSize)))
+                self.setOperValue(op, 0, (val >> 1) + (tempCf * (2 ** (bitlen-1))))
                 tempCount -= 1
             val = self.getOperValue(op, 0)
             self.setFlag(EFLAGS_CF, e_bits.msb(val, dstSize))
@@ -1545,7 +1571,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 # FIXME: This may be broke...the manual is kinda flaky here
                 self.setFlag(EFLAGS_OF, e_bits.msb(val, dstSize) ^ (e_bits.msb(val, dstSize) - 1))
             else:
-                self.setFlag(EFLAGS_OF, False)
+                self.setFlag(EFLAGS_OF, 0)
 
     def i_ret(self, op):
         ret = self.doPop()

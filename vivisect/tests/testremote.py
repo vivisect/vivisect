@@ -6,6 +6,7 @@ import threading
 import multiprocessing as mp
 
 import vivisect
+import vivisect.const as v_const
 import vivisect.tests.helpers as helpers
 import vivisect.remote.server as v_r_server
 
@@ -82,6 +83,12 @@ class VivisectRemoteTests(unittest.TestCase):
                 self.assertEqual(set(othr.getXrefs()), set(good.getXrefs()))
 
                 try:
+                    othr.server = None
+                    q = othr.chan_lookup.get(othr.rchan)
+                    if q:
+                        # So it's not reeeealy auto analysis fini, but it's a good enough stand-in to get
+                        # the server thread to shutdown cleaner
+                        q.puts((v_const.VWE_AUTOANALFIN, None))
                     proc.terminate()
                     proc.close()
                 except:
