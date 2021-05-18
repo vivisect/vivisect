@@ -94,7 +94,7 @@ def getGOT(vw, fileva):
 
     # pull GOT info from Dynamics
     fdyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
-    if fdyns is not None and gotva is not None:
+    if fdyns is not None:
         FGOT = fdyns.get('DT_PLTGOT')
         if FGOT is not None:
             # be sure to add the imgbase to FGOT if required
@@ -108,13 +108,63 @@ def getGOT(vw, fileva):
 
             # since Dynamics don't store the GOT size, just use to the end of the memory map
             mmva, mmsz, mmperm, mmname = vw.getMemoryMap(FGOT)
+            gotva = FGOT
             moffset = gotva - mmva
             gotsize = mmsz - moffset
-            gotva = FGOT
 
     vw.setFileMeta(filename, 'GOT', (gotva, gotsize))
     return gotva, gotsize
 
+def getGOTs(vw):
+    out = {}
+
+    gotva = None
+    gotsize = None
+    for va, size, name, fname in vw.getSegments():
+        if name in ('.got.plt', '.got'):
+            f = vw.getFileByVa(va)
+            flist = out.get(f)
+            if flist is None:
+                flist = []
+                out[f] = flist
+
+            gottup = (va, size)
+            if gottup not in flist:
+                flist.append(gottup)
+
+
+    # pull GOT info from Dynamics
+    for filename in vw.getFiles():
+        fdyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
+        if fdyns is not None:
+            FGOT = fdyns.get('DT_PLTGOT')
+            if FGOT is not None:
+                # be sure to add the imgbase to FGOT if required
+                if vw.getFileMeta(filename, 'addbase'):
+                    imgbase = vw.getFileMeta(filename, 'imagebase')
+                    #logger.debug('Adding Imagebase: 0x%x', imgbase)
+                    FGOT += imgbase
+
+                flist = out.get(filename)
+                if flist is None:
+                    flist = []
+                    out[filename] = flist
+
+                skip = False
+                for va, size in flist:
+                    if FGOT == va:
+                        skip = True
+
+                if skip:
+                    continue
+
+                # since Dynamics don't store the GOT size, just use to the end of the memory map
+                mmva, mmsz, mmperm, mmname = vw.getMemoryMap(FGOT)
+                gotva = FGOT
+                moffset = gotva - mmva
+                gotsize = mmsz - moffset
+                flist.append((gotva, gotsize))
+    return out
 
 def getPLTs(vw):
     plts = []
@@ -153,6 +203,9 @@ def analyzePLT(vw, ssva, ssize):
         sva = ssva
         nextseg = sva + ssize
         gotva, gotsize = getGOT(vw, ssva)
+
+        # just make the first thing a function??  what could possibly go wrong?!
+        vw.makeFunction(ssva)
 
         ###### make code for every opcode in PLT
         # make and parse opcodes.  keep track of unconditional branches

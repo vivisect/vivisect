@@ -90,9 +90,9 @@ class ELFTests(unittest.TestCase):
             curplts = []
             for fva in vw.getFunctions():
                 if pltva <= fva < (pltva+pltsz) and fva not in curplts:
-                    logger.warn("PLT Function: 0x%x", fva)
+                    logger.warning("PLT Function: 0x%x", fva)
                     curplts.append(fva)
-            logger.warn("%r", curplts)
+            logger.warning("%r", curplts)
 
             # accumulate the distances between PLT functions
             heur = {}
@@ -102,7 +102,7 @@ class ELFTests(unittest.TestCase):
                 delta = va - last
                 last = va
                 
-                logger.warn("PLTVA: 0x%x  va: 0x%x   delta: 0x%x", pltva, va, delta)
+                logger.warning("PLTVA: 0x%x  va: 0x%x   delta: 0x%x", pltva, va, delta)
                 if delta == va:
                     # it's the first entry, skip
                     continue
