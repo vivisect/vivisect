@@ -13,6 +13,7 @@ import string
 import hashlib
 import logging
 import binascii
+import functools
 import itertools
 import traceback
 import threading
@@ -1111,6 +1112,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     #
     # Opcode API
     #
+    @functools.cache
     def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
         '''
         Parse an opcode from the specified virtual address.
