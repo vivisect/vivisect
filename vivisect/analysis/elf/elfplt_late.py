@@ -62,6 +62,7 @@ def analyzePLT(vw, pltva, pltsz):
     # without function analysis.  it fails on i386-pic code which uses ebx 
     # (which is handed into the call as a base address)
     logger.debug("GOT/size: 0x%x/0x%x", gotva, gotsz)
+
     # if we have what we need... scroll through all the non-functioned area
     # looking for GOT-xrefs
     offbycnt = [(cnt, off) for off, cnt in jmpheur.items()]
@@ -71,6 +72,7 @@ def analyzePLT(vw, pltva, pltsz):
 
     # now roll through the PLT space and look for GOT-references from 
     # locations that aren't in a function
+    logger.warning("... analysis mode 1: GOT-XREF Offset")
     offset = 0
     while offset < pltsz:
         locva, lsz, ltype, ltinfo = vw.getLocation(pltva + offset)
@@ -110,11 +112,92 @@ def analyzePLT(vw, pltva, pltsz):
 
     ######## Now let's attempt to identify the smallest common distance between functions
     # what's the smallest distance between functions that
+    logger.warning("... analysis mode 2: PLT-Func-Distance")
+    curpltcnt = len(curplts)
+    minimumbar = 1 + (curpltcnt // 100)
 
+    # cull the heard.  our winner wants to be at least greater than one entry
+    for delta, count in list(distanceheur.items()):
+        if count < minimumbar:
+            distanceheur.pop(delta)
 
+        elif delta == 0:  # can't have 0.  skip the first PLT function
+            distanceheur.pop(delta)
+
+    workdist = list(distanceheur.items())
+    workdist.sort()
+    logger.warning(workdist)
+
+    # first entry should be our guy...
+    funcdist = workdist[0][0]
+    logger.warning("funcdist: 0x%x", funcdist)
+
+    # find starting point of two curplts this distance apart
+    for idx in range(1, len(curplts)):
+        if curplts[idx] - curplts[idx-1] == funcdist:
+            break
+
+    startidx = idx
+
+    tmpva = curplts[idx]
+    logger.debug("... backwards from... 0x%x", tmpva)
+    op = vw.parseOpcode(tmpva)
+    stdmnem = op.mnem
+    # start there and go backwards
+    while tmpva > pltva:
+        logger.warn("tmpva: 0x%x", tmpva)
+        # check if already a function
+        if vw.getFunction(tmpva) is not None:
+            #logger.debug('skip 0x%x: already function', tmpva)
+            tmpva -= funcdist 
+            continue
+
+        # check if there's enough room for an even additional one beyond this (ie. the initial entry in the plt is slightly larger than a normal entry
+        leftovers = tmpva - funcdist - pltva
+        if leftovers != 0 and leftovers < funcdist:
+            logger.debug('skip 0x%x: too close to beginning of PLT', tmpva)
+            tmpva -= funcdist 
+            continue
+        
+        # if standard start of plt mnemonic is different...
+        op = vw.parseOpcode(tmpva)
+        if op.mnem != stdmnem:
+            logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
+            tmpva -= funcdist 
+            continue
+
+        logger.info("New PLT Function! 0x%x", tmpva)
+        vw.makeFunction(tmpva)
+
+        tmpva -= funcdist 
+
+    # now we go to the end of the PLT!
+    tmpva = curplts[idx]
+    logger.debug("... forwards from... 0x%x", tmpva)
+    endva = pltva + pltsz
+    while tmpva < endva:
+        logger.warn("tmpva: 0x%x", tmpva)
+        # check if already a function
+        if vw.getFunction(tmpva) is not None:
+            #logger.debug('skip 0x%x: already function', tmpva)
+            tmpva += funcdist 
+            continue
+
+        # if standard start of plt mnemonic is different...
+        op = vw.parseOpcode(tmpva)
+        if op.mnem != stdmnem:
+            logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
+            tmpva += funcdist 
+            continue
+
+        logger.info("New PLT Function! 0x%x", tmpva)
+        vw.makeFunction(tmpva)
+
+        tmpva += funcdist 
 
     logger.warning("elfplt_late: pltva: 0x%x, %d", pltva, pltsz)
-    import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+    if input("PRESS ENTER (i for interactive)").startswith('i'):
+        import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
 def isGOT(vw, va):
     fname = vw.getFileByVa(va)
