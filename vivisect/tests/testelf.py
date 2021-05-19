@@ -94,6 +94,11 @@ class ELFTests(unittest.TestCase):
                     curplts.append(fva)
             logger.warning("%r", curplts)
 
+            logger.warning("curplts length: %d", len(curplts))
+            if not len(curplts):
+                logger.warning('skipping...')
+                continue
+
             # accumulate the distances between PLT functions
             heur = {}
             last = 0
