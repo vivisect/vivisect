@@ -421,6 +421,19 @@ class PE(object):
         except:
             pass  # whatever. we're tearing down anyway
 
+    def getFileBytes(self):
+        '''
+        Return the bytes of the file as they currently exist from the view of the file descriptor-like object
+
+        But keeping in mind not to smash over the old location of the fd
+        '''
+        self.fd.flush()
+        old = self.fd.tell()
+        self.fd.seek(0)
+        byts = self.fd.read()
+        self.fd.seek(old)
+        return byts
+
     def getPdataEntries(self):
         sec = self.getSectionByName('.pdata')
         if sec is None:
@@ -690,9 +703,12 @@ class PE(object):
 
         secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
         sbytes = self.readAtOffset(off, secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections)
+        indx = off
         while sbytes:
             s = vstruct.getStructure("pe.IMAGE_SECTION_HEADER")
             s.vsParse(sbytes[:secsize])
+            s.vsSetMeta('Offset', indx)
+            indx += secsize
             self.sections.append(s)
             sbytes = sbytes[secsize:]
 

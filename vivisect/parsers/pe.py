@@ -1,5 +1,6 @@
+import base64
 import logging
-from io import StringIO
+from io import BytesIO
 
 import PE
 import PE.carve as pe_carve
@@ -37,7 +38,7 @@ def parseFile(vw, filename, baseaddr=None):
 
 
 def parseBytes(vw, bytes, baseaddr=None):
-    fd = StringIO(bytes)
+    fd = BytesIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
     return loadPeIntoWorkspace(vw, pe, baseaddr=baseaddr)
@@ -92,6 +93,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
     vw.parsedbin = pe
+    byts = pe.getFileBytes()
+    vw.setMeta('FileBytes', v_parsers.compressBytes(byts))
 
     platform = 'windows'
 
@@ -127,9 +130,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     # grab the file bytes for hashing
     pe.fd.seek(0)
-    bytez = pe.fd.read()
-    fhash = v_parsers.md5Bytes(bytez)
-    sha256 = v_parsers.sha256Bytes(bytez)
+    fhash = v_parsers.md5Bytes(byts)
+    sha256 = v_parsers.sha256Bytes(byts)
 
     # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
@@ -225,7 +227,10 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     for idx, sec in enumerate(pe.sections):
         mapflags = 0
-
+        offset = sec.vsGetMeta("Offset", None)
+        if offset:
+            addr = baseaddr + offset
+            vw.makeStructure(addr, 'pe.IMAGE_SECTION_HEADER')
         chars = sec.Characteristics
         if chars & PE.IMAGE_SCN_MEM_READ:
             mapflags |= e_mem.MM_READ
