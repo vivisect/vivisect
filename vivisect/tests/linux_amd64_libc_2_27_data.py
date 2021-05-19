@@ -3652,7 +3652,6 @@ libc_data = {
     ],
 
     'names' : [
-        (0x2020fd0, 'libc_2_27.LazyLoaderTrampoline'),
         (0x2020fe0, 'libc_2_27.plt_memmove_0'),
         (0x2020ff0, 'libc_2_27.plt_gettimeofday'),
         (0x2021000, 'libc_2_27.plt_strnlen'),
@@ -5899,3 +5898,5 @@ libc_data = {
     ],
 
 }
+
+

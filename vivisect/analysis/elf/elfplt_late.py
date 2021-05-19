@@ -153,8 +153,9 @@ def analyzePLT(vw, pltva, pltsz):
         # start there and go backwards
         while tmpva > pltva:
             logger.warn("tmpva: 0x%x", tmpva)
-            # check if already a function
-            if vw.getFunction(tmpva) is not None:
+            # check if already in a PLT function
+            curfunc = vw.getFunction(tmpva)
+            if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
                 #logger.debug('skip 0x%x: already function', tmpva)
                 tmpva -= funcdist 
                 continue
@@ -184,8 +185,9 @@ def analyzePLT(vw, pltva, pltsz):
         endva = pltva + pltsz
         while tmpva < endva:
             logger.warn("tmpva: 0x%x", tmpva)
-            # check if already a function
-            if vw.getFunction(tmpva) is not None:
+            # check if already in a PLT function
+            curfunc = vw.getFunction(tmpva)
+            if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
                 #logger.debug('skip 0x%x: already function', tmpva)
                 tmpva += funcdist 
                 continue
@@ -203,8 +205,8 @@ def analyzePLT(vw, pltva, pltsz):
             tmpva += funcdist 
 
         logger.warning("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
-        if input("PRESS ENTER (i for interactive)").startswith('i'):
-            import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        #if input("PRESS ENTER (i for interactive)").startswith('i'):
+        #    import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
 def isGOT(vw, va):
     fname = vw.getFileByVa(va)

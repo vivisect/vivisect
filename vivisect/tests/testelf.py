@@ -101,19 +101,26 @@ class ELFTests(unittest.TestCase):
 
             # accumulate the distances between PLT functions
             heur = {}
-            last = 0
+            last = pltva
             curplts.sort()
             for va in curplts:
                 delta = va - last
                 last = va
                 
                 logger.warning("PLTVA: 0x%x  va: 0x%x   delta: 0x%x", pltva, va, delta)
-                if delta == va:
+                if delta == 0:
                     # it's the first entry, skip
                     continue
 
                 dcnt = heur.get(delta, 0)
                 heur[delta] = dcnt + 1
+
+            # check if the first entry is odd-sized and chuck it if so
+            if len(curplts) > 1:
+                firstdelta = curplts[1] - curplts[0]
+                if heur.get(firstdelta) == 1:
+                    # it's a lone wolf, an aberration.  KILL IT!
+                    heur.pop(firstdelta)
 
             # assert that there should be only one size between functions
             self.assertLessEqual(len(heur), 1, "More than one heuristic for %r: %r" % (vw.getMeta('StorageName'), heur))

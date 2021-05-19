@@ -1,5 +1,5 @@
 ls_data = {
-    'imports': [
+    'imports' : [
         (0x618fd8, 8, 9, '*.__gmon_start__'),
         (0x619000, 8, 9, '*.__ctype_toupper_loc'),
         (0x619008, 8, 9, '*.getenv'),
@@ -129,7 +129,6 @@ ls_data = {
 
     'names' : [
         (0x401fd0, 'ls._init'),
-        (0x401ff0, 'ls.LazyLoaderTrampoline'),
         (0x402000, 'ls.plt___ctype_toupper_loc'),
         (0x402010, 'ls.plt_getenv'),
         (0x402020, 'ls.plt_sigprocmask'),
@@ -351,7 +350,9 @@ ls_data = {
         (0x6195b8, 'ls.stderr'),
     ],
 
-    'pltgot': [
+    'pltgot' : [
     ],
 
 }
+
+
