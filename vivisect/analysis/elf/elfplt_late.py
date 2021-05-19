@@ -27,8 +27,13 @@ def analyzePLT(vw, pltva, pltsz):
             logger.debug("PLT Function: 0x%x", fva)
             curplts.append(fva)
 
-    # now figure out the distance from function start to the GOT xref:
-    heur = {}
+    curplts.sort()
+
+    # now figure out the distance from function start to the GOT xref 
+    # and between PLT functions
+    lastva = pltva
+    jmpheur = {}
+    distanceheur = {}
     for fva in curplts:
         fsz = vw.getFunctionMeta(fva, 'Size')
         gotva, gotsz = elfplt.getGOT(vw, fva)
@@ -39,18 +44,27 @@ def analyzePLT(vw, pltva, pltsz):
             xrefsfrom = vw.getXrefsFrom(locva)
             for xrfr, xrto, xrtype, xrtinfo in xrefsfrom:
                 if gotva <= xrto < gotva+gotsz:
-                    offcnt = heur.get(offset, 0)
-                    heur[offset] = offcnt + 1
+                    offcnt = jmpheur.get(offset, 0)
+                    jmpheur[offset] = offcnt + 1
 
             offset += lsz
 
-    if not len(heur):
+        # capture distance between functions
+        delta = fva - lastva
+        distanceheur[delta] = distanceheur.get(delta, 0) + 1
+        lastva = fva
+
+
+    if not len(jmpheur):
         return
 
+    # this seems to work for many PLT's, but only if the xref is identifiable 
+    # without function analysis.  it fails on i386-pic code which uses ebx 
+    # (which is handed into the call as a base address)
     logger.debug("GOT/size: 0x%x/0x%x", gotva, gotsz)
     # if we have what we need... scroll through all the non-functioned area
     # looking for GOT-xrefs
-    offbycnt = [(cnt, off) for off, cnt in heur.items()]
+    offbycnt = [(cnt, off) for off, cnt in jmpheur.items()]
     offbycnt.sort(reverse=True)
     logger.debug("PLT Segment Data: %r", vw.getSegment(pltva))
     cnt, realoff = offbycnt[0]
@@ -88,12 +102,18 @@ def analyzePLT(vw, pltva, pltsz):
                 if curfuncva is None or not isPLT(vw, curfuncva):
                     vw.makeFunction(funcstartva)
                 else:
-                    logger.warn("attempting to make function at 0x%x, which is already a member of 0x%x",
+                    logger.warning("attempting to make function at 0x%x, which is already a member of 0x%x",
                             funcstartva, vw.getFunction(funcstartva))
 
         offset += lsz
 
-    logger.warn("elfplt_late: pltva: 0x%x, %d", pltva, pltsz)
+
+    ######## Now let's attempt to identify the smallest common distance between functions
+    # what's the smallest distance between functions that
+
+
+
+    logger.warning("elfplt_late: pltva: 0x%x, %d", pltva, pltsz)
     import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
 def isGOT(vw, va):
