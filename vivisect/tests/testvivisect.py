@@ -189,6 +189,7 @@ class VivisectTest(unittest.TestCase):
         Test a bunch of the simpler workspace APIs
         '''
         vw = self.firefox_vw
+        self.assertIsNotNone(vw.parsedbin)
         self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals']), set(vw.getVaSetNames()))
 
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
@@ -218,13 +219,13 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 53924, 14),
+        ans = {0: ('Undefined', 0, 53564, 14),
                1: ('Num/Int',   715, 3738, 0),
                2: ('String',    265, 6485, 1),
                3: ('Unicode',   174, 5593, 1),
                4: ('Pointer',   360, 2880, 0),
                5: ('Opcode',    72565, 279449, 74),
-               6: ('Structure', 1009, 12380, 3),
+               6: ('Structure', 1018, 12740, 3),
                7: ('Clsid',     0, 0, 0),
                8: ('VFTable',   0, 0, 0),
                9: ('Import Entry', 370, 2960, 0),
@@ -590,6 +591,7 @@ class VivisectTest(unittest.TestCase):
 
     def test_main(self):
         vw = self.chgrp_vw
+        self.assertIsNotNone(vw.parsedbin)
         self.assertTrue(vw.isFunction(0x8049650))
         self.assertTrue(vw.getFunction(0x0804a9a0), 0x0804a920)
 
