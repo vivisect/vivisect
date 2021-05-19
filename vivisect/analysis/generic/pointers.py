@@ -5,6 +5,9 @@ country looking for pointers to interesting things.
 in a previous life, this analysis code lived inside VivWorkspace.analyze()
 """
 import logging
+
+import visgraph.graphcore as g_core
+import visgraph.exc as g_exc
 from vivisect.const import RTYPE_BASEPTR, LOC_POINTER
 
 logger = logging.getLogger(__name__)
@@ -66,22 +69,41 @@ def analyze(vw):
         except Exception as e:
             logger.error('makePointer() failed for 0x%.8x (pval: 0x%.8x) (err: %s)', addr, pval, e)
 
-    refs = {v: k for k, v in done.items()}
-    while refs:
-        tgt, ptr = refs.popitem()
-        while ptr:
+    # link the possible pointers up
+    pgraph = g_core.Graph()
+    while done:
+        ptr, tgt = done.popitem()
+        try:
+            pgraph.addNode(ptr)
+        except g_exc.DuplicateNode:
+            pass
+        try:
+            pgraph.addNode(tgt)
+        except g_exc.DuplicateNode:
+            pass
+        pgraph.addEdgeByNids(ptr, tgt)
+
+    leafs = [node for node in pgraph.getNodes() if pgraph.isLeafNode(node)]
+    for leaf in leafs:
+        va, props = leaf
+        name = vw.getName(va)
+        # if there's not a name at the bottom, not work making ptr names
+        if not name:
+            continue
+        links = [(ptr, tgt) for edge, ptr, tgt, props in pgraph.getRefsToByNid(va)]
+        while links:
+            ptr, tgt = links.pop(0)
             pname = vw.getName(ptr)
             if pname:
-                break
+                continue
             if not vw.isLocType(ptr, LOC_POINTER):
-                break
+                continue
 
             tgtname = vw.getName(tgt)
             if tgtname:
                 name = vw._addNamePrefix(tgtname, tgt, 'ptr', '_') + '_%.8x' % ptr
                 logger.debug('0x%x: adding name prefix: %r  (%r)', tgt, tgtname, name)
                 vw.makeName(ptr, name)
-                tgt = ptr
-                ptr = refs.pop(tgt, None)
-            else:
-                ptr = None
+
+            for edge, n1, n2, props in pgraph.getRefsToByNid(ptr):
+                links.append((n1, n2))
