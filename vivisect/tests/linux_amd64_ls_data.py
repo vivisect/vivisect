@@ -1,5 +1,5 @@
 ls_data = {
-    'imports' : [
+    'imports': [
         (0x618fd8, 8, 9, '*.__gmon_start__'),
         (0x619000, 8, 9, '*.__ctype_toupper_loc'),
         (0x619008, 8, 9, '*.getenv'),
@@ -108,7 +108,7 @@ ls_data = {
         (0x619340, 8, 9, '*.__sprintf_chk'),
     ],
 
-    'exports' : [
+    'exports': [
         (0x401fd0, 0, '_init', 'ls'),
         (0x402040, 0, 'free', 'ls'),
         (0x402450, 0, 'malloc', 'ls'),
@@ -124,10 +124,10 @@ ls_data = {
         (0x6195b8, 1, 'stderr', 'ls'),
     ],
 
-    'relocs' : [
+    'relocs': [
     ],
 
-    'names' : [
+    'names': [
         (0x401fd0, 'ls._init'),
         (0x402000, 'ls.plt___ctype_toupper_loc'),
         (0x402010, 'ls.plt_getenv'),
@@ -350,9 +350,7 @@ ls_data = {
         (0x6195b8, 'ls.stderr'),
     ],
 
-    'pltgot' : [
+    'pltgot': [
     ],
 
 }
-
-
