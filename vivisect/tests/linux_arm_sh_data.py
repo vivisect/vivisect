@@ -1,5 +1,5 @@
 sh_data = {
-    'imports' : [
+    'imports': [
         (0x4949c, 4, 9, '*.recvfrom'),
         (0x494a0, 4, 9, '*.div'),
         (0x494a4, 4, 9, '*.fflush'),
@@ -296,7 +296,7 @@ sh_data = {
         (0x49934, 4, 9, '*.__gmon_start__'),
     ],
 
-    'exports' : [
+    'exports': [
         (0xb5f8, 0, 'recvfrom', 'sh'),
         (0xb604, 0, 'div', 'sh'),
         (0xb610, 0, 'fflush', 'sh'),
@@ -624,10 +624,10 @@ sh_data = {
         (0x49dbc, 1, 'stderr', 'sh'),
     ],
 
-    'relocs' : [
+    'relocs': [
     ],
 
-    'names' : [
+    'names': [
         (0x809c, 'sh.ptr_ptr_init_function_0_00049394_0000809c'),
         (0x80a0, 'sh.ptr_ptr_init_function_0_00049394_000080a0'),
         (0xb5d0, 'sh.init_function'),
@@ -1407,9 +1407,7 @@ sh_data = {
         (0x49dbc, 'sh.stderr'),
     ],
 
-    'pltgot' : [
+    'pltgot': [
     ],
 
 }
-
-

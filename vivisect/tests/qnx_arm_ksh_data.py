@@ -1,5 +1,5 @@
 ksh_data = {
-    'imports' : [
+    'imports': [
         (0x146a8c, 4, 9, '*.__cxa_begin_cleanup'),
         (0x146ac4, 4, 9, '*.__cxa_finalize'),
         (0x146bc0, 4, 9, '*.__deregister_frame_info'),
@@ -12,7 +12,7 @@ ksh_data = {
         (0x146e14, 4, 9, '*.__register_frame_info'),
     ],
 
-    'exports' : [
+    'exports': [
         (0x103550, 0, 'getwchar', 'ksh'),
         (0x10355c, 0, 'chroot', 'ksh'),
         (0x103568, 0, 'setrlimit64', 'ksh'),
@@ -323,7 +323,7 @@ ksh_data = {
         (0x1476d4, 1, 'environ', 'ksh'),
     ],
 
-    'relocs' : [
+    'relocs': [
         ('ksh', 0x46a1c, 0, 0x103550),
         ('ksh', 0x46a20, 0, 0x10355c),
         ('ksh', 0x46a24, 0, 0x103568),
@@ -571,7 +571,7 @@ ksh_data = {
         ('ksh', 0x46e04, 0, 0x104108),
     ],
 
-    'names' : [
+    'names': [
         (0x1000bc, 'ksh.ptr_ptr_init_array_0_00146934_001000bc'),
         (0x101d48, 'ksh.ptr___gnu_ldivmod_helper_00101d48'),
         (0x101d58, 'ksh.ptr_strchr_00101d58'),
@@ -1189,9 +1189,7 @@ ksh_data = {
         (0x1476d4, 'ksh.environ'),
     ],
 
-    'pltgot' : [
+    'pltgot': [
     ],
 
 }
-
-

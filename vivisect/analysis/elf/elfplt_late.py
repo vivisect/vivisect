@@ -135,80 +135,117 @@ def analyzePLT(vw, pltva, pltsz):
         workdist.sort()
         logger.warning(workdist)
 
-        # first entry should be our guy...
-        funcdist = workdist[0][0]
-        logger.warning("funcdist: 0x%x", funcdist)
+        if not len(workdist):
+            logger.info('... bailing, no known functions to compare to...')
 
-        # find starting point of two curplts this distance apart
-        for idx in range(1, len(curplts)):
-            if curplts[idx] - curplts[idx-1] == funcdist:
+        else:
+            # first entry should be our guy...
+            funcdist = workdist[0][0]
+            logger.warning("funcdist: 0x%x", funcdist)
+
+            idx = getGoodIndex(curplts, funcdist)
+            fva = curplts[idx]
+
+            ### magic check:  we are working off incomplete data... it's completely possible our
+            # gap measurement is twice as big as it should be (or 3 times).  how to check is 
+            # where the magic comes in...
+            funcsz = vw.getFunctionMeta(fva, 'Size')
+            for divisor in range(funcdist, 0, -1):
+                logger.warning('attempting to divide funcdist (0x%x) by %d', funcdist, divisor)
+
+                # does the gap between functions support splitting?
+                if funcdist < (divisor * funcsz):
+                    logger.warning('.. not big enough')
+                    continue
+
+                newdist = funcdist // divisor
+                # does the funcdist split evenly?
+                if newdist * divisor != funcdist:
+                    logger.warning(".. doesn't divide evenly(newdist: 0x%x  divisor: 0x%x   funcdist: 0x%x)", newdist, divisor, funcdist)
+                    continue
+
+                # do the opcodes support this size split?
+                if not compareFuncs(vw, fva, fva + newdist, funcsz):
+                    logger.warning(".. functions don't match!")
+                    continue
+
                 break
 
-        startidx = idx
+            # should end up dividing by 1 if not divisible
+            if divisor > 1:
+                logger.warning("dividing our lowest function (0x%x) distance by %d", funcdist, divisor)
+                funcdist //= divisor
 
-        tmpva = curplts[idx]
-        logger.debug("... backwards from... 0x%x", tmpva)
-        op = vw.parseOpcode(tmpva)
-        stdmnem = op.mnem
-        # start there and go backwards
-        while tmpva > pltva:
-            logger.warn("tmpva: 0x%x", tmpva)
-            # check if already in a PLT function
-            curfunc = vw.getFunction(tmpva)
-            if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
-                #logger.debug('skip 0x%x: already function', tmpva)
-                tmpva -= funcdist 
-                continue
+            idx = getGoodIndex(curplts, funcdist)
 
-            # check if there's enough room for an even additional one beyond this (ie. the initial entry in the plt is slightly larger than a normal entry
-            leftovers = tmpva - funcdist - pltva
-            if leftovers != 0 and leftovers < funcdist:
-                logger.debug('skip 0x%x: too close to beginning of PLT', tmpva)
-                tmpva -= funcdist 
-                continue
-            
-            # if standard start of plt mnemonic is different...
+            tmpva = curplts[idx]
+            logger.debug("... backwards from... 0x%x", tmpva)
             op = vw.parseOpcode(tmpva)
-            if op.mnem != stdmnem:
-                logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
+            stdmnem = op.mnem
+            # start there and go backwards
+            while tmpva > pltva:
+                logger.warn("tmpva: 0x%x", tmpva)
+                # check if already in a PLT function (ignore if it's part of some other func)
+                curfunc = vw.getFunction(tmpva)
+                if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
+                    #logger.debug('skip 0x%x: already function', tmpva)
+                    tmpva -= funcdist 
+                    continue
+
+                # check if there's enough room for an even additional one beyond this 
+                # (ie. the initial entry in the plt is slightly larger than a normal entry
+                leftovers = tmpva - funcdist - pltva
+                if leftovers != 0 and leftovers < funcdist:
+                    logger.debug('skip 0x%x: too close to beginning of PLT', tmpva)
+                    tmpva -= funcdist 
+                    continue
+                
+                # if standard start of plt mnemonic is different...
+                op = vw.parseOpcode(tmpva)
+                if op.mnem != stdmnem:
+                    logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
+                    tmpva -= funcdist 
+                    continue
+
+                logger.info("New PLT Function! 0x%x", tmpva)
+                vw.makeFunction(tmpva)
+
                 tmpva -= funcdist 
-                continue
 
-            logger.info("New PLT Function! 0x%x", tmpva)
-            vw.makeFunction(tmpva)
+            # now we go to the end of the PLT!
+            tmpva = curplts[idx]
+            logger.debug("... forwards from... 0x%x", tmpva)
+            endva = pltva + pltsz
+            while tmpva < endva:
+                logger.warn("tmpva: 0x%x", tmpva)
+                # check if already in a PLT function
+                curfunc = vw.getFunction(tmpva)
+                if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
+                    #logger.debug('skip 0x%x: already function', tmpva)
+                    tmpva += funcdist 
+                    continue
 
-            tmpva -= funcdist 
+                # if standard start of plt mnemonic is different...
+                op = vw.parseOpcode(tmpva)
+                if op.mnem != stdmnem:
+                    logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
+                    tmpva += funcdist 
+                    continue
 
-        # now we go to the end of the PLT!
-        tmpva = curplts[idx]
-        logger.debug("... forwards from... 0x%x", tmpva)
-        endva = pltva + pltsz
-        while tmpva < endva:
-            logger.warn("tmpva: 0x%x", tmpva)
-            # check if already in a PLT function
-            curfunc = vw.getFunction(tmpva)
-            if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
-                #logger.debug('skip 0x%x: already function', tmpva)
+                logger.info("New PLT Function! 0x%x", tmpva)
+                vw.makeFunction(tmpva)
+
                 tmpva += funcdist 
-                continue
 
-            # if standard start of plt mnemonic is different...
-            op = vw.parseOpcode(tmpva)
-            if op.mnem != stdmnem:
-                logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
-                tmpva += funcdist 
-                continue
-
-            logger.info("New PLT Function! 0x%x", tmpva)
-            vw.makeFunction(tmpva)
-
-            tmpva += funcdist 
-
-        logger.warning("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
-        #if input("PRESS ENTER (i for interactive)").startswith('i'):
-        #    import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+    logger.warning("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
+    #if input("PRESS ENTER (i for interactive)").startswith('i'):
+    #    import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
 def isGOT(vw, va):
+    '''
+    Check a VA to see if it resides in one of this file's GOT sections
+    (uses elfplt.getGOTs()
+    '''
     fname = vw.getFileByVa(va)
     gots = elfplt.getGOTs(vw)
 
@@ -219,6 +256,10 @@ def isGOT(vw, va):
     return False
 
 def isPLT(vw, va):
+    '''
+    Check a VA to see if it resides in one of this workspace's PLT sections
+    (uses elfplt.getPLTs()
+    '''
     plts = elfplt.getPLTs(vw)
 
     for pltva, pltsz in plts:
@@ -226,4 +267,61 @@ def isPLT(vw, va):
             return True
 
     return False
+
+def getGoodIndex(curplts, funcdist):
+    '''
+    Roll through a list of PLT entires looking for two that are <funcdist> apart
+    '''
+    # find starting point of two curplts this distance apart
+    for idx in range(1, len(curplts)):
+        if curplts[idx] - curplts[idx-1] == funcdist:
+            return idx
+
+    return idx
+
+def compareFuncs(vw, fva1, fva2, funcsz):
+    '''
+    Compare two potential PLT functions... make sure they share a similar pattern.
+    The should be nearly identical
+    '''
+    offset = 0
+    while offset < funcsz:
+        va1 = fva1 + offset
+        va2 = fva2 + offset
+
+        loc1 = vw.getLocation(va1)
+        # if loc1 hits a None bail out
+        if loc1 is None:
+            logger.warning('... hit a None location in fva1')
+            return False
+
+        lva, lsz, ltype, ltinfo = loc1
+        try:
+            op1 = vw.parseOpcode(va1)
+            op2 = vw.parseOpcode(va2)
+       
+            if op1.mnem != op2.mnem:
+                logger.warning("fva1 op mnem (%r) doesn't match fva2 (%r) at offset %d", op1.mnem, op2.mnem, offset)
+                return False
+
+            if len(op1.opers) != len(op2.opers):
+                logger.warning("fva1 op operlen (%r) doesn't match fva2 (%r) at offset %d", op1.opers, op2.opers, offset)
+                return False
+
+            for oidx in range(len(op1.opers)):
+                oper1 = op1.opers[oidx]
+                oper2 = op2.opers[oidx]
+
+                if oper1.__class__ != oper2.__class__:
+                    logger.warning("fva1 op operclass (%r) doesn't match fva2 (%r) at offset %d", oper1, oper2, offset)
+                    return False
+                
+        except Exception as e:
+            # if it fails, we bails
+            logger.warning('FAILURE comparing 0x%x and 0x%x: %r', fva1, fva2, e)
+            return False
+
+        offset += lsz
+
+    return True
 
