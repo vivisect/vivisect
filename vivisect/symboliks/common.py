@@ -247,15 +247,14 @@ class SymbolikBase:
         def doreduce(path, oldkid, ctx):
             return oldkid._reduce(emu=emu)
 
-        sym = self.walkTree(doreduce, once=True)
-        if foo:
-            symstr = str(sym)
-            while True:
-                sym = sym.walkTree(doreduce)
-                s1str = str(sym)
-                if s1str == symstr:
-                    break
-                symstr = s1str
+        sym = self
+        symstr = str(self)
+        while True:
+            sym = sym.walkTree(doreduce)
+            s1str = str(sym)
+            if s1str == symstr:
+                break
+            symstr = s1str
 
         return sym
 
@@ -263,7 +262,7 @@ class SymbolikBase:
         '''
         Algebraic reduction and operator folding where possible.
         '''
-        return None
+        return self
 
     def update(self, emu):
         '''
@@ -511,8 +510,8 @@ class Call(SymbolikBase):
     def _reduce(self, emu=None):
         args = []
         for symkid in self.kids[1:]:
-            args.append(symkid.reduce(emu=emu))
-        return Call(self.kids[0].reduce(emu=emu), self.width, args)
+            args.append(symkid._reduce(emu=emu))
+        return Call(self.kids[0]._reduce(emu=emu), self.width._reduce(emu=emu), args)
 
     def _solve(self, emu=None, vals=None):
         ret = 0
@@ -582,7 +581,7 @@ class Mem(SymbolikBase):
         return self.kids[1].solve()
 
     def _reduce(self, emu):
-        return Mem(self.kids[0].reduce(), self.kids[1].reduce())
+        return Mem(self.kids[0]._reduce(emu=emu), self.kids[1]._reduce(emu=emu))
 
 class Var(SymbolikBase):
 
@@ -835,7 +834,7 @@ class Operator(SymbolikBase):
 
     def _op_reduce(self, v1, v1val, v2, v2val, emu):
         # Override this to do per operator special reduction
-        return None
+        return self
 
     def update(self, emu):
         v1 = self.kids[0].update(emu)
