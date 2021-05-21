@@ -26,8 +26,7 @@ def analyze(vw):
         for xfr, xto, xtype, xinfo in vw.getXrefsFrom(rva):
             logger.debug('pointer(1): 0x%x -> 0x%x', xfr, xto)
             vw.analyzePointer(xto)
-            if vw.isLocType(xfr, LOC_POINTER):
-                done[xfr] = xto
+            done[xfr] = xto
 
     # Now, we'll analyze the pointers placed by the file wrapper (ELF, PE, MACHO, etc...)
     for pva, tva, fname, pname in vw.getVaSetRows('PointersFromFile'):

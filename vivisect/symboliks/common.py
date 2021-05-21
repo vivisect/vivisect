@@ -237,7 +237,7 @@ class SymbolikBase:
         '''
         raise Exception('%s *must* implement solve(emu=emu)!' % self.__class__.__name__)
 
-    def reduce(self, emu=None, foo=False):
+    def reduce(self, emu=None, foo=True):
         '''
         Algebraic reduction and operator folding where possible.
 
