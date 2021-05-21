@@ -280,7 +280,7 @@ def getGoodIndex(curplts, funcdist):
 def compareFuncs(vw, fva1, fva2, funcsz):
     '''
     Compare two potential PLT functions... make sure they share a similar pattern.
-    The should be nearly identical
+    They should be nearly identical
     '''
     offset = 0
     while offset < funcsz:
