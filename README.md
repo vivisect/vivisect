@@ -1,60 +1,15 @@
 # Vivisect / Vdb / Vtrace
 
-A combined disassembler/static analysis/symbolic execution/debugger
-framework. More documentation is in the works :)
+A combined disassembler/static analysis/symbolic execution/debugger framework.
 
-## Vdb
+## Usage
 
-As in previous releases, the command ```python -m vdb.vdbbin``` from the
-checkout directory will drop you into a debugger prompt on supported
-platforms. ( Windows / Linux / FreeBSD / OSX... kinda? )
+Please see the quickstart/usage docs over at our [docs page](https://vivisect.readthedocs.io/en/latest/)
 
-Commands in vdb grow/refine quickly, so use in-line help such as:
+## Installing
 
-> vdb> help
+For most use cases, you should just be able to run `pip install vivisect[gui]` to get both the vivisect/vdb libraries and UI components. For other use cases, please see our [documentation](https://vivisect.readthedocs.io/en/latest/).
 
-or...
-
-> vdb> help writemem
-
-to show available commands and options.
-
-## Vivisect
-
-Fairly un-documented static analysis / emulation / symbolik analysis
-framework for PE/Elf/Mach-O/Blob binary formats on various architectures.
-To start with, you probably want to run a "bulk analysis" pass on a binary
-using:
-
-```
-python3 -m vivisect.vivbin -B <binaryfile>
-```
-
-which will leave you with <binaryfile>.viv
-
-Then run:
-
-```
-python3 -m vivisect.vivbin <binaryfile>.viv
-```
-
-to open the GUI and begin reverse engineering. Or, if you're impatient,
-you can just run:
-
-```
-python3 -m vivisect.vivbin <binaryfile>
-```
-
-to do both simultaneously. You will have to hit <Ctrl-S> to manually save
-the workspace file though.
-
-As with most vtoys, the ui relies fairly heavily on right-click context menus
-and various memory views.
-
-For the binary ninjas, all APIs used during automatic analysis (and several
-that aren't) are directly accessible for use writing your own custom
-research tools. The interface should be nearly the same when dealing with
-a real process (via vdb/vtrace) and dealing with an emulator / viv workspace.
 
 ## Versioning
 

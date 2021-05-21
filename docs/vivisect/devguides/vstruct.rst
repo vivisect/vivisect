@@ -102,3 +102,15 @@ VStruct was designed to be flexible when parsing binary structures. Some binary 
 
     with open('mybytes.bin', 'rb') as fd:
         vs.vsParse(fd.read())
+
+Though a lot of this is quite wordy. We can slim that down to something like this::
+
+    import vstruct
+    import vstruct.defs.pe
+    import vstruct.primitives
+    vs = vstruct.VStruct()
+    vs.MyCoolField = vstruct.primitives.v_uint8()
+    vs.ASecondField = vstruct.primitives.v_uint32()
+    vs.ComplexField = vstruct.defs.pe.IMAGE_FILE_HEADER()
+    with open('mybytes.bin', 'rb') as fd:
+        vs.vsParse(fd.read())

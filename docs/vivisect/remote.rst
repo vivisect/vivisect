@@ -7,4 +7,4 @@ Vivisect comes with it's own RPC mechanism called cobra. While cobra itself is d
 
     python3 -m vivisect.remote.server </path/to/directory>
 
-Which will then spawn a serverand print out the port that other users can connect to in order to pull down one (or more) of the workspaces. And as events are added, by either the server or the client, those events will populate to the other end of the pipe.
+Which will then spawn a server and print out the port that other users can connect to in order to pull down one (or more) of the workspaces. And as events are added, by either the server or the client, those events will populate to the other end of the pipe.
