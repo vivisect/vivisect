@@ -263,7 +263,7 @@ class SymbolikBase:
         '''
         Algebraic reduction and operator folding where possible.
         '''
-        return self
+        return None
 
     def update(self, emu):
         '''
@@ -510,8 +510,12 @@ class Call(SymbolikBase):
     def _reduce(self, emu=None):
         args = []
         for symkid in self.kids[1:]:
-            args.append(symkid._reduce(emu=emu))
-        return Call(self.kids[0]._reduce(emu=emu), self.width, args)
+            kid = symkid._reduce(emu=emu)
+            kid = kid if kid else symkid
+            args.append(kid)
+        func = self.kids[0]._reduce(emu=emu)
+        func = func if func else self.kids[0]
+        return Call(func, self.width, args)
 
     def _solve(self, emu=None, vals=None):
         ret = 0
@@ -581,7 +585,11 @@ class Mem(SymbolikBase):
         return self.kids[1].solve()
 
     def _reduce(self, emu):
-        return Mem(self.kids[0]._reduce(emu=emu), self.kids[1]._reduce(emu=emu))
+        addr = self.kids[0]._reduce(emu=emu)
+        addr = addr if addr else self.kids[0]
+        size = self.kids[1]._reduce(emu=emu)
+        size = size if size else self.kids[1]
+        return Mem(addr, size)
 
 class Var(SymbolikBase):
 
@@ -682,8 +690,10 @@ class LookupVar(Var):
         return LookupVar(self.name, offset, lookupdict=self.lookupdict, width=self.width)
 
     def _reduce(self, emu=None):
-        self.offset._reduce(emu=emu)
-        return self
+        offset = self.offset._reduce(emu=emu)
+        offset = offset if offset else self.offset
+
+        return LookupVar(self.name, offset, self.lookupdict, self.width)
 
     def getWidth(self):
         return self.width
@@ -834,7 +844,7 @@ class Operator(SymbolikBase):
 
     def _op_reduce(self, v1, v1val, v2, v2val, emu):
         # Override this to do per operator special reduction
-        return self
+        return None
 
     def update(self, emu):
         v1 = self.kids[0].update(emu)
