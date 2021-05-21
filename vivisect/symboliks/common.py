@@ -247,14 +247,15 @@ class SymbolikBase:
         def doreduce(path, oldkid, ctx):
             return oldkid._reduce(emu=emu)
 
-        sym = self
-        symstr = str(self)
-        while True:
-            sym = sym.walkTree(doreduce)
-            s1str = str(sym)
-            if s1str == symstr:
-                break
-            symstr = s1str
+        sym = self.walkTree(doreduce, once=True)
+        if foo:
+            symstr = str(sym)
+            while True:
+                sym = sym.walkTree(doreduce)
+                s1str = str(sym)
+                if s1str == symstr:
+                    break
+                symstr = s1str
 
         return sym
 
