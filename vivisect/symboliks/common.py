@@ -306,7 +306,7 @@ class SymbolikBase:
         for obj in root_symobjs:
             obj.clearCache()
         '''
-        if idx > len(self.kids)-1:
+        if idx > len(self.kids) - 1:
             self.kids.append(kid)
             self.kids[idx].parents.append(self)
         else:
@@ -373,7 +373,6 @@ class SymbolikBase:
         while True:
             # follow kids if there are any left...
             if idx < len(cur.kids):
-                # sys.stdout.write('+')
                 kid = cur.kids[idx]
                 if once and kid._sym_id in done:
                     idx += 1
@@ -393,12 +392,12 @@ class SymbolikBase:
             newb = cb(path, cur, ctx)
             path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
 
-            done.add(cur._sym_id)
-
-            if not len(path):
+            if not path:
                 if newb:
                     return newb
                 return cur
+
+            done.add(cur._sym_id)
 
             # pop back up a level
             cur = path.pop()
