@@ -4,6 +4,7 @@ LOG_FORMAT = '%(asctime)s:%(levelname)s:%(name)s: %(message)s' \
              '[%(filename)s:%(funcName)s:%(lineno)s:%(threadName)s]'
 
 EMULOG = 9
+SHITE = 8
 
 LOG_LEVELS = (
     logging.CRITICAL,
@@ -12,6 +13,7 @@ LOG_LEVELS = (
     logging.INFO,
     logging.DEBUG,
     EMULOG,
+    SHITE,
 )
 
 def initLogging(logger, level=None, fmt=LOG_FORMAT):
@@ -26,6 +28,7 @@ def initLogging(logger, level=None, fmt=LOG_FORMAT):
 
     # Setup logging
     logging.addLevelName(EMULOG, 'EMULOG')
+    logging.addLevelName(SHITE, 'SHITE')
     logging.basicConfig(level=level, format=fmt)
 
     # Set log level for current logger
