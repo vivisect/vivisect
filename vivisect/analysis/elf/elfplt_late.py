@@ -1,5 +1,6 @@
 import logging
 import vivisect
+import envi.common as e_cmn
 
 from . import elfplt
 
@@ -74,7 +75,7 @@ def analyzePLT(vw, pltva, pltsz):
 
         # now roll through the PLT space and look for GOT-references from 
         # locations that aren't in a function
-        logger.warning("... analysis mode 1: GOT-XREF Offset")
+        logger.info("... analysis mode 1: GOT-XREF Offset")
         offset = 0
         while offset < pltsz:
             locva, lsz, ltype, ltinfo = vw.getLocation(pltva + offset)
@@ -99,14 +100,14 @@ def analyzePLT(vw, pltva, pltsz):
                 # we have an xref into the GOT and no function.  go!
                 funcstartva = locva - realoff
                 if vw.getFunction(locva) != funcstartva:
-                    logger.debug("New PLT Function: 0x%x (GOT jmp: 0x%x)" % (funcstartva, locva))
+                    logger.debug("New PLT Function: 0x%x (GOT jmp: 0x%x)", funcstartva, locva)
 
                     # if our intended location is not currently part of a PLT function, make it one
                     curfuncva = vw.getFunction(funcstartva)
                     if curfuncva is None or not isPLT(vw, curfuncva):
                         vw.makeFunction(funcstartva)
                     else:
-                        logger.warning("attempting to make function at 0x%x, which is already a member of 0x%x",
+                        logger.debug("attempting to make function at 0x%x, which is already a member of 0x%x",
                                 funcstartva, vw.getFunction(funcstartva))
 
             offset += lsz
@@ -119,7 +120,7 @@ def analyzePLT(vw, pltva, pltsz):
     else:
         ######## Now let's attempt to identify the smallest common distance between functions
         # what's the smallest distance between functions that
-        logger.warning("... analysis mode 2: PLT-Func-Distance")
+        logger.info("... analysis mode 2: PLT-Func-Distance")
         curpltcnt = len(curplts)
         minimumbar = 1 + (curpltcnt // 100)
 
@@ -133,15 +134,14 @@ def analyzePLT(vw, pltva, pltsz):
 
         workdist = list(distanceheur.items())
         workdist.sort()
-        logger.warning(workdist)
 
         if not len(workdist):
-            logger.info('... bailing, no known functions to compare to...')
+            logger.info('... bailing, no existing PLT functions in this section to compare to...')
 
         else:
             # first entry should be our guy...
             funcdist = workdist[0][0]
-            logger.warning("funcdist: 0x%x", funcdist)
+            logger.debug("funcdist: 0x%x", funcdist)
 
             idx = getGoodIndex(curplts, funcdist)
             fva = curplts[idx]
@@ -151,29 +151,29 @@ def analyzePLT(vw, pltva, pltsz):
             # where the magic comes in...
             funcsz = vw.getFunctionMeta(fva, 'Size')
             for divisor in range(funcdist, 0, -1):
-                logger.warning('attempting to divide funcdist (0x%x) by %d', funcdist, divisor)
+                logger.log(e_cmn.SHITE, 'attempting to divide funcdist (0x%x) by %d', funcdist, divisor)
 
                 # does the gap between functions support splitting?
                 if funcdist < (divisor * funcsz):
-                    logger.warning('.. not big enough')
+                    logger.log(e_cmn.SHITE, '.. not big enough')
                     continue
 
                 newdist = funcdist // divisor
                 # does the funcdist split evenly?
                 if newdist * divisor != funcdist:
-                    logger.warning(".. doesn't divide evenly(newdist: 0x%x  divisor: 0x%x   funcdist: 0x%x)", newdist, divisor, funcdist)
+                    logger.log(e_cmn.SHITE, ".. doesn't divide evenly(newdist: 0x%x  divisor: 0x%x   funcdist: 0x%x)", newdist, divisor, funcdist)
                     continue
 
                 # do the opcodes support this size split?
                 if not compareFuncs(vw, fva, fva + newdist, funcsz):
-                    logger.warning(".. functions don't match!")
+                    logger.log(e_cmn.SHITE, ".. functions don't match!")
                     continue
 
                 break
 
             # should end up dividing by 1 if not divisible
             if divisor > 1:
-                logger.warning("dividing our lowest function (0x%x) distance by %d", funcdist, divisor)
+                logger.info("dividing our lowest function (0x%x) distance by %d", funcdist, divisor)
                 funcdist //= divisor
 
             idx = getGoodIndex(curplts, funcdist)
@@ -184,7 +184,7 @@ def analyzePLT(vw, pltva, pltsz):
             stdmnem = op.mnem
             # start there and go backwards
             while tmpva > pltva:
-                logger.warn("tmpva: 0x%x", tmpva)
+                logger.log(e_cmn.SHITE, "tmpva: 0x%x", tmpva)
                 # check if already in a PLT function (ignore if it's part of some other func)
                 curfunc = vw.getFunction(tmpva)
                 if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
@@ -217,7 +217,7 @@ def analyzePLT(vw, pltva, pltsz):
             logger.debug("... forwards from... 0x%x", tmpva)
             endva = pltva + pltsz
             while tmpva < endva:
-                logger.warn("tmpva: 0x%x", tmpva)
+                logger.log(e_cmn.SHITE, "tmpva: 0x%x", tmpva)
                 # check if already in a PLT function
                 curfunc = vw.getFunction(tmpva)
                 if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
@@ -237,9 +237,7 @@ def analyzePLT(vw, pltva, pltsz):
 
                 tmpva += funcdist 
 
-    logger.warning("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
-    #if input("PRESS ENTER (i for interactive)").startswith('i'):
-    #    import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+    logger.info("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
 
 def isGOT(vw, va):
     '''
@@ -292,7 +290,7 @@ def compareFuncs(vw, fva1, fva2, funcsz):
         loc1 = vw.getLocation(va1)
         # if loc1 hits a None bail out
         if loc1 is None:
-            logger.warning('... hit a None location in fva1')
+            logger.log(e_cmn.SHITE, '... hit a None location in fva1')
             return False
 
         lva, lsz, ltype, ltinfo = loc1
@@ -301,11 +299,11 @@ def compareFuncs(vw, fva1, fva2, funcsz):
             op2 = vw.parseOpcode(va2)
        
             if op1.mnem != op2.mnem:
-                logger.warning("fva1 op mnem (%r) doesn't match fva2 (%r) at offset %d", op1.mnem, op2.mnem, offset)
+                logger.log(e_cmn.SHITE, "fva1 op mnem (%r) doesn't match fva2 (%r) at offset %d", op1.mnem, op2.mnem, offset)
                 return False
 
             if len(op1.opers) != len(op2.opers):
-                logger.warning("fva1 op operlen (%r) doesn't match fva2 (%r) at offset %d", op1.opers, op2.opers, offset)
+                logger.log(e_cmn.SHITE, "fva1 op operlen (%r) doesn't match fva2 (%r) at offset %d", op1.opers, op2.opers, offset)
                 return False
 
             for oidx in range(len(op1.opers)):
@@ -313,12 +311,12 @@ def compareFuncs(vw, fva1, fva2, funcsz):
                 oper2 = op2.opers[oidx]
 
                 if oper1.__class__ != oper2.__class__:
-                    logger.warning("fva1 op operclass (%r) doesn't match fva2 (%r) at offset %d", oper1, oper2, offset)
+                    logger.log(e_cmn.SHITE, "fva1 op operclass (%r) doesn't match fva2 (%r) at offset %d", oper1, oper2, offset)
                     return False
                 
         except Exception as e:
             # if it fails, we bails
-            logger.warning('FAILURE comparing 0x%x and 0x%x: %r', fva1, fva2, e)
+            logger.debug('FAILURE comparing 0x%x and 0x%x: %r', fva1, fva2, e)
             return False
 
         offset += lsz

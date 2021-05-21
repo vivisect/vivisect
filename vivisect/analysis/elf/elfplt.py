@@ -204,7 +204,8 @@ def analyzePLT(vw, ssva, ssize):
         nextseg = sva + ssize
         gotva, gotsize = getGOT(vw, ssva)
 
-        # just make the first thing a function??  what could possibly go wrong?!
+        # just make the first thing a function.  this should take care of any LazyLoader
+        # or at the very least, the first PLT entry
         vw.makeFunction(ssva)
 
         ###### make code for every opcode in PLT
