@@ -13,7 +13,6 @@ import string
 import hashlib
 import logging
 import binascii
-import functools
 import itertools
 import traceback
 import threading
@@ -156,6 +155,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # FIXME add to export
         self.sigtree = e_bytesig.SignatureTree()
         self.siglist = []
+
+        self._op_cache = {}
 
         self._initEventHandlers()
 
@@ -1112,8 +1113,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     #
     # Opcode API
     #
-    @functools.cache
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT, skip=False):
         '''
         Parse an opcode from the specified virtual address.
 
@@ -1129,8 +1129,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # so that at least parse opcode wont fail
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
+        key = (va, arch, b[:16])
+        valu = self._op_cache.get(key)
+        if valu and not skip:
+            return valu
+        valu = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+        self._op_cache[key] = valu
+        return valu
 
-        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+    def clearOpcache(self):
+        '''
+        Remove all elements from the opcode cache
+        '''
+        self._op_cache.clear()
 
     def iterJumpTable(self, startva, step=None, maxiters=None, rebase=False):
         if not step:
