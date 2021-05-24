@@ -1,7 +1,6 @@
 import logging
 
 import envi
-import envi.common as e_common
 import envi.archs.arm as e_arm
 from envi.archs.arm.regs import *
 
@@ -45,7 +44,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
             tmode = self.getFlag(PSR_T_bit)
             arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[tmode]
 
-        return self.vw.parseOpcode(self, va, arch=arch)
+        return self.vw.parseOpcode(va, arch=arch)
 
     def stepi(self):
         # NOTE: when we step, we *always* want to be stepping over calls

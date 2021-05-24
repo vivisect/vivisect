@@ -1130,7 +1130,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
         key = (va, arch, b[:16])
-        valu = self._op_cache.get(key)
+        valu = self._op_cache.get(key, None)
         if valu and not skip:
             return valu
         valu = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
