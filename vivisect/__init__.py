@@ -1116,9 +1116,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Parse an opcode from the specified virtual address.
 
-        Example: op = m.parseOpcode(0x7c773803)
+        Example: op = m.parseOpcode(0x7c773803, skip=True)
 
-        note: differs from the IMemory interface by checking loclist
+        Set skip=True in order to bypass the opcode cache and force a reparsing of bytes
         '''
         off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
@@ -1128,13 +1128,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # so that at least parse opcode wont fail
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
-        key = (va, arch, b[:16])
-        valu = self._op_cache.get(key, None)
-        if valu and not skip:
+        if not skip:
+            key = (va, arch, b[:16])
+            valu = self._op_cache.get(key, None)
+            if not valu:
+                valu = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+            self._op_cache[key] = valu
             return valu
-        valu = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
-        self._op_cache[key] = valu
-        return valu
+        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
     def clearOpcache(self):
         '''
