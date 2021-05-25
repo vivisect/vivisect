@@ -18,6 +18,7 @@ Send bug reports to Invisigoth or Metr0.
 
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
+import io
 import logging
 
 from stat import *
@@ -314,6 +315,19 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self.fd.close()
         except:
             pass  # whatever. we're tearing down anyway
+
+    def getFileBytes(self):
+        '''
+        Return the bytes of the file as they currently exist from the view of the file descriptor-like object
+
+        But keeping in mind not to smash over the old location of the fd
+        '''
+        self.fd.flush()
+        old = self.fd.tell()
+        self.fd.seek(0)
+        byts = self.fd.read()
+        self.fd.seek(old)
+        return byts
 
     def getRelocTypeName(self, rtype):
         '''
@@ -1080,6 +1094,11 @@ def elfFromFileName(fname):
     return Elf(open(fname, 'rb'))
 
 
+def elfFromBytes(fbytes):
+    fd = io.BytesIO(fbytes)
+    return Elf(fd)
+
+
 def elfFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
     return Elf(fd)
@@ -1091,4 +1110,3 @@ def getRelocType(val):
 
 def getRelocSymTabIndex(val):
     return val >> 8
-
