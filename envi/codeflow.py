@@ -159,7 +159,7 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
-                #logger.log(e_cmn.SHITE, "... 0x%x: %r", va, op)
+                logger.log(e_cmn.MIRE, "... 0x%x: %r", va, op)
             except envi.InvalidInstruction as e:
                 logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
@@ -230,14 +230,15 @@ class CodeFlowContext(object):
                                 # descend into functions, but make sure we don't descend into
                                 # recursive functions
                                 if bva in self._cf_blocks:
-                                    logger.debug("self._cf_recurse == True, but 0x%x is in self._cf_blocks (ie. it called *this* func)", bva)
-                                    logger.debug("\t" + ", ".join([hex(x) for x in self._cf_blocks]))
+                                    logger.debug("not recursing to function 0x%x (at 0x%x): it's already in analysis call path (ie. it called *this* func)", 
+                                            bva, va)
+                                    logger.debug("call path: \t" + ", ".join([hex(x) for x in self._cf_blocks]))
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
                                     # until its done
                                     cf_eps[bva] = bflags
                                 else:
-                                    logger.debug("self._cf_recurse == True, so we're descending into 0x%x", bva)
+                                    logger.debug("descending into function 0x%x (from 0x%x)", bva, va)
                                     self.addEntryPoint(bva, arch=bflags)
 
                             if self._cf_noret.get(bva):

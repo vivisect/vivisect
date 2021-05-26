@@ -186,7 +186,7 @@ class VivisectTest(unittest.TestCase):
                 mesg = f'On VaSet {name}, we failed due to: {str(e)}'
                 self.fail(mesg)
 
-        self.assertEqual(len(vw.getVaSetRows('CodeFragments')), 211)
+        self.assertEqual(len(vw.getVaSetRows('CodeFragments')), 213)
         self.assertEqual(len(vw.getVaSetRows('EntryPoints')), 229)
 
     def test_basic_apis(self):
