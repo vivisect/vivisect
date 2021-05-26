@@ -1128,7 +1128,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # so that at least parse opcode wont fail
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
-        if not skip:
+        if not skipcache:
             key = (va, arch, b[:16])
             valu = self._op_cache.get(key, None)
             if not valu:
