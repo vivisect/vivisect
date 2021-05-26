@@ -47,6 +47,7 @@ begins, and make those Functions, and analysis continues from there.
 import logging
 import vivisect
 import envi
+import envi.common as e_cmn
 import envi.archs.i386 as e_i386
 
 logger = logging.getLogger(__name__)
@@ -63,9 +64,9 @@ def analyze(vw):
         analyzePLT(vw, sva, ssize)
 
 
-def getGOT(vw, fileva):
+def getGOT(vw, filename):
     '''
-    Returns GOT location for the file which contains the address fileva.
+    Returns GOT location for the filename specified.
 
     First checks through Sections (vw.getSegments), then through Dynamics.
     If the two clash, Dynamics wins.
@@ -74,8 +75,6 @@ def getGOT(vw, fileva):
     OpenBSD is only Sections.
     QNX has only Dynamics.
     '''
-    filename = vw.getFileByVa(fileva)
-
     gottup = vw.getFileMeta(filename, 'GOT')
     if gottup is not None:
         return gottup
@@ -103,7 +102,7 @@ def getGOT(vw, fileva):
                 logger.debug('Adding Imagebase: 0x%x', imgbase)
                 FGOT += imgbase
 
-            if FGOT != gotva:
+            if FGOT != gotva and None not in (FGOT, gotva):
                 logger.warning("Dynamics and Sections have different GOT entries: S:0x%x D:0x%x. using Dynamics", gotva, FGOT)
 
             # since Dynamics don't store the GOT size, just use to the end of the memory map
@@ -122,11 +121,10 @@ def getGOTs(vw):
     gotsize = None
     for va, size, name, fname in vw.getSegments():
         if name in ('.got.plt', '.got'):
-            f = vw.getFileByVa(va)
-            flist = out.get(f)
+            flist = out.get(fname)
             if flist is None:
                 flist = []
-                out[f] = flist
+                out[fname] = flist
 
             gottup = (va, size)
             if gottup not in flist:
@@ -202,11 +200,7 @@ def analyzePLT(vw, ssva, ssize):
         emu = None
         sva = ssva
         nextseg = sva + ssize
-        gotva, gotsize = getGOT(vw, ssva)
-
-        # just make the first thing a function.  this should take care of any LazyLoader
-        # or at the very least, the first PLT entry
-        vw.makeFunction(ssva)
+        gotva, gotsize = getGOT(vw, vw.getFileByVa(ssva))
 
         ###### make code for every opcode in PLT
         # make and parse opcodes.  keep track of unconditional branches
@@ -217,7 +211,7 @@ def analyzePLT(vw, ssva, ssize):
             emu = vw.getEmulator()
             emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
         except Exception as e:
-            logger.debug("no emulator available: %r", e)
+            logger.debug("no emulator available: %r", e, exc_info=1)
             return
 
         while sva < nextseg:
@@ -306,6 +300,11 @@ def analyzePLT(vw, ssva, ssize):
                 logger.warning('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
                 sva += 1
 
+        # just make the first thing a function.  this should take care of any LazyLoader
+        # or at the very least, the first PLT entry
+        logger.debug('analyzePLT(0x%x, 0x%x): making first location the PLT into a function', ssva, ssize)
+        vw.makeFunction(ssva)
+
     except Exception as e:
         logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
 
@@ -326,14 +325,14 @@ def analyzeFunction(vw, funcva):
 
     # if we're not 
     if not isplt:
-        logger.debug('0x%x: not part of a .plt section', funcva)
+        logger.log(e_cmn.SHITE, '0x%x: not part of a .plt section', funcva)
         return
 
     logger.info('analyzing PLT function: 0x%x', funcva)
     # start off spinning up an emulator to track through the PLT entry
     # slight hack, but we don't currently know if thunk_bx exists
     fname = vw.getFileByVa(funcva)
-    gotva, gotsize = getGOT(vw, funcva)
+    gotva, gotsize = getGOT(vw, fname)
 
     # all architectures should at least have some minimal emulator
     emu = vw.getEmulator()
@@ -348,7 +347,7 @@ def analyzeFunction(vw, funcva):
             emu.executeOpcode(op)
             opva += len(op)
             op = vw.parseOpcode(opva)
-            logging.debug("0x%x: %r", opva, op)
+            logger.log(e_cmn.SHITE, "0x%x: %r", opva, op)
             count += 1
     except Exception as e:
         logger.warning('failure analyzing PLT func 0x%x: %r', funcva, e)

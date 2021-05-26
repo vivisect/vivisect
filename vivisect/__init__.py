@@ -758,6 +758,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 continue
             if not self.probeMemory(eva, 1, e_mem.MM_EXEC):
                 continue
+            logger.debug('processEntryPoint: 0x%x', eva)
             self.makeFunction(eva)
 
     def analyze(self):
@@ -1469,7 +1470,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         This function should probably only be called once code-flow for the
         area is complete.
         """
+        logger.debug('makeFunction(0x%x, %r, 0x%x)', va, meta, arch)
         if self.isFunction(va):
+            logger.debug('0x%x is already a function, skipping', va)
             return
 
         if not self.isValidPointer(va):

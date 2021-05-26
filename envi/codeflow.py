@@ -159,7 +159,7 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
-                logger.log(e_cmn.SHITE, "... 0x%x: %r", va, op)
+                #logger.log(e_cmn.SHITE, "... 0x%x: %r", va, op)
             except envi.InvalidInstruction as e:
                 logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
@@ -249,7 +249,7 @@ class CodeFlowContext(object):
                             # We only go up to procedural branches, not across
                             continue
                 except Exception as e:
-                    logger.warning("codeflow: %r", e, stack_info=True)
+                    logger.warning("codeflow: %r", e, exc_info=True)
 
                 if not opdone.get(bva):
                     optodo.append(((va, bva), bflags))

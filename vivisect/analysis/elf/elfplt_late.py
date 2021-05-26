@@ -1,3 +1,20 @@
+'''
+Late-PLT analysis.
+
+During codeflow analysis, we detect PLT entries organically (and consequently 
+*accurately*), but often not all of them.  This analysis module applies a few
+different algorithms to identify the ones which were not discovered during 
+autoanalysis.
+
+Formerly, we attempted to do this analysis before all other code analysis
+but due to so many varieties of PLT creation by different compilers on 
+numerous hardware platforms and OSes, that method lead to many errors in PLT-
+identification, often hampering vital parts of vulnerability-research tools.
+We finally pulled the plug on preemptive analysis, in favor of letting auto-
+analysis identify "truth" and then filling in the gaps.
+'''
+
+
 import logging
 import vivisect
 import envi.common as e_cmn
@@ -14,20 +31,39 @@ def analyze(vw):
             analyzePLT(vw, pltva, pltsz)
 
         except Exception as e:
-            import sys
-            sys.excepthook(*sys.exc_info())
+            logger.warning("Error in PLT-late analysis: %r", e, exc_info=True)
 
 
 def analyzePLT(vw, pltva, pltsz):
+    '''
+    Analyze a specific PLT section (there are often more than one and they often
+    different in format)
+
+    We make use of two different algorithms for each.
+    The first algorithm measures the distance from the start of known good PLT
+    functions and the GOT-referencing branch.  The only weakness is that this
+    method requires that the xref to the GOT is already identified (without 
+    throwing and emulator in there).  
+
+    The second algorithm measures the distance between known good PLT entries
+    and then attempts to identify divisors (up to 16 splits) which would make
+    more than one PLT function fit between them.  These attempted splits are 
+    validated using heuristics of the potential functions which would be created
+    by the division.  PLT entries in the same PLT section are incredibly similar
+    (not including the LazyLoader sometimes found at the beginning of a PLT)
+    '''
     logger.info("PLT Section:  0x%x:%d", pltva, pltsz)
+    gotva = gotsz = None
+    fname = vw.getFileByVa(pltva)
 
     # find functions currently defined in this PLT
-    curplts = []
+    curpltset = set()
     for fva in vw.getFunctions():
-        if pltva <= fva < (pltva+pltsz) and fva not in curplts:
+        if pltva <= fva < (pltva+pltsz) and fva not in curpltset:
             logger.debug("existing PLT Function: 0x%x", fva)
-            curplts.append(fva)
+            curpltset.add(fva)
 
+    curplts = list(curpltset)
     curplts.sort()
 
     # now figure out the distance from function start to the GOT xref 
@@ -37,7 +73,7 @@ def analyzePLT(vw, pltva, pltsz):
     distanceheur = {}
     for fva in curplts:
         fsz = vw.getFunctionMeta(fva, 'Size')
-        gotva, gotsz = elfplt.getGOT(vw, fva)
+        gotva, gotsz = elfplt.getGOT(vw, fname)
 
         offset = 0
         while offset < fsz:
@@ -55,76 +91,86 @@ def analyzePLT(vw, pltva, pltsz):
         distanceheur[delta] = distanceheur.get(delta, 0) + 1
         lastva = fva
 
-
-    # GOT-XREF-Offset method
-    if not len(jmpheur):
-        logging.info("skipping analyzePLT(0x%x, 0x%x): no existing functions found", pltva, pltsz)
-
-    else:
-        # this seems to work for many PLT's, but only if the xref is identifiable 
-        # without function analysis.  it fails on i386-pic code which uses ebx 
-        # (which is handed into the call as a base address)
+    if None not in (gotva, gotsz):
         logger.debug("GOT/size: 0x%x/0x%x", gotva, gotsz)
 
-        # if we have what we need... scroll through all the non-functioned area
-        # looking for GOT-xrefs
-        offbycnt = [(cnt, off) for off, cnt in jmpheur.items()]
-        offbycnt.sort(reverse=True)
-        logger.debug("PLT Segment Data: %r", vw.getSegment(pltva))
-        cnt, realoff = offbycnt[0]
-
-        # now roll through the PLT space and look for GOT-references from 
-        # locations that aren't in a function
-        logger.info("... analysis mode 1: GOT-XREF Offset")
-        offset = 0
-        while offset < pltsz:
-            locva, lsz, ltype, ltinfo = vw.getLocation(pltva + offset)
-
-            xrefsfrom = vw.getXrefsFrom(locva)
-            toGOT = False
-            for xrfr, xrto, xrtype, xrtinfo in xrefsfrom:
-                if isGOT(vw, xrto):
-                    # make sure we're pointing at a valid import
-                    toloc = vw.getLocation(xrto)
-                    if toloc is None:
-                        continue
-
-                    tlva, tlsz, tltype, tlinfo = toloc
-                    if tltype not in (vivisect.LOC_POINTER, vivisect.LOC_IMPORT):
-                        continue
-
-                    toGOT = True
-
-            logger.debug("loc: 0x%x   xrefs: %r (toGOT: %r)", locva, xrefsfrom, toGOT)
-            if toGOT:
-                # we have an xref into the GOT and no function.  go!
-                funcstartva = locva - realoff
-                if vw.getFunction(locva) != funcstartva:
-                    logger.debug("New PLT Function: 0x%x (GOT jmp: 0x%x)", funcstartva, locva)
-
-                    # if our intended location is not currently part of a PLT function, make it one
-                    curfuncva = vw.getFunction(funcstartva)
-                    if curfuncva is None or not isPLT(vw, curfuncva):
-                        vw.makeFunction(funcstartva)
-                    else:
-                        logger.debug("attempting to make function at 0x%x, which is already a member of 0x%x",
-                                funcstartva, vw.getFunction(funcstartva))
-
-            offset += lsz
-
-
-    # PLT-Func-Distance method
-    if not len(distanceheur):
-        logging.info("skipping analyzePLT(0x%x, 0x%x): no existing functions found", pltva, pltsz)
+    # GOT-XREF-Offset method
+    if len(jmpheur):
+        algo_GOT_XREF_Offset(vw, jmpheur, pltva, pltsz)
 
     else:
+        logging.info("analyzePLT(0x%x, 0x%x) skipping GOT-XREF-Offset method: no existing functions found", pltva, pltsz)
+
+    # PLT-Func-Distance method
+    if len(distanceheur):
+        algo_PLT_Func_Distance(vw, curplts, distanceheur, pltva, pltsz)
+
+    else:
+        logging.info("skipping analyzePLT(0x%x, 0x%x) (PLT-Func-Distance method): no existing functions found", pltva, pltsz)
+
+    logger.info("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
+
+
+def algo_GOT_XREF_Offset(vw, jmpheur, pltva, pltsz):
+    # this seems to work for many PLT's, but only if the xref is identifiable 
+    # without function analysis.  it fails on i386-pic code which uses ebx 
+    # (which is handed into the call as a base address)
+
+    # if we have what we need... scroll through all the non-functioned area
+    # looking for GOT-xrefs
+    offbycnt = [(cnt, off) for off, cnt in jmpheur.items()]
+    offbycnt.sort(reverse=True)
+    logger.debug("PLT Segment Data: %r", vw.getSegment(pltva))
+    cnt, realoff = offbycnt[0]
+
+    # now roll through the PLT space and look for GOT-references from 
+    # locations that aren't in a function
+    logger.info("... analysis mode 1: GOT-XREF Offset")
+    offset = 0
+    while offset < pltsz:
+        locva, lsz, ltype, ltinfo = vw.getLocation(pltva + offset)
+
+        xrefsfrom = vw.getXrefsFrom(locva)
+        toGOT = False
+        for xrfr, xrto, xrtype, xrtinfo in xrefsfrom:
+            if isGOT(vw, xrto):
+                # make sure we're pointing at a valid import
+                toloc = vw.getLocation(xrto)
+                if toloc is None:
+                    continue
+
+                tlva, tlsz, tltype, tlinfo = toloc
+                if tltype not in (vivisect.LOC_POINTER, vivisect.LOC_IMPORT):
+                    continue
+
+                toGOT = True
+
+        logger.debug("loc: 0x%x   xrefs: %r (toGOT: %r)", locva, xrefsfrom, toGOT)
+        if toGOT:
+            # we have an xref into the GOT and no function.  go!
+            funcstartva = locva - realoff
+            if vw.getFunction(locva) != funcstartva:
+                logger.debug("New PLT Function: 0x%x (GOT jmp: 0x%x)", funcstartva, locva)
+
+                # if our intended location is not currently part of a PLT function, make it one
+                curfuncva = vw.getFunction(funcstartva)
+                if curfuncva is None or not isPLT(vw, curfuncva):
+                    vw.makeFunction(funcstartva)
+                else:
+                    logger.debug("attempting to make function at 0x%x, which is already a member of 0x%x",
+                            funcstartva, vw.getFunction(funcstartva))
+
+        offset += lsz
+
+
+def algo_PLT_Func_Distance(vw, curplts, distanceheur, pltva, pltsz):
         ######## Now let's attempt to identify the smallest common distance between functions
         # what's the smallest distance between functions that
         logger.info("... analysis mode 2: PLT-Func-Distance")
         curpltcnt = len(curplts)
         minimumbar = 1 + (curpltcnt // 100)
 
-        # cull the heard.  our winner wants to be at least greater than one entry
+        # cull the herd.  our winner wants to be at least greater than one entry
         for delta, count in list(distanceheur.items()):
             if count < minimumbar:
                 distanceheur.pop(delta)
@@ -236,8 +282,6 @@ def analyzePLT(vw, pltva, pltsz):
                 vw.makeFunction(tmpva)
 
                 tmpva += funcdist 
-
-    logger.info("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
 
 def isGOT(vw, va):
     '''

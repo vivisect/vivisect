@@ -30,8 +30,7 @@ def do_analyze(vw):
             mod.analyze(vw)
         except Exception as e:
             import traceback
-            logging.warning("ERROR in analysis module: (%r): %r", mod, e)
-            logging.warning(traceback.format_exc())
+            logging.warning("ERROR in analysis module: (%r): %r", mod, e, exc_info=1)
 
 
 class ELFTests(unittest.TestCase):
@@ -90,11 +89,11 @@ class ELFTests(unittest.TestCase):
             curplts = []
             for fva in vw.getFunctions():
                 if pltva <= fva < (pltva+pltsz) and fva not in curplts:
-                    logger.warning("PLT Function: 0x%x", fva)
+                    logger.info("PLT Function: 0x%x", fva)
                     curplts.append(fva)
-            logger.warning("%r", curplts)
+            logger.info("%r", curplts)
 
-            logger.warning("curplts length: %d", len(curplts))
+            logger.info("curplts length: %d", len(curplts))
             if not len(curplts):
                 logger.warning('skipping...')
                 continue
@@ -107,7 +106,7 @@ class ELFTests(unittest.TestCase):
                 delta = va - last
                 last = va
                 
-                logger.warning("PLTVA: 0x%x  va: 0x%x   delta: 0x%x", pltva, va, delta)
+                logger.info("PLTVA: 0x%x  va: 0x%x   delta: 0x%x", pltva, va, delta)
                 if delta == 0:
                     # it's the first entry, skip
                     continue
