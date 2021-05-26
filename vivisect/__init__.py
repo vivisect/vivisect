@@ -1112,7 +1112,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     #
     # Opcode API
     #
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT, skip=False):
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT, skipcache=False):
         '''
         Parse an opcode from the specified virtual address.
 
