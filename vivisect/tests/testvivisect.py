@@ -842,7 +842,7 @@ class VivisectTest(unittest.TestCase):
         vw.clearOpcache()
         self.assertEqual(len(vw._op_cache), 0)
 
-        op = vw.parseOpcode(0x140010ef2, skip=True)
+        op = vw.parseOpcode(0x140010ef2, skipcache=True)
         self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
         self.assertEqual(len(vw._op_cache), 0)
 
