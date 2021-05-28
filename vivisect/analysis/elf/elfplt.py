@@ -60,6 +60,10 @@ def analyze(vw):
     Do simple linear disassembly of the .plt section if present.
     Make functions
     """
+    if vw.getMeta('Platform') == 'qnx':
+        logger.warning('skipping initial PLT section analysis for QNX binary.')
+        return
+
     for sva, ssize in getPLTs(vw):
         analyzePLT(vw, sva, ssize)
 
@@ -302,8 +306,8 @@ def analyzePLT(vw, ssva, ssize):
 
         # just make the first thing a function.  this should take care of any LazyLoader
         # or at the very least, the first PLT entry
-        logger.debug('analyzePLT(0x%x, 0x%x): making first location the PLT into a function', ssva, ssize)
-        vw.makeFunction(ssva)
+        #logger.debug('analyzePLT(0x%x, 0x%x): making first location the PLT into a function', ssva, ssize)
+        #vw.makeFunction(ssva)
 
     except Exception as e:
         logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
