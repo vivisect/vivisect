@@ -304,11 +304,6 @@ def analyzePLT(vw, ssva, ssize):
                 logger.warning('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
                 sva += 1
 
-        # just make the first thing a function.  this should take care of any LazyLoader
-        # or at the very least, the first PLT entry
-        #logger.debug('analyzePLT(0x%x, 0x%x): making first location the PLT into a function', ssva, ssize)
-        #vw.makeFunction(ssva)
-
     except Exception as e:
         logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
 

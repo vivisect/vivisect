@@ -66,6 +66,13 @@ def analyzePLT(vw, pltva, pltsz):
     curplts = list(curpltset)
     curplts.sort()
 
+    if len(curplts):    # make sure we have *any* functions
+        # just make the first thing a function.  this should take care of any LazyLoader
+        # or at the very least, the first PLT entry.  it should also keep us from backing
+        # up too far during PLT-Func-Distance algorithm.
+        logger.debug('analyzePLT(0x%x, 0x%x): making first location the PLT into a function', pltva, pltsz)
+        vw.makeFunction(pltva)
+
     # now figure out the distance from function start to the GOT xref 
     # and between PLT functions
     lastva = pltva
