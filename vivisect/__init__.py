@@ -1116,9 +1116,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Parse an opcode from the specified virtual address.
 
-        Example: op = m.parseOpcode(0x7c773803, skip=True)
+        Example: op = m.parseOpcode(0x7c773803, skipcache=True)
 
-        Set skip=True in order to bypass the opcode cache and force a reparsing of bytes
+        Set skipcache=True in order to bypass the opcode cache and force a reparsing of bytes
         '''
         off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
