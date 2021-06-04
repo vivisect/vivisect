@@ -219,17 +219,17 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 53564, 14),
+        ans = {0: ('Undefined', 0, 53282, 14),
                1: ('Num/Int',   715, 3738, 0),
                2: ('String',    265, 6485, 1),
                3: ('Unicode',   174, 5593, 1),
                4: ('Pointer',   360, 2880, 0),
-               5: ('Opcode',    72565, 279449, 74),
+               5: ('Opcode',    72516, 279399, 74),
                6: ('Structure', 1018, 12740, 3),
                7: ('Clsid',     0, 0, 0),
                8: ('VFTable',   0, 0, 0),
                9: ('Import Entry', 370, 2960, 0),
-               10: ('Pad',      832, 8180, 2)}
+               10: ('Pad',      864, 8512, 2)}
         dist = vw.getLocationDistribution()
         for loctype, locdist in dist.items():
             self.assertEqual(locdist, ans[loctype])
@@ -699,17 +699,13 @@ class VivisectTest(unittest.TestCase):
         vw = self.firefox_vw
         g = v_t_graphutil.buildFunctionGraph(vw, 0x140010e60)
         paths = [
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778515, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778520, 5368778544, 5368778549]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778520, 5368778544, 5368778601, 5368778603]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778520, 5368778560, 5368778603]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778515, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778520, 5368778544, 5368778549]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778520, 5368778544, 5368778601, 5368778603]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778520, 5368778560, 5368778603]),
-            set([5368778336, 5368778400]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010e9a, 0x140010ea0]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010f02, 0x140010f13]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010f02, 0x140010f18]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010ef2]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010ef2, 0x140010f02, 0x140010f13]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010ef2, 0x140010f02, 0x140010f18]),
+            set([0x140010e60, 0x140010ea0]),
         ]
 
         pathcount = 0
@@ -719,11 +715,11 @@ class VivisectTest(unittest.TestCase):
             self.assertIn(p, paths)
             pathcount += 1
 
-        self.assertEqual(11, pathcount)
+        self.assertEqual(7, pathcount)
 
         g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x1400110a0))
         thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x1400110a0))
-        self.assertEqual(23, thruCnt)
+        self.assertEqual(21, thruCnt)
         thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x1400110a0, maxpath=2))
         self.assertEqual(2, thruCnt)
 

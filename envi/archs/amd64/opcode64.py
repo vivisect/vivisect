@@ -384,7 +384,7 @@ tbl32_0F = [
 ( 0, INS_SYSTEM, 0, 0, 0, ARG_NONE, cpu_80486, "invd", 0, 0, 0),  
 ( 0, INS_SYSTEM, 0, 0, 0, ARG_NONE, cpu_80486, "wbinvd", 0, 0, 0),  
 ( 0, 0, 0, 0, 0, ARG_NONE, cpu_80386, 0, 0, 0, 0),  
-( 0, INS_OTHER, 0, 0, 0, ARG_NONE, cpu_80386, "ud2", 0, 0, 0),
+( 0, INS_INVALIDOP, 0, 0, 0, ARG_NONE, cpu_80386, "ud2", 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
 ( 0, INS_OTHER, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "prefetchw", 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
