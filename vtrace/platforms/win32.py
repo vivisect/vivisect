@@ -914,6 +914,7 @@ if sys.platform == "win32":
     kernel32.DuplicateHandle.argtypes = [HANDLE, HANDLE, HANDLE, LPVOID, DWORD, DWORD, DWORD]
     kernel32.SetEvent.argtypes = [HANDLE, ]
     kernel32.FormatMessageW.argtypes = [DWORD, LPVOID, DWORD, DWORD, LPVOID, DWORD, LPVOID]
+    kernel32.WaitForDebugEvent.argtypes = [LPVOID, DWORD]
 
     IsWow64Process = getattr(kernel32, 'IsWow64Process', None)
     if IsWow64Process is not None:
@@ -924,6 +925,9 @@ if sys.platform == "win32":
     psapi = windll.psapi
     psapi.GetModuleFileNameExW.argtypes = [HANDLE, HANDLE, LPVOID, DWORD]
     psapi.GetMappedFileNameW.argtypes = [HANDLE, LPVOID, LPVOID, DWORD]
+    psapi.GetModuleBaseNameW.argtypes = [HANDLE, HANDLE, c_wchar_p, DWORD]
+    psapi.EnumProcesses.argtypes = [LPVOID, DWORD, LPVOID]
+    psapi.EnumProcessModules.argtypes = [HANDLE, HANDLE, DWORD, LPVOID]
 
     ntdll = windll.ntdll
     ntdll.NtQuerySystemInformation.argtypes = [DWORD, LPVOID, DWORD, LPVOID]
@@ -1135,7 +1139,7 @@ def getDebugPrivileges():
     dbgluid = LUID()
     token = HANDLE(0)
 
-    if not advapi32.LookupPrivilegeValueA(0, "seDebugPrivilege", addressof(dbgluid)):
+    if not advapi32.LookupPrivilegeValueA(0, "seDebugPrivilege".encode('utf-8'), addressof(dbgluid)):
         logger.warning("LookupPrivilegeValue Failed: %d", kernel32.GetLastError())
         return False
 
@@ -1324,7 +1328,8 @@ class WindowsMixin:
         self.dosdevs = []
         dname = (c_char * 512)()
         size = kernel32.GetLogicalDriveStringsA(512, addressof(dname))
-        devs = dname.raw[:size-1].split("\x00")
+        rawName = dname.raw[:size-1].decode('utf-8')
+        devs = rawName.split("\x00")
         for dev in devs:
             dosname = "%s:" % dev[0]
             kernel32.QueryDosDeviceA("%s:" % dev[0], pointer(dname), 512)
@@ -1376,7 +1381,10 @@ class WindowsMixin:
             self.platformWait()
         if not kernel32.DebugActiveProcessStop(self.pid):
             raiseWin32Error("DebugActiveProcessStop")
-        kernel32.CloseHandle(self.phandle)
+        try:
+            kernel32.CloseHandle(self.phandle)
+        except:
+            pass
         self.phandle = None
 
     def platformProtectMemory(self, va, size, perms):
@@ -1488,7 +1496,7 @@ class WindowsMixin:
             pids = (c_int * pcount)()
             psapi.EnumProcesses(addressof(pids), 4*pcount, addressof(needed))
 
-        for i in range(needed.value/4):
+        for i in range(needed.value//4):
             fname = (c_wchar * 512)()
             phandle = kernel32.OpenProcess(PROCESS_ALL_ACCESS, 0, pids[i])
             if not phandle: # If we get 0, we failed to open it (perms)
@@ -1723,7 +1731,7 @@ class WindowsMixin:
         if self.symcache:
             symcache = self.symcache.getCacheSyms(symhash)
             if symcache is not None:
-                self.impSymCache( symcache, symfname=normname, baseaddr=baseaddr)
+                self.impSymCache(symcache, symfname=normname, baseaddr=baseaddr)
                 return
 
         symcache = None
@@ -1733,7 +1741,7 @@ class WindowsMixin:
 
         # If it's *still* none, fall back on PE
         if symcache is None:
-            symcache = [ (rva, 0, name, 0) for (rva,ord,name) in pe.getExports() ]
+            symcache = [ (rva, 0, name, 0) for (rva, ord, name) in pe.getExports() ]
 
         self.impSymCache( symcache, symfname=normname, baseaddr=baseaddr)
 
@@ -2084,8 +2092,11 @@ class Win32SymbolParser:
 
         if sym.Tag == SymTagFunction:
             sym.Flags |= SYMFLAG_FUNCTION
-
-        self.symbols.append((sym.Name, int(sym.Address), int(sym.Size), sym.Flags))
+        
+        name = sym.Name
+        if name:
+            name = name.decode('utf-8')
+        self.symbols.append((name, int(sym.Address), int(sym.Size), sym.Flags))
         return True
 
     def symFromAddr(self, address):
@@ -2191,7 +2202,7 @@ class Win32SymbolParser:
         '''
         ret = []
         funcflags = (SYMFLAG_FUNCTION | SYMFLAG_EXPORT)
-        for name,addr,size,flags in self.symbols:
+        for name, addr, size, flags in self.symbols:
             stype = e_resolv.SYMSTOR_SYM_SYMBOL
             if flags & funcflags:
                 stype = e_resolv.SYMSTOR_SYM_FUNCTION

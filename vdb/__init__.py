@@ -1513,6 +1513,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.trace.release()
 
         except Exception as e:
+            import traceback
+            self.vprint(traceback.format_exc())
             self.vprint('Exception during quit (may need: quit force): %s' % e)
 
     def do_detach(self, line):
