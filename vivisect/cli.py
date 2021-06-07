@@ -75,27 +75,17 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if not line:
             self.vprint("Report Modules")
             for descr, modname in viv_reports.listReportModules():
-                self.vprint("%32s %s" % (modname, descr))
+                self.vprint("Path: %32s (Name: %s)" % (modname, descr))
             return
 
-        mod = self.loadModule(line)
-        cols, results = mod.report(self)
-        for row in results:
-            for i in range(len(cols)+1):
-                val = row[i]
-                if i == 0:
-                    name = self.arch.pointerString(val)
-                    self.canvas.addVaText(name, val)
-
-                else:
-                    self.canvas.addText(": %s" % val)
-
-        for va, pri, info in mod.report(self):
-            name = self.getName(va)
-            if name is None:
-                name = self.arch.pointerString(va)
-            self.canvas.addVaText(name, va)
-            self.canvas.addText(": %s\n" % info)
+        cols, results = viv_reports.runReportModule(self, line)
+        for va, row in results.items():
+            for indx in range(len(cols)):
+                valu = row[indx]
+                name, typename = cols[indx]
+                self.canvas.addVaText(name, va)
+                self.canvas.addText(": %s\n" % valu)
+            self.canvas.addText("\n")
 
     def do_pathcount(self, line):
         '''

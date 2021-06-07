@@ -54,7 +54,7 @@ STORAGE_MAP = {
 
 
 def guid(size=16):
-    return binascii.hexlify(os.urandom(size))
+    return binascii.hexlify(os.urandom(size)).decode()
 
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):

@@ -18,7 +18,7 @@ def report(vw):
             if seg is not None:
                 sname = seg[v_const.SEG_NAME]
             try:
-                b = binascii.hexlify(vw.readMemory(tova, 8))
+                b = binascii.hexlify(vw.readMemory(tova, 8)).decode()
             except Exception as e:
                 b = str(e)
             res[tova] = (b, "%s ref from 0x%x (%s)" % (rname, fromva, sname))
@@ -26,7 +26,7 @@ def report(vw):
     for va, name in vw.getNames():
         if vw.getLocation(va) is None:
             try:
-                b = binascii.hexlify(vw.readMemory(tova, 8))
+                b = binascii.hexlify(vw.readMemory(tova, 8)).decode()
             except Exception as e:
                 b = str(e)
             res[va] = (b, name)
