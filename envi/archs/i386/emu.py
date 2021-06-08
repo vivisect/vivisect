@@ -551,16 +551,17 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_bsf(self, op):
         src = self.getOperValue(op, 1)
-        res = 0
-        if res == 0:
+        if src == 0:
             self.setFlag(EFLAGS_ZF, 1)
-        indx = 0
-        while src != 0:
-            if src & 0x1:
-                res = indx
-            src >>= 1
-            indx += 1
-        self.setOperValue(op, 0, res)
+
+        else:
+            indx = 0
+            while src != 0:
+                if src & 0x1:
+                    break
+                src >>= 1
+                indx += 1
+            self.setOperValue(op, 0, indx)
 
     def i_and(self, op):
         #FIXME 24 and 25 opcodes should *not* get sign-extended.
@@ -1554,7 +1555,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_ror(self, op):
         dstSize = op.opers[0].tsize
         count = self.getOperValue(op, 1)
-        tempCount = shiftMask(count, dstSize)
+        realcount = shiftMask(count, dstSize)
+        tempCount = realcount
         bitlen = dstSize * 8
 
         if tempCount > 0: # Yeah, i know...weird. See the intel manual
@@ -1563,15 +1565,14 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                 tempCf = e_bits.lsb(val)
                 self.setOperValue(op, 0, (val >> 1) + (tempCf * (2 ** (bitlen-1))))
                 tempCount -= 1
+
             val = self.getOperValue(op, 0)
             self.setFlag(EFLAGS_CF, e_bits.msb(val, dstSize))
-            if count == 1:
-                val = self.getOperValue(op, 0)
+
+            if realcount:
+                print("ror: realcount == 1")
                 cf = self.getFlag(EFLAGS_CF)
-                # FIXME: This may be broke...the manual is kinda flaky here
-                self.setFlag(EFLAGS_OF, e_bits.msb(val, dstSize) ^ (e_bits.msb(val, dstSize) - 1))
-            else:
-                self.setFlag(EFLAGS_OF, 0)
+                self.setFlag(EFLAGS_OF, bool(e_bits.msb(val, dstSize) ^ e_bits.msb_minus_one(val, dstSize)))
 
     def i_ret(self, op):
         ret = self.doPop()
