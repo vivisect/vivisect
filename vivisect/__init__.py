@@ -12,7 +12,6 @@ import queue
 import string
 import hashlib
 import logging
-import binascii
 import itertools
 import traceback
 import threading
@@ -54,7 +53,7 @@ STORAGE_MAP = {
 
 
 def guid(size=16):
-    return binascii.hexlify(os.urandom(size)).decode()
+    return e_common.hexify(os.urandom(size))
 
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
@@ -719,7 +718,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             n = self.getName(lva)
             if n is not None:
                 return n
-            return binascii.hexlify(self.readMemory(lva, lsize)).decode('utf-8')
+            return e_common.hexify(self.readMemory(lva, lsize))
 
     def followPointer(self, va):
         """
@@ -1283,7 +1282,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             except envi.InvalidInstruction as msg:
                 # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
-                logger.warning("Invalid Instruct Attempt At:", hex(va), binascii.hexlify(bytez))
+                logger.warning("Invalid Instruct Attempt At:", hex(va), e_common.hexify(bytez))
                 raise InvalidLocation(va, msg)
             except Exception as msg:
                 raise InvalidLocation(va, msg)

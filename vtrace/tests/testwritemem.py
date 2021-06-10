@@ -1,6 +1,6 @@
 import os
-import binascii
 
+import envi.common as e_common
 import vtrace.tests as vt_tests
 
 
@@ -15,7 +15,7 @@ class VtraceWritememTest(vt_tests.VtraceProcessTest):
         addrstr = self.proc.stdout.readline()
         addr = int(addrstr, 16)
 
-        testbuf = binascii.hexlify(os.urandom(10))
+        testbuf = e_common.hexify(os.urandom(10))
 
         # Stop him so we can write to the buffer he created
         self.trace.sendBreak()

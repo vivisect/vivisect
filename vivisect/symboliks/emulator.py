@@ -1,6 +1,6 @@
 import os
-import binascii
 
+import envi.common as e_common
 import vivisect.symboliks.expression as v_s_expr
 
 from vivisect.const import *
@@ -88,7 +88,7 @@ class SymbolikEmulator:
         by solving for deltas between two symbols in different seed
         inputs to see if they are likely arithmetically related.
         '''
-        self._sym_rseed = binascii.hexlify(os.urandom(10))
+        self._sym_rseed = e_common.hexify(os.urandom(10))
 
     def getRandomSeed(self):
         return self._sym_rseed

@@ -1,4 +1,5 @@
 import logging
+import binascii
 
 LOG_FORMAT = '%(asctime)s:%(levelname)s:%(name)s: %(message)s' \
              '[%(filename)s:%(funcName)s:%(lineno)s:%(threadName)s]'
@@ -30,3 +31,10 @@ def initLogging(logger, level=None, fmt=LOG_FORMAT):
 
     # Set log level for current logger
     logger.setLevel(level)
+
+
+def hexify(byts):
+    '''
+    Return a series of bytes as a string of hex characters. The return type will be a python string.
+    '''
+    return binascii.hexlify(byts).decode('utf-8')

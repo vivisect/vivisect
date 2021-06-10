@@ -7,7 +7,6 @@ import shlex
 import pprint
 import socket
 import logging
-import binascii
 import traceback
 from getopt import getopt
 
@@ -29,7 +28,7 @@ import vdb
 
 import envi.cli as e_cli
 import envi.common as e_common
-import envi.memory as e_mem
+import envi.memory as e_memory
 import envi.expression as e_expr
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
@@ -365,7 +364,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         self.vprint('matches for: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
         for va in res:
             mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
-            pname = e_mem.reprPerms(mperm)
+            pname = e_memory.reprPerms(mperm)
             sname = self.reprPointer(va)
 
             op = self.parseOpcode(va)
@@ -742,8 +741,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             self.vprint("Invalid Function Address: 0x%.8x (%s)" % (va, line))
 
         sig, mask = viv_vamp.genSigAndMask(self, fva)
-        self.vprint("SIGNATURE: %s" % binascii.hexlify(sig))
-        self.vprint("MASK: %s" % binascii.hexlify(mask))
+        self.vprint("SIGNATURE: %s" % e_common.hexify(sig))
+        self.vprint("MASK: %s" % e_common.hexify(mask))
 
     def do_vdb(self, line):
         '''
