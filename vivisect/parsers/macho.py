@@ -37,7 +37,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     sha256 = viv_parsers.sha256Bytes(filebytes)
 
     # Check for the FAT binary magic...
-    if binascii.hexlify(filebytes[:4]) in ('cafebabe', 'bebafeca'):
+    if binascii.hexlify(filebytes[:4]) in (b'cafebabe', b'bebafeca'):
 
         archhdr = None
         fatarch = vw.config.viv.parsers.macho.fatarch
