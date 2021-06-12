@@ -831,3 +831,17 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(msize, ssize)
             self.assertEqual(flags, ans[sname][2])
             self.assertEqual(mfname, sfname)
+
+    def test_opcache(self):
+        vw = self.firefox_vw
+        self.assertGreater(len(vw._op_cache), 0)
+        vw.clearOpcache()
+        self.assertEqual(len(vw._op_cache), 0)
+
+        op = vw.parseOpcode(0x140010ef2, skipcache=True)
+        self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
+        self.assertEqual(len(vw._op_cache), 0)
+
+        op = vw.parseOpcode(0x140010ef2)
+        self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
+        self.assertEqual(len(vw._op_cache), 1)
