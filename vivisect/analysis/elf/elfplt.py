@@ -127,7 +127,7 @@ def getGOTs(vw):
     gotsize = None
     for va, size, name, fname in vw.getSegments():
         if name in ('.got.plt', '.got'):
-            flist = out.get(fname)
+            flist = out[fname]
 
             gottup = (va, size)
             if gottup not in flist:
@@ -146,7 +146,7 @@ def getGOTs(vw):
                     #logger.debug('Adding Imagebase: 0x%x', imgbase)
                     FGOT += imgbase
 
-                flist = out.get(filename)
+                flist = out[filename]
 
                 skip = False
                 for va, size in flist:
