@@ -224,17 +224,17 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 53282, 14),
-               1: ('Num/Int',   715, 3738, 0),
+        ans = {0: ('Undefined', 0, 53337, 14),
+               1: ('Num/Int',   712, 3695, 0),
                2: ('String',    265, 6485, 1),
-               3: ('Unicode',   174, 5593, 1),
-               4: ('Pointer',   360, 2880, 0),
-               5: ('Opcode',    72516, 279399, 74),
+               3: ('Unicode',   174, 5596, 1),
+               4: ('Pointer',   361, 2888, 0),
+               5: ('Opcode',    72507, 279377, 74),
                6: ('Structure', 1018, 12740, 3),
                7: ('Clsid',     0, 0, 0),
                8: ('VFTable',   0, 0, 0),
                9: ('Import Entry', 370, 2960, 0),
-               10: ('Pad',      864, 8512, 2)}
+               10: ('Pad',      864, 8511, 2)}
         dist = vw.getLocationDistribution()
         for loctype, locdist in dist.items():
             self.assertEqual(locdist, ans[loctype])
