@@ -45,8 +45,10 @@ Armed with plt_distance and plt_size, we then determine where each PLT entry
 begins, and make those Functions, and analysis continues from there.
 '''
 import logging
-import vivisect
+import collections
+
 import envi
+import vivisect
 import envi.common as e_cmn
 import envi.archs.i386 as e_i386
 
@@ -119,16 +121,13 @@ def getGOT(vw, filename):
     return gotva, gotsize
 
 def getGOTs(vw):
-    out = {}
+    out = collections.defaultdict(list)
 
     gotva = None
     gotsize = None
     for va, size, name, fname in vw.getSegments():
         if name in ('.got.plt', '.got'):
             flist = out.get(fname)
-            if flist is None:
-                flist = []
-                out[fname] = flist
 
             gottup = (va, size)
             if gottup not in flist:
@@ -148,9 +147,6 @@ def getGOTs(vw):
                     FGOT += imgbase
 
                 flist = out.get(filename)
-                if flist is None:
-                    flist = []
-                    out[filename] = flist
 
                 skip = False
                 for va, size in flist:
