@@ -1352,7 +1352,7 @@ class PE(object):
             # DEV: RIDs are all 1 based indexes :(, so fake it here
             table = [None]
             for i in range(count):
-                obj = ctor(ridlen=ridbytes, cttbase=ridbits, slen=strOffSz, glen=guidOffSz, blen=blobOffSz)
+                obj = ctor(tblc, ridlen=ridbytes, slen=strOffSz, glen=guidOffSz, blen=blobOffSz)
                 l = len(obj)
                 obj.vsParse(self.readAtOffset(offset, l))
                 table.append(obj)

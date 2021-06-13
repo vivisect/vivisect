@@ -51,7 +51,10 @@ def parseTypeDefs(vw, pe):
         namespace = getCLRString(pe, typedef.Namespace)
         mstart = typedef.MethodList
         mend = midxs.index(mstart)
-        mend = midxs[mend + 1]
+        if mend + 1 >= len(midxs):
+            mend = mend + 1
+        else:
+            mend = midxs[mend + 1]
         #print(f'{cname}:\tFlags: {hex(typedef.Flags)}, Start: {hex(mstart)}, End: {hex(mend)}, Field: {hex(typedef.FieldList)}')
         for i in range(mstart, mend, 1):
             meth = pe.CLRTables[Types.Method][i]
@@ -59,6 +62,7 @@ def parseTypeDefs(vw, pe):
             mname = f'{namespace}.{cname}.{mname}'
             # param list
             methods.append((meth.RVA, mname, meth))
+    return methods
 
 
 def loadCLRIntoWorkspace(vw, pe):
@@ -71,7 +75,13 @@ def loadCLRIntoWorkspace(vw, pe):
     pe.parseCLR()
     for func in validityCheckers:
         func(pe)
-    parseTypeDefs(vw, pe)
+    try:
+        methods = parseTypeDefs(vw, pe)
+    except:
+        import pdb, sys
+        pdb.post_mortem(sys.exc_info()[2])
 
+    breakpoint()
+    return
     # So at this point we effectively have a parsed DB of various metadata, and we need to apportion
     # that out

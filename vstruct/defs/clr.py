@@ -104,12 +104,15 @@ CodedTokenTypeMap = {
     CodedTokenTypes.TypeOrMethodDef: [Types.TypeDef, Types.Method],
 }
 
-def cttBitLen(base, idx):
-    return base + len(bin(len(CodedTokenTypeMap[idx]))[2:])
+def cttBitLen(counts, idx):
+    group = CodedTokenTypeMap[idx]
+    counts = [counts.get(g, 0) for g in group if g is not None]
+    base = len(bin(max(counts))[2:])
+    return base + len(bin(len(CodedTokenTypeMap[idx])-1)[2:])
 
 
 class Module(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Generation = v_uint16()
         self.Name = SIZEMAP[slen]()
@@ -119,34 +122,34 @@ class Module(vstruct.VStruct):
 
 
 class TypeRef(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.ResolutionScope)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.ResolutionScope)
         self.ResolutionScope = v_uint32() if cttlen > 16 else v_uint16()
         self.Name = SIZEMAP[slen]()
         self.Namespace = SIZEMAP[slen]()
 
 
 class TypeDef(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Flags = v_int32()
         self.Name = SIZEMAP[slen]()
         self.Namespace = SIZEMAP[slen]()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.TypeDefOrRef)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.TypeDefOrRef)
         self.Extends = v_uint32() if cttlen > 16 else v_uint16()
         self.FieldList = SIZEMAP[ridlen]()
         self.MethodList = SIZEMAP[ridlen]()
 
 
 class FieldPtr(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Field = SIZEMAP[ridlen]()
 
 
 class Field(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Flags = v_uint16()
         self.Name = SIZEMAP[slen]()
@@ -154,13 +157,13 @@ class Field(vstruct.VStruct):
 
 
 class MethodPtr(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Method = SIZEMAP[ridlen]()
 
 
 class Method(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.RVA = v_uint32()
         self.ImplFlags = v_uint16()
@@ -171,13 +174,13 @@ class Method(vstruct.VStruct):
 
 
 class ParamPtr(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Param = self.SIZEMAP[ridlen]()
 
 
 class Param(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Flags = v_uint16()
         self.Sequence = v_uint16()
@@ -185,61 +188,61 @@ class Param(vstruct.VStruct):
 
 
 class InterfaceImpl(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Class = SIZEMAP[ridlen]()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.TypeDefOrRef)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.TypeDefOrRef)
         self.Interface = v_uint32() if cttlen > 16 else v_uint16()
 
 
 class MemberRef(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.MemberRefParent)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.MemberRefParent)
         self.Class = v_uint32() if cttlen > 16 else v_uint16()
         self.Name = SIZEMAP[slen]()
         self.Signature = SIZEMAP[blen]()
 
 
 class Constant(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Type = v_uint8()
         self.Padding = v_uint8()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.HasConstant)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.HasConstant)
         self.Parent = v_uint32() if cttlen > 16 else v_uint16()
         self.Value = SIZEMAP[blen]()
 
 
 class CustomAttribute(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.HasCustomAttribute)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.HasCustomAttribute)
         self.Parent = v_uint32() if cttlen > 16 else v_uint16()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.CustomAttributeType)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.CustomAttributeType)
         self.Type = v_uint32() if cttlen > 16 else v_uint16()
         self.Value = SIZEMAP[blen]()
 
 
 class FieldMarshal(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.HasFieldMarshal)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.HasFieldMarshal)
         self.Parent = v_uint32() if cttlen > 16 else v_uint16()
         self.NativeType = SIZEMAP[blen]()
 
 
 class DeclSecurity(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Action = v_uint16()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.HasDeclSecurity)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.HasDeclSecurity)
         self.Parent = v_uint32() if cttlen > 16 else v_uint16()
         self.PermissionSet = SIZEMAP[blen]()
 
 
 class ClassLayout(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.PackingSize = v_uint16()
         self.ClassSize = v_uint32()
@@ -247,55 +250,55 @@ class ClassLayout(vstruct.VStruct):
 
 
 class FieldLayout(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.OffSet = v_uint32()
         self.Field = SIZEMAP[ridlen]()
 
 
 class StandaloneSig(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Signature = SIZEMAP[blen]()
 
 
 class EventMap(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Parent = SIZEMAP[ridlen]()
         self.EventList = SIZEMAP[ridlen]()
 
 
 class EventPtr(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Event = SIZEMAP[ridlen]()
 
 
 class Event(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.EventFlags = v_uint16()
         self.Name = SIZEMAP[slen]()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.TypeDefOrRef)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.TypeDefOrRef)
         self.EventType = v_uint32() if cttlen > 16 else v_uint16()
 
 
 class PropertyMap(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Parent = SIZEMAP[ridlen]()
         self.PropertyList = SIZEMAP[ridlen]()
 
 
 class PropertyPtr(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Property = SIZEMAP[ridlen]()
 
 
 class Property(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.PropFlags = v_uint16()
         self.Name = SIZEMAP[slen]()
@@ -303,69 +306,69 @@ class Property(vstruct.VStruct):
 
 
 class MethodSemantics(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Semantic = v_uint16()
         self.Method = SIZEMAP[ridlen]()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.TypeDefOrRef)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.TypeDefOrRef)
         self.Association = v_uint32() if cttlen > 16 else v_uint16()
 
 
 class MethodImpl(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Class = SIZEMAP[ridlen]()
 
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.MethodDefOrRef)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.MethodDefOrRef)
         self.MethodBody = v_uint32() if cttlen > 16 else v_uint16()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.MethodDefOrRef)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.MethodDefOrRef)
         self.MethodDeclaration = v_uint32() if cttlen > 16 else v_uint16()
 
 
 class ModuleRef(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Name = SIZEMAP[slen]()  # no longer than 512. enforce?
 
 
 class TypeSpec(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Signature = SIZEMAP[blen]()
 
 
 class ENCLog(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Token = v_uint32()
         self.FuncCode = v_uint32()
 
 
 class ImplMap(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.MappingFlags = v_uint16()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.MemberForwarded)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.MemberForwarded)
         self.MemberForwarded = v_uint32() if cttlen > 16 else v_uint16()
         self.ImportName = SIZEMAP[slen]()
         self.ImportScope = SIZEMAP[ridlen]()
 
 
 class ENCMap(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Token = v_uint32()
 
 
 class FieldRVA(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.RVA = v_uint32()
         self.Field = SIZEMAP[ridlen]()
 
 
 class Assembly(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.HashAlgId = v_uint32()
         self.MajorVersion = v_uint16()
@@ -379,13 +382,13 @@ class Assembly(vstruct.VStruct):
 
 
 class AssemblyProcessor(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Processor = v_uint32()
 
 
 class AssemblyOS(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.OSPlatformID = v_uint32()
         self.OSMajorVersion = v_uint32()
@@ -393,7 +396,7 @@ class AssemblyOS(vstruct.VStruct):
 
 
 class AssemblyRef(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.MajorVersion = v_uint16()
         self.MinorVersion = v_uint16()
@@ -407,7 +410,7 @@ class AssemblyRef(vstruct.VStruct):
 
 
 class AssemblyRefProcessor(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Processor = v_uint32()
         self.AssemblyRef = SIZEMAP[ridlen]()
@@ -415,7 +418,7 @@ class AssemblyRefProcessor(vstruct.VStruct):
 
 # TODO: Subclass AssemblyOS instead?
 class AssemblyRefOS(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.OSPlatformID = v_uint32()
         self.OSMajorVersion = v_uint32()
@@ -424,7 +427,7 @@ class AssemblyRefOS(vstruct.VStruct):
 
 
 class File(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Flags = v_uint32()  # either 1 or 0, so why did they make this 32 bits?
         self.Name = SIZEMAP[slen]()
@@ -432,54 +435,54 @@ class File(vstruct.VStruct):
 
 
 class ExportedType(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Flags = v_uint32()
         self.TypeDefId = v_uint32()
         self.TypeName = SIZEMAP[slen]()
         self.TypeNameSpace = SIZEMAP[slen]()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.Implementation)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.Implementation)
         self.Implementation = v_uint32() if cttlen > 16 else v_uint16()
 
 
 class ManifestResource(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Offset = v_uint32()
         self.Flags = v_uint32()
         self.Name = SIZEMAP[slen]()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.Implementation)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.Implementation)
         self.Implementation = v_uint32() if cttlen > 16 else v_uint16()
 
 
 class NestedClass(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Nested = SIZEMAP[ridlen]()
         self.Enclosing = SIZEMAP[ridlen]()
 
 
 class GenericParam(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Number = v_uint16()
         self.Flags = v_uint16()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.TypeOrMethodDef)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.TypeOrMethodDef)
         self.Owner = v_uint32() if cttlen > 16 else v_uint16()
         self.Name = SIZEMAP[slen]()
 
 
 class MethodSpec(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.MethodDefOrRef)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.MethodDefOrRef)
         self.Method = v_uint32() if cttlen > 16 else v_uint16()
         self.Instantiation = SIZEMAP[blen]()
 
 
 class GenericParamConstraint(vstruct.VStruct):
-    def __init__(self, ridlen=2, cttbase=12, slen=2, glen=2, blen=2):
+    def __init__(self, tblc, ridlen=2, slen=2, glen=2, blen=2):
         vstruct.VStruct.__init__(self)
         self.Owner = SIZEMAP[ridlen]()
-        cttlen = cttBitLen(cttbase, CodedTokenTypes.TypeDefOrRef)
+        cttlen = cttBitLen(tblc, CodedTokenTypes.TypeDefOrRef)
         self.Constraint = v_uint32() if cttlen > 16 else v_uint16()

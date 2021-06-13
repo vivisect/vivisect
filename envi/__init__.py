@@ -259,7 +259,7 @@ class Operand:
     """
     Thses are the expected methods needed by any implemented operand object
     attached to an envi Opcode.  This does *not* have a constructor of it's
-    pwn on purpose to cut down on memory use and constructor CPU cost.
+    own on purpose to cut down on memory use and constructor CPU cost.
     """
 
     def getOperValue(self, op, emu=None):
