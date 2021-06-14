@@ -1135,7 +1135,7 @@ def getDebugPrivileges():
     dbgluid = LUID()
     token = HANDLE(0)
 
-    if not advapi32.LookupPrivilegeValueA(0, "seDebugPrivilege", addressof(dbgluid)):
+    if not advapi32.LookupPrivilegeValueA(0, b"seDebugPrivilege", addressof(dbgluid)):
         logger.warning("LookupPrivilegeValue Failed: %d", kernel32.GetLastError())
         return False
 
@@ -1311,7 +1311,7 @@ class WindowsMixin:
 
         ntdll.NtQuerySystemInformation(NT_LIST_HANDLES, addressof(hinfo), hsize, addressof(hsize))
 
-        count = (hsize.value-4) / sizeof(SYSTEM_HANDLE)
+        count = (hsize.value-4) // sizeof(SYSTEM_HANDLE)
         hinfo = buildSystemHandleInformation(count)
         hsize = c_ulong(sizeof(hinfo))
 
@@ -1324,7 +1324,7 @@ class WindowsMixin:
         self.dosdevs = []
         dname = (c_char * 512)()
         size = kernel32.GetLogicalDriveStringsA(512, addressof(dname))
-        devs = dname.raw[:size-1].split("\x00")
+        devs = dname.raw[:size-1].split(b"\x00")
         for dev in devs:
             dosname = "%s:" % dev[0]
             kernel32.QueryDosDeviceA("%s:" % dev[0], pointer(dname), 512)
@@ -1337,7 +1337,7 @@ class WindowsMixin:
     def platformExec(self, cmdline):
         sinfo = STARTUPINFO()
         pinfo = PROCESS_INFORMATION()
-        if not kernel32.CreateProcessA(0, cmdline, 0, 0, 0,
+        if not kernel32.CreateProcessA(0, cmdline.encode('utf-8'), 0, 0, 0,
                 DEBUG_ONLY_THIS_PROCESS, 0, 0, addressof(sinfo), addressof(pinfo)):
             raise Exception("CreateProcess failed!")
 
@@ -1488,7 +1488,7 @@ class WindowsMixin:
             pids = (c_int * pcount)()
             psapi.EnumProcesses(addressof(pids), 4*pcount, addressof(needed))
 
-        for i in range(needed.value/4):
+        for i in range(needed.value//4):
             fname = (c_wchar * 512)()
             phandle = kernel32.OpenProcess(PROCESS_ALL_ACCESS, 0, pids[i])
             if not phandle: # If we get 0, we failed to open it (perms)
@@ -1670,6 +1670,7 @@ class WindowsMixin:
             return ""
         name = fname.value
         for dosname, devname in self.dosdevs:
+            devname = devname.decode('utf-8')
             if name.startswith(devname):
                 return name.replace(devname, dosname)
         return name
@@ -2020,7 +2021,7 @@ class Win32SymbolParser:
                 asize = self.symGetTypeLength(atype)
                 if asize == 0:
                     continue # on 0 length array, skip it
-                kcount = ksize / asize
+                kcount = ksize // asize
 
                 # Now, we setup our *child* to be the type
                 ktypename = self.symGetTypeName(atype)

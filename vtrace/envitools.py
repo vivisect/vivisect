@@ -25,38 +25,6 @@ def cmpRegs(emu, trace):
     return True
 
 
-def emuFromTrace(trace):
-    '''
-    Produce an envi emulator for this tracer object.
-    '''
-    arch = trace.getMeta('Architecture')
-    plat = trace.getMeta('Platform')
-    amod = envi.getArchModule(arch)
-    emu = amod.getEmulator()
-
-    # could use {get,set}MemorySnap if trace inherited from MemoryObject
-    for va, size, perms, fname in trace.getMemoryMaps():
-        try:
-            # So linux maps in a PROT_NONE page for efficient library sharing, so we have to take that into account
-            if (not perms & e_memory.MM_READ):
-                continue
-            if plat == 'linux' and fname in ['[vvar]']:
-                continue
-            bytez = trace.readMemory(va, size)
-            emu.addMemoryMap(va, perms, fname, bytez)
-        except vtrace.PlatformException:
-            print('failed to map: 0x{:x} into emu'.format(va, size))
-            continue
-
-    rsnap = trace.getRegisterContext().getRegisterSnap()
-    emu.setRegisterSnap(rsnap)
-
-    if plat == 'windows':
-        emu.setSegmentInfo(e_i386.SEG_FS, trace.getThreads()[trace.getMeta('ThreadId')], 0xffffffff)
-
-    return emu
-
-
 def lockStepEmulator(emu, trace):
     while True:
         print("Lockstep: 0x%.8x" % emu.getProgramCounter())
