@@ -132,7 +132,6 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         if 'win' in plat.lower():
             filefmt = 'pe'
             from vivisect.parsers.pe import archcalls
-            #from vivisect.parsers.pe import defcalls as archcalls
         else:
             filefmt = 'elf'
             from vivisect.parsers.elf import archcalls

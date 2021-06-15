@@ -67,7 +67,7 @@ arch_names = {
     PE.IMAGE_FILE_MACHINE_THUMB: 'thumb16',
 }
 
-defcalls = {
+archcalls = {
     'i386': 'cdecl',
     'amd64': 'msx64call',
     'arm': 'armcall',
@@ -105,7 +105,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     vw.setMeta('Platform', platform)
 
-    vw.setMeta('DefaultCall', defcalls.get(arch, 'unknown'))
+    vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
 
     # Set ourselves up for extended windows binary analysis
 
