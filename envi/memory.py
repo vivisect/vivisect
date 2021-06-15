@@ -493,7 +493,7 @@ class MemoryObject(IMemory):
 
     def readMemory(self, va, size):
         '''
-        Read memory from maps stored in self._map_defs
+        Read memory from maps stored in memory maps.
         '''
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:

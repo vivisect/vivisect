@@ -1795,11 +1795,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes))
 
-    def delMemoryMap(self, va):
+    def delMemoryMap(self, mapva):
         '''
         Remove a memory map from the workspace.
         '''
-        self._fireEvent(VWE_DELMMAP, va)
+        self._fireEvent(VWE_DELMMAP, mapva)
 
     def addSegment(self, va, size, name, filename):
         """

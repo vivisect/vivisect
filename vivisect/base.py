@@ -401,10 +401,10 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # transmeta items...
         self.transmeta.pop('findPointers',None)
 
-    def _handleDELMMAP(self, va):
-        e_mem.MemoryObject.delMemoryMap(self, va)
-        self.locmap.delMapLookup(va)
-        self.blockmap.delMapLookup(va)
+    def _handleDELMMAP(self, mapva):
+        e_mem.MemoryObject.delMemoryMap(self, mapva)
+        self.locmap.delMapLookup(mapva)
+        self.blockmap.delMapLookup(mapva)
 
     def _handleADDEXPORT(self, einfo):
         va, etype, name, filename = einfo

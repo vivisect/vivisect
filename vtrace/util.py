@@ -234,12 +234,12 @@ def collapseMemoryMaps(oldmaps, strict=True):
         omsz = len(obytez)
         ovamax = ova + omsz
         print("next map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x" % (ova, operms, ofname, omsz, ovamax))
-        if ova == curvamax and (curperms == operms or not strict):  # is this true?
+        if ova == curvamax and (not strict or (curfname == ofname and curperms == operms)):  # is this true?
             # collapse this into previous and update curvamax and curbytes if perms or not strict
             curvamax = ovamax
             newfname = None
             if len(curfname):
-                if len(ofname):
+                if len(ofname) and ofname != curfname:
                     newfname = '%s + %s' % (curfname, ofname)
                 else:
                     newfname = curfname
