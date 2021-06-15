@@ -2611,7 +2611,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Read the first bytes of the file descriptor and see if we can identify the type.
         If so, load up the parser for that file type, otherwise raise an exception.
 
-        Returns file md5
+        Returns the file md5
         """
         mod = None
         fd.seek(0)
@@ -2630,6 +2630,37 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.initMeta("StorageName", filename+".viv")
 
         # Snapin our analysis modules
+        self._snapInAnalysisModules()
+
+        return fname
+
+    def loadParsedBin(self, pbin, fmtname=None, baseaddr=None):
+        '''
+        Load an already parsed PE or Elf file into the workspace. Raises an exception if
+        the file isn't one of those two.
+
+        Returns the file md5
+        '''
+        fd = pbin.fd
+        fd.seek(0)
+        if fmtname is None:
+            byts = fd.read(32)
+            fmtname = viv_parsers.guessFormat(byts)
+
+        filename = hashlib.md5(fd.read()).hexdigest()
+
+        mod = viv_parsers.getParserModule(fmtname)
+        if hasattr(mod, "config"):
+            self.mergeConfig(mod.config)
+
+        if fmtname == 'pe':
+            mod.loadPeIntoWorkspace(self, pbin)
+        elif fmtname == 'elf':
+            mod.loadElfIntoWorkspace(self, pbin)
+        else:
+            raise Exception('Failed to load in the parsed module for format %s', fmtname)
+
+        self.initMeta("StorageName", filename+".viv")
         self._snapInAnalysisModules()
 
         return fname
