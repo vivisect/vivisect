@@ -13,7 +13,7 @@ Locations are the generalized "points of interests" inside of a binary. These PO
 
 In vivisect, locations are represented as a tuple consisting of four elements. The first element is the virtual address the location of interest starts at, the second the size (in bytes) that the location spans, the third element is the location type (represented as an integer from vivisect/const.py), and a fourth info field that is type-specific information.
 
-The most common calls concerning locations are the adder/getters::
+The most common calls concerning locations are the adder and getters::
 
     import vivisect.const as v_const
     va = 0x1234
@@ -25,13 +25,15 @@ The most common calls concerning locations are the adder/getters::
     loctup = vw.getLocation(va)
     assert loctup == (va, size, ltyp, tinfo)
 
-But there are other utility functions such as::
+Where `vw` is our standard variable name for our VivWorkspace instance that has been loaded with either a pre-existing workspace or a binary that was parsed and loaded in.
+
+There are other utility functions for locations such as::
 
     import vivisect.const as v_const
     vw.isLocation(0x401000)
     vw.isLocType(0x401000, v_const.LOC_IMPORT)
 
-And other utility functions such as::
+As well as::
 
     for ltup in vw.getLocationRange(0x802000, 0xff):
         va, size, ltyp, tinfo = ltup
@@ -44,7 +46,7 @@ Cross References
 
 When one location in a binary references another (such as when a pointer dereference is made), vivisect not only adds locations for both of them, but also as a connector tuple linking the two locations. Xrefs in vivisect are represented as tuple of four elelments. The first element in the tuple is the virtual address of the location that is doing the referring (the referer), the second element is the virtual address of the location that is being referred to (the referee), the third element is an integer representing the type of cross reference the current reference is (see vivisect/const.py), and the fourth element is a set of flags representing more information about the cross reference.
 
-To view all of the cross references in the workspace::
+To retrieve all of the cross references in the workspace::
 
     vw.getXrefs()
 

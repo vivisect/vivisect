@@ -40,4 +40,8 @@ If you don't want to write a custom script to load up your analysis module, you 
 
     python -m vivisect.vivbin /path/to/my/binary -M /path/to/my/analysis/module.py
 
-Keep in mind that your analysis module will run after all of the other analysis modules in vivisect proper.
+With the caveat that your analysis module will run after all of the other analysis modules in vivisect proper.
+
+And as a note, vivbin can also load up a pre-existing workspace file so you can run your analysis module against a full populated/annotated workspace::
+
+    python -m vivisect.vivbin /path/to/my/workspace/file.viv -M /path/to/my/analysis/module.py
