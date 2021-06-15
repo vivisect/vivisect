@@ -52,7 +52,7 @@ def analyzePLT(vw, pltva, pltsz):
     by the division.  PLT entries in the same PLT section are incredibly similar
     (not including the LazyLoader sometimes found at the beginning of a PLT)
     '''
-    logger.info("PLT Section:  0x%x:%d", pltva, pltsz)
+    logger.info("PLT Section -  Address: 0x%x  Size: %d", pltva, pltsz)
     gotva = gotsz = None
     fname = vw.getFileByVa(pltva)
 
@@ -80,7 +80,7 @@ def analyzePLT(vw, pltva, pltsz):
     distanceheur = {}
     for fva in curplts:
         fsz = vw.getFunctionMeta(fva, 'Size')
-        gotva, gotsz = elfplt.getGOT(vw, fname)
+        gotva, gotsz = elfplt.getGOTByFilename(vw, fname)
 
         offset = 0
         while offset < fsz:

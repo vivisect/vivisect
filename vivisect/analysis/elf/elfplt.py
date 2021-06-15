@@ -70,7 +70,7 @@ def analyze(vw):
         analyzePLT(vw, sva, ssize)
 
 
-def getGOT(vw, filename):
+def getGOTByFilename(vw, filename):
     '''
     Returns GOT location for the filename specified.
 
@@ -121,18 +121,13 @@ def getGOT(vw, filename):
     return gotva, gotsize
 
 def getGOTs(vw):
-    out = collections.defaultdict(list)
+    out = collections.defaultdict(set)
 
     gotva = None
     gotsize = None
     for va, size, name, fname in vw.getSegments():
         if name in ('.got.plt', '.got'):
-            flist = out[fname]
-
-            gottup = (va, size)
-            if gottup not in flist:
-                flist.append(gottup)
-
+            out[fname].add((va, size))
 
     # pull GOT info from Dynamics
     for filename in vw.getFiles():
@@ -161,7 +156,7 @@ def getGOTs(vw):
                 gotva = FGOT
                 moffset = gotva - mmva
                 gotsize = mmsz - moffset
-                flist.append((gotva, gotsize))
+                flist.add((gotva, gotsize))
     return out
 
 def getPLTs(vw):
@@ -200,7 +195,7 @@ def analyzePLT(vw, ssva, ssize):
         emu = None
         sva = ssva
         nextseg = sva + ssize
-        gotva, gotsize = getGOT(vw, vw.getFileByVa(ssva))
+        gotva, gotsize = getGOTByFilename(vw, vw.getFileByVa(ssva))
 
         ###### make code for every opcode in PLT
         # make and parse opcodes.  keep track of unconditional branches
@@ -327,7 +322,7 @@ def analyzeFunction(vw, funcva):
     # start off spinning up an emulator to track through the PLT entry
     # slight hack, but we don't currently know if thunk_bx exists
     fname = vw.getFileByVa(funcva)
-    gotva, gotsize = getGOT(vw, fname)
+    gotva, gotsize = getGOTByFilename(vw, fname)
 
     # all architectures should at least have some minimal emulator
     emu = vw.getEmulator()
