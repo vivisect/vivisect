@@ -103,14 +103,14 @@ def analyzePLT(vw, pltva, pltsz):
 
     # GOT-XREF-Offset method
     if len(jmpheur):
-        algo_GOT_XREF_Offset(vw, jmpheur, pltva, pltsz)
+        fillPLTviaGOTXrefs(vw, jmpheur, pltva, pltsz)
 
     else:
         logging.info("analyzePLT(0x%x, 0x%x) skipping GOT-XREF-Offset method: no existing functions found", pltva, pltsz)
 
     # PLT-Func-Distance method
     if len(distanceheur):
-        algo_PLT_Func_Distance(vw, curplts, distanceheur, pltva, pltsz)
+        fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz)
 
     else:
         logging.info("skipping analyzePLT(0x%x, 0x%x) (PLT-Func-Distance method): no existing functions found", pltva, pltsz)
@@ -118,7 +118,7 @@ def analyzePLT(vw, pltva, pltsz):
     logger.info("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
 
 
-def algo_GOT_XREF_Offset(vw, jmpheur, pltva, pltsz):
+def fillPLTviaGOTXrefs(vw, jmpheur, pltva, pltsz):
     '''
     This PLT-placement algorithm measures the distance from the start of known good
     PLT functions and the GOT-referencing branch.  The only weakness is that this
@@ -138,7 +138,7 @@ def algo_GOT_XREF_Offset(vw, jmpheur, pltva, pltsz):
 
     # now roll through the PLT space and look for GOT-references from 
     # locations that aren't in a function
-    logger.info("... analysis mode 1: GOT-XREF Offset")
+    logger.info("Scanning for Xrefs into the GOT to determine PLT function starts")
     offset = 0
     while offset < pltsz:
         locva, lsz, ltype, ltinfo = vw.getLocation(pltva + offset)
@@ -176,7 +176,7 @@ def algo_GOT_XREF_Offset(vw, jmpheur, pltva, pltsz):
         offset += lsz
 
 
-def algo_PLT_Func_Distance(vw, curplts, distanceheur, pltva, pltsz):
+def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
     '''
     This PLT-placement algorithm measures the distance between known good PLT entries
     and then attempts to identify divisors (up to 16 splits) which would make
@@ -187,7 +187,7 @@ def algo_PLT_Func_Distance(vw, curplts, distanceheur, pltva, pltsz):
     '''
     ######## let's attempt to identify the smallest common distance between functions
     # what's the smallest distance between functions that
-    logger.info("... analysis mode 2: PLT-Func-Distance")
+    logger.info("Using known good PLT entries to fill in the rest of the PLT (based on gaps)")
     curpltcnt = len(curplts)
     minimumbar = 1 + (curpltcnt // 100)
 
