@@ -126,6 +126,7 @@ def addAnalysisModules(vw):
 
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
+
         elif arch in ARM_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
 
@@ -134,6 +135,8 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.noret")
         # due to inconsistencies in plt layouts, we'll keep this as a func module as well
         vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
+        # late-analysis ELF PLT tidying up, allowing unused PLT entries to be made into functions
+        vw.addAnalysisModule("vivisect.analysis.elf.elfplt_late")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
     elif fmt == 'macho': # MACH-O ###################################################

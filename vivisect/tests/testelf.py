@@ -7,6 +7,7 @@ import vivisect.cli as viv_cli
 import vivisect.tests.helpers as helpers
 import vivisect.analysis.elf as vae
 import vivisect.analysis.elf.elfplt as vaeep
+import vivisect.analysis.elf.elfplt_late as vaeepl
 import vivisect.analysis.generic.pointers as vagp
 import vivisect.analysis.generic.relocations as vagr
 
@@ -24,13 +25,12 @@ logger = logging.getLogger(__name__)
 
 
 def do_analyze(vw):
-    for mod in vae, vagr, vaeep, vagp:
+    for mod in vae, vagr, vaeep, vagp, vaeepl:
         try:
             mod.analyze(vw)
         except Exception as e:
             import traceback
-            logging.warning("ERROR in analysis module: (%r): %r", mod, e)
-            logging.warning(traceback.format_exc())
+            logging.warning("ERROR in analysis module: (%r): %r", mod, e, exc_info=1)
 
 
 class ELFTests(unittest.TestCase):
@@ -69,6 +69,8 @@ class ELFTests(unittest.TestCase):
             durn = time.time() - start
             logger.warning(f'============= {name} took {durn} seconds ===============')
 
+            self.do_check_elfplt(vw)
+
         failed = 0
         for fidx, tres in enumerate(results):
             for testname, testdata in tres.items():
@@ -79,6 +81,48 @@ class ELFTests(unittest.TestCase):
                     logger.error('%s:  %s: missing: %r   new: %r (%r)', fname, testname, failed_old, failed_new, fname)
 
         self.assertEqual(failed, 0, msg="ELF Tests Failed (see error log)")
+   
+    def do_check_elfplt(self, vw):
+        # Test ELFPLT entries to be uniform and all functions created
+        for pltva, pltsz in vaeep.getPLTs(vw):
+            # first get all the known functions that are in this PLT section
+            curplts = []
+            for fva in vw.getFunctions():
+                if pltva <= fva < (pltva+pltsz) and fva not in curplts:
+                    logger.info("PLT Function: 0x%x", fva)
+                    curplts.append(fva)
+            logger.info("%r", curplts)
+
+            logger.info("curplts length: %d", len(curplts))
+            if not len(curplts):
+                logger.warning('skipping...')
+                continue
+
+            # accumulate the distances between PLT functions
+            heur = {}
+            last = pltva
+            curplts.sort()
+            for va in curplts:
+                delta = va - last
+                last = va
+                
+                logger.info("PLTVA: 0x%x  va: 0x%x   delta: 0x%x", pltva, va, delta)
+                if delta == 0:
+                    # it's the first entry, skip
+                    continue
+
+                dcnt = heur.get(delta, 0)
+                heur[delta] = dcnt + 1
+
+            # check if the first entry is odd-sized and chuck it if so
+            if len(curplts) > 1:
+                firstdelta = curplts[1] - curplts[0]
+                if heur.get(firstdelta) == 1:
+                    # it's a lone wolf, an aberration.  KILL IT!
+                    heur.pop(firstdelta)
+
+            # assert that there should be only one size between functions
+            self.assertLessEqual(len(heur), 1, "More than one heuristic for %r: %r" % (vw.getMeta('StorageName'), heur))
 
 
     def do_file(self, vw, test_data, name):

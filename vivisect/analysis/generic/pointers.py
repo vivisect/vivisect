@@ -6,8 +6,8 @@ in a previous life, this analysis code lived inside VivWorkspace.analyze()
 """
 import logging
 
-import visgraph.graphcore as g_core
 import visgraph.exc as g_exc
+import visgraph.graphcore as g_core
 from vivisect.const import RTYPE_BASEPTR, LOC_POINTER
 
 logger = logging.getLogger(__name__)
