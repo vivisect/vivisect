@@ -119,10 +119,16 @@ def analyzePLT(vw, pltva, pltsz):
 
 
 def algo_GOT_XREF_Offset(vw, jmpheur, pltva, pltsz):
-    # this seems to work for many PLT's, but only if the xref is identifiable 
-    # without function analysis.  it fails on i386-pic code which uses ebx 
-    # (which is handed into the call as a base address)
+    '''
+    This PLT-placement algorithm measures the distance from the start of known good
+    PLT functions and the GOT-referencing branch.  The only weakness is that this
+    method requires that the xref to the GOT is already identified (without
+    throwing and emulator in there).
 
+    This method seems to work for many PLT's, but only if the xref is identifiable
+    without function analysis.  it fails on i386-pic code which uses ebx  (which
+    is handed into the call as a base address)
+    '''
     # if we have what we need... scroll through all the non-functioned area
     # looking for GOT-xrefs
     offbycnt = [(cnt, off) for off, cnt in jmpheur.items()]
@@ -171,124 +177,132 @@ def algo_GOT_XREF_Offset(vw, jmpheur, pltva, pltsz):
 
 
 def algo_PLT_Func_Distance(vw, curplts, distanceheur, pltva, pltsz):
-        ######## Now let's attempt to identify the smallest common distance between functions
-        # what's the smallest distance between functions that
-        logger.info("... analysis mode 2: PLT-Func-Distance")
-        curpltcnt = len(curplts)
-        minimumbar = 1 + (curpltcnt // 100)
+    '''
+    This PLT-placement algorithm measures the distance between known good PLT entries
+    and then attempts to identify divisors (up to 16 splits) which would make
+    more than one PLT function fit between them.  These attempted splits are
+    validated using heuristics of the potential functions which would be created
+    by the division.  PLT entries in the same PLT section are incredibly similar
+    (not including the LazyLoader sometimes found at the beginning of a PLT)
+    '''
+    ######## let's attempt to identify the smallest common distance between functions
+    # what's the smallest distance between functions that
+    logger.info("... analysis mode 2: PLT-Func-Distance")
+    curpltcnt = len(curplts)
+    minimumbar = 1 + (curpltcnt // 100)
 
-        # cull the herd.  our winner wants to be at least greater than one entry
-        for delta, count in list(distanceheur.items()):
-            if count < minimumbar:
-                distanceheur.pop(delta)
+    # cull the herd.  our winner wants to be at least greater than one entry
+    for delta, count in list(distanceheur.items()):
+        if count < minimumbar:
+            distanceheur.pop(delta)
 
-            elif delta == 0:  # can't have 0.  skip the first PLT function
-                distanceheur.pop(delta)
+        elif delta == 0:  # can't have 0.  skip the first PLT function
+            distanceheur.pop(delta)
 
-        workdist = list(distanceheur.items())
-        workdist.sort()
+    workdist = list(distanceheur.items())
+    workdist.sort()
 
-        if not len(workdist):
-            logger.info('... bailing, no existing PLT functions in this section to compare to...')
+    if not len(workdist):
+        logger.info('... bailing, no existing PLT functions in this section to compare to...')
 
-        else:
-            # first entry should be our guy...
-            funcdist = workdist[0][0]
-            logger.debug("funcdist: 0x%x", funcdist)
+    else:
+        # first entry should be our guy...
+        funcdist = workdist[0][0]
+        logger.debug("funcdist: 0x%x", funcdist)
 
-            idx = getGoodIndex(curplts, funcdist)
-            fva = curplts[idx]
+        idx = getGoodIndex(curplts, funcdist)
+        fva = curplts[idx]
 
-            ### magic check:  we are working off incomplete data... it's completely possible our
-            # gap measurement is twice as big as it should be (or 3 times).  how to check is 
-            # where the magic comes in...
-            funcsz = vw.getFunctionMeta(fva, 'Size')
-            for divisor in range(funcdist, 0, -1):
-                logger.log(e_cmn.SHITE, 'attempting to divide funcdist (0x%x) by %d', funcdist, divisor)
+        ### magic check:  we are working off incomplete data... it's completely possible our
+        # gap measurement is twice as big as it should be (or 3 times).  how to check is 
+        # where the magic comes in...
+        funcsz = vw.getFunctionMeta(fva, 'Size')
+        for divisor in range(funcdist, 0, -1):
+            logger.log(e_cmn.SHITE, 'attempting to divide funcdist (0x%x) by %d', funcdist, divisor)
 
-                # does the gap between functions support splitting?
-                if funcdist < (divisor * funcsz):
-                    logger.log(e_cmn.SHITE, '.. not big enough')
-                    continue
+            # does the gap between functions support splitting?
+            if funcdist < (divisor * funcsz):
+                logger.log(e_cmn.SHITE, '.. not big enough')
+                continue
 
-                newdist = funcdist // divisor
-                # does the funcdist split evenly?
-                if newdist * divisor != funcdist:
-                    logger.log(e_cmn.SHITE, ".. doesn't divide evenly(newdist: 0x%x  divisor: 0x%x   funcdist: 0x%x)", newdist, divisor, funcdist)
-                    continue
+            newdist = funcdist // divisor
+            # does the funcdist split evenly?
+            if newdist * divisor != funcdist:
+                logger.log(e_cmn.SHITE, ".. doesn't divide evenly(newdist: 0x%x  divisor: 0x%x   funcdist: 0x%x)", newdist, divisor, funcdist)
+                continue
 
-                # do the opcodes support this size split?
-                if not compareFuncs(vw, fva, fva + newdist, funcsz):
-                    logger.log(e_cmn.SHITE, ".. functions don't match!")
-                    continue
+            # do the opcodes support this size split?
+            if not compareFuncs(vw, fva, fva + newdist, funcsz):
+                logger.log(e_cmn.SHITE, ".. functions don't match!")
+                continue
 
-                break
+            break
 
-            # should end up dividing by 1 if not divisible
-            if divisor > 1:
-                logger.info("dividing our lowest function (0x%x) distance by %d", funcdist, divisor)
-                funcdist //= divisor
+        # should end up dividing by 1 if not divisible
+        if divisor > 1:
+            logger.info("dividing our lowest function (0x%x) distance by %d", funcdist, divisor)
+            funcdist //= divisor
 
-            idx = getGoodIndex(curplts, funcdist)
+        idx = getGoodIndex(curplts, funcdist)
 
-            tmpva = curplts[idx]
-            logger.debug("... backwards from... 0x%x", tmpva)
-            op = vw.parseOpcode(tmpva)
-            stdmnem = op.mnem
-            # start there and go backwards
-            while tmpva > pltva:
-                logger.log(e_cmn.SHITE, "tmpva: 0x%x", tmpva)
-                # check if already in a PLT function (ignore if it's part of some other func)
-                curfunc = vw.getFunction(tmpva)
-                if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
-                    #logger.debug('skip 0x%x: already function', tmpva)
-                    tmpva -= funcdist 
-                    continue
-
-                # check if there's enough room for an even additional one beyond this 
-                # (ie. the initial entry in the plt is slightly larger than a normal entry
-                leftovers = tmpva - funcdist - pltva
-                if leftovers != 0 and leftovers < funcdist:
-                    logger.debug('skip 0x%x: too close to beginning of PLT', tmpva)
-                    tmpva -= funcdist 
-                    continue
-                
-                # if standard start of plt mnemonic is different...
-                op = vw.parseOpcode(tmpva)
-                if op.mnem != stdmnem:
-                    logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
-                    tmpva -= funcdist 
-                    continue
-
-                logger.info("New PLT Function! 0x%x", tmpva)
-                vw.makeFunction(tmpva)
-
+        tmpva = curplts[idx]
+        logger.debug("... backwards from... 0x%x", tmpva)
+        op = vw.parseOpcode(tmpva)
+        stdmnem = op.mnem
+        # start there and go backwards
+        while tmpva > pltva:
+            logger.log(e_cmn.SHITE, "tmpva: 0x%x", tmpva)
+            # check if already in a PLT function (ignore if it's part of some other func)
+            curfunc = vw.getFunction(tmpva)
+            if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
+                #logger.debug('skip 0x%x: already function', tmpva)
                 tmpva -= funcdist 
+                continue
 
-            # now we go to the end of the PLT!
-            tmpva = curplts[idx]
-            logger.debug("... forwards from... 0x%x", tmpva)
-            endva = pltva + pltsz
-            while tmpva < endva:
-                logger.log(e_cmn.SHITE, "tmpva: 0x%x", tmpva)
-                # check if already in a PLT function
-                curfunc = vw.getFunction(tmpva)
-                if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
-                    #logger.debug('skip 0x%x: already function', tmpva)
-                    tmpva += funcdist 
-                    continue
+            # check if there's enough room for an even additional one beyond this 
+            # (ie. the initial entry in the plt is slightly larger than a normal entry
+            leftovers = tmpva - funcdist - pltva
+            if leftovers != 0 and leftovers < funcdist:
+                logger.debug('skip 0x%x: too close to beginning of PLT', tmpva)
+                tmpva -= funcdist 
+                continue
+            
+            # if standard start of plt mnemonic is different...
+            op = vw.parseOpcode(tmpva)
+            if op.mnem != stdmnem:
+                logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
+                tmpva -= funcdist 
+                continue
 
-                # if standard start of plt mnemonic is different...
-                op = vw.parseOpcode(tmpva)
-                if op.mnem != stdmnem:
-                    logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
-                    tmpva += funcdist 
-                    continue
+            logger.info("New PLT Function! 0x%x", tmpva)
+            vw.makeFunction(tmpva)
 
-                logger.info("New PLT Function! 0x%x", tmpva)
-                vw.makeFunction(tmpva)
+            tmpva -= funcdist 
 
+        # now we go to the end of the PLT!
+        tmpva = curplts[idx]
+        logger.debug("... forwards from... 0x%x", tmpva)
+        endva = pltva + pltsz
+        while tmpva < endva:
+            logger.log(e_cmn.SHITE, "tmpva: 0x%x", tmpva)
+            # check if already in a PLT function
+            curfunc = vw.getFunction(tmpva)
+            if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
+                #logger.debug('skip 0x%x: already function', tmpva)
                 tmpva += funcdist 
+                continue
+
+            # if standard start of plt mnemonic is different...
+            op = vw.parseOpcode(tmpva)
+            if op.mnem != stdmnem:
+                logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
+                tmpva += funcdist 
+                continue
+
+            logger.info("New PLT Function! 0x%x", tmpva)
+            vw.makeFunction(tmpva)
+
+            tmpva += funcdist 
 
 def isGOT(vw, va):
     '''
