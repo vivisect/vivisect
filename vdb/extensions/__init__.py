@@ -44,7 +44,7 @@ def loadExtensions(vdb, trace):
             modpath = os.path.join(dirname, fname)
             if os.path.isdir(modpath):
                 modpath = os.path.join(modpath, '__init__.py')
-                if not os.path.exists(modpath()):
+                if not os.path.exists(modpath):
                     continue
 
             if not fname.endswith('.py') or fname == '__init__.py':
