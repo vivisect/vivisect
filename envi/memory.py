@@ -2,6 +2,7 @@ import re
 import struct
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 
 """
@@ -431,13 +432,15 @@ class MemoryObject(IMemory):
         self._map_defs.append(hlpr)
         return
 
-    def delMemoryMap(self, va):
+    def delMemoryMap(self, mapva):
         '''
         Delete a memory map from this object...
         '''
         for midx, (mva, mmaxva, mmap, mbytes) in enumerate(self._map_defs):
-            if mva == va:
+            if mva == mapva:
                 return self._map_defs.pop(midx)
+
+        raise e_exc.MapNotFoundException(mapva)
 
     def collapseMaps(self, strict=True):
         '''

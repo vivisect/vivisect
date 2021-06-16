@@ -1,6 +1,7 @@
 import unittest
 
 import envi.memory
+import envi.exc as e_exc
 
 class Memory(unittest.TestCase):
     def setUp(self):
@@ -37,3 +38,18 @@ class Memory(unittest.TestCase):
             size = self.mem.getMaxReadSize(va)
 
             self.assertEqual(answer, size)
+
+    def test_MapNotFoundException(self):
+        try:
+            self.mem.delMemoryMap(0xfffffff)
+            self.assertEqual("MapNotFoundException worked properly", False, \
+                    msg="Failed to catch delMemoryMap on nonexistent map!")
+
+        except e_exc.MapNotFoundException:
+            # this is the desired outcome of this test
+            pass
+
+        except:
+            # all other exceptions fail
+            self.assertEqual("MapNotFoundException worked properly", False,
+                    msg="Some other exception occured while deleting a nonexistent memory map")
