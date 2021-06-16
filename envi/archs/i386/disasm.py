@@ -338,7 +338,7 @@ class i386RegMemOper(envi.DerefOper):
             return None  # This operand type requires an emulator
         base, size = emu.getSegmentInfo(op)
         rval = emu.getRegister(self.reg)
-        return e_bits.unsigned(base + rval + self.disp, emu.psize)
+        return e_bits.unsigned(base + rval + self.disp, emu.imem_psize)
 
     def isDeref(self):
         # The disassembler may reach in and set this (if lea...)
@@ -410,7 +410,7 @@ class i386ImmMemOper(envi.DerefOper):
         ret = self.imm
         if emu is not None:
             base, size = emu.getSegmentInfo(op)
-            ret = e_bits.unsigned(ret + base, emu.psize)
+            ret = e_bits.unsigned(ret + base, emu.imem_psize)
         return ret
 
     def render(self, mcanv, op, idx):
@@ -524,7 +524,7 @@ class i386SibOper(envi.DerefOper):
         base, size = emu.getSegmentInfo(op)
         ret += base
 
-        return e_bits.unsigned(ret + self.disp, emu.psize)
+        return e_bits.unsigned(ret + self.disp, emu.imem_psize)
 
     def _getOperBase(self, emu=None):
         # Special SIB only method for getting the SIB base value
