@@ -52,7 +52,7 @@ class SymbolCache:
             raise e_exc.InvalidSymbolCache(vhash)
 
         # FIXME check input path
-        with open(cachefile, 'wb') as fd:
+        with open(cachefile, 'w') as fd:
             json.dump(symcache, fd)
 
     def getCacheSyms(self, vhash):

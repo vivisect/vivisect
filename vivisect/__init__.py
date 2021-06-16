@@ -3051,6 +3051,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Add a prefix to the given name paying attention to the filename prefix, and
         any VA suffix which may exist.
+
+        This is used by multiple analysis modules.
+        Uses _getNameParts.
         '''
         fpart, npart, vapart = self._getNameParts(name, va)
         if fpart is None and vapart is None:
