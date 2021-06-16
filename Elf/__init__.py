@@ -876,6 +876,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0, 'unknown')
 
+        if self.getSection('QNX_info'):
+            return 'qnx'
+
         return 'unknown'
 
     def getDynamics(self):
