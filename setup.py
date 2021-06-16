@@ -36,6 +36,10 @@ setup(
         'pycparser>=2.20',
     ],
     extras_require={
+        'docs': [
+            'sphinx>=1.8.2,<2.0.0',
+            'sphinx-rtd-theme>=0.4.2,<1.0.0',
+        ],
         'gui': [
             'pyqt5==5.15.1',
             'pyqtwebengine==5.15.1',
