@@ -18,7 +18,9 @@ class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
         vwmaps = list(vw.getMemoryMaps())
 
         for mva, msize, mperms, mfname in self.trace.getMemoryMaps():
+            if mfname in ('[vvar]', '[vsyscall]') or mperms == 0:
+                continue
 
             # test that the file mappings exist for each (which means segments have to be correct)
             filename = vw.getFileByVa(mva)
-            self.assertIn(filename, mfname)
+            self.assertTrue(filename in mfname)
