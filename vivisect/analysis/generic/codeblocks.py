@@ -75,8 +75,11 @@ def analyzeFunction(vw, funcva):
                 brefs.append((va, False))
                 break
 
-            op = vw.parseOpcode(va)     # parseOpcode() pulls arch from the location db, if exists
-            mnem[op.mnem] += 1
+            try:
+                op = vw.parseOpcode(va)     # parseOpcode() pulls arch from the location db, if exists
+                mnem[op.mnem] += 1
+            except Exception:
+                pass
             size += lsize
             opcount += 1
             nextva = va + lsize
