@@ -1558,7 +1558,7 @@ class WindowsMixin:
            self.setMeta('IsWow64', self._is_wow64)
 
            self.fireNotifiers(vtrace.NOTIFY_ATTACH)
-           self.addLibraryBase(ImageName, baseaddr)
+           self.addLibraryBase(ImageName, baseaddr, always=True)
 
         elif event.DebugEventCode == CREATE_THREAD_DEBUG_EVENT:
             self.thandles[ThreadId] = event.u.CreateThread.Thread
@@ -1634,7 +1634,7 @@ class WindowsMixin:
             if not ImageName:
                 # If it fails, fall back on getMappedFileName
                 ImageName = self.getMappedFileName(baseaddr)
-            self.addLibraryBase(ImageName, baseaddr)
+            self.addLibraryBase(ImageName, baseaddr, always=True)
             kernel32.CloseHandle(event.u.LoadDll.File)
 
         elif event.DebugEventCode == UNLOAD_DLL_DEBUG_EVENT:
