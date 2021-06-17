@@ -354,7 +354,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         return sym.getSymList()
 
     def getNames(self):
-        if not self.namecache:
+        if not len(self.namecache):
             names = []
             for lib in self.getNormalizedLibNames():
                 for sym in self.getSymsForFile(lib):
