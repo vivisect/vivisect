@@ -4,6 +4,7 @@ import argparse
 import envi
 import envi.memory as e_memory
 import envi.archs.i386 as e_i386  # FIXME This should NOT have to be here
+import envi.archs.i386.regs as eair
 
 import vtrace
 import vtrace.util as vutil
@@ -32,32 +33,70 @@ def cmpRegs(emu, trace):
     return True
 
 
+skip_mem_opcodes_by_arch = {
+        'i386': (e_i386.INS_NOP, e_i386.INS_LEA),
+        'amd64': (e_i386.INS_NOP, e_i386.INS_LEA),
+        }
+
 
 class LockstepEmulator:
     def __init__(self, trace):
         self.trace = trace
         self.emu = vutil.emuFromTrace(trace)    # this should set up the 
+        self.arch = self.trace.getMeta("Architecture")
 
     def go(self):
+        count = 0
+        skip_mem_opcodes = skip_mem_opcodes_by_arch.get(self.arch, ())
+
         self.cmpRegs()
         while True:
-            print("Lockstep: 0x%.8x" % self.emu.getProgramCounter(), end='')
+            print("%4d  Lockstep: 0x%.8x" % (count, self.emu.getProgramCounter()), end='')
             try:
                 pc = self.trace.getProgramCounter()
                 op = self.emu.parseOpcode(pc)
-                print("  %r" % op, end='')
+                print("  %r  " % op, end='')
+
+                # don't compare memory from these instruction results (error prone)
+                skip_mem = False
+                if op.opcode in skip_mem_opcodes:
+                    skip_mem = True
+
+                # store the current opcode addresses for comparison later (for when the 
+                #  original register gets clobbered
+                if not skip_mem:
+                    self.grabMemAddrs(op)
+
+                for oper in op.opers:
+                    if skip_mem:
+                        continue
+                    print("(%r = %x)" % (oper.repr(op), oper.getOperValue(op, self.emu)), end='')
+
                 self.trace.stepi()
                 self.emu.stepi()
+                count += 1
+
+                if op.mnem == 'rdtsc':
+                    self.syncRegsFromTrace()
+
+                print("(eflags: 0x%x)" % self.trace.getRegisterByName('eflags'), end='')
+                print("(eflags: 0x%x)" % self.emu.getRegisterByName('eflags'), end='')
                 self.cmpRegs()
-                self.cmpMem(op)
+
+                if not skip_mem:
+                    self.cmpMem(op)
 
             except RegisterException as msg:
                 print("    \tError: %s: %s" % (repr(op), msg))
                 inp = sys.stdin.readline()
-                if "sync" in inp:
+                if inp.startswith('s'):
                     self.syncRegsFromTrace()
 
             except MemoryException as msg:
+                print("    \tError: %s: %s" % (repr(op), msg))
+                sys.stdin.readline()
+
+            except envi.SegmentationViolation as msg:
                 print("    \tError: %s: %s" % (repr(op), msg))
                 sys.stdin.readline()
 
@@ -88,7 +127,14 @@ class LockstepEmulator:
 
         return True
 
-    def cmpMem(self, op):
+    def grabMemAddrs(self, op):
+        '''
+        Grab target addresses of opcode operands (before executing)
+        for comparison of memory after execution.
+
+        Also, compares the addresses calculated by Trace and EMU.
+        '''
+        self._tempaddrs = []
         for oper in op.opers:
             # check if we access memory # TODO: use read/write-logging instead
             if not oper.isDeref():
@@ -100,11 +146,20 @@ class LockstepEmulator:
                 raise TargetAddrCalcException('TARGET ADDRESS CALCULATED DIFFERENTLY: 0x%x: %r   (%r: emu: 0x%x,  trace: 0x%x)'\
                         % (op, oper, taddr, taddr_emu))
 
-            em = self.emu.readMemory(taddr, oper.tsize)
-            tm = self.trace.readMemory(taddr, oper.tsize)
+            tsize = oper.tsize
+            self._tempaddrs.append((taddr, tsize))
+
+    def cmpMem(self, op):
+        if len(self._tempaddrs) != len([oper for oper in op.opers if oper.isDeref()]):
+            raise Exception("Tester Broken: _tempaddrs and len(deref operands) differ!")
+
+        for taddr, tsize in self._tempaddrs:
+            em = self.emu.readMemory(taddr, tsize)
+            tm = self.trace.readMemory(taddr, tsize)
             # debug registers aren't really used much anymore...
             if em != tm:
                 raise MemoryException("MEMORY MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (taddr, tm, em))
+
         return True
 
 
@@ -212,7 +267,7 @@ def main(argv):
     if opts.save:
         # You may open this file in vdb to follow along
         snap.saveToFile(opts.save)
-    emu = emuFromTrace(snap)
+    emu = vutil.emuFromTrace(snap)
     lockStepEmulator(emu, t)
 
 
