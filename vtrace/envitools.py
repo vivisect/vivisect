@@ -6,11 +6,18 @@ import envi.memory as e_memory
 import envi.archs.i386 as e_i386  # FIXME This should NOT have to be here
 
 import vtrace
+import vtrace.util as vutil
 import vtrace.snapshot as v_snapshot
 import vtrace.platforms.base as v_base
 
 
 class RegisterException(Exception):
+    pass
+
+class MemoryException(Exception):
+    pass
+
+class TargetAddrCalcException(Exception):
     pass
 
 
@@ -25,36 +32,82 @@ def cmpRegs(emu, trace):
     return True
 
 
-def emuFromTrace(trace):
-    '''
-    Produce an envi emulator for this tracer object.
-    '''
-    arch = trace.getMeta('Architecture')
-    plat = trace.getMeta('Platform')
-    amod = envi.getArchModule(arch)
-    emu = amod.getEmulator()
 
-    # could use {get,set}MemorySnap if trace inherited from MemoryObject
-    for va, size, perms, fname in trace.getMemoryMaps():
-        try:
-            # So linux maps in a PROT_NONE page for efficient library sharing, so we have to take that into account
-            if (not perms & e_memory.MM_READ):
+class LockstepEmulator:
+    def __init__(self, trace):
+        self.trace = trace
+        self.emu = vutil.emuFromTrace(trace)    # this should set up the 
+
+    def go(self):
+        self.cmpRegs()
+        while True:
+            print("Lockstep: 0x%.8x" % self.emu.getProgramCounter(), end='')
+            try:
+                pc = self.trace.getProgramCounter()
+                op = self.emu.parseOpcode(pc)
+                print("  %r" % op, end='')
+                self.trace.stepi()
+                self.emu.stepi()
+                self.cmpRegs()
+                self.cmpMem(op)
+
+            except RegisterException as msg:
+                print("    \tError: %s: %s" % (repr(op), msg))
+                inp = sys.stdin.readline()
+                if "sync" in inp:
+                    self.syncRegsFromTrace()
+
+            except MemoryException as msg:
+                print("    \tError: %s: %s" % (repr(op), msg))
+                sys.stdin.readline()
+
+            except Exception as msg:
+                import traceback
+                traceback.print_exc()
+                print("\t\tLockstep Error: %s" % msg)
+                return
+            print('')
+
+    def syncRegsFromTrace(self):
+        rsnap = self.trace.getRegisterContext().getRegisterSnap()
+        self.emu.setRegisterSnap(rsnap)
+
+    def cmpRegs(self):
+        ctx = self.trace.getRegisterContext()
+        out = []
+        for rname, idx in ctx.getRegisterNameIndexes():
+            er = self.emu.getRegister(idx)
+            tr = self.trace.getRegisterByName(rname)
+            #tr = self.trace.getRegister(idx)
+            # debug registers aren't really used much anymore...
+            if er != tr and not rname.startswith('debug'):
+                out.append("%s (trace: 0x%.8x) (emulated: 0x%.8x)" % (rname, tr, er))
+
+        if len(out):
+            raise RegisterException("REGISTER MISMATCH: %s" % '    '.join(out))
+
+        return True
+
+    def cmpMem(self, op):
+        for oper in op.opers:
+            # check if we access memory # TODO: use read/write-logging instead
+            if not oper.isDeref():
                 continue
-            if plat == 'linux' and fname in ['[vvar]']:
-                continue
-            bytez = trace.readMemory(va, size)
-            emu.addMemoryMap(va, perms, fname, bytez)
-        except vtrace.PlatformException:
-            print('failed to map: 0x{:x} into emu'.format(va, size))
-            continue
 
-    rsnap = trace.getRegisterContext().getRegisterSnap()
-    emu.setRegisterSnap(rsnap)
+            taddr = oper.getOperAddr(op, self.trace) # use emu here?  it will likely fail the same either way? emu is faster?
+            taddr_emu = oper.getOperAddr(op, self.emu) # use emu here?  it will likely fail the same either way? emu is faster?
+            if taddr != taddr_emu:
+                raise TargetAddrCalcException('TARGET ADDRESS CALCULATED DIFFERENTLY: 0x%x: %r   (%r: emu: 0x%x,  trace: 0x%x)'\
+                        % (op, oper, taddr, taddr_emu))
 
-    if plat == 'windows':
-        emu.setSegmentInfo(e_i386.SEG_FS, trace.getThreads()[trace.getMeta('ThreadId')], 0xffffffff)
+            em = self.emu.readMemory(taddr, oper.tsize)
+            tm = self.trace.readMemory(taddr, oper.tsize)
+            # debug registers aren't really used much anymore...
+            if em != tm:
+                raise MemoryException("MEMORY MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (taddr, tm, em))
+        return True
 
-    return emu
+
 
 
 def lockStepEmulator(emu, trace):

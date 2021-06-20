@@ -4,6 +4,8 @@ import vtrace
 import vtrace.notifiers as v_notifiers
 import vtrace.rmi as v_rmi
 
+import envi.archs.i386 as e_i386
+import envi.archs.amd64 as e_amd64
 
 class TraceManager:
     """

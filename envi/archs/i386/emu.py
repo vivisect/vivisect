@@ -9,6 +9,7 @@ from envi.const import *
 import envi.exc as e_exc
 import envi.bits as e_bits
 
+from .opconst import *
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *
 from envi.archs.i386 import i386Module
@@ -242,7 +243,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             self.setProgramCounter(newpc)
             return
 
-        if op.prefixes & PREFIX_REP:
+        if op.prefixes & PREFIX_REP and op.opcode != INS_NOP:
+            # compilers love their "rep: nop" instructions, and machines ignore the rep
 
             ecx = self.getRegister(REG_ECX) - 1
             self.setRegister(REG_ECX, ecx)
@@ -427,6 +429,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def doRepPrefix(self, meth, op):
         #FIXME check for opcode family valid to rep
+        if op.opcode == INS_NOP:
+            return
+
         ret = None
         ecx = self.getRegister(REG_ECX)
         while ecx != 0:
@@ -1607,6 +1612,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         else:
             self.setFlag(EFLAGS_OF, 0) # Undefined, but zero'd on core2 duo
 
+        self.setFlag(EFLAGS_AF, 0) # Undefined, but zero'd on core-i9 (perhaps only some of the time??!?)
+
         self.setOperValue(op, 0, res)
 
     def i_sar(self, op):
@@ -1642,6 +1649,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             self.setFlag(EFLAGS_OF, False)
         else:
             self.setFlag(EFLAGS_OF, 0) # Undefined, but zero'd on core2 duo
+
+        self.setFlag(EFLAGS_AF, 0) # not specified, but zero'd on core-i9 (perhaps only some of the time??!?)
 
         self.setOperValue(op, 0, res)
 
