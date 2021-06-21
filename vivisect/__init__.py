@@ -2606,10 +2606,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.mergeConfig(mod.config)
 
         fd.seek(0)
-        filename = hashlib.md5(fd.read()).hexdigest()
-        fname = mod.parseFd(self, fd, filename, baseaddr=baseaddr)
+        fname = mod.parseFd(self, fd, filename=None, baseaddr=baseaddr)
 
-        self.initMeta("StorageName", filename+".viv")
+        outfile = hashlib.md5(fd.read()).hexdigest()
+        self.initMeta("StorageName", outfile+".viv")
 
         # Snapin our analysis modules
         self._snapInAnalysisModules()
@@ -2671,7 +2671,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.normFileName(filename)
 
         mod = viv_parsers.getParserModule(fmtname)
-        fname = mod.parseFile(self, filename, baseaddr=baseaddr)
+        fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")
 

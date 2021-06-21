@@ -27,7 +27,7 @@ def getTestPath(*paths):
     testdir = os.getenv('VIVTESTFILES')
     if not testdir:
         raise unittest.SkipTest('VIVTESTFILES env var not found!')
-
+    testdsir = os.path.abspath(testdir)
     return os.path.join(testdir, *paths)
 
 
@@ -36,6 +36,7 @@ def getTestWorkspace(*paths):
     testdir = os.getenv('VIVTESTFILES')
     if not testdir:
         raise unittest.SkipTest('VIVTESTFILES env var not found!')
+    testdsir = os.path.abspath(testdir)
     fpath = os.path.join(testdir, *paths)
     vw = v_cli.VivCli()
     vw.loadFromFile(fpath)

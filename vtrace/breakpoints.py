@@ -95,7 +95,9 @@ class Breakpoint:
         if self.address is None and self.vte:
             try:
                 self.address = trace.parseExpression(self.vte)
-            except Exception:
+            except Exception as e:
+                logger.warning('Failed to resolve breakpoint address for expression: %s', self.vte)
+                logger.warning('Error:', exc_info=1)
                 self.address = None
 
         # If we resolved, lets get our saved code...

@@ -1668,9 +1668,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_ZF, not res)
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
         if src == 1:
-            self.setFlag(EFLAGS_OF, False)
-        else:
-            self.setFlag(EFLAGS_OF, 0) # Undefined, but zero'd on core2 duo
+            # manual says OF is set to the MSB of the original operand for shr
+            self.setFlag(EFLAGS_OF, e_bits.msb(dst, dsize))
+        #else:
+            #self.setFlag(EFLAGS_OF, 0) # Undefined, but zero'd on core2 duo
 
         self.setOperValue(op, 0, res)
 
