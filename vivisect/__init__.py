@@ -154,6 +154,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.sigtree = e_bytesig.SignatureTree()
         self.siglist = []
 
+        self._op_cache = {}
+
         self._initEventHandlers()
 
         # Some core meta types that exist
@@ -757,6 +759,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 continue
             if not self.probeMemory(eva, 1, e_mem.MM_EXEC):
                 continue
+            logger.debug('processEntryPoint: 0x%x', eva)
             self.makeFunction(eva)
 
     def analyze(self):
@@ -1109,13 +1112,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     #
     # Opcode API
     #
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT, skipcache=False):
         '''
         Parse an opcode from the specified virtual address.
 
-        Example: op = m.parseOpcode(0x7c773803)
+        Example: op = m.parseOpcode(0x7c773803, skipcache=True)
 
-        note: differs from the IMemory interface by checking loclist
+        Set skipcache=True in order to bypass the opcode cache and force a reparsing of bytes
         '''
         off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
@@ -1125,8 +1128,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # so that at least parse opcode wont fail
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
-
+        if not skipcache:
+            key = (va, arch, b[:16])
+            valu = self._op_cache.get(key, None)
+            if not valu:
+                valu = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+            self._op_cache[key] = valu
+            return valu
         return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+
+    def clearOpcache(self):
+        '''
+        Remove all elements from the opcode cache
+        '''
+        self._op_cache.clear()
 
     def iterJumpTable(self, startva, step=None, maxiters=None, rebase=False):
         if not step:
@@ -1468,7 +1483,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         This function should probably only be called once code-flow for the
         area is complete.
         """
+        logger.debug('makeFunction(0x%x, %r, 0x%x)', va, meta, arch)
         if self.isFunction(va):
+            logger.debug('0x%x is already a function, skipping', va)
             return
 
         if not self.isValidPointer(va):
@@ -2593,7 +2610,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Read the first bytes of the file descriptor and see if we can identify the type.
         If so, load up the parser for that file type, otherwise raise an exception.
 
-        Returns file md5
+        Returns the file md5
         """
         mod = None
         fd.seek(0)
@@ -2612,6 +2629,37 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.initMeta("StorageName", outfile+".viv")
 
         # Snapin our analysis modules
+        self._snapInAnalysisModules()
+
+        return fname
+
+    def loadParsedBin(self, pbin, fmtname=None, baseaddr=None):
+        '''
+        Load an already parsed PE or Elf file into the workspace. Raises an exception if
+        the file isn't one of those two.
+
+        Returns the file md5
+        '''
+        fd = pbin.fd
+        fd.seek(0)
+        if fmtname is None:
+            byts = fd.read(32)
+            fmtname = viv_parsers.guessFormat(byts)
+
+        filename = hashlib.md5(fd.read()).hexdigest()
+
+        mod = viv_parsers.getParserModule(fmtname)
+        if hasattr(mod, "config"):
+            self.mergeConfig(mod.config)
+
+        if fmtname == 'pe':
+            mod.loadPeIntoWorkspace(self, pbin)
+        elif fmtname == 'elf':
+            mod.loadElfIntoWorkspace(self, pbin)
+        else:
+            raise Exception('Failed to load in the parsed module for format %s', fmtname)
+
+        self.initMeta("StorageName", filename+".viv")
         self._snapInAnalysisModules()
 
         return fname
@@ -2999,9 +3047,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Add a prefix to the given name paying attention to the filename prefix, and
         any VA suffix which may exist.
-
-        This is used by multiple analysis modules.
-        Uses _getNameParts.
         '''
         fpart, npart, vapart = self._getNameParts(name, va)
         if fpart is None and vapart is None:

@@ -607,7 +607,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             }
             ''' % svgid
 
-        js += 'document.querySelector("#memcanvas").innerHTML = "";'
+        js += '''
+        var canv = document.querySelector("#memcanvas");
+        if (canv != null) {
+            canv.innerHTML = "";
+        }
+        '''
         self.mem_canvas.page().runJavaScript(js)
 
     def _hotkey_paintUp(self, va=None):
