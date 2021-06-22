@@ -79,6 +79,7 @@ def analyzeFunction(vw, funcva):
                 op = vw.parseOpcode(va)     # parseOpcode() pulls arch from the location db, if exists
                 mnem[op.mnem] += 1
             except Exception:
+                logger.warning('Codeblock bad opcode at 0x%x, ignoring error %s', va, e)
                 pass
             size += lsize
             opcount += 1
