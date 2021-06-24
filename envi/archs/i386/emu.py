@@ -662,9 +662,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_call(self, op):
         eip = self.getProgramCounter()
         saved = eip + op.size
+        nextva = self.getOperValue(op, 0)
         self.doPush(saved)
 
-        return self.getOperValue(op, 0)
+        return nextva
 
     def i_clc(self, op):
         self.setFlag(EFLAGS_CF, False)
@@ -678,7 +679,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_cmc(self, op):
         # set the CF flag to its complement
         val = self.getFlag(EFLAGS_CF)
-        self.setFlag(EFLAGS_CF, ~val)
+        self.setFlag(EFLAGS_CF, not val)
 
     # We include all the possible CMOVcc names just in case somebody
     # gets hinkey with the disassembler.
@@ -1421,6 +1422,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pushfd(self, op):
         eflags = self.getRegister(self.flagidx)
+        # some flags are not pushed:
+        eflags &= 0xfffcffff
+        eflags |= EFLAGS_TF # trap flag??  seen in the wild.
         self.doPush(eflags)
 
     def i_jmp(self, op):
