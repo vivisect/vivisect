@@ -31,16 +31,5 @@ class EnviMemoryTest(unittest.TestCase):
         mem.delMemoryMap(0x41410000)
 
         # these next two tests *must* fail.  not failing would be the failure.
-        try:
-            mem.readMemory(0x41410041, 4)
-            self.assertEqual("Failed to Delete Map (can read)", True)
-
-        except e_exc.SegmentationViolation:
-            pass
-
-        try:
-            mem.writeMemory(0x41410041, b'foobar')
-            self.assertEqual("Failed to Delete Map (can write)", True)
-
-        except e_exc.SegmentationViolation:
-            pass
+        self.assertRaises(e_exc.SegmentationViolation, mem.readMemory, 0x41410041, 4)
+        self.assertRaises(e_exc.SegmentationViolation, mem.writeMemory, 0x41410041, b'foobar')
