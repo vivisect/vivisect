@@ -28,8 +28,16 @@ class SymResolverTests(unittest.TestCase):
         fres = e_sym_resolv.FileSymbol(fname, base, size, width)
 
         self.symres.addSymbol(fres)
-        assert(fname in self.symres.symobjsbyname)
-        assert(isinstance(self.symres.symobjsbyname[fname], e_sym_resolv.SymbolResolver))
+        self.assertIn(fname, self.symres.symobjsbyname)
+        self.assertIsInstance(self.symres.symobjsbyname[fname], e_sym_resolv.SymbolResolver)
+
+        fnsym = e_sym_resolv.FunctionSymbol('TestFooFuncSym', 0x123456, size=4, fname=fname)
+        self.symres.addSymbol(fnsym)
+        secsym = e_sym_resolv.SectionSymbol('TestFooSectionSym', 0x123456, size=400, fname=fname)
+        self.symres.addSymbol(secsym)
+
+        self.symres.delSymbol(fnsym)
+        self.assertNotIn(name, self.symres.symobjsbyname)
 
     def test_getSymByAddr_exact_false(self):
         '''
