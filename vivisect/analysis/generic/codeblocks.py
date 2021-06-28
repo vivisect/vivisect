@@ -80,7 +80,7 @@ def analyzeFunction(vw, funcva):
                 mnem[op.mnem] += 1
             except Exception:
                 logger.warning('Codeblock bad opcode at 0x%x, ignoring error %s', va, e)
-                pass
+                break
             size += lsize
             opcount += 1
             nextva = va + lsize
