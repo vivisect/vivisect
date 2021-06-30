@@ -4,25 +4,11 @@ import struct
 import envi
 import envi.bits as e_bits
 
+from envi.const import *
 """
 A module containing memory utilities and the definition of the
 memory access API used by all vtoys trace/emulators/workspaces.
 """
-
-# Memory Map Permission Flags
-# TODO: move these into envi.const
-MM_NONE = 0x0
-MM_READ = 0x4
-MM_WRITE = 0x2
-MM_EXEC = 0x1
-MM_SHARED = 0x08
-
-MM_READ_WRITE = MM_READ | MM_WRITE
-MM_READ_EXEC = MM_READ | MM_EXEC
-MM_RWX = MM_READ | MM_WRITE | MM_EXEC
-
-pnames = ['No Access', 'Execute', 'Write', None, 'Read']
-
 
 def getPermName(perm):
     '''
@@ -419,7 +405,57 @@ class MemoryObject(IMemory):
         self._map_defs = []
         self._supervisor = False
 
-    #FIXME MemoryObject: def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
+    def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0x1000, name='', fill=b'\0'):
+        '''
+        Find a free block of memory (no maps exist) and allocate a new map
+        Uses findFreeMemoryBlock()
+        '''
+        baseva = self.findFreeMemoryBlock(size, suggestaddr)
+        self.addMemoryMap(baseva, perms, name, fill*size)
+        return baseva
+
+    def findFreeMemoryBlock(self, size, suggestaddr=0x1000):
+        '''
+        Find a block of memory in the address-spcae of the correct size which 
+        doesn't overlap any existing maps.  Attempts to offer the map starting
+        at suggestaddr.  If not possible, scans the rest of the address-space
+        until it finds a suitable location or loops twice(ie. no gap large 
+        enough to accommodate a map of this size exists.
+
+        DOES NOT ALLOCATE.  see allocateMemory() if you want the map created
+        '''
+        baseva = None
+        looped = False
+
+        tmpva = suggestaddr
+        while baseva is None:
+            # if we roll into illegal memory, start over at page 2.  skip 0.
+            if tmpva > (1 << (8 * self.psize)):
+                if looped:
+                    raise NoValidFreeMemoryFound(size)
+
+                looped = True
+                tmpva = 0x1000
+
+            good = True
+            for x in range(size):
+                mmap = self.getMemoryMap(tmpva + x)
+                if mmap is None:
+                    continue
+
+                else:
+                    # we ran into a memory map.  adjust.
+                    print("ran into memory map: %x" % tmpva)
+                    good = False
+                    tmpva = mmap[0] + mmap[1]
+                    tmpva += PAGE_NMASK
+                    tmpva &= PAGE_MASK
+                    break
+
+            if good:
+                baseva = tmpva
+
+        return baseva
 
     def addMemoryMap(self, va, perms, fname, bytez):
         '''
