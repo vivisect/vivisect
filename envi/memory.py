@@ -437,17 +437,19 @@ class MemoryObject(IMemory):
                 looped = True
                 tmpva = 0x1000
 
+            # check potential map for any overlap
             good = True
-            for x in range(size):
-                mmap = self.getMemoryMap(tmpva + x)
-                if mmap is None:
-                    continue
+            tmpendva = tmpva + size - 1
+            for mmva, mmsz, mmperm, mmname in self.getMemoryMaps():
+                mmendva = mmva + mmsz - 1
+                if tmpva <= mmva < tmpendva or \
+                        tmpva <= mmendva < tmpendva or \
+                        mmva <= tmpva < mmendva or \
+                        mmva <= tmpendva < mmendva:
 
-                else:
                     # we ran into a memory map.  adjust.
-                    print("ran into memory map: %x" % tmpva)
                     good = False
-                    tmpva = mmap[0] + mmap[1]
+                    tmpva = mmendva
                     tmpva += PAGE_NMASK
                     tmpva &= PAGE_MASK
                     break
