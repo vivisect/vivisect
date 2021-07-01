@@ -663,9 +663,10 @@ class EnviCli(Cmd):
             return self.do_help('search')
 
         if options.is_expr:
-            import struct  #FIXME see below
             sval = self.parseExpression(pattern)
-            pattern = struct.pack('<L', sval)  # FIXME 64bit (and alt arch)
+            endian = self.memobj.getEndian()
+            size = self.memobj.getPointerSize()
+            pattern = e_bits.buildbytes(sval, size, bigend=endian)
 
         if options.is_hex:
             pattern = binascii.unhexlify(pattern)

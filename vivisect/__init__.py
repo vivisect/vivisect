@@ -193,6 +193,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return self._viv_gui
 
+    def getPointerSize(self):
+        return self.psize
+
     def addCtxMenuHook(self, name, handler):
         '''
         Extensions can add Context Menu hooks to modify the menu as they wish.

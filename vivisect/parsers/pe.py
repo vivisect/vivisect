@@ -122,16 +122,14 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     fhash = v_parsers.md5Bytes(byts)
     sha256 = v_parsers.sha256Bytes(byts)
 
-    # for backwards compat, set fvivname to the md5 of the bytes
-    fvivname = fhash
-
+    fvivname = filename
     # This will help linkers with files that are re-named
     dllname = pe.getDllName()
-    if dllname is not None:
+    if dllname:
         fvivname = dllname
 
     if fvivname is None:
-        fvivname = "pe_%.8x" % baseaddr
+        fvivname = fhash
 
     # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)

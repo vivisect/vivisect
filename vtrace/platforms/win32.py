@@ -1162,7 +1162,7 @@ def getDebugPrivileges():
     dbgluid = LUID()
     token = HANDLE(0)
 
-    if not advapi32.LookupPrivilegeValueA(0, "seDebugPrivilege".encode('utf-8'), addressof(dbgluid)):
+    if not advapi32.LookupPrivilegeValueA(0, b"seDebugPrivilege", addressof(dbgluid)):
         logger.warning("LookupPrivilegeValue Failed: %d", kernel32.GetLastError())
         return False
 

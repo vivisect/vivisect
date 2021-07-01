@@ -1,5 +1,6 @@
 import time
 import logging
+import platform
 import unittest
 
 import Elf
@@ -32,6 +33,12 @@ def do_analyze(vw):
             import traceback
             logging.warning("ERROR in analysis module: (%r): %r", mod, e, exc_info=1)
 
+comparators = {
+    'names': lambda x,y: x[0] == y[0],
+    'relocs': lambda x,y: x == y,
+    'imports': lambda x,y: x[:3] == y[:3],
+    'exports': lambda x,y: x[:1] == y[:1] and x[3] == y[3],
+}
 
 class ELFTests(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -124,191 +131,84 @@ class ELFTests(unittest.TestCase):
             # assert that there should be only one size between functions
             self.assertLessEqual(len(heur), 1, "More than one heuristic for %r: %r" % (vw.getMeta('StorageName'), heur))
 
+    def compareLocs(self, iswindows, test, base, othr):
+        if iswindows:
+            if len(base) == 2:
+                return base[1] == othr[1]
+            elif len(base) == 3:
+                return base[1:] == othr[1:]
+            elif test == 'exports':
+                return base[:1] == othr[:1] and base[3] == othr[3]
+            else:
+                return base[:3] == othr[:3]
+        return base == othr
+
+    def check_vw_data(self, testname, baseline, observed, indx):
+        observed.sort()
+        baseline.sort()
+
+        oldfail = 0
+        newfail = 0
+        done = set()
+
+        # So this portion is because on windows, there's no good python equivalent for cxxfilt that I
+        # can find. So we have to skip the portions of the tests that rely on decoding the names
+        cmpr = lambda x, y: x == y
+        if platform.system().lower() == 'windows' and testname in comparators:
+            cmpr = comparators[testname]
+
+        for base in baseline:
+            va = base[indx]
+            equiv = None
+            done.add(va)
+
+            if base in observed:
+                continue
+
+            for obs in observed:
+                if obs[indx] == va:
+                    equiv = obs
+                    break
+
+            if not equiv or not cmpr(base, equiv):
+                oldfail += 1
+                logger.warning("%s: o: %-80s\tn: %s" % (testname, base, equiv))
+
+        for obs in observed:
+            va = obs[indx]
+            if va in done:
+                continue
+
+            equiv = None
+            done.add(va)
+
+            if obs in baseline:
+                continue
+
+            for base in baseline:
+                if base[indx] == va:
+                    equiv = base
+                    break
+            if not equiv or not cmpr(obs, equiv):
+                newfail += 1
+                logger.warning("%s: o: %-80s\tn: %s" % (testname, obs, equiv))
+
+        return oldfail, newfail
 
     def do_file(self, vw, test_data, name):
         '''
         hand off testing to the individual test functions and return the collection of results
         '''
         results = {}
-        results['imports'] = self.imports(vw, test_data)
-        results['exports'] = self.exports(vw, test_data)
-        results['relocs'] = self.relocs(vw, test_data)
-        results['names'] = self.names(vw, test_data)
-        results['pltgot'] = self.pltgot(vw, test_data)
-        results['debugsyms'] = self.debuginfosyms(vw, test_data)
+        results['imports'] = self.check_vw_data('imports', test_data['imports'], vw.getImports(), 0)
+        results['exports'] = self.check_vw_data('exports', test_data['exports'], vw.getExports(), 0)
+        results['relocs']  = self.check_vw_data('relocs', test_data['relocs'], vw.getRelocations(), 1)
+
+        testnames = [ntup for ntup in genNames(vw.getNames(), vw.getFiles())]
+        results['names']   = self.check_vw_data('names', test_data['names'], testnames, 0)
+        # pltgot needs actual assertions
+        # results['pltgot'] = self.pltgot(vw, test_data)
         return results
-
-    def imports(self, vw, test_data):
-        # simple comparison to ensure same imports
-        newimps = vw.getImports()
-        newimps.sort()
-        oldimps = test_data['imports']
-        oldimps.sort()
-
-        failed_new = 0
-        failed_old = 0
-        done = []
-        for oldimp in oldimps:
-            va = oldimp[0]
-            equiv = None
-            for newimp in newimps:
-                if newimp[0] == va:
-                    equiv = newimp
-                    break
-            if oldimp != equiv:
-                failed_old += 1
-                logger.warning("imports: o: %-50s\tn: %s" % (oldimp, equiv))
-            done.append(va)
-
-        for newimp in newimps:
-            va = newimp[0]
-            if va in done:
-                continue
-
-            equiv = None
-            for oldimp in oldimps:
-                if oldimp[0] == va:
-                    equiv = oldimp
-                    break
-            if newimp != equiv:
-                failed_new += 1
-                logger.warning("imports: o: %-50s\tn: %s" % (equiv, newimp))
-            done.append(va)
-
-        return failed_old, failed_new
-
-    def exports(self, vw, test_data):
-        # simple comparison to ensure same exports
-        newexps = vw.getExports()
-        newexps.sort()
-        oldexps = test_data['exports']
-        oldexps.sort()
-
-        # warning: there may be multiple exports for each VA.
-        # perhaps move to checking "names"
-        failed_new = 0
-        failed_old = 0
-        done = []
-        for oldexp in oldexps:
-            va = oldexp[0]
-            equiv = None
-            done.append(va)
-
-            if oldexp in newexps:
-                continue
-
-            for newexp in newexps:
-                if newexp[0] == va:
-                    equiv = newexp
-                    break
-            if oldexp != equiv:
-                failed_old += 1
-                logger.warning("exp: o: %-80s\tn: %s" % (oldexp, equiv))
-
-        for newexp in newexps:
-            va = newexp[0]
-            if va in done:
-                continue
-
-            equiv = None
-            done.append(va)
-
-            # simple check
-            if newexp in oldexps:
-                continue
-
-            # comprehensive check
-            for oldexp in oldexps:
-                if oldexp[0] == va:
-                    equiv = oldexp
-                    break
-            if newexp != equiv:
-                failed_new += 1
-                logger.warning("exp: o: %-80s\tn: %s" % (equiv, newexp))
-
-        return failed_old, failed_new
-
-    def relocs(self, vw, test_data):
-        # simple comparison to ensure same relocs
-        newrels = vw.getRelocations()
-        newrels.sort()
-        oldrels = test_data['relocs']
-        oldrels.sort()
-
-        failed_new = 0
-        failed_old = 0
-        done = []
-        for oldrel in oldrels:
-            va = oldrel[1]
-            equiv = None
-            for newrel in newrels:
-                if newrel[1] == va:
-                    equiv = newrel
-                    break
-            if oldrel != equiv:
-                failed_old += 1
-                logger.warning("rel: o: %-80s\tn: %s" % (oldrel, equiv))
-            done.append(va)
-
-        for newrel in newrels:
-            va = newrel[1]
-            if va in done:
-                continue
-
-            equiv = None
-            for oldrel in oldrels:
-                if oldrel[1] == va:
-                    equiv = oldrel
-                    break
-            if newrel != equiv:
-                failed_new += 1
-                logger.warning("rel: o: %-80s\tn: %s" % (equiv, newrel))
-            done.append(va)
-
-        return failed_old, failed_new
-
-
-    def names(self, vw, test_data):
-        # comparison to ensure same workspace names
-
-        # filter out a lot of noise not likely to be indicative of ELF bugs.
-        newnames = [ntup for ntup in genNames(vw.getNames(), vw.getFiles())]
-        oldnames = test_data['names']
-        oldnames.sort()
-
-        failed_new = 0
-        failed_old = 0
-        done = []
-        for oldname in oldnames:
-            va = oldname[0]
-            equiv = None
-            done.append(va)
-
-            for newname in newnames:
-                if newname[0] == va:
-                    equiv = newname
-                    break
-            if oldname != equiv:
-                failed_old += 1
-                logger.error("name: o: %-80s\tn: %s" % (oldname, equiv))
-
-        for newname in newnames:
-            va = newname[0]
-            if va in done:
-                continue
-
-            equiv = None
-            done.append(va)
-
-            for oldname in oldnames:
-                if oldname[0] == va:
-                    equiv = oldname
-                    break
-            if newname != equiv:
-                failed_new += 1
-                logger.error("name: o: %-80s\tn: %s" % (equiv, newname))
-
-        return failed_old, failed_new
 
     def pltgot(self, vw, test_data):
         for pltva, gotva in test_data['pltgot']:
@@ -319,14 +219,9 @@ class ELFTests(unittest.TestCase):
 
         return 0, 0
 
-    def debuginfosyms(self, vw, test_data):
-        # we don't currently parse debugging symbols.
-        # while they are seldom in hard targets, this is a weakness we should correct.
-        return 0, 0
-
     def DISABLEtest_minimal(self):
         '''
-        Until we've got soe decent tests for this, all this does is prolong the test time
+        Until we've got some decent tests for this, all this does is prolong the test time
         '''
         for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
             logger.warning("======== %r ========", path)

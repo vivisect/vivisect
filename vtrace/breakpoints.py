@@ -67,6 +67,7 @@ class Breakpoint:
         added to the tracer object.  This should be used instead of activate
         for initialization time infoz to save on time per activate call...
         '''
+        pass
 
     def activate(self, trace):
 
