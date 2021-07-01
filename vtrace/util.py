@@ -4,6 +4,8 @@ import vtrace
 import vtrace.notifiers as v_notifiers
 import vtrace.rmi as v_rmi
 
+import envi.archs.i386 as e_i386
+import envi.archs.amd64 as e_amd64
 
 class TraceManager:
     """
@@ -88,6 +90,7 @@ def emuFromTrace(trace):
     plat = trace.getMeta('Platform')
     amod = envi.getArchModule(arch)
     emu = amod.getEmulator()
+    [emu.setMeta(key, val) for key, val in trace.metadata.items()]
 
     # could use {get,set}MemorySnap if trace inherited from MemoryObject
     for va, size, perms, fname in trace.getMemoryMaps():
@@ -107,7 +110,23 @@ def emuFromTrace(trace):
     emu.setRegisterSnap(rsnap)
 
     if plat == 'windows':
-        emu.setSegmentInfo(e_i386.SEG_FS, trace.getThreads()[trace.getMeta('ThreadId')], 0xffffffff)
+        psize = trace.getPointerSize()
+        # capture PEB and TIB
+        peb = trace.getMeta('PEB')
+        tebs = dict(trace.win32threads)
+        # test and make sure:
+        for threadid, teb in tebs.items():
+            assert(trace.readMemoryPtr(teb + (psize * 12)) == peb)
+            assert(trace.readMemoryPtr(teb + (psize * 9)) == threadid)
+
+        emu.setMeta('PEB', peb)
+        emu.setMeta('TEBs', tebs)
+
+        seginfo = trace.getThreads()[trace.getMeta('ThreadId')]
+        if psize == 4:
+            emu.setSegmentInfo(e_i386.SEG_FS, seginfo, 0xffffffff)
+        elif psize == 8:
+            emu.setSegmentInfo(e_amd64.SEG_GS, seginfo, 0xffffffffffff)
 
     return emu
 
@@ -126,6 +145,7 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
     vw = vivisect.VivWorkspace()
     arch = trace.getMeta('Architecture')
     plat = trace.getMeta('Platform')
+    psize = trace.getPointerSize()
 
     # determine file format (if not specified above)
     if filefmt is None:
@@ -205,7 +225,21 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         vw.addMemoryMap(va, perms, fname, bytez)
         vw.addSegment(va, len(bytez), "map%d" % midx, fname)
 
+    # windows stuff
+    if plat == 'windows':
+        # capture PEB and TIB
+        peb = trace.getMeta('PEB')
+        tebs = dict(trace.win32threads)
+        # test and make sure:
+        for threadid, teb in tebs.items():
+            assert(trace.readMemoryPtr(teb + (psize * 12)) == peb)
+            assert(trace.readMemoryPtr(teb + (psize * 9)) == threadid)
+
+        vw.setMeta('PEB', peb)
+        vw.setMeta('TEBs', tebs)
+
     return vw
+
 
 def collapseMemoryMaps(oldmaps, strict=True):
     '''
