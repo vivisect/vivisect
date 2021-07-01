@@ -9,21 +9,19 @@ and get/set attributes on objects that exist on a remote system.
 """
 # Copyright (C) 2011 Invisigoth - See LICENSE file for details
 import os
-import sys
 import json
 import time
-import errno
 import types
-import Queue
+import queue
+import pickle
 import socket
 import struct
 import logging
-import urllib2
 import traceback
-import cPickle as pickle
+import urllib.parse
 
-from threading import currentThread,Thread,RLock,Timer,Lock,Event
-from SocketServer import ThreadingTCPServer, BaseRequestHandler
+from threading import currentThread, Thread, RLock, Timer, Lock
+from socketserver import ThreadingTCPServer, BaseRequestHandler
 try:
     import msgpack
     dumpargs = {}
@@ -38,10 +36,7 @@ try:
 except ImportError:
     msgpack = None
 
-import envi.common as e_common
-
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'WARNING')
 
 daemon = None
 version = "Cobra2"
@@ -186,11 +181,6 @@ def jsonloads(b):
 def jsondumps(b):
     return json.dumps(b)
 
-def toUtf8(s):
-    if type(s) == unicode:
-        return s.encode('utf8')
-    return s
-
 class CobraSocket:
 
     def __init__(self, socket, sflags=0):
@@ -216,6 +206,9 @@ class CobraSocket:
             self.dumps = jsondumps
             self.loads = jsonloads
 
+    def __del__(self):
+        self.socket.close()
+
     def getSockName(self):
         return self.socket.getsockname()
 
@@ -229,7 +222,7 @@ class CobraSocket:
         reasons.
         """
 
-        #NOTE: for errors while using msgpack, we must send only the str
+        # NOTE: for errors while using msgpack, we must send only the str
         if mtype == COBRA_ERROR and self.sflags & (SFLAG_MSGPACK | SFLAG_JSON):
             data = str(data)
 
@@ -238,8 +231,8 @@ class CobraSocket:
         except Exception as e:
             raise CobraPickleException("The arguments/attributes must be serializable: %s" % e)
 
-        objname = toUtf8(objname)
-        self.sendExact(struct.pack("<III", mtype, len(objname), len(buf)) + objname + buf)
+        obj = objname.encode('utf-8')
+        self.sendExact(struct.pack("<III", mtype, len(obj), len(buf)) + obj + buf)
 
     def recvMessage(self):
         """
@@ -249,20 +242,18 @@ class CobraSocket:
         Client side uses of the CobraSocket object should use cobraTransaction
         to ensure re-tranmission of the request on reception errors.
         """
-        s = self.socket
         hdr = self.recvExact(12)
         mtype, nsize, dsize = struct.unpack("<III", hdr)
-        name = self.recvExact(nsize)
+        name = self.recvExact(nsize).decode('utf-8')
         data = self.loads(self.recvExact(dsize))
 
-        #NOTE: for errors while using msgpack, we must send only the str
+        # NOTE: for errors while using msgpack, we must send only the str
         if mtype == COBRA_ERROR and self.sflags & (SFLAG_MSGPACK | SFLAG_JSON):
             data = CobraErrorException(data)
-
         return (mtype, name, data)
 
     def recvExact(self, size):
-        buf = ""
+        buf = b""
         s = self.socket
         while len(buf) != size:
             x = s.recv(size - len(buf))
@@ -488,6 +479,8 @@ class CobraDaemon(ThreadingTCPServer):
         self.authmod = None
         self.sflags = 0
 
+        self.allow_reuse_address = True
+
         if msgpack and json:
             raise Exception('CobraDaemon can not use both msgpack *and* json!')
 
@@ -554,6 +547,7 @@ class CobraDaemon(ThreadingTCPServer):
 
     def stopServer(self):
         self.run = False
+        self.shutdown()
         self.server_close()
         self.thr.join()
 
@@ -606,10 +600,7 @@ class CobraDaemon(ThreadingTCPServer):
         return None
 
     def getRandomName(self):
-        ret = ""
-        for byte in os.urandom(16):
-            ret += "%.2x" % ord(byte)
-        return ret
+        return ''.join(['%.2x' % x for x in os.urandom(16)])
 
     def shareObject(self, obj, name=None, doref=False, dowith=False):
         """
@@ -759,8 +750,8 @@ class CobraConnectionHandler:
                 mtype,name,data = csock.recvMessage()
             except CobraClosedException:
                 break
-            except socket.error:
-                logger.warning("Cobra socket error in handleClient")
+            except socket.error as e:
+                logger.warning("Cobra socket error in handleClient. Err: %s", str(e))
                 break
 
             # If they re-auth ( app layer ) later, lets handle it...
@@ -883,40 +874,32 @@ class CobraConnectionHandler:
 
 def isCobraUri(uri):
     try:
-        x = urllib2.Request(uri)
-        if x.get_type() not in ["cobra","cobrassl"]:
+        x = urllib.parse.urlparse(uri)
+        if x.scheme not in ["cobra", "cobrassl"]:
             return False
     except Exception as e:
         return False
     return True
 
 def chopCobraUri(uri):
+    purl = urllib.parse.urlparse(uri)
+    scheme = purl.scheme
+    host = purl.hostname
+    name = purl.path.strip('/')
 
-    req = urllib2.Request(uri)
-    scheme = req.get_type()
-    host = req.get_host()
-
-    sel = req.get_selector()
-    # URL options are parsed later
-    selparts = sel.split('?', 1)
-    name = selparts[0].strip("/")
-
-    port = COBRA_PORT
-    if host.find(':') != -1:
-        host,portstr = host.split(":")
-        port = int(portstr)
+    port = purl.port
+    if not port:
+        port = COBRA_PORT
 
     # Do we have any URL options?
     urlparams = {}
-    if len(selparts) > 1:
+    for urlopt in purl.query.split('&'):
+        urlval = 1
+        if urlopt.find('=') != -1:
+            urlopt,urlval = urlopt.split('=',1)
 
-        for urlopt in selparts[1].split('&'):
-            urlval = 1
-            if urlopt.find('=') != -1:
-                urlopt,urlval = urlopt.split('=',1)
-
-            urlopt = urlopt.lower()
-            urlparams[urlopt] = urlval
+        urlopt = urlopt.lower()
+        urlparams[urlopt] = urlval
 
     return scheme,host,port,name,urlparams
 
@@ -985,7 +968,7 @@ class CobraProxy:
             self._cobra_sflags |= SFLAG_JSON
 
         if self._cobra_spoolcnt:
-            self._cobra_sockpool = Queue.Queue()
+            self._cobra_sockpool = queue.Queue()
             # timeout reqeuired for pool usage
             if not self._cobra_timeout:
                 self._cobra_timeout = 60

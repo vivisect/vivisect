@@ -15,9 +15,9 @@ class ConfigTest(unittest.TestCase):
         }
         cfg = e_config.EnviConfig(defaults=defaults)
 
-        self.assertEquals(cfg.woot, 10)
-        self.assertEquals(cfg.foosub.bar, 'qwer')
-        self.assertEquals(cfg.foosub.baz[0], 'one')
-        self.assertEquals(cfg.biz, '0x41414141')
+        self.assertEqual(cfg.woot, 10)
+        self.assertEqual(cfg.foosub.bar, 'qwer')
+        self.assertEqual(cfg.foosub.baz[0], 'one')
+        self.assertEqual(cfg.biz, '0x41414141')
         for idx, item in enumerate(cfg.foosub.baz):
-            self.assertEquals(defaults['foosub']['baz'][idx], item)
+            self.assertEqual(defaults['foosub']['baz'][idx], item)

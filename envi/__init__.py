@@ -5,8 +5,9 @@ ArchitectureModule, Opcode, Operand, and Emulator objects.
 
 import types
 import struct
-import platform
 import logging
+import platform
+import contextlib
 
 from envi.exc import *
 
@@ -89,7 +90,7 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
-        self._arch_badopbytes = ['\x00\x00\x00\x00\x00', '\xff\xff\xff\xff\xff']
+        self._arch_badopbytes = [b'\x00\x00\x00\x00\x00', b'\xff\xff\xff\xff\xff']
         self.setEndian(endian)
         self.badops = []
 
@@ -178,9 +179,9 @@ class ArchitectureModule:
 
         "info" should be a dictionary with the {'arch': ARCH_FOO}
 
-        eg.  for ARM, the ARM disassembler would hand in 
+        eg.  for ARM, the ARM disassembler would hand in
             {'arch': ARCH_ARMV7}
-        
+
         and if va is odd, that architecture's implementation would return
             (va & -2), {'arch': ARCH_THUMB}
         '''
@@ -205,7 +206,7 @@ class ArchitectureModule:
             # if we've already done this exercize...
             if len(self.badops):
                 return self.badops
-            
+
             # otherwise, let's start with the architecture's badops list
             byteslist = self._arch_badopbytes
 
@@ -502,7 +503,7 @@ class Opcode:
         return oper.getOperValue(self, emu=emu)
 
     def getOperands(self):
-        return list(self.opers)
+        return self.opers
 
 class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     """
@@ -603,9 +604,29 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self.setRegisterSnap(regs)
         self.setMemorySnap(mem)
 
+    @contextlib.contextmanager
+    def snap(self):
+        '''
+        Utility function to try something with an emulator, and then revert it.
+        If we fail to get a valid snap, we raise a base EmuException. Otherwise,
+        we yield out the snap we received.
+
+        On close, we try to rollback the emulator using the snap.
+        '''
+        try:
+            snap = self.getEmuSnap()
+        except Exception as e:
+            raise EmuException(self, str(e)) from None
+
+        try:
+            yield snap
+        finally:
+            self.setEmuSnap(snap)
+
     def executeOpcode(self, opobj):
         """
-        This is the core method for the 
+        This is the core method for an emulator to do any running of instructions and
+        setting of the program counter should an instruction require that.
         """
         raise ArchNotImplemented()
 
@@ -613,6 +634,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         """
         Run the emulator until "something" happens.
         (breakpoint, segv, syscall, etc...)
+
+        Set stepcount in order to run that many instructions before pausing emulation
         """
         if stepcount is not None:
             for i in range(stepcount):
@@ -715,7 +738,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         return self._emu_call_convs.get(name)
 
     def getCallingConventions(self):
-        return self._emu_call_convs.items()
+        return list(self._emu_call_convs.items())
 
     def readMemValue(self, addr, size):
         """
@@ -766,8 +789,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
 
     def intSubBase(self, subtrahend, minuend, ssize, msize):
         '''
-        Base for integer subtraction.  
-        Segmented such that order of operands can easily be overridden by 
+        Base for integer subtraction.
+        Segmented such that order of operands can easily be overridden by
         subclasses.  Does not set flags (arch-specific), and doesn't set
         the dest operand.  That's up to the instruction implementation.
 
@@ -874,11 +897,11 @@ class CallingConvention(object):
                                         Currently the number is ignored
 
         retaddr_def  - where does the function get a return address from?
-            (CC_STACK, #) - on the stack, at offset 0 
+            (CC_STACK, #) - on the stack, at offset 0
             (CC_REG, REG_which) - in register "REG_which", eg. REG_LR
 
         retval_def  - where does the function return value go?
-            (CC_STACK, #) - on the stack, at offset 0 
+            (CC_STACK, #) - on the stack, at offset 0
             (CC_REG, REG_which) - in register "REG_which", eg. REG_EAX
 
         CC_REG      - Ret, Retval or Arg use a particular register

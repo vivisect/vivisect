@@ -1,5 +1,5 @@
 import unittest
-from io import StringIO
+from io import BytesIO
 
 import cobra
 
@@ -8,7 +8,7 @@ class NewObjectReturn:
 
     @cobra.newobj
     def open(self):
-        return StringIO('asdf'.decode('utf-8'))
+        return BytesIO('asdf'.encode('utf-8'))
 
 
 class CobraNewObjTest(unittest.TestCase):
@@ -22,7 +22,7 @@ class CobraNewObjTest(unittest.TestCase):
         t = cobra.CobraProxy('cobra://localhost:60500/%s?msgpack=1' % objname)
 
         with t.open() as fd:
-            self.assertEqual(fd.read(), 'asdf')
+            self.assertEqual(fd.read(), b'asdf')
 
         self.assertEqual(len(daemon.shared.keys()), 1)
         daemon.stopServer()

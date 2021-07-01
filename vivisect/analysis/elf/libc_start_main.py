@@ -63,7 +63,6 @@ def analyzeFunction(vw, funcva, lcsm=None):
 
 
 def analyze(vw):
-    logger.info('analyze()')
     mainVas = getMainVas(vw)
     for va in mainVas:
         for xfr, xto, xtype, xinfo in vw.getXrefsTo(va, rtype=v_const.REF_CODE):

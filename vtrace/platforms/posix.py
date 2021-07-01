@@ -10,7 +10,6 @@ import logging
 
 
 import vtrace
-import vtrace.util as v_util
 import vtrace.platforms.base as v_base
 
 import Elf
@@ -18,7 +17,6 @@ from ctypes import *
 import ctypes.util as cutil
 
 import envi.cli as e_cli
-import envi.memory as e_mem
 import envi.symstore.resolver as e_resolv
 
 logger = logging.getLogger(__name__)
@@ -57,7 +55,7 @@ class PosixMixin:
 
     def handleAttach(self):
         self.fireNotifiers(vtrace.NOTIFY_ATTACH)
-        self._findLibraryMaps('\x7fELF', always=True)
+        self._findLibraryMaps(b'\x7fELF', always=True)
         self._simpleCreateThreads()
         # We'll emulate windows here and send an additional
         # break after our library load events to make things easy
@@ -248,10 +246,8 @@ class PtraceMixin:
             pad = self.readMemory(address+(len(bytes)-remainder), wordsize)
             bytes += pad[remainder:]
 
-        for i in range(len(bytes)/wordsize):
-            offset = wordsize*i
+        for i in range(int(len(bytes)/wordsize)):
+            offset = wordsize * i
             dword = struct.unpack("L",bytes[offset:offset+wordsize])[0]
-            if ptrace(PT_WRITE_D, self.pid, long(address+offset), long(dword)) != 0:
+            if ptrace(PT_WRITE_D, self.pid, int(address+offset), int(dword)) != 0:
                 raise Exception("ERROR ptrace PT_WRITE_D failed!")
-
-

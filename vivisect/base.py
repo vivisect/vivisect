@@ -1,4 +1,5 @@
-import Queue
+import queue
+import base64
 import logging
 import traceback
 import threading
@@ -17,6 +18,7 @@ import vstruct.constants as vs_const
 
 import vivisect.const as viv_const
 import vivisect.impapi as viv_impapi
+import vivisect.parsers as viv_parsers
 import vivisect.analysis as viv_analysis
 import vivisect.codegraph as viv_codegraph
 
@@ -154,7 +156,7 @@ def ddict():
     return collections.defaultdict(dict)
 
 
-class VivWorkspaceCore(object, viv_impapi.ImportApi):
+class VivWorkspaceCore(viv_impapi.ImportApi):
     '''
     A base class that the VivWorkspace inherits from that defines a lot of the event handlers
     for things like the creation of the various location types.
@@ -166,6 +168,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         self.locmap = e_page.MapLookup()
         self.blockmap = e_page.MapLookup()
         self._mods_loaded = False
+        self.parsedbin = None
 
         # Storage for function local symbols
         self.localsyms = ddict()
@@ -185,7 +188,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _snapInAnalysisModules(self):
         '''
-        Snap in the analysis modules which are appropriate for the 
+        Snap in the analysis modules which are appropriate for the
         format/architecture/platform of this workspace by calling
         '''
         if self._mods_loaded:
@@ -249,7 +252,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
             if ptr != (ptr & e_bits.u_maxes[self.psize]):
-                logger.warn('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+                logger.warning('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
 
             # writes are costly, especially on larger binaries
             if ptr != self.readMemoryPtr(rva):
@@ -354,7 +357,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
             xr_from = []
             self.xrefs_by_from[fromva] = xr_from
 
-        if einfo not in xr_to: # Just check one for now
+        if einfo not in xr_to:  # Just check one for now
             xr_to.append(einfo)
             xr_from.append(einfo)
             self.xrefs.append(einfo)
@@ -365,7 +368,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         self.xrefs_by_from[fromva].remove(einfo)
 
     def _handleSETNAME(self, einfo):
-        va,name = einfo
+        va, name = einfo
         if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
@@ -373,7 +376,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         else:
             curname = self.name_by_va.get(va)
             if curname is not None:
-                logger.debug( 'replacing 0x%x: %r -> %r', va, curname, name)
+                logger.debug('replacing 0x%x: %r -> %r', va, curname, name)
                 self.va_by_name.pop(curname)
 
             self.va_by_name[name] = va
@@ -490,7 +493,7 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
 
     def _handleAUTOANALFIN(self, einfo):
         '''
-        This event is more for the storage subsystem than anything else.  It 
+        This event is more for the storage subsystem than anything else.  It
         marks the end of autoanalysis.  Any event beyond this is due to the
         end user or analysis modules they've executed.
         '''
@@ -582,8 +585,8 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
                     continue
                 try:
                     q.put_nowait((event, einfo))
-                except Queue.Full as e:
-                    logger.warning("Queue is full!")
+                except queue.Full as e:
+                    logger.warning('Queue is full!')
 
         except Exception as e:
             logger.error(traceback.format_exc())
@@ -644,6 +647,14 @@ class VivWorkspaceCore(object, viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
+    def _mcb_FileBytes(self, name, value):
+        if not self.parsedbin:
+            byts = viv_parsers.uncompressBytes(value)
+            fmt = viv_parsers.guessFormat(byts)
+            parser = viv_parsers.getBytesParser(fmt)
+            if parser:
+                self.parsedbin = parser(byts)
+
     def _mcb_ustruct(self, name, ssrc):
         # All meta values in the "ustruct" namespace are user defined
         # structure defintions in C.
@@ -685,7 +696,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    vw.vprint("0x%x: Dynamic Branch found at (%s)" % (op.va, op))
+    logger.info("0x%x: Dynamic Branch found at (%s)" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
@@ -719,7 +730,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         if loc is None:
 
             # dont code flow through import calls
-            branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
+            branches = [br for br in branches if not self._mem.isLocType(br[0], LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
             # TODO: future home of makeOpcode branch/xref analysis
@@ -727,7 +738,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         elif loc[L_LTYPE] != LOC_OP:
             locrepr = self._mem.reprLocation(loc)
-            logger.warn("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
+            logger.warning("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
         return ()
 
     def _cb_function(self, fva, fmeta):

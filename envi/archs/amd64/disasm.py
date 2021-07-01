@@ -3,8 +3,7 @@ import struct
 import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
-import envi.archs.i386.opconst as e_i386_const
-import opcode64 as opcode86
+from . import opcode64 as opcode86
 
 from envi.const import RMETA_NMASK
 
@@ -13,10 +12,10 @@ from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, \
         MANDATORY_PREFIXES, PREFIX_REP_MASK, RMETA_LOW8, RMETA_LOW16
 
-from envi.archs.amd64.regs import *
+from .regs import *
 from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
                                     OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
-                                    INS_VEXREQ, OP_NOVEXL
+                                    INS_VEXREQ, OP_NOVEXL, INS_VEXNOPREF, OP_NOREX
 all_tables = opcode86.tables86
 
 # Pre generate these for fast lookup. Because our REX prefixes have the same relative
@@ -89,7 +88,7 @@ class Amd64Opcode(i386Opcode):
         So oh well
         '''
         envi.Opcode.__init__(self, va, opcode, mnem, prefixes, size, operands, iflags)
-        if prefixes & PREFIX_VEX and not opcode & e_i386_const.INS_VEXNOPREF:
+        if prefixes & PREFIX_VEX and not opcode & INS_VEXNOPREF:
             mnem = 'v' + mnem
         self.mnem = mnem
 
@@ -290,7 +289,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
         while True:
 
-            obyte = ord(bytez[offset])
+            obyte = bytez[offset]
 
             # This line changes in 64 bit mode
             p = self._dis_prefixes[obyte]
@@ -307,7 +306,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                 isvex = True
                 if p == PREFIX_VEX2:
                     offset += 1
-                    imm1 = ord(bytez[offset])
+                    imm1 = bytez[offset]
                     # shouldn't in 64-bit mode, but in 32-bit, this keeps LES from colliding
                     # TODO: So we're always in 64 bit here. This will need to be here once we unify 32/64 decoding
                     #if imm1 & 0xc0 != 0xc0:
@@ -324,12 +323,12 @@ class Amd64Disasm(e_i386.i386Disasm):
                     combined_mand_prefixes = vex_pp_table[pp]
 
                 elif p == PREFIX_VEX3:
-                    imm1 = ord(bytez[offset+1])
+                    imm1 = bytez[offset+1]
                     offset += 2
                     # TODO: So we're always in 64 bit here. This will need to be here once we unify 32/64 decoding
                     #if imm1 & 0xc0 != 0xc0:
                         #break
-                    imm2 = ord(bytez[offset])
+                    imm2 = bytez[offset]
                     inv1 = imm1 ^ 0xff
                     inv2 = imm2 ^ 0xff
 
@@ -391,7 +390,7 @@ class Amd64Disasm(e_i386.i386Disasm):
             else:
                 # treat nothing as a mandatory prefix (or we defaulted into here if we got no mandatory
                 # prefixes). For most instructions this will be the normal case.
-                obyte = ord(bytez[offset])
+                obyte = bytez[offset]
                 all_prefixes = prefixes | pho_prefixes
 
             while True:
@@ -408,7 +407,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
                     # Account for the table jump we made
                     offset += 1
-                    obyte = ord(bytez[offset])
+                    obyte = bytez[offset]
                     continue
 
                 # We are now on the final table...
@@ -454,7 +453,6 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             # handles tsize calculations including new REX prefixes
             tsize = self._dis_calc_tsize(opertype, prefixes, operflags)
-
             # If addrmeth is zero, we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
@@ -496,10 +494,15 @@ class Amd64Disasm(e_i386.i386Disasm):
                     else:
                         # see same code section in i386 for this rationale
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
-                        if getattr(oper, "_is_deref", False):
+                        if oper and oper.isDeref():
                             memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
                             if memsz is not None:
                                 oper.tsize = memsz
+                            elif prefixes & PREFIX_ADDR_SIZE:
+                                if getattr(oper, 'reg', None) is not None:
+                                    oper.reg |= RMETA_LOW32
+                                elif getattr(oper, 'index', None) is not None:
+                                    oper.index |= RMETA_LOW32
 
                 except struct.error:
                     # Catch struct unpack errors due to insufficient data length
@@ -564,7 +567,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         """
         size = 1
         # FIXME this would be best to not parse_modrm twice.  tweak it.
-        mod,reg,rm = self.parse_modrm(ord(bytes[offset]), prefixes)
+        mod,reg,rm = self.parse_modrm(bytes[offset], prefixes)
         if mod == 0 and rm == 5:
             imm = e_bits.parsebytes(bytes, offset + size, 4, sign=True)
             size += 4
@@ -582,23 +585,22 @@ class Amd64Disasm(e_i386.i386Disasm):
                     operval = (operval & RMETA_NMASK) | META_SIZES[tsize]
                 else:
                     operval |= META_SIZES[tsize]
-
-            width = self._dis_regctx.getRegisterWidth(operval) / 8
+            width = self._dis_regctx.getRegisterWidth(operval) >> 3
             o = i386RegOper(operval, width)
         elif operflags & opcode86.OP_IMM:
             o = i386ImmOper(operval, tsize)
         else:
             raise Exception("Unknown ameth_0! operflags: 0x%.8x" % operflags)
 
-        # If it has a builtin register, we need to check for bump prefix
-        if prefixes & PREFIX_REX_W and isinstance(o, e_i386.i386RegOper):
+        if not (operflags & OP_NOREX) and prefixes & PREFIX_REX_W and getattr(o, 'reg', None):
             o.reg &= 0xffff
+
         if prefixes & PREFIX_REX_B and isinstance(o, e_i386.i386RegOper):
             # the optable entries for AH with REX_B is terribly unhelpful.
             if o.reg & e_i386.RMETA_HIGH8 == e_i386.RMETA_HIGH8:
                 o.reg &= REX_HIGH_DROP
                 o.reg += 4
-            if not (operflags & e_i386_const.OP_NOREXB):
+            if not (operflags & OP_NOREX):
                 o.reg += REX_BUMP
         return o
 
@@ -609,7 +611,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         memory, we skip this state and just go on to the next addressing method. If it refers
         to a register, pass through to self.ameth_h
         '''
-        mod, reg, rm = self.parse_modrm(ord(bytes[offset]), prefixes)
+        mod, reg, rm = self.parse_modrm(bytes[offset], prefixes)
         if mod == 3:
             return self.ameth_h(bytes, offset, tsize, prefixes, operflags)
         else:
@@ -725,7 +727,7 @@ class Amd64Disasm(e_i386.i386Disasm):
         return osize, oper
 
     def ameth_w(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
         if mod == 3:
             vvvv = self.ROFFSETSIMD
             if not (prefixes & PREFIX_VEX_L) or operflags & OP_NOVEXL:

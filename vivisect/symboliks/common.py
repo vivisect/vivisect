@@ -31,8 +31,8 @@ def varsolve(name, width, emu=None):
     if emu is not None:
         name += emu.getRandomSeed()
 
-    md5sum = hashlib.md5(name).hexdigest()
-    return long(md5sum[:width*2], 16)
+    md5sum = hashlib.md5(name.encode('utf-8')).hexdigest()
+    return int(md5sum[:width*2], 16)
 
 def evalSymbolik(reprstr):
     '''
@@ -75,7 +75,7 @@ class SymbolikBase:
     commutative = False
 
     def __init__(self):
-        self._sym_id = self.idgen.next()
+        self._sym_id = next(self.idgen)
         self.kids = []
         self.parents = []
         self.cache = {}
@@ -134,10 +134,13 @@ class SymbolikBase:
     def __imul__(self, other):
         return o_mul(self, other, self.getWidth())
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         return o_div(self, other, self.getWidth())
 
     def __idiv__(self, other):
+        return o_div(self, other, self.getWidth())
+
+    def __floordiv__(self, other):
         return o_div(self, other, self.getWidth())
 
     def __pow__(self, other):
@@ -151,13 +154,49 @@ class SymbolikBase:
         if other is None:
             return False
 
-        if type(other) in (int, long):
+        if isinstance(other, int):
             return self.solve() == other
 
         return self.solve() == other.solve()
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __le__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() <= other
+
+        return self.solve() <= other.solve()
+
+    def __lt__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() < other
+
+        return self.solve() < other.solve()
+
+    def __ge__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() >= other
+
+        return self.solve() >= other.solve()
+
+    def __gt__(self, other):
+        if other is None:
+            return False
+
+        if isinstance(other, int):
+            return self.solve() > other
+
+        return self.solve() > other.solve()
 
     def clearCache(self):
         '''
@@ -198,7 +237,7 @@ class SymbolikBase:
         '''
         raise Exception('%s *must* implement solve(emu=emu)!' % self.__class__.__name__)
 
-    def reduce(self, emu=None, foo=False):
+    def reduce(self, emu=None, foo=True):
         '''
         Algebraic reduction and operator folding where possible.
 
@@ -267,7 +306,7 @@ class SymbolikBase:
         for obj in root_symobjs:
             obj.clearCache()
         '''
-        if idx > len(self.kids)-1:
+        if idx > len(self.kids) - 1:
             self.kids.append(kid)
             self.kids[idx].parents.append(self)
         else:
@@ -277,7 +316,7 @@ class SymbolikBase:
                 return
 
             # invalidate the cache, but be careful not to repopulate it
-            todo = collections.OrderedDict({p._sym_id: p for p in oldkid.parents})
+            todo = {p._sym_id: p for p in oldkid.parents}
             done = set()
             while todo:
                 pid, parent = todo.popitem()
@@ -334,7 +373,6 @@ class SymbolikBase:
         while True:
             # follow kids if there are any left...
             if idx < len(cur.kids):
-                # sys.stdout.write('+')
                 kid = cur.kids[idx]
                 if once and kid._sym_id in done:
                     idx += 1
@@ -354,12 +392,12 @@ class SymbolikBase:
             newb = cb(path, cur, ctx)
             path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
 
-            done.add(cur._sym_id)
-
-            if not len(path):
+            if not path:
                 if newb:
                     return newb
                 return cur
+
+            done.add(cur._sym_id)
 
             # pop back up a level
             cur = path.pop()
@@ -472,8 +510,12 @@ class Call(SymbolikBase):
     def _reduce(self, emu=None):
         args = []
         for symkid in self.kids[1:]:
-            args.append(symkid.reduce(emu=emu))
-        return Call(self.kids[0].reduce(emu=emu), self.width, args)
+            kid = symkid._reduce(emu=emu)
+            kid = kid if kid else symkid
+            args.append(kid)
+        func = self.kids[0]._reduce(emu=emu)
+        func = func if func else self.kids[0]
+        return Call(func, self.width, args)
 
     def _solve(self, emu=None, vals=None):
         ret = 0
@@ -535,15 +577,19 @@ class Mem(SymbolikBase):
 
         addrval = self.kids[0].solve(emu=emu, vals=vals)
         sizeval = self.kids[1].solve(emu=emu, vals=vals)
-        # FIXME higher entropy!
-        return hash(str(addrval)) & 0xffffffff
+
+        return varsolve(f'[{addrval}:{sizeval}]', 32)
 
     def getWidth(self):
         # FIXME should we do something about that?
         return self.kids[1].solve()
 
     def _reduce(self, emu):
-        return Mem(self.kids[0].reduce(), self.kids[1].reduce())
+        addr = self.kids[0]._reduce(emu=emu)
+        addr = addr if addr else self.kids[0]
+        size = self.kids[1]._reduce(emu=emu)
+        size = size if size else self.kids[1]
+        return Mem(addr, size)
 
 class Var(SymbolikBase):
 
@@ -565,7 +611,7 @@ class Var(SymbolikBase):
 
         sym = vw.getSymByName(strval)
         if sym is not None:
-            value = long(sym)
+            value = int(sym)
             canvas.addVaText(strval, va=value)
             return
 
@@ -634,7 +680,7 @@ class LookupVar(Var):
         if emu is not None:
             name += emu.getRandomSeed()
 
-        return long(hashlib.md5(name).hexdigest()[:self.width*2], 16)
+        return int(hashlib.md5(name).hexdigest()[:self.width*2], 16)
 
     def update(self, emu):
         offset = self.offset.update(emu=emu)
@@ -644,8 +690,10 @@ class LookupVar(Var):
         return LookupVar(self.name, offset, lookupdict=self.lookupdict, width=self.width)
 
     def _reduce(self, emu=None):
-        self.offset._reduce(emu=emu)
-        return self
+        offset = self.offset._reduce(emu=emu)
+        offset = offset if offset else self.offset
+
+        return LookupVar(self.name, offset, self.lookupdict, self.width)
 
     def getWidth(self):
         return self.width
@@ -724,12 +772,12 @@ class Const(SymbolikBase):
             return
 
         # if our const is a named pointer...
-        if vw.isValidPointer( self.value ):
-            name = str(vw.getSymByAddr( self.value ))
+        if vw.isValidPointer(self.value):
+            name = str(vw.getSymByAddr(self.value))
             canvas.addText('&')
             canvas.addVaText(name, va=self.value)
             return
-        canvas.addNameText( str(self) )
+        canvas.addNameText(str(self))
 
     def _solve(self, emu=None, vals=None):
         return self.value
@@ -877,7 +925,7 @@ class o_mul(Operator):
     commutative = True
 
 class o_div(Operator):
-    oper        = operator.div # should this be floordiv?
+    oper        = operator.floordiv
     operstr     = '/'
     symtype     = SYMT_OPER_DIV
 

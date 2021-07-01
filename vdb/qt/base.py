@@ -1,7 +1,4 @@
-try:
-    from PyQt5.QtWidgets import QWidget
-except:
-    from PyQt4.QtGui import QWidget
+from PyQt5.QtWidgets import QWidget
 
 import vqt.saveable as vq_save
 

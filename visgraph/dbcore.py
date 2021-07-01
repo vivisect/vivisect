@@ -281,7 +281,7 @@ class DbGraphStore:
         if isinstance(value, bool):
             value = int(value)
 
-        if isinstance(value, int) or isinstance(value, long):
+        if isinstance(value, int):
             q = 'UPDATE vg_node_props SET intval=%s,created=NOW() WHERE nid=%s and pname=%s RETURNING nid'
             q1 = 'INSERT INTO vg_node_props (nid, pname, intval) VALUES (%s,%s,%s)'
         else:
@@ -442,11 +442,11 @@ class DbGraphStore:
             else:
                 r[3][pname] = strval
 
-        return refs.values()
+        return list(refs.values())
 
     def getRefsToBulk(self, nids):
         '''
-        Return a list of edges which we reference. 
+        Return a list of edges which we reference.
         Supply a list of edges to gets refs.
 
         Example: for eid, fromid, toid, einfo in g.getRefsToBulk(nids)
@@ -479,14 +479,14 @@ class DbGraphStore:
             else:
                 r[3][pname] = strval
 
-        return refs.values()
+        return list(refs.values())
 
     def setEdgeProp(self, eid, pname, value):
 
         if isinstance(value, bool):
             value = int(value)
 
-        if isinstance(value, int) or isinstance(value, long):
+        if isinstance(value, int):
             q = 'UPDATE vg_edge_props SET intval=%s WHERE eid=%s and pname=%s RETURNING eid'
             q1 = 'INSERT INTO vg_edge_props (eid, pname, intval) VALUES (%s,%s,%s)'
         else:
@@ -590,7 +590,7 @@ class DbSubGraph(DbGraphStore, vg_graphcore.Graph):
         '''
         done = {}
         for key,val in kwargs.items():
-            if type(val) in (int,long):
+            if isinstance(val, int):
                 # FIXME is vg_edges.eid faster or vg_edge_props?
                 q = 'SELECT vg_edges.eid,n1,n2 FROM vg_edge_props,vg_edges WHERE pname=%s AND intval=%s AND vg_edges.eid=vg_edge_props.eid'
             else:

@@ -30,7 +30,7 @@ def getNodeWeightHisto(g):
     weights_to_cb = collections.defaultdict(list)
 
     # create default dict
-    for cb, weight in sorted(nodeweights.items(), lambda x, y: cmp(y[1], x[1])):
+    for cb, weight in sorted(nodeweights.items(), key=lambda x: x[1]):
         if not len(g.getRefsFromByNid(cb)):
             # leaves is a tuple of (cb, current path, visited nodes)
             # these are our leaf nodes
@@ -64,9 +64,6 @@ def getLongPath(g):
         leafmax = weightmax
         invalidret = True
 
-    pcnt = 0
-    rpaths = []
-    fva = g.getMeta('fva')
     # this is our loop that we want to yield out of..
     # start at the bottom of the graph and work our way back up
     for weight in range(leafmax, -1, -1):
@@ -546,7 +543,6 @@ def getGraphNodeByVa(fgraph, va):
 
     DEPRECATED as soon as visi's new CodeGraph gains this functionality inherently
     '''
-    logger.warning('getGraphNodeByVa is deprecated!')
     for nva, ninfo in fgraph.nodes.values():
         nvamax = ninfo.get('cbsize')
         if nvamax is None: 
@@ -699,6 +695,7 @@ def reduceGraph(graph, props=('up','down')):
                 break
 
 
+# TODO: Move into base exception file
 class PathForceQuitException(Exception):
     def __repr__(self):
         return "Path Generator forced to stop seeking a new path.  Possibly Timeout."

@@ -1,19 +1,15 @@
 import os
 import logging
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
 import vqt.cli as vq_cli
 import vqt.main as vq_main
 import vqt.saveable as vq_save
 import vqt.hotkeys as vq_hotkeys
 import vqt.menubuilder as vq_menu
-from vqt.saveable import compat_isNone, compat_toByteArray, compat_strList
+from vqt.saveable import compat_isNone
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +41,21 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QDockWidget):
     def closeEvent(self, event):
 
         self.hide()
+        parent = self.parent()
 
         w = self.widget()
+
+        # remove widget from the views dict
+        clsname = w.__class__.__name__
+        dwidgets = parent.views.get(clsname)
+        if self in dwidgets:
+            dwidgets.remove(self)
+
         w.setParent(None)
         w.close()
 
-        self.parent().vqRemoveDockWidget(self)
+        # remove widget from main _vq_dockwidgets list
+        parent.vqRemoveDockWidget(self)
 
         event.accept()
 
@@ -87,6 +92,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
 
         self._vq_appname = appname
         self._vq_dockwidgets = []
+        self.views = {}
 
         self._vq_settings = QtCore.QSettings('invisigoth', application=appname, parent=self)
         self._vq_histfile = os.path.join(os.path.expanduser('~'), '.%s_history' % appname)
@@ -124,19 +130,22 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
     def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.TopDockWidgetArea):
         res = self._dock_classes.get(clsname)
         if res is None:
-            logger.error('vqBuildDockWidget Failed For: %s', clsname)
+            logger.warning('vqBuildDockWidget Failed For: %s (No class constructor found)', clsname)
             return
         cls, args = res
         obj = cls(*args)
-        return self.vqDockWidget(obj, area, floating=floating), obj
+        return (self.vqDockWidget(obj, area, floating=floating), obj)
 
     def vqRestoreGuiSettings(self, settings, stub=''):
         dwcls = settings.value('DockClasses')
 
         if not compat_isNone(dwcls):
-            for i, clsname in enumerate(compat_strList(dwcls)):
+            for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d' % i
                 try:
+                    # we haven't loaded the extensions yet, so all we'll have is the base clases
+                    if str(clsname) not in self._dock_classes:
+                        continue
                     tup = self.vqBuildDockWidget(str(clsname), floating=False)
                     if tup is not None:
                         d, obj = tup
@@ -149,11 +158,11 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
         # Once dock widgets are loaded, we can restoreState
         state = settings.value('DockState')
         if not compat_isNone(state):
-            self.restoreState(compat_toByteArray(state))
+            self.restoreState(state)
 
         geom = settings.value('DockGeometry')
         if not compat_isNone(geom):
-            self.restoreGeometry(compat_toByteArray(geom))
+            self.restoreGeometry(geom)
 
         # Just get all the resize activities done...
         vq_main.eatevents()
@@ -201,7 +210,15 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
         d.setFloating(floating)
         self.addDockWidget(area, d)
         self._vq_dockwidgets.append(d)
+
+        # store the widget by classname
+        clsname = widget.__class__.__name__
+        dwidgets = self.views.get(clsname)
+        if dwidgets is None:
+            dwidgets = []
+            self.views[clsname] = dwidgets
+        dwidgets.append(d)
+
         self.restoreDockWidget(d)
         d.show()
         return d
-

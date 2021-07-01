@@ -1,11 +1,7 @@
 import binascii
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QApplication
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QApplication
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QApplication
 
 import vtrace.qt
 import envi.qt.memory
@@ -21,12 +17,10 @@ class VDBACT:
         self.cmdline = cmdline
 
     def __call__(self, *args, **kwargs):
-        workthread(self.db.onecmd)( self.cmdline )
+        workthread(self.db.onecmd)(self.cmdline)
 
 class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
-
     # We get self.db set by our memory window smash...
-
     def initMemWindowMenu(self, va, menu):
 
         t = self.db.getTrace()
@@ -39,7 +33,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
             bpid = bp.getId()
             menu.addAction('Remove Breakpoint', VDBACT(self.db, 'bp -r %d' % bpid))
 
-            if bp.enabled == True:
+            if bp.enabled:
                 menu.addAction('Disable Breakpoint', VDBACT(self.db, 'bp -d %d' % bpid))
             else:
                 menu.addAction('Enable Breakpoint', VDBACT(self.db, 'bp -e %d' % bpid))
@@ -49,22 +43,16 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         # yuck...need to fix this on gui re-architecture.
         currend = self.vdb_memwin.rend_select.currentText()
         if nop is not None and 'asm' in currend:
-            smenu_patch.addAction('Set Bytes To NOP',
-                    ACT(self._menuSetOpTo, va, nop))
+            smenu_patch.addAction('Set Bytes To NOP', ACT(self._menuSetOpTo, va, nop))
 
         if 'asm' in currend:
-            smenu_patch.addAction('Set Bytes To NULL',
-                    ACT(self._menuSetOpTo, va, '\x00'))
+            smenu_patch.addAction('Set Bytes To NULL', ACT(self._menuSetOpTo, va, '\x00'))
 
         if 'asm' in currend or 'bytes' in currend:
-            smenu_patch.addAction('Modify Bytes',
-                    ACT(self._menuWriteMem, va))
+            smenu_patch.addAction('Modify Bytes', ACT(self._menuWriteMem, va))
 
-        smenu_patch.addAction('Copy Bytes To Clipboard',
-                ACT(self._menuCopyBytesToClipBoard, va, currend, False))
-
-        smenu_patch.addAction('Copy Bytes To Clipboard (All Window Bytes)',
-                ACT(self._menuCopyBytesToClipBoard, va, currend, True))
+        smenu_patch.addAction('Copy Bytes To Clipboard', ACT(self._menuCopyBytesToClipBoard, va, currend, False))
+        smenu_patch.addAction('Copy Bytes To Clipboard (All Window Bytes)', ACT(self._menuCopyBytesToClipBoard, va, currend, True))
 
         return envi.qt.memcanvas.VQMemoryCanvas.initMemWindowMenu(self, va, menu)
 
@@ -138,7 +126,6 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
 
         self.renderMemory(self._canv_beginva, totalsize)
 
-import vtrace.qt
 class VdbMemoryWindow(envi.qt.memory.VQMemoryWindow, vtrace.qt.VQTraceNotifier):
 
     def __init__(self, db, dbt, parent=None, expr=None, sizeexpr=None, rend=None, **kwargs):

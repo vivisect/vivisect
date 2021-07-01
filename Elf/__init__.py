@@ -18,6 +18,7 @@ Send bug reports to Invisigoth or Metr0.
 
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
+import io
 import logging
 
 from stat import *
@@ -309,6 +310,25 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self._parseSectionRelocs()
         logger.info('done parsing ELF')
 
+    def __del__(self):
+        try:
+            self.fd.close()
+        except:
+            pass  # whatever. we're tearing down anyway
+
+    def getFileBytes(self):
+        '''
+        Return the bytes of the file as they currently exist from the view of the file descriptor-like object
+
+        But keeping in mind not to smash over the old location of the fd
+        '''
+        self.fd.flush()
+        old = self.fd.tell()
+        self.fd.seek(0)
+        byts = self.fd.read()
+        self.fd.seek(old)
+        return byts
+
     def getRelocTypeName(self, rtype):
         '''
         Because relocation type names are decided based on the
@@ -356,8 +376,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             strsec = self.sections[self.e_shstrndx]
             names = self.readAtOffset(strsec.sh_offset, strsec.sh_size)
             for sec in self.sections:
-                name = names[sec.sh_name:].split("\x00")[0]
+                name = names[sec.sh_name:].split(b"\x00")[0]
                 if len(name) > 0:
+                    name = name.decode('utf-8')
                     sec.setName(name)
                     self.secnames[name] = sec
 
@@ -393,7 +414,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         ssymtabva = self.getSection('.dynsym').sh_addr
         dsymtabva = self.dyns.get(DT_SYMTAB)
         if ssymtabva != dsymtabva:
-            logger.warn("Section headers and Dynamics disagree on Symbol Table: sec: 0x%x, dyn: 0x%x", ssymtabva, dsymtabva)
+            logger.info("Section headers and Dynamics disagree on Symbol Table: sec: 0x%x, dyn: 0x%x", ssymtabva, dsymtabva)
 
         # only parse the symbols that are not already accounted for.
         # symbols are ordered, so existence of index Y is always the same
@@ -408,7 +429,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         syms = sym * diff
         vstruct.VArray(elems=syms).vsParse(symtab[offset:], fast=True)
 
-        logger.warn("_parseDynSymsFromSections:  current_count: %d\tdiff: %d\toffset: %d\t", count, diff, offset)
+        logger.warning("_parseDynSymsFromSections:  current_count: %d\tdiff: %d\toffset: %d\t", count, diff, offset)
         for sym in syms:
             if not sym.st_name:
                 continue
@@ -449,7 +470,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def _parseDynLinkInfo(self):
         '''
         Parse the Dynamics segment and populate both self.dynamics (legacy) and self.dyns
-        This must be run before most Dynamic-data accessors like getDynStrTabString(),
+        This must be run before most Dynamic-data accessors like getDynStrtabString(),
         getDynSymTabInfo(), etc..
         '''
         self.dyns = {}
@@ -487,17 +508,17 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         dynstrtab = self.dyns.get(DT_STRTAB)
         strsz = self.dyns.get(DT_STRSZ)
         if dynstrtab is None or strsz is None:
-            logger.warn('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
+            logger.info('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
             return
 
         if self.dynstrtabmeta != (None, None):
             curtab = self.dynstrtabmeta[0]
-            logger.warn('wtf?  multiple dynamic string tables?  old: 0x%x  new: 0x%x', curtab, rva)
+            logger.warning('wtf?  multiple dynamic string tables?  old: 0x%x  new: 0x%x', curtab, rva)
 
         strtabbytes = self.readAtRva(dynstrtab, strsz)
 
         self.dynstrtabmeta = (dynstrtab, strsz)
-        self.dynstrtab = strtabbytes.split('\0')
+        self.dynstrtab = strtabbytes.split(b'\0')
 
         # since our string table should certainly end in '\0', we'll have an empty string
         # at the end.  since this array is used to determine the number of symbols, we
@@ -509,7 +530,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
         soname = self.dyns.get(DT_SONAME)
         if soname is not None and soname != -1 and soname < strsz:
-            dynsymstrs = strtabbytes[:soname].split('\0')
+            dynsymstrs = strtabbytes[:soname].split(b'\0')
             self.dynsymtabct = len(dynsymstrs) - 1
 
         # setup names for the dynamics table entries
@@ -539,7 +560,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         # parse Dynamic Symbol Table
         if len(self.dynamic_symbols):
-            logger.warn('_parseDynSyms() cannot run: dynamic_symbols is not empty')
+            logger.warning('_parseDynSyms() cannot run: dynamic_symbols is not empty')
             return
 
         symtabrva, symsz, symtabsz = self.getDynSymTabInfo()
@@ -650,7 +671,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 continue
 
             if sec.sh_offset not in dynrels:
-                logger.warn('_parseSectionRelocs: Reloc section differs from Dynamics: 0x%x', sec.sh_offset)
+                logger.warning('_parseSectionRelocs: Reloc section differs from Dynamics: 0x%x', sec.sh_offset)
 
             reloccls = self._cls_reloc
             if sec.sh_type == SHT_RELA:
@@ -742,8 +763,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             rvaoff = rva - phrva
             return pgm.p_offset + rvaoff
 
-        raise ('omg', hex(rva))
-        return None
+        raise Exception(f"Couldn't convert rva: {rva} to a file offset")
 
     def readAtOffset(self, off, size):
         '''
@@ -810,8 +830,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def getStrtabString(self, offset, section=".strtab"):
         sec = self.getSection(section)
         bytes = self.readAtOffset(sec.sh_offset, sec.sh_size)
-        index = bytes.find("\x00", offset)
-        return bytes[offset:index]
+        index = bytes.find(b"\x00", offset)
+        return bytes[offset:index].decode('utf-8')
 
     def getNotes(self):
         '''
@@ -833,15 +853,15 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 while offset < notebyteslen:
                     note = vs_elf.ElfNote()
                     if notebyteslen - offset < len(note):
-                        logger.warn("""\nNOTES section length mismatch!\n\t%s
-                                \tSection Bytes: %s\n\tStranded bytes: %s\n""",
+                        logger.warning("""\nNOTES section length mismatch!\n\t%s
+                                       \tSection Bytes: %s\n\tStranded bytes: %s\n""",
                                 sec, repr(notebytes), repr(notebytes[offset:]))
                         break
 
                     offset = note.vsParse(notebytes, offset=offset)
                     yield note
             except Exception as e:
-                logger.warn('Elf.getNotes() Exception: %s', e)
+                logger.warning('Elf.getNotes() Exception: %s', e)
 
     def getPlatform(self):
         '''
@@ -852,9 +872,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             plat = e.getPlatform()
         '''
         for note in self.getNotes():
-            if note.name == 'GNU\x00' and note.ntype == 1:
+            if note.name == b'GNU\x00' and note.ntype == 1:
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0, 'unknown')
+
+        if self.getSection('QNX_info'):
+            return 'qnx'
 
         return 'unknown'
 
@@ -909,7 +932,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         """
         mystr = 'Elf Binary:'
         mystr+= "\n= Intimate Details:"
-        mystr+= "\n==Magic:\t\t\t\t"       + self.e_ident
+        mystr+= "\n==Magic:\t\t\t\t%r"       % self.e_ident.decode('utf-8')
         mystr+= "\n==Type:\t\t\t\t\t"        + e_types.get(self.e_type)
         mystr+= "\n==Machine Arch:\t\t\t\t"  + e_machine_types.get(self.e_machine)
         mystr+= "\n==Version:\t\t\t\t%d"     % (self.e_version)
@@ -1063,15 +1086,20 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         dynstrtabva, strsz = self.dynstrtabmeta
         strings = self.readAtRva(dynstrtabva, strsz)
-        strend = strings.find('\0', stroff)
+        strend = strings.find(b'\0', stroff)
         if stroff > len(strings):
             return None
 
-        return strings[stroff:strend]
+        return strings[stroff:strend].decode('utf-8')
 
 
 def elfFromFileName(fname):
     return Elf(open(fname, 'rb'))
+
+
+def elfFromBytes(fbytes):
+    fd = io.BytesIO(fbytes)
+    return Elf(fd)
 
 
 def elfFromMemoryObject(memobj, baseaddr):
@@ -1085,4 +1113,3 @@ def getRelocType(val):
 
 def getRelocSymTabIndex(val):
     return val >> 8
-

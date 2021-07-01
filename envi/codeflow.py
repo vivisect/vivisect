@@ -2,8 +2,10 @@
 A module to contain code flow analysis for envi opcode objects...
 '''
 import logging
+import collections
 
 import envi
+import envi.common as e_cmn
 import envi.memory as e_mem
 
 logger = logging.getLogger(__name__)
@@ -110,6 +112,7 @@ class CodeFlowContext(object):
         continuing to destva as a result of va ( destva may still be
         decoded as a result of being reached some other way... )
         '''
+        logger.debug("addNoFlow(0x%x, 0x%x)", va, destva)
         self._cf_noflow[(va, destva)] = True
 
     def getCallsFrom(self, fva):
@@ -138,7 +141,7 @@ class CodeFlowContext(object):
         optodo = [((0, va), arch), ]
         startva = va
         self._cf_blocks.append(va)
-        cf_eps = set()
+        cf_eps = collections.OrderedDict()
         while len(optodo):
 
             todo, arch = optodo.pop()
@@ -148,6 +151,7 @@ class CodeFlowContext(object):
                 continue
 
             pva, va = todo
+
             if opdone.get(va):
                 continue
 
@@ -155,11 +159,12 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
+                logger.log(e_cmn.MIRE, "... 0x%x: %r", va, op)
             except envi.InvalidInstruction as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
-                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
+                logger.warning('Codeflow exception at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
 
             branches = op.getBranches()
@@ -178,8 +183,9 @@ class CodeFlowContext(object):
                 if bva is None:
                     self._cb_dynamic_branch(va, op, bflags, branches)
 
-                # add block as part of our call stack
-                self._cf_blocks.append(bva)
+                if self._cf_noflow.get((va, bva)):
+                    self._cb_noflow(va, bva)
+                    continue
 
                 try:
                     # Handle a table branch by adding more branches...
@@ -220,28 +226,31 @@ class CodeFlowContext(object):
                         if bva != nextva:  # NOTE: avoid call 0 constructs
 
                             # Now we decend so we do deepest func callbacks first!
-                            # This is not necessarily true. We don't actually recurse since bva
-                            # typically (save for derefs) is being added to self._cf_blocks above
-                            # and nobody but drefs changes what bva is
                             if self._cf_recurse:
+                                # descend into functions, but make sure we don't descend into
+                                # recursive functions
                                 if bva in self._cf_blocks:
+                                    logger.debug("not recursing to function 0x%x (at 0x%x): it's already in analysis call path (ie. it called *this* func)", 
+                                            bva, va)
+                                    logger.debug("call path: \t" + ", ".join([hex(x) for x in self._cf_blocks]))
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
                                     # until its done
-                                    cf_eps.add((bva, bflags))
+                                    cf_eps[bva] = bflags
                                 else:
+                                    logger.debug("descending into function 0x%x (from 0x%x)", bva, va)
                                     self.addEntryPoint(bva, arch=bflags)
 
                             if self._cf_noret.get(bva):
                                 # then our next va is noflow!
-                                self._cf_noflow[(va, nextva)] = True
+                                self.addNoFlow(va, nextva)
 
                             calls_from[bva] = True
 
                             # We only go up to procedural branches, not across
                             continue
-                finally:
-                    self._cf_blocks.pop()
+                except Exception as e:
+                    logger.warning("codeflow: %r", e, exc_info=True)
 
                 if not opdone.get(bva):
                     optodo.append(((va, bva), bflags))
@@ -249,11 +258,11 @@ class CodeFlowContext(object):
         # remove our local blocks from global block stack
         self._cf_blocks.pop()
         while cf_eps:
-            fva, arch = cf_eps.pop()
+            fva, arch = cf_eps.popitem()
             if not self._mem.isFunction(fva):
                 self.addEntryPoint(fva, arch=arch)
 
-        return calls_from.keys()
+        return list(calls_from.keys())
 
     def addEntryPoint(self, va, arch=envi.ARCH_DEFAULT):
         '''

@@ -3,6 +3,7 @@ import logging
 import unittest
 
 import envi
+import envi.memory as e_memory
 
 import vivisect
 import vivisect.exc as v_exc
@@ -19,111 +20,305 @@ def glen(g):
     return len([x for x in g])
 
 
+def isint(x):
+    return type(x) is int
+
+
 class VivisectTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.firefox_vw = helpers.getTestWorkspace('windows', 'amd64', 'firefox.exe')
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
-        cls.gcc_vw = helpers.getTestWorkspace('linux', 'amd64', 'gcc-7')
+
+    def test_xrefs_types(self):
+        '''
+        Test that we have data consistency in xrefs
+        '''
+        for vw in [self.chgrp_vw, self.vdir_vw, self.firefox_vw]:
+            for xfrom, xto, xtype, xflags in vw.getXrefs():
+                self.assertEqual((xfrom, isint(xfrom)),
+                                 (xfrom, True))
+                self.assertEqual((xto, isint(xto)),
+                                 (xto, True))
+                self.assertEqual((xtype, isint(xtype)),
+                                 (xtype, True))
+                self.assertEqual((xflags, isint(xflags)),
+                                 (xflags, True))
+
+    def test_cli_search(self):
+        '''
+        Test that EnviCli.do_search works
+        '''
+        #TODO: make real tests with asserts
+        self.chgrp_vw.do_search("-e utf-16le foo")
+        self.chgrp_vw.do_search("-e utf-16le foo")
+        self.chgrp_vw.do_search("-X 41414141")
+        self.chgrp_vw.do_search("-E 0x41414141")
+        self.chgrp_vw.do_search("-E 0x41414142")
+        self.chgrp_vw.do_search("-r 0x4141.*42")
+        self.chgrp_vw.do_search("-r 0x4141.*42 -c")
+        self.chgrp_vw.do_search("-c -r qsort")
+        self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x200")
+        self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x2000")
+
+    def test_cli_searchopcode(self):
+        '''
+        Test that VivCli.do_searchopcodes works
+        '''
+        #TODO: make real tests with asserts
+        self.chgrp_vw.do_searchopcodes('foo')
+        self.chgrp_vw.do_searchopcodes('-f 0x08050200 ret')
+        self.chgrp_vw.do_searchopcodes('-c rol')
+        self.chgrp_vw.do_searchopcodes('-o rol')
+        self.chgrp_vw.do_searchopcodes('-t rol')
+        self.chgrp_vw.do_searchopcodes('-M red rol')
+        self.chgrp_vw.do_searchopcodes('-f 0x08050200 -R r.t')
+
+    def test_loc_types(self):
+        '''
+        Test that we have data consistency in locations
+        '''
+        for vw in [self.chgrp_vw, self.vdir_vw, self.firefox_vw]:
+            for lva, lsize, ltype, linfo in vw.getLocations():
+                self.assertEqual((lva, isint(lva)),
+                                 (lva, True))
+                self.assertEqual((lsize, isint(lsize)),
+                                 (lsize, True))
+                self.assertEqual((ltype, isint(ltype)),
+                                 (ltype, True))
+                if linfo:
+                    self.assertTrue(type(linfo) in (int, str, list))
+
+    def test_vaset_populate(self):
+        '''
+        Make sure the the VASEts are populated in roughly the way we expect
+        '''
+        vw = self.vdir_vw
+        ans = {
+            'FileSymbols': [('', 0), ('filenamecat-lgpl.c', 0), ('gettime.c', 0),
+                            ('areadlink-with-size.c', 0), ('filenamecat.c', 0), ('umaxtostr.c', 0),
+                            ('close-stream.c', 0), ('filemode.c', 0), ('obstack.c', 0),
+                            ('mbswidth.c', 0), ('imaxtostr.c', 0), ('mbsalign.c', 0),
+                            ('time_rz.c', 0), ('fflush.c', 0), ('hash-triple.c', 0),
+                            ('hard-locale.c', 0), ('se-selinux.c', 0), ('xstrtoul.c', 0),
+                            ('mpsort.c', 0), ('version-etc-fsf.c', 0), ('xdectoumax.c', 0),
+                            ('hash.c', 0), ('dirname-lgpl.c', 0), ('xgetcwd.c', 0),
+                            ('quotearg.c', 0), ('hash-pjw.c', 0), ('closeout.c', 0),
+                            ('progname.c', 0), ('localcharset.c', 0), ('basename-lgpl.c', 0),
+                            ('ls.c', 0), ('human.c', 0), ('version-etc.c', 0),
+                            ('nstrftime.c', 0), ('c-ctype.c', 0), ('xgethostname.c', 0),
+                            ('c-strncasecmp.c', 0), ('xalloc-die.c', 0), ('xstrtol-error.c', 0),
+                            ('crtstuff.c', 0), ('ls-vdir.c', 0), ('argmatch.c', 0),
+                            ('xstrtoumax.c', 0), ('canonicalize.c', 0), ('stat-time.c', 0),
+                            ('calloc.c', 0), ('file-set.c', 0), ('xmalloc.c', 0),
+                            ('timespec.c', 0), ('fseeko.c', 0), ('file-has-acl.c', 0),
+                            ('bitrotate.c', 0), ('idcache.c', 0), ('mbrtowc.c', 0),
+                            ('dirname.c', 0), ('exitfail.c', 0), ('filevercmp.c', 0),
+                            ('fclose.c', 0), ('version.c', 0), ('same.c', 0)],
+            'DynamicBranches': [(134541059, 'call eax', 65537), (134555409, 'call dword [edi + 28]', 65541),
+                                (134540947, 'call ebp', 65537), (134580376, 'call dword [ecx + 28]', 65541),
+                                (134553117, 'call dword [ecx + 24]', 65541), (134540968, 'call ebp', 65537),
+                                (134580408, 'call dword [ecx + 32]', 65541), (134554170, 'call eax', 65537),
+                                (134519869, 'call edx', 65537), (134547907, 'call dword [esp + 52]', 65541),
+                                (134555467, 'call dword [edi + 28]', 65541), (134554325, 'call dword [esi + 32]', 65541),
+                                (134541400, 'call eax', 65537), (134561888, 'call eax', 65537),
+                                (134562273, 'call dword [esp + 68]', 65541), (134583780, 'call dword [ebx + edi * 4 - 244]', 65541),
+                                (134554213, 'call eax', 65537), (134541288, 'call eax', 65537),
+                                (134553449, 'call edi', 65537), (134519792, 'call eax', 65537),
+                                (134553075, 'call dword [ebx + 28]', 65541), (134540791, 'call dword [esp + 32]', 65541),
+                                (134541176, 'call eax', 65537), (134562046, 'call dword [esp + 68]', 65541)],
+            'NoReturnCalls': [(134573120,), (134524676,), (134577802,), (134582295,), (134551055,), (134525456,),
+                              (134568495,), (134534039,), (134524568,), (134528303,), (134578863,), (134577311,),
+                              (134549928,), (134544175,), (134553138,), (134572852,), (134580661,),
+                              (134550582,), (134579529,), (134572857,), (134534204,), (134577471,), (134580544,),
+                              (134568769,), (134546505,), (134578743,), (134553208,), (134555349,),
+                              (134580057,), (134521306,), (134531547,), (134572084,), (134578576,), (134554727,),
+                              (134576873,), (134580336,), (134521331,), (134550133,), (134521336,), (134529017,),
+                              (134524668,), (134577049,), (134547258,), (134577158,), (134524356,), (134524581,),
+                              (134576974,), (134576909,),
+                              ],
+            'Bookmarks': [],
+            'SwitchCases': [],
+            'thunk_bx': [(134519744,),
+                         (134519715,)],
+            'FuncWrappers': [(134517916, 134517946)],
+            'Emulation Anomalies': [(134546338, 'DivideByZero at 0x80503a2'),
+                                    (134544390, 'DivideByZero at 0x804fc06'),
+                                    (134545954, 'DivideByZero at 0x8050222'),
+                                    (134546126, 'DivideByZero at 0x80502ce')],
+            'WeakSymbols': [('__x86.get_pc_thunk.bx', 134519744), ('__udivdi3', 134583136),
+                            ('lstat64', 134583968), ('__TMC_END__', 134615780),
+                            ('fstat64', 134583920), ('__umoddi3', 134583424),
+                            ('fstatat64', 134584016), ('atexit', 134583824),
+                            ('__dso_handle', 134615476), ('__divdi3', 134582800),
+                            ('_dl_relocate_static_pie', 134519728), ('stat64', 134583872)],
+            'PointersFromFile': [(134614800, 134519888, 'vdir', 'fini_function_0'),
+                                 (134614796, 134519936, 'vdir', 'init_function_0')],
+            'EmucodeFunctions': [(134582272,), (134583808,), (134552688,), (134556176,), (134548256,), (134575648,),
+                                 (134549936,), (134556208,), (134548240,), (134582048,), (134577216,), (134572896,),
+                                 (134582304,), (134576528,), (134573136,), (134556288,), (134548224,), (134572128,),
+                                 (134568720,), (134572928,), (134575264,), (134577264,), (134573440,), (134575520,),
+                                 (134553152,), (134575232,), (134575296,), (134575760,), (134548128,), (134581872,),
+                                 (134552608,), (134573232,), (134575488,), (134575744,), (134550208,), (134575904,),
+                                 (134576000,), (134548432,), (134572096,), (134559872,), (134548176,), (134575728,),
+                                 (134572864,), (134584016,), (134552576,), (134568688,), (134575456,), (134549968,),
+                                 (134575712,), (134548144,), (134581952,), (134574848,), (134548352,), (134575184,),
+                                 (134582032,), (134549952,), (134572320,), (134553392,), (134582576,), (134573600,),
+                                 (134576720,), (134553312,), (134548272,), (134573856,), (134575424,), (134573792,),
+                                 (134553568,), (134548304,), (134573408,), (134582160,), (134582416,), (134575392,),
+                                 (134582128,), (134583712,), (134573568,), (134582144,), (134575680,), (134519728,),
+                                 (134553488,), (134556128,), (134559504,), (134573472,), (134554096,), (134572464,),
+                                 (134575616,), (134575872,), (134575552,), (134582112,), (134561824,), (134573264,),
+                                 (134561232,), (134574816,), (134547936,), (134582096,), (134552448,), (134552560,),
+                                 (134575584,), (134553216,), (134573760,), (134582064,), (134583824,), (134519952,),
+                                 (134568352,), (134519472,), (134518848,), (134518128,), (134518112,), (134518736,),
+                                 (134518304,), (134518512,), (134518480,), (134518576,), (134519376,), (134518000,),
+                                 (134518672,), ]
+
+        }
+
+        for name, valist in ans.items():
+            retn = vw.getVaSetRows(name)
+            try:
+                self.assertEqual(set(retn), set(valist))
+            except Exception as e:
+                mesg = f'On VaSet {name}, we failed due to: {str(e)}'
+                self.fail(mesg)
+
+        self.assertEqual(len(vw.getVaSetRows('CodeFragments')), 213)
+        self.assertEqual(len(vw.getVaSetRows('EntryPoints')), 229)
 
     def test_basic_apis(self):
         '''
         Test a bunch of the simpler workspace APIs
         '''
-        vw = self.gcc_vw
-        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'WeakSymbols', 'FileSymbols', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls']), set(vw.getVaSetNames()))
+        vw = self.firefox_vw
+        self.assertIsNotNone(vw.parsedbin)
+        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals']), set(vw.getVaSetNames()))
 
-        self.assertEqual((0x405d10, 5, 5, 0x20004), vw.getPrevLocation(0x405d15))
+        self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
+        self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60, adjacent=True))
 
-        self.assertEqual(None, vw.getPrevLocation(0x405c10, adjacent=True))
-        self.assertEqual((0x405c09, 5, 5, 0x20009), vw.getPrevLocation(0x405c10, adjacent=False))
-        self.assertEqual((0x449e10, 1, v_const.LOC_OP, envi.ARCH_AMD64), vw.getLocationByName('gcc_7.main'))
+        self.assertEqual(None, vw.getPrevLocation(0x140051fe0, adjacent=True))
+        self.assertEqual((0x140051fd0, 8, 9, 'kernel32.lstrlenW'), vw.getPrevLocation(0x140051fe0, adjacent=False))
 
-        # self.assertEqual(set([0x4357d9, 0x435849, 0x4358bd]), vw.getFunctionBlocks(0x4357d9))
-        ans = set([0x468820, 0x46882f, 0x40aba1, 0x46883c, 0x40ab96, 0x46884e, 0x468838])
-        for bva, bsize, bfunc in vw.getFunctionBlocks(0x00468820):
+        self.assertEqual((0x140048ea0, 4, v_const.LOC_OP, envi.ARCH_AMD64), vw.getLocationByName('firefox.__entry'))
+
+        ans = set([5368714880, 5368714906, 5368714941, 5368714975, 5368714999, 5368715022, 5368715029, 5368715044, 5368715058, 5368715070])
+        for bva, bsize, bfunc in vw.getFunctionBlocks(0x140001680):
             self.assertIn(bva, ans)
-            self.assertEqual(bfunc, 0x00468820)
-        locs = [(4622364, 4, 0, None),
-                (4622368, 1, 5, 131072),
-                (4622369, 6, 5, 131072),
-                (4622375, 2, 5, 131072),
-                (4622377, 6, 5, 131112),
-                (4622383, 5, 5, 131076),
-                (4622388, 2, 5, 131072),
-                (4622390, 2, 5, 131112),
-                (4622392, 2, 5, 131072),
-                (4622394, 1, 5, 131072),
-                (4622395, 1, 5, 131089)]
-        for loc in vw.getLocationRange(0x46881c, 32):
+            self.assertEqual(bfunc, 0x140001680)
+        locs = [(5368713520, 5, 5, 131072),
+                (5368713525, 3, 5, 131072),
+                (5368713528, 6, 5, 131076),
+                (5368713534, 3, 5, 131072),
+                (5368713537, 4, 5, 131072),
+                (5368713541, 4, 5, 131072),
+                (5368713545, 4, 5, 131072),
+                (5368713549, 6, 5, 131076)]
+        for loc in vw.getLocationRange(0x140001130, 32):
             self.assertIn(loc, locs)
 
-        # even missing a bunch, there still should be more than 1000 here)
-        self.assertTrue(len(vw.getLocations()) > 1000)
+        # even missing a bunch, there still should be more than 76k here)
+        self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 517666, 49),
-               1: ('Num/Int', 271, 1724, 0),
-               2: ('String', 4054, 153424, 14),
-               3: ('Unicode', 0, 0, 0),
-               4: ('Pointer', 5376, 43008, 4),
-               5: ('Opcode', 79489, 323542, 30),
-               6: ('Structure', 496, 11544, 1),
-               7: ('Clsid', 0, 0, 0),
-               8: ('VFTable', 0, 0, 0),
-               9: ('Import Entry', 141, 1128, 0),
-               10: ('Pad', 0, 0, 0)}
+        ans = {0: ('Undefined', 0, 53337, 14),
+               1: ('Num/Int',   712, 3695, 0),
+               2: ('String',    265, 6485, 1),
+               3: ('Unicode',   174, 5596, 1),
+               4: ('Pointer',   361, 2888, 0),
+               5: ('Opcode',    72507, 279377, 74),
+               6: ('Structure', 1018, 12740, 3),
+               7: ('Clsid',     0, 0, 0),
+               8: ('VFTable',   0, 0, 0),
+               9: ('Import Entry', 370, 2960, 0),
+               10: ('Pad',      864, 8511, 2)}
         dist = vw.getLocationDistribution()
         for loctype, locdist in dist.items():
             self.assertEqual(locdist, ans[loctype])
 
     def test_render(self):
-        vw = self.gcc_vw
-        cb = vw.getCodeBlock(0x0046ec30)
-        rndr = vw.getRenderInfo(cb[v_const.CB_VA] - 0x20, cb[v_const.CB_SIZE] + 0x20)
+        vw = self.firefox_vw
+        cb = vw.getCodeBlock(0x1400017b0)
+        rndr = vw.getRenderInfo(cb[v_const.CB_VA], cb[v_const.CB_SIZE])
         self.assertIsNotNone(rndr)
         locs, funcs, names, comments, extras = rndr
 
-        locans = [(4647952, 2, 5, 131072),
-                  (4647954, 1, 5, 131072),
-                  (4647955, 2, 5, 131112),
-                  (4647957, 5, 5, 131072),
-                  (4647962, 3, 5, 131072),
-                  (4647965, 2, 5, 131072),
-                  (4647967, 5, 5, 131076),
-                  (4647972, 3, 5, 131072),
-                  (4647975, 1, 5, 131072),
-                  (4647976, 1, 5, 131089),
-                  (4647977, 7, 0, None),
-                  (4647984, 2, 5, 131072),
-                  (4647986, 1, 5, 131072),
-                  (4647987, 2, 5, 131072),
-                  (4647989, 1, 5, 131072),
-                  (4647990, 3, 5, 131072),
-                  (4647993, 4, 5, 131072),
-                  (4647997, 4, 5, 131072),
-                  (4648001, 5, 5, 131072),
-                  (4648006, 6, 5, 131112)]
+        locans = [(5368715184, 1, 5, 131072),
+                  (5368715185, 1, 5, 131072),
+                  (5368715186, 5, 5, 131072),
+                  (5368715191, 5, 5, 131076),
+                  (5368715196, 3, 5, 131072),
+                  (5368715199, 3, 5, 131072),
+                  (5368715202, 8, 5, 131072),
+                  (5368715210, 8, 5, 131072),
+                  (5368715218, 8, 5, 131072),
+                  (5368715226, 7, 5, 131072),
+                  (5368715233, 3, 5, 131072),
+                  (5368715236, 8, 5, 131072),
+                  (5368715244, 8, 5, 131072),
+                  (5368715252, 5, 5, 131072),
+                  (5368715257, 5, 5, 131076),
+                  (5368715262, 3, 5, 131072),
+                  (5368715265, 5, 5, 131072),
+                  (5368715270, 5, 5, 131072),
+                  (5368715275, 9, 5, 131072),
+                  (5368715284, 8, 5, 131072),
+                  (5368715292, 6, 5, 131072),
+                  (5368715298, 3, 5, 131072),
+                  (5368715301, 7, 5, 131072),
+                  (5368715308, 6, 5, 131076),
+                  (5368715314, 5, 5, 131072),
+                  (5368715319, 5, 5, 131072),
+                  (5368715324, 8, 5, 131072),
+                  (5368715332, 5, 5, 131072),
+                  (5368715337, 2, 5, 131072),
+                  (5368715339, 3, 5, 131072),
+                  (5368715342, 6, 5, 131072),
+                  (5368715348, 6, 5, 131076),
+                  (5368715354, 7, 5, 131072),
+                  (5368715361, 6, 5, 131076),
+                  (5368715367, 3, 5, 131072),
+                  (5368715370, 2, 5, 131112)]
 
-        ops = {4647952: 'test esi,esi',
-               4647954: 'push rbx',
-               4647955: 'jns 0x0046ec1a',
-               4647957: 'mov esi,2',
-               4647962: 'mov rbx,qword [rdi]',
-               4647965: 'mov edi,esi',
-               4647967: 'call 0x0046f3b0',
-               4647972: 'mov byte [rbx + 59],al',
-               4647975: 'pop rbx',
-               4647976: 'ret ',
-               4647984: 'push r14',
-               4647986: 'push rbp',
-               4647987: 'mov ebp,esi',
-               4647989: 'push rbx',
-               4647990: 'mov rsi,rdx',
-               4647993: 'sub rsp,96',
-               4647997: 'cmp r8d,11',
-               4648001: 'mov qword [rsp + 16],rcx',
-               4648006: 'jz 0x0041773f'}
+        ops = {5368715184: 'push rsi',
+               5368715185: 'push rdi',
+               5368715186: 'mov eax,0x00001848',
+               5368715191: 'call 0x140048a10',
+               5368715196: 'sub rsp,rax',
+               5368715199: 'mov rsi,rcx',
+               5368715202: 'mov qword [rsp + 6248],rdx',
+               5368715210: 'mov qword [rsp + 6256],r8',
+               5368715218: 'mov qword [rsp + 6264],r9',
+               5368715226: 'mov rax,qword [rip + 346167]',
+               5368715233: 'xor rax,rsp',
+               5368715236: 'mov qword [rsp + 6208],rax',
+               5368715244: 'lea rdi,qword [rsp + 6248]',
+               5368715252: 'mov qword [rsp + 56],rdi',
+               5368715257: 'call 0x140001a40',
+               5368715262: 'mov rcx,qword [rax]',
+               5368715265: 'mov qword [rsp + 48],rdi',
+               5368715270: 'mov qword [rsp + 32],rsi',
+               5368715275: 'mov qword [rsp + 40],0',
+               5368715284: 'lea rsi,qword [rsp + 4160]',
+               5368715292: 'mov r8d,2048',
+               5368715298: 'mov rdx,rsi',
+               5368715301: 'mov r9,0xffffffff',
+               5368715308: 'call qword [rip + 329734]',
+               5368715314: 'lea rax,qword [rsp + 64]',
+               5368715319: 'mov qword [rsp + 32],rax',
+               5368715324: 'mov dword [rsp + 40],2048',
+               5368715332: 'mov ecx,0x0000fde9',
+               5368715337: 'xor edx,edx',
+               5368715339: 'mov r8,rsi',
+               5368715342: 'mov r9d,0xffffffff',
+               5368715348: 'call qword [rip + 329182]',
+               5368715354: 'lea rcx,qword [rip + 316585]',
+               5368715361: 'call qword [rip + 329129]',
+               5368715367: 'test rax,rax',
+               5368715370: 'jz 0x1400018a3'}
 
         self.assertEqual(len(locans), len(locs))
         dcdd = 0
@@ -133,58 +328,19 @@ class VivisectTest(unittest.TestCase):
                 self.assertEqual(repr(vw.parseOpcode(tupl[0])), ops[tupl[0]])
                 dcdd += 1
         self.assertEqual(dcdd, len(ops))
-        self.assertEqual({0x46ec10: True, 0x46ec30: True}, funcs)
-        self.assertEqual({0x46ec10: 'sub_0046ec10', 0x46ec30: 'sub_0046ec30'}, names)
-        self.assertEqual({0x46ec1f: 'sub_0046f3b0(0x4156b00f,0x4156b00f,0x4156500f,0x4156300f,0x4156f00f,0x4157100f)'}, comments)
+        self.assertEqual({5368715184: True}, funcs)
+        self.assertEqual({5368715184: 'sub_1400017b0'}, names)
 
     def test_repr(self):
-        vw = self.gcc_vw
+        vw = self.firefox_vw
         ans = [
-            (5040784, "'Perform IPA Value Range Propagation.\\x00'"),
-            (4853125, "'-fira-algorithm=\\x00'"),
-            (5040824, "'-fira-algorithm=[CB|priority]\\tSet the used IRA algorithm.\\x00'"),
-            (4853142, "'-fira-hoist-pressure\\x00'"),
-            (4853163, "'-fira-loop-pressure\\x00'"),
-            (4853183, "'-fira-region=\\x00'"),
-            (5041032, "'-fira-region=[one|all|mixed]\\tSet regions for IRA.\\x00'"),
-            (4853197, "'-fira-share-save-slots\\x00'"),
-            (5041088, "'Share slots for saving different hard registers.\\x00'"),
-            (4853220, "'-fira-share-spill-slots\\x00'"),
-            (5041144, "'Share stack slots for spilled pseudo-registers.\\x00'"),
-            (4853244, "'-fira-verbose=\\x00'"),
-            (5041264, "'-fisolate-erroneous-paths-attribute\\x00'"),
-            (7345392, '4 BYTES: 0 (0x0000)'),
-            (7345376, '8 BYTES: 0 (0x00000000)'),
-            (5122144, '16 BYTES: 21528975894082904090066538856997790465 (0x1032547698badcfeefcdab8967452301)'),
-            (7346240, 'BYTE: 0 (0x0)'),
-            (7331776, 'IMPORT: *.__pthread_key_create'),
-            (7331784, 'IMPORT: *.__libc_start_main'),
-            (7331792, 'IMPORT: *.calloc'),
-            (7331800, 'IMPORT: *.__gmon_start__'),
-            (7331808, 'IMPORT: *.stderr'),
-            (7331864, 'IMPORT: *.__strcat_chk'),
-            (7331872, 'IMPORT: *.__uflow'),
-            (7331880, 'IMPORT: *.mkstemps'),
-            (7331888, 'IMPORT: *.getenv'),
-            (7331896, 'IMPORT: *.dl_iterate_phdr'),
-            (7331904, 'IMPORT: *.__snprintf_chk'),
-            (7331912, 'IMPORT: *.free'),
-            (4697393, 'mov rdx,qword [rsp + 8]'),
-            (4697398, 'jmp 0x0047ab49'),
-            (4749920, 'mov qword [rdi + 152],rsi'),
-            (4749927, 'ret '),
-            (4698912, 'sub rsp,8'),
-            (4698916, 'call 0x0047b310'),
-            (4698921, 'mov rdi,rax'),
-            (4698924, 'call 0x0047b2f0'),
-            (4698929, 'cs: nop word [rax + rax]'),
-            (4698939, 'nop dword [rax + rax]'),
-            (4698944, 'test rdi,rdi'),
-            (4698947, 'push rbx'),
-            (4698948, 'jz 0x0047b361'),
-            (4698950, 'mov rbx,rdi'),
-            (4698953, 'call 0x0047a450'),
-            (4698958, 'mov rax,0xb8b1aabcbcd4d500'),
+            (0x14004d57a, "'MessageBoxW'"),
+            (0x14000183c, 'mov dword [rsp + 40],2048'),
+            (0x14004ed0a, "u'user32.dll'"),
+            (0x140051e10, 'IMPORT: kernel32.LoadLibraryW'),
+            (0x140056880, '8 BYTES: 0 (0x00000000)'),
+            (0x14004c9b8, "'nsBrowserApp main'"),
+            (0xdeadbeef, 'None'),
         ]
         for va, disp in ans:
             self.assertEqual(disp, vw.reprVa(va))
@@ -193,7 +349,7 @@ class VivisectTest(unittest.TestCase):
         '''
         Test us some error conditions
         '''
-        vw = self.gcc_vw
+        vw = self.firefox_vw
         with self.assertRaises(v_exc.InvalidLocation):
             vw.delLocation(0x51515151)
 
@@ -204,17 +360,10 @@ class VivisectTest(unittest.TestCase):
             vw.getLocationByName(0xabad1dea)
 
     def test_basic_callers(self):
-        vw = self.gcc_vw
-        self.assertTrue(29000 < len(vw.getXrefs()))
-        self.assertEqual(2, len(vw.getImportCallers('gcc_7.plt_calloc')))
-        self.assertEqual(1, len(vw.getImportCallers('gcc_7.plt_ioctl')))
-        # uck. TODO: symbolik switchcase
-        # self.assertEqual(14, len(vw.getImportCallers('gcc_7.plt_exit')))
-
-        #self.assertEqual(set([0x408de9, 0x408dfd, 0x435198, 0x43811d]),
-        self.assertEqual(set([0x408de9, 0x408dfd, 0x435198]),
-                         set(vw.getImportCallers(vw.getName(0x402d20))))
-        self.assertEqual(set([0x4495de, 0x4678b1]), set(vw.getImportCallers(vw.getName(0x402d80))))
+        vw = self.firefox_vw
+        self.assertTrue(18000 < len(vw.getXrefs()))
+        self.assertEqual(42, len(vw.getImportCallers('kernel32.GetProcAddress')))
+        self.assertEqual(9, len(vw.getImportCallers('kernel32.LoadLibraryW')))
 
     def test_consecutive_jump_table(self):
         primaryJumpOpVa = 0x804c9b6
@@ -242,7 +391,7 @@ class VivisectTest(unittest.TestCase):
 
     def test_jumptable_adjacent_strings(self):
         jmpop = 0x804abc7
-        cases = list(map(lambda k: k[1], self.chgrp_vw.getXrefsFrom(jmpop)))
+        cases = [k[1] for k in self.chgrp_vw.getXrefsFrom(jmpop)]
         self.assertEqual(len(cases), 11)
 
         casevas = [
@@ -261,13 +410,13 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(casevas, cases)
 
         strlocs = [
-            (0x8051930, 8, 2, 'literal\x00'),
-            (0x8051938, 6, 2, 'shell\x00'),
-            (0x805193e, 13, 2, 'shell-always\x00'),
-            (0x805194b, 13, 2, 'shell-escape\x00'),
-            (0x8051958, 20, 2, 'shell-escape-always\x00'),
-            (0x805196c, 8, 2, 'c-maybe\x00'),
-            (0x8051974, 8, 2, 'clocale\x00'),
+            (0x8051930, 8, 2, b'literal\x00'),
+            (0x8051938, 6, 2, b'shell\x00'),
+            (0x805193e, 13, 2, b'shell-always\x00'),
+            (0x805194b, 13, 2, b'shell-escape\x00'),
+            (0x8051958, 20, 2, b'shell-escape-always\x00'),
+            (0x805196c, 8, 2, b'c-maybe\x00'),
+            (0x8051974, 8, 2, b'clocale\x00'),
         ]
         for lva, lsize, ltype, lstr in strlocs:
             loctup = self.chgrp_vw.getLocation(lva)
@@ -277,7 +426,7 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(lstr, self.chgrp_vw.readMemory(lva, lsize))
 
         jmpop = 0x804c32b
-        cases = list(map(lambda k: k[1], self.chgrp_vw.getXrefsFrom(jmpop)))
+        cases = [k[1] for k in self.chgrp_vw.getXrefsFrom(jmpop)]
         self.assertEqual(len(cases), 11)
         casevas = [
             0x0804c456,
@@ -324,8 +473,7 @@ class VivisectTest(unittest.TestCase):
         answers = [
             (0x804f7f0, 0x8052560, 'cdecl', 3, 'hash_insert_if_absent'),
             (0x804aad0, 0x8055b50, 'cdecl', 5, 'quotearg_buffer'),
-            # quotearg_buffer_restyled, the problem child
-            # there should be 9 and an msfastcaller here, but meta registers are a nightmare
+            # FIXME: and the problem child continue to suck.
             (0x804ab30, 0x8055bb0, 'cdecl', 7, 'quotearg_buffer_restyled'),
             (0x804b7c0, 0x8056840, 'cdecl', 3, 'quotearg_alloc'),
             (0x804b7e0, 0x8056860, 'cdecl', 4, 'quotearg_alloc_mem'),
@@ -359,7 +507,7 @@ class VivisectTest(unittest.TestCase):
             self.assertIsNotNone(capi)
             self.assertIsNotNone(vapi)
 
-            self.assertEqual(capi[2], cconv)
+            self.assertEqual(capi[2], cconv, f'{hex(cfva)}/{hex(vfva)} wanted cconv of {cconv}, got {capi[2]}')
             self.assertEqual(len(capi[4]), arglen)
             self.assertEqual(capi[2], vapi[2])
             self.assertEqual(capi[4], vapi[4])
@@ -402,8 +550,8 @@ class VivisectTest(unittest.TestCase):
         <strtbl> should be a table of *string* pointers, not code block pointers
         '''
         badva = 0x0805b6f2
-        loctup = self.vdir_vw.getLocation(badva)
-        self.assertEqual((134592163, 86, 2, None), loctup)
+        loctup = self.vdir_vw.getLocation(badva, range=False)
+        self.assertEqual((134592163, 86, 2, [(134592242, 7)]), loctup)
 
         strtbl = 0x805e75c
         loctup = self.vdir_vw.getLocation(strtbl)
@@ -426,7 +574,7 @@ class VivisectTest(unittest.TestCase):
         ans = [
             (0x804a468, 0x804a210, 62),
             (0x804ad21, 0x804a210, 5),
-            (0x804b00a, 0x804a210, 7),  # 0x8059b78
+            (0x804b00a, 0x804af40, 7),  # 0x8059b78
             (0x804beee, 0x804bee0, 6),
             (0x804d1c9, 0x804d1a0, 6),
             (0x804d28f, 0x804d1a0, 15),  # 0x8059bb8
@@ -448,11 +596,12 @@ class VivisectTest(unittest.TestCase):
 
     def test_main(self):
         vw = self.chgrp_vw
+        self.assertIsNotNone(vw.parsedbin)
         self.assertTrue(vw.isFunction(0x8049650))
         self.assertTrue(vw.getFunction(0x0804a9a0), 0x0804a920)
 
     def test_viv_bigend(self):
-        fd = io.StringIO(u'ABCDEFG')
+        fd = io.BytesIO(b'ABCDEFG')
 
         vw = vivisect.VivWorkspace()
         vw.config.viv.parsers.blob.arch = 'arm'
@@ -464,8 +613,56 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(vw.castPointer(0x22220000), 0x41424344)
         self.assertEqual(vw.parseNumber(0x22220000, 2), 0x4142)
 
-    def test_posix_impapi(self):
-        pass
+    def test_substrings(self):
+        vw = self.firefox_vw
+        loc = vw.getLocation(5369027475)
+        # real boy test
+        self.assertEqual((5369027475, 121, 2, [(5369027482, 114)]), loc)
+        rep = vw.readMemory(loc[0], loc[1]).decode('utf-8')
+        self.assertEqual(rep, 'https://crash-reports.mozilla.com/submit?id={ec8030f7-c20a-464f-9b0e-13a3a9e97384}&version=78.0.2&buildid=20200708170202\x00')
+
+        subloc = vw.getLocation(5369027585, range=True)
+        self.assertEqual((5369027482, 114, 2, []), subloc)
+
+        toploc = vw.getLocation(5369027585, range=False)
+        self.assertEqual(toploc, loc)
+
+        # make up some substrings
+        base = 5369027475
+        s = 'https://crash-reports.mozilla.com/submit?id={ec8030f7-c20a-464f-9b0e-13a3a9e97384}&version=78.0.2&buildid=20200708170202\x00'
+        vw.delLocation(base)
+        for i in range(1, len(s)):
+            vw.makeString(base + len(s) - i)
+        vw.makeString(base)
+        for i in range(1, len(s)):
+            loc = vw.getLocation(base + i, range=True)
+            self.assertEqual(loc[0], base + i)
+            self.assertEqual(loc[1], len(s) - i)
+            self.assertEqual(loc[2], 2)
+            self.assertEqual(loc[3], [])
+        loc = vw.getLocation(base)
+        self.assertTrue(len(loc[v_const.L_TINFO]), 15)
+        vw.delLocation(base)
+        # be a good citizen and clean up
+        vw.makeString(base)
+
+    def test_more_substrings(self):
+        vw = self.firefox_vw
+        va = 5369027475
+        vw.delLocation(va)
+        # assert it got deleted
+        self.assertIsNone(vw.getLocation(va))
+
+        # little string first
+        vw.makeString(va + 7)
+        loc = vw.getLocation(va + 7)
+        self.assertEqual(loc, (va + 7, 114, 2, []))
+
+        # make the outer string
+        wat = vw.makeString(va)
+        newloc = vw.getLocation(va)
+        self.assertEqual(newloc, (va, 121, 2, [(va+7, 114)]))
+        self.assertEqual(wat, newloc)
 
     def test_make_noname(self):
         vw = self.vdir_vw
@@ -492,122 +689,164 @@ class VivisectTest(unittest.TestCase):
         '''
         order matters
         '''
-        vw = self.gcc_vw
-        # TODO: symbolik switchcase
-        # g = v_t_graphutil.buildFunctionGraph(vw, 0x445db6)
-        # longpath = [0x445db6, 0x445dc3, 0x445dd7, 0x445deb, 0x445dfc, 0x445e01, 0x445e0b, 0x445ddc, 0x445e11, 0x445e20, 0x445e2c, 0x445e30, 0x445e4b, 0x445e5b, 0x445e72, 0x445e85, 0x445e85, 0x445ea1, 0x445ea3, 0x445eae, 0x445ebb, 0x445df5, 0x445ec2]
-        # path = next(v_t_graphutil.getLongPath(g))
-        # self.assertEqual(longpath, map(lambda k: k[0], path))
-
-        g = v_t_graphutil.buildFunctionGraph(vw, 0x405c10)
-        longpath=[0x405c10, 0x405c48, 0x405ca6, 0x405cb0, 0x405cc3, 0x405c4e, 0x405c57, 0x405c5c, 0x405c6b, 0x405cd4, 0x405ce4, 0x405c80, 0x405c8c, 0x405cf6, 0x405c92]
+        vw = self.firefox_vw
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x1400037c0)
+        longpath = []
+        longpath = [0x1400037c0, 0x14000382d, 0x1400038a4, 0x140003964, 0x140003994, 0x1400039cc, 0x1400039f6, 0x140003a29, 0x140003a59, 0x140003a83, 0x140003ab3, 0x140003b3b, 0x140003b3e, 0x140003ccd, 0x140003c3c, 0x140003c3f, 0x140003c4c, 0x140003c52, 0x140003c5f, 0x140003c65, 0x140003c72, 0x140003c78, 0x140003c85, 0x140003c8b, 0x140003c98, 0x140003c9e, 0x140003cab, 0x140003cb1, 0x140003cc2, 0x1400038fd, 0x14000390a, 0x140003910, 0x14000392b, 0x140003938, 0x14000393e]
         path = next(v_t_graphutil.getLongPath(g))
-        path = map(lambda k: k[0], path)
+        path = [k[0] for k in path]
         self.assertEqual(path, longpath)
 
     def test_graphutil_getcodepaths(self):
         '''
         In this function, order doesn't matter
         '''
-        vw = self.gcc_vw
-        g = v_t_graphutil.buildFunctionGraph(vw, 0x456190)
+        vw = self.firefox_vw
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x140010e60)
         paths = [
-            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x45621c, 0x456240, 0x4561fa, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x45621c, 0x40aa97, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x45621c, 0x40aa97, 0x4561ea, 0x4561fa, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x4561d0, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x4561d0, 0x4561ea, 0x4561fa, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x40aa85, 0x40aa8d, 0x4561d0, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x40aa85, 0x40aa8d, 0x4561d0, 0x4561ea, 0x4561fa, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x456216, 0x4561c2, 0x40aa85, 0x40aab9, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x45621c, 0x456240, 0x4561fa, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x45621c, 0x40aa97, 0x4561ea, 0x4561ef, 0x4561fa, 0x456242]),
-            set([0x456190, 0x4561ba, 0x456202, 0x45621c, 0x40aa97, 0x4561ea, 0x4561fa, 0x456242]),
-            set([0x456190, 0x456242]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010e9a, 0x140010ea0]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010f02, 0x140010f13]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010f02, 0x140010f18]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010ef2]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010ef2, 0x140010f02, 0x140010f13]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010ef2, 0x140010f02, 0x140010f18]),
+            set([0x140010e60, 0x140010ea0]),
         ]
 
         pathcount = 0
         genr = v_t_graphutil.getCodePaths(g, loopcnt=0, maxpath=None)
         for path in genr:
-            p = set(map(lambda k: k[0], path))
+            p = set([k[0] for k in path])
             self.assertIn(p, paths)
             pathcount += 1
 
-        self.assertEqual(12, pathcount)
+        self.assertEqual(7, pathcount)
 
-        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x0041a766))
-        thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x0041a766))
+        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x1400110a0))
+        thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x1400110a0))
+        self.assertEqual(21, thruCnt)
+        thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x1400110a0, maxpath=2))
         self.assertEqual(2, thruCnt)
-        thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x0041a766, maxpath=1))
-        self.assertEqual(1, thruCnt)
 
-        # this will not be true for all examples, but for this function it is
-        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x0041a77d))
-        toCnt = glen(v_t_graphutil.getCodePathsTo(g, 0x0041a77d))
+        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x14001ead0))
+        toCnt = glen(v_t_graphutil.getCodePathsTo(g, 0x14001ec2a))
         self.assertEqual(2, toCnt)
-        toCnt = glen(v_t_graphutil.getCodePathsTo(g, 0x0041a77d, maxpath=99))
+        toCnt = glen(v_t_graphutil.getCodePathsTo(g, 0x14001ec2a, maxpath=99))
         self.assertEqual(2, toCnt)
 
-        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x004042eb))
-        fromCnt = glen(v_t_graphutil.getCodePathsFrom(g, 0x004042eb))
-        self.assertEqual(8, fromCnt)
-        fromCnt = glen(v_t_graphutil.getCodePathsFrom(g, 0x004042eb, maxpath=3))
-        self.assertEqual(3, fromCnt)
+
+        g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x1400019ab))
+        fromCnt = glen(v_t_graphutil.getCodePathsFrom(g, 0x1400019ab))
+        self.assertEqual(2, fromCnt)
+        fromCnt = glen(v_t_graphutil.getCodePathsFrom(g, 0x1400019ab, maxpath=1))
+        self.assertEqual(1, fromCnt)
 
     def test_graphutil_getopsfrompath(self):
-        vw = self.gcc_vw
-        g = v_t_graphutil.buildFunctionGraph(vw, 0x414a2a)
+        vw = self.firefox_vw
+        g = v_t_graphutil.buildFunctionGraph(vw, 0x140048b84)
         path = next(v_t_graphutil.getLongPath(g))
 
         ops = [
-            'push r14',
-            'push r13',
-            'mov r13,rdx',
-            'push r12',
-            'push rbp',
-            'mov r12,rsi',
             'push rbx',
-            'mov rbx,rdi',
-            'sar r12,3',
-            'mov rbp,rsi',
-            'mov edx,r12d',
-            'mov r14d,ecx',
-            'sub rsp,16',
-            'mov rdi,qword [rdi + 48]',
-            'mov qword [rsp + 8],rsi',
-            'lea rsi,qword [rsp + 8]',
-            'call 0x00414962',
-            'cmp qword [rax],0',
-            'jz 0x00414abc',
-            'mov rdx,qword [rax + 8]',
-            'mov rax,qword [rdx]',
-            'cmp r13,rax',
-            'jbe 0x00414a85',
-            'mov edx,0x004d76b0',
-            'mov esi,151',
-            'mov edi,0x004d7534',
-            'call 0x0041806c',
-            'sub rax,r13',
-            'test r14l,r14l',
-            'mov qword [rdx],rax',
-            'jz 0x00414abc',
-            'mov rbx,qword [rbx + 48]',
-            'lea rsi,qword [rsp + 8]',
+            'push rsi',
+            'push rdi',
+            'sub rsp,64',
+            'mov rbx,rcx',
+            'call qword [rip + 36451]',
+            'mov rsi,qword [rbx + 248]',
+            'xor edi,edi',
+            'xor r8d,r8d',
+            'lea rdx,qword [rsp + 96]',
+            'mov rcx,rsi',
+            'call qword [rip + 36505]',
+            'test rax,rax',
+            'jz 0x140048bed',
+            'and qword [rsp + 56],0',
+            'lea rcx,qword [rsp + 104]',
+            'mov rdx,qword [rsp + 96]',
+            'mov r9,rax',
+            'mov qword [rsp + 48],rcx',
+            'mov r8,rsi',
+            'lea rcx,qword [rsp + 112]',
+            'mov qword [rsp + 40],rcx',
             'xor ecx,ecx',
-            'mov edx,r12d',
-            'mov qword [rsp + 8],rbp',
-            'mov rdi,rbx',
-            'call 0x004154ec',
-            'cmp qword [rax],0',
-            'jz 0x00414abc',
-            'mov qword [rax],1',
-            'inc qword [rbx + 24]',
-            'add rsp,16',
+            'mov qword [rsp + 32],rbx',
+            'call qword [rip + 36514]',
+            'inc edi', 'cmp edi,2',
+            'jl 0x140048b9e',
+            'add rsp,64',
+            'pop rdi',
+            'pop rsi',
             'pop rbx',
-            'pop rbp',
-            'pop r12',
-            'pop r13',
-            'pop r14',
             'ret '
         ]
-        self.assertEqual(ops, map(str, v_t_graphutil.getOpsFromPath(vw, g, path)))
+        self.assertEqual(ops, [str(op) for op in v_t_graphutil.getOpsFromPath(vw, g, path)])
+
+    def test_graphutil_coverage(self):
+        # FIXME: So fun anecdote for later, originally I wanted to use fva 0x804af40 (parse_ls_colors)
+        # out of vdir for this test, but unfortunately, we detect the codeblock of that fva
+        # as 0x804af09, which crosses function boundaries into the function decode_switches.
+        # Reason being is that at VA 0x804af31, there's a call to error() with value 2 as the first
+        # parameter, which according to the man page for error means it should quit out. We don't grab
+        # that at codeflow time (because such things would require an emulator with knowledge of calling
+        # conventions)
+        # But that raises the question if makeFunction should split the codeblock
+        # or if we ignore that and just let the CodeBlockGraph stuff do it all for us,
+        # or if we should allow codeflow to carry an emulator with it.
+        vw = self.vdir_vw
+        fvas = [
+            0x804c030,
+            0x804ce40,
+            0x804cec0,
+            0x804d1a0,
+        ]
+        for fva in fvas:
+            g = v_t_graphutil.buildFunctionGraph(vw, fva)  # print_dir
+            hits = set()
+            for path in v_t_graphutil.getCoveragePaths(g):
+                for nid, edge in path:
+                    hits.add(nid)
+
+            self.assertEqual(len(hits), len(vw.getFunctionBlocks(fva)))
+            for nid in hits:
+                cb = vw.getCodeBlock(nid)
+                self.assertEqual(nid, cb[0])
+                self.assertEqual(fva, cb[2])
+
+    def test_firefox_segments(self):
+        vw = self.firefox_vw
+        ans = {
+            'PE_Header': (0x140000000, 0x1000, e_memory.MM_READ),
+            '.text': (0x140001000, 0x48f80, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.rdata': (0x14004a000, 0xbf7c, e_memory.MM_READ),
+            '.data': (0x140056000, 0x2998, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.pdata': (0x140059000, 0x2f28, e_memory.MM_READ),
+            '.00cfg': (0x14005c000, 0x10, e_memory.MM_READ),
+            '.freestd': (0x14005d000, 0x10, e_memory.MM_READ),
+            '.tls': (0x14005e000, 0x11, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.reloc': (0x140092000, 0x338, e_memory.MM_READ),
+        }
+        for sva, ssize, sname, sfname in vw.getSegments():
+            self.assertEqual(ans[sname][0], sva)
+            self.assertEqual(ans[sname][1], ssize)
+            self.assertEqual(sfname, 'firefox')
+
+            mva, msize, flags, mfname = vw.getMemoryMap(sva)
+            self.assertEqual(mva, sva)
+            self.assertEqual(msize, ssize)
+            self.assertEqual(flags, ans[sname][2])
+            self.assertEqual(mfname, sfname)
+
+    def test_opcache(self):
+        vw = self.firefox_vw
+        self.assertGreater(len(vw._op_cache), 0)
+        vw.clearOpcache()
+        self.assertEqual(len(vw._op_cache), 0)
+
+        op = vw.parseOpcode(0x140010ef2, skipcache=True)
+        self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
+        self.assertEqual(len(vw._op_cache), 0)
+
+        op = vw.parseOpcode(0x140010ef2)
+        self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
+        self.assertEqual(len(vw._op_cache), 1)

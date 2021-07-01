@@ -23,7 +23,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
 
     def _getOpcodePrefix(self, trace, va, op):
         regs = trace.getRegisters()
-        regs = dict([(rval, rname) for (rname, rval) in regs.items() if rval != 0])
+        regs = {rval: rname for (rname, rval) in regs.items() if rval != 0}
 
         bp = trace.getBreakpointByAddr(va)
         if bp is not None:
@@ -93,7 +93,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
         mcanv.addText(prefix)
 
         mcanv.addVaText(vastr, va=va)
-        mcanv.addText(": %s " % binascii.hexlify(obytes).ljust(17))
+        mcanv.addText(": %s " % binascii.hexlify(obytes).decode('utf-8').ljust(17))
         op.render(mcanv)
 
         try:
@@ -134,7 +134,7 @@ class SymbolRenderer(e_canvas.MemoryRenderer):
         if isptr:
             sym = trace.getSymByAddr(p, exact=False)
             if sym is not None:
-                mcanv.addText(' %s + %d' % (repr(sym), p-long(sym)))
+                mcanv.addText(' %s + %d' % (repr(sym), p-int(sym)))
 
         mcanv.addText('\n')
 

@@ -8,15 +8,12 @@ import logging
 import binascii
 import threading
 import traceback
-from Queue import Queue
-from collections import defaultdict
-
-from ConfigParser import *
+from queue import Queue
+from collections import defaultdict, UserDict
 
 from cmd import *
 from struct import *
 from getopt import getopt
-from UserDict import *
 
 import vtrace
 import vtrace.util as v_util
@@ -179,6 +176,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         v_notif.Notifier.__init__(self)
         v_util.TraceManager.__init__(self)
 
+        self._extensions = {}
+        self._ext_ctxmenu_hooks = {}
+
         if trace is None:
             trace = vtrace.getTrace()
 
@@ -231,6 +231,44 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         self.loadDefaultRenderers(trace)
         self.loadExtensions(trace)
+
+    def addCtxMenuHook(self, name, handler):
+        '''
+        Extensions can add Context Menu hooks to modify the menu as they wish.
+        This would most often happen from the Extension's vivExtension() init function.
+        see vivisect.qt.ctxmenu for more details
+
+        handler should have the following prototype (inc. example code):
+
+
+        from vqt.common import ACT
+        def myExtCtxMenuHandler(vw, menu):
+            toymenu = menu.addMenu('myToys')
+            toymenu.addAction('Voodoo Wizbang ZeroDay Finder Thingy', ACT(doCoolShit, vw, va))
+
+        Currently, this should live in a loaded module, not in your Viv Extension's main py file.
+        '''
+        self._ext_ctxmenu_hooks[name] = handler
+
+    def delCtxMenuHook(self, name):
+        '''
+        Remove a context-menu hook that has been installed by an extension
+        '''
+        self._ext_ctxmenu_hooks.pop(name, None)
+
+    def addExtension(self, name, extmod):
+        '''
+        Add extension module to a list of extensions.
+        This keeps a list of installed extension modules, with the added value
+        of keeping the loaded module in memory.
+        '''
+        self._extensions[name] = extmod
+
+    def delExtension(self, name):
+        '''
+        Remove's extension module from the list of extensions.
+        '''
+        self._extensions.pop(name, None)
 
     def addRunCacheCtor(self, name, ctor):
         '''
@@ -373,7 +411,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         # Do we have a symbol?
         sym = self.trace.getSymByAddr(address, exact=False)
         if sym is not None:
-            return "%s + %d" % (repr(sym),address-long(sym))
+            return "%s + %d" % (repr(sym),address-int(sym))
 
         # Check if it's a thread's stack
         for tid,tinfo in self.trace.getThreads().items():
@@ -428,6 +466,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 self.do_script(self.autoscript)
 
         elif event == vtrace.NOTIFY_CONTINUE:
+            pass
+
+        elif event == vtrace.NOTIFY_STEP:
             pass
 
         elif event == vtrace.NOTIFY_DETACH:
@@ -602,30 +643,24 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             addr = t.parseExpression(expr)
             t.setVariable(name, addr)
 
-        vars = t.getVariables()
+        varz = t.getVariables()
         self.vprint("Current Variables:")
-        if not vars:
+        if not varz:
             self.vprint("None.")
         else:
-            vnames = vars.keys()
+            vnames = varz.keys()
             vnames.sort()
             for n in vnames:
-                val = vars.get(n)
-                if type(val) in (int, long):
-                    self.vprint("%20s = 0x%.8x" % (n,val))
+                val = varz.get(n)
+                if isinstance(val, int):
+                    self.vprint("%20s = 0x%.8x" % (n, val))
                 else:
                     rstr = repr(val)
                     if len(rstr) > 30:
                         rstr = rstr[:30] + '...'
-                    self.vprint("%20s = %s" % (n,rstr))
+                    self.vprint("%20s = %s" % (n, rstr))
 
     def do_alloc(self, args):
-        #"""
-        #Allocate a chunk of memory in the target process.  You may
-        #optionally specify permissions and a suggested base address.
-
-        #Usage: alloc [-p rwx] [-s <base>] <size>
-        #"""
         """
         Allocate a chunk of memory in the target process.  It will be
         allocated with rwx permissions.
@@ -959,7 +994,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         regs = self.trace.getRegisters()
-        rnames = regs.keys()
+        rnames = list(regs.keys())
         rnames.sort()
         final = []
         for r in rnames:
@@ -1783,7 +1818,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     for sym in self.trace.searchSymbols(regex, libname=libname):
 
                         symstr = str(sym)
-                        symval = long(sym)
+                        symval = int(sym)
                         if self.trace.getBreakpointByAddr(symval) is not None:
                             self.vprint('Duplicate (0x%.8x) %s' % (symval, symstr))
                             continue
@@ -2110,7 +2145,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             elif opt == '-L':
                 libname, regex = optarg.split(':', 1)
                 for sym in trace.searchSymbols(regex, libname=libname):
-                    v_stalker.addStalkerEntry(trace, long(sym))
+                    v_stalker.addStalkerEntry(trace, int(sym))
                     self.vprint('Stalking %s' % str(sym))
 
             elif opt == '-R':
@@ -2175,7 +2210,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 pass
 
         rcmds = []
-        for cname, clist in cmds.iteritems():
+        for cname, clist in cmds.items():
             if len(clist) > 2:
                 raise Exception('how do we handle inherited overridden help')
 
@@ -2252,3 +2287,10 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if not text:
             return libnames
         return [ i for i in libnames if i.startswith( text ) ]
+
+##############################################################################
+# The following are touched during the release process by bump2version.
+# You should have no reason to modify these yourself
+version = (1, 0, 3)
+verstring = '.'.join([str(x) for x in version])
+commit = ''

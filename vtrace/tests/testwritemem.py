@@ -13,7 +13,7 @@ class VtraceWritememTest(vt_tests.VtraceProcessTest):
         self.runProcess()
 
         addrstr = self.proc.stdout.readline()
-        addr = long(addrstr, 16)
+        addr = int(addrstr, 16)
 
         testbuf = binascii.hexlify(os.urandom(10))
 
@@ -25,4 +25,4 @@ class VtraceWritememTest(vt_tests.VtraceProcessTest):
 
         # He should now print what we wrote...
         gotline = self.proc.stdout.readline().strip()
-        self.assertEqual(testbuf, gotline)
+        self.assertEqual(testbuf.decode('utf-8'), gotline)

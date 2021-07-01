@@ -62,7 +62,7 @@ class VStructBuilder:
         raise AttributeError(name)
 
     def getVStructCtorNames(self):
-        return self._vs_ctors.keys()
+        return list(self._vs_ctors.keys())
 
     def addVStructCtor(self, sname, ctor):
         self._vs_ctors[sname] = ctor
@@ -77,17 +77,17 @@ class VStructBuilder:
         self._vs_namespaces[name] = builder
 
     def getVStructNamespaces(self):
-        return self._vs_namespaces.items()
+        return list(self._vs_namespaces.items())
 
     def getVStructNamespaceNames(self):
-        return self._vs_namespaces.keys()
+        return list(self._vs_namespaces.keys())
 
     def hasVStructNamespace(self, namespace):
         return self._vs_namespaces.get(namespace, None) is not None
 
     def getVStructNames(self, namespace=None):
         if namespace is None:
-            return self._vs_defs.keys() + self._vs_ctors.keys()
+            return list(self._vs_defs.keys()) + list(self._vs_ctors.keys())
 
         nsmod = self._vs_namespaces.get(namespace)
         if isinstance(nsmod, VStructBuilder):
