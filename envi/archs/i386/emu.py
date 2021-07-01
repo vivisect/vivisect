@@ -115,10 +115,68 @@ thiscall_caller = ThisCall_Caller()
 msfastcall_caller = MsFastCall_Caller()
 bfastcall_caller = BFastCall_Caller()
 
+
+def doRepPrefix(emu, meth, op):
+    #FIXME check for opcode family valid to rep
+    ecx = emu.getRegister(REG_ECX)
+    if op.opcode == INS_NOP:
+        if exc == 0:
+            return
+        return meth(op)
+
+    ret = None
+    while ecx != 0:
+        ret = meth(op)
+        ecx -= 1
+        emu.setRegister(REG_ECX, ecx)
+    return ret
+
+def doRepnzPrefix(emu, meth, op):
+    #FIXME check for opcode family valid to rep
+    ecx = emu.getRegister(REG_ECX)
+    if op.opcode == INS_NOP:
+        if emu.getFlag(EFLAGS_ZF) or not ecx:
+            return
+        return meth(op)
+
+    ret = None
+    while not emu.getFlag(EFLAGS_ZF) and ecx:
+        ret = meth(op)
+        ecx -= 1
+        emu.setRegister(REG_ECX, ecx)
+    return ret
+
+def doRepzPrefix(emu, meth, op):
+    #FIXME check for opcode family valid to rep
+    ecx = emu.getRegister(REG_ECX)
+    if op.opcode == INS_NOP:
+        if not emu.getFlag(EFLAGS_ZF) or not ecx:
+            return
+        return meth(op)
+
+    ret = None
+    while emu.getFlag(EFLAGS_ZF) and ecx:
+        ret = meth(op)
+        ecx -= 1
+        emu.setRegister(REG_ECX, ecx)
+    return ret
+
+
+def doRepSIMDPrefix(emu, meth, op):
+    # TODO
+    raise Exception("doRepSIMDPrefix() not implemented.  Fix and retry.")
+
+
 class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     flagidx = REG_EFLAGS
     accumreg = { 1:REG_AL, 2:REG_AX, 4:REG_EAX }
+    __rep_prefix_handlers__ = {
+        PREFIX_REP: doRepPrefix,
+        PREFIX_REPZ: doRepzPrefix,
+        PREFIX_REPNZ: doRepnzPrefix,
+        PREFIX_REP_SIMD: doRepSIMDPrefix,
+    }
 
     def __init__(self, archmod=None):
         # Set ourself up as an arch module *and* register context
@@ -238,24 +296,17 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if meth is None:
             raise e_exc.UnsupportedInstruction(self, op)
 
-        newpc = meth(op)
+        if op.prefixes & PREFIX_REP_MASK:
+            # REP instructions (REP/REPNZ/REPZ/REPSIMD) get their own handlers
+            handler = self.__rep_prefix_handlers__.get(op.prefixes)
+            newpc = handler(self, meth, op)
+
+        else:
+            newpc = meth(op)
+
         if newpc is not None:
             self.setProgramCounter(newpc)
             return
-
-        if op.prefixes & PREFIX_REP and op.opcode != INS_NOP:
-            # compilers love their "rep: nop" instructions, and machines ignore the rep
-
-            ecx = self.getRegister(REG_ECX) - 1
-            self.setRegister(REG_ECX, ecx)
-
-            if self.getEmuOpt('i386:reponce'):
-                ecx = 0
-                self.setRegister(REG_ECX,0)
-
-            if ecx != 0:
-                self.setProgramCounter(op.va)
-                return
 
         pc = self.getProgramCounter()
         newpc = pc+op.size
@@ -427,23 +478,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
         return res
 
-    def doRepPrefix(self, meth, op):
-        #FIXME check for opcode family valid to rep
-        if op.opcode == INS_NOP:
-            return
-
-        ret = None
-        ecx = self.getRegister(REG_ECX)
-        while ecx != 0:
-            ret = meth(op)
-            ecx -= 1
-        self.setRegister(REG_ECX, 0)
-        return ret
-
-    def doRepzPrefix(self, meth, op):
-        # TODO
-        pass
-
     # Beginning of Instruction methods
 
     def i_adc(self, op, isDX=False):
@@ -558,8 +592,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 1)
         if src == 0:
             self.setFlag(EFLAGS_ZF, 1)
+            self.setFlag(EFLAGS_AF, 0)
 
         else:
+            self.setFlag(EFLAGS_ZF, 0)
+            self.setFlag(EFLAGS_AF, e_bits.is_aux_carry(src, src))
             indx = 0
             while src != 0:
                 if src & 0x1:
@@ -614,10 +651,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_bsr(self, op):
         val = self.getOperValue(op, 1)
-
+        self.setFlag(EFLAGS_AF, False)  # undocumented, but 32-bit VBox on i9 says so
+        self.setFlag(EFLAGS_CF, False)  # undocumented, but 32-bit VBox on i9 says so
         if val == 0:
             # If the src is 0, set ZF and get out
             self.setFlag(EFLAGS_ZF, True)
+
+            # PF and OF are undocumented, but proven on 32-bit VBox/i9
+            self.setFlag(EFLAGS_PF, True)
+            self.setFlag(EFLAGS_OF, False)
             return
 
         self.setFlag(EFLAGS_ZF, False)
@@ -626,6 +668,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         rmax = (tsize*8) - 1
         while rmax >= 0:
             if val & (1<<rmax):
+                # undocumented PF change, but 32-bit VMox on i9 says so
+                self.setFlag(EFLAGS_PF, e_bits.is_parity(rmax))
                 self.setOperValue(op, 0, rmax)
                 return
             rmax -= 1
@@ -1349,8 +1393,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_CF, val != 0)
         self.setFlag(EFLAGS_ZF, not res)
         self.setFlag(EFLAGS_SF, e_bits.is_signed(res, tsize))
-        #FIXME how does neg cause/not cause a carry?
-        self.setFlag(EFLAGS_AF, 0) # FIXME EFLAGS_AF
+        self.setFlag(EFLAGS_AF, e_bits.is_aux_carry(val, res))
+        self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
 
     def i_nop(self, op):
         pass

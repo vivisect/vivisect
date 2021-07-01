@@ -25,9 +25,21 @@ class EnviMemoryTest(unittest.TestCase):
         mem = e_mem.MemoryObject()
         mem.addMemoryMap(0x41410000, e_mem.MM_RWX, 'test', b'\0'*1024)
         newmapva1 = mem.findFreeMemoryBlock(1024000)
+        self.assertGreater(newmapva1, 0)
+
         newmapva2 = mem.allocateMemory(1024000, name='test2')
+        self.assertEqual(newmapva2, newmapva1)
+        self.assertEqual(newmapva2, mem.getMemoryMap(newmapva2)[0])
+        self.assertEqual(b'\x00\x00\x00\x00', mem.readMemory(newmapva2, 4))
+
         newmapva3 = mem.allocateMemory(1024000, name='test3', fill=b'@')
+        self.assertNotEqual(newmapva3, newmapva2)
+        self.assertEqual(b'@@@@', mem.readMemory(newmapva3, 4))
+
         newmapva4 = mem.allocateMemory(1024000, suggestaddr=0x41410000, name='test4', fill=b'@')
-        newmapva5 = mem.allocateMemory(1024000, perms=MM_READ, suggestaddr=0x41410000, name='test4', fill=b'@')
+        self.assertNotEqual(0x41410000, newmapva4)
+
+        newmapva5 = mem.allocateMemory(1024000, perms=e_mem.MM_READ, suggestaddr=0x41410000, name='test4', fill=b'@')
+        self.assertRaises(e_exc.SegmentationViolation, mem.writeMemory(newmapva5, "foobarbaz"))
 
 

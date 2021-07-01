@@ -88,6 +88,19 @@ class SegmentationViolation(EnviException):
         self.va = va
 
 
+class NoValidFreeMemoryFound(EnviException):
+    '''
+    Raised by the MemoryObject allocator subsystem when asked 
+    to find/allocate a free memory block bigger than any slot
+    of free memory existing in the address-space.
+    '''
+    def __init__(self, size, msg=None):
+        if msg is None:
+            msg = "Not enough contiguous free memory for the requested block: 0x%x" % size
+        EnviException.__init__(self, msg)
+        self.size = size
+
+
 class ArchNotImplemented(EnviException):
     """
     Raised by various Envi components when the architecture

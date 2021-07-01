@@ -430,7 +430,7 @@ class MemoryObject(IMemory):
         tmpva = suggestaddr
         while baseva is None:
             # if we roll into illegal memory, start over at page 2.  skip 0.
-            if tmpva > (1 << (8 * self.psize)):
+            if tmpva > (1 << (8 * self.imem_psize)):
                 if looped:
                     raise NoValidFreeMemoryFound(size)
 

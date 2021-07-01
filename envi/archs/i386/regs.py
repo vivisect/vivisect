@@ -87,6 +87,14 @@ statmetas = [
         ('IF', REG_EFLAGS, 9, 1, 'Interrupt Enable Flag'),
         ('DF', REG_EFLAGS, 10, 1, 'Direction Flag'),
         ('OF', REG_EFLAGS, 11, 1, 'Overflow Flag'),
+        ('OIPL', REG_EFLAGS, 12, 2, 'Overflow Flag'),
+        ('NT', REG_EFLAGS, 14, 1, 'Overflow Flag'),
+        ('RF', REG_EFLAGS, 16, 1, 'Overflow Flag'),
+        ('VM', REG_EFLAGS, 17, 1, 'Overflow Flag'),
+        ('AC', REG_EFLAGS, 18, 1, 'Overflow Flag'),
+        ('VIF', REG_EFLAGS, 19, 1, 'Overflow Flag'),
+        ('VIP', REG_EFLAGS, 20, 1, 'Overflow Flag'),
+        ('ID', REG_EFLAGS, 21, 1, 'Overflow Flag'),
         ]
 
 def getEflagsFields(regval):
