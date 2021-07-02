@@ -131,18 +131,6 @@ class ELFTests(unittest.TestCase):
             # assert that there should be only one size between functions
             self.assertLessEqual(len(heur), 1, "More than one heuristic for %r: %r" % (vw.getMeta('StorageName'), heur))
 
-    def compareLocs(self, iswindows, test, base, othr):
-        if iswindows:
-            if len(base) == 2:
-                return base[1] == othr[1]
-            elif len(base) == 3:
-                return base[1:] == othr[1:]
-            elif test == 'exports':
-                return base[:1] == othr[:1] and base[3] == othr[3]
-            else:
-                return base[:3] == othr[:3]
-        return base == othr
-
     def check_vw_data(self, testname, baseline, observed, indx):
         observed.sort()
         baseline.sort()

@@ -52,7 +52,7 @@ class SymbolCache:
             raise e_exc.InvalidSymbolCache(vhash)
 
         # FIXME check input path
-        with open(cachefile, 'w') as fd:
+        with open(cachefile, 'w', encoding='utf-8') as fd:
             json.dump(symcache, fd)
 
     def getCacheSyms(self, vhash):
@@ -75,7 +75,7 @@ class SymbolCache:
             return None
 
         try:
-            with open(cachefile, 'r') as fd:
+            with open(cachefile, 'r', encoding='utf-8') as fd:
                 return json.load(fd)
         except Exception as e:
             logger.warning('Failed to load cachefile: %s', e)

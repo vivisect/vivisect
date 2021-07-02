@@ -146,7 +146,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             try:
                 extra.render(mcanv)
             except Exception as e:
-                mcanv.addText("Foo> Opcode Render Failed: %s (%s)\n" % (repr(extra), str(e)))
+                mcanv.addText("Opcode Render Failed: %s (%s)\n" % (repr(extra), str(e)))
 
             if cmnt is not None:
                 mcanv.addText("    ;%s" % cmnt, tag=cmnttag)

@@ -37,7 +37,7 @@ class StorageTests(unittest.TestCase):
     def setUp(self):
         '''
         So on windows, you can't double open a temporary file (results in a fun "Permission Denied"
-        exception. So instead, we setup a temporary file here and delete it in tearDown so that
+        exception). So instead, we setup a temporary file here and delete it in tearDown so that
         we don't maintain an open file descriptor to the temporary file
         '''
         self.tmpf = tempfile.NamedTemporaryFile(delete=False)

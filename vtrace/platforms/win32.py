@@ -1323,11 +1323,10 @@ class WindowsMixin:
 
             objInfo = create_string_buffer(returnLength.value)
             retval = ntdll.NtQueryObject(handle,
-                                            itype,
-                                            objInfo,
-                                            sizeof(objInfo),
-                                            addressof(returnLength)
-                                            )
+                                         itype,
+                                         objInfo,
+                                         sizeof(objInfo),
+                                         addressof(returnLength))
 
         if retval != 0:
             return 'Error 0x%.8x' % (e_bits.unsigned(retval, self.psize))
@@ -1394,7 +1393,7 @@ class WindowsMixin:
         pinfo = PROCESS_INFORMATION()
         if not kernel32.CreateProcessA(0, cmdline.encode('utf-8'), 0, 0, 0,
                 DEBUG_ONLY_THIS_PROCESS, 0, 0, addressof(sinfo), addressof(pinfo)):
-            raise Exception("CreateProcess failed!")
+            raiseWin32Error("CreateProcess (platformExec)")
 
         # When launching an app, we're guaranteed to get a breakpoint
         # Unless we want to fail checkBreakpoints, we'll need to set ShouldBreak
@@ -1429,13 +1428,15 @@ class WindowsMixin:
             self.platformSendBreak()
             self.platformContinue()
             self.platformWait()
-        if not kernel32.DebugActiveProcessStop(self.pid):
-            raiseWin32Error("DebugActiveProcessStop")
+
         try:
-            kernel32.CloseHandle(self.phandle)
-        except:
-            pass
-        self.phandle = None
+            if not kernel32.DebugActiveProcessStop(self.pid):
+                raiseWin32Error("DebugActiveProcessStop")
+        finally:
+            self.phandle = None
+            phandle = self.phandle
+            kernel32.CloseHandle(phandle)
+
 
     def platformProtectMemory(self, va, size, perms):
         pret = c_uint(0)
@@ -1596,9 +1597,7 @@ class WindowsMixin:
             self.win32threads[ThreadId] = teb
             self.thandles[ThreadId] = event.u.CreateProcessInfo.Thread
 
-            # TODO: Revert this before merging. Until we can generate vstructs automatically
-            # from DLLs. (and also we're gonna need a 32 bit windows 10 version for completeness)
-            tobj = self.getStruct("win32.TEB", teb)
+            tobj = self.getStruct("ntdll.TEB", teb)
             if tobj is not None:
                 peb = tobj.ProcessEnvironmentBlock
                 self.setMeta("PEB", peb)
@@ -1735,21 +1734,32 @@ class WindowsMixin:
         return name
 
     def platformGetMaps(self):
+        stack = []
         ret = []
         base = 0
 
-        mbi = MEMORY_BASIC_INFORMATION()
+        for thrid, tebaddr in self.win32threads.items():
+            teb = self.getStruct("ntdll.TEB", tebaddr)
+            stack.append((teb.NtTib.StackBase, teb.NtTib.StackLimit))
 
+        pebva = self.getMeta("PEB")
+
+        mbi = MEMORY_BASIC_INFORMATION()
         while kernel32.VirtualQueryEx(self.phandle, base, addressof(mbi), sizeof(mbi)) > 0:
             if mbi.State == MEM_COMMIT:
                 prot = mbi.Protect & 0xff
                 perm = perm_lookup.get(prot, 0)
                 base = mbi.BaseAddress
                 mname = self.getMappedFileName(base)
-                # If it fails, fall back on getmodulefilename
-                if mname == "":
-                    # TODO: This is wrong. It's not baseaddr but a handle
-                    mname = GetModuleFileNameEx(self.phandle, base)
+                if not mname:
+                    if pebva == base:
+                        mname = '[PEB]'
+                    else:
+                        # see if we're in stack town
+                        for stackbase, limit in stack:
+                            print(f"Comparing {hex(base)} to {hex(stackbase)}-{hex(limit)}")
+                            if stackbase >= base >= limit:
+                                mname = '[Stack]'
                 ret.append( (base, mbi.RegionSize, perm, mname) )
 
             base += mbi.RegionSize
