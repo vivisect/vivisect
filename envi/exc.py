@@ -197,3 +197,7 @@ class InvalidOperand(Exception):
     def __repr__(self):
         return "%s at %s" % (self.__class__.__name__, str(self.valu))
 
+class GeneralProtection(EnviException):
+    def __init__(self, op):
+        EnviException.__init__(self, 'General Protection exception (0x%.8x: %s)' % (op.va, str(op)))
+        self.op = op

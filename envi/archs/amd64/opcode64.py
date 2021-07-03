@@ -922,7 +922,7 @@ tbl32_0F01_rest = [
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 ( 0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_PENTIUM2, "rdpkru", 0, 0, 0),
-( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+( 0, INS_SYSTEM, ARG_NONE, ARG_NONE, ARG_NONE, cpu_OSPKE, "wrpkru", 0, 0, 0),
 ( 0, INS_SYSTEM, ADDRMETH_E | OPTYPE_w | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "lmsw", 0, 0, 0),  
 ( 0, INS_SYSTEM, ADDRMETH_E | OPTYPE_w | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "lmsw", 0, 0, 0),  
 ( 0, INS_SYSTEM, ADDRMETH_E | OPTYPE_w | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "lmsw", 0, 0, 0),  
