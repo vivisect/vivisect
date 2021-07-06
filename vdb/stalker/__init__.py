@@ -25,7 +25,6 @@ class StalkerCodeFlow(e_codeflow.CodeFlowContext):
     def _cb_opcode(self, va, op, branches):
 
         ret = []
-
         for br, bflags in branches:
 
             if bflags & envi.BR_DEREF and br is not None:

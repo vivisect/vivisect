@@ -1,6 +1,7 @@
 import struct
 
 import envi
+import envi.common as e_common
 
 import envi.archs.h8.operands as h8_operands
 
@@ -31,7 +32,7 @@ class H8Disasm:
         subtable, mnem, decoder, tsize, iflags = opdata
 
         if subtable:
-            raise Exception("NEED subtable at 0x%x:  %s" % (va, binascii.hexlify(bytez[offset:offset+16])))
+            raise Exception("NEED subtable at 0x%x:  %s" % (va, e_common.hexify(bytez[offset:offset+16])))
 
         elif decoder is not None:
             opcode, nmnem, olist, flags, isize = decoder(va, opval, bytez, offset, tsize)

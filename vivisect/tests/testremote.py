@@ -35,10 +35,11 @@ class VivisectRemoteTests(unittest.TestCase):
         good = vivisect.VivWorkspace()
         good.loadFromFile(testfile)
 
-        host = '0.0.0.0'
+        host = 'localhost'
         port = 0x4097
         with tempfile.TemporaryDirectory() as tmpd:
-            with tempfile.NamedTemporaryFile(dir=tmpd) as tmpf:
+            tmpf = tempfile.NamedTemporaryFile(dir=tmpd, delete=False)
+            try:
                 proc = mp.Process(target=runServer, args=(tmpf.name, port,))
                 proc.daemon = True
                 proc.start()
@@ -46,7 +47,7 @@ class VivisectRemoteTests(unittest.TestCase):
                 # give the other process time to spin up
                 time.sleep(0.5)
 
-                # So...yea. The server could not be up yet, but I'm not waiting a mmillion years to
+                # So...yea. The server could not be up yet, but I'm not waiting a million years to
                 # wait for it.
                 retry = 0
                 conn = False
@@ -93,3 +94,6 @@ class VivisectRemoteTests(unittest.TestCase):
                     proc.close()
                 except:
                     pass
+            finally:
+                tmpf.close()
+                os.unlink(tmpf.name)

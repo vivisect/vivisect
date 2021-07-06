@@ -38,7 +38,6 @@ class VtraceBasicTest(vt_tests.VtraceProcessTest):
         self.runUntilExit()
 
         bp = self.trace.getBreakpoint(bpid)
-
         self.assertTrue(bp.address is not None)
         self.assertTrue(self.trace.getMeta('testbphit'))
 
