@@ -52,6 +52,20 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
 
         viv_imp_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
+        if op.opcode == e_i386.INS_LEA:    # x86 only
+            i = 1
+            o = op.opers[i]
+            discrete = o.isDiscrete()
+            operva = o.getOperAddr(op, emu)
+            # keep track of the max here, but save it for later too...
+            stackoff = emu.getStackOffset(operva)
+            if stackoff and stackoff >= 0:
+                self.stackmax = max(self.stackmax, stackoff)
+                self.stackargs[stackoff] = True
+
+            self.operrefs.append((starteip, i, operva, o.tsize, stackoff, discrete))
+
+
         # Do return related stuff before we execute the opcode
         if op.isReturn():
             self.endstack = emu.getStackCounter()
