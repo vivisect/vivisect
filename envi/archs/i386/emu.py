@@ -119,13 +119,9 @@ bfastcall_caller = BFastCall_Caller()
 def doRepPrefix(emu, meth, op):
     #FIXME check for opcode family valid to rep
     ecx = emu.getRegister(REG_ECX)
-    if op.opcode == INS_NOP:
-        if exc == 0:
-            return
-        return meth(op)
 
     ret = None
-    while ecx != 0:
+    while ecx:
         ret = meth(op)
         ecx -= 1
         emu.setRegister(REG_ECX, ecx)
@@ -134,31 +130,27 @@ def doRepPrefix(emu, meth, op):
 def doRepnzPrefix(emu, meth, op):
     #FIXME check for opcode family valid to rep
     ecx = emu.getRegister(REG_ECX)
-    if op.opcode == INS_NOP:
-        if emu.getFlag(EFLAGS_ZF) or not ecx:
-            return
-        return meth(op)
 
     ret = None
-    while not emu.getFlag(EFLAGS_ZF) and ecx:
+    while ecx:
         ret = meth(op)
         ecx -= 1
         emu.setRegister(REG_ECX, ecx)
+        if emu.getFlag(EFLAGS_ZF):
+            break
     return ret
 
 def doRepzPrefix(emu, meth, op):
     #FIXME check for opcode family valid to rep
     ecx = emu.getRegister(REG_ECX)
-    if op.opcode == INS_NOP:
-        if not emu.getFlag(EFLAGS_ZF) or not ecx:
-            return
-        return meth(op)
 
     ret = None
-    while emu.getFlag(EFLAGS_ZF) and ecx:
+    while ecx:
         ret = meth(op)
         ecx -= 1
         emu.setRegister(REG_ECX, ecx)
+        if not emu.getFlag(EFLAGS_ZF):
+            break
     return ret
 
 
