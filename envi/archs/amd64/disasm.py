@@ -15,7 +15,9 @@ from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
 from .regs import *
 from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
                                     OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
-                                    INS_VEXREQ, OP_NOVEXL, INS_VEXNOPREF, OP_NOREX
+                                    INS_VEXREQ, OP_NOVEXL, INS_VEXNOPREF, OP_NOREX, \
+                                    PREFIX_REX, PREFIX_REX_B, PREFIX_REX_X, PREFIX_REX_W, \
+                                    PREFIX_REX_MASK, PREFIX_REX_RXB, PREFIX_REX_R
 all_tables = opcode86.tables86
 
 # Pre generate these for fast lookup. Because our REX prefixes have the same relative
@@ -41,20 +43,6 @@ amd64_prefixes[0xc5] = (0x20 << 16)  # VEX 2byte
 amd64_prefixes[0xc4] = (0x40 << 16)  # VEX 3byte
 
 
-# NOTE: some notes from the intel manual...
-# REX.W overrides 66, but alternate registers (via REX.B etc..) can have 66 to be 16 bit..
-# REX.R only modifies reg for GPR/SSE(SIMD)/ctrl/debug addressing modes.
-# REX.X only modifies the SIB index value
-# REX.B modifies modrm r/m field, or SIB base (if SIB present), or opcode reg.
-# We inherit all the regular intel prefixes...
-# VEX replaces REX, and mixing them is invalid
-PREFIX_REX   = 0x100000  # Shows that the rex prefix is present
-PREFIX_REX_B = 0x010000  # Bit 0 in REX prefix (0x41) means ModR/M r/m field, SIB base, or opcode reg
-PREFIX_REX_X = 0x020000  # Bit 1 in REX prefix (0x42) means SIB index extension
-PREFIX_REX_R = 0x040000  # Bit 2 in REX prefix (0x44) means ModR/M reg extention
-PREFIX_REX_W = 0x080000  # Bit 3 in REX prefix (0x48) means 64 bit operand
-PREFIX_REX_MASK = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_W | PREFIX_REX_R
-PREFIX_REX_RXB  = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_R
 REX_HIGH_DROP = ~(e_i386.RMETA_HIGH8 ^ e_i386.RMETA_LOW8)  # FIXME: this is ugly
 
 PREFIX_VEX2  = 0x200000  # 2 byte VEX (data stored in opcode)

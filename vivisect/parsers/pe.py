@@ -34,7 +34,7 @@ for mod in (PE, vtrace):
 
 def parseFile(vw, filename, baseaddr=None):
     pe = PE.PE(open(filename, "rb"))
-    return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
+    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
 
 
 def parseBytes(vw, bytes, baseaddr=None):
@@ -46,9 +46,8 @@ def parseBytes(vw, bytes, baseaddr=None):
 
 def parseMemory(vw, memobj, base):
     pe = PE.peFromMemoryObject(memobj, base)
-    mapbase, mapsize, perms, fname = memobj.getMemoryMap(base)
     # FIXME does the PE's load address get fixedup on rebase?
-    return loadPeIntoWorkspace(vw, pe, fname)
+    return loadPeIntoWorkspace(vw, pe, filename=None)
 
 
 def parseFd(vw, fd, filename=None, baseaddr=None):
@@ -118,20 +117,19 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
     codervamax = codebase+codesize
 
-    fvivname = filename
-
-    # This will help linkers with files that are re-named
-    dllname = pe.getDllName()
-    if dllname is not None:
-        fvivname = dllname
-
-    if fvivname is None:
-        fvivname = "pe_%.8x" % baseaddr
-
     # grab the file bytes for hashing
     pe.fd.seek(0)
     fhash = v_parsers.md5Bytes(byts)
     sha256 = v_parsers.sha256Bytes(byts)
+
+    fvivname = filename
+    # This will help linkers with files that are re-named
+    dllname = pe.getDllName()
+    if dllname:
+        fvivname = dllname
+
+    if fvivname is None:
+        fvivname = fhash
 
     # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
@@ -452,7 +450,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                     vw.vprint("SEHandlerTable parse error")
 
     # Last but not least, see if we have symbol support and use it if we do
-    if vt_win32.dbghelp:
+    if vt_win32.dbghelp and filename:
 
         s = vt_win32.Win32SymbolParser(-1, filename, baseaddr)
 
