@@ -108,7 +108,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
             mcanv.addText(linepre, tag=vatag)
 
-            mcanv.addText('Stack Variables:\n')
+            mcanv.addText('Stack Variables: (offset from initial top of stack)\n')
 
             funclocals = self.vw.getFunctionLocals(lva)
             funclocals.sort()
