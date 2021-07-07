@@ -901,7 +901,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             rem = tot % val
 
             if tot > (2**64)-1:
-                raise Exception('division exception')
+                raise Exception('0x%.8x: division exception on %s' % (op.va, str(op)))
 
             self.setRegisterByName("rax", quot)
             self.setRegisterByName("rdx", rem)
