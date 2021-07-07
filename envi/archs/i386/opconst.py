@@ -267,3 +267,18 @@ cpu_OSPKE = 0x0000e000
 ADDRMETH_MASK = 0x00FF0000
 OPTYPE_MASK = 0xFF000000
 OPFLAGS_MASK = 0x0000FFFF
+
+# NOTE: some notes from the intel manual...
+# REX.W overrides 66, but alternate registers (via REX.B etc..) can have 66 to be 16 bit..
+# REX.R only modifies reg for GPR/SSE(SIMD)/ctrl/debug addressing modes.
+# REX.X only modifies the SIB index value
+# REX.B modifies modrm r/m field, or SIB base (if SIB present), or opcode reg.
+# We inherit all the regular intel prefixes...
+# VEX replaces REX, and mixing them is invalid
+PREFIX_REX   = 0x100000  # Shows that the rex prefix is present
+PREFIX_REX_B = 0x010000  # Bit 0 in REX prefix (0x41) means ModR/M r/m field, SIB base, or opcode reg
+PREFIX_REX_X = 0x020000  # Bit 1 in REX prefix (0x42) means SIB index extension
+PREFIX_REX_R = 0x040000  # Bit 2 in REX prefix (0x44) means ModR/M reg extention
+PREFIX_REX_W = 0x080000  # Bit 3 in REX prefix (0x48) means 64 bit operand
+PREFIX_REX_MASK = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_W | PREFIX_REX_R
+PREFIX_REX_RXB  = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_R

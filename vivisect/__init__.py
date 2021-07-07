@@ -12,7 +12,6 @@ import queue
 import string
 import hashlib
 import logging
-import binascii
 import itertools
 import traceback
 import threading
@@ -54,7 +53,7 @@ STORAGE_MAP = {
 
 
 def guid(size=16):
-    return binascii.hexlify(os.urandom(size))
+    return e_common.hexify(os.urandom(size))
 
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
@@ -193,6 +192,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 vwgui.doStuffAndThings()
         '''
         return self._viv_gui
+
+    def getPointerSize(self):
+        return self.psize
 
     def addCtxMenuHook(self, name, handler):
         '''
@@ -721,7 +723,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             n = self.getName(lva)
             if n is not None:
                 return n
-            return binascii.hexlify(self.readMemory(lva, lsize)).decode('utf-8')
+            return e_common.hexify(self.readMemory(lva, lsize))
 
     def followPointer(self, va):
         """
@@ -1298,7 +1300,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             except envi.InvalidInstruction as msg:
                 # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
-                logger.warning("Invalid Instruct Attempt At:", hex(va), binascii.hexlify(bytez))
+                logger.warning("Invalid Instruct Attempt At:", hex(va), e_common.hexify(bytez))
                 raise InvalidLocation(va, msg)
             except Exception as msg:
                 raise InvalidLocation(va, msg)
@@ -2624,10 +2626,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.mergeConfig(mod.config)
 
         fd.seek(0)
-        filename = hashlib.md5(fd.read()).hexdigest()
-        fname = mod.parseFd(self, fd, filename, baseaddr=baseaddr)
+        fname = mod.parseFd(self, fd, filename=None, baseaddr=baseaddr)
 
-        self.initMeta("StorageName", filename+".viv")
+        outfile = hashlib.md5(fd.read()).hexdigest()
+        self.initMeta("StorageName", outfile+".viv")
 
         # Snapin our analysis modules
         self._snapInAnalysisModules()
@@ -2720,7 +2722,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.normFileName(filename)
 
         mod = viv_parsers.getParserModule(fmtname)
-        fname = mod.parseFile(self, filename, baseaddr=baseaddr)
+        fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")
 
