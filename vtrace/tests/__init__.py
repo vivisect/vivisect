@@ -38,9 +38,12 @@ class VtraceProcessTest(unittest.TestCase):
 
         if self.proc.returncode is None:
             # FINE. shoot the process and keep going. Ain't nobody got time for that.
+            self.proc.kill()
+        try:
             self.proc.stdout.close()
             self.proc.stdin.close()
-            self.proc.kill()
+        except:
+            pass
         self.trace.release()
 
     def runProcess(self):

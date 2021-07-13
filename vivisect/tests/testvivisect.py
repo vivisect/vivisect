@@ -157,7 +157,10 @@ class VivisectTest(unittest.TestCase):
                               (134550582,), (134579529,), (134572857,), (134534204,), (134577471,), (134580544,),
                               (134568769,), (134546505,), (134578743,), (134553208,), (134555349,),
                               (134580057,), (134521306,), (134531547,), (134572084,), (134578576,), (134554727,),
-                              (134576873,), (134580336,), (134521331,), (134550133,), (134521336,), (134529017,)],
+                              (134576873,), (134580336,), (134521331,), (134550133,), (134521336,), (134529017,),
+                              (134524668,), (134577049,), (134547258,), (134577158,), (134524356,), (134524581,),
+                              (134576974,), (134576909,),
+                              ],
             'Bookmarks': [],
             'SwitchCases': [(134533577, 134533577, 125),
                             (134578347, 134578347, 53),
@@ -214,7 +217,9 @@ class VivisectTest(unittest.TestCase):
                                  (134575616,), (134575872,), (134575552,), (134582112,), (134561824,), (134573264,),
                                  (134561232,), (134574816,), (134547936,), (134582096,), (134552448,), (134552560,),
                                  (134575584,), (134553216,), (134573760,), (134582064,), (134583824,), (134519952,),
-                                 (134568352,)]
+                                 (134568352,), (134519472,), (134518848,), (134518128,), (134518112,), (134518736,),
+                                 (134518304,), (134518512,), (134518480,), (134518576,), (134519376,), (134518000,),
+                                 (134518672,), ]
 
         }
 
@@ -234,6 +239,7 @@ class VivisectTest(unittest.TestCase):
         Test a bunch of the simpler workspace APIs
         '''
         vw = self.firefox_vw
+        self.assertIsNotNone(vw.parsedbin)
         self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals']), set(vw.getVaSetNames()))
 
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
@@ -263,17 +269,17 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 53924, 14),
-               1: ('Num/Int',   715, 3738, 0),
+        ans = {0: ('Undefined', 0, 53337, 14),
+               1: ('Num/Int',   712, 3695, 0),
                2: ('String',    265, 6485, 1),
-               3: ('Unicode',   174, 5593, 1),
-               4: ('Pointer',   360, 2880, 0),
-               5: ('Opcode',    72565, 279449, 74),
-               6: ('Structure', 1009, 12380, 3),
+               3: ('Unicode',   174, 5596, 1),
+               4: ('Pointer',   361, 2888, 0),
+               5: ('Opcode',    72507, 279377, 74),
+               6: ('Structure', 1018, 12740, 3),
                7: ('Clsid',     0, 0, 0),
                8: ('VFTable',   0, 0, 0),
                9: ('Import Entry', 370, 2960, 0),
-               10: ('Pad',      832, 8180, 2)}
+               10: ('Pad',      864, 8511, 2)}
         dist = vw.getLocationDistribution()
         for loctype, locdist in dist.items():
             self.assertEqual(locdist, ans[loctype])
@@ -635,6 +641,7 @@ class VivisectTest(unittest.TestCase):
 
     def test_main(self):
         vw = self.chgrp_vw
+        self.assertIsNotNone(vw.parsedbin)
         self.assertTrue(vw.isFunction(0x8049650))
         self.assertTrue(vw.getFunction(0x0804a9a0), 0x0804a920)
 
@@ -742,17 +749,13 @@ class VivisectTest(unittest.TestCase):
         vw = self.firefox_vw
         g = v_t_graphutil.buildFunctionGraph(vw, 0x140010e60)
         paths = [
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778515, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778520, 5368778544, 5368778549]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778520, 5368778544, 5368778601, 5368778603]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778520, 5368778560, 5368778603]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778515, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778520, 5368778544, 5368778549]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778520, 5368778544, 5368778601, 5368778603]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778520, 5368778560, 5368778603]),
-            set([5368778336, 5368778400]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010e9a, 0x140010ea0]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010f02, 0x140010f13]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010f02, 0x140010f18]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010ef2]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010ef2, 0x140010f02, 0x140010f13]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010ef2, 0x140010f02, 0x140010f18]),
+            set([0x140010e60, 0x140010ea0]),
         ]
 
         pathcount = 0
@@ -762,11 +765,11 @@ class VivisectTest(unittest.TestCase):
             self.assertIn(p, paths)
             pathcount += 1
 
-        self.assertEqual(11, pathcount)
+        self.assertEqual(7, pathcount)
 
         g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x1400110a0))
         thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x1400110a0))
-        self.assertEqual(23, thruCnt)
+        self.assertEqual(21, thruCnt)
         thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x1400110a0, maxpath=2))
         self.assertEqual(2, thruCnt)
 
@@ -878,3 +881,17 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(msize, ssize)
             self.assertEqual(flags, ans[sname][2])
             self.assertEqual(mfname, sfname)
+
+    def test_opcache(self):
+        vw = self.firefox_vw
+        self.assertGreater(len(vw._op_cache), 0)
+        vw.clearOpcache()
+        self.assertEqual(len(vw._op_cache), 0)
+
+        op = vw.parseOpcode(0x140010ef2, skipcache=True)
+        self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
+        self.assertEqual(len(vw._op_cache), 0)
+
+        op = vw.parseOpcode(0x140010ef2)
+        self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
+        self.assertEqual(len(vw._op_cache), 1)

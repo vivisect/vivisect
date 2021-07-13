@@ -9,6 +9,7 @@ from envi.const import *
 import envi.exc as e_exc
 import envi.bits as e_bits
 
+from envi.archs.i386.opconst import PREFIX_REX_W
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *
 from envi.archs.i386 import i386Module
@@ -551,16 +552,24 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_bsf(self, op):
         src = self.getOperValue(op, 1)
-        res = 0
-        if res == 0:
+        if src == 0:
             self.setFlag(EFLAGS_ZF, 1)
+            return
+        else:
+            self.setFlag(EFLAGS_ZF, 0)
+        res = 0
         indx = 0
         while src != 0:
             if src & 0x1:
                 res = indx
+                break
             src >>= 1
             indx += 1
         self.setOperValue(op, 0, res)
+        self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
+        self.setFlag(EFLAGS_SF, 0)
+        self.setFlag(EFLAGS_OF, 0)
+        self.setFlag(EFLAGS_CF, 0)
 
     def i_and(self, op):
         #FIXME 24 and 25 opcodes should *not* get sign-extended.
@@ -1044,6 +1053,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         else:
             raise envi.UnsupportedInstruction(self, op)
+
+        self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
+        self.setFlag(EFLAGS_SF, 0)  # technically undefined in the manual, but zero'd on core-i7
 
     def i_in(self, op):
         raise envi.UnsupportedInstruction(self, op)
@@ -1586,7 +1598,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        src = src & 0x1f
+        if op.prefixes & PREFIX_REX_W:
+            src = src & 0x3f
+        else:
+            src = src & 0x1f
 
         # According to intel manual, if src == 0 eflags are not changed
         if src == 0:
@@ -1613,7 +1628,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        src = src & 0x1f
+        if op.prefixes & PREFIX_REX_W:
+            src = src & 0x3f
+        else:
+            src = src & 0x1f
 
         # According to intel manual, if src == 0 eflags are not changed
         if src == 0:
@@ -1652,7 +1670,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
-        src = src & 0x1f
+        if op.prefixes & PREFIX_REX_W:
+            src = src & 0x3f
+        else:
+            src = src & 0x1f
 
         # According to intel manual, if src == 0 eflags are not changed
         if src == 0:
@@ -1667,10 +1688,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_SF, e_bits.is_signed(res, dsize))
         self.setFlag(EFLAGS_ZF, not res)
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
-        if src == 1:
-            self.setFlag(EFLAGS_OF, False)
-        else:
-            self.setFlag(EFLAGS_OF, 0) # Undefined, but zero'd on core2 duo
+        self.setFlag(EFLAGS_OF, e_bits.msb(dst, dsize))
 
         self.setOperValue(op, 0, res)
 
@@ -1819,16 +1837,26 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setRegister(REG_EDI, edi)
 
     def i_stosd(self, op):
-        # FIXME REX.W makes this 64 bit...
-        eax = self.getRegister(REG_EAX)
-        edi = self.getRegister(REG_EDI)
-        base,size = self._emu_segments[SEG_ES]
+        if op.prefixes & PREFIX_REX_W:
+            eax = self.getRegister(REG_RAX)
+            edi = self.getRegister(REG_RDI)
+            step = 8
+        else:
+            eax = self.getRegister(REG_EAX)
+            edi = self.getRegister(REG_EDI)
+            step = 4
+
+        base, size = self._emu_segments[SEG_ES]
         self.writeMemory(base+edi, struct.pack("<L", eax))
         if self.getFlag(EFLAGS_DF):
-            edi -= 4
+            edi -= step
         else:
-            edi += 4
-        self.setRegister(REG_EDI, edi)
+            edi += step
+
+        if op.prefixes & PREFIX_REX_W:
+            self.setRegister(REG_RDI, edi)
+        else:
+            self.setRegister(REG_EDI, edi)
 
     # We include all the possible SETcc names just in case somebody
     # gets hinkey with the disassembler.

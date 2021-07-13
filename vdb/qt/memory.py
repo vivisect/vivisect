@@ -1,14 +1,14 @@
-import binascii
-
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QApplication
-
 import vtrace.qt
+import envi.common as e_common
+
 import envi.qt.memory
 import envi.qt.memcanvas
 
 from vqt.main import *
 from vqt.common import *
+
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QApplication
 
 class VDBACT:
 
@@ -99,7 +99,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         bytez = t.readMemory(va, size)
 
         clipboard = QApplication.clipboard()
-        clipboard.setText(binascii.hexlify(bytez))
+        clipboard.setText(e_common.hexify(bytez))
 
     def _menuFollow(self, va, rend='', newWindow=False):
         totalsize = self._canv_endva - self._canv_beginva

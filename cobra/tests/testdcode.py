@@ -23,7 +23,7 @@ class Foo:
 
 @contextlib.contextmanager
 def getDcodeDmon():
-    dmon = cobra.CobraDaemon(host='0.0.0.0', port=41923, msgpack=True)
+    dmon = cobra.CobraDaemon(host='localhost', port=41923, msgpack=True)
     dmon.fireThread()
     cobra.dcode.enableDcodeServer(daemon=dmon)
     name = cobra.remoteapp.shareRemoteApp('cobra.testclient', appsrv=Foo(3, 4), daemon=dmon)

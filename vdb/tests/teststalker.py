@@ -17,4 +17,4 @@ class VdbStalkerTest(vt_tests.VtraceProcessTest):
         v_stalker.addStalkerEntry(self.trace, entry)
 
         self.runUntilExit()
-        self.assertTrue(len(v_stalker.getStalkerHits(self.trace)) > 2)
+        self.assertTrue(len(v_stalker.getStalkerHits(self.trace)) >= 2)

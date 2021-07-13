@@ -1,4 +1,5 @@
 import queue
+import base64
 import logging
 import traceback
 import threading
@@ -17,6 +18,7 @@ import vstruct.constants as vs_const
 
 import vivisect.const as viv_const
 import vivisect.impapi as viv_impapi
+import vivisect.parsers as viv_parsers
 import vivisect.analysis as viv_analysis
 import vivisect.codegraph as viv_codegraph
 
@@ -166,6 +168,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.locmap = e_page.MapLookup()
         self.blockmap = e_page.MapLookup()
         self._mods_loaded = False
+        self.parsedbin = None
 
         # Storage for function local symbols
         self.localsyms = ddict()
@@ -644,6 +647,14 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
+    def _mcb_FileBytes(self, name, value):
+        if not self.parsedbin:
+            byts = viv_parsers.uncompressBytes(value)
+            fmt = viv_parsers.guessFormat(byts)
+            parser = viv_parsers.getBytesParser(fmt)
+            if parser:
+                self.parsedbin = parser(byts)
+
     def _mcb_ustruct(self, name, ssrc):
         # All meta values in the "ustruct" namespace are user defined
         # structure defintions in C.
@@ -685,7 +696,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    vw.vprint("0x%x: Dynamic Branch found at (%s)" % (op.va, op))
+    logger.info("0x%x: Dynamic Branch found at (%s)" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):

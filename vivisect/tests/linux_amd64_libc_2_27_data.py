@@ -1,5 +1,5 @@
 libc_data = {
-    'imports' : [
+    'imports': [
         (0x23eadb0, 8, 9, '*.stderr'),
         (0x23eadb8, 8, 9, '*.error_one_per_line'),
         (0x23eadc0, 8, 9, '*.__morecore'),
@@ -74,7 +74,7 @@ libc_data = {
         (0x23eb118, 8, 9, '*.calloc'),
     ],
 
-    'exports' : [
+    'exports': [
         (0x2021910, 0, '__libc_init_first', 'libc_2_27'),
         (0x2021ab0, 0, '__libc_start_main', 'libc_2_27'),
         (0x2021c90, 0, 'gnu_get_libc_release', 'libc_2_27'),
@@ -2372,7 +2372,7 @@ libc_data = {
         (0x23f0a68, 1, '__key_decryptsession_pk_LOCAL', 'libc_2_27'),
     ],
 
-    'relocs' : [
+    'relocs': [
         ('libc_2_27', 0x3e7620, 2, 0x3ec560),
         ('libc_2_27', 0x3e7630, 2, 0x21470),
         ('libc_2_27', 0x3e7638, 2, 0x199e10),
@@ -3651,8 +3651,7 @@ libc_data = {
         ('libc_2_27', 0x3ec858, 2, 0x21eb0),
     ],
 
-    'names' : [
-        (0x2020fd0, 'libc_2_27.LazyLoaderTrampoline'),
+    'names': [
         (0x2020fe0, 'libc_2_27.plt_memmove_0'),
         (0x2020ff0, 'libc_2_27.plt_gettimeofday'),
         (0x2021000, 'libc_2_27.plt_strnlen'),
@@ -5895,7 +5894,7 @@ libc_data = {
         (0x23f0a68, 'libc_2_27.__key_decryptsession_pk_LOCAL'),
     ],
 
-    'pltgot' : [
+    'pltgot': [
     ],
 
 }
