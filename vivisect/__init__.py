@@ -991,7 +991,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         ltypes = [(count, ltype) for ltype, count in data.items()]
         ltypes.sort()
-        if ltypes[-1][1] == LOC_POINTER:
+        topdog = ltypes[-1]
+        if topdog[1] == LOC_POINTER and topdog[0] > 1:
             heur += 1
 
         if heur >= thresh:
