@@ -96,7 +96,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8 )
+        val = Var(rname, rbitwidth // 8 )
 
         # Translate to meta if needed...
         if ridx != regidx:
@@ -119,7 +119,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8 )
+        val = Var(rname, rbitwidth // 8 )
 
         # Translate to native if needed...
         if ridx != regidx:
@@ -134,9 +134,9 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
             # cut hole in mask
             finalmask = basemask ^ (mask << lshift)
             if lshift != 0:
-                obj <<= Const(lshift, rbitwidth / 8)
+                obj <<= Const(lshift, rbitwidth // 8)
 
-            obj = obj | (val & Const(finalmask, rbitwidth / 8))
+            obj = obj | (val & Const(finalmask, rbitwidth // 8))
 
         self.effSetVariable(rname, obj)
 
@@ -1502,7 +1502,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
             ov = 1
 
         else:
-            quotient = dividend / divisor
+            quotient = dividend // divisor
             ov = 0
 
         so = self.getFlagObj(REG_SO) 
@@ -1528,7 +1528,7 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
             ov = 1
 
         else:
-            quotient = dividend / divisor
+            quotient = dividend // divisor
 
             ov = 0
 
