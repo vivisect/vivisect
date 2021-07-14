@@ -144,7 +144,7 @@ class AnalysisMonitor(EmulationMonitor):
             for tgt, bflags in op.getBranches():    # ignoring emu, so we correctly identify the dynamic branch
                 if tgt is None:
                     for cb in self._dynamic_branch_handlers:
-                        logger.debug("dynamic branch cb: %r", cb)
+                        logger.debug("dynamic branch cb: %r\top: 0x%x  %r", cb, op.va, op)
                         try:
                             cb(self, emu, op, starteip)
                         except Exception as e:

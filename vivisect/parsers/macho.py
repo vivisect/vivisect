@@ -1,6 +1,6 @@
 import binascii
 
-import vivisect.const as v_const
+from vivisect.const import archcalls
 import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
 
@@ -69,7 +69,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     vw.setMeta("Platform", "Darwin")
     vw.setMeta("Format", "macho")
 
-    vw.setMeta('DefaultCall', v_const.archcalls.get(arch,'unknown'))
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
     # Add the file entry
 

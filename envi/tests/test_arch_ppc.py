@@ -28,6 +28,21 @@ def getVivEnv(arch='ppc'):
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     return vw, emu, sctx
 
+ppc_test_archs = {
+        'ppc': {'bytes': b''}, 
+        'ppc32-embedded': {'bytes': b''}, 
+        'ppc-embedded': {'bytes': b''}, 
+        'ppc32-server': {'bytes': b''}, 
+        'ppc-server': {'bytes': b''}, 
+        'ppc-vle': {'bytes': b''},
+}
+
+class PpcDifferentArchitectures(unittest.TestCase):
+    def testGetAllArchEmuSymboliks(self):
+        test_envs = [getVivEnv(testarch) for testarch in ppc_test_archs]
+        self.assertEqual(len(test_envs), 6)  # lame test, but checks that the linkage to build all of it is working
+
+
 class PpcInstructionSet(unittest.TestCase):
     def validateEmulation(self, emu, opbytes, setters, tests, tidx=0):
         '''

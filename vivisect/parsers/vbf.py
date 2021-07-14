@@ -3,15 +3,16 @@ Vivisect parser for Volvo Binary Files (VBF) used in firmware, notably in
 the automotive industry
 '''
 import struct
+import vivisect.exc as v_exc
 import vivisect.const as v_const
 import vivisect.parsers as v_parsers
 
 def parseFile(vw, filename, baseaddr=None):
-    fd = file(filename, 'rb')
+    fd = open(filename, 'rb')
     return loadVbfIntoWorkspace(vw, fd, filename=filename, baseaddr=baseaddr)
 
 def parseBytes(vw, bytes, baseaddr=None):
-    fd = StringIO(bytes)
+    fd = BytesIO(bytes)
     return loadVbfIntoWorkspace(vw, fd, filename=filename, baseaddr=baseaddr)
 
 def parseFd(vw, fd, filename=None, baseaddr=None):
@@ -36,7 +37,7 @@ def parseVBF(vbf):
     blocks = []
     while len(bindata):
         addr, size = struct.unpack_from('>II', bindata, 0)
-        print hex(addr), hex(size)
+        logger.info("loading data at 0x%x (0x%x in length)", (addr, size))
         block = bindata[8:8+size]
         checksum = struct.unpack_from('>H', bindata, 8+size)
         blocks.append((addr, block, checksum))
@@ -49,11 +50,9 @@ def loadVbfIntoWorkspace(vw, fd, filename, baseaddr):
     hdr, bdata, blocks = parseVBF(vbf)
     arch = vw.config.viv.parsers.vbf.arch
     if not arch:
-        raise Exception('VBF loader *requires* arch option (-O viv.parsers.ihex.arch=\\"<archname>\\")')
+        raise v_exc.VbfArchException()
 
     bigend = vw.config.viv.parsers.vbf.bigend
-    if not bigend:
-        raise Exception('VBF loader *requires* arch option (-O viv.parsers.ihex.bigend=\\"(true,false)\\")')
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform','Unknown')
@@ -70,5 +69,7 @@ def loadVbfIntoWorkspace(vw, fd, filename, baseaddr):
         if addr < baseva:
             baseva = addr
     
-    fname = vw.addFile(filename, baseva, v_parsers.md5Bytes(bdata))  # use vbf?
+    fname = vw.addFile(filename, baseva, v_parsers.md5Bytes(bdata))  # use all of vbf?
+    sha256 = v_parsers.sha256Bytes(bdata)
     vw.setFileMeta(fname, 'header', hdr)
+    vw.setFileMeta(fname, 'sha256', sha256)

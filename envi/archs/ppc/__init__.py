@@ -74,12 +74,10 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         return Ppc64RegisterContext()
 
     def archGetBreakInstr(self):
-        raise Exception("IMPLEMENT ME")
-        return '\xcc'
+        return '\x7f\xe0\x00\x08'   # this is incorrect for VLE
 
     def archGetNopInstr(self):
-        raise Exception("IMPLEMENT ME")
-        return '\x90'
+        return '\x60\x00\x00\x00'   # this is incorrect for VLE
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
@@ -96,15 +94,13 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         return '0x%.8x' % va
 
     def archParseOpcode(self, bytes, offset=0, va=0):
-        #print offset, hex(va), self.isVle(va), self.maps
         if self.isVle(va):
-            #print "isVle"
             return self._arch_vle_dis.disasm(bytes, offset, va)
 
         return self._arch_dis.disasm(bytes, offset, va)
 
     def getEmulator(self):
-        return IntelEmulator()
+        return Ppc64EmbeddedEmulator()
 
     def setVleMaps(self, maps):
         '''
@@ -130,6 +126,8 @@ class Ppc32EmbeddedModule(Ppc64EmbeddedModule):
     def __init__(self):
         Ppc64EmbeddedModule.__init__(self, mode=32, archname='ppc32-embedded')
 
+    def getEmulator(self):
+        return Ppc32EmbeddedEmulator()
 
 class PpcVleModule(Ppc64EmbeddedModule):
     def __init__(self):
@@ -141,6 +139,15 @@ class PpcVleModule(Ppc64EmbeddedModule):
 
     def archParseOpcode(self, bytes, offset=0, va=0):
         return self._arch_dis.disasm(bytes, offset, va)
+
+    def archGetBreakInstr(self):
+        return '\x7f\xe0\x00\x08'   # this is incorrect for VLE
+
+    def archGetNopInstr(self):
+        return '\x60\x00\x00\x00'   # this is incorrect for VLE
+
+    def getEmulator(self):
+        return PpcVleEmulator()
 
 class Ppc64ServerModule(Ppc64EmbeddedModule):
     def __init__(self, mode=64, archname='ppc-server'):
@@ -159,9 +166,15 @@ class Ppc64ServerModule(Ppc64EmbeddedModule):
     def archGetRegCtx(self):
         return Ppc64RegisterContext()
 
+    def getEmulator(self):
+        return Ppc64ServerEmulator()
+
 class Ppc32ServerModule(Ppc64ServerModule):
     def __init__(self):
         Ppc64ServerModule.__init__(self, mode=32, archname='ppc32-embedded')
+
+    def getEmulator(self):
+        return Ppc32ServerEmulator()
 
 class PpcDesktopModule(Ppc64ServerModule):
     # for now, treat desktop like server
