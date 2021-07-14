@@ -948,11 +948,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         offset &= -align
                     continue
 
-                x = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
-                if self.isValidPointer(x):
-                    ret.append((va, x))
-                    offset += size
-                    continue
+                ptrva = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
+                if self.isValidPointer(ptrva):
+                    if self.isLikelyPointer(va, ptrva):
+                        ret.append((va, ptrva))
+                        offset += size
+                        continue
 
                 offset += align
                 offset &= -align
@@ -961,6 +962,43 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.setTransMeta('findPointers', ret)
 
         return ret
+
+    def isLikelyPointer(self, va, ptrva, thresh=0):
+        '''
+        This identifies and ranks the likelihood that a valid address is a pointer
+        '''
+        heur = 0
+        # if it points to something common, like < 0x100, let's get suspect.
+        if ptrva < 0x200:
+            heur -= ((0x200 - ptrva)/0x200)
+
+        # if surrounded by pointers, it's more likely
+        mmva, mmsz, mmperms, mmname = vw.getMemoryMap(va)
+        # let's check the area around va
+        teststart = max(mmva, va - (self.psize * 10))
+        teststop  = min(mmva+mmsz, va + (self.psize * 11))
+
+        testva = teststart
+        data = collections.defaultdict(int)
+        while testva < teststop:
+            loc = vw.getLocation(testva)
+            if loc is None:
+                testva += 1
+                continue
+
+            lva, lsz, ltype, ltinfo = loc
+            data[ltype] += 1
+
+        ltypes = [(count, ltype) for ltype, count in data.items()]
+        ltypes.sort()
+        if ltypes[-1][1] == LOC_POINTER:
+            heur += 1
+
+        if heur >= thresh:
+            return True
+
+        return False
+
 
     def detectString(self, va):
         '''
