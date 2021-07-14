@@ -970,15 +970,18 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def isLikelyPointer(self, va, ptrva, thresh=0):
         '''
-        This identifies and ranks the likelihood that a valid address is a pointer
+        This identifies and ranks the likelihood that a valid address discovered
+        in memory is actually a pointer.
         '''
-        heur = 0
-        # if it points to something common, like < 0x100, let's get suspect.
+        heur = 0.0
+
+        # if it points to something common, like < 0x200, it's suspect.
         if ptrva < 0x200:
             heur -= ((0x200 - ptrva)/0x200)
 
-        # if surrounded by pointers, it's more likely
-        mmva, mmsz, mmperms, mmname = vw.getMemoryMap(va)
+
+        # if surrounded by pointers, it's more likely one
+        mmva, mmsz, mmperms, mmname = self.getMemoryMap(va)
         # let's check the area around va
         teststart = max(mmva, va - (self.psize * 10))
         teststop  = min(mmva+mmsz, va + (self.psize * 11))
@@ -986,13 +989,18 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         testva = teststart
         data = collections.defaultdict(int)
         while testva < teststop:
-            loc = vw.getLocation(testva)
+            loc = self.getLocation(testva)
             if loc is None:
                 testva += 1
                 continue
 
             lva, lsz, ltype, ltinfo = loc
             data[ltype] += 1
+            testva += lsz
+
+        if not data:
+            logger.debug("isLikelyPointer(0x%x, 0x%x): %f  (no other locations nearby)", va, ptrva, heur)
+            return (heur >= thresh)
 
         ltypes = [(count, ltype) for ltype, count in data.items()]
         ltypes.sort()
@@ -1000,11 +1008,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if topdog[1] == LOC_POINTER and topdog[0] > 1:
             heur += 1
 
-        if heur >= thresh:
-            return True
-
-        return False
-
+        logger.debug("isLikelyPointer(0x%x, 0x%x): %f", va, ptrva, heur)
+        return (heur >= thresh)
 
     def detectString(self, va):
         '''
