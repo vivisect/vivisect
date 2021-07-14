@@ -131,7 +131,7 @@ class TestReduceCase(unittest.TestCase):
         expr = Call(Const(0x400, 8), Const(8, 8), argsyms=[arg,])
 
         expr = expr.reduce()
-        self.assertEqual(str(expr), '1024((mem[0x00014000:8] ^ 0))')
+        self.assertEqual(str(expr), '1024(mem[0x00014000:8])')
 
         op = (Const(0x1000, 8) - Const(0xb90, 8)) - Const(0x60, 8)
         arg = (Mem(Const(0x14000, 8), Const(8, 8)) ^ op) ^ op

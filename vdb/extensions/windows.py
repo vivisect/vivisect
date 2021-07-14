@@ -1,21 +1,19 @@
 import os
 import sys
 import getopt
-import binascii
 
 import vtrace
 import vtrace.tools.win32heap as win32heap
 import vtrace.tools.win32aslr as win32_aslr
 import vtrace.tools.iathook as vt_iathook
 import vtrace.tools.win32stealth as win32_stealth
-import vtrace.util as v_util
 
-import envi.memory as e_mem
 import envi.cli as e_cli
 import envi.bits as e_bits
+import envi.common as e_common
+import envi.memory as e_memory
 
 import PE
-import vstruct.defs.pe as vs_pe
 
 def teb(vdb, line):
     '''
@@ -468,8 +466,8 @@ def _printPageHits(vdb, hits, unique=False):
         [newhits.append(h) for h in hits if not newhits.count(h)]
         hits = newhits
 
-    for eip,addr,perm in hits:
-        vdb.vprint("0x%.8x 0x%.8x   %s" % (eip,addr,e_mem.getPermName(perm)))
+    for eip, addr, perm in hits:
+        vdb.vprint("0x%.8x 0x%.8x   %s" % (eip, addr, e_memory.getPermName(perm)))
 
 def pagewatch(vdb, line):
     """
@@ -923,8 +921,8 @@ def hooks(vdb, line):
                             continue
 
                         found = True
-                        dmem = binascii.hexlify(procbytes[off:off+size])[:10]
-                        dfil = binascii.hexlify(filebytes[off:off+size])[:10]
+                        dmem = e_common.hexify(procbytes[off:off+size])[:10]
+                        dfil = e_common.hexify(filebytes[off:off+size])[:10]
 
                         vdb.canvas.addVaText('0x%.8x' % difva, difva)
                         vdb.canvas.addText(' (0x%.8x) (%d)' % (fdifva,size))

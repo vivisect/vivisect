@@ -1,4 +1,3 @@
-import os
 import struct
 import logging
 
@@ -155,6 +154,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.setMeta('Platform', platform)
     vw.setMeta('Format', 'elf')
     vw.parsedbin = elf
+    # Treat the event system veeery carefully
+    byts = elf.getFileBytes()
+    vw.setMeta('FileBytes', v_parsers.compressBytes(byts))
 
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
@@ -180,9 +182,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         baseaddr = elf.getBaseAddress()
 
     elf.fd.seek(0)
-    bytez = elf.fd.read()
-    md5hash = v_parsers.md5Bytes(bytez)
-    sha256 = v_parsers.sha256Bytes(bytez)
+    md5hash = v_parsers.md5Bytes(byts)
+    sha256 = v_parsers.sha256Bytes(byts)
 
     if filename is None:
         # see if dynamics DT_SONAME holds a name for us

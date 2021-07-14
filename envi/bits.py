@@ -236,8 +236,8 @@ def buildbytes(value, size, bigend=False):
 def byteswap(value, size):
     ret = 0
     for i in range(size):
-        ret |= (value >> (8*i)) & 0xff
         ret = ret << 8
+        ret |= (value >> (8*i)) & 0xff
     return ret
 
 hex_fmt = {

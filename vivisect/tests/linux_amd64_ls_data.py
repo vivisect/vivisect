@@ -108,7 +108,7 @@ ls_data = {
         (0x619340, 8, 9, '*.__sprintf_chk'),
     ],
 
-    'exports' : [
+    'exports': [
         (0x401fd0, 0, '_init', 'ls'),
         (0x402040, 0, 'free', 'ls'),
         (0x402450, 0, 'malloc', 'ls'),
@@ -124,13 +124,12 @@ ls_data = {
         (0x6195b8, 1, 'stderr', 'ls'),
     ],
 
-    'relocs' : [
+    'relocs': [
     ],
 
-    'names' : [
+    'names': [
         (0x620000, 'ls.bss_temp'),
         (0x401fd0, 'ls._init'),
-        (0x401ff0, 'ls.LazyLoaderTrampoline'),
         (0x402000, 'ls.plt___ctype_toupper_loc'),
         (0x402010, 'ls.plt_getenv'),
         (0x402020, 'ls.plt_sigprocmask'),

@@ -3,9 +3,9 @@ Some of the basic/universal memory renderers.
 '''
 
 import struct
-import binascii
 
-import envi.memory as e_mem
+import envi.common as e_common
+import envi.memory as e_memory
 import envi.memcanvas as e_canvas
 
 class ByteRend(e_canvas.MemoryRenderer):
@@ -130,7 +130,7 @@ class AutoBytesRenderer(e_canvas.MemoryRenderer):
         mmap = trace.getMemoryMap(va)
         if mmap is not None:
             addr, size, perm, fname = mmap
-            prettyperm = e_mem.reprPerms(perm)
+            prettyperm = e_memory.reprPerms(perm)
 
         ascii_text = getAsciiFormatted(bytez)
         uni_text = getBasicUnicodeFormatted(bytez)
@@ -144,7 +144,7 @@ class AutoBytesRenderer(e_canvas.MemoryRenderer):
             desc = items[0]
         elif len(items) == 0:
             # if none match, just return the bytes.
-            desc = binascii.hexlify(bytez)
+            desc = e_common.hexify(bytez)
         elif len(items) > 1:
             # we only really expect one or none of these to match.
             desc = 'Error, multiple matches for this address!'

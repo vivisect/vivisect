@@ -237,7 +237,7 @@ class SymbolikBase:
         '''
         raise Exception('%s *must* implement solve(emu=emu)!' % self.__class__.__name__)
 
-    def reduce(self, emu=None, foo=False):
+    def reduce(self, emu=None, foo=True):
         '''
         Algebraic reduction and operator folding where possible.
 
@@ -306,7 +306,7 @@ class SymbolikBase:
         for obj in root_symobjs:
             obj.clearCache()
         '''
-        if idx > len(self.kids)-1:
+        if idx > len(self.kids) - 1:
             self.kids.append(kid)
             self.kids[idx].parents.append(self)
         else:
@@ -395,7 +395,7 @@ class SymbolikBase:
             done.add(cur._sym_id)
 
             # exit if we're the top node
-            if not len(path):
+            if not path:
                 if newb:
                     return newb
                 return cur
@@ -511,8 +511,12 @@ class Call(SymbolikBase):
     def _reduce(self, emu=None):
         args = []
         for symkid in self.kids[1:]:
-            args.append(symkid.reduce(emu=emu))
-        return Call(self.kids[0].reduce(emu=emu), self.width, args)
+            kid = symkid._reduce(emu=emu)
+            kid = kid if kid else symkid
+            args.append(kid)
+        func = self.kids[0]._reduce(emu=emu)
+        func = func if func else self.kids[0]
+        return Call(func, self.width, args)
 
     def _solve(self, emu=None, vals=None):
         ret = 0
@@ -582,7 +586,11 @@ class Mem(SymbolikBase):
         return self.kids[1].solve()
 
     def _reduce(self, emu):
-        return Mem(self.kids[0].reduce(), self.kids[1].reduce())
+        addr = self.kids[0]._reduce(emu=emu)
+        addr = addr if addr else self.kids[0]
+        size = self.kids[1]._reduce(emu=emu)
+        size = size if size else self.kids[1]
+        return Mem(addr, size)
 
 class Var(SymbolikBase):
 
@@ -683,8 +691,10 @@ class LookupVar(Var):
         return LookupVar(self.name, offset, lookupdict=self.lookupdict, width=self.width)
 
     def _reduce(self, emu=None):
-        self.offset._reduce(emu=emu)
-        return self
+        offset = self.offset._reduce(emu=emu)
+        offset = offset if offset else self.offset
+
+        return LookupVar(self.name, offset, self.lookupdict, self.width)
 
     def getWidth(self):
         return self.width

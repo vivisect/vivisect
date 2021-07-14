@@ -1,5 +1,5 @@
 libstdc_data = {
-    'imports' : [
+    'imports': [
         (0x2380f78, 8, 9, '*.vtable for __gnu_cxx::stdio_sync_filebuf<char, std::char_traits<char> >'),
         (0x2380f80, 8, 9, '*.vtable for std::bad_function_call'),
         (0x2380f88, 8, 9, '*.typeinfo for std::bad_cast'),
@@ -1345,7 +1345,7 @@ libstdc_data = {
         (0x23839b8, 8, 9, '*.std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace_aux(unsigned long, unsigned long, unsigned long, char)'),
     ],
 
-    'exports' : [
+    'exports': [
         (0x208b8c0, 0, '__entry', 'libstdc___so_6_0'),
         (0x208c1e0, 0, 'std::char_traits<char>::eq(char const&, char const&)', 'libstdc___so_6_0'),
         (0x208c1e0, 0, 'std::char_traits<char>::eq(char const&, char const&)', 'libstdc___so_6_0'),
@@ -6693,7 +6693,7 @@ libstdc_data = {
         (0x2387258, 1, 'std::moneypunct<wchar_t, false>::id', 'libstdc___so_6_0'),
     ],
 
-    'relocs' : [
+    'relocs': [
         ('libstdc___so_6_0', 0x378338, 2, 0x8c1b0),
         ('libstdc___so_6_0', 0x378340, 2, 0x8b9b0),
         ('libstdc___so_6_0', 0x378348, 2, 0x8ba30),
@@ -7451,10 +7451,9 @@ libstdc_data = {
         ('libstdc___so_6_0', 0x383b30, 2, 0x37c3c8),
     ],
 
-    'names' : [
+    'names': [
         (0x2390000, 'libstdc___so_6_0.bss_temp'),
         (0x2088480, 'libstdc___so_6_0.init_function'),
-        (0x20884a0, 'libstdc___so_6_0.LazyLoaderTrampoline'),
         (0x20884b0, 'libstdc___so_6_0.plt___cxa_allocate_dependent_exception'),
         (0x20884c0, 'libstdc___so_6_0.plt_std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::find_last_not_of(wchar_t const*, unsigned long, unsigned long) const'),
         (0x20884d0, 'libstdc___so_6_0.plt__ITM_addUserCommitAction'),
@@ -7479,7 +7478,7 @@ libstdc_data = {
         (0x2088600, 'libstdc___so_6_0.plt_std::string::_Rep::_S_create(unsigned long, unsigned long, std::allocator<char> const&)'),
         (0x2088610, 'libstdc___so_6_0.plt_pthread_cond_destroy'),
         (0x2088620, 'libstdc___so_6_0.plt_std::ctype<char> const& std::use_facet<std::ctype<char> >(std::locale const&)'),
-        (0x2088630, 'libstdc___so_6_0.plt_std::__cxx11::messages<char>::messages(unsigned long)'),
+        (0x2088630, 'libstdc___so_6_0.plt_std::__cxx11::messages<char>::messages(unsigned long)_0'),
         (0x2088640, 'libstdc___so_6_0.plt_std::locale::facet::_S_clone_c_locale(__locale_struct*&)'),
         (0x2088650, 'libstdc___so_6_0.plt_std::basic_istream<wchar_t, std::char_traits<wchar_t> >& std::basic_istream<wchar_t, std::char_traits<wchar_t> >::_M_extract<double>(double&)'),
         (0x2088660, 'libstdc___so_6_0.plt___strcoll_l'),
@@ -7563,7 +7562,7 @@ libstdc_data = {
         (0x2088b40, 'libstdc___so_6_0.plt_std::__cxx11::numpunct<char>::~numpunct()'),
         (0x2088b50, 'libstdc___so_6_0.plt_std::__cxx11::numpunct<wchar_t>::_M_initialize_numpunct(__locale_struct*)'),
         (0x2088b60, 'libstdc___so_6_0.plt_std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::swap(std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >&)'),
-        (0x2088b70, 'libstdc___so_6_0.plt_std::__cxx11::messages<wchar_t>::messages(unsigned long)'),
+        (0x2088b70, 'libstdc___so_6_0.plt_std::__cxx11::messages<wchar_t>::messages(unsigned long)_0'),
         (0x2088b80, 'libstdc___so_6_0.plt___fprintf_chk'),
         (0x2088b90, 'libstdc___so_6_0.plt_operator new(unsigned long)'),
         (0x2088ba0, 'libstdc___so_6_0.plt_std::ios_base::failure::~failure()'),
@@ -7649,7 +7648,7 @@ libstdc_data = {
         (0x20890a0, 'libstdc___so_6_0.plt_std::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::replace(unsigned long, unsigned long, wchar_t const*, unsigned long)'),
         (0x20890b0, 'libstdc___so_6_0.plt_std::ios_base::ios_base()'),
         (0x20890c0, 'libstdc___so_6_0.plt_std::ostreambuf_iterator<char, std::char_traits<char> > std::money_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > >::_M_insert<true>(std::ostreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, char, std::string const&) const'),
-        (0x20890d0, 'libstdc___so_6_0.plt_std::numpunct<wchar_t>::~numpunct()'),
+        (0x20890d0, 'libstdc___so_6_0.plt_std::numpunct<wchar_t>::~numpunct()_0'),
         (0x20890e0, 'libstdc___so_6_0.plt___cxa_guard_release'),
         (0x20890f0, 'libstdc___so_6_0.plt_gettext'),
         (0x2089100, 'libstdc___so_6_0.plt_std::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::rfind(wchar_t, unsigned long) const'),
@@ -7793,7 +7792,7 @@ libstdc_data = {
         (0x20899a0, 'libstdc___so_6_0.plt_std::ostreambuf_iterator<char, std::char_traits<char> > std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > >::_M_insert_float<long double>(std::ostreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, char, char, long double) const'),
         (0x20899b0, 'libstdc___so_6_0.plt___cxa_vec_dtor'),
         (0x20899c0, 'libstdc___so_6_0.plt___cxa_thread_atexit_impl'),
-        (0x20899d0, 'libstdc___so_6_0.plt_std::__cxx11::messages<wchar_t>::messages(unsigned long)_0'),
+        (0x20899d0, 'libstdc___so_6_0.plt_std::__cxx11::messages<wchar_t>::messages(unsigned long)'),
         (0x20899e0, 'libstdc___so_6_0.plt_wmemchr'),
         (0x20899f0, 'libstdc___so_6_0.plt_std::__verify_grouping(char const*, unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)'),
         (0x2089a00, 'libstdc___so_6_0.plt_std::__cxx11::moneypunct<char, false>::_M_initialize_moneypunct(__locale_struct*, char const*)'),
@@ -7831,7 +7830,7 @@ libstdc_data = {
         (0x2089c00, 'libstdc___so_6_0.plt___tls_get_addr'),
         (0x2089c10, 'libstdc___so_6_0.plt_sprintf'),
         (0x2089c20, 'libstdc___so_6_0.plt_std::string::replace(unsigned long, unsigned long, char const*, unsigned long)'),
-        (0x2089c30, 'libstdc___so_6_0.plt_std::locale::facet::~facet()'),
+        (0x2089c30, 'libstdc___so_6_0.plt_std::locale::facet::~facet()_0'),
         (0x2089c40, 'libstdc___so_6_0.plt_std::__cxx11::basic_stringbuf<char, std::char_traits<char>, std::allocator<char> >::__xfer_bufptrs::~__xfer_bufptrs()'),
         (0x2089c50, 'libstdc___so_6_0.plt_std::__codecvt_utf8_base<char32_t>::~__codecvt_utf8_base()'),
         (0x2089c60, 'libstdc___so_6_0.plt_std::locale::locale(char const*)'),
@@ -7967,7 +7966,7 @@ libstdc_data = {
         (0x208a480, 'libstdc___so_6_0.plt_void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<__gnu_cxx::__normal_iterator<char*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >(__gnu_cxx::__normal_iterator<char*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, __gnu_cxx::__normal_iterator<char*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::forward_iterator_tag)'),
         (0x208a490, 'libstdc___so_6_0.plt_std::string::find_first_not_of(char const*, unsigned long, unsigned long) const'),
         (0x208a4a0, 'libstdc___so_6_0.plt_std::type_info::~type_info()_0'),
-        (0x208a4b0, 'libstdc___so_6_0.plt_std::messages<wchar_t>::messages(unsigned long)'),
+        (0x208a4b0, 'libstdc___so_6_0.plt_std::messages<wchar_t>::messages(unsigned long)_0'),
         (0x208a4c0, 'libstdc___so_6_0.plt_std::basic_filebuf<wchar_t, std::char_traits<wchar_t> >::basic_filebuf()_0'),
         (0x208a4d0, 'libstdc___so_6_0.plt_vsnprintf'),
         (0x208a4e0, 'libstdc___so_6_0.plt_fread'),
@@ -8031,12 +8030,12 @@ libstdc_data = {
         (0x208a880, 'libstdc___so_6_0.plt_std::__cxx11::messages<wchar_t>::messages(__locale_struct*, char const*, unsigned long)'),
         (0x208a890, 'libstdc___so_6_0.plt_std::string::copy(char*, unsigned long, unsigned long) const'),
         (0x208a8a0, 'libstdc___so_6_0.plt_std::string::find(char, unsigned long) const'),
-        (0x208a8b0, 'libstdc___so_6_0.plt_std::__cxx11::numpunct<wchar_t>::~numpunct()'),
+        (0x208a8b0, 'libstdc___so_6_0.plt_std::__cxx11::numpunct<wchar_t>::~numpunct()_0'),
         (0x208a8c0, 'libstdc___so_6_0.plt_std::__cxx11::basic_ostringstream<char, std::char_traits<char>, std::allocator<char> >::~basic_ostringstream()'),
         (0x208a8d0, 'libstdc___so_6_0.plt_get_nprocs'),
         (0x208a8e0, 'libstdc___so_6_0.plt_std::moneypunct<wchar_t, true>::_M_initialize_moneypunct(__locale_struct*, char const*)'),
         (0x208a8f0, 'libstdc___so_6_0.plt_std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::find_last_of(wchar_t const*, unsigned long, unsigned long) const'),
-        (0x208a900, 'libstdc___so_6_0.plt_std::messages<wchar_t>::messages(unsigned long)_0'),
+        (0x208a900, 'libstdc___so_6_0.plt_std::messages<wchar_t>::messages(unsigned long)'),
         (0x208a910, 'libstdc___so_6_0.plt_std::__timepunct<wchar_t>::__timepunct(__locale_struct*, char const*, unsigned long)'),
         (0x208a920, 'libstdc___so_6_0.plt_bool std::has_facet<std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > > >(std::locale const&)'),
         (0x208a930, 'libstdc___so_6_0.plt_std::istream& std::istream::_M_extract<unsigned short>(unsigned short&)'),
@@ -8143,11 +8142,11 @@ libstdc_data = {
         (0x208af80, 'libstdc___so_6_0.plt_std::condition_variable::condition_variable()'),
         (0x208af90, 'libstdc___so_6_0.plt_void std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::_M_construct<__gnu_cxx::__normal_iterator<wchar_t*, std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> > > >(__gnu_cxx::__normal_iterator<wchar_t*, std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> > >, __gnu_cxx::__normal_iterator<wchar_t*, std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> > >, std::forward_iterator_tag)'),
         (0x208afa0, 'libstdc___so_6_0.plt_std::get_terminate()'),
-        (0x208afb0, 'libstdc___so_6_0.plt_std::locale::facet::~facet()_0'),
+        (0x208afb0, 'libstdc___so_6_0.plt_std::locale::facet::~facet()'),
         (0x208afc0, 'libstdc___so_6_0.plt_std::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::basic_string(wchar_t const*, unsigned long, std::allocator<wchar_t> const&)'),
         (0x208afd0, 'libstdc___so_6_0.plt_std::__exception_ptr::exception_ptr::swap(std::__exception_ptr::exception_ptr&)'),
         (0x208afe0, 'libstdc___so_6_0.plt_std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::reserve(unsigned long)'),
-        (0x208aff0, 'libstdc___so_6_0.plt_std::numpunct<wchar_t>::~numpunct()_0'),
+        (0x208aff0, 'libstdc___so_6_0.plt_std::numpunct<wchar_t>::~numpunct()'),
         (0x208b000, 'libstdc___so_6_0.plt_std::__cxx11::time_get<wchar_t, std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> > >::_M_extract_wday_or_month(std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> >, std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> >, int&, wchar_t const**, unsigned long, std::ios_base&, std::_Ios_Iostate&) const'),
         (0x208b010, 'libstdc___so_6_0.plt_fopen64'),
         (0x208b020, 'libstdc___so_6_0.plt_std::__atomic_futex_unsigned_base::_M_futex_notify_all(unsigned int*)'),
@@ -8178,7 +8177,7 @@ libstdc_data = {
         (0x208b1b0, 'libstdc___so_6_0.plt_std::basic_ios<char, std::char_traits<char> >::clear(std::_Ios_Iostate)'),
         (0x208b1c0, 'libstdc___so_6_0.plt_std::istreambuf_iterator<char, std::char_traits<char> > std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::_M_extract_int<unsigned int>(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, unsigned int&) const'),
         (0x208b1d0, 'libstdc___so_6_0.plt_std::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::_Rep::_M_clone(std::allocator<wchar_t> const&, unsigned long)'),
-        (0x208b1e0, 'libstdc___so_6_0.plt_std::__cxx11::messages<char>::messages(unsigned long)_0'),
+        (0x208b1e0, 'libstdc___so_6_0.plt_std::__cxx11::messages<char>::messages(unsigned long)'),
         (0x208b1f0, 'libstdc___so_6_0.plt_setlocale'),
         (0x208b200, 'libstdc___so_6_0.plt_floor'),
         (0x208b210, 'libstdc___so_6_0.plt_std::__basic_file<char>::xsputn_2(char const*, long, char const*, long)'),
@@ -8267,7 +8266,7 @@ libstdc_data = {
         (0x208b740, 'libstdc___so_6_0.plt_std::ostreambuf_iterator<char, std::char_traits<char> > std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > >::_M_insert_int<long long>(std::ostreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, char, long long) const'),
         (0x208b750, 'libstdc___so_6_0.plt___gnu_debug::_Safe_local_iterator_base::_M_detach()'),
         (0x208b760, 'libstdc___so_6_0.plt_std::messages<char>::messages(unsigned long)_0'),
-        (0x208b770, 'libstdc___so_6_0.plt_std::__cxx11::numpunct<wchar_t>::~numpunct()_0'),
+        (0x208b770, 'libstdc___so_6_0.plt_std::__cxx11::numpunct<wchar_t>::~numpunct()'),
         (0x208b780, 'libstdc___so_6_0.plt_std::locale::_Impl::_Impl(char const*, unsigned long)'),
         (0x208b790, 'libstdc___so_6_0.plt_std::ctype<wchar_t>::~ctype()_0'),
         (0x208b7a0, 'libstdc___so_6_0.plt_std::logic_error::logic_error(char const*)_0'),
@@ -14437,9 +14436,7 @@ libstdc_data = {
         (0x2387258, 'libstdc___so_6_0.std::moneypunct<wchar_t, false>::id'),
     ],
 
-    'pltgot' : [
+    'pltgot': [
     ],
 
 }
-
-

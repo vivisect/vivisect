@@ -507,3 +507,20 @@ class PETests(unittest.TestCase):
             self.assertEqual(msize, ssize)
             self.assertEqual(flags, ans[sname][2])
             self.assertEqual(mfname, sfname)
+
+    def test_saved_structures(self):
+        ans = [
+            0x4001f0,
+            0x400218,
+            0x400240,
+            0x400268,
+            0x400290
+        ]
+        vw = self.vw_psexec
+        for va in ans:
+            loc = vw.getLocation(va)
+            self.assertIsNotNone(loc)
+            self.assertEqual(loc[0], va)
+            self.assertEqual(loc[1], 40)
+            self.assertEqual(loc[2], viv_con.LOC_STRUCT)
+            self.assertEqual(loc[3], 'pe.IMAGE_SECTION_HEADER')
