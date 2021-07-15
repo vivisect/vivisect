@@ -158,6 +158,26 @@ def doRepSIMDPrefix(emu, meth, op):
     # TODO
     raise Exception("doRepSIMDPrefix() not implemented.  Fix and retry.")
 
+class UDException(Exception):
+    def __init__(self, va, op):
+        self.va = va
+        self.op = op
+
+    def __repr__(self):
+        return "UD Exception at 0x%x (opcode: %r)" % (self.va, self.op)
+
+class BoundRangeExceededException(Exception):
+    def __init__(self, va, op, aidx, lowbound, hibound):
+        self.va = va
+        self.op = op
+        self.aidx = aidx
+        self.hibound = hibound
+        self.lowbound = lowbound
+
+    def __repr__(self):
+        return "Bound Range Exceeded Exception at 0x%x (opcode: %r)  index: %d  low: %d  hi: %d" % \
+                (self.va, self.op, self.aidx, self.lowbound, self.hibound)
+
 
 class IntelEmulator(i386RegisterContext, envi.Emulator):
 
@@ -1633,6 +1653,21 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             ival = self.getOperValue(op, 0)
             self.setRegister(REG_ESP, esp+ival)
         return ret
+
+    def i_bound(self, op):
+        if self.psize == 8:
+            raise UDException(op.va, op)    # this instruction is invalid in 64-bit mode
+
+        bsize = op.opers[1].tsize // 2  # target is two numbers
+        aidx = e_bits.signed(self.getOperValue(op, 0), self.psize)
+        bounds = self.getOperValue(op, 1)
+        lowbound = bounds & e_bits.u_maxes[bsize]
+        hibound = bounds >> (bsize << 3)    # bsize * 8, but faster
+
+        if lowbound <= aidx <= hibound:
+            return
+
+        raise BoundRangeExceededException(op.va, op, aidx, lowbound, hibound)
 
     def i_sal(self, op):
         dsize = op.opers[0].tsize

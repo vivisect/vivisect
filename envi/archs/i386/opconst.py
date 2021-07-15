@@ -65,7 +65,7 @@ OPTYPE_fv = 0x18000000
 
 OPERSIZE = {
     0: (2, 4, 8),           # We will only end up here on regs embedded in opcodes
-    OPTYPE_a: (2, 4, 4),
+    OPTYPE_a: (4, 8, 8),
     OPTYPE_b: (1, 1, 1),
     OPTYPE_c: (1, 2, 2),           # 1/2   byte or word, depending on operand
     OPTYPE_d: (4, 4, 4),           # 4     double-word
