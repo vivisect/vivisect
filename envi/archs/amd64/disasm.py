@@ -441,6 +441,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             # handles tsize calculations including new REX prefixes
             tsize = self._dis_calc_tsize(opertype, prefixes, operflags)
+
             # If addrmeth is zero, we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
@@ -573,6 +574,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                     operval = (operval & RMETA_NMASK) | META_SIZES[tsize]
                 else:
                     operval |= META_SIZES[tsize]
+
             width = self._dis_regctx.getRegisterWidth(operval) >> 3
             o = i386RegOper(operval, width)
         elif operflags & opcode86.OP_IMM:

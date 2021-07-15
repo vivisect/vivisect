@@ -2,6 +2,7 @@ apitypes = {
 }
 
 api = {
+    # libc
     'plt___libc_start_main':( 'int', None, 'cdecl', '*.__libc_start_main', (('int', 'main'), ('int', 'argc'), ('int', 'argv')) ),
     'main':( 'int', None, 'stdcall', '*.main_entry', (('int', None), ('int', None), ('int', None)) ),
     'plt_DTTOIF': ('mode_t', None, 'cdecl', '*.DTTOIF', (('int', 'dtype'),)),

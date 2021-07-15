@@ -163,11 +163,13 @@ class WorkspaceEmulator:
 
             self.hooks[impname] = val
 
-        self.stack_map_mask = None
-        self.stack_map_base = None
-        self.stack_map_top = None
-        self.stack_pointer = None
-        self.initStackMemory()
+        self.stack_map_mask = kwargs.get('stackMask')
+        self.stack_map_base = kwargs.get('stackBase')
+        self.stack_map_top = kwargs.get('stackMapTop')
+        self.stack_pointer = kwargs.get('stackPointer')
+
+        if not kwargs.get('nostack', False):
+            self.initStackMemory()
 
     def initStackMemory(self, stacksize=init_stack_size):
         '''

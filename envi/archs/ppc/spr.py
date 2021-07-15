@@ -14,25 +14,48 @@ sprs = {
     61: ("DEAR", "Data exception address register", 64),
     62: ("ESR", " Exception syndrome register", 32),
     63: ("IVPR", "Interrupt vector prefix register", 64),
-    256: ("USPRG0", "User SPR general 03", 64),
-    259: ("SPRG3", "SPR general 3 (alias to same physical register as", 64),
-    260: ("SPRG4", "SPR general 4 (alias to same physical register as", 64),
-    261: ("SPRG5", "SPR general 5 (alias to same physical register as", 64),
-    262: ("SPRG6", "SPR general 6 (alias to same physical register as", 64),
-    263: ("SPRG7", "SPR general 7 (alias to same physical register as", 64),
-    268: ("TB", "(TBL) Time base (time base lower) - read port to Time", 64),   # FIXME: TBL is a metaregister for TB
-    269: ("TBU", "Time base upper - read port to high-order 32-bits", 32),      # FIXME: TBU is a metaregister for TB... but has it's own reg number in the architecture
+
+    # User accessible Read-Only aliases for SPRs 272-279
+    256: ("USPRG0", "SPR general 0", 64),
+    257: ("USPRG1", "SPR general 1", 64),
+    258: ("USPRG2", "SPR general 2", 64),
+    259: ("USPRG3", "SPR general 3", 64),
+    260: ("USPRG4", "SPR general 4", 64),
+    261: ("USPRG5", "SPR general 5", 64),
+    262: ("USPRG6", "SPR general 6", 64),
+    263: ("USPRG7", "SPR general 7", 64),
+
+    # The TB (TBL) and TBU SPRs are "Read Only" metaregisters to read the
+    # current tick count of the system.  On 64-bit platforms the TB register can
+    # be used to read the full timebase value, on 32-bit systems both the TBL
+    # and TBU registers must be read to get the full timebase value.  The TBU
+    # always returns just 32 bits.
+    #
+    # In the PpcAbstractEmulator class the i_mfspr() emulation function just
+    # returns the static value in the timebase registers.  For more accurate
+    # emulation the addSprReadHandler() function should be used to install a
+    # function that accurately emulates time elapsing.
+    268: ("TB", "(TBL) Time base (time base lower) - read port to Time", 64),
+    269: ("TBU", "Time base upper - read port to high-order 32-bits", 32),
+
+    # Supervisor/Hypervisor modifiable general purpose SPRs
     272: ("SPRG0", "SPR general 0", 64),
     273: ("SPRG1", "SPR general 1", 64),
     274: ("SPRG2", "SPR general 2", 64),
-    275: ("SPRG3", "SPR general 3(alias to same physical register as", 64),
-    276: ("SPRG4", "SPR general 4 (alias to same physical register as", 64),
-    277: ("SPRG5", "SPR general 5 (alias to same physical register as", 64),
-    278: ("SPRG6", "SPR general 6 (alias to same physical register as", 64),
-    279: ("SPRG7", "SPR general 7 (alias to same physical register as", 64),
+    275: ("SPRG3", "SPR general 3", 64),
+    276: ("SPRG4", "SPR general 4", 64),
+    277: ("SPRG5", "SPR general 5", 64),
+    278: ("SPRG6", "SPR general 6", 64),
+    279: ("SPRG7", "SPR general 7", 64),
     283: ("CIR", "Chip identification register (alias to SVR for", 32),
-    284: ("TBL", "Time base lower - write port to low-order 32 bits", 32),
-    285: ("TBU", " Time base upper - write port to high-order 32 bits ", 32),
+
+    # SPRs 284/285 are "Write Only" metaregisters to allow modifying the current
+    # system timebase (number of ticks that have elapsed since the system
+    # started). Note that both of these alias registers are 32-bits (in contrast
+    # with the read-only TB register)
+    284: ("TBL_WO", "Time base lower - write port to low-order 32 bits", 32),
+    285: ("TBU_WO", "Time base upper - write port to high-order 32 bits ", 32),
+
     286: ("PIR", " Processor ID register ", 32),
     287: ("PVR", " Processor version register ", 32),
     304: ("DBSR", " Debug status register2 ", 32),
@@ -64,10 +87,13 @@ sprs = {
     348: ("MAS5_MAS6", " MMU assist register 5 and MMU assist register ", 64),
     349: ("MAS8_MAS1", " MMU assist register 8 and MMU assist register ", 64),
     350: ("EPTCFG", " Embedded page table configuration register ", 32),
+
+    # Guest/Supervisor modifiable aliases for SPRs 272-279.
     368: ("GSPRG0", " Guest SPR general 0 ", 64),
     369: ("GSPRG1", " Guest SPR general 1 ", 64),
     370: ("GSPRG2", " Guest SPR general 2 ", 64),
     371: ("GSPRG3", " Guest SPR general 3 ", 64),
+
     372: ("MAS7_MAS3", " MMU assist register 7 and MMU assist register ", 64),
     373: ("MAS0_MAS1", " MMU assist register 0 and MMU assist register ", 64),
     378: ("GSRR0", " Guest save/restore register 0 ", 64),

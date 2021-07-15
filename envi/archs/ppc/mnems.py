@@ -7,6 +7,9 @@ import envi.bits as e_bits
 
 #FIXME: dcbtst (and others, I assume) has different operand ordering between Embedded and Server
 
+# Corrected the following items in this string that were incorrect in the source table:
+# - Changed last bit of ISEL instruction from 0 to \
+
 encodings = '''tdi 0 0 0 0 1 0
  TO
  rA
@@ -5333,7 +5336,7 @@ isel 0 1 1 1 1 1
  0
  1 1 1
  1
- 0
+ /
  A
 tlbilx 0 1 1 1 1 1
  0
@@ -6113,7 +6116,7 @@ stwx 0 1 1 1 1 1
  0 1 1
  1
  /
- D
+ X
 prtyw 0 1 1 1 1 1
  rS
  rA
@@ -6199,7 +6202,7 @@ stwux 0 1 1 1 1 1
  0 1 1
  1
  /
- D
+ X
 A-100
 EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1)
 Freescale Semiconductor
@@ -10720,6 +10723,11 @@ rAnegades = [
     'dcbtls',
 ]
 
+rAnegades_but_not_mem_access = [
+    'isel',
+]
+
+
 TAG_APPEND  = -1
 TAG_PREPEND = 0
 EXTRA_OPCODES = {
@@ -11532,6 +11540,38 @@ mnems_simplify = [
         'cmpldi',
         ]
 
+# For now trap simplified mnemonics are generated when the instruction is
+# decoded, add the mnemonics to the mnems_simplify list so the necessary INS_*
+# constants get generated
+trap_prefixes = [
+    'tw',
+    'td',
+]
+trap_suffixes = [
+    'lt',
+    'le',
+    'ge',
+    'gt',
+    'llt',
+    'lle',
+    'lge',
+    'lgt',
+    'eq',
+    'ne',
+    'u',
+]
+
+for pref in trap_prefixes:
+    for suf in trap_suffixes:
+        # Add the non-immediate and immediate forms (except for 'twu'), that
+        # should translate to 'trap'
+        if pref == 'tw' and suf == 'u':
+            mnems_simplify.append('trap')
+        else:
+            mnems_simplify.append(pref + suf)
+        mnems_simplify.append(pref + suf + 'i')
+
+
 def buildOutput():
     '''
     this is the highest level.
@@ -11664,6 +11704,7 @@ for _mnem in const_gen_vle.mnems:
     out.append('IF_BRANCH_UNLIKELY = 1<<11')
     out.append('IF_BRANCH_PREV_TARGET = 1<<12')
     out.append('IF_MEM_EA = 1<<13')
+    out.append('IF_INDEXED = 1<<14')
     out.append('')
 
     # now build the instruction tables.
@@ -11768,8 +11809,15 @@ for _mnem in const_gen_vle.mnems:
             elif mnem.startswith('rf'):
                 iflags.append('envi.IF_RET | envi.IF_NOFALL')
 
-            if mnem in rAnegades:
+            field_types = [field[1].strip() for field in fields]
+            if mnem in rAnegades and mnem not in rAnegades_but_not_mem_access:
                 iflags.append('IF_MEM_EA')
+                if form == 'X' and 'rA' in field_types and 'rB' in field_types:
+                    iflags.append('IF_INDEXED')
+            elif mnem.startswith('l') or mnem.startswith('st'):
+                iflags.append('IF_MEM_EA')
+                if form == 'X' and 'rA' in field_types and 'rB' in field_types:
+                    iflags.append('IF_INDEXED')
 
             # last flag check
             if not len(iflags):

@@ -3,6 +3,8 @@ import unittest
 import vivisect
 import envi.archs.ppc
 import envi.exc as e_exc
+import envi.const as e_const
+import envi.expression as e_exp
 import envi.archs.ppc.vle as eapvd
 import vivisect.symboliks.analysis as vs_anal
 
@@ -15,11 +17,16 @@ logger = logging.getLogger(__name__)
 
 MARGIN_OF_ERROR = 200
 
-def getVivEnv(arch='ppc'):
+def getVivEnv(arch='ppc', endian=e_const.ENDIAN_MSB):
     vw = vivisect.VivWorkspace()
     vw.setMeta("Architecture", arch)
-    vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384)
-    vw.addMemoryMap(0xbfbff000, 7, 'firmware', '\xfe' * 0x1000)
+    vw.setMeta('bigend', endian)
+    vw.addMemoryMap(0, 7, 'firmware', b'\xff' * 16384)
+    vw.addMemoryMap(0xbfbff000, 7, 'firmware', b'\xfe' * 0x1000)
+
+    # A few more memory regions to match what PPC64 Linux usually allocates
+    vw.addMemoryMap(0x10000000, 7, 'ram', b'\xfd' * 0x1000)
+    vw.addMemoryMap(0x10010000, 7, 'ram', b'\xfc' * 0x1000)
 
     emu = vw.getEmulator()
     emu.setMeta('forrealz', True)
@@ -27,21 +34,6 @@ def getVivEnv(arch='ppc'):
 
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     return vw, emu, sctx
-
-ppc_test_archs = {
-        'ppc': {'bytes': b''}, 
-        'ppc32-embedded': {'bytes': b''}, 
-        'ppc-embedded': {'bytes': b''}, 
-        'ppc32-server': {'bytes': b''}, 
-        'ppc-server': {'bytes': b''}, 
-        'ppc-vle': {'bytes': b''},
-}
-
-class PpcDifferentArchitectures(unittest.TestCase):
-    def testGetAllArchEmuSymboliks(self):
-        test_envs = [getVivEnv(testarch) for testarch in ppc_test_archs]
-        self.assertEqual(len(test_envs), 6)  # lame test, but checks that the linkage to build all of it is working
-
 
 class PpcInstructionSet(unittest.TestCase):
     def validateEmulation(self, emu, opbytes, setters, tests, tidx=0):
@@ -58,8 +50,15 @@ class PpcInstructionSet(unittest.TestCase):
         emu.setStackCounter(0x450000)
 
         # setup flags and registers
-        #settersrepr = '( %r )' % (', '.join(["%s=%s" % (s, hex(v)) for s,v in setters]))
-        testsrepr = '( %r )' % (', '.join(["%s==%s" % (s, hex(v)) for s,v in tests]))
+        def _strify(val):
+            if isinstance(val, int):
+                return hex(val)
+            elif isinstance(val, bytes):
+                return val.hex()
+            else:
+                return str(val)
+        settersrepr = '( %r )' % (', '.join(["%s=%s" % (_strify(s), _strify(v)) for s,v in setters]))
+        testsrepr = '( %r )' % (', '.join(["%s==%s" % (_strify(s), _strify(v)) for s,v in tests]))
 
         va = 0x40004560
         for tgt, val in setters:
@@ -71,14 +70,26 @@ class PpcInstructionSet(unittest.TestCase):
 
             except e_exc.InvalidRegisterName:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
-                    # it's a flag
-                    emu.setFlag(eval(tgt), val)
+                if type(tgt) == str:
+                    if tgt.startswith("PSR_"):
+                        # it's a flag
+                        emu.setFlag(eval(tgt), val)
 
-                #elif type(tgt) in (long, int): Keeping this line incase I break things
+                    elif tgt.startswith("REG_"):
+                        # it's a REGISTER constant (able to manipulate individual bits
+                        reg = eval(tgt)
+                        emu.setRegister(reg, val)
+
+                    elif tgt.startswith('[') and ']' in tgt:
+                        tgtaddrstr = tgt[1:tgt.find(']')]
+                        if ':' in tgtaddrstr:
+                            tgtaddrstr, tgtsz = tgtaddrstr.split(':')
+
+                        tgtaddr = e_exp.evaluate(tgtaddrstr, emu.getRegisters())
+                        emu.writeMemory(tgtaddr, val)
+
                 elif isinstance(tgt, int):
                     # it's an address
-                    #emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently.  Commenting this out so I don't mess up what was there already.
                     emu.writeMemory(tgt, val)
 
                 else:
@@ -107,21 +118,48 @@ class PpcInstructionSet(unittest.TestCase):
 
             except e_exc.InvalidRegisterName:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
-                    # it's a flag
-                    testval = emu.getFlag(eval(tgt))
+
+                if type(tgt) == str:
+                    if tgt.startswith("PSR_"):
+                        # it's a flag
+                        testval = emu.getFlag(eval(tgt))
+                        if testval == val:
+                            success = True
+                        else:
+                            raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+                    elif tgt.startswith("REG_"):
+                        # it's a REGISTER constant (able to manipulate individual bits
+                        reg = eval(tgt)
+                        testval = emu.getRegister(reg)
+                        if testval == val:
+                            success = True
+                        else:  # should be an else
+                            raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+                    elif tgt.startswith('[') and ']' in tgt:
+                        tgtaddrstr = tgt[1:tgt.find(']')]
+                        if ':' in tgtaddrstr:
+                            tgtaddrstr, tgtsz = tgtaddrstr.split(':')
+                        else:
+                            tgtsz = len(val)
+
+                        tgtaddr = e_exp.evaluate(tgtaddrstr, emu.getRegisters())
+                        testval = emu.readMemory(tgtaddr, tgtsz)
+                        if testval == val:
+                            success = True
+                        else:
+                            raise Exception("FAILED(mem): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
+
+                elif isinstance(tgt, int):
+                    # it's an address, determine how many bytes to read
+                    testval_size = len(val)
+                    testval = emu.readMemory(tgt, testval_size)
                     if testval == val:
                         success = True
+
                     else:
-                        raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
-
-                elif type(tgt) in (long, int):
-                    # it's an address
-                    testval = emu.readMemValue(tgt, 1)
-                    if testval == val:
-                        success = True
-                    raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
-
+                        raise Exception("FAILED(mem): (%r test#%d)  0x%x  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
                 else:
                     raise Exception( "Funkt up test (%r test#%d) : %s == %s" % (op, tidx, tgt, val) )
 
@@ -195,6 +233,12 @@ class PpcInstructionSet(unittest.TestCase):
         logger.info("%s: %d of %d successes", archname, test_pass, len(test_module.instructions))
         self.assertAlmostEqual(test_pass, len(test_module.instructions), delta=MARGIN_OF_ERROR)
 
+    def run_one_test(self, archname, test_bytes, test):
+        vw, emu, sctx = getVivEnv(archname)
+        ngoodemu, nbademu = self.do_emutsts(emu, test_bytes, test)
+        print('good: %d' % ngoodemu)
+        print('bad: %d' % nbademu)
+
     def do_envi_emu(self, archname, emu_module):
         bademu = 0
         goodemu = 0
@@ -214,6 +258,10 @@ class PpcInstructionSet(unittest.TestCase):
             except Exception as  e:
 
                 logging.exception('ERROR: {}:'.format(test_bytes,))
+
+        logger.info("%s: %d of %d successes", archname, test_pass, len(emu_module.emutests))
+        self.assertAlmostEqual(test_pass, len(emu_module.emutests), delta=MARGIN_OF_ERROR)
+
 
         logger.info("%s: Total of %d tests completed.", archname, (goodemu + bademu))
         self.assertEqual(goodemu, emu_module.GOOD_EMU_TESTS)
@@ -1503,4 +1551,58 @@ class PpcInstructionSet(unittest.TestCase):
         self.assertEqual((newcr, newxer, newfpscr), (expcr, expxer, expfpscr), \
                 msg=tmpl % (op, r0, r1, cr, xer, newcr, newxer, fpscr, expcr, expxer, expfpscr))
 
+    def test_ppc_const_dups(self):
+        # Check if there are any duplicates in the data used to generate the PPC
+        # constants
 
+        # Check on the SPR names
+        import envi.archs.ppc.spr as eaps
+        spr_name_lookup = {}
+        for sprnum, (rname, _, _bitsz) in eaps.sprs.items():
+            sprname = rname.upper()
+
+            # If this SPR's name is already there print a helpful message
+            if sprname in spr_name_lookup:
+                dupnum = spr_name_lookup[sprname]
+                dupname = eaps.sprnames[dupnum].upper()
+                print('SPR[%d]: %s ([%d]: %s)' % (sprnum, sprname, dupnum, dupname))
+
+            self.assertTrue(sprname not in spr_name_lookup)
+
+            spr_name_lookup[rname] = sprnum
+
+    def test_ppc_invalid_emufuncs(self):
+        import envi.archs.ppc.emu as eape
+        emufuncs = [n[2:].lower() for n in dir(eape.PpcAbstractEmulator) if n.startswith('i_')]
+
+        import envi.archs.ppc.const as eapc
+        instrs = [n[4:].lower() for n in dir(eapc) if n.startswith('INS_')]
+
+        # Find any i_??? functions which do not match a valid instruction
+        invalid_instr_funcs = 0
+        for name in emufuncs:
+            if name not in instrs:
+                print('i_%s has no matching INS_%s instruction' % (name, name.upper()))
+                invalid_instr_funcs += 1
+        #self.assertEqual(invalid_instr_funcs, 20)
+
+        import warnings
+        warnings.warn('%d invalid PPC Emulation functions' % invalid_instr_funcs)
+
+    def test_ppc_missing_emufuncs(self):
+        import envi.archs.ppc.emu as eape
+        emufuncs = [n[2:].lower() for n in dir(eape.PpcAbstractEmulator) if n.startswith('i_')]
+
+        import envi.archs.ppc.const as eapc
+        instrs = [n[4:].lower() for n in dir(eapc) if n.startswith('INS_')]
+
+        # Find any instructions that do not have an emulation method
+        missing_emu_instrs = 0
+        for name in instrs:
+            if name not in emufuncs:
+                print('INS_%s has no matching i_%s emulation instruction' % (name.upper(), name))
+                missing_emu_instrs += 1
+        #self.assertEqual(missing_emu_instrs, 594)
+
+        import warnings
+        warnings.warn('Missing %d PPC Emulation functions' % missing_emu_instrs)

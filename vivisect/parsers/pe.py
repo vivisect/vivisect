@@ -117,8 +117,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
     codervamax = codebase+codesize
 
-    # grab the file bytes for hashing
-    pe.fd.seek(0)
     fhash = v_parsers.md5Bytes(byts)
     sha256 = v_parsers.sha256Bytes(byts)
 

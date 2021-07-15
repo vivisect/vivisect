@@ -367,6 +367,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, obj)
 
     def i_bt(self, op):
+        '''
+        selects a bit in a bit string
+        '''
         oper = self.getOperObj(op, 0)
         bit = self.getOperObj(op, 1)
         cf = (oper >> bit) & Const(1, 1)
@@ -551,6 +554,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
             res = src1 * src2
             self.setOperObj(op, 0, res)
+
         else:
             raise Exception("WTFO?  i_imul with no opers")
 

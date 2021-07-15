@@ -842,7 +842,7 @@ instrs_by_category = [
         (CAT_NONE, '7c221b56', 'divwe r1,r2,r3', 'divwe r1,r2,r3', {}),
         (CAT_NONE, '7c221b57', 'divwe. r1,r2,r3', 'divwe. r1,r2,r3', {}),
         (CAT_NONE, '7c221b6e', 'sthux r1,r2,r3', 'sthux r1,r2,r3', {}),
-        (CAT_NONE, '7f5ad378', 'miso ', 'miso ', {}),
+        (CAT_NONE, '7f5ad378', 'mr r26,r26', 'mr r26,r26', {}),
         (CAT_NONE, '7c221b78', 'or r2,r1,r3', 'or r2,r1,r3', {}),
         (CAT_NONE, '7c221b79', 'or. r2,r1,r3', 'or. r2,r1,r3', {}),
         (CAT_NONE, '7c221b90', 'subfb r1,r2,r3', 'subfb r1,r2,r3', {}),

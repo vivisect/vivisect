@@ -13,6 +13,7 @@ from envi import *
 from .regs import *
 from .const import *
 from .disasm import *
+from .bits import *
 from envi.archs.ppc import *
 
 logger = logging.getLogger(__name__)
@@ -49,27 +50,6 @@ ppccall = PpcCall()
 
 OPER_SRC = 1
 OPER_DST = 0
-
-# Static generation of which bit should be set according to the PPC
-# documentation for 32 and 64 bit values
-_ppc64_bitmasks = tuple(0x8000_0000_0000_0000 >> i for i in range(64))
-_ppc32_bitmasks = tuple(0x8000_0000 >> i for i in range(32))
-_ppc_bitmasks = (None, None, None, None, _ppc32_bitmasks, None, None, None, None, _ppc64_bitmasks,)
-
-def BITMASK(bit, psize=8):
-    '''
-    Return mask with bit b of 64 or 32 set using PPC numbering.
-
-    Most PPC documentation uses 64-bit numbering regardless of whether or not
-    the underlying architecture is 64 or 32 bits.
-    '''
-    return _ppc_bitmasks[psize][bit]
-
-def BIT(val, bit, psize=8):
-    '''
-    Return value of specified bit provided in PPC numbering
-    '''
-    return (val & _ppc_bitmasks[psize][bit]) >> bit
 
 # Carry bit mask and shift the tuple values are:
 #   1. CA mask
@@ -111,12 +91,6 @@ def UNSIGNED_SATURATE(size):
     '''
     return e_bits.u_maxes[size]
 
-def COMPLEMENT(val, size):
-    '''
-    1's complement of the value
-    '''
-    return val ^ e_bits.u_maxes[size]
-
 def MASK(b, e):
     '''
     helper to create masks.
@@ -154,6 +128,8 @@ def ROTL32(x, y, psize=8):
     helper to rotate left, 32-bit stype.
     NOTE: THIS IS IN NXP's WARPED VIEW ON BIT NUMBERING!
     lsb = bit 63!!!
+
+    Shift size must be 0-31 when using this function.
     '''
     tmp = x >> (32-y)
     x |= (x<<32)
@@ -164,9 +140,19 @@ def ROTL64(x, y, psize=8):
     helper to rotate left, 64-bit stype.
     NOTE: THIS IS IN NXP's WARPED VIEW ON BIT NUMBERING!
     lsb = bit 63!!!
+
+    Shift size must be 0-63 when using this function.
     '''
     tmp = x >> (64-y)
     return ((x << y) | tmp) & e_bits.u_maxes[psize]
+
+def ONES_COMP(val, size):
+    '''
+    Helper function to use the size limited one's complement
+    when dealing with signed numbers
+    '''
+    mask = e_bits.bu_maxes[size]
+    return (val & mask) ^ mask
 
 def getCarryBitAtX(bit, add0, add1):
     '''
@@ -269,7 +255,6 @@ class PpcAbstractEmulator(envi.Emulator):
         self.spr_read_handlers = {
         }
         self.spr_write_handlers = {
-            REG_L1CSR1: self._swh_L1CSR1,
         }
 
     # Special Register Access Handlers: SPRs often have ties to hardware things
@@ -383,21 +368,9 @@ class PpcAbstractEmulator(envi.Emulator):
             if name.startswith("INS_"):
                 opcode = getattr(ppc_consts, name)
 
-                # check if there were any opcodes with no cat
-                if opcode in instr_cat:
-                    cat = instr_cat[opcode]
-                else:
-                    cat = None
-
                 emu_method_name = 'i_' + name[4:].lower()
                 if hasattr(self, emu_method_name):
                     self.op_methods[opcode] = getattr(self, emu_method_name)
-                #else:
-                #    if cat is not None and \
-                #            cat & (CAT_V|CAT_SP|CAT_SP_FV|CAT_SP_FS|CAT_SP_FD) == 0 and \
-                #            opcode < VLE_INS_OFFSET:
-                #        catstr = hex(cat) if cat is not None else 'None'
-                #        logger.warning("%r(%s) emulation method missing" % (name, catstr))
 
     def _checkExtraOpMethods(self):
         assigned_methods = [f for f in self.op_methods if f is not None]
@@ -604,29 +577,62 @@ class PpcAbstractEmulator(envi.Emulator):
         # After FPSCR is set copy the FX/FEX/VX/OX bits into CR1
         self.setCr(fflags & C_FPCC_TO_CR1_MASK, crnum=1)
 
-    def float2decimal(self, fresult, fpsize=8):
-        endian = self.getEndian()
-        result = e_bits.floattodecimel(fresult, fpsize, endian)
+    def float2decimal(self, value, fpsize=8):
+        '''
+        Used to convert a python floating point value into an integer
+        representation that can be saved into the emulated registers.
+
+        Some of the decimal/integer values produced by python (by calling the
+        e_bits.floattodecimel function) do not match the values used on 64-bit
+        PowerPC processors. This function handles converting between the
+        standard python/envi.bits integer representations of floating point
+        values and the values that should be produced to accurately emulate the
+        results of PowerPC floating-point instructions.
+
+        If the result should be a single-precision (32-bit) floating point
+        value and this is a 64-bit system to convert the floating point value
+        accurately it must be converted from a decimal/integer value to a
+        double-precision (64-bit) floating point value first. Then mask off the
+        lower 29 bits of the fractional portion. For some reason NXP PowerPCs do
+        not use standard IEEE754 single-precision floating point
+        representations.
+
+        The python NaN values don't match those generated by a PowerPC, any NaN
+        integer values need to be adjusted.
+        '''
+        # Use the emulator pointer size for converting floating point values
+        # into their decimal/integer representations. Non-platform sized
+        # floating point are handled later.
+        float_value = e_bits.floattodecimel(value, emu.psize, self.getEndian())
 
         # If the result is the python version of NaN convert it to the correct
         # PPC QNAN representation
-        if fpsize == 8:
-            if result == FP_DOUBLE_NEG_PYNAN:
-                result = FP_DOUBLE_NEG_QNAN
-            elif result == FP_DOUBLE_POS_PYNAN:
-                result = FP_DOUBLE_POS_QNAN
+        if emu.psize == 8:
+            if float_value == FP_DOUBLE_NEG_PYNAN:
+                float_value = FP_DOUBLE_NEG_QNAN
+            elif float_value == FP_DOUBLE_POS_PYNAN:
+                float_value = FP_DOUBLE_POS_QNAN
+            elif fpsize == 4:
+                # If the float_value is not infinity or NaN and this is a single
+                # precision value, mask off the lower 29 bits
+                float_value &= PPC_64BIT_SINGLE_PRECISION_MASK
         else:
-            # fpsize == 4
-            if result == FP_SINGLE_NEG_PYNAN:
-                result = FP_SINGLE_NEG_QNAN
-            elif result == FP_SINGLE_POS_PYNAN:
-                result = FP_SINGLE_POS_QNAN
+            if float_value == FP_SINGLE_NEG_PYNAN:
+                float_value = FP_SINGLE_NEG_QNAN
+            elif float_value == FP_SINGLE_POS_PYNAN:
+                float_value = FP_SINGLE_POS_QNAN
 
-        return result
+        return float_value
 
-    def decimal2float(self, result, fpsize=8):
-        fresult = e_bits.decimeltofloat(result, fpsize, self.getEndian())
-        return fresult
+    def decimal2float(self, value, fpsize=8):
+        '''
+        For converting from floating point to decimal there are no special steps
+        required. The standard envi.bits.decimeltofloat() results match the
+        values seen on a 64-bit NXP PowerPC, and python is able to accurately
+        convert the values produced by the above float2decimal() function into
+        floating point values without special checks.
+        '''
+        return e_bits.decimeltofloat(result, fpsize, self.getEndian())
 
     # Beginning of Instruction methods
 
@@ -641,11 +647,11 @@ class PpcAbstractEmulator(envi.Emulator):
         # The 4th operand is which bit to check in the CR register, but using
         # the MSB as bit 0 because PPC. (use psize of 4 because the CR register
         # is always only 32 bits.
-        cr_mask = BITMASK(op.opers[3].field, psize=4)
+        cr_mask = BITMASK(op.opers[3].bit, psize=4)
 
         # Doesn't matter what the actual bit or CR is because the if the cr bit
         # is set in the CR then the use rA, otherwise use rB
-        if self.getCr(cr) & cr_mask:
+        if self.getRegister(REG_CR) & cr_mask:
             self.setOperValue(op, 0, self.getOperValue(op, 1))
         else:
             self.setOperValue(op, 0, self.getOperValue(op, 2))
@@ -2132,9 +2138,10 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_orc(self, op):
         src0 = self.getOperValue(op, 1)
         src1 = COMPLEMENT(self.getOperValue(op, 2), self.psize)
+        result = src0 | src1
 
         if op.iflags & IF_RC: self.setFlags(result)
-        self.setOperValue(op, 0, (src0 | src1))
+        self.setOperValue(op, 0, result)
 
     i_ori = i_or
 
@@ -2151,41 +2158,51 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_divd(self, op, opsize=8, oe=False):
         ra = self.getOperValue(op, 1)
         dividend = e_bits.signed(ra, opsize)
-        rb = self.getOperValue(op, 1)
+        rb = self.getOperValue(op, 2)
         divisor = e_bits.signed(rb, opsize)
 
         # integer division overflow check, do the divide by 0 check separately
         # from the overflow (0x8000... / -1) check because we can, and also
-        # because that allows this function to be re-uesd for the divw
+        # because that allows this function to be re-used for the divw
         # instructions
 
         if divisor == 0:
-            ov = 1
-            # Result is undefined, use the "saturate" style values described in
-            # the divw instruction
-            signed = int(e_bits.is_signed(dividend, opsize))
-            quotient = _ppc_signed_saturate_results[opsize][signed]
+            if oe:
+                ov = 1
+
+            # Result is undefined, actual hardware passes '0' to ra register
+            quotient = 0
+
         else:
             quotient = dividend // divisor
 
             # Now check if that operation would overflow the available register
             # size
             if ra == e_bits.sign_bits[opsize] and divisor == -1:
-                ov = 1
+                if oe:
+                    ov = 1
                 # If the opsize is the current machine pointer size, set the
                 # quotient to the "saturate" negative value, otherwise just
-                # leave the quotient as-is.
+                # leave the quotient as-is.  This is for the divw instruction
+                # divW has an opsize of 4
                 if opsize == self.psize:
                     quotient = _ppc_signed_saturate_results[opsize][1]
+
+
             else:
                 ov = 0
+        if oe:
+            self.setOverflow(ov)
 
-        if oe: self.setOverflow(ov)
-        if op.iflags & IF_RC: self.setFlags(result)
+        if op.iflags & IF_RC:
+            self.setFlags(quotient)
+            # if oe:
+            #     self.setOverflow(ov)
+
         self.setOperValue(op, 0, quotient)
 
     def i_divdo(self, op):
-        self.divd(op, oe=True)
+        self.i_divd(op, oe=True)
 
     def i_divdu(self, op, opsize=8, oe=False):
         ra = self.getOperValue(op, 1)
@@ -2310,125 +2327,49 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, result)
 
     ########################## LOAD/STORE INSTRUCTIONS ################################
-    # lbz and lbzu access memory directly from operand[1]
 
-    def i_lha(self, op):
-        src = e_bits.signed(self.getOperValue(op, 1), 2)
-        self.setOperValue(op, 0, src & 0xffffffffffffffff)
+    def _load_signed(self, op):
+        self.setOperValue(op, 0, e_bits.signed(self.getOperValue(op, 1), op.opers[1].tsize))
 
-    def i_lhau(self, op):   # CAT_64
-        src = e_bits.signed(self.getOperValue(op, 1), 2)
-        self.setOperValue(op, 0, src & 0xffffffffffffffff)
+    def _load_signed_update(self, op):
+        self._load_signed(op)
+        op.opers[1].updateReg(op, self)
 
-        # Save the calculated effective address (src) into rA
-        self.setOperValue(op, 1, src)
+    def _load_unsigned(self, op):
+        self.setOperValue(op, 0, self.getOperValue(op, 1))
 
-    def i_lwa(self, op):
-        src = e_bits.signed(self.getOperValue(op, 1), 4)
-        self.setOperValue(op, 0, src & 0xffffffffffffffff)
+    def _load_unsigned_update(self, op):
+        self._load_unsigned(op)
+        op.opers[1].updateReg(op, self)
 
-    def i_lbz(self, op):
-        op.opers[1].tsize = 1
-        src = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, src)
+    i_lha = _load_signed
+    i_lwa = _load_signed
+    i_lhax = _load_signed
+    i_lwax = _load_signed
 
-    def i_lbzu(self, op):
-        op.opers[1].tsize = 1
-        src = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, src)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateReg(self)
+    i_lhau = _load_signed_update
+    i_lhaux = _load_signed_update
+    i_lwaux = _load_signed_update
 
-    i_lbze = i_lbz
-    i_lbzue = i_lbzu
+    i_lbz = _load_unsigned
+    i_lhz = _load_unsigned
+    i_lwz = _load_unsigned
+    i_ld = _load_unsigned
+    i_lbzx = _load_unsigned
+    i_lhzx = _load_unsigned
+    i_lwzx = _load_unsigned
+    i_ldx = _load_unsigned
 
-    # lbzx and lbzux load an address by adding operand[1] and operand[2]
-    def i_lbzx(self, op):
-        src = self.getOperValue(op, 1)
-        src += e_bits.signed(self.getOperValue(op, 2), 2)
-        val = self.readMemValue(src, 1)
-        self.setOperValue(op, 0, val)
+    i_lbzu = _load_unsigned_update
+    i_lhzu = _load_unsigned_update
+    i_lwzu = _load_unsigned_update
+    i_ldu = _load_unsigned_update
+    i_lbzux = _load_unsigned_update
+    i_lhzux = _load_unsigned_update
+    i_lwzux = _load_unsigned_update
+    i_ldux = _load_unsigned_update
 
-    def i_lbzux(self, op):
-        src = self.getOperValue(op, 1)
-        src += self.getOperValue(op, 2)
-        src += e_bits.signed(self.getOperValue(op, 2), 2)
-        val = self.readMemValue(src, 1)
-        self.setOperValue(op, 0, val)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateReg(self)
-
-    i_lbzxe = i_lbzx
-    i_lbzuxe = i_lbzux
-
-    # lhz and lhzu access memory directly from operand[1]
-    def i_lhz(self, op):
-        op.opers[1].tsize = 2
-        src = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, src)
-
-    def i_lhzu(self, op):
-        op.opers[1].tsize = 2
-        src = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, src)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateReg(self)
-
-    i_lhze = i_lhz
-    i_lhzue = i_lhzu
-
-    # lhzx and lhzux load an address by adding operand[1] and operand[2]
-    def i_lhzx(self, op):
-        src = self.getOperValue(op, 1)
-        src += e_bits.signed(self.getOperValue(op, 2), 2)
-        val = self.readMemValue(src, 2)
-        self.setOperValue(op, 0, val)
-
-    def i_lhzux(self, op):
-        src = self.getOperValue(op, 1)
-        src += self.getOperValue(op, 2)
-        src += e_bits.signed(self.getOperValue(op, 2), 2)
-        val = self.readMemValue(src, 2)
-        self.setOperValue(op, 0, val)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateReg(self)
-
-    i_lhzxe = i_lhzx
-    i_lhzuxe = i_lhzux
-
-    # lwz and lwzu access memory directly from operand[1]
-    def i_lwz(self, op):
-        src = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, src)
-
-    def i_lwzu(self, op):
-        src = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, src)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateReg(self)
-
-    i_lwze = i_lwz
-    i_lwzue = i_lwzu
-
-    # lwzx and lwzux load an address by adding operand[1] and operand[2]
-    def i_lwzx(self, op):
-        src = self.getOperValue(op, 1)
-        src += e_bits.signed(self.getOperValue(op, 2), 2)
-        val = self.readMemValue(src, 4)
-        self.setOperValue(op, 0, val)
-
-    def i_lwzux(self, op):
-        src = self.getOperValue(op, 1)
-        src += self.getOperValue(op, 2)
-        src += e_bits.signed(self.getOperValue(op, 2), 2)
-        val = self.readMemValue(src, 4)
-        self.setOperValue(op, 0, val)
-        # the u stands for "update"... ie. write-back
-        op.opers[1].updateReg(self)
-
-    i_lwzxe = i_lwzx
-    i_lwzuxe = i_lwzux
-
+    ####### load/store multiple words #######
 
     def i_lmw(self, op):
         op.opers[1].tsize = 4
@@ -2456,70 +2397,34 @@ class PpcAbstractEmulator(envi.Emulator):
             self.writeMemValue(startaddr + offset, word & 0xffffffff, 4)
             offset += 4
 
-    def i_stb(self, op, size=1):
-        op.opers[1].tsize = size
-        src = self.getOperValue(op, 0)
-        self.setOperValue(op, 1, src)
+    ####### Store #######
 
-    def i_sth(self, op):
-        return self.i_stb(op, size=2)
+    def _store_signed(self, op):
+        self.setOperValue(op, 1, self.getOperValue(op, 0))
 
-    def i_stw(self, op):
-        return self.i_stb(op, size=4)
+    def _store_signed_update(self, op):
+        self._store_signed(op)
+        op.opers[1].updateReg(op, self)
 
-    def i_std(self, op):
-        return self.i_stb(op, size=8)
+    i_stb = _store_signed
+    i_sth = _store_signed
+    i_stw = _store_signed
+    i_std = _store_signed
+    i_stbx = _store_signed
+    i_sthx = _store_signed
+    i_stwx = _store_signed
+    i_stdx = _store_signed
 
+    i_stbu = _store_signed_update
+    i_sthu = _store_signed_update
+    i_stwu = _store_signed_update
+    i_stdu = _store_signed_update
+    i_stbux = _store_signed_update
+    i_sthux = _store_signed_update
+    i_stwux = _store_signed_update
+    i_stdux = _store_signed_update
 
-    def i_stbu(self, op, size=1):
-        op.opers[1].tsize = size
-        src = self.getOperValue(op, 0)
-        self.setOperValue(op, 1, src)
-
-        # the u stands for "update"... ie. write-back
-        # this form holds both base and offset in the same operand, so let it handle the update
-        op.opers[1].updateReg(self)
-
-    def i_sthu(self, op):
-        return self.i_stbu(op, size=2)
-
-    def i_stwu(self, op):
-        return self.i_stbu(op, size=4)
-
-    def i_stdu(self, op):
-        return self.i_stbu(op, size=8)
-
-
-    def i_stbx(self, op, size=1, update=False):
-        val = self.getOperValue(op, 0)
-        src = self.getOperValue(op, 1)
-        src += self.getOperValue(op, 2)
-        self.writeMemValue(src, val, size)
-
-        # indexed versions need both registers (base + index), so just write the EA
-        if update:
-            self.setOperValue(op, 1, src)
-
-    def i_sthx(self, op):
-        return self.i_stbx(op, size=2)
-
-    def i_stwx(self, op):
-        return self.i_stbx(op, size=4)
-
-    def i_stdx(self, op):
-        return self.i_stbx(op, size=8)
-
-    def i_stbux(self, op):
-        return self.i_stbx(op, size=2, update=True)
-
-    def i_sthux(self, op):
-        return self.i_stbx(op, size=2, update=True)
-
-    def i_stwux(self, op):
-        return self.i_stbx(op, size=4, update=True)
-
-    def i_stdux(self, op):
-        return self.i_stbx(op, size=8, update=True)
+    ########################## MOVE FROM/TO INSTRUCTIONS ################################
 
     def i_movfrom(self, op):
         src = self.getOperValue(op, 1)
@@ -2543,13 +2448,16 @@ class PpcAbstractEmulator(envi.Emulator):
         If any Read Handlers have been added to this Emu, they will be called
         *after* reading the value.
         '''
-        spr = op.opers[1].reg
         src = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, src)
 
+        spr = op.opers[1].reg
         spr_read_hdlr = self.spr_read_handlers.get(spr)
         if spr_read_hdlr is not None:
-            spr_read_hdlr(self, op)
+            hdlr_src = spr_read_hdlr(self, op)
+            if hdlr_src is not None:
+                src = hdlr_src
+
+        self.setOperValue(op, 0, src)
 
     def i_mtspr(self, op):
         '''
@@ -2557,13 +2465,16 @@ class PpcAbstractEmulator(envi.Emulator):
         If any Write Handlers have been added to this Emu, they will be called
         *after* updating the value.
         '''
-        spr = op.opers[0].reg
         src = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, src)
 
+        spr = op.opers[0].reg
         spr_write_hdlr = self.spr_write_handlers.get(spr)
         if spr_write_hdlr is not None:
-            spr_write_hdlr(self, op)
+            hdlr_src = spr_write_hdlr(self, op)
+            if hdlr_src is not None:
+                src = hdlr_src
+
+        self.setOperValue(op, 0, src)
 
     ########################## Special case MT/F instructions ################################
 #'INS_MCRFS' emulation method missing
@@ -2587,12 +2498,6 @@ class PpcAbstractEmulator(envi.Emulator):
 #'INS_MTPMR' emulation method missing
 #'INS_MTTMR' emulation method missing
 #'INS_MTVSCR' emulation method missing
-
-    def _swh_L1CSR1(self, emu, op):
-        spr = self.getOperValue(op, 0)
-        # clear DCINV (invalidate cache)
-        spr &= 0xffffffffd
-        self.setOperValue(op, 0, spr)
 
     i_li = i_movfrom
     i_mr = i_movfrom
@@ -2651,7 +2556,7 @@ class PpcAbstractEmulator(envi.Emulator):
         n = self.getOperValue(op, 2)
         r = ROTL64(rs, n)
         b = self.getOperValue(op, 3)
-        k = MASK(b, ~n)
+        k = MASK(b, ONES_COMP(n, 6))
         result = r & k
 
         if op.iflags & IF_RC: self.setFlags(result)
@@ -2749,74 +2654,86 @@ class PpcAbstractEmulator(envi.Emulator):
 
     def i_srad(self, op):
         rb = self.getOperValue(op, 2)
-        rs = self.getOperValue(op, 1)
-
+        rs = self.getOperValue(op, 1)       
         n = rb & 0x3f
-        r = ROTL64(rs, 64-n)
-        k = 0 if rb & 0x40 else MASK(n, 63)
+
+        # Per testing on the real hardware:
+        # - If bit 57 of rB is set, then the mask (k) is set to 0 and the result saved 
+        #   to rA will either be 0 (if rS is unsigned) or -1 (if rS is signed)
+        # - If the value in rB is larger than 63, but bit 57 is not set (such as a value of 128) 
+        #   then bits 0:56 are just ignored and the mask is generated using bits 58:63.        
+        
+        r = ROTL64(rs, 64-n)    
+        k = 0 if rb & 0x40 else MASK(n, 63) 
         s = e_bits.is_signed(rs, 8)
-        result = (r & k) | (s & ~k)
 
-        if op.iflags & IF_RC: self.setFlags(result)
+        s_bits = (0, 0xFFFF_FFFF_FFFF_FFFF)[s]
 
-        ca = s and ((r & ~k))
+        result = (r & k) | (s_bits & ~k)
+        
+        ca = s and bool(r & ~k)
+        
         self.setRegister(REG_CA, ca)
 
         self.setOperValue(op, 0, result)
 
+        if op.iflags & IF_RC: self.setFlags(result)
+
     def i_sradi(self, op):
         n = self.getOperValue(op, 2)
         rs = self.getOperValue(op, 1)
-
         r = ROTL64(rs, 64-n)
         k = MASK(n, 63)
         s = e_bits.is_signed(rs, 8)
-        result = (r & k) | (s & ~k)
+        s_bits = (0, 0xFFFF_FFFF_FFFF_FFFF)[s]
+        
+        result = (r & k) | (s_bits & ~k)
 
         if op.iflags & IF_RC: self.setFlags(result)
 
-        ca = s and ((r & ~k))
+        ca = s and bool(r & ~k)
+        
         self.setRegister(REG_CA, ca)
-
         self.setOperValue(op, 0, result)
 
     def i_sraw(self, op):
         rb = self.getOperValue(op, 2)
         rs = self.getOperValue(op, 1)
-
         n = rb & 0x1f
         r = ROTL32(e_bits.unsigned(rs, 4), 32-n)
         k = 0 if rb & 0x20 else MASK(n+32, 63)
         s = e_bits.is_signed(rs, 4)
-        result = (r & k) | (s & ~k)
+        s_bits = (0, 0xFFFF_FFFF_FFFF_FFFF)[s]
+
+        result = (r & k) | (s_bits & ~k)
 
         if op.iflags & IF_RC: self.setFlags(result)
 
-        ca = s and ((r & ~k))
+        ca = s and bool(r & ~k)
+        
         self.setRegister(REG_CA, ca)
-
         self.setOperValue(op, 0, result)
 
     def i_srawi(self, op):
         n = self.getOperValue(op, 2)
         rs = self.getOperValue(op, 1)
-
         r = ROTL32(e_bits.unsigned(rs, 4), 32-n)
         k = MASK(n+32, 63)
         s = e_bits.is_signed(rs, 4)
-        result = (r & k) | (s & ~k)
+        s_bits = (0, 0xFFFF_FFFF_FFFF_FFFF)[s]
+
+        result = (r & k) | (s_bits & ~k)
 
         if op.iflags & IF_RC: self.setFlags(result)
 
-        ca = s and ((r & ~k))
-        self.setRegister(REG_CA, ca)
+        ca = s and bool(r & ~k)
 
+        self.setRegister(REG_CA, ca)
         self.setOperValue(op, 0, result)
 
     def i_srd(self, op):
         rb = self.getOperValue(op, 2)
         rs = self.getOperValue(op, 1)
-
         n = rb & 0x3f
         r = ROTL64(rs, 64-n)
         k = 0 if rb & 0x40 else MASK(n, 63)
@@ -2828,7 +2745,6 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_srw(self, op):
         rb = self.getOperValue(op, 2)
         rs = self.getOperValue(op, 1)
-
         n = rb & 0x1f
         r = ROTL32(e_bits.unsigned(rs, 4), 32-n)
         k = 0 if rb & 0x20 else MASK(n+32, 63)
@@ -3244,34 +3160,290 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setRegister(REG_MSR, msr)
         return nextpc
 
-    def trap(self, op):
+    ####### Unconditional Trap #######
+
+    def i_trap(self, op):
         print('TRAP 0x%08x: %r' % (op.va, op))
         # FIXME: if this is used for software permission transition (like a kernel call),
         #   this approach may need to be rethought
 
-    def i_twi(self, op):
+    # The "unconditional" simplified mnemonics are defined in the PowerISA to
+    # indicate unconditional-non "tw" instructions
+    i_twui = i_trap
+    i_tdu = i_trap
+    i_tdui = i_trap
+
+    ####### Generic (unsimplified) Conditional Trap #######
+
+    def i_tw(self, op, asize=4, bsize=4):
         TO = self.getOperValue(op, 0)
         rA = self.getOperValue(op, 1)
-        asize = op.opers[1].tsize
-        SIMM = self.getOperValue(op, 2)
+        rB = self.getOperValue(op, 2)
 
-        if TO & 1 and e_bits.signed(rA, asize) < e_bits.signed(SIMM, 2):
-            #TRAP
-            self.trap(op)
-        if TO & 2 and e_bits.signed(rA, asize) > e_bits.signed(SIMM, 2):
-            #TRAP
-            self.trap(op)
-        if TO & 4 and rA == SIMM:
-            #TRAP
-            self.trap(op)
-        if TO & 8 and rA > SIMM:
-            #TRAP
-            self.trap(op)
-        if TO & 10 and rA > SIMM:
-            #TRAP
-            self.trap(op)
+        # Unsigned checks
+        a = e_bits.unsigned(rA, size)
+        b = e_bits.unsigned(rB, size)
 
-    i_tdi = i_twi
+        if TO & 0b00010 and a < b:
+            self.i_trap(op)
+        if TO & 0b00001 and a > b:
+            self.i_trap(op)
+
+        # Signed checks
+        a = e_bits.signed(rA, size)
+        b = e_bits.signed(rB, size)
+
+        if TO & 0b10000 and a < b:
+            self.i_trap(op)
+        if TO & 0b01000 and a > b:
+            self.i_trap(op)
+        if TO & 0b00100 and a == b:
+            self.i_trap(op)
+
+    def i_twi(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_tw(op, asize=4, bsize=2)
+
+    def i_td(self, op):
+        self.i_tw(op, asize=8, bsize=8)
+
+    def i_tdi(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_tw(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if == #######
+
+    def i_tweq(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        a = e_bits.signed(rA, size)
+        b = e_bits.signed(rB, size)
+
+        if a == b:
+            self.i_trap(op)
+
+    def i_tweqi(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_tweq(op, asize=4, bsize=2)
+
+    def i_tdeq(self, op):
+        self.i_tweq(op, asize=8, bsize=8)
+
+    def i_tdeqi(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_tweq(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if != #######
+
+    def i_twne(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        a = e_bits.signed(rA, size)
+        b = e_bits.signed(rB, size)
+
+        if a != b:
+            self.i_trap(op)
+
+    def i_twnei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twne(op, asize=4, bsize=2)
+
+    def i_tdne(self, op):
+        self.i_twne(op, asize=8, bsize=8)
+
+    def i_tdnei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twne(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if >= #######
+
+    def i_twge(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        a = e_bits.signed(rA, size)
+        b = e_bits.signed(rB, size)
+
+        if a >= b:
+            self.i_trap(op)
+
+    def i_twgei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twge(op, asize=4, bsize=2)
+
+    def i_tdge(self, op):
+        self.i_twge(op, asize=8, bsize=8)
+
+    def i_tdgei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twge(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if > #######
+
+    def i_twgt(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        a = e_bits.signed(rA, size)
+        b = e_bits.signed(rB, size)
+
+        if a > b:
+            self.i_trap(op)
+
+    def i_twgti(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twgt(op, asize=4, bsize=2)
+
+    def i_tdgt(self, op):
+        self.i_twgt(op, asize=8, bsize=8)
+
+    def i_tdgti(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twgt(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if <= #######
+
+    def i_twle(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        a = e_bits.signed(rA, size)
+        b = e_bits.signed(rB, size)
+
+        if a <= b:
+            self.i_trap(op)
+
+    def i_twlei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twle(op, asize=4, bsize=2)
+
+    def i_tdle(self, op):
+        self.i_twle(op, asize=8, bsize=8)
+
+    def i_tdlei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twle(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if < #######
+
+    def i_twlt(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        a = e_bits.signed(rA, size)
+        b = e_bits.signed(rB, size)
+
+        if a < b:
+            self.i_trap(op)
+
+    def i_twlti(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twlt(op, asize=4, bsize=2)
+
+    def i_tdlt(self, op):
+        self.i_twlt(op, asize=8, bsize=8)
+
+    def i_tdlti(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twlt(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if (unsigned) >= #######
+
+    def i_twlge(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        # "Logical" (unsigned) comparison
+        a = e_bits.unsigned(rA, size)
+        b = e_bits.unsigned(rB, size)
+
+        if a >= b:
+            self.i_trap(op)
+
+    def i_twlgei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twlge(op, asize=4, bsize=2)
+
+    def i_tdlge(self, op):
+        self.i_twlge(op, asize=8, bsize=8)
+
+    def i_tdlgei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twlge(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if (unsigned) > #######
+
+    def i_twlgt(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        # "Logical" (unsigned) comparison
+        a = e_bits.unsigned(rA, size)
+        b = e_bits.unsigned(rB, size)
+
+        if a > b:
+            self.i_trap(op)
+
+    def i_twlgti(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twlgt(op, asize=4, bsize=2)
+
+    def i_tdlgt(self, op):
+        self.i_twlgt(op, asize=8, bsize=8)
+
+    def i_tdlgti(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twlgt(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if (unsigned) <= #######
+
+    def i_twlle(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        # "Logical" (unsigned) comparison
+        a = e_bits.unsigned(rA, size)
+        b = e_bits.unsigned(rB, size)
+
+        if a <= b:
+            self.i_trap(op)
+
+    def i_twllei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twlle(op, asize=4, bsize=2)
+
+    def i_tdlle(self, op):
+        self.i_twlle(op, asize=8, bsize=8)
+
+    def i_tdllei(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twlle(op, asize=8, bsize=2)
+
+    ####### Simplified Trap if (unsigned) < #######
+
+    def i_twllt(self, op, asize=4, bsize=4):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        # "Logical" (unsigned) comparison
+        a = e_bits.unsigned(rA, size)
+        b = e_bits.unsigned(rB, size)
+
+        if a < b:
+            self.i_trap(op)
+
+    def i_twllti(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twllt(op, asize=4, bsize=2)
+
+    def i_tdllt(self, op):
+        self.i_twllt(op, asize=8, bsize=8)
+
+    def i_tdllti(self, op):
+        # The "b" value is a 16-bit immediate value
+        self.i_twllt(op, asize=8, bsize=2)
 
     # TODO: These are instructions that should move the code into a different
     # context
@@ -3530,7 +3702,7 @@ class Ppc32ServerEmulator(Ppc32RegisterContext, Ppc32ServerModule, PpcAbstractEm
         Ppc32ServerModule.__init__(self)
 
 class PpcVleEmulator(Ppc64RegisterContext, PpcVleModule, PpcAbstractEmulator):
-    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=8):
+    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=4):
         PpcAbstractEmulator.__init__(self, archmod=PpcVleModule(), endian=endian, psize=psize)
         Ppc64RegisterContext.__init__(self)
         PpcVleModule.__init__(self)
@@ -3542,7 +3714,7 @@ class Ppc64EmbeddedEmulator(Ppc64RegisterContext, Ppc64EmbeddedModule, PpcAbstra
         Ppc64EmbeddedModule.__init__(self)
 
 class Ppc32EmbeddedEmulator(Ppc32RegisterContext, Ppc32EmbeddedModule, PpcAbstractEmulator):
-    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=8):
+    def __init__(self, archmod=None, endian=ENDIAN_MSB, psize=4):
         PpcAbstractEmulator.__init__(self, archmod=Ppc32EmbeddedModule(), endian=endian, psize=psize)
         Ppc32RegisterContext.__init__(self)
         Ppc32EmbeddedModule.__init__(self)

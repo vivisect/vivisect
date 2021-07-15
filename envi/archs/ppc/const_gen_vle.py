@@ -36,4 +36,7 @@ mnems = (
     'sync',
     'swi',
     'trap',
+    # Added for EB696 Interrupt Helper instructions (e.g. "e_ldmvgprw")
+    'loadmult',
+    'storemult',
 )

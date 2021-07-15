@@ -1,4 +1,5 @@
 
+from __future__ import annotations
 import envi
 import envi.bits as e_bits
 
@@ -81,10 +82,10 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
-        
+
         general = ('general', general_regs)  # from regs.py
         groups.append(general)
-        
+
         return groups
 
     def getPointerSize(self):
@@ -133,7 +134,7 @@ class PpcVleModule(Ppc64EmbeddedModule):
     def __init__(self):
         Ppc64EmbeddedModule.__init__(self, mode=32, archname='ppc-vle')
         self._arch_dis = vle.VleDisasm()
-        
+
     def isVle(self, va):
         return True
 
@@ -156,7 +157,7 @@ class Ppc64ServerModule(Ppc64EmbeddedModule):
             self._arch_dis = Ppc64ServerDisasm()
         else:
             self._arch_dis = Ppc32ServerDisasm()
-        
+
     def isVle(self, va):
         return False
 

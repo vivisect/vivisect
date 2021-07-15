@@ -6,6 +6,7 @@ from envi import IF_NOFALL, IF_BRANCH, IF_CALL, IF_RET, IF_PRIV, IF_COND
 
 from .regs import *
 from .const import *
+from .bits import BITMASK, COMPLEMENT
 
 def addrToName(mcanv, va):
     sym = getSymByAddr(mcanv.syms, va)
@@ -205,7 +206,7 @@ class PpcCRegOper(PpcRegOper):
 
         return emu.getCr(self.field)
 
-    def setOperValue(self, op, val, emu=None):
+    def setOperValue(self, op, emu=None, val=None):
         if emu == None:
             return
 
@@ -213,11 +214,12 @@ class PpcCRegOper(PpcRegOper):
 
 CRBITS = ('lt', 'gt', 'eq', 'so')
 class PpcCBRegOper(PpcRegOper):
-    ''' CR register operand.'''
+    ''' CR register bit operand.'''
     def __init__(self, bit, va=0, tsize=4):
         reg = REG_CR
         super(PpcCBRegOper, self).__init__(reg, va, tsize)
         self.bit = bit
+        self.bitidx = 31 - bit  # stupid NXP numbering
 
     def __eq__(self, other):
         if self.__class__ != other.__class__:
@@ -252,9 +254,25 @@ class PpcCBRegOper(PpcRegOper):
             return
 
         cr = emu.getRegister(self.reg)
-        realbitidx = 31-self.bit    # stupid NXP numbering
-        crb = (cr >> realbitidx) & 1
+        crb = (cr >> self.bitidx) & 1
         return crb
+
+    def setOperValue(self, op, emu=None, val=None):
+        if emu == None:
+            return
+
+        bitmask = BITMASK(self.bit, psize=4)
+        inverted_mask = COMPLEMENT(bitmask, size=4)
+
+        # Grab the CR, AND with mask to clear the bit in question,
+        # then OR to set it to val
+        cr = emu.getRegister(self.reg)
+        cr &= inverted_mask
+        crb = ((val & 1) << self.bitidx) & bitmask
+        cr |= crb
+
+        emu.setRegister(REG_CR, cr)
+
 
 class PpcImmOper(envi.ImmedOper):
     ''' Immediate operand. '''
@@ -286,7 +304,7 @@ class PpcImmOper(envi.ImmedOper):
     def getOperValue(self, op, emu=None):
         return self.val
 
-    def setOperValue(self, op, val, emu=None):
+    def setOperValue(self, op, emu=None, val=None):
         return None
 
     def render(self, mcanv, op, idx):
@@ -314,10 +332,7 @@ class PpcImmOper(envi.ImmedOper):
 class PpcSImmOper(PpcImmOper):
     ''' Signed Immediate operand. '''
     def __init__(self, val, va=0, bits=5, tsize=4):
-        if val & (1<<(bits-1)):
-            val |= (e_bits.b_masks[32-bits] << bits)
-
-        val = e_bits.signed(val, tsize)
+        val = e_bits.bsigned(val, bits)
         super(PpcSImmOper, self).__init__(val, va, tsize)
 
 class PpcSImm5Oper(PpcSImmOper):
@@ -369,11 +384,10 @@ class PpcUImm3Oper(PpcUImmOper):
         val *= 4
         super(PpcUImm3Oper, self).__init__(val, va, tsize)
 
-
 class PpcMemOper(envi.DerefOper):
     '''
     immediate offset memory operand.
-    0xOFFSET (base_reg)
+    0xOFFSET(base_reg)
     '''
     def __init__(self, base_reg, offset, va, tsize=4):
         self.base_reg = base_reg
@@ -382,23 +396,25 @@ class PpcMemOper(envi.DerefOper):
         self.va = va
 
     def __eq__(self, oper):
-        if not isinstance(oper, self.__class__):
-            return False
-        if self.base_reg != oper.base_reg:
-            return False
-        if self.offset != oper.offset:
-            return False
-        return True
+        return isinstance(oper, self.__class__) \
+            and self.base_reg == oper.base_reg \
+            and self.offset == oper.offset
+
+    def _get_offset(self, emu=None):
+        return self.offset
+
+    def _get_base_reg(self, emu=None):
+        # if rA == 0, constant 0 is used instead of r0
+        return 0 if self.base_reg == 0 else emu.getRegister(self.base_reg)
 
     def involvesPC(self):
-        return self.base_reg == REG_PC
+        return False
 
     def isDeref(self):
         return True
 
     def setOperValue(self, op, emu=None, val=None):
-        # can't survive without an emulator
-        if emu == None:
+        if emu is None:
             return None
 
         addr = self.getOperAddr(op, emu)
@@ -408,8 +424,7 @@ class PpcMemOper(envi.DerefOper):
         emu.writeMemoryFormat(addr, fmt, val)
 
     def getOperValue(self, op, emu=None):
-        # can't survive without an emulator
-        if emu == None:
+        if emu is None:
             return None
 
         addr = self.getOperAddr(op, emu)
@@ -419,72 +434,75 @@ class PpcMemOper(envi.DerefOper):
         return ret
 
     def getOperAddr(self, op, emu=None):
-        # there are certain circumstances where we can survive without an emulator
-        # if we don't have an emulator, we must be PC-based since we know it
-        if self.base_reg == REG_PC:
-            addr = self.va
-        elif emu == None:
+        if emu is None:
             return None
-        else:
-            addr = emu.getRegister(self.base_reg)
 
-        addr += self.offset
+        return self._get_base_reg(emu) + self._get_offset(emu)
 
-        return addr
+    def updateReg(self, op, emu):
+        if self.base_reg == 0:
+            raise envi.InvalidInstruction(mesg='Cannot update base register when rA == 0')
 
-    def updateReg(self, emu):
-        rval = emu.getRegister(self.base_reg)
-        #print(self.offset)
-        rval += self.offset
-        emu.setRegister(self.base_reg, rval)
+        ea = self.getOperAddr(op, emu)
+        emu.setRegister(self.base_reg, ea)
 
     def updateRegObj(self, emu):
+        if self.base_reg == 0:
+            raise envi.InvalidInstruction(mesg='Cannot update base register when rA == 0')
+
         import vivisect.symboliks.common as vs_common
-        rval = emu.getRegObj(self.base_reg)
-        rval += vs_common.Const(self.offset, emu.psize)
+        rval = emu.getRegObj(self.base_reg) + vs_common.Const(self._get_offset(emu), emu.psize)
         emu.setRegObj(self.base_reg, rval)
 
-
     def render(self, mcanv, op, idx):
-        basereg = ppc_regs[self.base_reg][0]
-        if self.base_reg == REG_PC:
-
-            addr = self.getOperAddr(op, mcanv.mem)    # only works without an emulator because we've already verified base_reg is PC
-
-            mcanv.addText('(')
-            if mcanv.mem.isValidPointer(addr):
-                name = addrToName(mcanv, addr)
-                mcanv.addVaText(name, addr)
-            else:
-                mcanv.addVaText('#0x%.8x' % addr, addr)
-
-            mcanv.addText(')')
-
-            value = self.getOperValue(op, mcanv.mem)
-            if value != None:
-                mcanv.addText("\t; ")
-                if mcanv.mem.isValidPointer(value):
-                    name = addrToName(mcanv, value)
-                    mcanv.addVaText(name, value)
-                else:
-                    mcanv.addNameText("0x%x" % value)
-
+        if self.base_reg == 0:
+            mcanv.addNameText(f'{hex(self._get_offset())}(0)')
         else:
-            mcanv.addNameText(hex(self.offset))
-
+            mcanv.addNameText(hex(self._get_offset()))
             mcanv.addText('(')
-            mcanv.addNameText(basereg, typename='registers')
+            mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
             mcanv.addText(')')
 
     def repr(self, op):
-        basereg = ppc_regs[self.base_reg][0]
-        if self.base_reg == REG_PC:
-            addr = self.getOperAddr(op)    # only works without an emulator because we've already verified base_reg is PC
+        base = 0 if self.base_reg == 0 else ppc_regs[self.base_reg][0]
+        return f'{hex(self._get_offset())}({base})'
 
-            tname = "(%s)" % hex(addr)
+class PpcIndexedMemOper(PpcMemOper):
+    '''
+    register offset memory operand.
+    offset_reg(base_reg)
+    '''
+    def __init__(self, base_reg, offset_reg, va, tsize=4):
+        self.base_reg = base_reg
+        self.offset = offset_reg  # keeping offset as name so eq stays the same
+        self.tsize = tsize
+        self.va = va
+
+    def _get_offset(self, emu=None):
+        if emu is None:
+            return None
+
+        return emu.getRegister(self.offset)
+
+    def updateRegObj(self, emu):
+        if self.base_reg == 0:
+            raise envi.InvalidInstruction(mesg='Cannot update base register when rA == 0')
+
+        rval = emu.getRegObj(self.base_reg) + emu.getRegObj(self.offset)
+        emu.setRegObj(self.base_reg, rval)
+
+    def render(self, mcanv, op, idx):
+        if self.base_reg == 0:
+            mcanv.addNameText(f'0')
         else:
-            tname = '%s(%s)' % (hex(self.offset), basereg)
-        return tname
+            mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
+
+        mcanv.addText(',')
+        mcanv.addNameText(ppc_regs[self.offset][0], typename='registers')
+
+    def repr(self, op):
+        base = "0x0" if self.base_reg == 0 else ppc_regs[self.base_reg][0]
+        return f'{base},{ppc_regs[self.offset][0]}'
 
 class PpcJmpRelOper(PpcImmOper):
     """

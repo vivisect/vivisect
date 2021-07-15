@@ -34,17 +34,25 @@ class PpcDisasm:
         self._instr_dict = {}
 
         # populate and trim unnecessary instructions (based on categories)
-        for key, group in instr_dict.items():
-            mygroup = []
-            for ocode in group:
-                mask, value, data = ocode
-                if not (data[3] & self.options):
+        for key in instr_dict:
+            self._instr_dict[key] = {}
+            for i in range(len(instr_dict[key])):
+                cat = instr_dict[key][i][2][3]
+                if cat & self.options == 0:
                     continue
 
-                mygroup.append(ocode)
+                mask = instr_dict[key][i][0]
+                val = instr_dict[key][i][1]
 
-            mygroup = tuple(mygroup)    # for speed
-            self._instr_dict[key] = mygroup
+                if mask not in self._instr_dict[key]:
+                    self._instr_dict[key][mask] = {}
+
+                if val in self._instr_dict[key][mask]:
+                    entry = self._instr_dict[key][mask][val]
+                    errmsg = 'Duplicate instruction decoding %#x, %#x: prev = %s, new = %s' % (mask, val, entry[0], data[0])
+                    raise Exception(errmsg)
+                else:
+                    self._instr_dict[key][mask][val] = instr_dict[key][i][2]
 
     def setEndian(self, endian):
         self.endian = endian
@@ -62,20 +70,28 @@ class PpcDisasm:
         prefixes = 0
         iflags = 0
 
+        # Ensure that the target address is 4-byte aligned
+        if offset & 0x3:
+            raise envi.InvalidAddress(offset)
+
         ival, = struct.unpack_from(self.fmt, bytez, offset)
         #print(hex(ival))
 
         key = ival >> 26
         #print(hex(key))
 
-        #print(group)
         group = self._instr_dict.get(key)
         if not group:
             raise envi.InvalidInstruction(bytez[offset:offset+4], 'No Instruction Group Found: %x' % key, va)
 
-        try:
-            data = next(d for m, v, d in group if ival & m == v)
-        except:
+        for mask in group:
+            masked_ival = ival & mask
+            try:
+                data = group[mask][masked_ival]
+                break
+            except KeyError:
+                pass
+        else:
             raise envi.InvalidInstruction(bytez[offset:offset+4], 'No Instruction Matched in Group: %x' % key, va)
 
         mnem, opcode, form, cat, operands, iflags = data
@@ -243,7 +259,6 @@ def simpleVOR(ival, mnem, opcode, opers, iflags):
 trap_conds = {
         0x01 : 'lgt',
         0x02 : 'llt',
-        0x03 : 'lne',
         0x05 : 'lge',  # also 'lnl'
         0x06 : 'lle',  # also 'lng'
 
@@ -257,53 +272,72 @@ trap_conds = {
         0x1f : 'u',    # in PowerISA but not in NXP EREF
     }
 
-td_mnems = { k : 'td%s' % v for k,v in trap_conds.items() }
-tdi_mnems = { k : 'td%si' % v for k,v in trap_conds.items() }
-tw_mnems = { k : 'tw%s' % v for k,v in trap_conds.items() }
-twi_mnems = { k : 'tw%si' % v for k,v in trap_conds.items() }
-tw_mnems[0x1f] = 'trap'
+def getTrapOpcode(mnem):
+    try:
+        return globals()['INS_%s' % mnem.upper()]
+    except KeyError:
+        # INS_TWU doesn't exist but will get replaced another way
+        return None
+
+td_mnems  = {k : ('td%s' % v,  getTrapOpcode('td%s' % v))  for k,v in trap_conds.items()}
+tdi_mnems = {k : ('td%si' % v, getTrapOpcode('td%si' % v)) for k,v in trap_conds.items()}
+tw_mnems  = {k : ('tw%s' % v,  getTrapOpcode('tw%s' % v))  for k,v in trap_conds.items()}
+tw_mnems[0x1f] = ('trap', INS_TRAP)
+twi_mnems = {k : ('tw%si' % v, getTrapOpcode('tw%si' % v)) for k,v in trap_conds.items()}
 
 def simpleTD(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val
-    nmnem = td_mnems.get(cond)
-    if nmnem is not None:
-        if opers[1] == opers[2]:
-            return 'trap', opcode, (), iflags
-        opers = opers[1:3]
-        return nmnem, opcode, opers, iflags
+    opinfo = td_mnems.get(cond)
+    if opinfo:
+        nmnem, nopcode = opinfo
+        if nopcode == INS_TRAP:
+            # No operands for a 'trap' instruction
+            return nmnem, nopcode, (), iflags
+        else:
+            # remove the condition (first) operand
+            return nmnem, nopcode, opers[1:], iflags
 
     return mnem, opcode, opers, iflags
 
 def simpleTDI(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val
-    nmnem = tdi_mnems.get(cond)
-    if nmnem is not None:
-        if opers[1] == opers[2]:
-            return 'trap', opcode, (), iflags
-        opers = opers[1:3]
-        return nmnem, opcode, opers, iflags
+    opinfo = tdi_mnems.get(cond)
+    if opinfo:
+        nmnem, nopcode = opinfo
+        if nopcode == INS_TRAP:
+            # No operands for a 'trap' instruction
+            return nmnem, nopcode, (), iflags
+        else:
+            # remove the condition (first) operand
+            return nmnem, nopcode, opers[1:], iflags
 
     return mnem, opcode, opers, iflags
 
 def simpleTW(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val
-    nmnem = tw_mnems.get(cond)
-    if nmnem is not None:
-        if opers[1] == opers[2]:
-            return 'trap', opcode, (), iflags
-        opers = opers[1:3]
-        return nmnem, opcode, opers, iflags
+    opinfo = tw_mnems.get(cond)
+    if opinfo:
+        nmnem, nopcode = opinfo
+        if nopcode == INS_TRAP:
+            # No operands for a 'trap' instruction
+            return nmnem, nopcode, (), iflags
+        else:
+            # remove the condition (first) operand
+            return nmnem, nopcode, opers[1:], iflags
 
     return mnem, opcode, opers, iflags
 
 def simpleTWI(ival, mnem, opcode, opers, iflags):
     cond = opers[0].val
-    nmnem = twi_mnems.get(cond)
-    if nmnem is not None:
-        if opers[1] == opers[2]:
-            return 'trap', opcode, (), iflags
-        opers = opers[1:3]
-        return nmnem, opcode, opers, iflags
+    opinfo = twi_mnems.get(cond)
+    if opinfo:
+        nmnem, nopcode = opinfo
+        if nopcode == INS_TRAP:
+            # No operands for a 'trap' instruction
+            return nmnem, nopcode, (), iflags
+        else:
+            # remove the condition (first) operand
+            return nmnem, nopcode, opers[1:], iflags
 
     return mnem, opcode, opers, iflags
 
@@ -362,41 +396,61 @@ def form_DFLT(disasm, va, ival, opcode, operands, iflags):
     return opcode, opers, iflags
 
 def form_A(disasm, va, ival, opcode, operands, iflags):
-    opcode = None
     # fallback for all non-memory-accessing FORM_X opcodes
     opers = []
     for onm, otype, oshr, omask in operands:
         val = (ival >> oshr) & omask
-        opers.append(OPERCLASSES[otype](val, va))
 
-    if iflags & IF_MEM_EA:
-        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
-        # FORM_X opcodes that access memory (EA calculation) with rA==0 use the number 0
-        if opvals[1] == 0:
-            opers[1] = PpcImmOper(0, va)
+        # In addition to instructions that calculate an EA, the isel instruction
+        # is FORM_A but if the second (rA) operand is 0 then a 0 constant should
+        # be used instead of a register.
+        if otype == FIELD_rA and val== 0 and \
+                ((iflags & IF_MEM_EA) != 0 or opcode == INS_ISEL):
+            opers.append(PpcImmOper(0, va))
+        else:
+            opers.append(OPERCLASSES[otype](val, va))
 
     return opcode, opers, iflags
+
+tsizes_formX = {
+    INS_LBZX: 1,
+    INS_LHZX: 2,
+    INS_LWZX: 4,
+    INS_LDX: 8,
+    INS_LHAX: 2,
+    INS_LWAX: 4,
+    INS_TLBIVAX: 8,
+    INS_TLBSX: 8,
+    INS_LHAUX: 2,
+    INS_LWAUX: 4,
+    INS_LBZUX: 1,
+    INS_LHZUX: 2,
+    INS_LWZUX: 4,
+    INS_LDUX: 8,
+    INS_STBX: 1,
+    INS_STHX: 2,
+    INS_STWX: 4,
+    INS_STDX: 8,
+    INS_STBUX: 1,
+    INS_STHUX: 2,
+    INS_STWUX: 4,
+    INS_STDUX: 8,
+}
 
 def form_X(disasm, va, ival, opcode, operands, iflags):
-    opcode = None
-    # fallback for all non-memory-accessing FORM_X opcodes
+    # If this is an IF_MEM_EA instruction with rA and rB, those combine and we use
+    # a PpcIndexedMemOper. rB is ALWAYS after rA if it's present, and part of the
+    # definition of IF_INDEXED is that rA and rB are both present.
     opers = []
-    rAidx = None
-    for idx, (onm, otype, oshr, omask) in enumerate(operands):
-        val = (ival >> oshr) & omask
-        oper = OPERCLASSES[otype](val, va)
-        opers.append(oper)
-        if otype == FIELD_rA:
-            rAidx = idx
-
-    if iflags & IF_MEM_EA and rAidx is not None:
-        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
-        # FORM_X opcodes that access memory (EA calculation) with rA==0 use the number 0
-        if opvals[rAidx] == 0:
-            opers[rAidx] = PpcImmOper(0, va)
+    operands_iterator = iter([(o[1], (ival >> o[2]) & o[3]) for o in operands])
+    for otype, val in operands_iterator:
+        if otype == FIELD_rA and iflags & IF_INDEXED:
+            _, rB_val = next(operands_iterator) # get rB and skip over it in next iteration
+            opers.append(PpcIndexedMemOper(val, rB_val, va, tsize=tsizes_formX.get(opcode)))
+        else:
+            opers.append(OPERCLASSES[otype](val, va))
 
     return opcode, opers, iflags
-
 
 def form_XL(disasm, va, ival, opcode, operands, iflags):
     opers = []
@@ -473,24 +527,8 @@ def form_D(disasm, va, ival, opcode, operands, iflags):
         tsize = tsizes_formD.get(opcode)
         #print("DBG: 0x%x:   FORM_D: opcode: 0x%x    tsize=%r" % (va, opcode, tsize))
         oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
-
-        if opvals[1] == 0:
-            oper1 = PpcImmOper(0, va)
-            oper2 = OPERCLASSES[operands[2][1]](opvals[2], va, tsize=tsize)
-            opers = (oper0, oper1, oper2)
-            return opcode, opers, iflags
-
         oper1 = PpcMemOper(opvals[1], opvals[2], va, tsize=tsize)
         opers =(oper0, oper1)
-        return opcode, opers, iflags
-
-    # check for rA being 0... and convert it to Immediate 0     TESTME: does this correctly slice the instruction set?
-    elif iflags & IF_MEM_EA and len(operands) == 3 and operands[1][1] == FIELD_rA and opvals[1] == 0:
-        print("form_D: secondary IF_MEM_EA...", hex(ival), operands, iflags)
-        oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
-        oper1 = PpcImmOper(0, va)
-        oper2 = OPERCLASSES[operands[2][1]](opvals[2], va)
-        opers = (oper0, oper1, oper2)
         return opcode, opers, iflags
 
     oidx = 0
@@ -548,12 +586,19 @@ def form_I(disasm, va, ival, opcode, operands, iflags):
 
     return opcode, opers, iflags
 
-def form_DS(disasm, va, ival, opcode, operands, iflags):
-    opcode = None
+tsizes_formDS = {
+    INS_LD: 8,
+    INS_LDU: 8,
+    INS_LWA: 4,
+    INS_STD: 8,
+    INS_STDU: 8,
+}
 
+def form_DS(disasm, va, ival, opcode, operands, iflags):
+    tsize = tsizes_formDS.get(opcode)
     opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
     oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
-    oper1 = PpcMemOper(opvals[1], opvals[2] * 4, va)
+    oper1 = PpcMemOper(opvals[1], opvals[2] * 4, va, tsize=tsize)
     opers = (oper0, oper1)
     return opcode, opers, iflags
 

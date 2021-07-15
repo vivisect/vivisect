@@ -43,7 +43,7 @@ E_I16L =  10
 E_I16LS = 11
 E_BD24 =  12
 E_BD15 =  13
-E_IA16 =  14
+# Removed typo form: E_IA16 =  14
 E_LI20 =  15
 E_M =     16
 E_XCR =   17
@@ -63,7 +63,6 @@ E_MASK_I16L = 0x03FF07FF
 E_MASK_BD24 = 0x03FFFFFE
 E_MASK_BD15 = 0x000CFFFE
 E_MASK_BD15CTR = 0x000FFFFE
-E_MASK_IA16 = 0x03FF07FF
 E_MASK_LI20 = 0x03FF7FFF
 E_MASK_M =    0x03FFFFFE
 
@@ -371,3 +370,10 @@ FP_ORDERED_FLAGS = (
     (C_FPCC_POS_NORMALIZED, C_FPCC_NEG_NORMALIZED),
     (C_FPCC_POS_DENORMALIZED, C_FPCC_NEG_DENORMALIZED),
 )
+
+# On 64-bit systems single-precision floating point values aren't represented
+# with normal 32-bit IEEE754 values, but instead the hardware appears to use the
+# full 64-bit register and masks off the lower 29 bits of the fraction portion.
+# This is the mask to use to generate accurate single-precision floating-point
+# values for emulating 64-bit PPC systems.
+PPC_64BIT_SINGLE_PRECISION_MASK = 0xFFFFFFFFE0000000
