@@ -5,7 +5,11 @@ import envi.archs.ppc
 import envi.exc as e_exc
 import envi.const as e_const
 import envi.expression as e_exp
+import envi.archs.ppc.spr as eaps
+import envi.archs.ppc.emu as eape
 import envi.archs.ppc.vle as eapvd
+import envi.archs.ppc.const as eapc
+import vivisect.symboliks.archs.ppc as vsap
 import vivisect.symboliks.analysis as vs_anal
 
 import logging
@@ -13,6 +17,10 @@ from binascii import unhexlify
 from envi.archs.ppc.regs import *
 from envi.archs.ppc.const import *
 
+from . import ppc_vle_instructions
+from . import ppc_server_instructions
+from . import ppc_vle_emutests
+from . import ppc_server_emutests
 logger = logging.getLogger(__name__)
 
 MARGIN_OF_ERROR = 200
@@ -97,7 +105,6 @@ class PpcInstructionSet(unittest.TestCase):
                     raise Exception( "Funkt up Setting: (%r: %r test#%d)  %s = 0x%x" % (opbytes, op, tidx, tgt, val) )
 
         op = emu.archParseOpcode(unhexlify(opbytes), 0, va=va)
-        print("0x%x:  %r" % (op.va, op))
 
         emu.executeOpcode(op)
 
@@ -195,19 +202,15 @@ class PpcInstructionSet(unittest.TestCase):
         return goodemu, bademu
 
     def test_envi_ppcvle_disasm(self):
-        from . import ppc_vle_instructions
         self.do_envi_disasm('vle', ppc_vle_instructions)
 
     def test_envi_ppc_server_disasm(self):
-        from . import ppc_server_instructions
         self.do_envi_disasm('ppc-server', ppc_server_instructions)
 
     def test_envi_ppcvle_emu(self):
-        from . import ppc_vle_emutests
         self.do_envi_emu('vle', ppc_vle_emutests)
 
     def test_envi_ppc_server_emu(self):
-        from . import ppc_server_emutests
         self.do_envi_emu('ppc-server', ppc_server_emutests)
 
     def do_envi_disasm(self, archname, test_module):
@@ -246,7 +249,7 @@ class PpcInstructionSet(unittest.TestCase):
 
         vw, emu, sctx = getVivEnv(archname)
 
-        print()
+        #print()
         for test_bytes, emutests in emu_module.emutests.items():
             try:
                 # do emulator tests for this byte combination
@@ -267,8 +270,6 @@ class PpcInstructionSet(unittest.TestCase):
         self.assertEqual(goodemu, emu_module.GOOD_EMU_TESTS)
 
     def test_MASK_and_ROTL(self):
-        import envi.archs.ppc.emu as eape
-        import vivisect.symboliks.archs.ppc as vsap
 
         for x in range(64):
             for y in range(64):
@@ -1556,7 +1557,6 @@ class PpcInstructionSet(unittest.TestCase):
         # constants
 
         # Check on the SPR names
-        import envi.archs.ppc.spr as eaps
         spr_name_lookup = {}
         for sprnum, (rname, _, _bitsz) in eaps.sprs.items():
             sprname = rname.upper()
@@ -1572,37 +1572,31 @@ class PpcInstructionSet(unittest.TestCase):
             spr_name_lookup[rname] = sprnum
 
     def test_ppc_invalid_emufuncs(self):
-        import envi.archs.ppc.emu as eape
         emufuncs = [n[2:].lower() for n in dir(eape.PpcAbstractEmulator) if n.startswith('i_')]
 
-        import envi.archs.ppc.const as eapc
         instrs = [n[4:].lower() for n in dir(eapc) if n.startswith('INS_')]
 
         # Find any i_??? functions which do not match a valid instruction
         invalid_instr_funcs = 0
         for name in emufuncs:
             if name not in instrs:
-                print('i_%s has no matching INS_%s instruction' % (name, name.upper()))
+                #print('PPC EMU i_%s has no matching INS_%s instruction' % (name, name.upper()))
                 invalid_instr_funcs += 1
         #self.assertEqual(invalid_instr_funcs, 20)
 
-        import warnings
-        warnings.warn('%d invalid PPC Emulation functions' % invalid_instr_funcs)
+        logger.warning('%d invalid PPC Emulation functions' % invalid_instr_funcs)
 
     def test_ppc_missing_emufuncs(self):
-        import envi.archs.ppc.emu as eape
         emufuncs = [n[2:].lower() for n in dir(eape.PpcAbstractEmulator) if n.startswith('i_')]
 
-        import envi.archs.ppc.const as eapc
         instrs = [n[4:].lower() for n in dir(eapc) if n.startswith('INS_')]
 
         # Find any instructions that do not have an emulation method
         missing_emu_instrs = 0
         for name in instrs:
             if name not in emufuncs:
-                print('INS_%s has no matching i_%s emulation instruction' % (name.upper(), name))
+                #print('INS_%s has no matching i_%s PPC emulation handler' % (name.upper(), name))
                 missing_emu_instrs += 1
         #self.assertEqual(missing_emu_instrs, 594)
 
-        import warnings
-        warnings.warn('Missing %d PPC Emulation functions' % missing_emu_instrs)
+        logger.warning('Missing %d PPC Emulation functions' % missing_emu_instrs)
