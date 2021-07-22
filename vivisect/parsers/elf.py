@@ -436,17 +436,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         elif stype == Elf.STT_OBJECT:
             if vw.isValidPointer(sva):
                 try:
-                    # we know it's some kind of data pointer, so we should mark that here
-                    # before something like emucode gets to it
                     vw.addExport(sva, EXP_DATA, dmglname, fname, makeuniq=True)
                     vw.setComment(sva, s.name)
-
-                    val = vw.parseNumber(sva, s.st_size)
-                    if (vw.psize == s.st_size and vw.isValidPointer(val)):
-                        # be careful not to accidentally trigger codeflow
-                        vw.makePointer(sva, tova=val, follow=False)
-                    else:
-                        vw.makeNumber(sva, s.st_size)
                 except Exception:
                     vw.vprint('STT_OBJECT Warning: %s' % traceback.format_exc())
 
