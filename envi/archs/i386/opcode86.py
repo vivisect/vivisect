@@ -683,8 +683,8 @@ tbl32_660F[0xfe] = (0, INS_ADD, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTY
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_F20F = [(0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0) for x in range(256)]
-tbl32_F20F[0x10] = (0, INS_MOV, ADDRMETH_V | OPTYPE_sd | OP_W, ADDRMETH_W | OPTYPE_sd | OP_R, ARG_NONE, cpu_PENTIUM2, "movsd", 0, 0, 0)
-tbl32_F20F[0x11] = (0, INS_MOV, ADDRMETH_W | OPTYPE_sd | OP_W, ADDRMETH_V | OPTYPE_sd | OP_R, ARG_NONE, cpu_PENTIUM2, "movsd", 0, 0, 0)
+tbl32_F20F[0x10] = (0, INS_MOV, ADDRMETH_V | OPTYPE_sd | OP_W, ADDRMETH_W | OPTYPE_sd | OP_MEM_Q | OP_R, ARG_NONE, cpu_PENTIUM2, "movsd", 0, 0, 0)
+tbl32_F20F[0x11] = (0, INS_MOV, ADDRMETH_W | OPTYPE_sd | OP_MEM_Q | OP_W, ADDRMETH_V | OPTYPE_sd | OP_R, ARG_NONE, cpu_PENTIUM2, "movsd", 0, 0, 0)
 tbl32_F20F[0x12] = (0, INS_MOV, ADDRMETH_V | OPTYPE_sd | OP_W, ADDRMETH_W | OPTYPE_sd | OP_R, ARG_NONE, cpu_PENTIUM2, "movddup", 0, 0, 0)
 
 tbl32_F20F[0x2a] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_sd | OP_W, ADDRMETH_E | OPTYPE_ds | OP_R, ARG_NONE, cpu_PENTIUM2, "cvtsi2sd", 0, 0, 0)

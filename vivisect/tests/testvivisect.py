@@ -443,6 +443,84 @@ class VivisectTest(unittest.TestCase):
         ]
         self.assertEqual(casevas, cases)
 
+    def test_chgrp_sections(self):
+        '''
+        Test that section information lines up with what we expect
+        '''
+        vw = self.chgrp_vw
+        segments = set([
+            (0x08048154, 0x000013, '.interp', 'chgrp'),
+            (0x08048168, 0x000020, '.note.ABI-tag', 'chgrp'),
+            (0x08048188, 0x00004c, '.gnu.hash', 'chgrp'),
+            (0x080481d4, 0x0004e0, '.dynsym', 'chgrp'),
+            (0x080486b4, 0x000343, '.dynstr', 'chgrp'),
+            (0x080489f8, 0x00009c, '.gnu.version', 'chgrp'),
+            (0x08048a94, 0x000080, '.gnu.version_r', 'chgrp'),
+            (0x08048b14, 0x000038, '.rel.dyn', 'chgrp'),
+            (0x08048b4c, 0x000218, '.rel.plt', 'chgrp'),
+            (0x08048d64, 0x000023, '.init', 'chgrp'),
+            (0x08048d90, 0x000440, '.plt', 'chgrp'),
+            (0x080491d0, 0x000008, '.plt.got', 'chgrp'),
+            (0x080491e0, 0x00745b, '.text', 'chgrp'),
+            (0x0805063c, 0x000014, '.fini', 'chgrp'),
+            (0x08050650, 0x001be6, '.rodata', 'chgrp'),
+            (0x08052238, 0x00006c, '.eh_frame_hdr', 'chgrp'),
+            (0x080522a4, 0x000284, '.eh_frame', 'chgrp'),
+            (0x08053f0c, 0x000004, '.init_array', 'chgrp'),
+            (0x08053f10, 0x000004, '.fini_array', 'chgrp'),
+            (0x08053f14, 0x0000e8, '.dynamic', 'chgrp'),
+            (0x08053ffc, 0x000004, '.got', 'chgrp'),
+            (0x08054000, 0x000118, '.got.plt', 'chgrp'),
+            (0x08054118, 0x000050, '.data', 'chgrp'),
+            (0x08054170, 0x000184, '.bss', 'chgrp'),
+            (0x08048000, 0x00a528, 'PHDR0', 'chgrp'),
+            (0x08053f0c, 0x0003e8, 'PHDR1', 'chgrp')
+        ])
+        self.assertEqual(segments, set(vw.getSegments()))
+
+    def test_chgrp_exports(self):
+        '''
+        Test that some fo the exports/names made by the elf parser
+        aren't accidentally made into functions.
+        '''
+        vw = self.chgrp_vw
+        exports = [
+            # .rodata
+            (0x08050650, 4, v_const.LOC_NUMBER, 'chgrp._fp_hw'),
+            (0x08050654, 4, v_const.LOC_NUMBER, 'chgrp._IO_stdin_used'),
+
+            # long options is really an array of pointers, but that isn't obvi
+            # (0x08050748, 4, v_const.LOC_POINTER, 'chgrp.long_options'),
+            #(0x08050850, 0x27, v_const.LOC_STRING, None),
+
+            (0x80054170, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_short_name'),
+            (0x80054178, 4, v_const.LOC_POINTER, 'chgrp.stderr'),
+            (0x80054180, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_name'),
+            (0x80054190, 4, v_const.LOC_POINTER, 'chgrp.optind'),
+            (0x80054194, 4, v_const.LOC_POINTER, 'chgrp.stdout'),
+            (0x80054198, 4, v_const.LOC_POINTER, 'chgrp.optarg'),
+            (0x0805419c, 1, v_const.LOC_NUMBER, 'chgrp.completed.7282'),
+
+            # .data pointers/numbers
+            (0x805411c, 4, v_const.LOC_NUMBER, 'chgrp.__dso_handle'),
+            (0x8054120, 4, v_const.LOC_POINTER, 'chgrp.Version'),
+            (0x8054124, 4, v_const.LOC_NUMBER, 'chgrp.exit_failure'),
+            (0x8054128, 4, v_const.LOC_POINTER, 'chgrp.slotvec'),
+            (0x805412c, 4, v_const.LOC_NUMBER, 'chgrp.nslots'),
+            (0x8054130, 99, v_const.LOC_NUMBER, 'chgrp.slotvec0'),  # this one kinda pulls double duty as both 4 and 8....
+            # Another horrible little saved space of bytes for....well technically a struct, not that we
+            # can easily detect that
+            # (0x8054138, 4, v_const.LOC_POINTER, 'chgrp.quote_quoting_options'),
+        ]
+
+        for va, size, ltyp, name in exports:
+            loc = vw.getLocation(va)
+            self.assertIsNotNone(loc)
+            self.assertEqual(loc[v_const.L_VA], va)
+            self.assertEqual(loc[v_const.L_SIZE], size)
+            self.assertEqual(loc[v_const.L_LTYPE], ltyp)
+            self.assertEqual(vw.getName(loc[v_const.L_VA]), name)
+
     def test_libfunc_meta_equality(self):
         '''
         both vdir and chgrp have a bunch of library functions in common, and while the addresses
