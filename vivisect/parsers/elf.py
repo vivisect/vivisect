@@ -471,9 +471,6 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         if dmglname in postfix:
             for rlva,addend in postfix[dmglname]:
-                # workspace handler will add the imagebase back in
-                if addbase:
-                    sva -= baseaddr
                 vw.addRelocation(rlva, RTYPE_BASEPTR, sva + addend)
 
     vw.addVaSet("FileSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
@@ -617,7 +614,9 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                     elif rtype == Elf.R_386_32:  # Also covers X86_64_64
                         # a direct punch in plus an addend
-                        postfix[dmglname].append((rlva, r.r_addend))
+                        # but things like libstc++ use this type for vtables in the rel.dyn
+                        # section without actually specifying an addend
+                        postfix[dmglname].append((rlva, getattr(r, 'r_addend', 0)))
 
                     else:
                         logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
@@ -646,7 +645,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
 
                     elif rtype == Elf.R_X86_64_TPOFF64:
                         pass
-
+                    elif rtype == Elf.R_386_TLS_DTPMOD32:
+                        pass
                     else:
                         logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                         logger.warning(r.tree())
