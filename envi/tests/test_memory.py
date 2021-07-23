@@ -21,6 +21,19 @@ class EnviMemoryTest(unittest.TestCase):
         # Test a cross page read
         self.assertEqual(mem.readMemory(0x41410000 + (cache.pagesize - 2), 4), b'BBBB')
 
+    def test_add_and_delMemoryMap(self):
+        mem = e_mem.MemoryObject()
+        mem.addMemoryMap(0x41410000, e_mem.MM_RWX, 'test', b'\0'*1024)
+        self.assertEqual(mem.readMemory(0x41410041, 4), b'\0\0\0\0')
+        mem.writeMemory(0x41410041, b'foo')
+        self.assertEqual(mem.readMemory(0x41410041, 4), b'foo\0')
+
+        mem.delMemoryMap(0x41410000)
+
+        # these next two tests *must* fail.  not failing would be the failure.
+        self.assertRaises(e_exc.SegmentationViolation, mem.readMemory, 0x41410041, 4)
+        self.assertRaises(e_exc.SegmentationViolation, mem.writeMemory, 0x41410041, b'foobar')
+
     def test_allocator(self):
         mem = e_mem.MemoryObject()
         mem.addMemoryMap(0x41410000, e_mem.MM_RWX, 'test', b'\0'*1024)

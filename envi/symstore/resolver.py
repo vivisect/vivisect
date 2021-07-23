@@ -324,7 +324,9 @@ class SymbolResolver:
         """
         Return a list of the symbols which are contained in this resolver.
         """
-        return [self.getSymByName(name) for name in self.symnames]
+        out = [self.getSymByName(name) for name in self.symobjsbyname]
+        out.extend([self.getSymByName(name) for name in self.symnames])
+        return out
 
     def getSymHint(self, va, hidx):
         """
