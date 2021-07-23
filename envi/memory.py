@@ -2,6 +2,7 @@ import re
 import struct
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 
 from envi.const import *
@@ -432,7 +433,7 @@ class MemoryObject(IMemory):
             # if we roll into illegal memory, start over at page 2.  skip 0.
             if tmpva > (1 << (8 * self.imem_psize)):
                 if looped:
-                    raise NoValidFreeMemoryFound(size)
+                    raise e_exc.NoValidFreeMemoryFound(size)
 
                 looped = True
                 tmpva = 0x1000

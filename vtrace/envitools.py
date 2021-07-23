@@ -1,4 +1,5 @@
 import sys
+import logging
 import argparse
 
 import envi
@@ -11,6 +12,8 @@ import vtrace.util as vutil
 import vtrace.snapshot as v_snapshot
 import vtrace.platforms.base as v_base
 
+
+logger = logging.getLogger(__name__)
 
 class RegisterException(Exception):
     pass
@@ -87,23 +90,21 @@ class LockstepEmulator:
                     self.cmpMem(op)
 
             except RegisterException as msg:
-                print("    \tError: %s: %s" % (repr(op), msg))
+                logger.warning("    \tError: %s: %s" % (repr(op), msg))
                 inp = sys.stdin.readline()
                 if inp.startswith('s'):
                     self.syncRegsFromTrace()
 
             except MemoryException as msg:
-                print("    \tError: %s: %s" % (repr(op), msg))
+                logger.warning("    \tError: %s: %s" % (repr(op), msg))
                 sys.stdin.readline()
 
             except envi.SegmentationViolation as msg:
-                print("    \tError: %s: %s" % (repr(op), msg))
+                logger.warning("    \tError: %s: %s" % (repr(op), msg))
                 sys.stdin.readline()
 
             except Exception as msg:
-                import traceback
-                traceback.print_exc()
-                print("\t\tLockstep Error: %s" % msg)
+                logger.warning("\t\tLockstep Error: %s" % msg, exc_info=1)
                 return
             print('')
 
