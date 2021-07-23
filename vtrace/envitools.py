@@ -45,7 +45,7 @@ skip_mem_opcodes_by_arch = {
 class LockstepEmulator:
     def __init__(self, trace):
         self.trace = trace
-        self.emu = vutil.emuFromTrace(trace)    # this should set up the 
+        self.emu = vutil.emuFromTrace(trace)    # this should set up the emulator
         self.arch = self.trace.getMeta("Architecture")
 
     def go(self):

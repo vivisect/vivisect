@@ -201,7 +201,7 @@ class SymbolResolver:
             subres = self.symnames.get(sym.fname)
 
         # Potentially del it from the sub resolver's namespace
-        if subres is not None:
+        if subres is not None and not isinstance(subres, tuple):
             subres.delSymbol(sym)
 
         # Otherwise del it from our namespace

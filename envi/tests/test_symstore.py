@@ -37,7 +37,7 @@ class SymResolverTests(unittest.TestCase):
         self.symres.addSymbol(secsym)
 
         self.symres.delSymbol(fnsym)
-        self.assertNotIn(name, self.symres.symobjsbyname)
+        self.assertNotIn(fnsym, self.symres.symobjsbyname)
 
     def test_getSymByAddr_exact_false(self):
         '''
