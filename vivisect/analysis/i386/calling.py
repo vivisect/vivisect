@@ -13,6 +13,7 @@ from vivisect.const import *
 import vivisect.analysis.generic.switchcase as vag_switch
 
 import envi.archs.i386 as e_i386
+import envi.archs.i386.opconst as e_i386const
 
 regcalls = {
     (e_i386.REG_ECX,):               ('thiscall', 1),
@@ -52,7 +53,7 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
 
         viv_imp_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
-        if op.opcode == e_i386.INS_LEA:    # x86 only
+        if op.opcode == e_i386const.INS_LEA:    # x86 only
             i = 1
             o = op.opers[i]
             discrete = o.isDiscrete()

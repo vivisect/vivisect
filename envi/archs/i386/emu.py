@@ -308,9 +308,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if meth is None:
             raise e_exc.UnsupportedInstruction(self, op)
 
-        if op.prefixes & PREFIX_REP_MASK and not self.getEmuOpt('i386:reponce'):
+        rep_prefix = op.prefixes & PREFIX_REP_MASK
+        if rep_prefix and not self.getEmuOpt('i386:reponce'):
             # REP instructions (REP/REPNZ/REPZ/REPSIMD) get their own handlers
-            handler = self.__rep_prefix_handlers__.get(op.prefixes)
+            handler = self.__rep_prefix_handlers__.get(rep_prefix)
             newpc = handler(self, meth, op)
 
         else:

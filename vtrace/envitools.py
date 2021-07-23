@@ -3,8 +3,8 @@ import argparse
 
 import envi
 import envi.memory as e_memory
-import envi.archs.i386 as e_i386  # FIXME This should NOT have to be here
 import envi.archs.i386.regs as eair
+import envi.archs.i386.opconst as e_i386const
 
 import vtrace
 import vtrace.util as vutil
@@ -34,8 +34,8 @@ def cmpRegs(emu, trace):
 
 
 skip_mem_opcodes_by_arch = {
-        'i386': (e_i386.INS_NOP, e_i386.INS_LEA),
-        'amd64': (e_i386.INS_NOP, e_i386.INS_LEA),
+        'i386': (e_i386const.INS_NOP, e_i386const.INS_LEA),
+        'amd64': (e_i386const.INS_NOP, e_i386const.INS_LEA),
         }
 
 
