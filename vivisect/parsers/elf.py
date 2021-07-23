@@ -470,8 +470,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             logger.debug("DYNSYM:\t%r\t%r\t%r\t%r", s, s.getInfoType(), 'other', hex(s.st_other))
 
         if dmglname in postfix:
-            for rlva,addend in postfix[dmglname]:
-                vw.addRelocation(rlva, RTYPE_BASEPTR, sva + addend)
+            for rlva, addend in postfix[dmglname]:
+                if addbase:
+                    vw.addRelocation(rlva, RTYPE_BASEPTR, sva + addend - baseaddr)
+                else:
+                    vw.addRelocation(rlva, RTYPE_BASEPTR, sva + addend)
 
     vw.addVaSet("FileSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
     vw.addVaSet("WeakSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
