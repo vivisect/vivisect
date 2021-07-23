@@ -10,7 +10,6 @@ import envi.archs.ppc.emu as eape
 import envi.archs.ppc.vle as eapvd
 import envi.archs.ppc.const as eapc
 import vivisect.symboliks.archs.ppc as vsap
-import vivisect.symboliks.analysis as vs_anal
 
 import logging
 from binascii import unhexlify
@@ -40,8 +39,7 @@ def getVivEnv(arch='ppc', endian=e_const.ENDIAN_MSB):
     emu.setMeta('forrealz', True)
     emu.logread = emu.logwrite = True
 
-    sctx = vs_anal.getSymbolikAnalysisContext(vw)
-    return vw, emu, sctx
+    return vw, emu
 
 class PpcInstructionSet(unittest.TestCase):
     def validateEmulation(self, emu, opbytes, setters, tests, tidx=0):
@@ -218,7 +216,7 @@ class PpcInstructionSet(unittest.TestCase):
         goodemu = 0
         test_pass = 0
 
-        vw, emu, sctx = getVivEnv(archname)
+        vw, emu = getVivEnv(archname)
 
         for test_bytes, result_instr in test_module.instructions:
             try:
@@ -237,7 +235,7 @@ class PpcInstructionSet(unittest.TestCase):
         self.assertAlmostEqual(test_pass, len(test_module.instructions), delta=MARGIN_OF_ERROR)
 
     def run_one_test(self, archname, test_bytes, test):
-        vw, emu, sctx = getVivEnv(archname)
+        vw, emu = getVivEnv(archname)
         ngoodemu, nbademu = self.do_emutsts(emu, test_bytes, test)
         print('good: %d' % ngoodemu)
         print('bad: %d' % nbademu)
@@ -247,7 +245,7 @@ class PpcInstructionSet(unittest.TestCase):
         goodemu = 0
         test_pass = 0
 
-        vw, emu, sctx = getVivEnv(archname)
+        vw, emu = getVivEnv(archname)
 
         #print()
         for test_bytes, emutests in emu_module.emutests.items():
@@ -293,7 +291,7 @@ class PpcInstructionSet(unittest.TestCase):
             self.assertEqual(emurot64, symrot64.solve(), 'ROTL64(0x31337040, {}): {} != {}   {}'.format(y, hex(emurot64), hex(symrot64.solve()), symrot64))
 
     def test_CR_and_XER(self):
-        vw, emu, sctx = getVivEnv(arch='ppc-server')
+        vw, emu = getVivEnv(arch='ppc-server')
 
         # now compare the register and bitmap stuff to be the same
         emu.setRegister(REG_CR0, 0)
@@ -1498,7 +1496,7 @@ class PpcInstructionSet(unittest.TestCase):
         OPCODE_CMPLW = unhexlify('7C000840')
         OPCODE_SUBFCO= unhexlify('7C620C11')
 
-        vw, emu, sctx = getVivEnv(arch='ppc-server')
+        vw, emu = getVivEnv(arch='ppc-server')
         ppcarch = vw.imem_archs[0]
         op = ppcarch.archParseOpcode(OPCODE_ADDCO)
         for test in addco_tests:
