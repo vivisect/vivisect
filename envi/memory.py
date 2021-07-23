@@ -470,6 +470,16 @@ class MemoryObject(IMemory):
         self._map_defs.append(hlpr)
         return
 
+    def delMemoryMap(self, mapva):
+        '''
+        Delete a memory map from this object...
+        '''
+        for midx, (mva, mmaxva, mmap, mbytes) in enumerate(self._map_defs):
+            if mva == mapva:
+                return self._map_defs.pop(midx)
+
+        raise e_exc.MapNotFoundException(mapva)
+
     def getMemorySnap(self):
         '''
         Take a memory snapshot which may be restored later.
@@ -501,7 +511,9 @@ class MemoryObject(IMemory):
         return [mmap for mva, mmaxva, mmap, mbytes in self._map_defs]
 
     def readMemory(self, va, size):
-
+        '''
+        Read memory from maps stored in memory maps.
+        '''
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
