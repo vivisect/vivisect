@@ -116,11 +116,12 @@ msfastcall_caller = MsFastCall_Caller()
 bfastcall_caller = BFastCall_Caller()
 
 
-def doRepPrefix(emu, meth, op):
+def doRepzPrefix(emu, meth, op):
     ecx = emu.getRegister(REG_ECX)
+    emu.setFlag(EFLAGS_ZF, 1)
 
     ret = None
-    while ecx:
+    while ecx and emu.getFlag(EFLAGS_ZF):
         ret = meth(op)
         ecx -= 1
         emu.setRegister(REG_ECX, ecx)
@@ -128,26 +129,13 @@ def doRepPrefix(emu, meth, op):
 
 def doRepnzPrefix(emu, meth, op):
     ecx = emu.getRegister(REG_ECX)
+    emu.setFlag(EFLAGS_ZF, 0)
 
     ret = None
-    while ecx:
+    while ecx and not emu.getFlag(EFLAGS_ZF):
         ret = meth(op)
         ecx -= 1
         emu.setRegister(REG_ECX, ecx)
-        if emu.getFlag(EFLAGS_ZF):
-            break
-    return ret
-
-def doRepzPrefix(emu, meth, op):
-    ecx = emu.getRegister(REG_ECX)
-
-    ret = None
-    while ecx:
-        ret = meth(op)
-        ecx -= 1
-        emu.setRegister(REG_ECX, ecx)
-        if not emu.getFlag(EFLAGS_ZF):
-            break
     return ret
 
 
@@ -181,8 +169,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     flagidx = REG_EFLAGS
     accumreg = { 1:REG_AL, 2:REG_AX, 4:REG_EAX }
     __rep_prefix_handlers__ = {
-        PREFIX_REP: doRepPrefix,
-        PREFIX_REPZ: doRepzPrefix,
+        PREFIX_REP: doRepzPrefix,
         PREFIX_REPNZ: doRepnzPrefix,
         PREFIX_REP_SIMD: doRepSIMDPrefix,
     }

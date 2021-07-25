@@ -93,6 +93,10 @@ i386Tests = [
     {'bytes': '0fbaf111',
      'setup': ({'ecx': 0xF002000F}, {}),
      'tests': ({'eflags': 1, 'ecx': 0xF000000F}, {})},
+    # lea ecx,dword [esp + -973695896]  (test SIB getOperAddr)
+    {'bytes': '8d8c246894f6c5',
+     'setup': ({'esp': 0x7fd0}, {}),
+     'tests': ({'ecx': 0xc5f71438}, {})}
 ]
 
 
@@ -139,3 +143,117 @@ class IntelEmulatorTests(unittest.TestCase):
     def test_i386_emulator(self):
         arch = envi.getArchModule('i386')
         self.run_emulator_tests(arch, i386Tests)
+
+    def test_x86_OperAddrs(self):
+        arch32 = envi.getArchModule('i386')
+        emu32 = arch32.getEmulator()
+        emu32.setStackCounter(0x7fd0)
+        
+        arch64 = envi.getArchModule('amd64')
+        emu64 = arch64.getEmulator()
+        emu64.setStackCounter(0x7fd0)
+
+        op = arch32.archParseOpcode(bytes.fromhex('8d8c246894f6c5'), 0,0)
+        self.assertEqual(op.opers[1].getOperAddr(op, emu32), 0xc5f71438)
+        self.assertEqual(op.opers[1].getOperAddr(op, emu64), 0xffffffffc5f71438)
+
+        import envi.archs.i386.disasm as eaid
+        oper = eaid.i386SibOper(tsize=4, reg=eaid.REG_ESP, index=5, scale=2, disp=-0x98765432)
+        oper._dis_regctx = eaid.i386RegisterContext()
+        addr32 = oper.getOperAddr(op, emu32)
+        addr64 = oper.getOperAddr(op, emu64)
+        self.assertEqual(addr32, 0x678a2b9e)
+        self.assertEqual(addr64, 0xffffffff678a2b9e)
+
+        oper = eaid.i386SibOper(tsize=4, imm=256, index=5, scale=2, disp=-0x98765432)
+        oper._dis_regctx = eaid.i386RegisterContext()
+        addr32 = oper.getOperAddr(op, emu32)
+        addr64 = oper.getOperAddr(op, emu64)
+        self.assertEqual(addr32, 0x6789acce)
+        self.assertEqual(addr64, 0xffffffff6789acce)
+
+        oper = eaid.i386RegMemOper(reg=eaid.REG_ESP, tsize=4, disp=-0x98765432)
+        oper._dis_regctx = eaid.i386RegisterContext()
+        addr32 = oper.getOperAddr(op, emu32)
+        addr64 = oper.getOperAddr(op, emu64)
+        self.assertEqual(addr32, 0x678a2b9e)
+        self.assertEqual(addr64, 0xffffffff678a2b9e)
+
+    def test_i386_reps(self):
+        arch32 = envi.getArchModule('i386')
+        emu32 = arch32.getEmulator()
+        emu32.addMemoryMap(0x40000000, 7, 'test', b'foobarbazbane' + b'\0'*100)
+        op_movsd = arch32.archParseOpcode(bytes.fromhex('f3a5'), 0, 0)  # rep movsd
+        op_movsb = arch32.archParseOpcode(bytes.fromhex('f3a4'), 0, 0)  # rep movsb
+        op_scasb = arch32.archParseOpcode(bytes.fromhex('f2ae'), 0, 0)  # repnz scasb
+        op_zscasb = arch32.archParseOpcode(bytes.fromhex('f3ae'), 0, 0)  # repz scasb
+
+        # rep Dword copy
+        desiredoutput1 = b'foobarbazbane\0\0\0foobarbazbane\0\0\0'
+        emu32.setRegisterByName('ecx', 5)
+        emu32.setRegisterByName('esi', 0x40000000)
+        emu32.setRegisterByName('edi', 0x40000010)
+        emu32.executeOpcode(op_movsd)
+        self.assertEqual(emu32.readMemory(0x40000000, 0x20), desiredoutput1)
+
+        # rep Byte copy
+        desiredoutput2 = b'foobarbazbane\0\0\0foobarbazbane\0\0\0foobarbazbane\0\0\0'
+        emu32.setRegisterByName('ecx', 16)
+        emu32.setRegisterByName('esi', 0x40000000)
+        emu32.setRegisterByName('edi', 0x40000020)
+        emu32.executeOpcode(op_movsb)
+        self.assertEqual(emu32.readMemory(0x40000000, 0x30), desiredoutput2)
+
+        # repnz Byte scan string
+        emu32.setRegisterByName('eax', 0)
+        emu32.setRegisterByName('ecx', -1)
+        emu32.setRegisterByName('edi', 0x40000000)
+        emu32.executeOpcode(op_scasb)
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xfffffff1)
+
+        # repz Byte scan string
+        emu32.setRegisterByName('eax', 0)
+        emu32.setRegisterByName('ecx', -1)
+        emu32.setRegisterByName('edi', 0x4000000d)
+        emu32.executeOpcode(op_zscasb)
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xfffffffb)
+
+    def test_amd64_reps(self):
+        arch64 = envi.getArchModule('amd64')
+        emu64 = arch64.getEmulator()
+        emu64.addMemoryMap(0x40000000, 7, 'test', b'foobarbazbane' + b'\0'*100)
+        op_movsd = arch64.archParseOpcode(bytes.fromhex('f3a5'), 0, 0)  # rep movsd
+        op_movsb = arch64.archParseOpcode(bytes.fromhex('f3a4'), 0, 0)  # rep movsb
+        op_scasb = arch64.archParseOpcode(bytes.fromhex('f2ae'), 0, 0)  # repnz scasb
+        op_zscasb = arch64.archParseOpcode(bytes.fromhex('f3ae'), 0, 0)  # repz scasb
+
+        # rep Dword copy
+        desiredoutput1 = b'foobarbazbane\0\0\0foobarbazbane\0\0\0'
+        emu64.setRegisterByName('rcx', 5)
+        emu64.setRegisterByName('rsi', 0x40000000)
+        emu64.setRegisterByName('rdi', 0x40000010)
+        emu64.executeOpcode(op_movsd)
+        self.assertEqual(emu64.readMemory(0x40000000, 0x20), desiredoutput1)
+
+        # rep Byte copy
+        desiredoutput2 = b'foobarbazbane\0\0\0foobarbazbane\0\0\0foobarbazbane\0\0\0'
+        emu64.setRegisterByName('rcx', 16)
+        emu64.setRegisterByName('rsi', 0x40000000)
+        emu64.setRegisterByName('rdi', 0x40000020)
+        emu64.executeOpcode(op_movsb)
+        self.assertEqual(emu64.readMemory(0x40000000, 0x30), desiredoutput2)
+
+        # repnz Byte scan string
+        emu64.setRegisterByName('rax', 0)
+        emu64.setRegisterByName('rcx', -1)
+        emu64.setRegisterByName('rdi', 0x40000000)
+        emu64.executeOpcode(op_scasb)
+        self.assertEqual(emu64.getRegisterByName('rcx'), 0xfffffffffffffff1)
+
+        # repz Byte scan string
+        emu64.setRegisterByName('rax', 0)
+        emu64.setRegisterByName('rcx', -1)
+        emu64.setRegisterByName('rdi', 0x4000000d)
+        emu64.executeOpcode(op_zscasb)
+        self.assertEqual(emu64.getRegisterByName('rcx'), 0xfffffffffffffffb)
+
