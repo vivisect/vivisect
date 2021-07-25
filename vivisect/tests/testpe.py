@@ -524,14 +524,3 @@ class PETests(unittest.TestCase):
             self.assertEqual(loc[1], 40)
             self.assertEqual(loc[2], viv_con.LOC_STRUCT)
             self.assertEqual(loc[3], 'pe.IMAGE_SECTION_HEADER')
-
-    def test_function_thunks(self):
-        vw = self.vw_mimi
-        ans = [
-            0x0040ea92,
-            0x0046a884,
-            0x0040ea8d,
-            0x0040ea92,
-        ]
-        for fva in ans:
-            self.assertTrue(vw.isFunctionThunk(fva))

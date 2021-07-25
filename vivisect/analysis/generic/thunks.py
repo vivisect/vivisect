@@ -29,7 +29,18 @@ def analyze(vw):
         if vw.isFunctionThunk(fva):
             continue
 
-        op = vw.parseOpcode(fva)
+        blocks = vw.getFunctionBlocks(fva)
+        if len(blocks) != 1:
+            continue
+
+        block = vw.getCodeBlock(fva)
+        va = block[0] + block[1] - 1
+
+        loc = vw.getLocation(va)
+        if not loc:
+            continue
+
+        op = vw.parseOpcode(loc[0])
         if not op.iflags & envi.IF_BRANCH and not op.iflags & envi.IF_CALL:
             continue
 

@@ -486,16 +486,17 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     for s in elf.getSymbols():
         sva = s.st_value
         dmglname = demangle(s.name)
+
         logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r', sva,
                                                                         Elf.st_info_type.get(s.st_info, s.st_info),
                                                                         Elf.st_info_bind.get(s.st_other, s.st_other),
                                                                         s.name)
 
-        if s.st_info == Elf.STT_FILE:
+        if s.getInfoType() == Elf.STT_FILE:
             vw.setVaSetRow('FileSymbols', (dmglname, sva))
             continue
 
-        elif s.st_info == Elf.STT_NOTYPE:
+        elif s.getInfoType() == Elf.STT_NOTYPE:
             # mapping symbol
             if arch in ('arm', 'thumb', 'thumb16'):
                 symname = s.getName()
@@ -515,6 +516,30 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     # Data Items (eg. literal pool)
                     logger.info('mapping (NOTYPE) data symbol: 0x%x: %r', sva, dmglname)
                     data_ptrs.append(sva)
+        elif s.getInfoType() == Elf.STT_OBJECT:
+            symname = s.getName()
+            if addbase:
+                sva += baseaddr
+            if symname:
+                vw.makeName(sva, symname, filelocal=True, makeuniq=True)
+                valu = vw.readMemoryPtr(sva)
+                if not vw.isValidPointer(valu) and s.st_size == vw.psize:
+                    vw.makePointer(sva, follow=False)
+                else:
+                    if not valu:
+                        new_pointers.append((sva, valu, symname))
+                    elif vw.isProbablyUnicode(sva):
+                        vw.makeUnicode(sva, size=s.st_size)
+                    elif vw.isProbablyString(sva):
+                        vw.makeString(sva, size=s.st_size)
+                    elif s.st_size % vw.getPointerSize() == 0 and s.st_size >= vw.getPointerSize():
+                        # so it could be something silly like an array
+                        for addr in range(sva, sva+s.st_size, vw.psize):
+                            valu = vw.readMemoryPtr(addr)
+                            if vw.isValidPointer(valu):
+                                new_pointers.append((addr, valu, symname))
+                    else:
+                        vw.makeNumber(sva, size=s.st_size)
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
         sname = demangle(s.name)
@@ -534,7 +559,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             sva += baseaddr
         if vw.isValidPointer(sva) and len(dmglname):
             try:
-                if s.st_other == Elf.STB_WEAK:
+                if s.getInfoBind() == Elf.STB_WEAK:
                     logger.info('WEAK symbol: 0x%x: %r', sva, sname)
                     vw.setVaSetRow('WeakSymbols', (sname, sva))
                     dmglname = '__weak_' + dmglname

@@ -161,6 +161,10 @@ def analyze(vw):
                         vw.makeUnicode(va)
                     elif vw.isProbablyString(va):
                         vw.makeString(va)
+                    else:
+                        # if we get all the way down here, and it has a name, it's gotta be *something*
+                        if vw.getName(va):
+                            vw.makePointer(va)
 
         if len(docode) == 0:
             break
