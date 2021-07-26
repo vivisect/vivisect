@@ -47,8 +47,20 @@ i386Tests = [
      'tests': ({'ebx': 47}, {})},
     # bsr ecx, edx
     {'bytes': '0FBDCA',
-     'setup': ({'ecx': 0x47}, {}),
-     'tests': ({'ecx': 23}, {})},
+     'setup': ({'edx': 0x470000, 'eflags': 0x202}, {}),
+     'tests': ({'ecx': 22, 'eflags':0x202}, {})},
+    # bsr ecx, edx
+    {'bytes': '0FBDCA',
+     'setup': ({'edx': 0x470000, 'eflags': 0xffffffff}, {}),
+     'tests': ({'ecx': 22, 'eflags':0x44602}, {})},     # eflags verified in vdb
+    # bsr ecx, edx
+    {'bytes': '0FBDC9',
+     'setup': ({'ecx': 0, 'eflags':0x202}, {}),
+     'tests': ({'ecx': 0, 'eflags':0x246}, {})},        # eflags verified in vdb
+    # bsr ecx, edx
+    {'bytes': '0FBDC9',
+     'setup': ({'ecx': 0, 'eflags':0xffffffff}, {}),
+     'tests': ({'ecx': 0, 'eflags':0x44646}, {})},      # eflags verified in vdb
     # push word [esp+2]
     {'bytes': '66ff742402',
      'setup': ({}, {'esp': b'\xCD\xFE\x89\x43'}),
@@ -133,12 +145,12 @@ class IntelEmulatorTests(unittest.TestCase):
                 # test both the registers and stack values
                 for name, valu in test['tests'][0].items():
                     reg = emu.getRegisterByName(name)
-                    self.assertEqual(reg, valu, msg='Given != Got for %s (%s)' % (byts, str(op)))
+                    self.assertEqual(reg, valu, msg='(reg: %r) Given != Got for %s (%s)' % (name, byts, str(op)))
 
                 for expr, valu in test['tests'][1].items():
                     addr = e_expr.evaluate(expr, emu.getRegisters())
                     mem = emu.readMemory(addr, len(valu))
-                    self.assertEqual(mem, valu)
+                    self.assertEqual(mem, valu, msg='(mem: 0x%x) %r != %r' % (addr, mem, valu))
 
     def test_i386_emulator(self):
         arch = envi.getArchModule('i386')

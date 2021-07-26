@@ -652,8 +652,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_bsr(self, op):
         val = self.getOperValue(op, 1)
-        self.setFlag(EFLAGS_AF, 0)  # undocumented, but 32-bit VBox on i9 says so
-        self.setFlag(EFLAGS_CF, 0)  # undocumented, but 32-bit VBox on i9 says so
+        eflags = self.getRegister(REG_EFLAGS)
+        eflags &= 0x00044602        # undocumented, empirical from i9 - do we want to move to main emulator?
+        self.setRegister(REG_EFLAGS, eflags)
+
         if val == 0:
             # If the src is 0, set ZF and get out
             self.setFlag(EFLAGS_ZF, 1)
