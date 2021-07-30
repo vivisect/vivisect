@@ -28,4 +28,7 @@ class StructTest(unittest.TestCase):
         self.assertEqual(vs.foo, 0x03020100)
         self.assertEqual(vs.bar, 0x07060504)
         self.assertEqual(vs.baz, 0x0b0a0908)
-        self.assertEqual(vs.biz, 0xfffefdfc)
+        self.assertEqual(vs.biz, -0x010204)
+
+        fd.seek(0)
+        self.assertEqual(vs.vsEmit(), fd.read())
