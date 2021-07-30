@@ -210,3 +210,17 @@ class InvalidOperand(Exception):
     def __repr__(self):
         return "%s at %s" % (self.__class__.__name__, str(self.valu))
 
+
+class BoundRangeExceededException(Exception):
+    def __init__(self, va, op, aidx, lowbound, hibound):
+        self.va = va
+        self.op = op
+        self.aidx = aidx
+        self.hibound = hibound
+        self.lowbound = lowbound
+
+    def __repr__(self):
+        return "Bound Range Exceeded Exception at 0x%x (opcode: %r)  index: %d  low: %d  hi: %d" % \
+                (self.va, self.op, self.aidx, self.lowbound, self.hibound)
+
+

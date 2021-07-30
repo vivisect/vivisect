@@ -4,6 +4,8 @@ import vtrace
 import vtrace.notifiers as v_notifiers
 import vtrace.rmi as v_rmi
 
+import envi
+import envi.memory as e_memory
 import envi.archs.i386 as e_i386
 import envi.archs.amd64 as e_amd64
 
@@ -84,8 +86,6 @@ def emuFromTrace(trace):
     '''
     Produce an envi emulator for this tracer object.
     '''
-    import envi
-    import envi.memory as e_memory
     arch = trace.getMeta('Architecture')
     plat = trace.getMeta('Platform')
     amod = envi.getArchModule(arch)
@@ -141,7 +141,6 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
     If strict, only join maps with the same permissions
     '''
     import vivisect
-    import envi.memory as e_memory
     vw = vivisect.VivWorkspace()
     arch = trace.getMeta('Architecture')
     plat = trace.getMeta('Platform')
@@ -210,9 +209,6 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         # since relocations have already be updated and linkage, yadayada
              
         vw.addFile(trimfname, va, fakemd5)
-        #FIXME: make sure all of everything is backed by a file...  vw.getFile() should always 
-        #  return a non-None answer
-
 
         # add segments
 
@@ -261,13 +257,13 @@ def collapseMemoryMaps(oldmaps, strict=True):
     curva, curperms, curfname, curbytez = oldmaps[0]
     cursz = len(curbytez)
     curvamax = curva + cursz
-    print("initial map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x" % (curva, curperms, curfname, cursz, curvamax))
+    logger.debug("initial map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x", curva, curperms, curfname, cursz, curvamax)
 
     for omidx in range(1, len(oldmaps)):
         ova, operms, ofname, obytez = oldmaps[omidx]
         omsz = len(obytez)
         ovamax = ova + omsz
-        print("next map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x" % (ova, operms, ofname, omsz, ovamax))
+        logger.debug("next map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x", ova, operms, ofname, omsz, ovamax)
         if ova == curvamax and (not strict or (curfname == ofname and curperms == operms)):  # is this true?
             # collapse this into previous and update curvamax and curbytes if perms or not strict
             curvamax = ovamax
@@ -283,10 +279,10 @@ def collapseMemoryMaps(oldmaps, strict=True):
             curbytez += obytez
             curfname = newfname
             newmaps[-1] = curva, curperms, newfname, curbytez
-            print("collapsing: initial map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x" % (curva, curperms, curfname, cursz, curvamax))
+            logger.debug("collapsing: initial map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x", curva, curperms, curfname, cursz, curvamax)
 
         else:
-            #print("ova (0x%x) != curvamax (0x%x( or curperms (%r) != operms (%r)" % (ova, curvamax, curperms, operms))
+            #logger.debug("ova (0x%x) != curvamax (0x%x( or curperms (%r) != operms (%r)" % (ova, curvamax, curperms, operms))
             # add this map to newmaps and update cur*
             newmaps.append(oldmaps[omidx])
             curva, curperms, curfname, curbytez = oldmaps[omidx]

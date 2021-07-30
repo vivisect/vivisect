@@ -145,7 +145,7 @@ class LockstepEmulator:
             taddr_emu = oper.getOperAddr(op, self.emu) # use emu here?  it will likely fail the same either way? emu is faster?
             if taddr != taddr_emu:
                 raise TargetAddrCalcException('TARGET ADDRESS CALCULATED DIFFERENTLY: 0x%x: %r   (%r: emu: 0x%x,  trace: 0x%x)'\
-                        % (op, oper, taddr, taddr_emu))
+                        % (op.va, op, oper, taddr, taddr_emu))
 
             tsize = oper.tsize
             self._tempaddrs.append((taddr, tsize))

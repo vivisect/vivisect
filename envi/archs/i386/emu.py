@@ -116,65 +116,18 @@ msfastcall_caller = MsFastCall_Caller()
 bfastcall_caller = BFastCall_Caller()
 
 
-def doRepzPrefix(emu, meth, op):
-    ecx = emu.getRegister(REG_ECX)
-    emu.setFlag(EFLAGS_ZF, 1)
-
-    ret = None
-    while ecx and emu.getFlag(EFLAGS_ZF):
-        ret = meth(op)
-        ecx -= 1
-        emu.setRegister(REG_ECX, ecx)
-    return ret
-
-def doRepnzPrefix(emu, meth, op):
-    ecx = emu.getRegister(REG_ECX)
-    emu.setFlag(EFLAGS_ZF, 0)
-
-    ret = None
-    while ecx and not emu.getFlag(EFLAGS_ZF):
-        ret = meth(op)
-        ecx -= 1
-        emu.setRegister(REG_ECX, ecx)
-    return ret
-
-
-def doRepSIMDPrefix(emu, meth, op):
-    # TODO
-    raise Exception("doRepSIMDPrefix() not implemented.  Fix and retry.")
-
-class UDException(Exception):
-    def __init__(self, va, op):
-        self.va = va
-        self.op = op
-
-    def __repr__(self):
-        return "UD Exception at 0x%x (opcode: %r)" % (self.va, self.op)
-
-class BoundRangeExceededException(Exception):
-    def __init__(self, va, op, aidx, lowbound, hibound):
-        self.va = va
-        self.op = op
-        self.aidx = aidx
-        self.hibound = hibound
-        self.lowbound = lowbound
-
-    def __repr__(self):
-        return "Bound Range Exceeded Exception at 0x%x (opcode: %r)  index: %d  low: %d  hi: %d" % \
-                (self.va, self.op, self.aidx, self.lowbound, self.hibound)
-
-
 class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     flagidx = REG_EFLAGS
     accumreg = { 1:REG_AL, 2:REG_AX, 4:REG_EAX }
-    __rep_prefix_handlers__ = {
-        PREFIX_REP: doRepzPrefix,
-        PREFIX_REPNZ: doRepnzPrefix,
-        PREFIX_REP_SIMD: doRepSIMDPrefix,
-    }
-
     def __init__(self, archmod=None):
+        self.__rep_prefix_handlers__ = {
+            PREFIX_REP: self.doRepzPrefix,
+            PREFIX_REPZ: self.doRepzPrefix,
+            PREFIX_REPNZ: self.doRepnzPrefix,
+            PREFIX_REP_SIMD: self.doRepSIMDPrefix,
+        }
+
         # Set ourself up as an arch module *and* register context
         #i386Module.__init__(self)
         if archmod is None:
@@ -296,7 +249,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if rep_prefix and not self.getEmuOpt('i386:reponce'):
             # REP instructions (REP/REPNZ/REPZ/REPSIMD) get their own handlers
             handler = self.__rep_prefix_handlers__.get(rep_prefix)
-            newpc = handler(self, meth, op)
+            newpc = handler(meth, op)
 
         else:
             newpc = meth(op)
@@ -308,6 +261,53 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         pc = self.getProgramCounter()
         newpc = pc+op.size
         self.setProgramCounter(newpc)
+
+    ###### Repeat Prefix Handlers
+
+    def doRepzPrefix(emu, meth, op):
+        '''
+        Handle REP and REPZ prefixes (which are basically the same, but used for 
+        different instructions.
+
+        ZF starts off being set. 
+        Then the instruction is repeated and ECX decremented until either
+        ECX reaches 0 or the ZF is cleared.
+        '''
+        if op.mnem.startswith('nop'):
+            return
+
+        ecx = emu.getRegister(REG_ECX)
+        emu.setFlag(EFLAGS_ZF, 1)
+
+        ret = None
+        while ecx and emu.getFlag(EFLAGS_ZF):
+            ret = meth(op)
+            ecx -= 1
+            emu.setRegister(REG_ECX, ecx)
+        return ret
+
+    def doRepnzPrefix(emu, meth, op):
+        '''
+        Handle REPNZ prefix.
+
+        ZF starts off being cleared. 
+        Then the instruction is repeated and ECX decremented until either
+        ECX reaches 0 or the ZF is set.
+        '''
+        ecx = emu.getRegister(REG_ECX)
+        emu.setFlag(EFLAGS_ZF, 0)
+
+        ret = None
+        while ecx and not emu.getFlag(EFLAGS_ZF):
+            ret = meth(op)
+            ecx -= 1
+            emu.setRegister(REG_ECX, ecx)
+        return ret
+
+
+    def doRepSIMDPrefix(emu, meth, op):
+        # TODO
+        raise Exception("doRepSIMDPrefix() not implemented.  Fix and retry.")
 
     ###### Conditional Callbacks #####
 
@@ -654,6 +654,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1)
         eflags = self.getRegister(REG_EFLAGS)
         eflags &= 0x00044602        # undocumented, empirical from i9 - do we want to move to main emulator?
+                                    # the flags that are carried through are:
+                                    # DF, IF, NT, AC and the always-0's and always-1's are enforced
         self.setRegister(REG_EFLAGS, eflags)
 
         if val == 0:
@@ -1642,7 +1644,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_bound(self, op):
         if self.psize == 8:
-            raise UDException(op.va, op)    # this instruction is invalid in 64-bit mode
+            raise e_exc.UnsupportedInstruction(self, op)    # this instruction is invalid in 64-bit mode
 
         bsize = op.opers[1].tsize // 2  # target is two numbers
         aidx = e_bits.signed(self.getOperValue(op, 0), self.psize)
@@ -1653,7 +1655,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if lowbound <= aidx <= hibound:
             return
 
-        raise BoundRangeExceededException(op.va, op, aidx, lowbound, hibound)
+        raise e_exc.BoundRangeExceededException(op.va, op, aidx, lowbound, hibound)
 
     def i_sal(self, op):
         dsize = op.opers[0].tsize
