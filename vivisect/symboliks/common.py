@@ -71,7 +71,6 @@ def intify(func):
         obj = args[0]
         other = args[1]
         if type(other) is int:
-            breakpoint()
             other = Const(other, obj.getWidth())
         return func(obj, other)
 
