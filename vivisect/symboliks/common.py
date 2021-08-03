@@ -66,16 +66,6 @@ def cb_astNodeCount(path,obj,ctx):
     if len(path) > ctx['depth']:
         ctx['depth'] = len(path)
 
-def intify(func):
-    def wrapper(*args, **kwargs):
-        obj = args[0]
-        other = args[1]
-        if type(other) is int:
-            other = Const(other, obj.getWidth())
-        return func(obj, other)
-
-    return wrapper
-
 class SymbolikBase:
     idgen = itertools.count()
 
@@ -89,91 +79,69 @@ class SymbolikBase:
         self.parents = []
         self.cache = {}
 
-    @intify
     def __add__(self, other):
         return o_add(self, other, self.getWidth())
 
-    @intify
     def __iadd__(self, other):
         return o_add(self, other, self.getWidth())
 
-    @intify
     def __sub__(self, other):
         return o_sub(self, other, self.getWidth())
 
-    @intify
     def __isub__(self, other):
         return o_sub(self, other, self.getWidth())
 
-    @intify
     def __xor__(self, other):
         return o_xor(self, other, self.getWidth())
 
-    @intify
     def __ixor__(self, other):
         return o_xor(self, other, self.getWidth())
 
-    @intify
     def __lshift__(self, count):
         return o_lshift(self, count, self.getWidth())
 
-    @intify
     def __ilshift__(self, count):
         return o_lshift(self, count, self.getWidth())
 
-    @intify
     def __rshift__(self, count):
         return o_rshift(self, count, self.getWidth())
 
-    @intify
     def __irshift__(self, count):
         return o_rshift(self, count, self.getWidth())
 
-    @intify
     def __or__(self, other):
         return o_or(self, other, self.getWidth())
 
-    @intify
     def __ior__(self, other):
         return o_or(self, other, self.getWidth())
 
-    @intify
     def __and__(self, other):
         return o_and(self, other, self.getWidth())
 
-    @intify
     def __iand__(self, other):
         return o_and(self, other, self.getWidth())
 
-    @intify
     def __mod__(self, other):
         return o_mod(self, other, self.getWidth())
 
-    @intify
     def __imod__(self, other):
         return o_mod(self, other, self.getWidth())
 
-    @intify
     def __mul__(self, other):
         return o_mul(self, other, self.getWidth())
 
-    @intify
     def __imul__(self, other):
         return o_mul(self, other, self.getWidth())
 
-    @intify
     def __truediv__(self, other):
         return o_div(self, other, self.getWidth())
 
-    @intify
     def __idiv__(self, other):
         return o_div(self, other, self.getWidth())
 
-    @intify
     def __floordiv__(self, other):
         return o_div(self, other, self.getWidth())
 
-    @intify
     def __pow__(self, other):
         return o_pow(self, other, self.getWidth())
 
