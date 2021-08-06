@@ -1043,8 +1043,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ocount = len(op.opers)
         if ocount == 1:
             dsize = op.opers[0].tsize
-            a = self._emu_getGpReg(GPR_A, dsize)
-            mult = self.getOperValue(op, 0)
+            a = e_bits.signed(self._emu_getGpReg(GPR_A, dsize), dsize)
+            mult = e_bits.signed(self.getOperValue(op, 0), dsize)
             res = a * mult
 
             if dsize == 1:
