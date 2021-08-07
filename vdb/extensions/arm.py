@@ -1,6 +1,5 @@
-import binascii
-
 import envi.cli as e_cli
+import envi.common as e_common
 import envi.archs.arm.thumb as e_thumb
 
 def thumb(db, line):
@@ -33,20 +32,18 @@ def thumb(db, line):
         op = d.disasm(bytes, offset, va)
         obytes = bytes[offset:offset+len(op)]
 
-
         db.canvas.addVaText('0x%.8x' % va, va=va)
-        db.canvas.addText(": %s " % binascii.hexlify(obytes).ljust(17))
+        db.canvas.addText(": %s " % e_common.hexify(obytes).ljust(17))
         op.render(db.canvas)
         db.canvas.addText("\n")
 
         offset += len(op)
 
-def vdbExtension(db, trace):
-    vdb.addCmdAlias('db','mem -F bytes')
-    vdb.addCmdAlias('dw','mem -F u_int_16')
-    vdb.addCmdAlias('dd','mem -F u_int_32')
-    vdb.addCmdAlias('dq','mem -F u_int_64')
-    vdb.addCmdAlias('dr','mem -F "Deref View"')
-    vdb.addCmdAlias('ds','mem -F "Symbols View"')
-    db.registerCmdExtension(thumb)
-
+def vdbExtension(vdb, trace):
+    vdb.addCmdAlias('db', 'mem -F bytes')
+    vdb.addCmdAlias('dw', 'mem -F u_int_16')
+    vdb.addCmdAlias('dd', 'mem -F u_int_32')
+    vdb.addCmdAlias('dq', 'mem -F u_int_64')
+    vdb.addCmdAlias('dr', 'mem -F "Deref View"')
+    vdb.addCmdAlias('ds', 'mem -F "Symbols View"')
+    vdb.registerCmdExtension(thumb)
