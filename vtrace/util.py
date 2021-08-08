@@ -218,7 +218,7 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
 
     # filter maps
     if collapse:
-        maps = collapseMemoryMaps(maps)
+        maps = collapseMemoryMaps(maps, strict=strict)
 
     # add maps
     for midx, (va, perms, fname, bytez) in enumerate(maps):
