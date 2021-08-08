@@ -1693,7 +1693,7 @@ class WindowsMixin:
             if not ImageName:
                 # If it fails, fall back on getMappedFileName
                 ImageName = self.getMappedFileName(baseaddr)
-            self.addLibraryBase(ImageName, baseaddr, always=True)
+            self.addLibraryBase(ImageName, baseaddr)
             kernel32.CloseHandle(event.u.LoadDll.File)
 
         elif event.DebugEventCode == UNLOAD_DLL_DEBUG_EVENT:
@@ -1729,7 +1729,6 @@ class WindowsMixin:
             return ""
         name = fname.value
         for dosname, devname in self.dosdevs:
-            devname = devname.decode('utf-8')
             if name.startswith(devname):
                 return name.replace(devname, dosname)
         return name
