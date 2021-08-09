@@ -1,4 +1,5 @@
 import collections
+import envi.symstore.symcache as es_symcache
 
 # Symbol Type Constants ( for serialization )
 SYMSTOR_SYM_SYMBOL = 0
@@ -201,7 +202,7 @@ class SymbolResolver:
             subres = self.symnames.get(sym.fname)
 
         # Potentially del it from the sub resolver's namespace
-        if subres is not None:
+        if subres and isinstance(subres, es_symcache.SymbolCache):
             subres.delSymbol(sym)
 
         # Otherwise del it from our namespace
@@ -209,7 +210,12 @@ class SymbolResolver:
             symname = sym.name
             if not self.casesens:
                 symname = symname.lower()
-            self.symnames.pop(symname, None)
+
+            if symname in self.symnames:
+                self.symnames.pop(symname, None)
+
+            if sym.fname in self.symobjsbyname:
+                self.symobjsbyname.pop(sym.fname, None)
 
     def addSymbol(self, sym):
         """

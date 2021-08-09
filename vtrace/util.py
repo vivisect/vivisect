@@ -210,10 +210,8 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         # since relocations have already be updated and linkage, yadayada
              
         vw.addFile(trimfname, va, fakemd5)
+        
         #FIXME: make sure all of everything is backed by a file...  vw.getFile() should always 
-        #  return a non-None answer
-
-
         # add segments
 
     # filter maps
