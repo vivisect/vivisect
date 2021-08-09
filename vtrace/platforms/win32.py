@@ -1433,7 +1433,6 @@ class WindowsMixin:
             if not kernel32.DebugActiveProcessStop(self.pid):
                 raiseWin32Error("DebugActiveProcessStop")
         finally:
-            self.phandle = None
             phandle = self.phandle
             kernel32.CloseHandle(phandle)
 
