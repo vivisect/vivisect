@@ -945,11 +945,12 @@ class PE(object):
             if relcnt < 0:
                 return
 
-            rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
-            for r in rels:
+            for roffset in range(8, min(chunksize, len(relbytes)), 2):
+                r = struct.unpack_from("<H", relbytes, roffset)[0]
                 rtype = r >> 12
                 roff  = r & 0xfff
                 self.relocations.append((pageva+roff, rtype))
+
             relbytes = relbytes[chunksize:]
 
     def getExportName(self):
