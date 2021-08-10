@@ -6,6 +6,7 @@ import struct
 
 import vstruct
 import vstruct.defs.pe as vs_pe
+import vivisect.exc as v_exc
 
 from . import ordlookup
 
@@ -702,7 +703,12 @@ class PE(object):
         off += self.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes * len(vstruct.getStructure("pe.IMAGE_DATA_DIRECTORY"))
 
         secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
-        sbytes = self.readAtOffset(off, secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections)
+        hdrsize = secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections
+        sbytes = self.readAtOffset(off, hdrsize)
+
+        if len(sbytes) != hdrsize:
+            raise v_exc.CorruptPeFile("truncated section headers")
+
         indx = off
         while sbytes:
             s = vstruct.getStructure("pe.IMAGE_SECTION_HEADER")
