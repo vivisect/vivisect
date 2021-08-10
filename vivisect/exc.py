@@ -55,3 +55,9 @@ class InvalidWorkspace(Exception):
     """
     def __init__(self, nameinfo, errinfo):
         Exception.__init__(self, 'Failed to load %s: %s' % (nameinfo, errinfo))
+
+class InvalidArchitecture(Exception):
+    def __init__(self, fileformat, arch):
+        Exception.__init__(self, 'Architecture %s is not supported for %s' % (arch, fileformat))
+        self.fileformat = fileformat
+        self.arch = arch

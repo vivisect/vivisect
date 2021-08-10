@@ -7,6 +7,7 @@ import PE.carve as pe_carve
 
 import vstruct
 import vivisect
+import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
 # Steal symbol parsing from vtrace
 import vtrace  # needed only for setting the logging level
@@ -87,7 +88,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     arch = arch_names.get(mach)
     if arch is None:
-        raise Exception("Machine %.4x is not supported for PE!" % mach)
+        raise v_exc.InvalidArchitecture("PE", hex(mach))
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
