@@ -932,7 +932,7 @@ class PE(object):
                 return
 
             pageva, chunksize = struct.unpack("<II", relbytes[:8])
-            relcnt = (chunksize - 8) / 2
+            relcnt = (chunksize - 8) // 2
 
             # if chunksize == 0 bail
             if not chunksize:
