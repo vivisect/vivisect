@@ -39,7 +39,6 @@ def addAnalysisModules(vw):
             vw.addStructureModule('ntdll', 'vstruct.defs.windows.win_6_1_amd64.ntdll')
 
         elif arch in ARM_ARCHS:
-            vw.addImpApi('windows','arm')
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
         vw.addConstModule('vstruct.constants.ntstatus')
