@@ -131,6 +131,8 @@ class SymbolikExpressionParser:
                     ival = ival.n
                 elif type(ival) == int:
                     pass
+                elif type(ival) is ast.Constant:
+                    ival = ival.value
                 else:
                     raise Exception('Unsupported Expression (symbolik width index)')
 
