@@ -47,6 +47,19 @@ commands:
 
 jobs:
 
+  python38:
+    parallelism: 1
+    docker:
+      - image: circleci/python:3.8
+        environment:
+          VIVTESTFILES: /tmp/vivtestfiles
+          PYVERS: 3.9
+
+    working_directory: ~/repo
+
+    steps:
+      - test_steps_python
+
   python39:
     parallelism: 1
     docker:
@@ -66,6 +79,13 @@ workflows:
     jobs:
 
       - python39:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+
+      - python38:
           filters:
             tags:
               only: /.*/
