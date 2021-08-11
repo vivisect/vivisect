@@ -56,6 +56,7 @@ BOOL    = c_ulong
 BYTE    = c_ubyte
 NULL    = 0
 LPCWSTR = LPWSTR = c_wchar_p
+LPDWORD = PDWORD = ctypes.POINTER(DWORD)
 
 INFINITE = 0xffffffff
 EXCEPTION_MAXIMUM_PARAMETERS = 15
