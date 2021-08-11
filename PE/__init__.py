@@ -454,7 +454,13 @@ class PE(object):
         '''
         if self.IMAGE_EXPORT_DIRECTORY is not None:
             rawname = self.readAtRva(self.IMAGE_EXPORT_DIRECTORY.Name, 32)
-            return rawname.split(b'\x00')[0].decode('utf-8')
+            if not rawname:
+                return None
+
+            try:
+                return rawname.partition(b'\x00')[0].decode('ascii')
+            except UnicodeDecodeError:
+                return None
         return None
 
     def getImports(self):
