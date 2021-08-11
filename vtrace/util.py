@@ -1,11 +1,19 @@
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 
+import logging
+import hashlib
+import collections
+
 import vtrace
 import vtrace.notifiers as v_notifiers
 import vtrace.rmi as v_rmi
 
 import envi.archs.i386 as e_i386
 import envi.archs.amd64 as e_amd64
+
+
+logger = logging.getLogger(__name__)
+
 
 class TraceManager:
     """
@@ -171,8 +179,10 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         exts = ('so')
 
     # could use {get,set}MemorySnap if trace inherited from MemoryObject
-    seen = []
     maps = []
+    fnames = collections.defaultdict(int)
+    filemeta = collections.defaultdict(hashlib.md5)
+
     for va, size, perms, fname in trace.getMemoryMaps():
         # strip off unwanted parts
         trimfname = fname.split(ossep)[-1]
@@ -195,33 +205,27 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
             print('failed to map: 0x{:x} into emu'.format(va, size))
             continue
 
-        # add file
-        if fname in seen: 
-            continue 
-        seen.append(fname) 
-        
-        # remove path from name
-        if trimfname in vw.getFiles(): 
-            continue
-
-        fakemd5 = 'adsfasdfasdfasdfasdf'    
-        # TODO? actually work through all the maps with the same name and add some validish MD5?
-        # but because we're yanking from memory, it won't be the same hash as the binary on disk
-        # since relocations have already be updated and linkage, yadayada
-             
-        vw.addFile(trimfname, va, fakemd5)
-        
-        #FIXME: make sure all of everything is backed by a file...  vw.getFile() should always 
-        # add segments
-
     # filter maps
     if collapse:
         maps = collapseMemoryMaps(maps, strict=strict)
 
     # add maps
     for midx, (va, perms, fname, bytez) in enumerate(maps):
+        count = fnames.get(fname, 0)
+        fnames[fname] = count + 1
+
         vw.addMemoryMap(va, perms, fname, bytez)
-        vw.addSegment(va, len(bytez), "map%d" % midx, fname)
+        vw.addSegment(va, len(bytez), "%s_%d" % (fname, count), fname)
+        filemeta[fname].update(bytez)
+
+    # now actually add the files
+    for fname in filemeta.keys():
+        # find first va:
+        for va, perms, mnm, btz in maps:
+            if mnm == fname:
+                break
+
+        vw.addFile(fname, va, filemeta[fname])
 
     # windows stuff
     if plat == 'windows':
@@ -259,14 +263,14 @@ def collapseMemoryMaps(oldmaps, strict=True):
     curva, curperms, curfname, curbytez = oldmaps[0]
     cursz = len(curbytez)
     curvamax = curva + cursz
-    print("initial map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x" % (curva, curperms, curfname, cursz, curvamax))
+    logger.debug("initial map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x", curva, curperms, curfname, cursz, curvamax)
 
     for omidx in range(1, len(oldmaps)):
         ova, operms, ofname, obytez = oldmaps[omidx]
         omsz = len(obytez)
         ovamax = ova + omsz
-        print("next map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x" % (ova, operms, ofname, omsz, ovamax))
-        if ova == curvamax and (not strict or (curfname == ofname and curperms == operms)):  # is this true?
+        logger.debug("next map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x", ova, operms, ofname, omsz, ovamax)
+        if ova == curvamax and curfname == ofname and (not strict or curperms == operms):
             # collapse this into previous and update curvamax and curbytes if perms or not strict
             curvamax = ovamax
             newfname = None
@@ -281,10 +285,11 @@ def collapseMemoryMaps(oldmaps, strict=True):
             curbytez += obytez
             curfname = newfname
             newmaps[-1] = curva, curperms, newfname, curbytez
-            print("collapsing: initial map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x" % (curva, curperms, curfname, cursz, curvamax))
+            logger.debug("collapsing: initial map: 0x%x, perms:%x, %r, %d-bytes, curvamax: 0x%x", \
+                    curva, curperms, curfname, cursz, curvamax)
 
         else:
-            #print("ova (0x%x) != curvamax (0x%x( or curperms (%r) != operms (%r)" % (ova, curvamax, curperms, operms))
+            #logger.debug("ova (0x%x) != curvamax (0x%x) or curperms (%r) != operms (%r)", ova, curvamax, curperms, operms)
             # add this map to newmaps and update cur*
             newmaps.append(oldmaps[omidx])
             curva, curperms, curfname, curbytez = oldmaps[omidx]
