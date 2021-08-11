@@ -938,24 +938,28 @@ class PE(object):
                 return
 
             pageva, chunksize = struct.unpack("<II", relbytes[:8])
-            relcnt = (chunksize - 8) / 2
+            relcnt = (chunksize - 8) // 2
 
             # if chunksize == 0 bail
             if not chunksize:
+                logger.warning("PE: corrupt relocation table: chunk size is 0")
                 return
 
             # RP BUG FIX - sometimes the chunksize is invalid we do a quick check to make sure we dont overrun the buffer
             if chunksize > len(relbytes):
+                logger.warning("PE: corrupt relocation table: chunk size > table size")
                 return
 
             if relcnt < 0:
+                logger.warning("PE: corrupt relocation table: negative relocation count")
                 return
 
-            rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
-            for r in rels:
+            for roffset in range(8, min(chunksize, len(relbytes)), 2):
+                r = struct.unpack_from("<H", relbytes, roffset)[0]
                 rtype = r >> 12
                 roff  = r & 0xfff
                 self.relocations.append((pageva+roff, rtype))
+
             relbytes = relbytes[chunksize:]
 
     def getExportName(self):
