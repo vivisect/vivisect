@@ -29,7 +29,7 @@ import envi.archs.amd64 as e_amd64
 import envi.symstore.resolver as e_resolv
 import envi.symstore.symcache as e_symcache
 
-from ctypes import wintypes
+import ctypes
 from ctypes import *
 
 logger = logging.getLogger(__name__)
@@ -46,15 +46,17 @@ IsWow64Process = None
 # Setup some ctypes helpers:
 # NOTE: we don't use LPVOID because it can return None.
 #       c_size_t is the designated platform word width int.
-LPVOID = c_size_t
-HANDLE = LPVOID
-SIZE_T = LPVOID
-QWORD  = c_ulonglong
-DWORD  = c_ulong
-WORD   = c_ushort
-BOOL   = c_ulong
-BYTE   = c_ubyte
-NULL   = 0
+LPVOID  = c_size_t
+HANDLE  = LPVOID
+SIZE_T  = LPVOID
+QWORD   = c_ulonglong
+DWORD   = c_ulong
+WORD    = c_ushort
+BOOL    = c_ulong
+BYTE    = c_ubyte
+NULL    = 0
+LPCWSTR = LPWSTR = c_wchar_p
+LPDWORD = PDWORD = ctypes.POINTER(DWORD)
 
 INFINITE = 0xffffffff
 EXCEPTION_MAXIMUM_PARAMETERS = 15
@@ -901,22 +903,22 @@ if sys.platform == "win32":
     kernel32 = windll.kernel32
     # We need to inform some of the APIs about their args
     kernel32.GetLastError.argtypes = []
-    kernel32.GetLastError.restype = wintypes.DWORD
+    kernel32.GetLastError.restype = DWORD
     kernel32.OpenProcess.argtypes = [DWORD, BOOL, DWORD]
     kernel32.OpenProcess.restype = HANDLE
     kernel32.CreateProcessA.argtypes = [LPVOID, c_char_p, LPVOID, LPVOID, c_uint, DWORD, LPVOID, LPVOID, LPVOID, LPVOID]
     kernel32.ReadProcessMemory.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T, LPVOID]
-    kernel32.ReadProcessMemory.restype = wintypes.BOOL
+    kernel32.ReadProcessMemory.restype = BOOL
     kernel32.WriteProcessMemory.argtypes = [HANDLE, LPVOID, c_char_p, SIZE_T, LPVOID]
-    kernel32.WriteProcessMemory.restype = wintypes.BOOL
+    kernel32.WriteProcessMemory.restype = BOOL
     kernel32.GetThreadContext.argtypes = [HANDLE, LPVOID]
     kernel32.SetThreadContext.argtypes = [HANDLE, LPVOID]
     kernel32.CreateRemoteThread.argtypes = [HANDLE, LPVOID, SIZE_T, LPVOID, LPVOID, DWORD, LPVOID]
     kernel32.SuspendThread.argtypes = [HANDLE,]
     kernel32.ResumeThread.argtypes = [HANDLE,]
-    kernel32.ResumeThread.restype = wintypes.DWORD
-    kernel32.ContinueDebugEvent.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD]
-    kernel32.ContinueDebugEvent.restype = wintypes.BOOL
+    kernel32.ResumeThread.restype = DWORD
+    kernel32.ContinueDebugEvent.argtypes = [DWORD, DWORD, DWORD]
+    kernel32.ContinueDebugEvent.restype = BOOL
     kernel32.VirtualQueryEx.argtypes = [HANDLE, LPVOID, LPVOID, SIZE_T]
     kernel32.DebugBreakProcess.argtypes = [HANDLE,]
     kernel32.CloseHandle.argtypes = [HANDLE,]
@@ -931,15 +933,15 @@ if sys.platform == "win32":
     kernel32.FormatMessageW.argtypes = [DWORD, LPVOID, DWORD, DWORD, LPVOID, DWORD, LPVOID]
     kernel32.WaitForDebugEvent.argtypes = [LPVOID, DWORD]
 
-    kernel32.QueryDosDeviceW.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
-    kernel32.FindFirstVolumeW.argtypes = [wintypes.LPWSTR, wintypes.DWORD]
-    kernel32.FindFirstVolumeW.restype = wintypes.HANDLE
-    kernel32.FindNextVolumeW.argtypes = [wintypes.HANDLE, wintypes.LPWSTR, wintypes.DWORD]
-    kernel32.FindNextVolumeW.restype  = wintypes.BOOL
+    kernel32.QueryDosDeviceW.argtypes = [LPCWSTR, LPWSTR, DWORD]
+    kernel32.FindFirstVolumeW.argtypes = [LPWSTR, DWORD]
+    kernel32.FindFirstVolumeW.restype = HANDLE
+    kernel32.FindNextVolumeW.argtypes = [HANDLE, LPWSTR, DWORD]
+    kernel32.FindNextVolumeW.restype  = BOOL
     kernel32.FindVolumeClose.argtypes = [HANDLE]
-    kernel32.FindVolumeClose.restype = wintypes.BOOL
-    kernel32.GetVolumePathNamesForVolumeNameW.argtypes = [wintypes.LPWSTR, wintypes.LPWSTR, wintypes.DWORD, wintypes.PDWORD]
-    kernel32.GetVolumePathNamesForVolumeNameW.restype = wintypes.BOOL
+    kernel32.FindVolumeClose.restype = BOOL
+    kernel32.GetVolumePathNamesForVolumeNameW.argtypes = [LPWSTR, LPWSTR, DWORD, PDWORD]
+    kernel32.GetVolumePathNamesForVolumeNameW.restype = BOOL
 
     IsWow64Process = getattr(kernel32, 'IsWow64Process', None)
     if IsWow64Process is not None:
@@ -1367,13 +1369,13 @@ class WindowsMixin:
             size = kernel32.QueryDosDeviceW(namevalu, devicename, 1024)
 
             drivenames = create_unicode_buffer(1024)
-            valulen = wintypes.DWORD()
+            valulen = DWORD()
 
             stat = kernel32.GetVolumePathNamesForVolumeNameW(buffer.value, drivenames, 1024, pointer(valulen))
             if drivenames.value:
                 self.dosdevs.append((drivenames.value, devicename.value))
 
-            nextvolu = kernel32.FindNextVolumeW(hndl, buffer, wintypes.DWORD(1024))
+            nextvolu = kernel32.FindNextVolumeW(hndl, buffer, DWORD(1024))
             if not nextvolu:
                 err = kernel32.GetLastError()
                 if err == ERROR_NO_MORE_FILES:
@@ -1434,6 +1436,7 @@ class WindowsMixin:
                 raiseWin32Error("DebugActiveProcessStop")
         finally:
             phandle = self.phandle
+            self.phandle = None
             kernel32.CloseHandle(phandle)
 
 
