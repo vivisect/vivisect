@@ -57,6 +57,13 @@ class InvalidWorkspace(Exception):
         Exception.__init__(self, 'Failed to load %s: %s' % (nameinfo, errinfo))
 
 
+class InvalidArchitecture(Exception):
+    def __init__(self, fileformat, arch):
+        Exception.__init__(self, 'Architecture %s is not supported for %s' % (arch, fileformat))
+        self.fileformat = fileformat
+        self.arch = arch
+
+
 class CorruptFile(Exception):
     def __init__(self, fileformat, message):
         super(CorruptFile, self).__init__('%s: corrupt file: %s' % (fileformat, message))
