@@ -174,6 +174,9 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Add the first page mapped in from the PE header.
     header = pe.readAtOffset(0, header_size)
 
+    if not header:
+        raise v_exc.CorruptPeFile("truncated PE header")
+
     secalign = pe.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
     subsys_majver = pe.IMAGE_NT_HEADERS.OptionalHeader.MajorSubsystemVersion
     subsys_minver = pe.IMAGE_NT_HEADERS.OptionalHeader.MinorSubsystemVersion
