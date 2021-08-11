@@ -53,7 +53,7 @@ jobs:
       - image: circleci/python:3.8
         environment:
           VIVTESTFILES: /tmp/vivtestfiles
-          PYVERS: 3.9
+          PYVERS: 3.8
 
     working_directory: ~/repo
 
