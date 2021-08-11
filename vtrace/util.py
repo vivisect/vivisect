@@ -8,6 +8,8 @@ import vtrace
 import vtrace.notifiers as v_notifiers
 import vtrace.rmi as v_rmi
 
+import envi
+import envi.memory as e_memory
 import envi.archs.i386 as e_i386
 import envi.archs.amd64 as e_amd64
 
@@ -92,8 +94,6 @@ def emuFromTrace(trace):
     '''
     Produce an envi emulator for this tracer object.
     '''
-    import envi
-    import envi.memory as e_memory
     arch = trace.getMeta('Architecture')
     plat = trace.getMeta('Platform')
     amod = envi.getArchModule(arch)
@@ -111,7 +111,7 @@ def emuFromTrace(trace):
             bytez = trace.readMemory(va, size)
             emu.addMemoryMap(va, perms, fname, bytez)
         except vtrace.PlatformException:
-            print('failed to map: 0x{:x} into emu'.format(va, size))
+            logger.warning('failed to map: 0x{:x} into emu'.format(va, size))
             continue
 
     rsnap = trace.getRegisterContext().getRegisterSnap()
@@ -149,7 +149,6 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
     If strict, only join maps with the same permissions
     '''
     import vivisect
-    import envi.memory as e_memory
     vw = vivisect.VivWorkspace()
     arch = trace.getMeta('Architecture')
     plat = trace.getMeta('Platform')
@@ -202,7 +201,7 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
             maps.append((va, perms, stripfname, bytez))
 
         except vtrace.PlatformException:
-            print('failed to map: 0x{:x} into emu'.format(va, size))
+            logger.warning('failed to map: 0x{:x} into emu'.format(va, size))
             continue
 
     # filter maps

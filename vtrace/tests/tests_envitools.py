@@ -36,6 +36,7 @@ class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
             # test that the file mappings exist for each (which means segments have to be correct)
             filename = vw.getFileByVa(mva)
             self.assertTrue(filename in mfname)
+            self.assertEqual(len(vwmaps), 53)
 
     def test_workspaceFromTraceWithCollapse_Nonstrict(self):
         vw = vtrace.util.vwFromTrace(self.trace, collapse=True, strict=False)
@@ -48,3 +49,4 @@ class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
             # test that the file mappings exist for each (which means segments have to be correct)
             filename = vw.getFileByVa(mva)
             self.assertTrue(filename in mfname)
+            self.assertEqual(len(vwmaps), 26)

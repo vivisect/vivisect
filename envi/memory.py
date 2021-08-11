@@ -637,7 +637,7 @@ def collapseMemoryMaps(oldmaps, strict=True):
     for omidx in range(1, len(oldmaps)):
         ova, ovamax, ommap, obytez = oldmaps[omidx]
         omva, omsz, omperms, omfname = ommap
-        if ova == curvamax and (curmmap[2]==ommap[2] or not strict):  # is this true?
+        if ova == curvamax and curmmap[3] == ommap[3] and (curmmap[2]==ommap[2] or not strict):
             # collapse this into previous and update curvamax and curbytes if perms or not strict
             curvamax = ovamax
             cmva, cmsz, cmperms, cmfname = curmmap
