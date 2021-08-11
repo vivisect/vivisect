@@ -88,7 +88,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     arch = arch_names.get(mach)
     if arch is None:
-        raise Exception("Machine %.4x is not supported for PE!" % mach)
+        raise v_exc.InvalidArchitecture("PE", hex(mach))
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
