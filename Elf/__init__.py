@@ -196,10 +196,7 @@ class ElfSection:
         return self.name
 
     def __repr__(self):
-        flags = []
-        for idx, name in sh_flags.items():
-            if idx & self.sh_flags:
-                flags.append(name)
+        flags = [name for idx, name in sh_flags.items() if idx & self.sh_flags]
 
         return 'Elf Sec: [%20s] @0x%.8x (%8d) [ent/size: %8d/%8d] [align: %8d] [%s]' % (
                 self.name,
