@@ -53,6 +53,7 @@ class EnviMemoryTest(unittest.TestCase):
         self.assertNotEqual(0x41410000, newmapva4)
 
         newmapva5 = mem.allocateMemory(1024000, perms=e_mem.MM_READ, suggestaddr=0x41410000, name='test4', fill=b'@')
-        #self.assertRaises(e_exc.SegmentationViolation, mem.writeMemory(newmapva5, "foobarbaz"))  # throws the correct exception, but still somehow fails.
+        with self.assertRaises(e_exc.SegmentationViolation):
+            mem.writeMemory(newmapva5, "foobarbaz")
 
 
