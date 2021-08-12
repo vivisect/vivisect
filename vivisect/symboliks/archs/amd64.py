@@ -212,10 +212,10 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
 class Amd64ArgDefSymEmu(vsym_i386.ArgDefSymEmu):
     __xlator__ = Amd64SymbolikTranslator
 
-class MSx64CallSym(e_amd64.MSx64Call, vsym_callconv.SymbolikCallingConvention):
+class MSx64CallSym(vsym_callconv.SymbolikCallingConvention, e_amd64.MSx64Call):
     __argdefemu__ = Amd64ArgDefSymEmu
 
-class SysVAmd64CallSym(e_amd64.SysVAmd64Call, vsym_callconv.SymbolikCallingConvention):
+class SysVAmd64CallSym(vsym_callconv.SymbolikCallingConvention, e_amd64.SysVAmd64Call):
     __argdefemu__ = Amd64ArgDefSymEmu
 
 msx64callsym = MSx64CallSym()
