@@ -23,6 +23,22 @@ def analyzeFunction(vw, funcva):
 def analyze(vw):
     '''
     Find function thunks that point to other function that aren't imports
+
+    General idea is that most function thunks (and not functions that just jump
+    to a new function and never return) are usually one codeblock big. They do some
+    setup, then jump/call/branch to a new place (and not just fall through).
+
+    So we run through all the functions we know about, filter down to only the ones
+    of a single codeblock. If the last instruction in it isn't a call or a branch, skip
+    it.
+
+    If we can then resolve where that branch/call is going to, set the new thing as a
+    function thunk to it's target, and set the current function as a thunk.
+
+    There is a slight catch in that there are certain functions we don't want to call
+    makeFunctionThunk on (since that overrides the old name), since we may have already
+    received a real name for it, so in that case, just set the metadata for it being
+    a thunk and move on.
     '''
     for fva in vw.getFunctions():
         # Skip things that are already thunks
