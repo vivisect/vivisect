@@ -2,13 +2,14 @@ import unittest
 
 import envi.exc as e_exc
 import envi.memory as e_mem
+import envi.const as e_const
 
 
 class EnviMemoryTest(unittest.TestCase):
 
     def test_envi_memory_cache(self):
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(0x41410000, e_mem.MM_RWX, 'stack', b'B'*16384)
+        mem.addMemoryMap(0x41410000, e_const.MM_RWX, 'stack', b'B'*16384)
 
         cache = e_mem.MemoryCache(mem)
         self.assertEqual(cache.readMemory(0x41410041, 30), b'B' * 30)
@@ -23,7 +24,7 @@ class EnviMemoryTest(unittest.TestCase):
 
     def test_add_and_delMemoryMap(self):
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(0x41410000, e_mem.MM_RWX, 'test', b'\0'*1024)
+        mem.addMemoryMap(0x41410000, e_const.MM_RWX, 'test', b'\0'*1024)
         self.assertEqual(mem.readMemory(0x41410041, 4), b'\0\0\0\0')
         mem.writeMemory(0x41410041, b'foo')
         self.assertEqual(mem.readMemory(0x41410041, 4), b'foo\0')
@@ -36,7 +37,7 @@ class EnviMemoryTest(unittest.TestCase):
 
     def test_allocator(self):
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(0x41410000, e_mem.MM_RWX, 'test', b'\0'*1024)
+        mem.addMemoryMap(0x41410000, e_const.MM_RWX, 'test', b'\0'*1024)
         newmapva1 = mem.findFreeMemoryBlock(1024000)
         self.assertGreater(newmapva1, 0)
 
@@ -52,7 +53,7 @@ class EnviMemoryTest(unittest.TestCase):
         newmapva4 = mem.allocateMemory(1024000, suggestaddr=0x41410000, name='test4', fill=b'@')
         self.assertNotEqual(0x41410000, newmapva4)
 
-        newmapva5 = mem.allocateMemory(1024000, perms=e_mem.MM_READ, suggestaddr=0x41410000, name='test4', fill=b'@')
+        newmapva5 = mem.allocateMemory(1024000, perms=e_const.MM_READ, suggestaddr=0x41410000, name='test4', fill=b'@')
         with self.assertRaises(e_exc.SegmentationViolation):
             mem.writeMemory(newmapva5, "foobarbaz")
 
