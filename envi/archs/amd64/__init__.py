@@ -92,14 +92,6 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
     accumreg = { 1:REG_AL, 2:REG_AX, 4:REG_EAX, 8:REG_RAX }
 
     def __init__(self):
-        self.__rep_prefix_handlers__ = {
-            PREFIX_REP: self.doRepzPrefix,
-            PREFIX_REPZ: self.doRepzPrefix,
-            PREFIX_REPNZ: self.doRepnzPrefix,
-            PREFIX_REP_SIMD: self.doRepSIMDPrefix,
-        }
-
-
         archmod = Amd64Module()
         e_i386.IntelEmulator.__init__(self, archmod=archmod)
         # The above sets up the intel reg context, so we smash over it
