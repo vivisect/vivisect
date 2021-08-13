@@ -72,7 +72,7 @@ class MapLookup:
             if va >= mva and va < mvamax:
                 return self._maps_list.pop(midx)
 
-        raise Exception('Address (0x%.8x) not in maps!' % va)
+        raise e_exc.MapNotFoundException(va=va)
 
 
     def __getslice__(self, start, end):

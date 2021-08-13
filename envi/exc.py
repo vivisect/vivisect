@@ -194,6 +194,16 @@ class MapOverlapException(EnviException):
         margs = (map1[0], map1[1], map2[0], map2[1])
         EnviException.__init__(self, "Map At 0x%.8x (%d) overlaps map at 0x%.8x (%d)" % margs)
 
+class MapNotFoundException(EnviException):
+    """
+    Raised when attempting to access or delete a memory map which does not
+    exist.
+    """
+    def __init__(self, mmapva):
+        self.mmapva = mmapva
+        
+    def __repr__(self):
+        return 'Map not found at base va 0x%.8x!' % self.mmapva
 
 class QuietNaN(Exception):
     pass

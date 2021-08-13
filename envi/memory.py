@@ -417,7 +417,7 @@ class MemoryObject(IMemory):
 
     def findFreeMemoryBlock(self, size, suggestaddr=0x1000):
         '''
-        Find a block of memory in the address-spcae of the correct size which 
+        Find a block of memory in the address-space of the correct size which 
         doesn't overlap any existing maps.  Attempts to offer the map starting
         at suggestaddr.  If not possible, scans the rest of the address-space
         until it finds a suitable location or loops twice(ie. no gap large 
