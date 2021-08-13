@@ -6,6 +6,7 @@ import PE.carve as pe_carve
 
 import vstruct
 import vivisect
+import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
 # Steal symbol parsing from vtrace
 import vtrace  # needed only for setting the logging level
@@ -86,7 +87,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     arch = arch_names.get(mach)
     if arch is None:
-        raise Exception("Machine %.4x is not supported for PE!" % mach)
+        raise v_exc.InvalidArchitecture("PE", hex(mach))
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
@@ -172,9 +173,15 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Add the first page mapped in from the PE header.
     header = pe.readAtOffset(0, header_size)
 
+    if not header:
+        raise v_exc.CorruptPeFile("truncated PE header")
+
     secalign = pe.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
     subsys_majver = pe.IMAGE_NT_HEADERS.OptionalHeader.MajorSubsystemVersion
     subsys_minver = pe.IMAGE_NT_HEADERS.OptionalHeader.MinorSubsystemVersion
+
+    if secalign == 0:
+        raise v_exc.CorruptPeFile("section alignment is zero")
 
     secrem = len(header) % secalign
     if secrem != 0:
