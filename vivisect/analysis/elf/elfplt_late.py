@@ -1,13 +1,13 @@
 '''
 Late-PLT analysis.
 
-During codeflow analysis, we detect PLT entries organically (and consequently 
+During codeflow analysis, we detect PLT entries organically (and consequently
 *accurately*), but often not all of them.  This analysis module applies a few
-different algorithms to identify the ones which were not discovered during 
+different algorithms to identify the ones which were not discovered during
 autoanalysis.
 
 Formerly, we attempted to do this analysis before all other code analysis
-but due to so many varieties of PLT creation by different compilers on 
+but due to so many varieties of PLT creation by different compilers on
 numerous hardware platforms and OSes, that method lead to many errors in PLT-
 identification, often hampering vital parts of vulnerability-research tools.
 We finally pulled the plug on preemptive analysis, in favor of letting auto-
@@ -42,12 +42,12 @@ def analyzePLT(vw, pltva, pltsz):
     We make use of two different algorithms for each.
     The first algorithm measures the distance from the start of known good PLT
     functions and the GOT-referencing branch.  The only weakness is that this
-    method requires that the xref to the GOT is already identified (without 
-    throwing and emulator in there).  
+    method requires that the xref to the GOT is already identified (without
+    throwing and emulator in there).
 
     The second algorithm measures the distance between known good PLT entries
     and then attempts to identify divisors (up to 16 splits) which would make
-    more than one PLT function fit between them.  These attempted splits are 
+    more than one PLT function fit between them.  These attempted splits are
     validated using heuristics of the potential functions which would be created
     by the division.  PLT entries in the same PLT section are incredibly similar
     (not including the LazyLoader sometimes found at the beginning of a PLT)

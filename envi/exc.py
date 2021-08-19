@@ -130,9 +130,16 @@ class DivideByZero(EmuException):
     pass
 
 
+class MultiplyError(EmuException):
+    """
+    Raised by an Emulator when multiply falls outside of the specified range
+    """
+    pass
+
+
 class DivideError(EmuException):
     """
-    Raised by an Emulator whena a divide falls out
+    Raised by an Emulator when a a divide falls out
     of the specified range.
     """
     pass
@@ -197,3 +204,7 @@ class InvalidOperand(Exception):
     def __repr__(self):
         return "%s at %s" % (self.__class__.__name__, str(self.valu))
 
+class GeneralProtection(EnviException):
+    def __init__(self, op):
+        EnviException.__init__(self, 'General Protection exception (0x%.8x: %s)' % (op.va, str(op)))
+        self.op = op

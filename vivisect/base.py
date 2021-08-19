@@ -231,16 +231,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        if len(einfo) == 2:     # FIXME: legacy: remove after 02/13/2020
-            rva, rtype = einfo
-            mmva, mmsz, mmperm, fname = self.getMemoryMap(rva)    # FIXME: getFileByVa does not obey file defs
-            imgbase = self.getFileMeta(fname, 'imagebase')
-            data = None
-            einfo = fname, rva-imgbase, rtype, data
-        else:
-            fname, ptroff, rtype, data = einfo
-            imgbase = self.getFileMeta(fname, 'imagebase')
-            rva = imgbase + ptroff
+        fname, ptroff, rtype, data = einfo
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        rva = imgbase + ptroff
 
         self.reloc_by_va[rva] = rtype
         self.relocations.append(einfo)
@@ -252,7 +245,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
             if ptr != (ptr & e_bits.u_maxes[self.psize]):
-                logger.warning('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+                logger.warning('Relocations calculated a bad pointer: 0x%x (imgbase: 0x%x) (relocation: %d)', ptr, imgbase, rtype)
 
             # writes are costly, especially on larger binaries
             if ptr != self.readMemoryPtr(rva):
