@@ -464,7 +464,7 @@ class VivisectTest(unittest.TestCase):
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
         ans = {0: ('Undefined', 0, 70828, 18),
-               1: ('Num/Int',   714, 3703, 0),
+               1: ('Num/Int',   715, 3703, 0),
                2: ('String',    265, 6485, 1),
                3: ('Unicode',   174, 5596, 1),
                4: ('Pointer',   361, 2888, 0),
