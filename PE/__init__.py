@@ -1004,6 +1004,12 @@ class PE(object):
         '''
         imports_list = []
         isize = len(x)
+        if is_imports:
+            usesRva = True
+        else:
+            usesRva = self.doesDelayedImportTableUseRVAs(x, irva)
+            if not usesRva:
+                logger.warning("delayed imports: delay import table uses VAs (unusual, might be VS6)")
 
         while True:
             if is_imports:
@@ -1029,16 +1035,23 @@ class PE(object):
                     imp_by_name = x.rvaIAT
                 save_name = x.rvaIAT
 
-            if not self.checkRva(imp_by_name):
+            if usesRva and not self.checkRva(imp_by_name):
                 break
 
             while True:
 
                 arrayoff = self.psize * idx
                 if self.filesize is not None and arrayoff > self.filesize:
-                    return [] # we probably put garbage in the list
+                    # we've read more pointers than could possibly be in this file
+                    # so we probably already put garbage in the list.
+                    # therefore, bail with empty results.
+                    return []
 
-                ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
+                if usesRva:
+                    ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
+                else:
+                    ibn_rva = self.readPointerAtVa(imp_by_name+arrayoff)
+                
                 if ibn_rva == 0:
                     break
 
