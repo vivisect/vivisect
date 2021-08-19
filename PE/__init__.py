@@ -496,6 +496,13 @@ class PE(object):
     def getSections(self):
         return self.sections
 
+    def vaToOffset(self, va):
+        if self.inmem:
+            return va
+
+        rva = va - self.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+        return self.rvaToOffset(rva)
+ 
     def rvaToOffset(self, rva):
         if self.inmem:
             return rva
@@ -760,6 +767,10 @@ class PE(object):
         if self.psize == 8:
             fmt = "<Q"
         return struct.unpack(fmt, self.readAtOffset(off, self.psize))[0]
+
+    def readPointerAtVa(self, va):
+        off = self.vaToOffset(va)
+        return self.readPointerAtOffset(off)
 
     def readPointerAtRva(self, rva):
         off = self.rvaToOffset(rva)
