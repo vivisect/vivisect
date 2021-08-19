@@ -77,6 +77,7 @@ class CorruptPeFile(CorruptFile):
 
 
 class InvalidString(Exception):
+    """A string cannot be parsed as requested, such as without an NULL terminator"""
     def __init__(self, message):
         super(InvalidString, self).__init__('invalid string: %s' % (message))
         self.message = message

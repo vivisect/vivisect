@@ -430,7 +430,10 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     fwds = pe.getForwarders()
     for rva, name, forwardname in fwds:
         vw.makeName(rva+baseaddr, "forwarder_%s.%s" % (fname, name))
-        vw.makeString(rva+baseaddr)
+        try:
+            vw.makeString(rva+baseaddr)
+        except v_exc.InvalidString as e:
+            logger.warning("failed to add export fowarder string at 0x%x: %s" % (baseaddr + rva, e))
 
     vw.setFileMeta(fname, 'forwarders', fwds)
 
