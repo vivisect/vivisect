@@ -869,7 +869,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         dsize = op.opers[0].tsize
         val = self.getOperValue(op, 0)
         if val == 0:
-            raise envi.DivideByZero(self)
+            raise e_exc.DivideByZero(self)
 
         if dsize == 1:
             ax = self.getRegister(REG_AX)
@@ -910,19 +910,20 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             rem = tot % val
 
             if tot > (2**64)-1:
-                raise Exception('division exception')
+                mesg = '0x%.8x: division exception on %s' % (op.va, str(op))
+                raise e_exc.DivideError(self, msg=mesg)
 
             self.setRegisterByName("rax", quot)
             self.setRegisterByName("rdx", rem)
 
         else:
-            raise envi.UnsupportedInstruction(self, op)
+            raise e_exc.UnsupportedInstruction(self, op)
 
     def i_enter(self, op):
         locsize = self.getOperValue(op, 0)
         depth = self.getOperValue(op, 1)
         if depth != 0:
-            raise envi.UnsupportedInstruction(self, op)
+            raise e_exc.UnsupportedInstruction(self, op)
 
         esp = self.getRegister(REG_ESP)
         ebp = self.getRegister(REG_EBP)
@@ -957,7 +958,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 1)
             if d == 0:
-                raise envi.DivideByZero(self)
+                raise e_exc.DivideByZero(self)
             q = ax // d
             r = ax % d
             res = ((r & 0xff) << 8) | (q & 0xff)
@@ -969,7 +970,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 2)
             if d == 0:
-                raise envi.DivideByZero(self)
+                raise e_exc.DivideByZero(self)
             q = val // d
             r = val % d
 
@@ -982,7 +983,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 4)
             if d == 0:
-                raise envi.DivideByZero(self)
+                raise e_exc.DivideByZero(self)
             q = val // d
             r = val % d
 
@@ -1052,13 +1053,13 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             self.setOperValue(op, 0, res)
 
         else:
-            raise envi.UnsupportedInstruction(self, op)
+            raise e_exc.UnsupportedInstruction(self, op)
 
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
         self.setFlag(EFLAGS_SF, 0)  # technically undefined in the manual, but zero'd on core-i7
 
     def i_in(self, op):
-        raise envi.UnsupportedInstruction(self, op)
+        raise e_exc.UnsupportedInstruction(self, op)
 
     def i_inc(self, op):
         size = op.opers[0].tsize
@@ -1078,18 +1079,18 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(sval))
 
     def i_ud0(self, op):
-        raise envi.BadOpcode(op)
+        raise e_exc.BadOpcode(op)
     i_ud1 = i_ud0
     i_ud2 = i_ud0
 
     def i_int(self, op):
-        raise envi.BreakpointHit(self)
+        raise e_exc.BreakpointHit(self)
 
     def i_int1(self, op):
-        raise envi.BreakpointHit(self)
+        raise e_exc.BreakpointHit(self)
 
     def i_int3(self, op):
-        raise envi.BreakpointHit(self)
+        raise e_exc.BreakpointHit(self)
 
     def i_lea(self, op):
         base = self.getOperAddr(op, 1)
@@ -1291,7 +1292,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             self._emu_setGpReg(GPR_A, a, tsize)
             self._emu_setGpReg(GPR_D, d, tsize)
         else:
-            raise Exception("i_mul called with invalid size of %d" % tsize)
+            mesg = "i_mul called with invalid size of %d" % tsize
+            raise e_exc.MultipleError(self, msg=mesg)
 
         # If the high order stuff was used, set CF/OF
         if res >> (tsize * 8):
