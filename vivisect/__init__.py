@@ -2131,9 +2131,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         if size is None:
             size = self.asciiStringSize(va)
+            if size == -1:
+                raise InvalidString("NULL terminator not found")
 
         if size <= 0:
-            raise Exception("Invalid String Size: %d" % size)
+            raise InvalidString("negative length")
 
         # rip through the desired memory range to populate any substrings
         subs = self._getSubstrings(va, size, LOC_STRING)

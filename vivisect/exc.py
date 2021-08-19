@@ -74,3 +74,9 @@ class CorruptFile(Exception):
 class CorruptPeFile(CorruptFile):
     def __init__(self, message):
         super(CorruptPeFile, self).__init__("PE", message)
+
+
+class InvalidString(Exception):
+    def __init__(self, message):
+        super(InvalidString, self).__init__('invalid string: %s' % (message))
+        self.message = message
