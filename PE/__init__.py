@@ -855,6 +855,148 @@ class PE(object):
 
         self.delayImports = self.parseImportTable(x, irva, is_imports=False)
 
+    def doesDelayedImportTableUseRVAs(self, x, irva):
+        """
+        return True if the delay import table at the given irva appears to use RVAs.
+        this is the common case. but, VS6 had a bug in which the delay import table used VAs, instead.
+        there's no standard, because its up to the compiler to insert the delayed import handling code.
+        ref: https://stackoverflow.com/questions/40570909/difference-between-bound-imports-and-delayed-imports-in-pe-header
+        """
+        isize = len(x)
+
+        # we'll loop through all the DLL entries in the delay import table
+        # casting a vote if the name pointer appears to be an RVA or not.
+        # then the case with the most votes at the end wins.
+        # this handles the case when a small number of the pointers may be hard to interpret.
+        votes = []
+        while True:
+            if x.rvaDLLName == 0:
+                break
+
+            ptr = x.rvaINT
+            if ptr == 0:
+                ptr = x.rvaIAT
+
+            if ptr == 0:
+                break
+
+            # cast a vote:
+            # does ptr appear to be an RVA or VA?
+            if ptr < self.getMinRva():
+                # not a valid VA (too small), so must be a RVA
+                votes.append(True)
+
+            elif ptr >= self.getMaxRva():
+                # we have no idea: address is neither RVA or VA
+                # this is probably corrupt.
+                pass
+
+            elif self.getMinRva() <= ptr < self.getMaxRva():
+                # probably a VA,
+                # though if we're dealing with a large program,
+                # the range of VA and RVA values may overlap.
+
+                # when the file is small, RVA and VA ranges don't overlap:
+                #
+                #                               base addr
+                #  0                            min VA       max VA
+                #  |                            |------------|
+                #  |------------|
+                #  min RVA      max RVA
+                #
+                #
+                # but when the file is large relative to the base address:
+                #
+                #           base addr
+                #  0        min VA                  max VA
+                #  |        |----------------------|
+                #  |----------------------|
+                #  min RVA                max RVA
+                #
+                #            ^^^^^^^^^^^^^ we can't tell if these addresses are RVA or VA
+
+                if (self.getMaxRva() - self.getMinRva()) > self.getMinRva():
+                    # the VA and RVA range overlap, and
+                    # we can't directly tell if this is an RVA or VA.
+                    #
+                    # so, we use a couple heuristics to make our best guess.
+                    try:
+                        self.readPointerAtRva(ptr)
+                    except:
+                        can_deref_as_rva = False
+                    else:
+                        can_deref_as_rva = True
+
+                    try:
+                        self.readPointerAtVa(ptr)
+                    except:
+                        can_deref_as_va = False
+                    else:
+                        can_deref_as_va = True
+
+                    if (can_deref_as_rva, can_deref_as_va) == (True, False):
+                        # can only be interpreted as an RVA
+                        votes.append(True)
+
+                    elif (can_deref_as_rva, can_deref_as_va) == (False, True):
+                        # can only be interpreted as an VA
+                        votes.append(False)
+
+                    elif (can_deref_as_rva, can_deref_as_va) == (False, False):
+                        # cannot be interpreted as either VA nor RVA
+                        pass
+
+                    elif (can_deref_as_rva, can_deref_as_va) == (True, True):
+                        # both VA and RVA interpretation could work.
+                        # so, we assume the difference between
+                        # the location of the pointer and the pointed-to location are fairly similar.
+                        # this is because the import table probably points to a nearby structure,
+                        # e.g., in the same section.
+                        #
+                        # so, is `abs(*ptr - ptr) < min rva`?
+                        # this should be the case for everything except:
+                        #  - REALLY large import tables, and
+                        #  - import tables split across more than one large section
+                        #
+                        # dereference as an RVA, and if the heuristic works, vote yes.
+                        # otherwise, its probably a VA.
+                        deref = self.readPointerAtRva(ptr)
+                        if abs(deref - ptr) < self.getMinRva():
+                            # the data is nearby, so the delta is small, so its probably an RVA.
+                            votes.append(True)
+                        else:
+                            # the treating the data as an RVA resulting in a large delta,
+                            # so its probably a VA.
+                            votes.append(False)
+                    else:
+                        # for clarity: all the cases are explicit above.
+                        raise Exception("impossible")
+
+                else:
+                    # its not an RVA,
+                    # and there' no overlap between valid VA and RVA ranges,
+                    # so it must be a VA.
+                    votes.append(False)
+
+            else:
+                # for clarity: all the cases are explicit above.
+                raise Exception("impossible")
+
+            irva += isize
+
+            if not self.checkRva(irva, size=isize):
+                # if import table is at the end of the file
+                # we may run to the end.
+                break
+
+            x.vsParse(self.readAtRva(irva, isize))
+
+        logger.debug("delayed imports: votes for RVAs: %d", sum([1 for vote in votes if vote]))
+        logger.debug("delayed imports: votes for VAs: %d", sum([1 for vote in votes if not vote]))
+
+        # more votes for RVA than for VA
+        return sum([1 for vote in votes if vote]) > sum([1 for vote in votes if not vote])
+
     def parseImportTable(self, x, irva, is_imports=True):
         '''
         Parse a standard or delayed import table, adding to imports_list.
