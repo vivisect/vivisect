@@ -224,7 +224,7 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 53337, 14),
+        ans = {0: ('Undefined', 0, 70828, 18),
                1: ('Num/Int',   712, 3695, 0),
                2: ('String',    265, 6485, 1),
                3: ('Unicode',   174, 5596, 1),
@@ -817,7 +817,7 @@ class VivisectTest(unittest.TestCase):
         vw = self.firefox_vw
         ans = {
             'PE_Header': (0x140000000, 0x1000, e_memory.MM_READ),
-            '.text': (0x140001000, 0x48f80, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.text': (0x140001000, 0x49000, e_memory.MM_READ | e_memory.MM_EXEC),
             '.rdata': (0x14004a000, 0xbf7c, e_memory.MM_READ),
             '.data': (0x140056000, 0x2998, e_memory.MM_READ | e_memory.MM_WRITE),
             '.pdata': (0x140059000, 0x2f28, e_memory.MM_READ),

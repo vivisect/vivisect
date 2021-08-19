@@ -492,7 +492,7 @@ class PETests(unittest.TestCase):
         ans = {
             # name -> (Base, Size, Flags)
             'PE_Header': (0x400000, 0x1000, e_memory.MM_READ),
-            '.text': (0x401000, 0x71635, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.text': (0x401000, 0x72000, e_memory.MM_READ | e_memory.MM_EXEC),
             '.data': (0x4b6000, 0x41c8, e_memory.MM_READ | e_memory.MM_WRITE),
             '.rdata': (0x473000, 0x42ca6, e_memory.MM_READ),
             '.reloc': (0x4bf000, 0x661a, e_memory.MM_READ),
