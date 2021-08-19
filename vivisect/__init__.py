@@ -2271,7 +2271,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytez = self.getByteDef(va)
         foff = bytez.find(b'\x00', offset)
         if foff == -1:
-            return foff
+            return len(bytez) - offset
         return (foff - offset) + 1
 
     def uniStringSize(self, va):
