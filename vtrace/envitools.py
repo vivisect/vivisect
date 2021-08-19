@@ -8,21 +8,13 @@ import envi.archs.i386.regs as eair
 import envi.archs.i386.opconst as e_i386const
 
 import vtrace
+import vtrace.exc as v_exc
 import vtrace.util as vutil
 import vtrace.snapshot as v_snapshot
 import vtrace.platforms.base as v_base
 
 
 logger = logging.getLogger(__name__)
-
-class RegisterException(Exception):
-    pass
-
-class MemoryException(Exception):
-    pass
-
-class TargetAddrCalcException(Exception):
-    pass
 
 
 def cmpRegs(emu, trace):
@@ -32,7 +24,7 @@ def cmpRegs(emu, trace):
         tr = trace.getRegisterByName(rname)
         # debug registers aren't really used much anymore...
         if er != tr and not rname.startswith('debug'):
-            raise RegisterException("REGISTER MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (rname, tr, er))
+            raise v_exc.RegisterException("REGISTER MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (rname, tr, er))
     return True
 
 
@@ -89,13 +81,13 @@ class LockstepEmulator:
                 if not skip_mem:
                     self.cmpMem(op)
 
-            except RegisterException as msg:
+            except v_exc.RegisterException as msg:
                 logger.warning("    \tError: %s: %s" % (repr(op), msg))
                 inp = sys.stdin.readline()
                 if inp.startswith('s'):
                     self.syncRegsFromTrace()
 
-            except MemoryException as msg:
+            except v_exc.MemoryException as msg:
                 logger.warning("    \tError: %s: %s" % (repr(op), msg))
                 sys.stdin.readline()
 
@@ -124,7 +116,7 @@ class LockstepEmulator:
                 out.append("%s (trace: 0x%.8x) (emulated: 0x%.8x)" % (rname, tr, er))
 
         if len(out):
-            raise RegisterException("REGISTER MISMATCH: %s" % '    '.join(out))
+            raise v_exc.RegisterException("REGISTER MISMATCH: %s" % '    '.join(out))
 
         return True
 
@@ -144,7 +136,7 @@ class LockstepEmulator:
             taddr = oper.getOperAddr(op, self.trace) # use emu here?  it will likely fail the same either way? emu is faster?
             taddr_emu = oper.getOperAddr(op, self.emu) # use emu here?  it will likely fail the same either way? emu is faster?
             if taddr != taddr_emu:
-                raise TargetAddrCalcException('TARGET ADDRESS CALCULATED DIFFERENTLY: 0x%x: %r   (%r: emu: 0x%x,  trace: 0x%x)'\
+                raise v_exc.TargetAddrCalcException('TARGET ADDRESS CALCULATED DIFFERENTLY: 0x%x: %r   (%r: emu: 0x%x,  trace: 0x%x)'\
                         % (op.va, op, oper, taddr, taddr_emu))
 
             tsize = oper.tsize
@@ -159,7 +151,7 @@ class LockstepEmulator:
             tm = self.trace.readMemory(taddr, tsize)
             # debug registers aren't really used much anymore...
             if em != tm:
-                raise MemoryException("MEMORY MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (taddr, tm, em))
+                raise v_exc.MemoryException("MEMORY MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (taddr, tm, em))
 
         return True
 
@@ -175,7 +167,7 @@ def lockStepEmulator(emu, trace):
             trace.stepi()
             emu.stepi()
             cmpRegs(emu, trace)
-        except RegisterException as msg:
+        except v_exc.RegisterException as msg:
             print("Lockstep Error: %s: %s" % (repr(op), msg))
             # setRegs(emu, trace)  # TODO: Where is this from?
             sys.stdin.readline()
