@@ -486,7 +486,7 @@ class Amd64Disasm(e_i386.i386Disasm):
                             memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
                             if memsz is not None:
                                 oper.tsize = memsz
-                            elif prefixes & PREFIX_ADDR_SIZE:
+                            if prefixes & PREFIX_ADDR_SIZE:
                                 if getattr(oper, 'reg', None) is not None:
                                     oper.reg |= RMETA_LOW32
                                 elif getattr(oper, 'index', None) is not None:

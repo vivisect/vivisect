@@ -82,6 +82,7 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.noret")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule('vivisect.analysis.ms.msvcfunc')
+        vw.addAnalysisModule("vivisect.analysis.generic.thunks")
 
         vw.addAnalysisModule('vivisect.analysis.generic.strconst')
 
@@ -137,6 +138,7 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
         # late-analysis ELF PLT tidying up, allowing unused PLT entries to be made into functions
         vw.addAnalysisModule("vivisect.analysis.elf.elfplt_late")
+        vw.addAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
     elif fmt == 'macho': # MACH-O ###################################################
