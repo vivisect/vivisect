@@ -463,17 +463,17 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 53337, 14),
-               1: ('Num/Int',   713, 3695, 0),
+        ans = {0: ('Undefined', 0, 70828, 18),
+               1: ('Num/Int',   715, 3703, 0),
                2: ('String',    265, 6485, 1),
                3: ('Unicode',   174, 5596, 1),
                4: ('Pointer',   361, 2888, 0),
-               5: ('Opcode',    72507, 279377, 74),
+               5: ('Opcode',    72507, 279377, 71),
                6: ('Structure', 1018, 12740, 3),
                7: ('Clsid',     0, 0, 0),
                8: ('VFTable',   0, 0, 0),
                9: ('Import Entry', 370, 2960, 0),
-               10: ('Pad',      864, 8511, 2)}
+               10: ('Pad',      865, 8639, 2)}
         dist = vw.getLocationDistribution()
         for loctype, locdist in dist.items():
             self.assertEqual(locdist, ans[loctype])
@@ -1141,14 +1141,14 @@ class VivisectTest(unittest.TestCase):
         vw = self.firefox_vw
         ans = {
             'PE_Header': (0x140000000, 0x1000, e_memory.MM_READ),
-            '.text': (0x140001000, 0x48f80, e_memory.MM_READ | e_memory.MM_EXEC),
-            '.rdata': (0x14004a000, 0xbf7c, e_memory.MM_READ),
-            '.data': (0x140056000, 0x2998, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.pdata': (0x140059000, 0x2f28, e_memory.MM_READ),
-            '.00cfg': (0x14005c000, 0x10, e_memory.MM_READ),
-            '.freestd': (0x14005d000, 0x10, e_memory.MM_READ),
-            '.tls': (0x14005e000, 0x11, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.reloc': (0x140092000, 0x338, e_memory.MM_READ),
+            '.text': (0x140001000, 0x49000, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.rdata': (0x14004a000, 0xc000, e_memory.MM_READ),
+            '.data': (0x140056000, 0x3000, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.pdata': (0x140059000, 0x3000, e_memory.MM_READ),
+            '.00cfg': (0x14005c000, 0x1000, e_memory.MM_READ),
+            '.freestd': (0x14005d000, 0x1000, e_memory.MM_READ),
+            '.tls': (0x14005e000, 0x1000, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.reloc': (0x140092000, 0x1000, e_memory.MM_READ),
         }
         for sva, ssize, sname, sfname in vw.getSegments():
             self.assertEqual(ans[sname][0], sva)
