@@ -389,6 +389,7 @@ class PE(object):
         object.__init__(self)
         self.inmem = inmem
         self.filesize = None
+        self.min_rva = None
         self.max_rva = None
 
         if not inmem:
@@ -763,6 +764,14 @@ class PE(object):
     def readPointerAtRva(self, rva):
         off = self.rvaToOffset(rva)
         return self.readPointerAtOffset(off)
+
+    def getMinRva(self):
+        '''
+        Minimum RVA is the smallest virtual address that might be observed.
+        '''
+        if not self.min_rva:
+            self.min_rva = min(map(lambda sec: sec.VirtualAddress, self.getSections()))
+        return self.min_rva
 
     def getMaxRva(self):
         '''
