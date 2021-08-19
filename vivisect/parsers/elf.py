@@ -526,6 +526,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 if not vw.isValidPointer(valu) and s.st_size == vw.psize:
                     vw.makePointer(sva, follow=False)
                 else:
+                    '''
+                    Most of this is replicated in makePointer with follow=True. We specifically don't use that, since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in fun ways), but we still want these locations made first, so that other analysis modules know to not monkey with these and so I can set sizes and what not. 
+                    while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
+                    '''
                     if not valu:
                         new_pointers.append((sva, valu, symname))
                     elif vw.isProbablyUnicode(sva):
