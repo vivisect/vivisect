@@ -1,20 +1,17 @@
 import sys
-import logging
 import argparse
 
 import envi
 import envi.memory as e_memory
-import envi.archs.i386.regs as eair
-import envi.archs.i386.opconst as e_i386const
+import envi.archs.i386 as e_i386  # FIXME This should NOT have to be here
 
 import vtrace
-import vtrace.exc as v_exc
-import vtrace.util as vutil
 import vtrace.snapshot as v_snapshot
 import vtrace.platforms.base as v_base
 
 
-logger = logging.getLogger(__name__)
+class RegisterException(Exception):
+    pass
 
 
 def cmpRegs(emu, trace):
@@ -24,138 +21,40 @@ def cmpRegs(emu, trace):
         tr = trace.getRegisterByName(rname)
         # debug registers aren't really used much anymore...
         if er != tr and not rname.startswith('debug'):
-            raise v_exc.RegisterException("REGISTER MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (rname, tr, er))
+            raise RegisterException("REGISTER MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (rname, tr, er))
     return True
 
 
-skip_mem_opcodes_by_arch = {
-        'i386': (e_i386const.INS_NOP, e_i386const.INS_LEA),
-        'amd64': (e_i386const.INS_NOP, e_i386const.INS_LEA),
-        }
+def emuFromTrace(trace):
+    '''
+    Produce an envi emulator for this tracer object.
+    '''
+    arch = trace.getMeta('Architecture')
+    plat = trace.getMeta('Platform')
+    amod = envi.getArchModule(arch)
+    emu = amod.getEmulator()
 
-
-class LockstepEmulator:
-    def __init__(self, trace):
-        self.trace = trace
-        self.emu = vutil.emuFromTrace(trace)    # this should set up the emulator
-        self.arch = self.trace.getMeta("Architecture")
-
-    def go(self):
-        count = 0
-        skip_mem_opcodes = skip_mem_opcodes_by_arch.get(self.arch, ())
-
-        self.cmpRegs()
-        while True:
-            print("%4d  Lockstep: 0x%.8x" % (count, self.emu.getProgramCounter()), end='')
-            try:
-                pc = self.trace.getProgramCounter()
-                op = self.emu.parseOpcode(pc)
-                print("  %r  " % op, end='')
-
-                # don't compare memory from these instruction results (error prone)
-                skip_mem = False
-                if op.opcode in skip_mem_opcodes:
-                    skip_mem = True
-
-                # store the current opcode addresses for comparison later (for when the 
-                #  original register gets clobbered
-                if not skip_mem:
-                    self.grabMemAddrs(op)
-
-                for oper in op.opers:
-                    if skip_mem:
-                        continue
-                    print("(%r = %x)" % (oper.repr(op), oper.getOperValue(op, self.emu)), end='')
-
-                self.trace.stepi()
-                self.emu.stepi()
-                count += 1
-
-                if op.mnem == 'rdtsc':
-                    self.syncRegsFromTrace()
-
-                print("(eflags: 0x%x)" % self.trace.getRegisterByName('eflags'), end='')
-                print("(eflags: 0x%x)" % self.emu.getRegisterByName('eflags'), end='')
-                self.cmpRegs()
-
-                if not skip_mem:
-                    self.cmpMem(op)
-
-            except v_exc.RegisterException as msg:
-                logger.warning("    \tError: %s: %s" % (repr(op), msg))
-                inp = sys.stdin.readline()
-                if inp.startswith('s'):
-                    self.syncRegsFromTrace()
-
-            except v_exc.MemoryException as msg:
-                logger.warning("    \tError: %s: %s" % (repr(op), msg))
-                sys.stdin.readline()
-
-            except envi.SegmentationViolation as msg:
-                logger.warning("    \tError: %s: %s" % (repr(op), msg))
-                sys.stdin.readline()
-
-            except Exception as msg:
-                logger.warning("\t\tLockstep Error: %s" % msg, exc_info=1)
-                return
-            print('')
-
-    def syncRegsFromTrace(self):
-        rsnap = self.trace.getRegisterContext().getRegisterSnap()
-        self.emu.setRegisterSnap(rsnap)
-
-    def cmpRegs(self):
-        ctx = self.trace.getRegisterContext()
-        out = []
-        for rname, idx in ctx.getRegisterNameIndexes():
-            er = self.emu.getRegister(idx)
-            tr = self.trace.getRegisterByName(rname)
-            #tr = self.trace.getRegister(idx)
-            # debug registers aren't really used much anymore...
-            if er != tr and not rname.startswith('debug'):
-                out.append("%s (trace: 0x%.8x) (emulated: 0x%.8x)" % (rname, tr, er))
-
-        if len(out):
-            raise v_exc.RegisterException("REGISTER MISMATCH: %s" % '    '.join(out))
-
-        return True
-
-    def grabMemAddrs(self, op):
-        '''
-        Grab target addresses of opcode operands (before executing)
-        for comparison of memory after execution.
-
-        Also, compares the addresses calculated by Trace and EMU.
-        '''
-        self._tempaddrs = []
-        for oper in op.opers:
-            # check if we access memory # TODO: use read/write-logging instead
-            if not oper.isDeref():
+    # could use {get,set}MemorySnap if trace inherited from MemoryObject
+    for va, size, perms, fname in trace.getMemoryMaps():
+        try:
+            # So linux maps in a PROT_NONE page for efficient library sharing, so we have to take that into account
+            if (not perms & e_memory.MM_READ):
                 continue
+            if plat == 'linux' and fname in ['[vvar]']:
+                continue
+            bytez = trace.readMemory(va, size)
+            emu.addMemoryMap(va, perms, fname, bytez)
+        except vtrace.PlatformException:
+            print('failed to map: 0x{:x} into emu'.format(va, size))
+            continue
 
-            taddr = oper.getOperAddr(op, self.trace) # use emu here?  it will likely fail the same either way? emu is faster?
-            taddr_emu = oper.getOperAddr(op, self.emu) # use emu here?  it will likely fail the same either way? emu is faster?
-            if taddr != taddr_emu:
-                raise v_exc.TargetAddrCalcException('TARGET ADDRESS CALCULATED DIFFERENTLY: 0x%x: %r   (%r: emu: 0x%x,  trace: 0x%x)'\
-                        % (op.va, op, oper, taddr, taddr_emu))
+    rsnap = trace.getRegisterContext().getRegisterSnap()
+    emu.setRegisterSnap(rsnap)
 
-            tsize = oper.tsize
-            self._tempaddrs.append((taddr, tsize))
+    if plat == 'windows':
+        emu.setSegmentInfo(e_i386.SEG_FS, trace.getThreads()[trace.getMeta('ThreadId')], 0xffffffff)
 
-    def cmpMem(self, op):
-        if len(self._tempaddrs) != len([oper for oper in op.opers if oper.isDeref()]):
-            raise Exception("Tester Broken: _tempaddrs and len(deref operands) differ!")
-
-        for taddr, tsize in self._tempaddrs:
-            em = self.emu.readMemory(taddr, tsize)
-            tm = self.trace.readMemory(taddr, tsize)
-            # debug registers aren't really used much anymore...
-            if em != tm:
-                raise v_exc.MemoryException("MEMORY MISMATCH: %s (trace: 0x%.8x) (emulated: 0x%.8x)" % (taddr, tm, em))
-
-        return True
-
-
+    return emu
 
 
 def lockStepEmulator(emu, trace):
@@ -167,7 +66,7 @@ def lockStepEmulator(emu, trace):
             trace.stepi()
             emu.stepi()
             cmpRegs(emu, trace)
-        except v_exc.RegisterException as msg:
+        except RegisterException as msg:
             print("Lockstep Error: %s: %s" % (repr(op), msg))
             # setRegs(emu, trace)  # TODO: Where is this from?
             sys.stdin.readline()
@@ -260,7 +159,7 @@ def main(argv):
     if opts.save:
         # You may open this file in vdb to follow along
         snap.saveToFile(opts.save)
-    emu = vutil.emuFromTrace(snap)
+    emu = emuFromTrace(snap)
     lockStepEmulator(emu, t)
 
 

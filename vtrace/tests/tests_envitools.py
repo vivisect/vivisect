@@ -1,10 +1,10 @@
 import vtrace
-import vtrace.util
+import vtrace.envitools
 
 
 class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
     def test_emulatorFromTrace(self):
-        emu = vtrace.util.emuFromTrace(self.trace)
+        emu = vtrace.envitools.emuFromTrace(self.trace)
 
         ctx = self.trace.getRegisterContext()
         for rname, idx in ctx.getRegisterNameIndexes():
