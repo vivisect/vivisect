@@ -57,4 +57,11 @@ class EnviMemoryTest(unittest.TestCase):
         with self.assertRaises(e_exc.SegmentationViolation):
             mem.writeMemory(newmapva5, "foobarbaz")
 
+        # test to fail!  completely cheating here.
+        mem.imem_psize=4
+        mem._map_defs.append([0x1000, 0xffffff00, (0x1000, 0xffffff00-0x1000, 0x7, 'honkymomma'), b''])
+
+        with self.assertRaises(e_exc.NoValidFreeMemoryFound):
+            failmap = mem.allocateMemory(0x100000)
+
 
