@@ -38,7 +38,7 @@ def align(v, alignment):
     if remainder == 0:
         return v
     else:
-        return v + remainder
+        return v + (alignment - remainder)
 
 
 def parseFile(vw, filename, baseaddr=None):
