@@ -841,7 +841,7 @@ class PE(object):
             self.imports = []
             return
 
-        self.imports = self.parseImportTable(x, irva, is_imports=True)
+        self.imports = self.parseImportTable(x, irva, flavor="import table", uses_rva=True)
 
     def parseDelayImports(self):
         didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
@@ -853,9 +853,16 @@ class PE(object):
             self.delayImports = []
             return
 
-        self.delayImports = self.parseImportTable(x, irva, is_imports=False)
+        # `doesDelayImportTableUseRVAs` modifies the given vstruct,
+        # so we parse and provide another copy.
+        y = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
+        uses_rva = self.doesDelayImportTableUseRVAs(y, irva)
+        if not uses_rva:
+            logger.debug("delayed imports: delay import table uses VAs (unusual, might be VS6)")
 
-    def doesDelayedImportTableUseRVAs(self, x, irva):
+        self.delayImports = self.parseImportTable(x, irva, flavor="delay import table", uses_rva=uses_rva)
+
+    def doesDelayImportTableUseRVAs(self, x, irva):
         """
         return True if the delay import table at the given irva appears to use RVAs.
         this is the common case. but, VS6 had a bug in which the delay import table used VAs, instead.
@@ -997,25 +1004,24 @@ class PE(object):
         # more votes for RVA than for VA
         return sum([1 for vote in votes if vote]) > sum([1 for vote in votes if not vote])
 
-    def parseImportTable(self, x, irva, is_imports=True):
+    def parseImportTable(self, x, irva, flavor="import table", uses_rva=True):
         '''
         Parse a standard or delayed import table, adding to imports_list.
         Start with x and irva set to the first entry in the table.
         '''
+        if flavor not in ("import table", "delay import table"):
+            raise ValueError("unexpected flavor: " + flavor)
+
         imports_list = []
         isize = len(x)
-        if is_imports:
-            usesRva = True
-        else:
-            usesRva = self.doesDelayedImportTableUseRVAs(x, irva)
-            if not usesRva:
-                logger.warning("delayed imports: delay import table uses VAs (unusual, might be VS6)")
 
         while True:
-            if is_imports:
+            if flavor == "import table":
                 entry_name = x.Name
-            else:
+            elif flavor == "delay import table":
                 entry_name = x.rvaDLLName
+            else:
+                raise ValueError("unexpected flavor: " + flavor)
 
             if not self.checkRva(entry_name):
                 break
@@ -1024,18 +1030,20 @@ class PE(object):
             libname = self.readStringAtRva(entry_name, maxsize=256).decode('utf-8')
             idx = 0
 
-            if is_imports:
+            if flavor == "import table":
                 imp_by_name = x.OriginalFirstThunk
                 if imp_by_name == 0:
                     imp_by_name = x.FirstThunk
                 save_name = x.FirstThunk
-            else:
+            elif flavor == "delay import table":
                 imp_by_name = x.rvaINT
                 if imp_by_name == 0:
                     imp_by_name = x.rvaIAT
                 save_name = x.rvaIAT
+            else:
+                raise ValueError("unexpected flavor: " + flavor)
 
-            if usesRva and not self.checkRva(imp_by_name):
+            if uses_rva and not self.checkRva(imp_by_name):
                 break
 
             while True:
@@ -1047,7 +1055,7 @@ class PE(object):
                     # therefore, bail with empty results.
                     return []
 
-                if usesRva:
+                if uses_rva:
                     ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
                 else:
                     ibn_rva = self.readPointerAtVa(imp_by_name+arrayoff)
