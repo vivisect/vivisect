@@ -10,7 +10,7 @@ import traceback
 import threading
 
 import vtrace
-import envi.memory as e_mem
+import envi.const as e_const
 import envi.threads as e_threads
 import envi.symstore.resolver as e_sym_resolv
 
@@ -806,7 +806,7 @@ class TracerBase(vtrace.Notifier):
     def platformProtectMemory(self, va, size, perms):
         raise Exception("Plaform does not implement protect memory")
 
-    def platformAllocateMemory(self, size, perms=e_mem.MM_RWX, suggestaddr=0):
+    def platformAllocateMemory(self, size, perms=e_const.MM_RWX, suggestaddr=0):
         raise Exception("Plaform does not implement allocate memory")
 
     def platformReadMemory(self, address, size):

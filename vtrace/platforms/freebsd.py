@@ -7,8 +7,8 @@ import ctypes
 import ctypes.util as cutil
 import logging
 
-import envi.memory as e_mem
 import envi.cli as e_cli
+import envi.const as e_const
 
 import vtrace
 import vtrace.archs.i386 as v_i386
@@ -433,13 +433,13 @@ class FreeBSDMixin:
                     fname = maptup[12].strip()
 
                 if permstr[0] == 'r':
-                    perms |= e_mem.MM_READ
+                    perms |= e_const.MM_READ
 
                 if permstr[1] == 'w':
-                    perms |= e_mem.MM_WRITE
+                    perms |= e_const.MM_WRITE
 
                 if permstr[2] == 'x':
-                    perms |= e_mem.MM_EXEC
+                    perms |= e_const.MM_EXEC
 
                 ret.append((base, max-base, perms, fname))
 

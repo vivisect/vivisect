@@ -394,6 +394,11 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # transmeta items...
         self.transmeta.pop('findPointers',None)
 
+    def _handleDELMMAP(self, mapva):
+        e_mem.MemoryObject.delMemoryMap(self, mapva)
+        self.locmap.delMapLookup(mapva)
+        self.blockmap.delMapLookup(mapva)
+
     def _handleADDEXPORT(self, einfo):
         va, etype, name, filename = einfo
         self.exports.append(einfo)
@@ -514,7 +519,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_DELXREF] = self._handleDELXREF
         self.ehand[VWE_SETNAME] = self._handleSETNAME
         self.ehand[VWE_ADDMMAP] = self._handleADDMMAP
-        self.ehand[VWE_DELMMAP] = None
+        self.ehand[VWE_DELMMAP] = self._handleDELMMAP
         self.ehand[VWE_ADDEXPORT] = self._handleADDEXPORT
         self.ehand[VWE_DELEXPORT] = None
         self.ehand[VWE_SETMETA] = self._handleSETMETA

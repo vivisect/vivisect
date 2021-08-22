@@ -194,6 +194,8 @@ class WorkspaceEmulator:
             taints = [self.setVivTaint('funcstack', i * self.psize) for i in range(20)]
             taintbytes = b''.join([e_bits.buildbytes(taint, self.psize) for taint in taints])
 
+            self.stack_pointer -= len(taintbytes)
+            self.setStackCounter(self.stack_pointer)
             self.writeMemory(self.stack_pointer, taintbytes)
         else:
             existing_map_size = self.stack_map_top - self.stack_map_base
