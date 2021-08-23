@@ -1,5 +1,6 @@
 import re
 import struct
+import logging
 
 import envi
 import envi.exc as e_exc
@@ -10,6 +11,10 @@ from envi.const import *
 A module containing memory utilities and the definition of the
 memory access API used by all vtoys trace/emulators/workspaces.
 """
+
+
+logger = logging.getLogger(__name__)
+
 
 def getPermName(perm):
     '''
@@ -167,7 +172,8 @@ class IMemory:
 
         # FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
-            raise Exception("Read gave wrong length at va: 0x%.8x (wanted %d got %d)" % (addr, size, len(bytes)))
+            logger.warning("Read gave wrong length at va: 0x%.8x (wanted %d got %d)", addr, size, len(bytes))
+            return None
 
         return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
