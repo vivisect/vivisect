@@ -1110,15 +1110,19 @@ class PE(object):
                         idx+=1
                         continue
 
-                    funcname = ibn.Name
-
+                    try:
+                        funcname = ibn.Name
+                    except UnicodeDecodeError:
+                        funcname = None
+                        logger.warning("pe: failed to read import name at RVA 0x%x", ibn_rva)
 
                 if uses_rva:
                     import_rva = save_name + arrayoff
                 else:
                     import_rva = self.vaToRva(save_name + arrayoff)
 
-                imports_list.append((import_rva, libname, funcname))
+                if funcname is not None:
+                    imports_list.append((import_rva, libname, funcname))
 
                 idx += 1
 
