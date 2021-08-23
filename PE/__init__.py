@@ -496,12 +496,16 @@ class PE(object):
     def getSections(self):
         return self.sections
 
+    def vaToRva(self, va):
+        rva = va - self.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+        assert rva >= 0
+        return rva
+
     def vaToOffset(self, va):
         if self.inmem:
             return va
 
-        rva = va - self.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
-        return self.rvaToOffset(rva)
+        return self.rvaToOffset(self.vaToRva(va))
  
     def rvaToOffset(self, rva):
         if self.inmem:
@@ -737,6 +741,10 @@ class PE(object):
         fbytes = self.readAtRva(rva, size)
         return struct.unpack(fmt, fbytes)
 
+    def readAtVa(self, va, size, shortok=False):
+        offset = self.vaToOffset(va)
+        return self.readAtOffset(offset, size, shortok)
+         
     def readAtRva(self, rva, size, shortok=False):
         offset = self.rvaToOffset(rva)
         return self.readAtOffset(offset, size, shortok)
@@ -830,6 +838,9 @@ class PE(object):
             ret += x
             rva += 1
         return ret
+ 
+    def readStringAtVa(self, va, maxsize=None):
+        return self.readStringAtRva(self.vaToRva(va), maxsize=maxsize)
 
     def parseImports(self):
         idir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)
@@ -1026,8 +1037,13 @@ class PE(object):
             if not self.checkRva(entry_name):
                 break
 
+            if uses_rva:
+                entry_name_rva = entry_name
+            else:
+                entry_name_rva = self.vaToRva(entry_name)
+
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(entry_name, maxsize=256).decode('utf-8')
+            libname = self.readStringAtRva(entry_name_rva, maxsize=256).decode('utf-8')
             idx = 0
 
             if flavor == "import table":
@@ -1046,8 +1062,12 @@ class PE(object):
             if uses_rva and not self.checkRva(imp_by_name):
                 break
 
-            while True:
+            if uses_rva:
+                imp_by_name_rva = imp_by_name
+            else:
+                imp_by_name_rva = self.vaToRva(imp_by_name)
 
+            while True:
                 arrayoff = self.psize * idx
                 if self.filesize is not None and arrayoff > self.filesize:
                     # we've read more pointers than could possibly be in this file
@@ -1055,29 +1075,33 @@ class PE(object):
                     # therefore, bail with empty results.
                     return []
 
-                if uses_rva:
-                    ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
-                else:
-                    ibn_rva = self.readPointerAtVa(imp_by_name+arrayoff)
-                
-                if ibn_rva == 0:
+                ibn_addr = self.readPointerAtRva(imp_by_name_rva+arrayoff)
+
+                if ibn_addr == 0:
                     break
 
-                if ibn_rva & self.high_bit_mask:
-                    funcname = ordlookup.ordLookup(libname, ibn_rva & 0x7fffffff)
+                if ibn_addr & self.high_bit_mask:
+                    funcname = ordlookup.ordLookup(libname, ibn_addr & 0x7fffffff)
 
-                elif not self.checkRva(ibn_rva):
+                elif uses_rva and not self.checkRva(ibn_addr):
                     break
 
                 else:
+                    if uses_rva:
+                        ibn_rva = ibn_addr
+                    else:
+                        ibn_rva = self.vaToRva(ibn_addr)
+
                     # RP BUG FIX - we can't use this API on this call because we can have binaries that put their import table
                     # right at the end of the file, statically saying the imported function name is 128 will cause use to potentially
                     # over run our read and traceback...
-
-                    diff = self.getMaxRva() - ibn_rva - 2
+                    diff = self.getMaxRva() - ibn_addr - 2
                     ibn = vstruct.getStructure("pe.IMAGE_IMPORT_BY_NAME")
                     ibn.vsGetField('Name').vsSetLength(min(diff, 128))
+
+
                     bytes = self.readAtRva(ibn_rva, len(ibn), shortok=True)
+
                     if not bytes:
                         break
                     try:
@@ -1088,7 +1112,13 @@ class PE(object):
 
                     funcname = ibn.Name
 
-                imports_list.append((save_name + arrayoff, libname, funcname))
+
+                if uses_rva:
+                    import_rva = save_name + arrayoff
+                else:
+                    import_rva = self.vaToRva(save_name + arrayoff)
+
+                imports_list.append((import_rva, libname, funcname))
 
                 idx += 1
 
