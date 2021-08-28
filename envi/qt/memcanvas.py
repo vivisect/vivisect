@@ -1,16 +1,17 @@
 import html
-import binascii
 
 from PyQt5 import QtCore, QtGui, QtWebEngine, QtWebEngineWidgets
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QObject, qInstallMessageHandler
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import *
 from PyQt5.QtWidgets import *
 
 import envi.exc as e_exc
+import envi.common as e_common
+import envi.memcanvas as e_memcanvas
+
 import envi.qt.html as e_q_html
 import envi.qt.jquery as e_q_jquery
-import envi.memcanvas as e_memcanvas
 
 qt_horizontal = 1
 qt_vertical = 2
@@ -45,6 +46,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         # (but pyqt5 won't throw an exception, because ugh).
         self._log_page = LoggerPage()
         self.setPage(self._log_page)
+        # https://stackoverflow.com/questions/58906917/warnings-when-instantiating-qwebchannel-object-in-javascript
+        # silence all the "property <foo>  of object <bar> has no notify signal messages
+        qInstallMessageHandler(lambda *args: None)
         self.channel = QWebChannel()
         self.page().setWebChannel(self.channel)
         self.channel.registerObject('vnav', self)
@@ -214,7 +218,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         qt tags, they are a tuple of html text (<opentag>, <closetag>)
         '''
         clsname = 'envi-%s' % typename
-        namehex = binascii.hexlify(name.lower()).decode('utf-8')
+        namehex = e_common.hexify(name.lower())
         subclsname = 'envi-%s-%s' % (typename, namehex)
         return ('<span class="%s %s" envitag="%s" envival="%s" onclick="nameclick(this)">' % (clsname,subclsname,typename,namehex), '</span>')
 

@@ -296,7 +296,7 @@ sh_data = {
         (0x49934, 4, 9, '*.__gmon_start__'),
     ],
 
-    'exports' : [
+    'exports': [
         (0xb5f8, 0, 'recvfrom', 'sh'),
         (0xb604, 0, 'div', 'sh'),
         (0xb610, 0, 'fflush', 'sh'),
@@ -624,14 +624,13 @@ sh_data = {
         (0x49dbc, 1, 'stderr', 'sh'),
     ],
 
-    'relocs' : [
+    'relocs': [
     ],
 
-    'names' : [
+    'names': [
         (0x809c, 'sh.ptr_ptr_init_function_0_00049394_0000809c'),
         (0x80a0, 'sh.ptr_ptr_init_function_0_00049394_000080a0'),
         (0xb5d0, 'sh.init_function'),
-        (0xb5e4, 'sh.LazyLoaderTrampoline'),
         (0xb5f8, 'sh.plt_recvfrom'),
         (0xb604, 'sh.plt_div'),
         (0xb610, 'sh.plt_fflush'),
@@ -928,7 +927,6 @@ sh_data = {
         (0xc3b8, 'sh.__entry'),
         (0xc41c, 'sh.fini_function_0'),
         (0xc438, 'sh.init_function_0'),
-        (0xc554, 'sh.ptr_stderr_0000c554'),
         (0xc8d0, 'sh.ptr_optind_0000c8d0'),
         (0xdf60, 'sh.ptr_optind_0000df60'),
         (0xe418, 'sh.ptr_stdout_0000e418'),
@@ -984,8 +982,8 @@ sh_data = {
         (0x15d24, 'sh.ptr_optarg_00015d24'),
         (0x15d2c, 'sh.ptr_optind_00015d2c'),
         (0x15ec4, 'sh.ptr_optind_00015ec4'),
-        # (0x1613c, 'sh.ptr_optind_0001613c'),
         (0x16198, 'sh.ptr_optind_00016198'),
+        (0x16334, 'sh.ptr_alphasort_00016334'),
         (0x16340, 'sh.ptr___environ_00016340'),
         (0x163f4, 'sh.ptr_optarg_000163f4'),
         (0x16404, 'sh.ptr_optind_00016404'),
@@ -993,6 +991,8 @@ sh_data = {
         (0x17d44, 'sh.ptr_stdin_00017d44'),
         (0x18100, 'sh.ptr_stdout_00018100'),
         (0x184b8, 'sh.ptr_stdout_000184b8'),
+        (0x18818, 'sh.ptr_tolower_00018818'),
+        (0x1881c, 'sh.ptr_toupper_0001881c'),
         (0x193b4, 'sh.ptr_stdin_000193b4'),
         (0x193bc, 'sh.ptr_stdout_000193bc'),
         (0x193c4, 'sh.ptr_stderr_000193c4'),
@@ -1063,6 +1063,7 @@ sh_data = {
         (0x23cc4, 'sh.ptr_optind_00023cc4'),
         (0x24a68, 'sh.ptr_optind_00024a68'),
         (0x24c84, 'sh.ptr_optind_00024c84'),
+        (0x25878, 'ptr_wstr_          _00025878'),
         (0x268c8, 'sh.ptr_optind_000268c8'),
         (0x269cc, 'sh.ptr_stdout_000269cc'),
         (0x26eb0, 'sh.ptr_optind_00026eb0'),
@@ -1091,6 +1092,7 @@ sh_data = {
         (0x33000, 'sh.ptr_optind_00033000'),
         (0x332fc, 'sh.ptr_stdin_000332fc'),
         (0x33328, 'sh.ptr_stdout_00033328'),
+        (0x33670, 'sh.ptr_xdr_int_00033670'),
         (0x34560, 'sh.ptr_optind_00034560'),
         (0x34840, 'sh.ptr_optind_00034840'),
         (0x34d80, 'sh.ptr_stdout_00034d80'),
@@ -1099,6 +1101,7 @@ sh_data = {
         (0x353a0, 'sh.ptr_stdout_000353a0'),
         (0x354b0, 'sh.ptr_stdout_000354b0'),
         (0x370c8, 'sh.fini_function'),
+        (0x3d4e8, 'wstr_          _0003d4e8'),
         (0x49394, 'sh.ptr_init_function_0_00049394'),
         (0x49398, 'sh.ptr_fini_function_0_00049398'),
         (0x4949c, '*.recvfrom_0004949c'),

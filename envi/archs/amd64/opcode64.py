@@ -203,7 +203,7 @@ tbl32_Main = [
 ( 0, INS_PUSH, ADDRMETH_I | OPTYPE_v | OP_R | OP_SIGNED, ARG_NONE, ARG_NONE, cpu_80386, "push", 0, 0, 0),
 ( 0, INS_MUL,  ADDRMETH_G | OPTYPE_v | OP_R, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_I | OP_SIGNED | OPTYPE_z | OP_R, cpu_80386, "imul", 0, 0, 0),
 ( 0, INS_PUSH, ADDRMETH_I | OPTYPE_b | OP_R | OP_SIGNED, ARG_NONE, ARG_NONE, cpu_80386, "push", 0, 0, 0),
-( 0, INS_MUL,  ADDRMETH_G | OPTYPE_v | OP_R, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_I |  OP_SIGNED | OP_R | OPTYPE_b, cpu_80386, "imul", 0, 0, 0),  
+( 0, INS_MUL,  ADDRMETH_G | OPTYPE_v | OP_R, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_I | OP_SIGNED | OP_R | OPTYPE_b, cpu_80386, "imul", 0, 0, 0),
 ( 0, INS_IN,  ADDRMETH_Y | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "insb", 0, e_amd64_regs.REG_DX, 0),  
 ( 0, INS_IN,  ADDRMETH_Y | OPTYPE_z | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "insd", 0, e_amd64_regs.REG_DX, 0),  
 ( 0, INS_OUT,  OP_REG | OP_W, ADDRMETH_X | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "outsb", e_amd64_regs.REG_DX, 0, 0),  
@@ -384,7 +384,7 @@ tbl32_0F = [
 ( 0, INS_SYSTEM, 0, 0, 0, ARG_NONE, cpu_80486, "invd", 0, 0, 0),  
 ( 0, INS_SYSTEM, 0, 0, 0, ARG_NONE, cpu_80486, "wbinvd", 0, 0, 0),  
 ( 0, 0, 0, 0, 0, ARG_NONE, cpu_80386, 0, 0, 0, 0),  
-( 0, INS_OTHER, 0, 0, 0, ARG_NONE, cpu_80386, "ud2", 0, 0, 0),
+( 0, INS_INVALIDOP, 0, 0, 0, ARG_NONE, cpu_80386, "ud2", 0, 0, 0),
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
 ( 0, INS_OTHER, ADDRMETH_E | OPTYPE_v, ARG_NONE, ARG_NONE, ARG_NONE, cpu_80386, "prefetchw", 0, 0, 0),  
 ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),  
@@ -1017,7 +1017,7 @@ tbl32_660F38[0x0c] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_H | O
 tbl32_660F38[0x0d] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_AMD64, "permilpd", 0, 0, 0)
 tbl32_660F38[0x0e] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_AMD64, "testps", 0, 0, 0)
 tbl32_660F38[0x0f] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_AMD64, "testpd", 0, 0, 0)
-tbl32_660F38[0x10] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq | OP_R, ARG_NONE, cpu_AMD64, ARG_NONE, "pblendvb", 0, 0, 0)
+tbl32_660F38[0x10] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_W | OPTYPE_x | OP_R, ARG_NONE, cpu_AMD64, ARG_NONE, "pblendvb", 0, 0, 0)
 tbl32_660F38[0x13] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "cvtph2ps", 0, 0, 0)
 
 tbl32_660F38[0x14] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_VEXSKIP | ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_dq | OP_R, ADDRMETH_VEXSKIP | ADDRMETH_V | OPTYPE_b | OP_R, cpu_AMD64, "blendvps", 0, 0, 0)
@@ -1028,9 +1028,9 @@ tbl32_660F38[0x17] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | 
 tbl32_660F38[0x18] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_ss | OP_R | OP_NOVEXL | OP_MEM_D, ARG_NONE, ARG_NONE, cpu_AMD64, "broadcastss", 0, 0, 0)
 tbl32_660F38[0x19] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_qq | OP_W, ADDRMETH_W | OPTYPE_ss | OP_R | OP_NOVEXL | OP_MEM_Q, ARG_NONE, ARG_NONE, cpu_AMD64, "broadcastsd", 0, 0, 0)
 tbl32_660F38[0x1a] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_qq | OP_W, ADDRMETH_M | OPTYPE_dq | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "broadcastf128", 0, 0, 0)
-tbl32_660F38[0x1c] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "pabsb", 0, 0, 0)
-tbl32_660F38[0x1d] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "pabsw", 0, 0, 0)
-tbl32_660F38[0x1e] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "pabsd", 0, 0, 0)
+tbl32_660F38[0x1c] = (0, INS_ABS, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "pabsb", 0, 0, 0)
+tbl32_660F38[0x1d] = (0, INS_ABS, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "pabsw", 0, 0, 0)
+tbl32_660F38[0x1e] = (0, INS_ABS, ADDRMETH_V | OPTYPE_x  | OP_W, ADDRMETH_W | OPTYPE_x  | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "pabsd", 0, 0, 0)
 
 # TODO: There's a ymm version on this one that has a memory size of 128. Dammit. Though that only happens in vex256 land, it's still annoying
 tbl32_660F38[0x20] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_W | OPTYPE_ps | OP_R | OP_MEM_Q | OP_NOVEXL, ARG_NONE, ARG_NONE, cpu_AMD64, "pmovsxbw", 0, 0, 0)
@@ -1132,7 +1132,7 @@ tbl32_F20F38[0] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_E | OPTY
 #XXX: Thanks intel for not differentiating between 16 and 32 here
 tbl32_F20F38[1] = (0, INS_OTHER, ADDRMETH_G | OPTYPE_d | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_AMD64, "crc32", 0, 0, 0)
 tbl32_F20F38[5] = (0, INS_OTHER | INS_VEXNOPREF | INS_VEXREQ, ADDRMETH_G | OPTYPE_y | OP_W, ADDRMETH_B | OPTYPE_y | OP_R, ADDRMETH_E | OPTYPE_y | OP_R, ARG_NONE, cpu_BMI, "pdep", 0, 0, 0)
-tbl32_F20F38[6] = (0, INS_OTHER | INS_VEXNOPREF | INS_VEXREQ, ADDRMETH_G | OPTYPE_y | OP_W, ADDRMETH_B | OPTYPE_y | OP_R, OP_REG | OPTYPE_y | OP_R, ADDRMETH_E | OPTYPE_y | OP_R, cpu_BMI, "mulx", 0, 0, e_amd64_regs.REG_EDX)
+tbl32_F20F38[6] = (0, INS_OTHER | INS_VEXNOPREF | INS_VEXREQ, ADDRMETH_G | OPTYPE_y | OP_W, ADDRMETH_B | OPTYPE_y | OP_R, ADDRMETH_E | OPTYPE_y | OP_R, ARG_NONE, cpu_BMI, "mulx", 0, 0, 0)
 tbl32_F20F38[7] = (0, INS_OTHER | INS_VEXNOPREF | INS_VEXREQ, ADDRMETH_G | OPTYPE_y | OP_W, ADDRMETH_E | OPTYPE_y | OP_R, ADDRMETH_B | OPTYPE_y | OP_R, ARG_NONE, cpu_BMI, "shrx", 0, 0, 0)
 
 
@@ -1208,6 +1208,7 @@ tbl32_660F3A[0x46] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_qq | OP_W, ADDRMETH_H | 
 
 tbl32_660F3A[0x4a] = (0, INS_VEXREQ | INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ADDRMETH_L | OPTYPE_x | OP_R, cpu_AMD64, "blendvps", 0, 0, 0)
 tbl32_660F3A[0x4b] = (0, INS_VEXREQ | INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ADDRMETH_L | OPTYPE_x | OP_R, cpu_AMD64, "blendvpd", 0, 0, 0)
+tbl32_660F3A[0x4c] = (0, INS_VEXREQ | INS_OTHER, ADDRMETH_V | OPTYPE_x | OP_W, ADDRMETH_H | OPTYPE_x | OP_R, ADDRMETH_W | OPTYPE_x | OP_R, ADDRMETH_L | OPTYPE_x | OP_R, cpu_AMD64, "pblendvb", 0, 0, 0)
 
 tbl32_660F3A[0x60] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq  | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_AMD64, "pcmpestrm", 0, 0, 0)
 tbl32_660F3A[0x61] = (0, INS_OTHER, ADDRMETH_V | OPTYPE_dq | OP_W, ADDRMETH_W | OPTYPE_dq  | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_AMD64, "pcmpestri", 0, 0, 0)
@@ -1469,14 +1470,14 @@ desc_C1         = (tbl32_C1,3,3,0x07,0,0xff)
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_D0 = [
-( 0, INS_ROL, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM  | OP_R, ARG_NONE, cpu_80386, "rol", 0, 1, 0),
-( 0, INS_ROR, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM  | OP_R, ARG_NONE, cpu_80386, "ror", 0, 1, 0),
-( 0, INS_ROL, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM  | OP_R, ARG_NONE, cpu_80386, "rcl", 0, 1, 0),
-( 0, INS_ROR, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM  | OP_R, ARG_NONE, cpu_80386, "rcr", 0, 1, 0),
-( 0, INS_SHL, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM  | OP_R, ARG_NONE, cpu_80386, "shl", 0, 1, 0),
-( 0, INS_SHR, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM  | OP_R, ARG_NONE, cpu_80386, "shr", 0, 1, 0),
-( 0, INS_SHL, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM  | OP_R, ARG_NONE, cpu_80386, "sal", 0, 1, 0),
-( 0, INS_SHR, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM  | OP_R, ARG_NONE, cpu_80386, "sar", 0, 1, 0   )
+( 0, INS_ROL, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM | OP_R, ARG_NONE, cpu_80386, "rol", 0, 1, 0),
+( 0, INS_ROR, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM | OP_R, ARG_NONE, cpu_80386, "ror", 0, 1, 0),
+( 0, INS_ROL, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM | OP_R, ARG_NONE, cpu_80386, "rcl", 0, 1, 0),
+( 0, INS_ROR, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM | OP_R, ARG_NONE, cpu_80386, "rcr", 0, 1, 0),
+( 0, INS_SHL, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM | OP_R, ARG_NONE, cpu_80386, "shl", 0, 1, 0),
+( 0, INS_SHR, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM | OP_R, ARG_NONE, cpu_80386, "shr", 0, 1, 0),
+( 0, INS_SHL, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM | OP_R, ARG_NONE, cpu_80386, "sal", 0, 1, 0),
+( 0, INS_SHR, ADDRMETH_E | OPTYPE_b | OP_W, OP_IMM | OP_R, ARG_NONE, cpu_80386, "sar", 0, 1, 0   )
 ]
 desc_D0         = (tbl32_D0,3,3,0x07,0,0xff)
 
@@ -1502,14 +1503,14 @@ desc_D1         = (tbl32_D1,3,3,0x07,0,0xff)
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_D2 = [
-( 0, INS_ROL, ADDRMETH_E | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "rol", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_ROR, ADDRMETH_E | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "ror", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_ROL, ADDRMETH_E | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "rcl", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_ROR, ADDRMETH_E | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "rcr", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_SHL, ADDRMETH_E | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "shl", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_SHR, ADDRMETH_E | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "shr", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_SHL, ADDRMETH_E | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "sal", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_SHR, ADDRMETH_E | OPTYPE_b | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "sar", 0, e_amd64_regs.REG_CL, 0   )
+( 0, INS_ROL, ADDRMETH_E | OPTYPE_b | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "rol", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_ROR, ADDRMETH_E | OPTYPE_b | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "ror", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_ROL, ADDRMETH_E | OPTYPE_b | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "rcl", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_ROR, ADDRMETH_E | OPTYPE_b | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "rcr", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_SHL, ADDRMETH_E | OPTYPE_b | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "shl", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_SHR, ADDRMETH_E | OPTYPE_b | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "shr", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_SHL, ADDRMETH_E | OPTYPE_b | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "sal", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_SHR, ADDRMETH_E | OPTYPE_b | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "sar", 0, e_amd64_regs.REG_CL, 0   )
 ]
 desc_D2         = (tbl32_D2,3,3,0x07,0,0xff)
 
@@ -1517,14 +1518,14 @@ desc_D2         = (tbl32_D2,3,3,0x07,0,0xff)
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_D3 = [
-( 0, INS_ROL, ADDRMETH_E | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "rol", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_ROR, ADDRMETH_E | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "ror", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_ROL, ADDRMETH_E | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "rcl", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_ROR, ADDRMETH_E | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "rcr", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_SHL, ADDRMETH_E | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "shl", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_SHR, ADDRMETH_E | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "shr", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_SHL, ADDRMETH_E | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "sal", 0, e_amd64_regs.REG_CL, 0),
-( 0, INS_SHR, ADDRMETH_E | OPTYPE_v | OP_W, OP_REG | OP_R, ARG_NONE, cpu_80386, "sar", 0, e_amd64_regs.REG_CL, 0   )
+( 0, INS_ROL, ADDRMETH_E | OPTYPE_v | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "rol", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_ROR, ADDRMETH_E | OPTYPE_v | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "ror", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_ROL, ADDRMETH_E | OPTYPE_v | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "rcl", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_ROR, ADDRMETH_E | OPTYPE_v | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "rcr", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_SHL, ADDRMETH_E | OPTYPE_v | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "shl", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_SHR, ADDRMETH_E | OPTYPE_v | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "shr", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_SHL, ADDRMETH_E | OPTYPE_v | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "sal", 0, e_amd64_regs.REG_CL, 0),
+( 0, INS_SHR, ADDRMETH_E | OPTYPE_v | OP_W, OP_NOREX | OP_REG | OP_R, ARG_NONE, cpu_80386, "sar", 0, e_amd64_regs.REG_CL, 0   )
 ]
 desc_D3         = (tbl32_D3,3,3,0x07,0,0xff)
 
@@ -1534,15 +1535,14 @@ desc_D3         = (tbl32_D3,3,3,0x07,0,0xff)
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_F6 = [
-( 0, INS_TEST, ADDRMETH_E | OPTYPE_b | OP_R, ADDRMETH_I | OPTYPE_b | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "test", 0, 0, 0),  
-( 0, INS_TEST, ADDRMETH_E | OPTYPE_b | OP_R, ADDRMETH_I | OPTYPE_b | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "test", 0, 0, 0),  
-( 0, INS_NOT, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "not", 0, 0, 0),
-( 0, INS_NEG, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "neg", 0, 0, 0),
-( 0, INS_MUL, OP_REG | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "mul", e_amd64_regs.REG_AL, 0, 0),
-( 0, INS_MUL, OP_REG | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "imul", e_amd64_regs.REG_AL, 0, 0),
-( 0, INS_DIV, OP_REG | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "div", e_amd64_regs.REG_AL, 0, 0),
-#( 0, INS_DIV, OP_REG | OP_W, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "idiv", e_amd64_regs.REG_AL, 0, 0   ) 
-( 0, INS_DIV, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "idiv", e_amd64_regs.REG_AL, 0, 0   ) 
+    (0, INS_TEST, ADDRMETH_E | OPTYPE_b | OP_R, ADDRMETH_I | OPTYPE_b | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "test", 0, 0, 0),
+    (0, INS_TEST, ADDRMETH_E | OPTYPE_b | OP_R, ADDRMETH_I | OPTYPE_b | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "test", 0, 0, 0),
+    (0, INS_NOT, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "not", 0, 0, 0),
+    (0, INS_NEG, ADDRMETH_E | OPTYPE_b | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "neg", 0, 0, 0),
+    (0, INS_MUL, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "mul", 0, 0, 0),
+    (0, INS_MUL, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "imul", 0, 0, 0),
+    (0, INS_DIV, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "div", 0, 0, 0),
+    (0, INS_DIV, ADDRMETH_E | OPTYPE_b | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "idiv", 0, 0, 0)
 ]
 desc_F6         = (tbl32_F6,3,3,0x07,0,0xff)
 
@@ -1551,18 +1551,17 @@ desc_F6         = (tbl32_F6,3,3,0x07,0,0xff)
 (optable, optype, operand 0, operand 1, operand 2, CPU required, "opcodename", op0Register, op1Register, op2Register)
 """
 tbl32_F7 = [
-( 0, INS_TEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_I | OPTYPE_z | OP_R, ARG_NONE, cpu_80386, "test", 0, 0, 0),  
-( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0   ),
-#( 0, INS_TEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_I | OPTYPE_z | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "test", 0, 0, 0),  
-( 0, INS_NOT, ADDRMETH_E | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "not", 0, 0, 0),  
-( 0, INS_NEG, ADDRMETH_E | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "neg", 0, 0, 0),  
-( 0, INS_MUL, OP_NOREXB | OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "mul", e_amd64_regs.REG_EAX, 0, 0),
-( 0, INS_MUL, OP_NOREXB | OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "imul", e_amd64_regs.REG_EAX, 0, 0),
-( 0, INS_DIV, OP_NOREXB | OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "div", e_amd64_regs.REG_EAX, 0, 0),
-#( 0, INS_DIV, OP_REG | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_80386, "idiv", e_amd64_regs.REG_EAX, 0, 0) 
-( 0, INS_DIV, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "idiv", e_amd64_regs.REG_EAX, 0, 0) 
+    (0, INS_TEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_I | OPTYPE_z | OP_R, ARG_NONE, cpu_80386, "test", 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    # ( 0, INS_TEST, ADDRMETH_E | OPTYPE_v | OP_R, ADDRMETH_I | OPTYPE_z | OP_SIGNED | OP_R, ARG_NONE, cpu_80386, "test", 0, 0, 0),
+    (0, INS_NOT, ADDRMETH_E | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "not", 0, 0, 0),
+    (0, INS_NEG, ADDRMETH_E | OPTYPE_v | OP_W, ARG_NONE, ARG_NONE, cpu_80386, "neg", 0, 0, 0),
+    (0, INS_MUL, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "mul", 0, 0, 0),
+    (0, INS_MUL, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "imul", 0, 0, 0),
+    (0, INS_DIV, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "div", 0, 0, 0),
+    (0, INS_DIV, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, ARG_NONE, cpu_80386, "idiv", 0, 0, 0)
 ]
-desc_F7         = (tbl32_F7,3,3,0x07,0,0xff)
+desc_F7 = (tbl32_F7, 3, 3, 0x07, 0, 0xff)
 
 
 """

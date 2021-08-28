@@ -5,8 +5,9 @@ ArchitectureModule, Opcode, Operand, and Emulator objects.
 
 import types
 import struct
-import platform
 import logging
+import platform
+import contextlib
 
 from envi.exc import *
 
@@ -600,9 +601,29 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self.setRegisterSnap(regs)
         self.setMemorySnap(mem)
 
+    @contextlib.contextmanager
+    def snap(self):
+        '''
+        Utility function to try something with an emulator, and then revert it.
+        If we fail to get a valid snap, we raise a base EmuException. Otherwise,
+        we yield out the snap we received.
+
+        On close, we try to rollback the emulator using the snap.
+        '''
+        try:
+            snap = self.getEmuSnap()
+        except Exception as e:
+            raise EmuException(self, str(e)) from None
+
+        try:
+            yield snap
+        finally:
+            self.setEmuSnap(snap)
+
     def executeOpcode(self, opobj):
         """
-        This is the core method for the 
+        This is the core method for an emulator to do any running of instructions and
+        setting of the program counter should an instruction require that.
         """
         raise ArchNotImplemented()
 
@@ -610,6 +631,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         """
         Run the emulator until "something" happens.
         (breakpoint, segv, syscall, etc...)
+
+        Set stepcount in order to run that many instructions before pausing emulation
         """
         if stepcount is not None:
             for i in range(stepcount):

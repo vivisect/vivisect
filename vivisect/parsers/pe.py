@@ -1,11 +1,13 @@
+import base64
 import logging
-from io import StringIO
+from io import BytesIO
 
 import PE
 import PE.carve as pe_carve
 
 import vstruct
 import vivisect
+import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
 import vivisect.parsers.clr as v_p_clr
 # Steal symbol parsing from vtrace
@@ -34,11 +36,11 @@ for mod in (PE, vtrace):
 
 def parseFile(vw, filename, baseaddr=None):
     pe = PE.PE(open(filename, "rb"))
-    return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
+    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
 
 
 def parseBytes(vw, bytes, baseaddr=None):
-    fd = StringIO(bytes)
+    fd = BytesIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
     return loadPeIntoWorkspace(vw, pe, baseaddr=baseaddr)
@@ -46,9 +48,8 @@ def parseBytes(vw, bytes, baseaddr=None):
 
 def parseMemory(vw, memobj, base):
     pe = PE.peFromMemoryObject(memobj, base)
-    mapbase, mapsize, perms, fname = memobj.getMemoryMap(base)
     # FIXME does the PE's load address get fixedup on rebase?
-    return loadPeIntoWorkspace(vw, pe, fname)
+    return loadPeIntoWorkspace(vw, pe, filename=None)
 
 
 def parseFd(vw, fd, filename=None, baseaddr=None):
@@ -88,11 +89,13 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     arch = arch_names.get(mach)
     if arch is None:
-        raise Exception("Machine %.4x is not supported for PE!" % mach)
+        raise v_exc.InvalidArchitecture("PE", hex(mach))
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
     vw.parsedbin = pe
+    byts = pe.getFileBytes()
+    vw.setMeta('FileBytes', v_parsers.compressBytes(byts))
 
     platform = 'windows'
 
@@ -116,21 +119,19 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
     codervamax = codebase+codesize
 
-    fvivname = filename
+    # grab the file bytes for hashing
+    pe.fd.seek(0)
+    fhash = v_parsers.md5Bytes(byts)
+    sha256 = v_parsers.sha256Bytes(byts)
 
+    fvivname = filename
     # This will help linkers with files that are re-named
     dllname = pe.getDllName()
-    if dllname is not None:
+    if dllname:
         fvivname = dllname
 
     if fvivname is None:
-        fvivname = "pe_%.8x" % baseaddr
-
-    # grab the file bytes for hashing
-    pe.fd.seek(0)
-    bytez = pe.fd.read()
-    fhash = v_parsers.md5Bytes(bytez)
-    sha256 = v_parsers.sha256Bytes(bytez)
+        fvivname = fhash
 
     # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
@@ -174,9 +175,15 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Add the first page mapped in from the PE header.
     header = pe.readAtOffset(0, header_size)
 
+    if not header:
+        raise v_exc.CorruptPeFile("truncated PE header")
+
     secalign = pe.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
     subsys_majver = pe.IMAGE_NT_HEADERS.OptionalHeader.MajorSubsystemVersion
     subsys_minver = pe.IMAGE_NT_HEADERS.OptionalHeader.MinorSubsystemVersion
+
+    if secalign == 0:
+        raise v_exc.CorruptPeFile("section alignment is zero")
 
     secrem = len(header) % secalign
     if secrem != 0:
@@ -226,7 +233,10 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     for idx, sec in enumerate(pe.sections):
         mapflags = 0
-
+        offset = sec.vsGetMeta("Offset", None)
+        if offset:
+            addr = baseaddr + offset
+            vw.makeStructure(addr, 'pe.IMAGE_SECTION_HEADER')
         chars = sec.Characteristics
         if chars & PE.IMAGE_SCN_MEM_READ:
             mapflags |= e_mem.MM_READ
@@ -448,7 +458,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                     vw.vprint("SEHandlerTable parse error")
 
     # Last but not least, see if we have symbol support and use it if we do
-    if vt_win32.dbghelp:
+    if vt_win32.dbghelp and filename:
 
         s = vt_win32.Win32SymbolParser(-1, filename, baseaddr)
 

@@ -10,6 +10,8 @@ import vstruct
 import vstruct.defs.pe as vs_pe
 import PE.clr as clr
 
+import vivisect.exc as v_exc
+
 from . import ordlookup
 
 logger = logging.getLogger('vivisect')
@@ -436,6 +438,19 @@ class PE(object):
         except:
             pass  # whatever. we're tearing down anyway
 
+    def getFileBytes(self):
+        '''
+        Return the bytes of the file as they currently exist from the view of the file descriptor-like object
+
+        But keeping in mind not to smash over the old location of the fd
+        '''
+        self.fd.flush()
+        old = self.fd.tell()
+        self.fd.seek(0)
+        byts = self.fd.read()
+        self.fd.seek(old)
+        return byts
+
     def getPdataEntries(self):
         sec = self.getSectionByName('.pdata')
         if sec is None:
@@ -456,7 +471,13 @@ class PE(object):
         '''
         if self.IMAGE_EXPORT_DIRECTORY is not None:
             rawname = self.readAtRva(self.IMAGE_EXPORT_DIRECTORY.Name, 32)
-            return rawname.split(b'\x00')[0].decode('utf-8')
+            if not rawname:
+                return None
+
+            try:
+                return rawname.partition(b'\x00')[0].decode('ascii')
+            except UnicodeDecodeError:
+                return None
         return None
 
     def getImports(self):
@@ -704,10 +725,18 @@ class PE(object):
         off += self.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes * len(vstruct.getStructure("pe.IMAGE_DATA_DIRECTORY"))
 
         secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
-        sbytes = self.readAtOffset(off, secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections)
+        hdrsize = secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections
+        sbytes = self.readAtOffset(off, hdrsize)
+
+        if len(sbytes) != hdrsize:
+            raise v_exc.CorruptPeFile("truncated section headers")
+
+        indx = off
         while sbytes:
             s = vstruct.getStructure("pe.IMAGE_SECTION_HEADER")
             s.vsParse(sbytes[:secsize])
+            s.vsSetMeta('Offset', indx)
+            indx += secsize
             self.sections.append(s)
             sbytes = sbytes[secsize:]
 
@@ -931,24 +960,28 @@ class PE(object):
                 return
 
             pageva, chunksize = struct.unpack("<II", relbytes[:8])
-            relcnt = (chunksize - 8) / 2
+            relcnt = (chunksize - 8) // 2
 
             # if chunksize == 0 bail
             if not chunksize:
+                logger.warning("PE: corrupt relocation table: chunk size is 0")
                 return
 
             # RP BUG FIX - sometimes the chunksize is invalid we do a quick check to make sure we dont overrun the buffer
             if chunksize > len(relbytes):
+                logger.warning("PE: corrupt relocation table: chunk size > table size")
                 return
 
             if relcnt < 0:
+                logger.warning("PE: corrupt relocation table: negative relocation count")
                 return
 
-            rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
-            for r in rels:
+            for roffset in range(8, min(chunksize, len(relbytes)), 2):
+                r = struct.unpack_from("<H", relbytes, roffset)[0]
                 rtype = r >> 12
                 roff  = r & 0xfff
                 self.relocations.append((pageva+roff, rtype))
+
             relbytes = relbytes[chunksize:]
 
     def getExportName(self):

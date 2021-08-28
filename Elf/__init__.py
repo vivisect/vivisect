@@ -18,6 +18,7 @@ Send bug reports to Invisigoth or Metr0.
 
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
+import io
 import logging
 
 from stat import *
@@ -315,6 +316,19 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         except:
             pass  # whatever. we're tearing down anyway
 
+    def getFileBytes(self):
+        '''
+        Return the bytes of the file as they currently exist from the view of the file descriptor-like object
+
+        But keeping in mind not to smash over the old location of the fd
+        '''
+        self.fd.flush()
+        old = self.fd.tell()
+        self.fd.seek(0)
+        byts = self.fd.read()
+        self.fd.seek(old)
+        return byts
+
     def getRelocTypeName(self, rtype):
         '''
         Because relocation type names are decided based on the
@@ -400,7 +414,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         ssymtabva = self.getSection('.dynsym').sh_addr
         dsymtabva = self.dyns.get(DT_SYMTAB)
         if ssymtabva != dsymtabva:
-            logger.warning("Section headers and Dynamics disagree on Symbol Table: sec: 0x%x, dyn: 0x%x", ssymtabva, dsymtabva)
+            logger.info("Section headers and Dynamics disagree on Symbol Table: sec: 0x%x, dyn: 0x%x", ssymtabva, dsymtabva)
 
         # only parse the symbols that are not already accounted for.
         # symbols are ordered, so existence of index Y is always the same
@@ -494,7 +508,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         dynstrtab = self.dyns.get(DT_STRTAB)
         strsz = self.dyns.get(DT_STRSZ)
         if dynstrtab is None or strsz is None:
-            logger.warning('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
+            logger.info('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
             return
 
         if self.dynstrtabmeta != (None, None):
@@ -862,6 +876,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0, 'unknown')
 
+        if self.getSection('QNX_info'):
+            return 'qnx'
+
         return 'unknown'
 
     def getDynamics(self):
@@ -915,7 +932,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         """
         mystr = 'Elf Binary:'
         mystr+= "\n= Intimate Details:"
-        mystr+= "\n==Magic:\t\t\t\t"       + self.e_ident.decode('utf-8')
+        mystr+= "\n==Magic:\t\t\t\t%r"       % self.e_ident.decode('utf-8')
         mystr+= "\n==Type:\t\t\t\t\t"        + e_types.get(self.e_type)
         mystr+= "\n==Machine Arch:\t\t\t\t"  + e_machine_types.get(self.e_machine)
         mystr+= "\n==Version:\t\t\t\t%d"     % (self.e_version)
@@ -1080,6 +1097,11 @@ def elfFromFileName(fname):
     return Elf(open(fname, 'rb'))
 
 
+def elfFromBytes(fbytes):
+    fd = io.BytesIO(fbytes)
+    return Elf(fd)
+
+
 def elfFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
     return Elf(fd)
@@ -1091,4 +1113,3 @@ def getRelocType(val):
 
 def getRelocSymTabIndex(val):
     return val >> 8
-

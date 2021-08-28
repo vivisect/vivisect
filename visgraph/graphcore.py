@@ -320,10 +320,13 @@ class Graph:
         '''
         pval = node[1].pop(prop,None)
         if pval is not None:
-            vlist = self.nodeprops[prop][pval]
-            vlist.remove(node)
-            if not vlist:
-                self.nodeprops[prop].pop(pval,None)
+            try:
+                vlist = self.nodeprops[prop][pval]
+                vlist.remove(node)
+                if not vlist:
+                    self.nodeprops[prop].pop(pval,None)
+            except TypeError:
+                pass # no value indexes for unhashable types
         return pval
 
     def delNodesProps(self, props):
@@ -348,7 +351,7 @@ class Graph:
             self.delEdge(edge)
         for edge in self.getRefsTo(node)[:]:
             self.delEdge(edge)
-        [ self.delNodeProp(node, k) for k in node[1].keys() ]
+        [ self.delNodeProp(node, k) for k in list(node[1].keys()) ]
         return self.nodes.pop(node[0])
 
     def getNode(self, nid):
@@ -449,10 +452,13 @@ class Graph:
         '''
         v = edge[3].pop(prop,None)
         if v is not None:
-            vlist = self.edgeprops[prop][v]
-            vlist.remove(edge)
-            if not vlist:
-                self.edgeprops[prop].pop(v,None)
+            try:
+                vlist = self.edgeprops[prop][v]
+                vlist.remove(edge)
+                if not vlist:
+                    self.edgeprops[prop].pop(v,None)
+            except TypeError:
+                pass # no value indexes for unhashable types
         return v
 
     def delEdgesProps(self, props):
