@@ -53,4 +53,5 @@ def analyzeFunction(vw, fva):
     # 0x14006ba90 out of omnetpp.exe at O2, 64bit is a good counter example (that shouldn't be no ret)
     if not hasret:
         logger.info('Marking 0x%.8x as no return' % fva)
-        vw.addNoReturnVa(fva)
+        if fva not in vw.getEntryPoints():
+            vw.addNoReturnVa(fva)
