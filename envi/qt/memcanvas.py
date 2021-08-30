@@ -23,7 +23,7 @@ from vqt.common import *
 class LoggerPage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, msg, line, source):
         print('------------------------------------------------------------------')
-        print(f'JSconsole message = {msg}; line: {line}')
+        print(f'JSconsole message = {msg}; line: {line};')
         print('------------------------------------------------------------------')
 
 

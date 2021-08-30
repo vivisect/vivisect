@@ -96,9 +96,11 @@ def lsb(value):
     return value & 0x1
 
 def msb(value, size):
-    if value & sign_bits[size]:
-        return 1
-    return 0
+    return bool(value & sign_bits[size])
+
+def msb_minus_one(value, size):
+    bsize = size << 3
+    return bool(value & bsign_bits[bsize-1])
 
 def is_signed_half_carry(value, size, src):
     '''

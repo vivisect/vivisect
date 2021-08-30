@@ -9,8 +9,9 @@ from envi.const import RMETA_NMASK
 
 from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386Opcode, i386ImmOper, i386RegOper, i386ImmMemOper, i386RegMemOper, \
-        i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, \
-        MANDATORY_PREFIXES, PREFIX_REP_MASK, RMETA_LOW8, RMETA_LOW16
+        i386SibOper, PREFIX_REPNZ, PREFIX_REPZ, PREFIX_REP, PREFIX_REP_SIMD, \
+        PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, MANDATORY_PREFIXES, PREFIX_REP_MASK,\
+        RMETA_LOW8, RMETA_LOW16
 
 from .regs import *
 from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \

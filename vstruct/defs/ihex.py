@@ -3,6 +3,8 @@ Parser objects for the Intel Hex file format.
 '''
 import binascii
 
+import envi.const as e_const
+
 import vstruct
 from vstruct.primitives import *
 
@@ -108,8 +110,6 @@ class IHexFile(vstruct.VArray):
         Memory maps are returned as a list of
         ( va, perms, fname, bytes ) tuples.
         '''
-        import envi.memory as e_mem
-
         # Get all the binary parts....
         baseaddr = 0
         memparts = []
@@ -147,6 +147,6 @@ class IHexFile(vstruct.VArray):
             if maps and addr == ( maps[-1][0] + len(maps[-1][3]) ):
                 maps[-1][3] += bytes
             else:
-                maps.append( [ addr, e_mem.MM_RWX, '', bytes ] )
+                maps.append( [ addr, e_const.MM_RWX, '', bytes ] )
 
         return maps
