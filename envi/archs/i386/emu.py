@@ -245,8 +245,13 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         if meth is None:
             raise e_exc.UnsupportedInstruction(self, op)
 
+        # The behavior of the REP prefix is undefined when used with non-string instructions.
+        is_string_instruction = False
+        if op.mnem.startswith(("ins", "outs", "movs", "lods", "stos", "cmps", "scas")):
+            is_string_instruction = True
+
         rep_prefix = op.prefixes & PREFIX_REP_MASK
-        if rep_prefix and not self.getEmuOpt('i386:reponce'):
+        if rep_prefix and is_string_instruction and not self.getEmuOpt('i386:reponce'):
             # REP instructions (REP/REPNZ/REPZ/REPSIMD) get their own handlers
             handler = self.__rep_prefix_handlers__.get(rep_prefix)
             newpc = handler(meth, op)
@@ -273,9 +278,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         Then the instruction is repeated and ECX decremented until either
         ECX reaches 0 or the ZF is cleared.
         '''
-        if op.mnem.startswith('nop'):
-            return
-
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 1)
 
