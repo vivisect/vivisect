@@ -9,7 +9,7 @@ from envi.const import *
 import envi.exc as e_exc
 import envi.bits as e_bits
 
-from envi.archs.i386.opconst import PREFIX_REX_W
+from envi.archs.i386.opconst import PREFIX_REX_W, REP_OPCODES
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *
 from envi.archs.i386 import i386Module
@@ -246,12 +246,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             raise e_exc.UnsupportedInstruction(self, op)
 
         # The behavior of the REP prefix is undefined when used with non-string instructions.
-        is_string_instruction = False
-        if op.mnem.startswith(("ins", "outs", "movs", "lods", "stos", "cmps", "scas")):
-            is_string_instruction = True
-
         rep_prefix = op.prefixes & PREFIX_REP_MASK
-        if rep_prefix and is_string_instruction and not self.getEmuOpt('i386:reponce'):
+        if rep_prefix and op.opcode in REP_OPCODES and not self.getEmuOpt('i386:reponce'):
             # REP instructions (REP/REPNZ/REPZ/REPSIMD) get their own handlers
             handler = self.__rep_prefix_handlers__.get(rep_prefix)
             newpc = handler(meth, op)
