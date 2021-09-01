@@ -197,15 +197,24 @@ INS_OFLOW = INS_TRAPS | 0x08       # gen overflow trap
 
 #/* INS_SYSTEM */
 INS_HALT    = INS_SYSTEM | 0x01 # halt machine
-INS_IN      = INS_SYSTEM | 0x02 # input form port
+INS_IN      = INS_SYSTEM | 0x02 # input from port
 INS_OUT     = INS_SYSTEM | 0x03 # output to port
 INS_CPUID   = INS_SYSTEM | 0x04 # iden
 
 INS_NOP     = INS_OTHER | 0x01
 INS_BCDCONV = INS_OTHER | 0x02  # convert to/from BCD
 INS_SZCONV  = INS_OTHER | 0x03  # convert size of operand
-INS_CRYPT   = INS_OTHER | 0x4  # AES-NI instruction support
+INS_CRYPT   = INS_OTHER | 0x04  # AES-NI instruction support
 
+# string instructions that support REP prefix
+REP_OPCODES = (
+    INS_IN,       # INS
+    INS_OUT,      # OUTS
+    INS_STRMOV,   # MOVS
+    INS_STRLOAD,  # LODS
+    INS_STRSTOR,  # STOS
+    INS_STRCMP    # CMPS, SCAS
+    )
 
 OP_R = 0x001
 OP_W = 0x002
