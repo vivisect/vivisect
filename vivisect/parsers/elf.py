@@ -531,7 +531,12 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
                     '''
                     if not valu:
-                        new_pointers.append((sva, valu, symname))
+                        # do a double check to make sure we can even make a pointer this large
+                        # because some relocations like __FRAME_END__ might end up short
+                        psize = vw.getPointerSize()
+                        byts = vw.readMemory(sva, psize)
+                        if len(byts) == psize:
+                            new_pointers.append((sva, valu, symname))
                     elif vw.isProbablyUnicode(sva):
                         vw.makeUnicode(sva, size=s.st_size)
                     elif vw.isProbablyString(sva):
