@@ -77,20 +77,17 @@ class StabilityTests(unittest.TestCase):
             #self.fail("Stability Function Tests Failed. See logs for details.")
 
     def _cmp_loc(self, file, name, base, new):
+        # yea, it's ugly. But there's some type tap dancing that's easier this way
+        new = json.loads(json.dumps(new))
         baseonly = []
         newonly = []
-        fixed = []
+
         for loc in base:
-            if type(loc) is list:
-                fixed.append(tuple(loc))
-            else:
-                fixed.append(loc)
-        for loc in fixed:
             if loc not in new:
                 baseonly.append(loc)
 
         for loc in new:
-            if loc not in fixed:
+            if loc not in base:
                 newonly.append(loc)
 
         if baseonly:
