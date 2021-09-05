@@ -167,7 +167,7 @@ def analyze(vw):
                             try:
                                 vw.makePointer(va)
                             except Exception as e:
-                                logger.warning('Emucode failed to make 0x.8x due to %s', va, str(e))
+                                logger.warning('Emucode failed to make 0x.8%x due to %s', va, str(e))
                                 continue
 
         if len(docode) == 0:
