@@ -164,6 +164,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.addNoReturnApi("*.std::terminate(void)")
     vw.addNoReturnApi("*.__assert_fail")
     vw.addNoReturnApi("*.__stack_chk_fail")
+    vw.addNoReturnApi("*.pthread_exit")
 
     # for VivWorkspace, MSB==1, LSB==0... which is the same as True/False
     vw.setEndian(elf.getEndian())
