@@ -450,7 +450,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         if addr is None:
             return addr, size
 
-        loc = self.vw.getLocation(addr)
+        loc = self.vw.getLocation(addr, range=False)
         if loc is None:
             return addr, size
 
