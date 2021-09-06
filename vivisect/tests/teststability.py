@@ -28,6 +28,9 @@ class StabilityTests(unittest.TestCase):
 
     def _cmp_func(self, file, base, vw):
         fails = []
+        # TODO: There's some instability in the 3rd element for certain codeblocks when
+        # and functinn is jmp'd to by other functions. It's ont horrifically bad, but
+        # determinism is nice, so hunt down a way to fix that
         for fva, (size, instcount, blocks) in base['functions'].items():
             fva = int(fva)
             newfva = vw.getFunction(fva)
@@ -41,21 +44,12 @@ class StabilityTests(unittest.TestCase):
                 fails.append((fva, 'meta', str(e)))
                 continue
 
-            for block in blocks:
-                blk = vw.getCodeBlock(block[0])
-                try:
-                    self.assertIsNotNone(blk, msg='[ %s (base) ] Got a null new codeblock for %s' % (file, block))
-                    self.assertEqual(tuple(block), tuple(blk), msg='[ %s (base) ] Mismatched codeblocks for %s and %s in fva 0x%.8x' % (file, block, blk, fva))
-                except Exception as e:
-                    fails.append((fva, 'blocks', str(e)))
-                    break
-
-
+        basefunc = set([int(x) for x in base['functions'].keys()])
         for fva in vw.getFunctions():
-            if fva not in base:
+            if fva not in basefunc:
                 fails.append((fva, 'fva', 'Old version not defined'))
                 continue
-            size, instcount, blocks = base[fva]
+            size, instcount, blocks = base['functions'][str(fva)]
             try:
                 self.assertEqual(size, vw.getFunctionMeta(fva, 'Size'))
                 self.assertEqual(instcount, vw.getFunctionMeta(fva, 'InstructionCount'))
@@ -63,46 +57,53 @@ class StabilityTests(unittest.TestCase):
                 fails.append((fva, 'meta', str(e)))
                 continue
 
-            for block in blocks:
-                blk = vw.getCodeBlock(block[0])
-                try:
-                    self.assertIsNotNone(blk, msg='[ %s (new) ] Got a null new codeblock for %s' % (file, block))
-                    self.assertEqual(tuple(block), tuple(blk), msg='[ %s (new) ] Mismatched codeblocks for %s and %s in fva 0x%.8x' % (file, block, blk, fva))
-                except Exception as e:
-                    fails.append((fva, 'blocks', str(e)))
-                    break
         if fails:
             for fva, sect, mesg in fails:
                 logger.error('[ %s ] Test fail for 0x%.8x in section %s: %s' % (file, fva, sect, mesg))
-            #self.fail("Stability Function Tests Failed. See logs for details.")
+            self.fail("Stability Function Tests Failed. See logs for details.")
 
     def _cmp_loc(self, file, name, base, new):
-        # yea, it's ugly. But there's some type tap dancing that's easier this way
-        new = json.loads(json.dumps(new))
         baseonly = []
         newonly = []
 
-        for loc in base:
+        fixed = []
+        for b in base:
+            if type(b) is list:
+                b = tuple(b)
+            fixed.append(b)
+
+        for loc in fixed:
             if loc not in new:
                 baseonly.append(loc)
 
         for loc in new:
-            if loc not in base:
+            if loc not in fixed:
                 newonly.append(loc)
 
         if baseonly:
             self.fail("[%s : %s] Analysis removed some locations. Here's the ones that got removed: %s" % (file, name, baseonly))
 
-        #if newonly:
-            #self.fail("[%s : %s] Analysis added some locations. Here's the new ones: %s" % (file, name, newonly))
+        if newonly:
+            self.fail("[%s : %s] Analysis added some locations. Here's the new ones: %s" % (file, name, newonly))
+
+    def _get_strtype(self, base):
+        retn = []
+        for sloc in base:
+            va, size, ltyp, subs = sloc
+            nsubs = set()
+            for sub in subs:
+                nsubs.add(tuple(sub))
+            retn.append((va, size, ltyp, nsubs))
+
+        return retn
 
     def _compare(self, filename, base, vw):
         testhooks = {
-            #'entrypoints': (self._cmp_entry, vw.getEntrypoints()),
+            'entrypoints': (self._cmp_loc, vw.getEntryPoints()),
 
             'pointers': (self._cmp_loc, vw.getLocations(LOC_POINTER)),
-            'strings': (self._cmp_loc, vw.getLocations(LOC_STRING)),
-            'unicode': (self._cmp_loc, vw.getLocations(LOC_UNI)),
+            'strings': (self._cmp_loc, self._get_strtype(vw.getLocations(LOC_STRING))),
+            'unicode': (self._cmp_loc, self._get_strtype(vw.getLocations(LOC_UNI))),
             'imports': (self._cmp_loc, vw.getImports()),
             'exports': (self._cmp_loc, vw.getExports()),
             'names': (self._cmp_loc, vw.getNames()),
@@ -113,8 +114,11 @@ class StabilityTests(unittest.TestCase):
         self._cmp_func(filename, base, vw)
 
         for name, (func, new) in testhooks.items():
-            func(filename, name, base[name], new)
-
+            if name == 'strings' or name == 'unicode':
+                basedata = self._get_strtype(base[name])
+            else:
+                basedata = base[name]
+            func(filename, name, basedata, new)
 
     def test_features(self):
         dirn = os.path.dirname(__file__)
