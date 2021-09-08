@@ -14,6 +14,7 @@ import envi
 import vtrace
 
 import envi.bits as e_bits
+import envi.common as e_common
 import envi.registers as e_registers
 import vtrace.platforms.base as v_base
 import envi.symstore.resolver as e_resolv
@@ -220,7 +221,7 @@ class GdbStubMixin:
 
     def _monitorCommand(self, cmd):
         resp = ''
-        cmd = 'qRcmd,%s' % binascii.hexlify(cmd)
+        cmd = 'qRcmd,%s' % e_common.hexify(cmd)
         pkt = self._cmdTransact(cmd)
         while not pkt.startswith('OK'):
             self._raiseIfError(pkt)
@@ -443,7 +444,7 @@ class GdbStubMixin:
                 ctx.setRegisterByName( regname, regval )
 
         return ctx
-        
+
     def platformSetRegCtx(self, tid, ctx):
         '''
         Set the target stub's register context from the envi register context
@@ -456,7 +457,7 @@ class GdbStubMixin:
         for myidx, enviidx in self._gdb_reg_xlat:
             rvals[myidx] = ctx.getRegister(enviidx)
         newbytes = struct.pack(self._gdb_regfmt, rvals) + regremain
-        return self._cmdTransact('G' + binascii.hexlify(newbytes))
+        return self._cmdTransact('G' + e_common.hexify(newbytes))
 
     def platformGetThreads(self):
 
@@ -509,7 +510,7 @@ class GdbStubMixin:
         return mbytes
 
     def platformWriteMemory(self, addr, mbytes):
-        cmd = 'M%x,%x:%s' % (addr, len(mbytes), binascii.hexlify(mbytes))
+        cmd = 'M%x,%x:%s' % (addr, len(mbytes), e_common.hexify(mbytes))
         pkt = self._cmdTransact(cmd)
 
     def platformGetMaps(self):

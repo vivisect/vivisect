@@ -3,6 +3,7 @@ import logging
 import envi
 import envi.common as e_common
 import envi.archs.arm.emu as e_arm
+
 from envi.archs.arm.regs import *
 
 import vivisect.exc as v_exc
@@ -27,11 +28,9 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         self.setMemArchitecture(envi.ARCH_ARMV7)
 
     def setThumbMode(self, thumb=1):
-        self.opcache = {}
         e_arm.ArmEmulator.setThumbMode(self, thumb)
 
     def setArmMode(self, arm=1):
-        self.opcache = {}
         e_arm.ArmEmulator.setArmMode(self, arm)
 
     def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
@@ -43,16 +42,11 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
         Made for ARM, because envi.Emulator doesn't understand the Thumb flag
         '''
-        op = self.opcache.get(va)
-
-        if op is None:
+        if arch == envi.ARCH_DEFAULT:
             tmode = self.getFlag(PSR_T_bit)
-            if arch == envi.ARCH_DEFAULT:
-                arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[tmode]
+            arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[tmode]
 
-            op = envi.archs.arm.emu.ArmEmulator.parseOpcode(self, va, arch=arch)
-            self.opcache[va] = op
-        return op
+        return self.vw.parseOpcode(va, arch=arch)
 
     def stepi(self):
         # NOTE: when we step, we *always* want to be stepping over calls

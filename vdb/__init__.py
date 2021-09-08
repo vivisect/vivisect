@@ -27,8 +27,9 @@ import vdb.extensions as v_ext
 import envi
 import envi.cli as e_cli
 import envi.bits as e_bits
-import envi.memory as e_mem
+import envi.common as e_common
 import envi.config as e_config
+import envi.memory as e_memory
 import envi.symstore.resolver as e_resolv
 
 import vstruct.primitives as vs_prims
@@ -484,7 +485,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             faddr,fperm = trace.getMemoryFault()
             if faddr is not None:
-                accstr = e_mem.getPermName(fperm)
+                accstr = e_memory.getPermName(fperm)
                 self.vprint('Memory Fault: addr: 0x%.8x perm: %s' % (faddr, accstr))
 
         elif event == vtrace.NOTIFY_BREAK:
@@ -1513,6 +1514,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.trace.release()
 
         except Exception as e:
+            import traceback
+            self.vprint(traceback.format_exc())
             self.vprint('Exception during quit (may need: quit force): %s' % e)
 
     def do_detach(self, line):
@@ -1950,10 +1953,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     self.vprint('No Differences!')
                 else:
                     for va,thenbytes,nowbytes in difs:
-                        self.vprint('0x%.8x: %s %s' %
-                                    (va,
-                                     binascii.hexlify(thenbytes),
-                                     binascii.hexlify(nowbytes)))
+                        self.vprint('0x%.8x: %s %s' % (va,
+                                                       e_common.hexify(thenbytes),
+                                                       e_common.hexify(nowbytes)))
 
             elif opt == '-M':
                 va = self.parseExpression(optarg)
@@ -2291,6 +2293,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these yourself
-version = (1, 0, 1)
+version = (1, 0, 4)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

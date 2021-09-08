@@ -142,6 +142,87 @@ function scrolltoid(name) {
     }
 }
 
+svgns = "http://www.w3.org/2000/svg";
+
+function createSvgElement(ename, attrs) {
+    var elem = document.createElementNS(svgns, ename);
+    for (var aname in attrs) {
+        elem.setAttribute(aname, attrs[aname]);
+    }
+    return elem
+}
+
+function svgwoot(parentid, svgid, width, height) {
+
+    var elem = document.getElementById(parentid);
+
+    var svgelem = createSvgElement("svg", { "height":height.toString(), "width":width.toString() })
+    svgelem.setAttribute("id", svgid);
+
+    elem.appendChild(svgelem);
+}
+
+function addSvgForeignObject(svgid, foid, width, height) {
+    var foattrs = {
+        "class":"node",
+        "id":foid,
+        "width":width,
+        "height":height
+    };
+
+    var foelem = createSvgElement("foreignObject", foattrs);
+
+    var svgelem = document.getElementById(svgid);
+    svgelem.appendChild(foelem);
+}
+
+function addSvgForeignHtmlElement(foid, htmlid) {
+
+    var foelem = document.getElementById(foid);
+    var htmlelem = document.getElementById(htmlid);
+    htmlelem.parentNode.removeChild(htmlelem);
+
+    //foelem.appendChild(htmlid);
+
+    var newbody = document.createElement("body");
+    newbody.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+    newbody.appendChild( htmlelem );
+
+    foelem.appendChild(newbody);
+}
+
+function moveSvgElement(elemid, xpos, ypos) {
+    var elem = document.getElementById(elemid);
+    elem.setAttribute("x", xpos);
+    elem.setAttribute("y", ypos);
+}
+
+function plineover(pline) {
+    pline.setAttribute("style", "fill:none;stroke:yellow;stroke-width:2")
+}
+
+function plineout(pline) {
+    pline.setAttribute("style", "fill:none;stroke:green;stroke-width:2")
+}
+
+function drawSvgLine(svgid, lineid, points) {
+    var plineattrs = {
+        "id":lineid,
+        "points":points,
+        "style":"fill:none;stroke:green;stroke-width:2",
+        "onmouseover":"plineover(this)",
+        "onmouseout":"plineout(this)",
+    };
+
+    var lelem = createSvgElement("polyline", plineattrs);
+    var svgelem = document.getElementById(svgid);
+
+    //var rule = "polyline." + lineclass + ":hover { stroke: red; }";
+    //document.styleSheets[0].insertRule(rule, 0);
+
+    svgelem.appendChild(lelem);
+}
+
 </script>
 
 <body id="vbody" width="999px"><div class="memcanvas" id="memcanvas"></div></body>

@@ -92,7 +92,6 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
     accumreg = { 1:REG_AL, 2:REG_AX, 4:REG_EAX, 8:REG_RAX }
 
     def __init__(self):
-
         archmod = Amd64Module()
         e_i386.IntelEmulator.__init__(self, archmod=archmod)
         # The above sets up the intel reg context, so we smash over it
@@ -104,17 +103,16 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         self.addCallingConvention("sysvamd64systemcall", sysvamd64systemcall)
         self.addCallingConvention("msx64call", msx64call)
 
-
-    def doPush(self, val):
+    def doPush(self, val, size=8):
         rsp = self.getRegister(REG_RSP)
-        rsp -= 8
-        self.writeMemValue(rsp, val, 8)
+        rsp -= size
+        self.writeMemValue(rsp, val, size)
         self.setRegister(REG_RSP, rsp)
 
-    def doPop(self):
+    def doPop(self, size=8):
         rsp = self.getRegister(REG_RSP)
-        val = self.readMemValue(rsp, 8)
-        self.setRegister(REG_RSP, rsp+8)
+        val = self.readMemValue(rsp, size)
+        self.setRegister(REG_RSP, rsp+size)
         return val
 
     def i_aam(self, op):
@@ -161,3 +159,4 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
             self.setRegister(REG_RDX, r)
         else:
             e_i386.IntelEmulator.i_idiv(self, op)
+
