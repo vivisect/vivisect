@@ -1175,6 +1175,12 @@ class VivisectTest(unittest.TestCase):
         self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
         self.assertEqual(len(vw._op_cache), 1)
 
+    def test_string_without_termination(self):
+        vw = self.firefox_vw
+        vw.addMemoryMap(0x2000, 7, 'test', b'this is a string that never terminates.')
+        vw.makeString(0x2000)
+        self.assertEqual(vw.readMemString(0x2000), b'this is a string that never terminates.')
+
     def test_function_thunks(self):
         vw = self.firefox_vw
 
