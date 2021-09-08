@@ -98,6 +98,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             self.hasret = True
             emu.stopEmu()
 
+
 def analyze(vw):
 
     flist = vw.getFunctions()
@@ -105,13 +106,11 @@ def analyze(vw):
     tried = set()
     while True:
         docode = []
-        bcode  = []
+        bcode = []
 
-        vatodo = []
-        vatodo = [ va for va, name in vw.getNames() if vw.getLocation(va) is None ]
-        vatodo.extend( [tova for fromva, tova, reftype, rflags in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None] )
-
-        for va in set(vatodo):
+        vatodo = set([va for va, name in vw.getNames() if vw.getLocation(va) is None and va not in tried])
+        vatodo = vatodo.union([tova for _, tova, _, _ in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None and tova not in tried])
+        for va in vatodo:
             loc = vw.getLocation(va)
             if loc is not None:
                 if loc[L_LTYPE] == LOC_STRING:
@@ -125,34 +124,47 @@ def analyze(vw):
             if vw.isDeadData(va):
                 continue
 
-            # Make sure it's executable
-            if not vw.isExecutable(va):
-                continue
-
             # Skip it if we've tried it already.
             if va in tried:
                 continue
 
             tried.add(va)
-            emu = vw.getEmulator()
-            wat = watcher(vw, va)
-            emu.setEmulationMonitor(wat)
 
-            try:
-                emu.runFunction(va, maxhit=1)
-            except Exception:
-                continue
-            if wat.looksgood():
-                docode.append(va)
-            # flag to tell us to be greedy w/ finding code
-            # XXX - visi is going to hate this..
-            elif wat.iscode() and vw.greedycode:
-                bcode.append(va)
-            else:
+            # if it's not exectuable, check to see if it's at least readable, in which case
+            # we can check for other location types
+            # otherwise, try emulating it to see if it feels like code
+            if not vw.isExecutable(va):
+                if not vw.isReadable(va):
+                    continue
                 if vw.isProbablyUnicode(va):
                     vw.makeUnicode(va)
                 elif vw.isProbablyString(va):
                     vw.makeString(va)
+            else:
+                emu = vw.getEmulator()
+                wat = watcher(vw, va)
+                emu.setEmulationMonitor(wat)
+
+                try:
+                    emu.runFunction(va, maxhit=1)
+                except Exception:
+                    continue
+
+                if wat.looksgood():
+                    docode.append(va)
+                # flag to tell us to be greedy w/ finding code
+                # XXX - visi is going to hate this..
+                elif wat.iscode() and vw.greedycode:
+                    bcode.append(va)
+                else:
+                    if vw.isProbablyUnicode(va):
+                        vw.makeUnicode(va)
+                    elif vw.isProbablyString(va):
+                        vw.makeString(va)
+                    else:
+                        # if we get all the way down here, and it has a name, it's gotta be *something*
+                        if vw.getName(va):
+                            vw.makePointer(va)
 
         if len(docode) == 0:
             break

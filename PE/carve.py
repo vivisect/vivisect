@@ -2,7 +2,7 @@ import sys
 import struct
 import argparse
 
-from io import StringIO
+from io import BytesIO
 from itertools import cycle
 
 import PE
@@ -57,7 +57,7 @@ class CarvedPE(PE.PE):
         self.carved_offset = offset
         self.fbytes = fbytes
         self.xorkey = xkey
-        PE.PE.__init__(self, StringIO())
+        PE.PE.__init__(self, BytesIO())
 
     def readAtOffset(self, offset, size):
         offset += self.carved_offset
