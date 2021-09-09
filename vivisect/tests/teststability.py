@@ -29,7 +29,7 @@ class StabilityTests(unittest.TestCase):
     def _cmp_func(self, file, base, vw):
         fails = []
         # TODO: There's some instability in the 3rd element for certain codeblocks when
-        # and functinn is jmp'd to by other functions. It's ont horrifically bad, but
+        # and function is jmp'd to by other functions. It's ont horrifically bad, but
         # determinism is nice, so hunt down a way to fix that
         for fva, (size, instcount, blocks) in base['functions'].items():
             fva = int(fva)

@@ -1,6 +1,5 @@
 import sys
 import json
-import asyncio
 import argparse
 
 import vivisect
@@ -27,7 +26,7 @@ def dumpFunctions(vw):
     return ret
 
 
-async def main(argv):
+def main(argv):
     opts = setup().parse_args(argv)
 
     vw = vivisect.VivWorkspace()
@@ -47,7 +46,8 @@ async def main(argv):
     retn['relocations'] = vw.getRelocations()
 
     with open(opts.output, 'w') as fd:
-        json.dump(retn, fd)
+        json.dump(retn, fd, indent=4)
+
 
 if __name__ == '__main__':
-    asyncio.run(main(sys.argv[1:]))
+    sys.exit(main(sys.argv[1:]))
