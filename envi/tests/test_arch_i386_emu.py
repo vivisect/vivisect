@@ -108,7 +108,12 @@ i386Tests = [
     # lea ecx,dword [esp + -973695896]  (test SIB getOperAddr)
     {'bytes': '8d8c246894f6c5',
      'setup': ({'esp': 0x7fd0}, {}),
-     'tests': ({'ecx': 0xc5f71438}, {})}
+     'tests': ({'ecx': 0xc5f71438}, {})},
+    # rep ret
+    # The behavior of the REP prefix is undefined when used with non-string instructions.
+    {'bytes': 'f3c3',
+     'setup': ({'ecx': 0x1}, {'esp': b'\x00\x00\x00\x60'}),
+     'tests': ({'ecx': 0x1, 'eip': 0x60000000}, {})}
 ]
 
 
