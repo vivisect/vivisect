@@ -2,13 +2,29 @@
 Vivisect Changelog
 ******************
 
+V1.0.5 - 2021-09-10
+===================
+
+Fixes
+-----
+- Fix ascii string size when the string terminates at the end of a memory map
+  (`#437 <https://github.com/vivisect/vivisect/pull/437>`_)
+- Better handle PE delay imports that use VA pointers instead of RVA pointers
+  (`#439 <https://github.com/vivisect/vivisect/pull/439>`_)
+- envi.IMemory.readMemValue: return None on truncated read
+  (`#444 <https://github.com/vivisect/vivisect/pull/444>`_)
+- Only apply the rep prefix on string instructions in intel emulation
+  (`#447 <https://github.com/vivisect/vivisect/pull/447>`_)
+- Fix a pair of regressions in ELF analysis
+  (`#448 <https://github.com/vivisect/vivisect/pull/448>`_)
+
 v1.0.4 - 2021-08-22
 ===================
 
 Features
 --------
 - Add structures to UI and a compressed version of the file to the meta events.
-  (`#396 <https://github.com/vivisect/vivisect/pull/396`_)
+  (`#396 <https://github.com/vivisect/vivisect/pull/396>`_)
 - Actual documentation!
   (`#400 <https://github.com/vivisect/vivisect/pull/400>`_)
 - Massive ELFPLT overhaul.
