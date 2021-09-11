@@ -527,8 +527,17 @@ class MemoryObject(IMemory):
                 mva, msize, mperms, mfname = mmap
                 if not mperms & MM_READ:
                     raise envi.SegmentationViolation(va)
+
                 offset = va - mva
-                return mbytes[offset:offset+size]
+                maxreadlen = msize - offset
+                if size > maxreadlen:
+                    # if we're reading past the end of this map, recurse to find the next map
+                    # perms checks for that map will be performed, and size, etc... and if
+                    # an exception must be thrown, future readMemory() can throw it
+                    return mbytes[offset:] + self.readMemory(mva + msize, bytes[maxreadlen:])
+
+                else:
+                    return mbytes[offset:offset+size]
         raise envi.SegmentationViolation(va)
 
     def writeMemory(self, va, bytes):
@@ -538,8 +547,18 @@ class MemoryObject(IMemory):
                 mva, msize, mperms, mfname = mmap
                 if not (mperms & MM_WRITE or self._supervisor):
                     raise envi.SegmentationViolation(va)
+
                 offset = va - mva
-                mapdef[3] = mbytes[:offset] + bytes + mbytes[offset+len(bytes):]
+                byteslen = len(bytes)
+                maxwritelen = msize - offset
+                if byteslen > maxwritelen:
+                    # if we're writing past the end of this map, recurse to find the next map
+                    # perms checks for that map will be performed, and size, etc... and if
+                    # an exception must be thrown, future writeMemory() can throw it
+                    mapdef[3] = mbytes[:offset] + bytes[:maxwritelen]
+                    self.writeMemory(mva + msize, bytes[maxwritelen:])
+                else:
+                    mapdef[3] = mbytes[:offset] + bytes + mbytes[offset+byteslen:]
                 return
 
         raise envi.SegmentationViolation(va)
