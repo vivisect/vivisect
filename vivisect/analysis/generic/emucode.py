@@ -164,7 +164,11 @@ def analyze(vw):
                     else:
                         # if we get all the way down here, and it has a name, it's gotta be *something*
                         if vw.getName(va):
-                            vw.makePointer(va)
+                            try:
+                                vw.makePointer(va)
+                            except Exception as e:
+                                logger.warning('Emucode failed to make 0x.8%x due to %s', va, str(e))
+                                continue
 
         if len(docode) == 0:
             break
