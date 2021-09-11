@@ -534,10 +534,9 @@ class MemoryObject(IMemory):
                     # if we're reading past the end of this map, recurse to find the next map
                     # perms checks for that map will be performed, and size, etc... and if
                     # an exception must be thrown, future readMemory() can throw it
-                    return mbytes[offset:] + self.readMemory(mva + msize, bytes[maxreadlen:])
+                    return mbytes[offset:] + self.readMemory(mva + msize, size-maxreadlen)
 
-                else:
-                    return mbytes[offset:offset+size]
+                return mbytes[offset:offset+size]
         raise envi.SegmentationViolation(va)
 
     def writeMemory(self, va, bytes):
