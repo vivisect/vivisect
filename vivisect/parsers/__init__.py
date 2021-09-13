@@ -101,14 +101,6 @@ def getBytesParser(fmt):
     return None
 
 
-def align(v, alignment):
-    remainder = v % alignment
-    if remainder == 0:
-        return v
-    else:
-        return v + (alignment - remainder)
-
-
 ZIPKEY = 'filebytes'
 
 

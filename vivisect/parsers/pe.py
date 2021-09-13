@@ -32,6 +32,14 @@ for mod in (PE, vtrace):
 # 0x183   DEC Alpha AXP
 
 
+def align(v, alignment):
+    remainder = v % alignment
+    if remainder == 0:
+        return v
+    else:
+        return v + (alignment - remainder)
+
+
 def parseFile(vw, filename, baseaddr=None):
     pe = PE.PE(open(filename, "rb"))
     return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
@@ -320,7 +328,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
 
             # align the read to the FileAlignment
-            readsize = v_parsers.align(readsize, filealign)
+            readsize = align(readsize, filealign)
 
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize, shortok=True)
@@ -328,9 +336,9 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             if slen != readsize:
                 logger.warning("Section at offset 0x%x should have 0x%x bytes, but we only got 0x%x bytes", secoff, readsize, slen)
 
-            if slen != v_parsers.align(sec.VirtualSize, secalign):
+            if slen != align(sec.VirtualSize, secalign):
                 # pad the section up to next the SectionAlignment
-                secbytes += b'\x00' * (v_parsers.align(sec.VirtualSize, secalign) - slen)
+                secbytes += b'\x00' * (align(sec.VirtualSize, secalign) - slen)
 
             slen = len(secbytes)
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
