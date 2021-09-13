@@ -1793,12 +1793,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return xrefs
         return [ xtup for xtup in xrefs if xtup[XR_RTYPE] == rtype ]
 
-    def addMemoryMap(self, va, perms, fname, bytes):
+    def addMemoryMap(self, va, perms, fname, bytes, align=None):
         """
         Add a memory map to the workspace.  This is the *only* way to
         get memory backings into the workspace.
         """
-        self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes))
+        self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes, align))
 
     def delMemoryMap(self, mapva):
         '''
