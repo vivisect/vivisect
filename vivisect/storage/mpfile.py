@@ -34,7 +34,7 @@ def vivEventsToFile(filename, events):
         for event in events:
             if event[0] == 20:
                 mape = base64.b64encode(event[1][3])
-                event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
+                event = (event[0], (event[1][0], event[1][1], event[1][2], mape, event[1][4]))
             msgpack.pack(event, f, use_bin_type=False)
 
 
@@ -54,7 +54,7 @@ def vivEventsFromFile(filename):
         for event in unpacker:
             if event[0] == 20:
                 mape = base64.b64decode(event[1][3])
-                event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
+                event = (event[0], (event[1][0], event[1][1], event[1][2], mape, event[1][4]))
             events.append(event)
     return events
 
