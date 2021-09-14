@@ -6,6 +6,7 @@ import envi.memory as e_memory
 
 import vivisect
 import vivisect.const as viv_con
+import vivisect.parsers.pe
 import vivisect.tests.helpers as helpers
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,13 @@ class PETests(unittest.TestCase):
         cls.vw_mimi = vivisect.VivWorkspace()
         mimi_fn = helpers.getTestPath('windows', 'i386', 'mimikatz.exe_')
         cls.vw_mimi.loadFromFile(mimi_fn)
+
+        # this binary is a little big (1MB)
+        # and we only care about the delay import table
+        # so, don't do a full analysis
+        fn_471 = helpers.getTestPath('windows', 'i386', '471ce36855fec6b44398b9b1e3cfb9e74b122fb2cc20fdf6603ebda39f86dddf')
+        cls.vw_471 = vivisect.VivWorkspace()
+        vivisect.parsers.pe.parseFile(cls.vw_471, fn_471)
 
     def test_function_disasm(self):
         disasm = [
@@ -152,7 +160,42 @@ class PETests(unittest.TestCase):
             (0x42b32c, 'user32.SendMessageW'),
         ]
         self.assertEqual(delays, ans)
-
+ 
+    def test_delay_imports_with_va(self):
+        vw = self.vw_471
+        delays = sorted(vw.getVaSetRows('DelayImports'))
+        ans = [
+            (0x4e3a34, 'advapi32.RegCloseKey'),
+            (0x4e3a3c, 'gdi32.DeleteObject'),
+            (0x4e3a40, 'gdi32.CreateRectRgn'),
+            (0x4e3a44, 'gdi32.GetPixel'),
+            (0x4e3a48, 'gdi32.SelectObject'),
+            (0x4e3a4c, 'gdi32.CreateCompatibleDC'),
+            (0x4e3a50, 'gdi32.DeleteDC'),
+            (0x4e3a54, 'gdi32.CombineRgn'),
+            (0x4e3a58, 'gdi32.OffsetRgn'),
+            (0x4e3a5c, 'gdi32.LPtoDP'),
+            (0x4e3a60, 'gdi32.DPtoLP'),
+            (0x4e3a64, 'gdi32.CreateEllipticRgn'),
+            (0x4e3a68, 'gdi32.CreateRectRgnIndirect'),
+            (0x4e3a6c, 'gdi32.GetRgnBox'),
+            (0x4e3a70, 'gdi32.SelectPalette'),
+            (0x4e3a74, 'gdi32.SetMapMode'),
+            (0x4e3a78, 'gdi32.RealizePalette'),
+            (0x4e3a7c, 'gdi32.GetDIBits'),
+            (0x4e3a80, 'gdi32.GetDeviceCaps'),
+            (0x4e3a88, 'redeye.ARER_AutoDetect'),
+            (0x4e3a8c, 'redeye.ARER_Correct'),
+            (0x4e3a94, 'winmm.timeGetTime'),
+            (0x4e3a98, 'winmm.waveOutGetNumDevs'),
+            (0x4e3aa0, 'magfileio.magIOGetSaveList'),
+            (0x4e3aa4, 'magfileio.magIOLoadPlugsEx'),
+            (0x4e3aa8, 'magfileio.magIOUnloadPlugs'),
+            (0x4e3ab0, 'spotremove.pmi_spot_remove_auto'),
+            (0x4e3ab4, 'spotremove.pmi_red_eye_remove_auto'),
+        ]
+        self.assertEqual(delays, ans)
+ 
     def test_imports(self):
         vw = self.vw_psexec
         imps = vw.getImports()
@@ -492,10 +535,10 @@ class PETests(unittest.TestCase):
         ans = {
             # name -> (Base, Size, Flags)
             'PE_Header': (0x400000, 0x1000, e_memory.MM_READ),
-            '.text': (0x401000, 0x71635, e_memory.MM_READ | e_memory.MM_EXEC),
-            '.data': (0x4b6000, 0x41c8, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.rdata': (0x473000, 0x42ca6, e_memory.MM_READ),
-            '.reloc': (0x4bf000, 0x661a, e_memory.MM_READ),
+            '.text': (0x401000, 0x72000, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.data': (0x4b6000, 0x5000, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.rdata': (0x473000, 0x43000, e_memory.MM_READ),
+            '.reloc': (0x4bf000, 0x7000, e_memory.MM_READ),
         }
         for sva, ssize, sname, sfname in vw.getSegments():
             self.assertEqual(ans[sname][0], sva)

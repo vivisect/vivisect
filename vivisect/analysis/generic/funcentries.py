@@ -11,6 +11,7 @@ import traceback
 
 import envi
 import envi.memory as e_mem
+import envi.const as e_const
 import vivisect
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ def analyze(vw):
     for mapva, mapsize, mapflags, fname in vw.getMemoryMaps():
 
         # Segment permissions check for likely code stuff at all
-        if not mapflags & e_mem.MM_EXEC:
+        if not mapflags & e_const.MM_EXEC:
             continue
 
         i = 0

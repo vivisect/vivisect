@@ -34,10 +34,9 @@ def do_analyze(vw):
             logging.warning("ERROR in analysis module: (%r): %r", mod, e, exc_info=1)
 
 comparators = {
-    'names': lambda x,y: x[0] == y[0],
-    'relocs': lambda x,y: x == y,
-    'imports': lambda x,y: x[:3] == y[:3],
-    'exports': lambda x,y: x[:1] == y[:1] and x[3] == y[3],
+    'names': lambda x, y: x[0] == y[0],
+    'imports': lambda x, y: x[:3] == y[:3],
+    'exports': lambda x, y: x[:1] == y[:1] and x[3] == y[3],
 }
 
 class ELFTests(unittest.TestCase):
@@ -179,7 +178,7 @@ class ELFTests(unittest.TestCase):
                     break
             if not equiv or not cmpr(obs, equiv):
                 newfail += 1
-                logger.warning("%s: o: %-80s\tn: %s" % (testname, obs, equiv))
+                logger.warning("%s: o: %-80s\tn: %s" % (testname, equiv, obs))
 
         return oldfail, newfail
 

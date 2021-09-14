@@ -59,7 +59,7 @@ class MapLookup:
                 off = va - mva
                 marray[off:off+size] = [obj] * size
                 return
-        raise e_exc.MapNotFoundException('Address (0x%.8x) not in maps!' % va)
+        raise e_exc.MapNotFoundException(va)
 
     def getMapLookup(self, va):
         for mva, mvamax, marray in self._maps_list:
@@ -73,7 +73,7 @@ class MapLookup:
             if va >= mva and va < mvamax:
                 return self._maps_list.pop(midx)
 
-        raise e_exc.MapNotFoundException('Address (0x%.8x) not in maps!' % va)
+        raise e_exc.MapNotFoundException(va=va)
 
 
     def __getslice__(self, start, end):

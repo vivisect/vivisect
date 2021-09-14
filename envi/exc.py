@@ -88,6 +88,19 @@ class SegmentationViolation(EnviException):
         self.va = va
 
 
+class NoValidFreeMemoryFound(EnviException):
+    '''
+    Raised by the MemoryObject allocator subsystem when asked 
+    to find/allocate a free memory block bigger than any slot
+    of free memory existing in the address-space.
+    '''
+    def __init__(self, size, msg=None):
+        if msg is None:
+            msg = "Not enough contiguous free memory for the requested block: 0x%x" % size
+        EnviException.__init__(self, msg)
+        self.size = size
+
+
 class ArchNotImplemented(EnviException):
     """
     Raised by various Envi components when the architecture
@@ -130,9 +143,16 @@ class DivideByZero(EmuException):
     pass
 
 
+class MultiplyError(EmuException):
+    """
+    Raised by an Emulator when multiply falls outside of the specified range
+    """
+    pass
+
+
 class DivideError(EmuException):
     """
-    Raised by an Emulator whena a divide falls out
+    Raised by an Emulator when a a divide falls out
     of the specified range.
     """
     pass
@@ -207,3 +227,19 @@ class InvalidOperand(Exception):
     def __repr__(self):
         return "%s at %s" % (self.__class__.__name__, str(self.valu))
 
+class BoundRangeExceededException(Exception):
+    def __init__(self, va, op, aidx, lowbound, hibound):
+        self.va = va
+        self.op = op
+        self.aidx = aidx
+        self.hibound = hibound
+        self.lowbound = lowbound
+
+    def __repr__(self):
+        return "Bound Range Exceeded Exception at 0x%x (opcode: %r)  index: %d  low: %d  hi: %d" % \
+                (self.va, self.op, self.aidx, self.lowbound, self.hibound)
+
+class GeneralProtection(EnviException):
+    def __init__(self, op):
+        EnviException.__init__(self, 'General Protection exception (0x%.8x: %s)' % (op.va, str(op)))
+        self.op = op

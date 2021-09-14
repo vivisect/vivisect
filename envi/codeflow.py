@@ -7,6 +7,7 @@ import collections
 import envi
 import envi.common as e_cmn
 import envi.memory as e_mem
+import envi.const as e_const
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +206,7 @@ class CodeFlowContext(object):
 
                     if bflags & envi.BR_DEREF:
 
-                        if not self._mem.probeMemory(bva, self._mem.psize, e_mem.MM_READ):
+                        if not self._mem.probeMemory(bva, self._mem.psize, e_const.MM_READ):
                             continue
 
                         # Before we update bva, lets check if its in noret...
@@ -214,7 +215,7 @@ class CodeFlowContext(object):
 
                         bva = self._mem.readMemoryPtr(bva)
 
-                    if not self._mem.probeMemory(bva, 1, e_mem.MM_EXEC):
+                    if not self._mem.probeMemory(bva, 1, e_const.MM_EXEC):
                         continue
 
                     if bflags & envi.BR_PROC:

@@ -1238,7 +1238,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.delXref(va)
 
     def makeJumpTable(self, op, tova, rebase=False, psize=4):
-        fname = self.getMemoryMap(tova)[3]
+        fname = self.getFileByVa(tova)
         imgbase = self.getFileMeta(fname, 'imagebase')
 
         ptrbase = tova
@@ -2274,7 +2274,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytez = self.getByteDef(va)
         foff = bytez.find(b'\x00', offset)
         if foff == -1:
-            return foff
+            return len(bytez) - offset
         return (foff - offset) + 1
 
     def uniStringSize(self, va):
@@ -3138,6 +3138,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 0, 3)
+version = (1, 0, 4)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

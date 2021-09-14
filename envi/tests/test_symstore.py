@@ -36,6 +36,7 @@ class SymResolverTests(unittest.TestCase):
         secsym = e_sym_resolv.SectionSymbol('TestFooSectionSym', 0x123456, size=400, fname=fname)
         self.symres.addSymbol(secsym)
 
+        self.assertIn(fname, self.symres.symobjsbyname)
         self.symres.delSymbol(fnsym)
         self.assertNotIn(fname, self.symres.symobjsbyname)
 
@@ -66,3 +67,5 @@ class SymResolverTests(unittest.TestCase):
         # boom.
         sym = self.symres.getSymByAddr(0x16010, exact=False)
         assert(sym is not None)
+
+    #def test_import

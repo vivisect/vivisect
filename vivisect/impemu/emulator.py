@@ -194,6 +194,8 @@ class WorkspaceEmulator:
             taints = [self.setVivTaint('funcstack', i * self.psize) for i in range(20)]
             taintbytes = b''.join([e_bits.buildbytes(taint, self.psize) for taint in taints])
 
+            self.stack_pointer -= len(taintbytes)
+            self.setStackCounter(self.stack_pointer)
             self.writeMemory(self.stack_pointer, taintbytes)
         else:
             existing_map_size = self.stack_map_top - self.stack_map_base
@@ -507,7 +509,8 @@ class WorkspaceEmulator:
 
                     # TODO: hook things like error(...) when they have a param that indicates to
                     # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
-                    if self.vw.isNoReturnVa(op.va):
+                    # Make sure we can at least get past the first instruction in certain functions
+                    if self.vw.isNoReturnVa(op.va) and op.va != funcva:
                         vg_path.setNodeProp(self.curpath, 'cleanret', False)
                         break
 
