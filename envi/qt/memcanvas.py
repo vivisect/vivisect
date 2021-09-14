@@ -99,6 +99,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     @idlethread
     def _scrollToVa(self, va, cb=None):
+        # TODO: Does anybody call this?
         page = self.page()
         selector = 'viv:0x%.8x' % va
         js = f'''

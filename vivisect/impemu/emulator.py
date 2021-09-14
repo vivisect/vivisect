@@ -509,7 +509,8 @@ class WorkspaceEmulator:
 
                     # TODO: hook things like error(...) when they have a param that indicates to
                     # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
-                    if self.vw.isNoReturnVa(op.va):
+                    # Make sure we can at least get past the first instruction in certain functions
+                    if self.vw.isNoReturnVa(op.va) and op.va != funcva:
                         vg_path.setNodeProp(self.curpath, 'cleanret', False)
                         break
 
