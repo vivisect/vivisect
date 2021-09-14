@@ -2,13 +2,15 @@
 A home for the vdb specific memory renderers.
 '''
 import logging
-import binascii
 
 import envi
-import vtrace
+import envi.common as e_common
 import envi.memcanvas as e_canvas
-import vivisect.impapi as viv_impapi
 import envi.memcanvas.renderers as e_canvas_rend
+
+import vivisect.impapi as viv_impapi
+
+import vtrace
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
 
     def _getOpcodePrefix(self, trace, va, op):
         regs = trace.getRegisters()
-        regs = dict([(rval, rname) for (rname, rval) in regs.items() if rval != 0])
+        regs = {rval: rname for (rname, rval) in regs.items() if rval != 0}
 
         bp = trace.getBreakpointByAddr(va)
         if bp is not None:
@@ -93,7 +95,7 @@ class OpcodeRenderer(e_canvas.MemoryRenderer):
         mcanv.addText(prefix)
 
         mcanv.addVaText(vastr, va=va)
-        mcanv.addText(": %s " % binascii.hexlify(obytes).ljust(17))
+        mcanv.addText(": %s " % e_common.hexify(obytes).ljust(17))
         op.render(mcanv)
 
         try:

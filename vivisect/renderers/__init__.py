@@ -3,13 +3,13 @@ A package for any of the vivisect workspace renderers.
 """
 import string
 import logging
-import binascii
-import traceback
 import urllib.parse
 
 from vivisect.const import *
 
 import vstruct.primitives as vs_prims
+
+import envi.common as e_common
 import envi.memcanvas as e_canvas
 
 
@@ -108,7 +108,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
             mcanv.addText(linepre, tag=vatag)
 
-            mcanv.addText('Stack Variables:\n')
+            mcanv.addText('Stack Variables: (offset from initial top of stack)\n')
 
             funclocals = self.vw.getFunctionLocals(lva)
             funclocals.sort()
@@ -140,13 +140,13 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
         if ltype == LOC_OP:
             mcanv.addText(linepre, tag=vatag)
             opbytes = mcanv.mem.readMemory(lva, lsize)
-            mcanv.addText(binascii.hexlify(opbytes[:8]).ljust(17).decode('utf-8'))
+            mcanv.addText(e_common.hexify(opbytes[:8]).ljust(17))
 
             # extra is the opcode object
             try:
                 extra.render(mcanv)
             except Exception as e:
-                mcanv.addText("Opcode Render Failed: %s\n" % repr(extra))
+                mcanv.addText("Opcode Render Failed: %s (%s)\n" % (repr(extra), str(e)))
 
             if cmnt is not None:
                 mcanv.addText("    ;%s" % cmnt, tag=cmnttag)

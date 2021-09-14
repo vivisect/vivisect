@@ -14,10 +14,11 @@ allows you a bunch of readelf-like functionality.
 and spit them back out in working order (not complete, you
 may notice some of the initial code).
 
-Send bug reports to Invisigoth or Metr0.
-
+Send bug reports to rakuyo or at1as in the issue tracker
 """
+
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
+import io
 import logging
 
 from stat import *
@@ -195,13 +196,16 @@ class ElfSection:
         return self.name
 
     def __repr__(self):
-        return 'Elf Sec: [%20s] @0x%.8x (%8d)  ent/size: %8d/%8d  align: %8d' % (
+        flags = [name for idx, name in sh_flags.items() if idx & self.sh_flags]
+
+        return 'Elf Sec: [%20s] @0x%.8x (%8d) [ent/size: %8d/%8d] [align: %8d] [%s]' % (
                 self.name,
                 self.sh_addr,
                 self.sh_offset,
                 self.sh_entsize,
                 self.sh_size,
-                self.sh_addralign)
+                self.sh_addralign,
+                'Flags: ' + ', '.join(flags))
 
 class Elf32Section(ElfSection, vs_elf.Elf32Section):
     def __init__(self, bigend=False):
@@ -314,6 +318,19 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self.fd.close()
         except:
             pass  # whatever. we're tearing down anyway
+
+    def getFileBytes(self):
+        '''
+        Return the bytes of the file as they currently exist from the view of the file descriptor-like object
+
+        But keeping in mind not to smash over the old location of the fd
+        '''
+        self.fd.flush()
+        old = self.fd.tell()
+        self.fd.seek(0)
+        byts = self.fd.read()
+        self.fd.seek(old)
+        return byts
 
     def getRelocTypeName(self, rtype):
         '''
@@ -862,6 +879,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0, 'unknown')
 
+        if self.getSection('QNX_info'):
+            return 'qnx'
+
         return 'unknown'
 
     def getDynamics(self):
@@ -1080,6 +1100,11 @@ def elfFromFileName(fname):
     return Elf(open(fname, 'rb'))
 
 
+def elfFromBytes(fbytes):
+    fd = io.BytesIO(fbytes)
+    return Elf(fd)
+
+
 def elfFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
     return Elf(fd)
@@ -1091,4 +1116,3 @@ def getRelocType(val):
 
 def getRelocSymTabIndex(val):
     return val >> 8
-

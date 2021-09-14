@@ -151,6 +151,20 @@ MODESIZE = [
     8,
 ]
 
+addr16_modes = [
+    (REG_BX, REG_SI),
+    (REG_BX, REG_DI),
+
+    (REG_BP, REG_SI),
+    (REG_BP, REG_DI),
+
+    (REG_SI, ),
+    (REG_DI, ),
+
+    (),
+
+    (REG_BX, ),
+]
 
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
@@ -293,7 +307,7 @@ class i386PcRelOper(envi.Operand):
 
 class i386RegMemOper(envi.DerefOper):
     """
-    An operand which represents the result of reading/writting memory from the
+    An operand which represents the result of reading/writing memory from the
     dereference (with possible displacement) from a given register.
     """
     def __init__(self, reg, tsize, disp=0):
@@ -305,24 +319,26 @@ class i386RegMemOper(envi.DerefOper):
     def repr(self, op):
         r = self._dis_regctx.getRegisterName(self.reg)
         if self.disp > 0:
-            return "%s [%s + %d]" % (sizenames[self.tsize],r,self.disp)
+            return "%s [%s + %d]" % (sizenames[self.tsize], r, self.disp)
         elif self.disp < 0:
-            return "%s [%s - %d]" % (sizenames[self.tsize],r,abs(self.disp))
-        return "%s [%s]" % (sizenames[self.tsize],r)
+            return "%s [%s - %d]" % (sizenames[self.tsize], r, abs(self.disp))
+        return "%s [%s]" % (sizenames[self.tsize], r)
 
     def getOperValue(self, op, emu=None):
-        if emu is None: return None # This operand type requires an emulator
+        # This operand type requires an emulator
+        if emu is None:
+            return None
         return emu.readMemValue(self.getOperAddr(op, emu), self.tsize)
 
     def setOperValue(self, op, emu, val):
         emu.writeMemValue(self.getOperAddr(op, emu), val, self.tsize)
 
     def getOperAddr(self, op, emu=None):
-        if emu is None: 
-            return None # This operand type requires an emulator
+        if emu is None:
+            return None  # This operand type requires an emulator
         base, size = emu.getSegmentInfo(op)
         rval = emu.getRegister(self.reg)
-        return base + rval + self.disp
+        return e_bits.unsigned(base + rval + self.disp, emu.imem_psize)
 
     def isDeref(self):
         # The disassembler may reach in and set this (if lea...)
@@ -332,7 +348,7 @@ class i386RegMemOper(envi.DerefOper):
         mcanv.addNameText(sizenames[self.tsize])
         mcanv.addText(" [")
         name = self._dis_regctx.getRegisterName(self.reg)
-        rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
+        rname = self._dis_regctx.getRegisterName(self.reg & RMETA_NMASK)
         mcanv.addNameText(name, name=rname, typename="registers")
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint is not None:
@@ -394,7 +410,7 @@ class i386ImmMemOper(envi.DerefOper):
         ret = self.imm
         if emu is not None:
             base, size = emu.getSegmentInfo(op)
-            ret += base
+            ret = e_bits.unsigned(ret + base, emu.imem_psize)
         return ret
 
     def render(self, mcanv, op, idx):
@@ -508,7 +524,7 @@ class i386SibOper(envi.DerefOper):
         base, size = emu.getSegmentInfo(op)
         ret += base
 
-        return ret + self.disp
+        return e_bits.unsigned(ret + self.disp, emu.imem_psize)
 
     def _getOperBase(self, emu=None):
         # Special SIB only method for getting the SIB base value
@@ -719,16 +735,64 @@ class i386Disasm:
             return val + RMETA_LOW8
         return (val-4) + RMETA_HIGH8
 
+    def shortend_parse_modrm(self, bytez, offset, opersize, regbase=0, prefixes=0):
+        '''
+        This is to handle the 16 version of oper addressing. ~1/2 of the table is
+        completely different from the 32 bit version
+        '''
+        mod, reg, rm = self.parse_modrm(bytez[offset])
+        size = 1
+        opers = addr16_modes[rm]
+        # SIB oper for the 16 bit addressing stuff because it actually fits
+        if mod == 0:
+            if len(opers) == 2:
+                return (size, i386SibOper(opersize, reg=opers[0], imm=None, index=opers[1], scale=1))
+            elif len(opers) == 1:
+                return (size, i386RegMemOper(opers[0], opersize))
+            else:
+                imm = e_bits.parsebytes(bytez, offset + size, 2)
+                size += 2
+                return (size, i386ImmMemOper(imm, opersize))
+
+        elif mod == 1:
+            imm = e_bits.parsebytes(bytez, offset + size, 1)
+            size += 1
+            if len(opers) == 2:
+                return (size, i386SibOper(opersize, reg=opers[0], disp=imm, index=opers[1], scale=1))
+            elif len(opers) == 1:
+                return (size, i386RegMemOper(opers[0], opersize, disp=imm))
+            else:
+                return i386ImmMemOper(imm, opersize)
+        elif mod == 2:
+            imm = e_bits.parsebytes(bytez, offset + size, 2)
+            size += 2
+            if len(opers) == 2:
+                return i386SibOper(opersize, reg=opers[0], disp=imm, index=opers[1], scale=1)
+            elif len(opers) == 1:
+                return (size, i386RegMemOper(opers[0], opersize, disp=imm))
+            else:
+                return (size, i386ImmMemOper(imm, opersize))
+        elif mod == 3:
+            if opersize == 1:
+                rm = self.byteRegOffset(rm, prefixes=prefixes)
+            elif opersize == 2:
+                rm += RMETA_LOW16
+            return (size, i386RegOper(rm+regbase, opersize))
+        else:
+            raise Exception("(16bit) How does mod == %d" % mod)
+
     # Parse modrm as though addr mode might not be just a reg, but only for 32bit mode
     def extended_parse_modrm(self, bytez, offset, opersize, regbase=0, prefixes=0):
         """
         Return a tuple of (size, Operand)
         """
+        if prefixes & PREFIX_ADDR_SIZE:
+            if opersize == 4 and self.ptrsize == 4:
+                return self.shortend_parse_modrm(bytez, offset, opersize, regbase=regbase, prefixes=prefixes)
 
         mod, reg, rm = self.parse_modrm(bytez[offset])
 
         size = 1
-
 
         if mod == 3: # Easy one, just a reg
             # FIXME only use self.byteRegOffset in 32 bit mode, NOT 64 bit...
@@ -843,7 +907,7 @@ class i386Disasm:
 
         sizelist = opcode86.OPERSIZE.get(opertype, None)
         if sizelist is None:
-            raise "OPERSIZE FAIL: %.8x" % opertype
+            raise Exception("OPERSIZE FAIL: %.8x" % opertype)
 
         if prefixes & PREFIX_OP_SIZE:
             mode = MODE_16
@@ -994,7 +1058,7 @@ class i386Disasm:
                         # size, with no rhyme or reason as to which it is. So we directly embed
                         # that knowledge into the opcodes mappings we maintain and pluck it out
                         # here.
-                        if getattr(oper, "_is_deref", False):
+                        if oper and oper.isDeref():
                             memsz = opconst.OP_EXTRA_MEMSIZES[(operflags & opconst.OP_MEMMASK) >> 4]
                             if memsz is not None:
                                 oper.tsize = memsz

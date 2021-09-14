@@ -17,6 +17,7 @@ import collections
 
 import envi.bits as e_bits
 import envi.memory as e_mem
+import envi.common as e_common
 import envi.config as e_config
 import envi.memcanvas as e_canvas
 import envi.expression as e_expr
@@ -662,16 +663,17 @@ class EnviCli(Cmd):
             return self.do_help('search')
 
         if options.is_expr:
-            import struct #FIXME see below
             sval = self.parseExpression(pattern)
-            pattern = struct.pack('<L', sval) # FIXME 64bit (and alt arch)
+            endian = self.memobj.getEndian()
+            size = self.memobj.getPointerSize()
+            pattern = e_bits.buildbytes(sval, size, bigend=endian)
 
         if options.is_hex:
             pattern = binascii.unhexlify(pattern)
 
         if options.encode_as is not None:
             if options.encode_as == 'hex':
-                pattern = binascii.hexlify(pattern)
+                pattern = e_common.hexify(pattern)
             else:
                 import codecs
                 patternutf8 = pattern.decode('utf-8')
@@ -695,11 +697,11 @@ class EnviCli(Cmd):
             res = self.memobj.searchMemory(pattern, regex=options.is_regex)
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' % (e_common.hexify(pattern), repr(pattern)))
             return
 
         brend = e_render.ByteRend()
-        self.vprint('matches for: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+        self.vprint('matches for: %s (%s)' % (e_common.hexify(pattern), repr(pattern)))
         for va in res:
             mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
             pname = e_mem.reprPerms(mperm)
@@ -801,11 +803,11 @@ class EnviCli(Cmd):
             self.canvas.addText('==== %d byte difference at offset %d\n' % (offsize,offset))
             self.canvas.addVaText("0x%.8x" % diff1, diff1)
             self.canvas.addText(":")
-            self.canvas.addText(binascii.hexlify(bytes1[offset:offset+offsize]))
+            self.canvas.addText(e_common.hexify(bytes1[offset:offset+offsize]))
             self.canvas.addText('\n')
             self.canvas.addVaText("0x%.8x" % diff2, diff2)
             self.canvas.addText(":")
-            self.canvas.addText(binascii.hexlify(bytes2[offset:offset+offsize]))
+            self.canvas.addText(e_common.hexify(bytes2[offset:offset+offsize]))
             self.canvas.addText('\n')
 
     def do_mem(self, line):
