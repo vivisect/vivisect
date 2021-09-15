@@ -6,6 +6,7 @@ import collections
 import Elf
 
 import envi.bits as e_bits
+import envi.const as e_const
 
 import vivisect
 import vivisect.parsers as v_parsers
@@ -214,11 +215,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 continue
             logger.info('Loading: %s', pgm)
             bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
-            bytez += b"\x00" * (pgm.p_memsz - pgm.p_filesz)
+            bytez += b'\x00' * (pgm.p_memsz - pgm.p_filesz)
             pva = pgm.p_vaddr
             if addbase:
                 pva += baseaddr
-            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez)
+            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez, align=e_const.PAGE_SIZE)
         else:
             logger.info('Skipping: %s', pgm)
 
