@@ -422,7 +422,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # only parse the symbols that are not already accounted for.
         # symbols are ordered, so existence of index Y is always the same
         sym = self._cls_symbol(bigend=self.bigend)
-        count = len(symtab) / len(sym)
+        count = len(symtab) // len(sym)
         diff = count - len(self.dynamic_symbols)
         if diff == 0:
             return
