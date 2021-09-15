@@ -389,11 +389,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Expects data to have whatever is necessary for the reloc type. eg. addend
         """
         # split "current" va into fname and offset.  future relocations will want to base all va's from an image base
+        mmap = self.getMemoryMap(va)
+        if not mmap:
+            logger.warning('No matching map found for %s', va)
+            return None
         mmva, mmsz, mmperm, fname = self.getMemoryMap(va)    # FIXME: getFileByVa does not obey file defs
         imgbase = self.getFileMeta(fname, 'imagebase')
         offset = va - imgbase
 
         self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
+        return self.getLocation(va)
 
     def getRelocations(self):
         """
