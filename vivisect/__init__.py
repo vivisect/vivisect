@@ -1799,9 +1799,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         get memory backings into the workspace.
         """
         self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes, align))
-        if align:
-            mva, msz, mperm, mbytes = self.getMemoryMap(va)
-            return msz
+
+        # since we don't return anything from _fireEvent(), pull the new info:
+        mva, msz, mperm, mbytes = self.getMemoryMap(va)
+        return msz
 
     def delMemoryMap(self, mapva):
         '''
