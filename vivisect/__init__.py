@@ -391,7 +391,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # split "current" va into fname and offset.  future relocations will want to base all va's from an image base
         mmap = self.getMemoryMap(va)
         if not mmap:
-            logger.warning('No matching map found for %s', va)
+            logger.warning('addRelocation: No matching map found for %s', va)
             return None
         mmva, mmsz, mmperm, fname = mmap    # FIXME: getFileByVa does not obey file defs
         imgbase = self.getFileMeta(fname, 'imagebase')
