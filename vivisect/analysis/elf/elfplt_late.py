@@ -106,14 +106,14 @@ def analyzePLT(vw, pltva, pltsz):
         fillPLTviaGOTXrefs(vw, jmpheur, pltva, pltsz)
 
     else:
-        logging.info("analyzePLT(0x%x, 0x%x) skipping GOT-XREF-Offset method: no existing functions found", pltva, pltsz)
+        logger.info("analyzePLT(0x%x, 0x%x) skipping GOT-XREF-Offset method: no existing functions found", pltva, pltsz)
 
     # PLT-Func-Distance method
     if len(distanceheur):
         fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz)
 
     else:
-        logging.info("skipping analyzePLT(0x%x, 0x%x) (PLT-Func-Distance method): no existing functions found", pltva, pltsz)
+        logger.info("skipping analyzePLT(0x%x, 0x%x) (PLT-Func-Distance method): no existing functions found", pltva, pltsz)
 
     logger.info("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
 
