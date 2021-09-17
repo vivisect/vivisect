@@ -17,6 +17,14 @@ Fixes
   (`#447 <https://github.com/vivisect/vivisect/pull/447>`_)
 - Fix a pair of regressions in ELF analysis
   (`#448 <https://github.com/vivisect/vivisect/pull/448>`_)
+- Align ELF memory maps to page
+  (`#451 <https://github.com/vivisect/vivisect/pull/451>`_)
+- Integer division for struct array count in ELF
+  (`#455 <https://github.com/vivisect/vivisect/pull/455>`_)
+- Safe harness for addRelocation method on the workspace
+  (`#456 <https://github.com/vivisect/vivisect/pull/456>`_)
+- Log to appropriate logger in elfplt late module
+  (`#458 <https://github.com/vivisect/vivisect/pull/458>`_)
 
 v1.0.4 - 2021-08-22
 ===================
