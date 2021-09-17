@@ -535,10 +535,10 @@ class PETests(unittest.TestCase):
         ans = {
             # name -> (Base, Size, Flags)
             'PE_Header': (0x400000, 0x1000, e_memory.MM_READ),
-            '.text': (0x401000, 0x72000, e_memory.MM_READ | e_memory.MM_EXEC),
-            '.data': (0x4b6000, 0x5000, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.rdata': (0x473000, 0x43000, e_memory.MM_READ),
-            '.reloc': (0x4bf000, 0x7000, e_memory.MM_READ),
+            '.text': (0x401000, 0x71800, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.data': (0x4b6000, 0x4200, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.rdata': (0x473000, 0x42e00, e_memory.MM_READ),
+            '.reloc': (0x4bf000, 0x6800, e_memory.MM_READ),
         }
         for sva, ssize, sname, sfname in vw.getSegments():
             self.assertEqual(ans[sname][0], sva)

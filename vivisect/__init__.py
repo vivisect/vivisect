@@ -389,11 +389,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Expects data to have whatever is necessary for the reloc type. eg. addend
         """
         # split "current" va into fname and offset.  future relocations will want to base all va's from an image base
-        mmva, mmsz, mmperm, fname = self.getMemoryMap(va)    # FIXME: getFileByVa does not obey file defs
+        mmap = self.getMemoryMap(va)
+        if not mmap:
+            logger.warning('addRelocation: No matching map found for %s', va)
+            return None
+        mmva, mmsz, mmperm, fname = mmap    # FIXME: getFileByVa does not obey file defs
         imgbase = self.getFileMeta(fname, 'imagebase')
         offset = va - imgbase
 
         self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
+        return self.getRelocation(va)
 
     def getRelocations(self):
         """
@@ -1793,12 +1798,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return xrefs
         return [ xtup for xtup in xrefs if xtup[XR_RTYPE] == rtype ]
 
-    def addMemoryMap(self, va, perms, fname, bytes):
+    def addMemoryMap(self, va, perms, fname, bytes, align=None):
         """
         Add a memory map to the workspace.  This is the *only* way to
         get memory backings into the workspace.
         """
-        self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes))
+        self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes, align))
+
+        # since we don't return anything from _fireEvent(), pull the new info:
+        mva, msz, mperm, mbytes = self.getMemoryMap(va)
+        return msz
 
     def delMemoryMap(self, mapva):
         '''
