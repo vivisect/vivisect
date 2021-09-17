@@ -14,7 +14,7 @@ class VtraceSymbolTest(vt_tests.VtraceProcessTest):
 
         symPyRevType = self.trace.getSymByName('PyReversed_Type')
         self.assertIsNotNone(symPyRevType)
-        self.assertIn(symPyRevType.fname, ('python', 'python3', 'python2'))
+        self.assertIn(symPyRevType.fname, ('python', 'python3', 'python2', 'libpython3'))
         self.assertEqual(symPyRevType.name, 'PyReversed_Type')
         self.assertAlmostEqual(symPyRevType.size, 0x1a0)
 
