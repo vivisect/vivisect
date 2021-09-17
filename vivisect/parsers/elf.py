@@ -352,15 +352,19 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             vw.makeString(sva)
 
         elif sname == ".init":
-            vw.makeName(sva, "init_function", filelocal=True)
-            new_functions.append(("init_function", sva))
+            init_tup = ("init_function", sva)
+            if init_tup not in new_functions:
+                vw.makeName(sva, "init_function", filelocal=True, makeuniq=True)
+                new_functions.append(init_tup)
 
         elif sname == ".init_array":
             makeFunctionTable(elf, vw, sec.sh_addr, size, 'init_function', new_functions, new_pointers, baseaddr, addbase)
 
         elif sname == ".fini":
-            vw.makeName(sva, "fini_function", filelocal=True)
-            new_functions.append(("fini_function", sva))
+            fini_tup = ("fini_function", sva)
+            if fini_tup not in new_functions:
+                vw.makeName(sva, "fini_function", filelocal=True, makeuniq=True)
+                new_functions.append(fini_tup)
 
         elif sname == ".fini_array":
             makeFunctionTable(elf, vw, sec.sh_addr, size, 'fini_function', new_functions, new_pointers, baseaddr, addbase)
