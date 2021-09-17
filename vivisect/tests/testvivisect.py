@@ -584,6 +584,14 @@ class VivisectTest(unittest.TestCase):
         for va, disp in ans:
             self.assertEqual(disp, vw.reprVa(va))
 
+    def test_basic_reloc(self):
+        vw = self.chgrp_vw
+        rloc = vw.addRelocation(0xdeadbeef, v_const.RTYPE_BASEOFF)
+        self.assertIsNone(rloc)
+
+        rloc = vw.addRelocation(0x08054184, v_const.RTYPE_BASEPTR)
+        self.assertIsNotNone(rloc)
+
     def test_naughty(self):
         '''
         Test us some error conditions
