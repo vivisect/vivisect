@@ -673,7 +673,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         ptr = r.r_addend
                         logger.info('R_X86_64_IRELATIVE: adding Relocation 0x%x -> 0x%x (name: %r %r) ', rlva, ptr, name, dmglname)
                         rloc = vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
-                        if not rloc:
+                        if rloc is not None:
                             continue
 
                         # next get the target and find a name, since the reloc itself doesn't have one

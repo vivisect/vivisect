@@ -398,7 +398,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset = va - imgbase
 
         self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
-        return self.getLocation(va)
+        return self.getRelocation(va)
 
     def getRelocations(self):
         """
