@@ -1,22 +1,20 @@
 
 import os
 import re
-import code
 import time
 import socket
 import struct
 import logging
 import binascii
-import platform
 import tempfile
 import threading
 
 import PE
-import vdb
 import envi
 import vtrace
 
 import envi.bits as e_bits
+import envi.common as e_common
 import envi.registers as e_registers
 import vtrace.platforms.base as v_base
 import envi.symstore.resolver as e_resolv
@@ -223,7 +221,7 @@ class GdbStubMixin:
 
     def _monitorCommand(self, cmd):
         resp = ''
-        cmd = 'qRcmd,%s' % binascii.hexlify(cmd)
+        cmd = 'qRcmd,%s' % e_common.hexify(cmd)
         pkt = self._cmdTransact(cmd)
         while not pkt.startswith('OK'):
             self._raiseIfError(pkt)
@@ -446,7 +444,7 @@ class GdbStubMixin:
                 ctx.setRegisterByName( regname, regval )
 
         return ctx
-        
+
     def platformSetRegCtx(self, tid, ctx):
         '''
         Set the target stub's register context from the envi register context
@@ -459,7 +457,7 @@ class GdbStubMixin:
         for myidx, enviidx in self._gdb_reg_xlat:
             rvals[myidx] = ctx.getRegister(enviidx)
         newbytes = struct.pack(self._gdb_regfmt, rvals) + regremain
-        return self._cmdTransact('G' + binascii.hexlify(newbytes))
+        return self._cmdTransact('G' + e_common.hexify(newbytes))
 
     def platformGetThreads(self):
 
@@ -512,7 +510,7 @@ class GdbStubMixin:
         return mbytes
 
     def platformWriteMemory(self, addr, mbytes):
-        cmd = 'M%x,%x:%s' % (addr, len(mbytes), binascii.hexlify(mbytes))
+        cmd = 'M%x,%x:%s' % (addr, len(mbytes), e_common.hexify(mbytes))
         pkt = self._cmdTransact(cmd)
 
     def platformGetMaps(self):
@@ -628,7 +626,7 @@ class GdbStubMixin_old(e_registers.RegisterContext):
     def _getVmwareIdtr(self):
         istr = self._monitorCommand('r idtr')
         m = re.match('.* base=(0x\w+) .*', istr)
-        idtr = long(m.groups()[0], 0)
+        idtr = int(m.groups()[0], 0)
         return idtr
 
     def _getNtOsKrnl(self, idtr):

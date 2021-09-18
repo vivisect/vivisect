@@ -1,5 +1,33 @@
 import binascii
 
+
+class ConfigNoAssignment(Exception):
+    def __init__(self, optstr):
+        Exception.__init__(self)
+        self.optstr = optstr
+
+    def __str__(self):
+        return "No value given in option %s" % self.optstr
+
+
+class ConfigInvalidName(Exception):
+    def __init__(self, optpath):
+        Exception.__init__(self)
+        self.optpath = optpath
+
+    def __str__(self):
+        return 'Invalid Config Name: %s' % self.optpath
+
+
+class ConfigInvalidOption(Exception):
+    def __init__(self, optname):
+        Exception.__init__(self)
+        self.optname = optname
+
+    def __str__(self):
+        return 'Invalid Config Option: %s' % self.optname
+
+
 class InvalidRegisterName(Exception):
     pass
 
@@ -29,7 +57,7 @@ class InvalidInstruction(EnviException):
             msg = [mesg]
 
         if bytez is not None:
-            msg.append("'" + binascii.hexlify(bytez) + "'")
+            msg.append("'" + binascii.hexlify(bytez).decode('utf-8') + "'")
 
         if va != 0:
             msg.append('at ' + hex(va))
@@ -58,6 +86,19 @@ class SegmentationViolation(EnviException):
             msg = "Bad Memory Access: %s" % hex(va)
         EnviException.__init__(self, msg)
         self.va = va
+
+
+class NoValidFreeMemoryFound(EnviException):
+    '''
+    Raised by the MemoryObject allocator subsystem when asked 
+    to find/allocate a free memory block bigger than any slot
+    of free memory existing in the address-space.
+    '''
+    def __init__(self, size, msg=None):
+        if msg is None:
+            msg = "Not enough contiguous free memory for the requested block: 0x%x" % size
+        EnviException.__init__(self, msg)
+        self.size = size
 
 
 class ArchNotImplemented(EnviException):
@@ -102,9 +143,16 @@ class DivideByZero(EmuException):
     pass
 
 
+class MultiplyError(EmuException):
+    """
+    Raised by an Emulator when multiply falls outside of the specified range
+    """
+    pass
+
+
 class DivideError(EmuException):
     """
-    Raised by an Emulator whena a divide falls out
+    Raised by an Emulator when a a divide falls out
     of the specified range.
     """
     pass
@@ -153,6 +201,16 @@ class MapOverlapException(EnviException):
         margs = (map1[0], map1[1], map2[0], map2[1])
         EnviException.__init__(self, "Map At 0x%.8x (%d) overlaps map at 0x%.8x (%d)" % margs)
 
+class MapNotFoundException(EnviException):
+    """
+    Raised when attempting to access or delete a memory map which does not
+    exist.
+    """
+    def __init__(self, mmapva):
+        self.mmapva = mmapva
+        
+    def __repr__(self):
+        return 'Map not found at base va 0x%.8x!' % self.mmapva
 
 class QuietNaN(Exception):
     pass
@@ -168,3 +226,20 @@ class InvalidOperand(Exception):
 
     def __repr__(self):
         return "%s at %s" % (self.__class__.__name__, str(self.valu))
+
+class BoundRangeExceededException(Exception):
+    def __init__(self, va, op, aidx, lowbound, hibound):
+        self.va = va
+        self.op = op
+        self.aidx = aidx
+        self.hibound = hibound
+        self.lowbound = lowbound
+
+    def __repr__(self):
+        return "Bound Range Exceeded Exception at 0x%x (opcode: %r)  index: %d  low: %d  hi: %d" % \
+                (self.va, self.op, self.aidx, self.lowbound, self.hibound)
+
+class GeneralProtection(EnviException):
+    def __init__(self, op):
+        EnviException.__init__(self, 'General Protection exception (0x%.8x: %s)' % (op.va, str(op)))
+        self.op = op

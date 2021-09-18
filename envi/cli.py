@@ -17,6 +17,7 @@ import collections
 
 import envi.bits as e_bits
 import envi.memory as e_mem
+import envi.common as e_common
 import envi.config as e_config
 import envi.memcanvas as e_canvas
 import envi.expression as e_expr
@@ -85,7 +86,7 @@ def isValidScript(scriptpath):
 
 def getRelScriptsFromPath(scriptpaths):
     '''
-    Takes in a list of base paths (eg. ENVI_SCRIPT_PATH list) and recurses the 
+    Takes in a list of base paths (eg. ENVI_SCRIPT_PATH list) and recurses the
     directories looking for valid python files (ie. they don't throw errors
     on import).
 
@@ -322,7 +323,7 @@ class EnviCli(Cmd):
         for line in formatargs(self.basecmds):
             self.vprint(line)
 
-        subsys = self.extsubsys.keys()
+        subsys = list(self.extsubsys.keys())
         subsys.sort()
 
         for sub in subsys:
@@ -376,7 +377,7 @@ class EnviCli(Cmd):
             subnames.sort()
             for subname in subnames:
                 subcfg = self.config.getSubConfig(subname)
-                options = subcfg.keys()
+                options = list(subcfg.keys())
                 options.sort()
                 for optname in options:
                     optval = subcfg.get(optname)
@@ -405,9 +406,9 @@ class EnviCli(Cmd):
             if len(parts) == 2:
                 newval = json.loads(parts[1])
 
-                if type(newval) not in (str,unicode) or type(optval) not in (str,unicode):
+                if (not isinstance(newval, str)) or not isinstance(optval, str):
                     if type(newval) != type(optval):
-                        self.vprint('Invalid Type Mismatch: %r - %r' % (newval,optval))
+                        self.vprint('Invalid Type Mismatch: %r - %r' % (newval, optval))
                         return
 
                 optval = newval
@@ -435,14 +436,14 @@ class EnviCli(Cmd):
 
         self.vprint('')
         self.vprint('Runtime Aliases (not saved):')
-        aliases = self.aliases.keys()
+        aliases = list(self.aliases.keys())
         aliases.sort()
         for alias in aliases:
             self.vprint('%s -> %s' % (alias,self.aliases.get(alias)))
         self.vprint('')
 
         self.vprint('Configured Aliases:')
-        aliases = self.config.cli.aliases.keys()
+        aliases = list(self.config.cli.aliases.keys())
         aliases.sort()
         for alias in aliases:
             self.vprint('%s -> %s' % (alias, self.config.cli.aliases.get(alias)))
@@ -467,7 +468,7 @@ class EnviCli(Cmd):
             code.interact(local=locals)
 
     def parseExpression(self, expr):
-        return long(e_expr.evaluate(expr, self.getExpressionLocals()))
+        return int(e_expr.evaluate(expr, self.getExpressionLocals()))
 
     def do_binstr(self, line):
         '''
@@ -503,7 +504,7 @@ class EnviCli(Cmd):
             sym = self.symobj.getSymByAddr(value, exact=False)
             if sym is not None:
                 self.canvas.addText(" ")
-                self.canvas.addVaText("%s + %d" % (repr(sym),value-long(sym)), value)
+                self.canvas.addVaText("%s + %d" % (repr(sym),value-int(sym)), value)
         else:
             self.canvas.addText("0x%.8x (%d)" % (value, value))
 
@@ -599,7 +600,7 @@ class EnviCli(Cmd):
                 pname = e_mem.reprPerms(perm)
                 totsize += size
                 self.canvas.addVaText("0x%.8x" % addr, addr)
-                sizestr = ("%dK" % (size/1024,)).rjust(8)
+                sizestr = ("%dK" % (size//1024,)).rjust(8)
                 self.canvas.addText("%s\t%s\t%s\n" % (sizestr,pname,fname))
             self.vprint("Total Virtual Memory: %.2f MB" % ((float(totsize)/1024)/1024))
 
@@ -656,24 +657,27 @@ class EnviCli(Cmd):
             self.vprint(repr(e))
             return self.do_help('search')
 
-        pattern = ' '.join(args)
+        pattern = (' '.join(args)).encode('utf-8')
         if len(pattern) == 0:
             self.vprint('you must specify a pattern')
             return self.do_help('search')
 
         if options.is_expr:
-            import struct #FIXME see below
             sval = self.parseExpression(pattern)
-            pattern = struct.pack('<L', sval) # FIXME 64bit (and alt arch)
+            endian = self.memobj.getEndian()
+            size = self.memobj.getPointerSize()
+            pattern = e_bits.buildbytes(sval, size, bigend=endian)
 
         if options.is_hex:
             pattern = binascii.unhexlify(pattern)
 
         if options.encode_as is not None:
             if options.encode_as == 'hex':
-                pattern = binascii.hexlify(patter)
+                pattern = e_common.hexify(pattern)
             else:
-                pattern = pattern.encode(options.encode_as)
+                import codecs
+                patternutf8 = pattern.decode('utf-8')
+                pattern = codecs.encode(patternutf8, encoding=options.encode_as)
 
         if options.range_search:
             try:
@@ -693,11 +697,11 @@ class EnviCli(Cmd):
             res = self.memobj.searchMemory(pattern, regex=options.is_regex)
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' % (e_common.hexify(pattern), repr(pattern)))
             return
 
         brend = e_render.ByteRend()
-        self.vprint('matches for: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+        self.vprint('matches for: %s (%s)' % (e_common.hexify(pattern), repr(pattern)))
         for va in res:
             mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
             pname = e_mem.reprPerms(mperm)
@@ -733,7 +737,7 @@ class EnviCli(Cmd):
 
             sym = self.symobj.getSymByAddr(va, exact=False)
             if sym is not None:
-                ret = "%s + 0x%x" % (repr(sym), va-long(sym))
+                ret = "%s + 0x%x" % (repr(sym), va-int(sym))
 
         except Exception:
             ret = hex(va)
@@ -799,11 +803,11 @@ class EnviCli(Cmd):
             self.canvas.addText('==== %d byte difference at offset %d\n' % (offsize,offset))
             self.canvas.addVaText("0x%.8x" % diff1, diff1)
             self.canvas.addText(":")
-            self.canvas.addText(binascii.hexlify(bytes1[offset:offset+offsize]))
+            self.canvas.addText(e_common.hexify(bytes1[offset:offset+offsize]))
             self.canvas.addText('\n')
             self.canvas.addVaText("0x%.8x" % diff2, diff2)
             self.canvas.addText(":")
-            self.canvas.addText(binascii.hexlify(bytes2[offset:offset+offsize]))
+            self.canvas.addText(e_common.hexify(bytes2[offset:offset+offsize]))
             self.canvas.addText('\n')
 
     def do_mem(self, line):

@@ -5,7 +5,6 @@ import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 import envi.archs.i386.opconst as i386_opconst
-import envi.archs.i386.disasm as i386_disasm
 
 import vivisect.symboliks.analysis as vsym_analysis
 import vivisect.symboliks.callconv as vsym_callconv
@@ -14,6 +13,11 @@ import vivisect.symboliks.translator as vsym_trans
 from vivisect.const import *
 from vivisect.symboliks.common import *
 
+mulpairs = {
+    2: ('ax', 'dx'),
+    4: ('eax', 'edx'),
+    8: ('rax', 'rdx')
+}
 
 def getSegmentSymbol(op):
     if op.prefixes & e_i386.PREFIX_CS:
@@ -67,7 +71,7 @@ class ArgDefSymEmu(object):
         if not fmt.startswith('<') and not fmt.endswith('P'):
             raise Exception('we dont handle this format string')
 
-        if isinstance(va, int) or isinstance(va, long):
+        if isinstance(va, int):
             va = Const(va, self.xlator._psize)
 
         if len(fmt) == 2:
@@ -94,14 +98,14 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self._psize = self._arch.getPointerSize()
         self._reg_ctx = self._arch.archGetRegCtx()
         self._sz_masks = {}
-        for i in (1, 2, 4, 8, 16, 32):
-            self._sz_masks[i] = Const((2L ** (i * 8)) - 1, self._psize)
+        for i in (0, 1, 2, 4, 8, 16, 32):
+            self._sz_masks[i] = Const((2 ** (i * 8)) - 1, self._psize)
 
     def getRegObj(self, regidx):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8)
+        val = Var(rname, rbitwidth >> 3)
 
         # Translate to meta if needed...
         if ridx != regidx:
@@ -124,7 +128,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         ridx = regidx & 0xffff
         rname = self._reg_ctx.getRegisterName(ridx)
         rbitwidth = self._reg_ctx.getRegisterWidth(ridx)
-        val = Var(rname, rbitwidth / 8)
+        val = Var(rname, rbitwidth >> 3)
 
         # Translate to native if needed...
         if ridx != regidx:
@@ -139,11 +143,31 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             # cut hole in mask
             finalmask = basemask ^ (mask << lshift)
             if lshift != 0:
-                obj <<= Const(lshift, rbitwidth / 8)
+                obj <<= Const(lshift, rbitwidth >> 3)
 
-            obj = obj | (val & Const(finalmask, rbitwidth / 8))
+            obj = obj | (val & Const(finalmask, rbitwidth >> 3))
 
         self.effSetVariable(rname, obj)
+
+    def setRegByName(self, name, obj):
+        '''
+        Sets the symbolik variable representing the register by name.
+
+        This is meta register aware, so if you call setRegByName('al', Var("thingy", 1))
+        it will set the eax variable (on i386) or the rax variable (on amd64) by only setting
+        the lower bits (for al/ax). The upper bits/symbolik effects will remain unchained.
+        In the case of setRegByName('eax', obj) on either i386 or amd64, it will clobber the
+        entire register.
+        '''
+        ridx = self._reg_ctx.getRegisterIndex(name)
+        width = self._reg_ctx.getRegisterWidth(ridx)
+        if width >= 32:
+            ridx = ridx & 0xffff
+        self.setRegObj(ridx, obj)
+
+    def getRegByName(self, name):
+        regidx = self._reg_ctx.getRegisterIndex(name)
+        return self.getRegObj(regidx)
 
     def getOperAddrObj(self, op, idx):
         oper = op.opers[idx]
@@ -242,7 +266,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         iters = int(math.log(self._psize * 8, 2))
         shift = 2 ** (iters - 1)
         for i in range(iters):
-            valu = valu ^ (valu >> Const(shift, self._psize))
+            valu = (valu >> Const(shift, self._psize)) ^ (valu & self._sz_masks[shift >> 1])
             shift >>= 1
 
         # intel's parity bit is set to 1 if the number of bits if even, and the above calculates to
@@ -260,24 +284,31 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         inv = oper ^ Const(e_bits.u_maxes[width], width)
         return inv
 
-    def i_adc(self, op):
+    def i_adc(self, op, isDX=False):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
+        dsize = op.opers[0].tsize
 
         add = v1 + v2 + Var('eflags_cf', 1)
 
-        self.effSetVariable('eflags_gt', gt(v1, v2))
-        self.effSetVariable('eflags_lt', lt(v1, v2))
-        self.effSetVariable('eflags_sf', lt(add, Const(0, self._psize)))
-        self.effSetVariable('eflags_eq', eq(add, Const(0, self._psize)))
-        self.effSetVariable('eflags_pf', self._generate_parity(add))
-        dsize = op.opers[0].tsize
-        f = gt(add, Const(e_bits.s_maxes[dsize/2], dsize))
-        self.effSetVariable('eflags_of', f)
+        f = gt(add, Const(e_bits.u_maxes[dsize>>1], dsize))
+        if isDX:
+            self.effSetVariable('eflags_cf', f)
+        else:
+            self.effSetVariable('eflags_gt', gt(v1, v2))
+            self.effSetVariable('eflags_lt', lt(v1, v2))
+            self.effSetVariable('eflags_sf', lt(add, Const(0, self._psize)))
+            self.effSetVariable('eflags_eq', eq(add, Const(0, self._psize)))
+            self.effSetVariable('eflags_pf', self._generate_parity(add))
+            self.effSetVariable('eflags_of', f)
+            self.effSetVariable('eflags_cf', f)
 
         self.setOperObj(op, 0, add)
 
-    def i_add(self, op):
+    def i_adcx(self, op):
+        self.i_adc(op, isDX=True)
+
+    def i_add(self, op, isDOX=False):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
 
@@ -288,6 +319,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         smax, umax = self.__get_dest_maxes(op)
 
         add = o_add(v1, v2, dsize)
+        if isDOX:
+            of = Var('eflags_of', self._psize)
+            add = o_add(add, of, dsize)
         self.setOperObj(op, 0, add)
 
         self.effSetVariable('eflags_gt', gt(v1, v2))
@@ -295,8 +329,11 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_sf', lt(add, Const(0, self._psize)))
         self.effSetVariable('eflags_eq', eq(add, Const(0, self._psize)))
         self.effSetVariable('eflags_pf', self._generate_parity(add))
-        f = gt(add, Const(e_bits.s_maxes[dsize/2], dsize))
+        f = gt(add, Const(e_bits.s_maxes[dsize>>1], dsize))
         self.effSetVariable('eflags_of', f)
+
+    def i_adox(self, op):
+        self.i_add(op, isDOX=True)
 
     def i_addsd(self, op, off=0):
         dsize = op.opers[0].tsize
@@ -330,21 +367,50 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, obj)
 
     def i_bt(self, op):
-        '''
-        selects a bit in a bit string
-        '''
-        bit_base = self.getOperObj(op, 0)
+        oper = self.getOperObj(op, 0)
         bit = self.getOperObj(op, 1)
-        # if bit >= bit_base.getWidth()*8: throw a fit.
-        one = Const(1, 1)
-        zero = Const(0, 1)
+        cf = (oper >> bit) & Const(1, 1)
+        self.effSetVariable('eflags_cf', cf)
 
-        val = (bit_base >> bit) & Const(1, 1)
-        self.effSetVariable('eflags_cf', (eq(val, one)))
-        self.effSetVariable('eflags_gt', (eq(val, zero)))
-        self.effSetVariable('eflags_lt', (ne(val, zero)))
-        self.effSetVariable('eflags_sf', (ne(val, zero)))
-        self.effSetVariable('eflags_eq', (eq(val, zero)))
+    def i_btc(self, op):
+        oper = self.getOperObj(op, 0)
+        opersize = oper.getWidth()
+        bit = self.getOperObj(op, 1)
+
+        val = oper ^ (Const(1, opersize) << bit)
+        cf = (oper >> bit) & Const(1, 1)
+
+        self.effSetVariable('eflags_cf', cf)
+        self.setOperObj(op, 0, val)
+
+    def i_bts(self, op):
+        oper = self.getOperObj(op, 0)
+        opersize = oper.getWidth()
+        bit = self.getOperObj(op, 1)
+        if bit.isDiscrete():
+            mask = Const(1 << bit.solve(), opersize)
+        else:
+            mask = Const(1, self._psize) << bit
+        val = oper | mask
+        bitinfo = (oper >> bit) & Const(1, opersize)
+
+        self.effSetVariable('eflags_cf', bitinfo)
+        self.setOperObj(op, 0, val)
+
+    def i_btr(self, op):
+        oper = self.getOperObj(op, 0)
+        bit = self.getOperObj(op, 1)
+        opersize = oper.getWidth()
+        if bit.isDiscrete():
+            mask = Const(-1 ^ (1 << bit.solve()), opersize)
+        else:
+            mask = Const(-1, opersize) ^ (Const(1, opersize) << bit)
+
+        val = oper & mask
+        bitinfo = (oper >> bit) & Const(1, opersize)
+
+        self.setOperObj(op, 0, val)
+        self.effSetVariable('eflags_cf', bitinfo)
 
     def i_call(self, op):
         # For now, calling means finding which of our symbols go in
@@ -381,40 +447,41 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def _div(self, op, isInvalid=None):
         oper = op.opers[0]
+        dsize = oper.tsize
         divbase = self.getOperObj(op, 0)
         if isInvalid is None:
             limit = (2 ** (oper.tsize * 8)) - 1
             isInvalid = lambda val: val > limit
 
-        if oper.tsize == 1:
-            ax = self.getRegObj(e_i386.REG_AX)
+        if dsize == 1:
+            ax = self.getRegByName('ax')
             quot = ax / divbase
             rem = ax % divbase
             if quot.isDiscrete() and isInvalid(quot):
                 raise envi.DivideError('i386 #DE')
-            self.effSetVariable('eax', (rem << 8) + quot)
+            self.setRegByName('ax', (rem << 8) | quot)
 
-        elif oper.tsize == 2:
-            ax = self.getRegObj(e_i386.REG_AX)
-            dx = self.getRegObj(e_i386.REG_DX)
-            tot = (edx << Const(16, self._psize)) + eax
+        elif dsize == 2:
+            ax = self.getRegByName('ax')
+            dx = self.getRegByName('dx')
+            tot = (dx << Const(16, self._psize)) | ax
             quot = tot / divbase
             rem = tot % divbase
             if quot.isDiscrete() and isInvalid(quot):
                 raise envi.DivideError('i386 #DE')
-            self.effSetVariable('eax', quot)
-            self.effSetVariable('edx', rem)
+            self.setRegByName('ax', quot)
+            self.setRegByName('dx', rem)
 
-        elif oper.tsize == 4:
-            eax = Var('eax', self._psize)
-            edx = Var('edx', self._psize)
-            tot = (edx << Const(32, self._psize)) + eax
+        elif dsize == 4:
+            eax = self.getRegByName('eax')
+            edx = self.getRegByName('edx')
+            tot = (edx << Const(32, self._psize)) | eax
             quot = tot / divbase
             rem = tot % divbase
             if quot.isDiscrete() and isInvalid(quot):
                 raise envi.DivideError('i386 #DE')
-            self.effSetVariable('eax', quot)
-            self.effSetVariable('edx', rem)
+            self.setRegByName('eax', quot)
+            self.setRegByName('edx', rem)
             # FIXME maybe we need a "check exception" effect?
 
         else:
@@ -447,60 +514,100 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_imul(self, op):
         ocount = len(op.opers)
-        if ocount == 2:
-            dst = self.getOperObj(op, 0)
-            src = self.getOperObj(op, 1)
-            dsize = op.opers[0].tsize
-            res = dst * src
+        dsize = op.opers[0].tsize
+        if ocount == 1:
+            mult = self.getOperObj(op, 0)
+            if dsize == 1:
+                reg = self.getRegByName('al')
+                res = reg * mult
+                dreg = res >> Const(8, dsize)
+                self.setRegByName('ax', res)
+            # TODO: collapse
+            elif dsize in mulpairs:
+                a, d = mulpairs[dsize]
+                reg = self.getRegByName(a)
+                res = reg * mult
+                self.setRegByName(a, res & self._sz_masks[dsize])
+                dreg = res >> Const((dsize * 8), dsize)
+                self.setRegByName(d, dreg)
+            else:
+                raise Exception('Improper size of %d for i_imul', dsize)
+
+        elif ocount == 2:
+            src1 = self.getOperObj(op, 0)
+            src2 = self.getOperObj(op, 1)
+
+            res = src1 * src2
             self.setOperObj(op, 0, res)
 
         elif ocount == 3:
             src1 = self.getOperObj(op, 1)
+            dsize = src1.getWidth()
+
             src2 = self.getOperObj(op, 2)
-            dsize = op.opers[0].tsize
+            # to deal with 6B vs 69 versions of imul
+            if src1.getWidth() > src2.getWidth():
+                src2 = o_sextend(src2, Const(dsize, self._psize))
+
             res = src1 * src2
             self.setOperObj(op, 0, res)
-
         else:
             raise Exception("WTFO?  i_imul with no opers")
 
-        #print "FIXME: IMUL FLAGS only valid for POSITIVE results"
-        f = gt(res, Const(e_bits.s_maxes[dsize/2], dsize))
+        chop = o_sextend(self.getOperObj(op, 0), Const(2 * op.opers[0].tsize, dsize))
+        f = eq(res, chop)
         self.effSetVariable('eflags_cf', f)
         self.effSetVariable('eflags_of', f)
 
     def i_cdq(self, op):
-        obj = self.getRegObj(e_i386.REG_AX)
+        obj = self.getRegByName('ax')
         v0 = o_sextend(obj, Const(self._psize, self._psize))
 
         v1 = o_sextend(obj, Const(2 * self._psize, self._psize))
-        v2 = v1 >> Const(self._psize, self._psize)
+        v2 = v1 >> Const(8 * self._psize, self._psize)
 
-        self.effSetVariable('edx', v2)
-        self.effSetVariable('eax', v0)
+        self.setRegByName('eax', v0)
+        self.setRegByName('edx', v2)
 
     def i_mul(self, op):
-        ocount = len(op.opers)
+        mult = self.getOperObj(op, 0)
         dsize = op.opers[0].tsize
-        if ocount == 2:
-            dst = self.getOperObj(op, 0)
-            src = self.getOperObj(op, 1)
-            res = dst * src
-            self.setOperObj(op, 0, res)
-
-        elif ocount == 3:
-            dst = self.getOperObj(op, 0)
-            src1 = self.getOperObj(op, 1)
-            src2 = self.getOperObj(op, 2)
-            res = src1 * src2
-            self.setOperObj(op, 0, res)
-
+        bitsize = Const(dsize * 8, dsize)
+        if dsize == 1:
+            reg = self.getRegByName('al')
+            res = reg * mult
+            dreg = res >> Const(8, dsize)
+            self.setRegByName('ax', res)
+        # TODO: collapse
+        elif dsize in mulpairs:
+            a, d = mulpairs[dsize]
+            reg = self.getRegByName(a)
+            res = reg * mult
+            self.setRegByName(a, res & self._sz_masks[dsize])
+            dreg = res >> bitsize
+            self.setRegByName(d, dreg)
         else:
-            raise Exception("WTFO?  i_mul with no opers")
+            raise Exception('Improper size of %d for i_mul', dsize)
 
-        f = gt(res, Const(e_bits.u_maxes[dsize/2], dsize))
+        f = ne(dreg, Const(0, dsize))
         self.effSetVariable('eflags_cf', f)
         self.effSetVariable('eflags_of', f)
+
+    def i_mulx(self, op):
+        src = self.getOperObj(op, 2)
+        dsize = src.getWidth()
+        if dsize == 4:
+            dreg = self.getRegByName('edx')
+        elif dsize == 8:
+            dreg = self.getRegByName('rdx')
+        else:
+            raise Exception('mulx has invalid size of %d' % dsize)
+
+        # sooo, technically the size here is wrong so we need to promote it?
+        res = dreg * src
+
+        self.setOperObj(op, 0, res & self._sz_masks[dsize])
+        self.setOperObj(op, 1, res >> Const(8 * dsize, self._psize))
 
     def i_mulsd(self, op, off=0):
         '''
@@ -528,7 +635,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_sf', lt(obj, zero))
         self.effSetVariable('eflags_eq', eq(obj, zero))
 
-        f = gt(obj, Const(e_bits.s_maxes[dsize/2], dsize))
+        f = gt(obj, Const(e_bits.s_maxes[dsize>>1], dsize))
         self.effSetVariable('eflags_of', f)
 
         self.effSetVariable('eflags_pf', self._generate_parity(obj))
@@ -858,7 +965,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
                 return
 
         # TODO: Pre-gen these?
-        mask = Const((2L ** width) - 1, valu.getWidth())
+        mask = Const((2 ** width) - 1, valu.getWidth())
         iters = int(valu.getWidth() / width)
         bitCount = count * Const(8, self._psize)
         for i in range(iters):
@@ -940,7 +1047,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         src = self.getOperObj(op, off+1)
         bitwidth = width * 8
 
-        mask = Const((2L ** bitwidth) - 1, dst.getWidth())
+        mask = Const((2 ** bitwidth) - 1, dst.getWidth())
         iters = int(dst.getWidth() / width)
         for i in range(iters):
             shift = Const(i * bitwidth, self._psize)
@@ -1006,13 +1113,15 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
             sp += self.getOperObj(op, 0)
         self.effSetVariable(self.__sp__, sp)
 
+    # TODO: We really should condense these four into one megafunction
     def i_rol(self, op):
         valu = self.getOperObj(op, 0)
         shft = self.getOperObj(op, 1)
 
         dsize = op.opers[0].tsize
+        shft = shft % Const(dsize * 8, self._psize)
 
-        shft_in = valu >> (Const(dsize, self._psize) - shft)
+        shft_in = valu >> (Const(dsize * 8, self._psize) - shft)
 
         res = valu << shft
         res |= shft_in
@@ -1032,6 +1141,41 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         res |= shft_in
 
         self.setOperObj(op, 0, res)
+
+    def i_rcr(self, op):
+        valu = self.getOperObj(op, 0)
+        shft = self.getOperObj(op, 1)
+
+        dsize = op.opers[0].tsize
+        bitsize = Const(dsize * 8, self._psize)
+        shft = shft % bitsize
+        tot = (Var('eflags_cf', self._psize) << bitsize) | valu
+
+        shft_in = tot << (bitsize - shft)
+        tot >>= shft
+        tot |= shft_in
+
+        cf = tot >> (bitsize - Const(1, dsize))
+        self.setOperObj(op, 0, tot)
+        self.effSetVariable('eflags_cf', cf)
+
+    def i_rcl(self, op):
+        valu = self.getOperObj(op, 0)
+        shft = self.getOperObj(op, 1)
+
+        dsize = op.opers[0].tsize
+        bitsize = Const(dsize * 8, self._psize)
+        shft = shft % bitsize
+        tot = (Var('eflags_cf', self._psize) << bitsize) | valu
+
+        shft_in = tot >> (bitsize - shft)
+
+        tot <<= shft
+        tot |= shft_in
+
+        cf = tot >> (bitsize - Const(1, dsize))
+        self.setOperObj(op, 0, tot)
+        self.effSetVariable('eflags_cf', cf)
 
     def i_sar(self, op):
         v1 = self.getOperObj(op, 0)
@@ -1074,7 +1218,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_cwde(self, op):
         v1 = o_sextend(self.getRegObj(e_i386.REG_AX), Const(self._psize, self._psize))
-        self.effSetVariable('eax', v1)
+        self.setRegByName('eax', v1)
 
     def _carry_eq(self, x):
         return eq(Var('eflags_cf', self._psize), Const(x, self._psize))
@@ -1168,6 +1312,24 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, self._signed_eq(1))
     i_setz = i_sete
 
+    def i_shlx(self, op):
+        v1 = self.getOperObj(op, 1)
+        v2 = self.getOperObj(op, 2)
+        res = v1 << v2
+        self.setOperObj(op, 0, res)
+
+    def i_shrx(self, op):
+        v1 = self.getOperObj(op, 1)
+        v2 = self.getOperObj(op, 2)
+        res = v1 >> v2
+        self.setOperObj(op, 0, res)
+
+    def i_sarx(self, op):
+        v1 = self.getOperObj(op, 0)
+        v2 = self.getOperObj(op, 1)
+        res = o_div(v1, o_pow(Const(2, self._psize), v2, self._psize), v1.getWidth())
+        self.setOperObj(op, 0, res)
+
     def i_shl(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
@@ -1218,10 +1380,15 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
         obj = o_sub(v1, v2, v1.getWidth())
+        dsize = op.opers[0].tsize
         self.effSetVariable('eflags_gt', gt(v1, v2))  # v1 - v2 > 0 :: v1 > v2
         self.effSetVariable('eflags_lt', lt(v1, v2))  # v1 - v2 < 0 :: v1 < v2
         self.effSetVariable('eflags_sf', lt(v1, v2))  # v1 - v2 < 0 :: v1 < v2
         self.effSetVariable('eflags_eq', eq(v1, v2))  # v1 - v2 == 0 :: v1 == v2
+        self.effSetVariable('eflags_pf', self._generate_parity(obj))
+
+        f = gt(obj, Const(e_bits.s_maxes[dsize>>1], dsize))
+        self.effSetVariable('eflags_of', f)
         self.setOperObj(op, 0, obj)
 
     def i_subsd(self, op, off=0):
@@ -1232,7 +1399,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         v2 = self.getOperObj(op, off+1)
         obj = o_sub(v1, v2, v1.getWidth())
         self.setOperObj(op, 0, obj)
+
     i_subss = i_subsd
+
     def i_vsubsd(self, op):
         self.i_subsd(op, off=1)
     i_vsubss = i_vsubsd
@@ -1265,7 +1434,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize)))
         self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize)))
         dsize = op.opers[0].tsize
-        f = gt(obj, Const(e_bits.s_maxes[dsize/2], dsize))
+        f = gt(obj, Const(e_bits.s_maxes[dsize>>1], dsize))
         self.effSetVariable('eflags_of', f)
         self.effSetVariable('eflags_pf', self._generate_parity(obj))
 
@@ -1293,7 +1462,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_xorps = i_xorpd
 
     def i_sqrtsd(self, op):
-        pass
+        v1 = self.getOperObj(op, 1)
+        obj = o_pow(v1, Const(0.5, self._psize))
+        self.setOperObj(op, 0, obj)
     i_sqrtss = i_sqrtsd
 
     def i_cmpxchg(self, op):
@@ -1317,39 +1488,13 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 1, Var('i386_xchg_tmp', self._psize))
 
     def i_rdtsc(self, op):
-        self.effSetVariable('eax', Var('TSC_HIGH', 4))
-        self.effSetVariable('edx', Var('TSC_LOW', 4))
+        self.setRegByName('edx', Var('TSC_HIGH', self._psize))
+        self.setRegByName('eax', Var('TSC_LOW', self._psize))
 
     def i_leave(self, op):
         self.effSetVariable(self.__sp__, Var(self.__bp__, self._psize))
         self.effSetVariable(self.__bp__, Mem(Var(self.__sp__, self._psize), Const(self._psize, self._psize)))
         self.effSetVariable(self.__sp__, o_add(Var(self.__sp__, self._psize), Const(self._psize, self._psize), self._psize))
-
-    def i_rol(self, op):
-        oper = self.getOperObj(op, 0)
-        opersize = oper.getWidth()
-        bitsize = opersize * 8
-        bit = self.getOperObj(op, 1)
-        if bit.isDiscrete():
-            bitnum = bit.solve()
-            val = oper >> Const(bitsize - bitnum, self._psize)
-        else:
-            val = oper >> Const(bitsize, self._psize) - bit
-        val |= (oper << bit)
-        self.setOperObj(op, 0, val)
-
-    def i_ror(self, op):
-        oper = self.getOperObj(op, 0)
-        opersize = oper.getWidth()
-        bitsize = opersize * 8
-        bit = self.getOperObj(op, 1)
-        if bit.isDiscrete():
-            bitnum = bit.solve()
-            val = oper << Const(bitsize-bitnum, self._psize)
-        else:
-            val = oper << (Const(bitsize, self._psize) - bit)
-        val |= (oper >> bit)
-        self.setOperObj(op, 0, val)
 
     def i_pextrb(self, op, width=1):
         dst = self.getOperObj(op, 0)
@@ -1435,20 +1580,6 @@ class i386SymbolikTranslator(IntelSymbolikTranslator):
         self.effSetVariable('ecx', Mem(esp + Const(24, self._psize), Const(4, self._psize)))
         self.effSetVariable('eax', Mem(esp + Const(28, self._psize), Const(4, self._psize)))
         self.effSetVariable('esp', esp + Const(32, self._psize))
-
-    def i_ror(self, op):
-        v1 = self.getOperObj(op, 0)
-        v2 = self.getOperObj(op, 1)
-        self.setOperObj(op, 0, ((v1 >> v2) | (v1 << ( Const(op.opers[0].tsize*8, self._psize) - v2))))
-
-        # XXX - set cf flag with last bit moved
-
-    def i_rol(self, op):
-        v1 = self.getOperObj(op, 0)
-        v2 = self.getOperObj(op, 1)
-
-        self.setOperObj(op, 0, ((v1 << v2) | (v1 >> ( Const(op.opers[0].tsize*8, self._psize) - v2))))
-        # XXX - set cf flag with last bit moved
 
 class i386ArgDefSymEmu(ArgDefSymEmu):
     __xlator__ = i386SymbolikTranslator

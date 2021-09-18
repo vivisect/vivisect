@@ -10,6 +10,10 @@ import envi.const as e_const
 import vivisect.const as v_const
 import vivisect.analysis.generic.codeblocks as vagc
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def analyzeJmp(amod, emu, op, starteip):
     '''
@@ -19,12 +23,14 @@ def analyzeJmp(amod, emu, op, starteip):
     ctx = getSwitchBase(vw, op, starteip, emu)
     if ctx is not None:
         tova, scale = ctx
+        fva = vw.getFunction(starteip)
+        vw.makePointer(tova, follow=False)
         vw.makeJumpTable(op, tova, rebase=True, psize=scale)
         # so the codeblocks this jumptable points to aren't proper locations...yet.
         # let's fix that up and kick off codeblock analysis to make the codeblocks
         for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(op.va, rtype=v_const.REF_CODE):
-            vw.makeCode(xrto)
-        vagc.analyzeFunction(vw, vw.getFunction(starteip))
+            vw.makeCode(xrto, fva=fva)
+        vagc.analyzeFunction(vw, fva)
 
 
 def getRealRegIdx(emu, regidx):
@@ -83,24 +89,28 @@ def getSwitchBase(vw, op, vajmp, emu=None):
     regbase = addOp.getOperValue(1, emu)
     if regbase != imgbase:
         # just in case let's check a few more instructions up, because the first register could be
-        # being used as the base instead
+        # being used as the base instead (which means the second register is being used as the selector)
         if not scanUp(vw, emu, addOp.va, reg, imgbase):
-            vw.vprint("0x%x: reg != imagebase (0x%x != 0x%x)" % (op.va, regbase, imgbase))
+            logger.info("0x%x: reg != imagebase (0x%x != 0x%x)" % (op.va, regbase, imgbase))
             return
 
     # Now find the instruction before the add that does the actual mov
     movOp = findOp(vw, emu, addOp, 'mov', reg)
     if movOp is None:
-        return
+        # try the other one just in case
+        reg = getRealRegIdx(emu, addOp.opers[1].reg)
+        movOp = findOp(vw, emu, addOp, 'mov', reg)
+        if movOp is None:
+            return
 
     # TODO: Want a more arch-independent way of doing this
     arrayOper = movOp.opers[1]
     if not isinstance(arrayOper, e_i386.i386SibOper):
-        vw.vprint("0x%x: arrayOper is not an i386SibOper: %s" % (op.va, repr(arrayOper)))
+        logger.info("0x%x: arrayOper is not an i386SibOper: %s" % (op.va, repr(arrayOper)))
         return
 
     if arrayOper.scale % 4 != 0:
-        vw.vprint("0x%x: arrayoper scale is wrong: (%d mod 4 != 0)" % (op.va, arrayOper.scale))
+        logger.info("0x%x: arrayoper scale is wrong: (%d mod 4 != 0)" % (op.va, arrayOper.scale))
         return
 
     scale = arrayOper.scale
@@ -114,7 +124,7 @@ def getSwitchBase(vw, op, vajmp, emu=None):
         if len(indirOp.opers):
             oper = indirOp.opers[1]
             if isinstance(oper, e_i386.i386SibOper) and oper.scale == 1:
-                vw.vprint("0x%.8x (i:0x%.8x): Double deref (hitting a byte array offset into the offset-array)" % (vajmp, indirOp.va))
+                logger.info("0x%.8x (i:0x%.8x): Double deref (hitting a byte array offset into the offset-array)" % (vajmp, indirOp.va))
                 indirVa = oper.disp + imgbase
                 vw.addLocation(indirVa, 1, v_const.LOC_NUMBER, "DerefTable")
                 vw.addXref(indirOp.va, indirVa, v_const.REF_DATA)

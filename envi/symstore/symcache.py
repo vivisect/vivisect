@@ -2,7 +2,6 @@ import os
 import json
 import logging
 
-import cobra
 import envi.exc as e_exc
 import envi.config as e_config
 
@@ -53,7 +52,7 @@ class SymbolCache:
             raise e_exc.InvalidSymbolCache(vhash)
 
         # FIXME check input path
-        with open(cachefile, 'wb') as fd:
+        with open(cachefile, 'w', encoding='utf-8') as fd:
             json.dump(symcache, fd)
 
     def getCacheSyms(self, vhash):
@@ -76,11 +75,12 @@ class SymbolCache:
             return None
 
         try:
-            with open(cachefile, 'rb') as fd:
+            with open(cachefile, 'r', encoding='utf-8') as fd:
                 return json.load(fd)
         except Exception as e:
             logger.warning('Failed to load cachefile: %s', e)
             return None
+
 
 class SymbolCachePath:
 
@@ -94,6 +94,7 @@ class SymbolCachePath:
                 continue
 
             if path.startswith('cobra://') or path.startswith('cobrassl://'):
+                import cobra
                 self.symcaches.append(cobra.CobraProxy(path))
                 continue
 

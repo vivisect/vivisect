@@ -1,21 +1,19 @@
 import os
 import sys
 import getopt
-import binascii
 
 import vtrace
 import vtrace.tools.win32heap as win32heap
 import vtrace.tools.win32aslr as win32_aslr
 import vtrace.tools.iathook as vt_iathook
 import vtrace.tools.win32stealth as win32_stealth
-import vtrace.util as v_util
 
-import envi.memory as e_mem
 import envi.cli as e_cli
 import envi.bits as e_bits
+import envi.common as e_common
+import envi.memory as e_memory
 
 import PE
-import vstruct.defs.pe as vs_pe
 
 def teb(vdb, line):
     '''
@@ -134,13 +132,13 @@ def seh(vdb, line):
         vdb.vprint("Unknown Thread Id: %d" % tid)
         return
     teb = t.getStruct("ntdll.TEB", tinfo)
-    addr = long(teb.NtTib.ExceptionList)
+    addr = int(teb.NtTib.ExceptionList)
     vdb.vprint("REG        HANDLER")
     while addr != 0xffffffff:
-        #FIXME print out which frame these are in
+        # FIXME print out which frame these are in
         er = t.getStruct("ntdll.EXCEPTION_REGISTRATION_RECORD", addr)
         vdb.vprint("0x%.8x 0x%.8x" % (addr, er.Handler))
-        addr = long(er.Next)
+        addr = int(er.Next)
 
 def safeseh(vdb, line):
     """
@@ -175,7 +173,7 @@ def safeseh(vdb, line):
         vdb.vprint("None...")
 
     else:
-        lnames = libs.keys()
+        lnames = list(libs.keys())
         lnames.sort()
         for name in lnames:
             base = libs.get(name)
@@ -305,7 +303,7 @@ def heaps(vdb, line):
 
         heap = win32heap.Win32Heap(t, uncommit_heap)
         ucrdict = heap.getUCRDict()
-        addrs = ucrdict.keys()
+        addrs = list(ucrdict.keys())
         addrs.sort()
         if len(addrs) == 0:
             vdb.vprint('Heap 0x%.8x has 0 uncommited-ranges!' % uncommit_heap)
@@ -423,7 +421,7 @@ def aslr(vdb, line):
     """
     Determine which PE's in the current process address space
     support Vista's ASLR implementation by the presence of the
-    IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE (0x0040) bit in the 
+    IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE (0x0040) bit in the
     DllCharacteristics field of the PE header.
 
     Usage: aslr [libname]
@@ -437,7 +435,7 @@ def aslr(vdb, line):
             return
         showaslr(vdb, base, line)
     else:
-        lnames = libs.keys()
+        lnames = list(libs.keys())
         lnames.sort()
         for name in lnames:
             base = libs.get(name)
@@ -468,8 +466,8 @@ def _printPageHits(vdb, hits, unique=False):
         [newhits.append(h) for h in hits if not newhits.count(h)]
         hits = newhits
 
-    for eip,addr,perm in hits:
-        vdb.vprint("0x%.8x 0x%.8x   %s" % (eip,addr,e_mem.getPermName(perm)))
+    for eip, addr, perm in hits:
+        vdb.vprint("0x%.8x 0x%.8x   %s" % (eip, addr, e_memory.getPermName(perm)))
 
 def pagewatch(vdb, line):
     """
@@ -896,7 +894,7 @@ def hooks(vdb, line):
 
             skips = {}
             # Get relocations for skipping
-            r = range( t.getPointerSize() )
+            r = list(range( t.getPointerSize() ))
             for relrva, reltype in pobj.getRelocations():
                 for i in r:
                     skips[base+relrva+i] = True
@@ -923,8 +921,8 @@ def hooks(vdb, line):
                             continue
 
                         found = True
-                        dmem = binascii.hexlify(procbytes[off:off+size])[:10]
-                        dfil = binascii.hexlify(filebytes[off:off+size])[:10]
+                        dmem = e_common.hexify(procbytes[off:off+size])[:10]
+                        dfil = e_common.hexify(filebytes[off:off+size])[:10]
 
                         vdb.canvas.addVaText('0x%.8x' % difva, difva)
                         vdb.canvas.addText(' (0x%.8x) (%d)' % (fdifva,size))
@@ -933,7 +931,7 @@ def hooks(vdb, line):
                         sym = vdb.symobj.getSymByAddr(difva, exact=False)
                         if sym is not None:
                             vdb.canvas.addText(' ')
-                            vdb.canvas.addVaText('%s + %d' % (repr(sym),difva-long(sym)), difva)
+                            vdb.canvas.addVaText('%s + %d' % (repr(sym),difva-int(sym)), difva)
                         vdb.canvas.addText('\n')
 
     if not found:

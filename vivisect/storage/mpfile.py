@@ -5,7 +5,7 @@ import msgpack
 
 logger = logging.getLogger(__name__)
 
-loadargs = {'use_list': False, 'raw': False}
+loadargs = {'use_list': False, 'raw': False, 'max_buffer_size': 2**32 -1}
 if msgpack.version < (1, 0, 0):
     loadargs['encoding'] = 'utf-8'
 else:
@@ -34,7 +34,7 @@ def vivEventsToFile(filename, events):
         for event in events:
             if event[0] == 20:
                 mape = base64.b64encode(event[1][3])
-                event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
+                event = (event[0], (event[1][0], event[1][1], event[1][2], mape, event[1][4]))
             msgpack.pack(event, f, use_bin_type=False)
 
 
@@ -54,7 +54,11 @@ def vivEventsFromFile(filename):
         for event in unpacker:
             if event[0] == 20:
                 mape = base64.b64decode(event[1][3])
-                event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
+                if len(event[1]) == 5:
+                    event = (event[0], (event[1][0], event[1][1], event[1][2], mape, event[1][4]))
+                else:
+                    # DEPRECATED:  for loading older MPFILEs
+                    event = (event[0], (event[1][0], event[1][1], event[1][2], mape))
             events.append(event)
     return events
 

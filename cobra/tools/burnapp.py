@@ -11,7 +11,6 @@ import cobra.remoteapp as c_remoteapp
 import envi.common as e_common
 
 logger = logging.getLogger(__name__)
-e_common.setLogging(logger, 'INFO')
 
 
 def release():
@@ -35,15 +34,15 @@ def release():
 
     if opts.cacert:
         with open(opts.cacert, 'rb') as f:
-            castr = '"%s"' % binascii.hexlify(f.read())
+            castr = '"%s"' % e_common.hexify(f.read())
 
     if opts.sslkey:
         with open(opts.sslkey, 'rb') as f:
-            keystr = '"%s"' % binascii.hexlify(f.read())
+            keystr = '"%s"' % e_common.hexify(f.read())
 
     if opts.sslcert:
         with open(opts.sslcert, 'rb') as f:
-            certstr = '"%s"' % binascii.hexlify(f.read())
+            certstr = '"%s"' % e_common.hexify(f.read())
 
     mainlines.append('    appuri="%s"' % appuri)
     mainlines.append('    cacrt=%s' % castr)
@@ -66,6 +65,7 @@ def dumpfile(hexbytes, filepath):
 
 
 def main(uri, cacrt=None, sslcert=None, sslkey=None):
+    e_common.initLogging(logger, 'INFO')
     if any([cacrt, sslcert, sslkey]):
         scheme, host, port, name, urlparams = cobra.chopCobraUri(uri)
         builder = cobra.initSocketBuilder(host, port)

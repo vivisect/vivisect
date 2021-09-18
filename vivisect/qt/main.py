@@ -5,6 +5,7 @@ import vstruct.qt as vs_qt
 import envi.expression as e_expr
 import envi.qt.config as e_q_config
 
+import vqt.cli as vq_cli
 import vqt.main as vq_main
 import vqt.colors as vq_colors
 import vqt.qpython as vq_python
@@ -24,17 +25,13 @@ import vivisect.qt.funcviews as viv_q_funcviews
 import vivisect.qt.symboliks as viv_q_symboliks
 import vivisect.remote.share as viv_share
 
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QInputDialog, QFileDialog
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import QInputDialog, QFileDialog
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QInputDialog
 
 from vqt.common import *
 from vivisect.const import *
 from vqt.main import getOpenFileName, getSaveFileName
-from vqt.saveable import compat_isNone, compat_toByteArray, compat_strList
+from vqt.saveable import compat_isNone
 
 dock_top = QtCore.Qt.TopDockWidgetArea
 dock_right = QtCore.Qt.RightDockWidgetArea
@@ -70,7 +67,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddMenuField('&View.&Memory', self._menuViewMemory)
         self.vqAddMenuField('&View.&Function Graph', self._menuViewFuncGraph)
         self.vqAddMenuField('&View.&Strings', self._menuViewStrings)
-        # self.vqAddMenuField('&View.&Strings', ACT(viv_q_views.getLocView, vw, (LOC_STRING,LOC_UNI) ,'Strings'))
         self.vqAddMenuField('&View.&Structures', self._menuViewStructs)
         self.vqAddMenuField('&View.&Segments', self._menuViewSegments)
         self.vqAddMenuField('&View.&Symboliks', self._menuViewSymboliks)
@@ -99,6 +95,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         if len(self.vqGetDockWidgets()) == 0:
             self.vw.vprint('\n')
+            #self.vw.vprint('&#10;')
             self.vw.vprint('Looks like you have an empty layout!')
             self.vw.vprint('Use View->Layouts->Load and select vivisect/qt/default.lyt')
 
@@ -115,9 +112,9 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def vprint(self, msg, addnl=True):
         # ripped and modded from envi/cli.py
-        if addnl:
-            msg = msg + "\n"
         self.vw.canvas.write(msg)
+        if addnl:
+            self.vw.canvas.write('\n')
 
     def getLocation(self, va):
         loctup = self.vw.getLocation(va)
@@ -205,6 +202,110 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if ok:
             self.vw.setVaSetRow('Bookmarks', (va, str(bname)))
 
+    def getMemoryWidgets(self):
+        return self.views.get('VQVivMemoryView', [])
+
+    def getMemWidgetsByName(self, name='viv', firstonly=True):
+        '''
+        Returns a list of Memory View Widgets with the given name.
+        If "firstonly" is True, only return the first one or None(not a list)
+
+        Returns a tuple of (Widget, DockWidget).  The "Widget" is obtained from
+        the DockWidget, but they both have different powers.
+        '''
+        logger.debug("getWindowsByName(%r, firstonly=%r)", name, firstonly)
+        out = []
+
+        for vqDW in self.getMemoryWidgets():
+            w = vqDW.widget()
+            if w.getEnviNavName() == name:
+                if firstonly:
+                    return w, vqDW
+
+                out.append((w,vqDW))
+
+        if firstonly:   # if firstonly and we don't have one, return None
+            return None
+
+        return out
+
+    def getFuncGraphs(self):
+        return self.views.get('VQVivFuncgraphView', [])
+
+    def getFuncGraphsByName(self, name='FuncGraph0', firstonly=True):
+        '''
+        Returns a list of Dock Widgets which have a "getEnviNavName"
+        This includes MemoryViews and FuncGraphs
+        '''
+        logger.debug("getFuncGraphsByName()")
+
+        out = []
+        for vqDW in self.getFuncGraphs():
+            w = vqDW.widget()
+            if name != w.getEnviNavName():
+                continue
+
+            if firstonly:
+                return w, vqDW
+
+            out.append((w, vqDW))
+
+        if firstonly:   # if firstonly and we don't have one, return None
+            return None
+
+        return out
+
+    def sendMemWidgetTo(self, va, wname='viv', firstonly=False):
+        '''
+        Tells the named Envi Nav Widget to navigate to the given VA
+        '''
+        logger.debug("sendMemWidgetsTo(0x%x, wname=%r)", va, wname)
+        for win in self.getMemWidgetsByName(wname, firstonly=False):
+            w, vqFW = win
+
+            logger.debug("sending %r to %r", w, hex(va))
+            w.enviNavGoto(hex(va))
+            if firstonly:
+                break
+        return True
+
+    def sendFuncGraphTo(self, va, wname='FuncGraph0', firstonly=False):
+        '''
+        Tells the named Envi Nav Widget to navigate to the given VA
+        '''
+        logger.debug("sendFuncGraphTo(0x%x, wname=%r)", va, wname)
+        for win in self.getFuncGraphsByName(wname, firstonly=False):
+            w, vqFW = win
+
+            logger.debug("sending %r to %r", w, hex(va))
+            w.enviNavGoto(hex(va))
+            if firstonly:
+                break
+        return True
+
+    def getCliBar(self):
+        '''
+        Returns the CLI Bar object
+        '''
+        for c in self.children():
+            if isinstance(c, vq_cli.VQCli):
+                return c
+
+    def getCliText(self):
+        '''
+        Get the text from the GUI's CLI Bar (at the bottom)
+        '''
+        cli = self.getCliBar()
+        return cli.input.text()
+
+    def setCliText(self, text):
+        '''
+        Set the text in the GUI's CLI Bar (at the bottom)
+        '''
+        logger.debug("setCliText(%r)" % text)
+        cli = self.getCliBar()
+        cli.input.setText(text)
+
     def _menuEditPrefs(self):
         configs = []
         configs.append(('Vivisect', self.vw.config.viv))
@@ -265,7 +366,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         stub = '%s/' % guid
 
         if compat_isNone(dwcls):
-            names = self.vw.filemeta.keys()
+            names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
             dwcls = settings.value('%s/DockClasses' % name)
@@ -280,7 +381,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             stub = ''
 
         if not compat_isNone(dwcls):
-            for i, clsname in enumerate(compat_strList(dwcls)):
+            for i, clsname in enumerate(dwcls):
                 name = 'VQDockWidget%d' % i
                 try:
                     tup = self.vqBuildDockWidget(str(clsname), floating=False)
@@ -290,14 +391,14 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
                         d.vqRestoreState(settings, name, stub)
                         d.show()
                 except Exception as e:
-                    print('Error Building: %s: %s' % (clsname, e))
+                    self.vw.vprint('Error Building: %s: %s' % (clsname, e))
 
         # Once dock widgets are loaded, we can restoreState
         if not compat_isNone(state):
-            self.restoreState(compat_toByteArray(state))
+            self.restoreState(state)
 
         if not compat_isNone(geom):
-            self.restoreGeometry(compat_toByteArray(geom))
+            self.restoreGeometry(geom)
 
         # Just get all the resize activities done...
         vq_main.eatevents()
@@ -310,7 +411,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         dock_classes = []
         guid = self.vw.getVivGuid()
-        names = self.vw.filemeta.keys()
+        names = list(self.vw.filemeta.keys())
         names.sort()
         vivname = '+'.join(names)
 
@@ -338,14 +439,24 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         settings.setValue('%s/DockState' % vivname, state)
         # don't store the default.  that should be saved manually
 
+    def vqGetDockWidgetsByName(self, name='viv', firstonly=False):
+        '''
+        Get list of DockWidgets matching a given name (default is 'viv').
+
+        Returns a list of tuples (window, DockWidget)
+        If firstonly==True, returns the first tuple, not a list.
+        '''
+        out = []
+        for vqDW in self.vqGetDockWidgets():
+            w = vqDW.widget()
+            if hasattr(w, 'getEnviNavName') and w.getEnviNavName() == name:
+                if firstonly:
+                    return w, vqDW
+                out.append((w,vqDW))
+        return out
+
     def _menuToolsDebug(self):
         viv_vdbext.runVdb(self)
-
-    def _menuViewFuncGraph(self):
-        self.vqBuildDockWidget('VQVivFuncgraphView', area=QtCore.Qt.TopDockWidgetArea)
-
-    def _menuViewSymboliks(self):
-        self.vqBuildDockWidget('VivSymbolikFuncPane', area=QtCore.Qt.TopDockWidgetArea)
 
     def _menuFileOpen(self):
         # TODO: Add something to change the workspace storage name,
@@ -423,28 +534,73 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqBuildDockWidget('VQPythonView', area=QtCore.Qt.RightDockWidgetArea)
 
     def _menuViewStrings(self):
-        self.vqBuildDockWidget('VQVivStringsView', area=QtCore.Qt.RightDockWidgetArea)
-
+        self.newStringsView()
     def _menuViewStructs(self):
-        self.vqBuildDockWidget('VQVivStructsView', area=QtCore.Qt.RightDockWidgetArea)
-
+        self.newStructsView()
     def _menuViewSegments(self):
-        self.vqBuildDockWidget('VQVivSegmentsView', area=QtCore.Qt.RightDockWidgetArea)
-
+        self.newSegmentsView()
     def _menuViewImports(self):
-        self.vqBuildDockWidget('VQVivImportsView', area=QtCore.Qt.RightDockWidgetArea)
-
+        self.newImportsView()
     def _menuViewExports(self):
-        self.vqBuildDockWidget('VQVivExportsView', area=QtCore.Qt.RightDockWidgetArea)
-
+        self.newExportsView()
     def _menuViewFunctions(self):
-        self.vqBuildDockWidget('VQVivFunctionsView', area=QtCore.Qt.RightDockWidgetArea)
-
+        self.newFunctionsView()
     def _menuViewNames(self):
-        self.vqBuildDockWidget('VQVivNamesView', area=QtCore.Qt.RightDockWidgetArea)
-
+        self.newNamesView()
     def _menuViewMemory(self):
-        self.vqBuildDockWidget('VQVivMemoryView', area=QtCore.Qt.TopDockWidgetArea)
+        self.newMemoryView()
+    def _menuViewFuncGraph(self):
+        self.newFuncGraphView()
+    def _menuViewSymboliks(self):
+        self.newSymbolikFuncView()
+
+    @idlethread
+    def newPythonView(self, floating=False):
+        self.vqBuildDockWidget('VQPythonView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+
+    @idlethread
+    def newStringsView(self, floating=False):
+        self.vqBuildDockWidget('VQVivStringsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+
+    @idlethread
+    def newStructsView(self, floating=False):
+        self.vqBuildDockWidget('VQVivStructsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+
+    @idlethread
+    def newSegmentsView(self, floating=False):
+        self.vqBuildDockWidget('VQVivSegmentsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+
+    @idlethread
+    def newImportsView(self, floating=False):
+        self.vqBuildDockWidget('VQVivImportsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+
+    @idlethread
+    def newExportsView(self, floating=False):
+        self.vqBuildDockWidget('VQVivExportsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+
+    @idlethread
+    def newFunctionsView(self, floating=False):
+        self.vqBuildDockWidget('VQVivFunctionsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+
+    @idlethread
+    def newNamesView(self, floating=False):
+        self.vqBuildDockWidget('VQVivNamesView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+
+    @idlethread
+    def newMemoryView(self, name='viv', floating=False):
+        dock, widget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
+        widget.setMemWindowName(name)
+
+    @idlethread
+    def newFuncGraphView(self, name=None, floating=False):
+        dock, widget = self.vqBuildDockWidget('VQVivFuncgraphView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
+        if name is not None:
+            widget.setMemWindowName(name)
+
+    @idlethread
+    def newSymbolikFuncView(self, floating=False):
+        self.vqBuildDockWidget('VivSymbolikFuncPane', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
+
 
     def _menuWindowFullscreen(self):
         if not self.windowState & QtCore.Qt.WindowFullScreen:

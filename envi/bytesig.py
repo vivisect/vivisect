@@ -1,4 +1,3 @@
-
 """
 A byte and mask based decision engine for creating byte
 sequences (and potential comparison masks) for general purpose
@@ -6,6 +5,7 @@ signature matching.
 
 Currently used by vivisect function entry sig db and others.
 """
+
 
 class SignatureTree:
     """
@@ -25,7 +25,7 @@ class SignatureTree:
         # each node in the tree is a tuple consisting of the depth we're at,
         # the signatures in this particular subtree, and the list of subtree nodes
         self.basenode = (0, [], [None] * 256, [])
-        self.sigs = {} # track duplicates
+        self.sigs = {}  # track duplicates
 
     def _addChoice(self, siginfo, node):
 
@@ -80,7 +80,7 @@ class SignatureTree:
         """
         # FIXME perhaps make masks None on all ff's
         if masks is None:
-            masks = "\xff" * len(bytes)
+            masks = b'\xff' * len(bytes)
 
         if val is None:
             val = True
@@ -92,10 +92,7 @@ class SignatureTree:
 
         self.sigs[bytekey] = True
 
-        byteord = [ord(c) for c in bytes]
-        maskord = [ord(c) for c in masks]
-
-        siginfo = (byteord, maskord, val)
+        siginfo = (bytes, masks, val)
         self._addChoice(siginfo, self.basenode)
 
     def isSignature(self, bytes, offset=0):
@@ -118,7 +115,7 @@ class SignatureTree:
                     if realoff >= len(bytes):
                         is_match = False
                         break
-                    masked = ord(bytes[realoff]) & smasks[i]
+                    masked = bytes[realoff] & smasks[i]
                     if masked != sbytes[i]:
                         is_match = False
                         break
@@ -133,7 +130,7 @@ class SignatureTree:
                 if offset+depth >= len(bytes):
                     continue
                 # we've reached the end of this signature, so we're just going to mask the rest
-                masked = ord(bytes[offset+depth]) & smasks[depth]
+                masked = bytes[offset+depth] & smasks[depth]
                 if sbytes[depth] == masked: # We have a winner!
                     # FIXME find the *best* winner! (because of masking)
                     node = choices[masked]

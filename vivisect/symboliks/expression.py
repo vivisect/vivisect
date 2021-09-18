@@ -123,18 +123,26 @@ class SymbolikExpressionParser:
             # slice is either Slice or Index
             # For "index" we assume they mean to specify width
             slclass = a.slice.__class__
-            if slclass == ast.Index:
+            # TODO: ast.Index is deprecated as of python 3.9 and will be removed in future versions
+            if slclass == ast.Constant or slclass == ast.Index:
                 ival = a.slice.value
-                if not isinstance(ival, ast.Num):
+                # TODO: ast.Num is deprecated as of python 3.9 and will be removed in future versions
+                if type(ival) == ast.Num:
+                    ival = ival.n
+                elif type(ival) == int:
+                    pass
+                elif type(ival) is ast.Constant:
+                    ival = ival.value
+                else:
                     raise Exception('Unsupported Expression (symbolik width index)')
 
                 # Override width for "value"
                 value = self.astToSymboliks(a.value)
                 if value.symtype == SYMT_VAR:
-                    return Var(value.name, a.slice.value.n)
+                    return Var(value.name, ival)
 
                 if value.symtype == SYMT_CONST:
-                    return Const(value.value, a.slice.value.n)
+                    return Const(value.value, ival)
 
                 raise Exception('Unsupported Expression (symbolik width on %s)' % value.__class__.__name__)
 

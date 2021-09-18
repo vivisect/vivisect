@@ -362,7 +362,7 @@ class RegisterContext:
         if offset:
             value <<= offset
 
-        return value | (curval & finalmask)
+        return (value & mask) | (curval & finalmask)
 
     def setRegister(self, index, value):
         """
@@ -385,7 +385,7 @@ class RegisterContext:
         of meta-registers) or the name of the register.
         (by Index)
         """
-        return self.getRegisterName(regidx& RMETA_NMASK)
+        return self.getRegisterName(regidx & RMETA_NMASK)
 
     def getRealRegisterName(self, regname):
         """

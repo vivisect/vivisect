@@ -2,7 +2,7 @@
 All the code related to vtrace process snapshots and TraceSnapshot classes.
 '''
 import copy
-import cPickle as pickle
+import pickle
 import logging
 
 import envi
@@ -47,7 +47,7 @@ class TraceSnapshot(vtrace.Trace, v_base.TracerBase):
         self.metadata = snapdict['meta']
 
         # Steal the reg defs of the first thread
-        rinfo = self.s_regs.items()[0][1]
+        rinfo = list(self.s_regs.items())[0][1]
         self.setRegisterInfo(rinfo)
 
         #FIXME hard-coded page size!

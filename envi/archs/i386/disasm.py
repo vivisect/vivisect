@@ -10,13 +10,10 @@ import envi.bits as e_bits
 
 # Grab our register enums etc...
 from envi.const import *
-from envi.archs.i386.regs import *
-from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
-                                    OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
-                                    INS_VEXREQ, OP_NOVEXL
+from .regs import *
 
-import opconst
-import opcode86
+from . import opconst
+from . import opcode86
 all_tables = opcode86.tables86
 
 # Our instruction prefix masks
@@ -114,16 +111,15 @@ priv_lookup = {
 
 # Map of codes to their respective envi flags
 iflag_lookup = {
-    opcode86.INS_RET: envi.IF_NOFALL | envi.IF_RET,
-    opcode86.INS_CALL: envi.IF_CALL,
-    opcode86.INS_HALT: envi.IF_NOFALL,
-    opcode86.INS_DEBUG: envi.IF_NOFALL,
-    opcode86.INS_CALLCC: envi.IF_CALL | envi.IF_COND,
-    opcode86.INS_BRANCH: envi.IF_NOFALL | envi.IF_BRANCH,
-    opcode86.INS_BRANCHCC: envi.IF_BRANCH | envi.IF_COND,
-    opcode86.INS_MOVCC: envi.IF_COND,
-    opcode86.INS_XCHGCC: envi.IF_COND,
-
+    opconst.INS_RET: envi.IF_NOFALL | envi.IF_RET,
+    opconst.INS_CALL: envi.IF_CALL,
+    opconst.INS_HALT: envi.IF_NOFALL,
+    opconst.INS_DEBUG: envi.IF_NOFALL,
+    opconst.INS_CALLCC: envi.IF_CALL | envi.IF_COND,
+    opconst.INS_BRANCH: envi.IF_NOFALL | envi.IF_BRANCH,
+    opconst.INS_BRANCHCC: envi.IF_BRANCH | envi.IF_COND,
+    opconst.INS_MOVCC: envi.IF_COND,
+    opconst.INS_XCHGCC: envi.IF_COND,
     opconst.INS_TRET: envi.IF_NOFALL | envi.IF_RET,
     opconst.INS_HALT: envi.IF_NOFALL,
     opconst.INS_TRAP: envi.IF_NOFALL,
@@ -142,6 +138,34 @@ sizenames[16] = "oword"    # xmm regs, can also be dqword
 sizenames[32] = "yword"    # ymm regs, can also be qqword
 sizenames[64] = "zword"    # zmm regs, can also be dqqword
 
+operand_range = (2, 3, 4)
+
+MODE_16 = 0
+MODE_32 = 1
+MODE_64 = 2
+
+# used in coinjunction with the MODE_* values above
+MODESIZE = [
+    2,
+    4,
+    8,
+]
+
+addr16_modes = [
+    (REG_BX, REG_SI),
+    (REG_BX, REG_DI),
+
+    (REG_BP, REG_SI),
+    (REG_BP, REG_DI),
+
+    (REG_SI, ),
+    (REG_DI, ),
+
+    (),
+
+    (REG_BX, ),
+]
+
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
     if sym is not None:
@@ -152,8 +176,6 @@ def addrToName(mcanv, va):
 #
 # Operand objects for the i386 architecture
 #
-
-
 class i386RegOper(envi.RegisterOper):
 
     def __init__(self, reg, tsize):
@@ -164,7 +186,8 @@ class i386RegOper(envi.RegisterOper):
         return self._dis_regctx.getRegisterName(self.reg)
 
     def getOperValue(self, op, emu=None):
-        if emu is None: return None # This operand type requires an emulator
+        if emu is None:
+            return None  # This operand type requires an emulator
         return emu.getRegister(self.reg)
 
     def getOperAddr(self, op, emu=None):
@@ -176,11 +199,11 @@ class i386RegOper(envi.RegisterOper):
     def render(self, mcanv, op, idx):
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint is not None:
-            #  FIXME: bug?  what should this be?
-            mcanv.addNameText(name, typename="registers")
+            # FIXME: bug?  what should this be?
+            mcanv.addNameText(hint, typename="registers")
         else:
             name = self._dis_regctx.getRegisterName(self.reg)
-            rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
+            rname = self._dis_regctx.getRegisterName(self.reg & RMETA_NMASK)
             mcanv.addNameText(name, name=rname, typename="registers")
 
     def __eq__(self, other):
@@ -284,7 +307,7 @@ class i386PcRelOper(envi.Operand):
 
 class i386RegMemOper(envi.DerefOper):
     """
-    An operand which represents the result of reading/writting memory from the
+    An operand which represents the result of reading/writing memory from the
     dereference (with possible displacement) from a given register.
     """
     def __init__(self, reg, tsize, disp=0):
@@ -296,24 +319,26 @@ class i386RegMemOper(envi.DerefOper):
     def repr(self, op):
         r = self._dis_regctx.getRegisterName(self.reg)
         if self.disp > 0:
-            return "%s [%s + %d]" % (sizenames[self.tsize],r,self.disp)
+            return "%s [%s + %d]" % (sizenames[self.tsize], r, self.disp)
         elif self.disp < 0:
-            return "%s [%s - %d]" % (sizenames[self.tsize],r,abs(self.disp))
-        return "%s [%s]" % (sizenames[self.tsize],r)
+            return "%s [%s - %d]" % (sizenames[self.tsize], r, abs(self.disp))
+        return "%s [%s]" % (sizenames[self.tsize], r)
 
     def getOperValue(self, op, emu=None):
-        if emu is None: return None # This operand type requires an emulator
+        # This operand type requires an emulator
+        if emu is None:
+            return None
         return emu.readMemValue(self.getOperAddr(op, emu), self.tsize)
 
     def setOperValue(self, op, emu, val):
         emu.writeMemValue(self.getOperAddr(op, emu), val, self.tsize)
 
     def getOperAddr(self, op, emu=None):
-        if emu is None: 
-            return None # This operand type requires an emulator
+        if emu is None:
+            return None  # This operand type requires an emulator
         base, size = emu.getSegmentInfo(op)
         rval = emu.getRegister(self.reg)
-        return base + rval + self.disp
+        return e_bits.unsigned(base + rval + self.disp, emu.imem_psize)
 
     def isDeref(self):
         # The disassembler may reach in and set this (if lea...)
@@ -323,7 +348,7 @@ class i386RegMemOper(envi.DerefOper):
         mcanv.addNameText(sizenames[self.tsize])
         mcanv.addText(" [")
         name = self._dis_regctx.getRegisterName(self.reg)
-        rname = self._dis_regctx.getRegisterName(self.reg&RMETA_NMASK)
+        rname = self._dis_regctx.getRegisterName(self.reg & RMETA_NMASK)
         mcanv.addNameText(name, name=rname, typename="registers")
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint is not None:
@@ -385,7 +410,7 @@ class i386ImmMemOper(envi.DerefOper):
         ret = self.imm
         if emu is not None:
             base, size = emu.getSegmentInfo(op)
-            ret += base
+            ret = e_bits.unsigned(ret + base, emu.imem_psize)
         return ret
 
     def render(self, mcanv, op, idx):
@@ -499,7 +524,7 @@ class i386SibOper(envi.DerefOper):
         base, size = emu.getSegmentInfo(op)
         ret += base
 
-        return ret + self.disp
+        return e_bits.unsigned(ret + self.disp, emu.imem_psize)
 
     def _getOperBase(self, emu=None):
         # Special SIB only method for getting the SIB base value
@@ -565,6 +590,10 @@ class i386Opcode(envi.Opcode):
     def getBranches(self, emu=None):
         ret = []
 
+        # we're done here.
+        if self.opcode == opconst.INS_HALT:
+            return []
+
         # To start with we have no flags ( except our arch )
         flags = self.iflags & envi.ARCH_MASK
         addb = False
@@ -585,16 +614,16 @@ class i386Opcode(envi.Opcode):
             return ret
 
         # Check for a call...
-        if self.opcode == opcode86.INS_CALL:
+        if self.opcode == opconst.INS_CALL:
             flags |= envi.BR_PROC
             addb = True
 
         # A conditional call?  really?  what compiler did you use? ;)
-        elif self.opcode == opcode86.INS_CALLCC:
+        elif self.opcode == opconst.INS_CALLCC:
             flags |= (envi.BR_PROC | envi.BR_COND)
             addb = True
 
-        elif self.opcode == opcode86.INS_BRANCH:
+        elif self.opcode == opconst.INS_BRANCH:
             oper0 = self.opers[0]
             if isinstance(oper0, i386SibOper) and oper0.scale == 4:
                 # In the case with no emulator, note that our deref is
@@ -648,18 +677,6 @@ class i386Opcode(envi.Opcode):
             if i != lasti:
                 mcanv.addText(",")
 
-operand_range = (2,3,4)
-
-MODE_16 = 0
-MODE_32 = 1
-MODE_64 = 2
-
-# used in coinjunction with the MODE_* values above
-MODESIZE=[
-    2,
-    4,
-    8,
-]
 
 class i386Disasm:
 
@@ -672,26 +689,26 @@ class i386Disasm:
         self.ptrsize = 4
 
         # This will make function lookups nice and quick
-        self._dis_amethods = [ None for x in range(1 + (opcode86.ADDRMETH_LAST>>16)) ]
-        self._dis_amethods[opcode86.ADDRMETH_A>>16] = self.ameth_a
-        self._dis_amethods[opcode86.ADDRMETH_C>>16] = self.ameth_c
-        self._dis_amethods[opcode86.ADDRMETH_D>>16] = self.ameth_d
-        self._dis_amethods[opcode86.ADDRMETH_E>>16] = self.ameth_e
-        self._dis_amethods[opcode86.ADDRMETH_M>>16] = self.ameth_e
-        self._dis_amethods[opcode86.ADDRMETH_N>>16] = self.ameth_n
-        self._dis_amethods[opcode86.ADDRMETH_Q>>16] = self.ameth_q
-        self._dis_amethods[opcode86.ADDRMETH_R>>16] = self.ameth_e
-        self._dis_amethods[opcode86.ADDRMETH_W>>16] = self.ameth_w
-        self._dis_amethods[opcode86.ADDRMETH_I>>16] = self.ameth_i
-        self._dis_amethods[opcode86.ADDRMETH_J>>16] = self.ameth_j
-        self._dis_amethods[opcode86.ADDRMETH_O>>16] = self.ameth_o
-        self._dis_amethods[opcode86.ADDRMETH_G>>16] = self.ameth_g
-        self._dis_amethods[opcode86.ADDRMETH_P>>16] = self.ameth_p
-        self._dis_amethods[opcode86.ADDRMETH_S>>16] = self.ameth_s
-        self._dis_amethods[opcode86.ADDRMETH_U>>16] = self.ameth_u
-        self._dis_amethods[opcode86.ADDRMETH_V>>16] = self.ameth_v
-        self._dis_amethods[opcode86.ADDRMETH_X>>16] = self.ameth_x
-        self._dis_amethods[opcode86.ADDRMETH_Y>>16] = self.ameth_y
+        self._dis_amethods = [ None for x in range(1 + (opconst.ADDRMETH_LAST>>16)) ]
+        self._dis_amethods[opconst.ADDRMETH_A>>16] = self.ameth_a
+        self._dis_amethods[opconst.ADDRMETH_C>>16] = self.ameth_c
+        self._dis_amethods[opconst.ADDRMETH_D>>16] = self.ameth_d
+        self._dis_amethods[opconst.ADDRMETH_E>>16] = self.ameth_e
+        self._dis_amethods[opconst.ADDRMETH_M>>16] = self.ameth_e
+        self._dis_amethods[opconst.ADDRMETH_N>>16] = self.ameth_n
+        self._dis_amethods[opconst.ADDRMETH_Q>>16] = self.ameth_q
+        self._dis_amethods[opconst.ADDRMETH_R>>16] = self.ameth_e
+        self._dis_amethods[opconst.ADDRMETH_W>>16] = self.ameth_w
+        self._dis_amethods[opconst.ADDRMETH_I>>16] = self.ameth_i
+        self._dis_amethods[opconst.ADDRMETH_J>>16] = self.ameth_j
+        self._dis_amethods[opconst.ADDRMETH_O>>16] = self.ameth_o
+        self._dis_amethods[opconst.ADDRMETH_G>>16] = self.ameth_g
+        self._dis_amethods[opconst.ADDRMETH_P>>16] = self.ameth_p
+        self._dis_amethods[opconst.ADDRMETH_S>>16] = self.ameth_s
+        self._dis_amethods[opconst.ADDRMETH_U>>16] = self.ameth_u
+        self._dis_amethods[opconst.ADDRMETH_V>>16] = self.ameth_v
+        self._dis_amethods[opconst.ADDRMETH_X>>16] = self.ameth_x
+        self._dis_amethods[opconst.ADDRMETH_Y>>16] = self.ameth_y
 
         # Offsets used to add in addressing method parsers
         # MMX is just a meta reg of st
@@ -718,16 +735,64 @@ class i386Disasm:
             return val + RMETA_LOW8
         return (val-4) + RMETA_HIGH8
 
+    def shortend_parse_modrm(self, bytez, offset, opersize, regbase=0, prefixes=0):
+        '''
+        This is to handle the 16 version of oper addressing. ~1/2 of the table is
+        completely different from the 32 bit version
+        '''
+        mod, reg, rm = self.parse_modrm(bytez[offset])
+        size = 1
+        opers = addr16_modes[rm]
+        # SIB oper for the 16 bit addressing stuff because it actually fits
+        if mod == 0:
+            if len(opers) == 2:
+                return (size, i386SibOper(opersize, reg=opers[0], imm=None, index=opers[1], scale=1))
+            elif len(opers) == 1:
+                return (size, i386RegMemOper(opers[0], opersize))
+            else:
+                imm = e_bits.parsebytes(bytez, offset + size, 2)
+                size += 2
+                return (size, i386ImmMemOper(imm, opersize))
+
+        elif mod == 1:
+            imm = e_bits.parsebytes(bytez, offset + size, 1)
+            size += 1
+            if len(opers) == 2:
+                return (size, i386SibOper(opersize, reg=opers[0], disp=imm, index=opers[1], scale=1))
+            elif len(opers) == 1:
+                return (size, i386RegMemOper(opers[0], opersize, disp=imm))
+            else:
+                return i386ImmMemOper(imm, opersize)
+        elif mod == 2:
+            imm = e_bits.parsebytes(bytez, offset + size, 2)
+            size += 2
+            if len(opers) == 2:
+                return i386SibOper(opersize, reg=opers[0], disp=imm, index=opers[1], scale=1)
+            elif len(opers) == 1:
+                return (size, i386RegMemOper(opers[0], opersize, disp=imm))
+            else:
+                return (size, i386ImmMemOper(imm, opersize))
+        elif mod == 3:
+            if opersize == 1:
+                rm = self.byteRegOffset(rm, prefixes=prefixes)
+            elif opersize == 2:
+                rm += RMETA_LOW16
+            return (size, i386RegOper(rm+regbase, opersize))
+        else:
+            raise Exception("(16bit) How does mod == %d" % mod)
+
     # Parse modrm as though addr mode might not be just a reg, but only for 32bit mode
     def extended_parse_modrm(self, bytez, offset, opersize, regbase=0, prefixes=0):
         """
         Return a tuple of (size, Operand)
         """
+        if prefixes & PREFIX_ADDR_SIZE:
+            if opersize == 4 and self.ptrsize == 4:
+                return self.shortend_parse_modrm(bytez, offset, opersize, regbase=regbase, prefixes=prefixes)
 
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
 
         size = 1
-
 
         if mod == 3: # Easy one, just a reg
             # FIXME only use self.byteRegOffset in 32 bit mode, NOT 64 bit...
@@ -773,7 +838,7 @@ class i386Disasm:
                 oper = i386SibOper(opersize, reg=base, index=index, scale=scale_lookup[scale], disp=disp)
                 return (size,oper)
             else:
-                x = e_bits.signed(ord(bytez[offset+size]), 1)
+                x = e_bits.signed(bytez[offset+size], 1)
                 size += 1
                 return(size, i386RegMemOper(regbase+rm, opersize, disp=x))
 
@@ -804,7 +869,7 @@ class i386Disasm:
         """
         Return a tuple of (size, scale, index, base, imm)
         """
-        byte = ord(bytez[offset])
+        byte = bytez[offset]
         scale = (byte >> 6) & 0x3
         index = (byte >> 3) & 0x7
         base  = byte & 0x7
@@ -842,7 +907,7 @@ class i386Disasm:
 
         sizelist = opcode86.OPERSIZE.get(opertype, None)
         if sizelist is None:
-            raise "OPERSIZE FAIL: %.8x" % opertype
+            raise Exception("OPERSIZE FAIL: %.8x" % opertype)
 
         if prefixes & PREFIX_OP_SIZE:
             mode = MODE_16
@@ -865,7 +930,7 @@ class i386Disasm:
 
         while True:
 
-            obyte = ord(bytez[offset])
+            obyte = bytez[offset]
 
             # This line changes in 64 bit mode
             p = self._dis_prefixes[obyte]
@@ -879,7 +944,7 @@ class i386Disasm:
         # At this point we should have all the possible prefixes, but some may be mandatory ones that we
         # need to not use as display prefixes and use as jumps in the table instead.
         # So we're going to lie to the rest of the code in order to use them as we want
-        obyte = ord(bytez[offset])
+        obyte = bytez[offset]
         ppref = [(None, None)]
         if obyte == 0x0f and MANDATORY_PREFIXES[last_pref]:
             obyte = last_pref
@@ -902,7 +967,7 @@ class i386Disasm:
                 prefixes = all_prefixes & (~onehot)
             else:
                 offset = mainbyte
-                obyte = ord(bytez[offset])
+                obyte = bytez[offset]
 
             tabdesc = all_tables[0]
             while True:
@@ -920,7 +985,7 @@ class i386Disasm:
                     tabdesc = all_tables[nexttable]
 
                     offset += 1
-                    obyte = ord(bytez[offset])
+                    obyte = bytez[offset]
 
                     continue
 
@@ -993,8 +1058,8 @@ class i386Disasm:
                         # size, with no rhyme or reason as to which it is. So we directly embed
                         # that knowledge into the opcodes mappings we maintain and pluck it out
                         # here.
-                        if getattr(oper, "_is_deref", False):
-                            memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
+                        if oper and oper.isDeref():
+                            memsz = opconst.OP_EXTRA_MEMSIZES[(operflags & opconst.OP_MEMMASK) >> 4]
                             if memsz is not None:
                                 oper.tsize = memsz
 
@@ -1033,7 +1098,7 @@ class i386Disasm:
         if operflags & opcode86.OP_REG:
             if prefixes & PREFIX_OP_SIZE and operval & RMETA_NMASK == operval:
                 operval |= RMETA_LOW16
-            width = self._dis_regctx.getRegisterWidth(operval) / 8
+            width = self._dis_regctx.getRegisterWidth(operval) >> 3
             return i386RegOper(operval, width)
         elif operflags & opcode86.OP_IMM:
             return i386ImmOper(operval, tsize)
@@ -1050,17 +1115,17 @@ class i386Disasm:
         return self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)
 
     def ameth_n(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod,reg,rm = self.parse_modrm(bytez[offset])
         return (1, i386RegOper(rm + self.ROFFSETMMX, tsize))
 
     def ameth_q(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod,reg,rm = self.parse_modrm(bytez[offset])
         if mod == 3:
             return (1, i386RegOper(rm + self.ROFFSETMMX, tsize))
         return self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)
 
     def ameth_w(self, bytez, offset, tsize, prefixes, operflags):
-        mod,reg,rm = self.parse_modrm(ord(bytez[offset]))
+        mod,reg,rm = self.parse_modrm(bytez[offset])
         if mod == 3:
             return (1, i386RegOper(rm + self.ROFFSETSIMD, tsize))
         return self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)
@@ -1080,33 +1145,33 @@ class i386Disasm:
         return (self.ptrsize, i386ImmMemOper(imm, tsize))
 
     def ameth_g(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
         if tsize == 1: reg = self.byteRegOffset(reg, prefixes)
         elif tsize == 2: reg += RMETA_LOW16
         return (0, i386RegOper(reg, tsize))
 
     def ameth_c(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
         return (0, i386RegOper(reg+self.ROFFSETCTRL, tsize))
 
     def ameth_d(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
         return (0, i386RegOper(reg+self.ROFFSETDEBUG, tsize))
 
     def ameth_p(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
         return (0, i386RegOper(reg+self.ROFFSETMMX, tsize))
 
     def ameth_s(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
         return (0, i386RegOper(reg+self.ROFFSETSEG, tsize))
 
     def ameth_u(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
         return (1, i386RegOper(rm+self.ROFFSETSIMD, tsize))
 
     def ameth_v(self, bytez, offset, tsize, prefixes, operflags):
-        mod, reg, rm = self.parse_modrm(ord(bytez[offset]))
+        mod, reg, rm = self.parse_modrm(bytez[offset])
         return (0, i386RegOper(reg+self.ROFFSETSIMD, tsize))
 
     def ameth_x(self, bytez, offset, tsize, prefixes, operflags):

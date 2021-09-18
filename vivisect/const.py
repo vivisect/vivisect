@@ -15,11 +15,11 @@ VWE_DELSEGMENT      = 4 # FIXME IMPLEMENT
 VWE_ADDRELOC        = 5 # (va,rtype)
 VWE_DELRELOC        = 6 # # FIXME IMPLEMENT
 
-VWE_ADDMODULE       = 7 # DEPRICATED
-VWE_DELMODULE       = 8 # DEPRICATED
+VWE_ADDMODULE       = 7 # DEPRECATED
+VWE_DELMODULE       = 8 # DEPRECATED
 
-VWE_ADDFMODULE      = 9  # DEPRICATED
-VWE_DELFMODULE      = 10 # DEPRICATED
+VWE_ADDFMODULE      = 9  # DEPRECATED
+VWE_DELFMODULE      = 10 # DEPRECATED
 
 VWE_ADDFUNCTION     = 11 # (va, meta)
 VWE_DELFUNCTION     = 12 # va
@@ -106,7 +106,7 @@ ref_type_names = {
 LOC_UNDEF   = 0  # An undefined "non-location"
 LOC_NUMBER  = 1  # A numerical value (non-pointer)
 LOC_STRING  = 2  # A null terminated string
-LOC_UNI     = 3  # A null terminiated unicode string
+LOC_UNI     = 3  # A null terminated unicode string
 LOC_POINTER = 4  # A type to hold a known-derefable pointer that is of appropriate length for arch
 LOC_OP      = 5  # An opcode
 LOC_STRUCT  = 6  # A custom structure (struct name is in tinfo)

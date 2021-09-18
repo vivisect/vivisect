@@ -43,7 +43,7 @@ class VStructTests(unittest.TestCase):
         self.assertIs(fobj, self.s.vsGetField('four'))
 
     def test_vsGetFieldByOffset_maxval_neg(self):
-        with self.assertRaisesRegexp(Exception, 'Invalid Offset Specified'):
+        with self.assertRaisesRegex(Exception, 'Invalid Offset Specified'):
             tup = self.s.vsGetFieldByOffset(-1)
 
     def test_vsGetFieldByOffset_maxval_pos(self):

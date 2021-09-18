@@ -1,18 +1,35 @@
 import unittest
 
+import vivisect.const as v_const
+
+import vivisect.tools.graphutil as v_t_graph
+
 import vivisect.symboliks.archs.i386 as i386sym
 import vivisect.symboliks.analysis as v_s_analysis
 
-from vivisect.symboliks.common import Var, Const, cnot
-from vivisect.symboliks.effects import ConstrainPath
+from vivisect.symboliks.common import Arg, Var, Const, cnot
+from vivisect.symboliks.effects import ConstrainPath, WriteMemory
 
 import vivisect.tests.helpers as helpers
+
+
+def getPathFromOpcodes(vw, opcodes):
+    path = []
+    for op in opcodes:
+        cb = vw.getCodeBlock(op.va)
+        if not cb:
+            raise Exception('Undefined codeblock for va 0x%x' % op.va)
+        if cb[0] in path:
+            continue
+        path.append(cb[0])
+    return path
 
 
 class IntelSymTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.i386_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
+        #cls.gcc_vw = helpers.getTestWorkspace('linux', 'amd64', 'gcc-7')
 
     def test_constraints(self):
         fva = 0x080509e0
@@ -105,3 +122,71 @@ class IntelSymTests(unittest.TestCase):
         self._cconv_test(i386sym.BFastCall_Caller(), i386sym.BFastCall(), 9, retval)
         self._cconv_test(i386sym.ThisCall_Caller(), i386sym.ThisCall(), 27, retval)
         self._cconv_test(i386sym.MsFastCall_Caller(), i386sym.MsFastCall(), 1, retval)
+
+    def test_symbolik_paths(self):
+        vw = self.i386_vw
+        fva = 0x80569d0  # quote_n_options
+        paths = [
+            [0x80569d0, 0x8056b34],
+            [0x80569d0, 0x80569ea, 0x8056a07, 0x8056b39],
+            [0x80569d0, 0x80569ea, 0x8056a07, 0x8056a13, 0x8056a44, 0x8056a51, 0x8056a7b, 0x8056ac0, 0x8056ad7, 0x8056ae3, 0x8056b20],
+            [0x80569d0, 0x80569ea, 0x8056a07, 0x8056a13, 0x8056a51, 0x8056a7b, 0x8056ac0, 0x8056ad7, 0x8056ae3, 0x8056b20],
+            [0x80569d0, 0x80569ea, 0x8056a07, 0x8056a13, 0x8056a44, 0x8056a51, 0x8056a7b, 0x8056ac0, 0x8056ae3, 0x8056b20],
+            [0x80569d0, 0x80569ea, 0x8056a07, 0x8056a13, 0x8056a51, 0x8056a7b, 0x8056ac0, 0x8056ae3, 0x8056b20],
+
+            [0x80569d0, 0x80569ea, 0x8056a07, 0x8056a13, 0x8056a44, 0x8056a51, 0x8056a7b, 0x8056b20],
+            [0x80569d0, 0x80569ea, 0x8056a07, 0x8056a13, 0x8056a51, 0x8056a7b, 0x8056b20],
+
+            [0x80569d0, 0x80569ea, 0x8056a7b, 0x8056b20],
+            [0x80569d0, 0x80569ea, 0x8056a7b, 0x8056ac0, 0x8056ae3, 0x8056b20],
+            [0x80569d0, 0x80569ea, 0x8056a7b, 0x8056ac0, 0x8056ad7, 0x8056ae3, 0x8056b20],
+        ]
+        cnt = 0
+        sctx = v_s_analysis.getSymbolikAnalysisContext(vw, consolve=False)
+        for emu, effects in sctx.getSymbolikPaths(fva):
+            cnt += 1
+            blks = getPathFromOpcodes(vw, emu.getMeta('opcodes'))
+            self.assertTrue(blks in paths)
+
+        self.assertEqual(cnt, len(paths))
+
+    def test_symbolik_paths_to(self):
+        vw = self.i386_vw
+        fva = 0x80569d0
+        tova = 0x08056b14
+
+        sctx = v_s_analysis.getSymbolikAnalysisContext(vw, consolve=False)
+        paths = [x for x in sctx.getSymbolikPathsTo(fva, tova)]
+        self.assertEqual(6, len(paths))
+
+    def test_symbolik_outputs(self):
+        vw = self.i386_vw
+        fva = 0x804cda0  # a deliberately simple function
+
+        sctx = v_s_analysis.getSymbolikAnalysisContext(vw, consolve=True)
+        out = [
+            (Var("eax", 4), []),  # literally just a ret
+            (Arg(0, 4), [WriteMemory(0x0804cdae, Const(0x08061404, 4), Const(0x00000004, 4), Arg(0, 4))]),
+        ]
+        for ret, effects in sctx.getSymbolikOutputs(fva):
+            self.assertTrue((ret, effects) in out, msg='(%s, %s) is not in the symbolik outputs' % (ret, effects))
+
+    def SKIPtest_symbolik_gcc_subchildren(self):
+        '''
+        So before intify in vivisect/symboliks/common.py, this would bomb out on int has no
+        attribute "kids" because the dellocate callspace function wasn't properly marshalling
+        argc dellocation as Const() (and instead as raw ints)
+
+        This is here mostly for codification purposes, since actually running this consumes
+        more RAM than CI can handle.
+        '''
+        vw = self.gcc_vw
+        fva = 0x00406ad6
+        sctx = v_s_analysis.getSymbolikAnalysisContext(vw, consolve=True)
+        graph = sctx.getSymbolikGraph(fva)
+        for path in v_t_graph.getLongPath(graph):
+            for emu, effects in sctx.getSymbolikPaths(fva, paths=[path, ], graph=graph):
+                break
+
+        calls = [x for x in effects if x.efftype == v_const.EFFTYPE_CALLFUNC]
+        self.assertEqual(len(calls), 26)

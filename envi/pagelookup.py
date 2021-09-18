@@ -18,7 +18,6 @@ class PageLookup:
     '''
 
     def __init__(self):
-        #self._page_dict = {}
         self._page_dict = pagedict()
 
     def getPageLookup(self, va):
@@ -66,6 +65,15 @@ class MapLookup:
             if va >= mva and va < mvamax:
                 return marray[ va - mva ]
         return None
+
+    def delMapLookup(self, va):
+        for midx in range(len(self._maps_list)):
+            mva, mvamax, marray = self._maps_list[midx]
+            if va >= mva and va < mvamax:
+                return self._maps_list.pop(midx)
+
+        raise e_exc.MapNotFoundException(va=va)
+
 
     def __getslice__(self, start, end):
         raise NotImplementedError("__getslice__ on MapLookup needs implementing")

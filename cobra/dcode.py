@@ -7,9 +7,10 @@ Particularly useful for clustering and workunit stuff.
 
 """
 import os
-import sys
 import imp
+import sys
 import logging
+import importlib
 
 import cobra
 
@@ -49,18 +50,10 @@ class DcodeServer:
         return (fbytes, filename, path)
 
 
-def toutf8(s):
-    if type(s) == unicode:
-        s = s.encode('utf8')
-    return s
-
-
 class DcodeLoader(object):
-
     """
     This object gets returned by the DcodeFinder
     """
-
     def __init__(self, fbytes, filename, path):
         object.__init__(self)
         self.fbytes = fbytes
@@ -73,14 +66,15 @@ class DcodeLoader(object):
     def load_module(self, fullname):
         mod = sys.modules.get(fullname)
         if mod is None:
-            mod = imp.new_module(fullname)
+            # TODO: Kinda janky. Does this work?
+            spec = importlib.util.spec_from_loader(fullname, loader=None)
+            module = importlib.util.module_from_spec(spec)
             sys.modules[fullname] = mod
-            mod.__file__ = self.filename
-            mod.__loader__ = self
+            exec(self.fbytes, module.__dict__)
+            module.__file__ = self.filename
+            module.__loader__ = self
             if self.path is not None:
                 mod.__path__ = [self.path]
-
-            exec toutf8(self.fbytes) in mod.__dict__
 
         return mod
 
