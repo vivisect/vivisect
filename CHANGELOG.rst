@@ -25,6 +25,8 @@ Fixes
   (`#456 <https://github.com/vivisect/vivisect/pull/456>`_)
 - Log to appropriate logger in elfplt late module
   (`#458 <https://github.com/vivisect/vivisect/pull/458>`_)
+- Allow duplicate init and fini functions in ELF files
+  (`#459 <https://github.com/vivisect/vivisect/pull/459>`_)
 
 v1.0.4 - 2021-08-22
 ===================
