@@ -102,20 +102,17 @@ from envi.archs.sparc.const import *
 
 
 
-def simm13_extend(value):
+def simm13_to_signed_int(value):
+    value &= 8191
     return (value & (4095)) - (value & 4096)
 
-def sign_extend(value, bits):
-    highest_bit_mask = 1 << (bits - 1)
-    remainder = 0
-    for i in xrange(bits - 1):
-        remainder = (remainder << 1) + 1
+def disp22_to_signed_int(value):
+    value &= 4194303
+    return (value & (2097151)) - (value & 2097152)
 
-    if value & highest_bit_mask == highest_bit_mask:
-        value = (value & remainder) - highest_bit_mask
-    else:
-        value = value & remainder
-    return value
+def disp30_to_signed_int(value):
+    value &= 1073741823
+    return (value & (536870911)) - (value & 536870912)
 
 
 class SparcOp:
@@ -152,7 +149,7 @@ class SparcOpLoadStore(SparcOp):
         self.i = (instr & MASK_I) >> SHIFT_I
         self.asi = (instr & MASK_ASI) >> SHIFT_ASI
         self.rs2 = (instr & MASK_RS2) >> SHIFT_RS2
-        self.simm13 = simm13_extend((instr & MASK_SIMM13) >> SHIFT_SIMM13)
+        self.simm13 = simm13_to_signed_int((instr & MASK_SIMM13) >> SHIFT_SIMM13)
 
         self.mnemonic_format = m_op3_mnemonic[self.op3]
 
@@ -181,7 +178,7 @@ class SparcOpArithmetic:
         self.rs1 = (instr & MASK_RS1) >> SHIFT_RS1
         self.i = (instr & MASK_I) >> SHIFT_I
         self.rs2 = (instr & MASK_RS2) >> SHIFT_RS2
-        self.simm13 = simm13_extend((instr & MASK_SIMM13) >> SHIFT_SIMM13)
+        self.simm13 = simm13_to_signed_int((instr & MASK_SIMM13) >> SHIFT_SIMM13)
 
         self.mnemonic_format = a_op3_mnemonic[self.op3]
 
@@ -199,6 +196,21 @@ class SparcOpArithmetic:
         cregrd = creg_label[self.rd]
 
         return self.mnemonic_format.format(regrs1=regrs1, reg_or_imm = reg_or_imm, regrd=regrd, cregrd=cregrd)
+
+class SparcOpCall:
+    def __init__(self, instr, offset, va, endian=envi.ENDIAN_MSB):
+        self._endian = endian
+        self.instr = instr
+        self.offset = offset
+        self.va = va
+ 
+        self.disp30 = (instr & MASK_DISP30)
+        self.disp30 = disp30_to_signed_int(self.disp30)*4
+
+    def __repr__(self):
+        
+        return "call {disp30} (pc+{disp30})".format(disp30=self.disp30)
+
 
 
 class SparcDisasm:
@@ -223,10 +235,11 @@ class SparcDisasm:
         # field decoding
         op = (opcode & MASK_OP) >> SHIFT_OP
         if op == 0: 
+            # Branches and SETHI
             pass 
         elif op == 1:
             # CALL
-            pass
+            return SparcOpCall(opcode, offset, va)
 
         elif op == 2:
             # Arithmetic, logical, shift, and remaining
