@@ -352,15 +352,19 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             vw.makeString(sva)
 
         elif sname == ".init":
-            vw.makeName(sva, "init_function", filelocal=True)
-            new_functions.append(("init_function", sva))
+            init_tup = ("init_function", sva)
+            if init_tup not in new_functions:
+                vw.makeName(sva, "init_function", filelocal=True, makeuniq=True)
+                new_functions.append(init_tup)
 
         elif sname == ".init_array":
             makeFunctionTable(elf, vw, sec.sh_addr, size, 'init_function', new_functions, new_pointers, baseaddr, addbase)
 
         elif sname == ".fini":
-            vw.makeName(sva, "fini_function", filelocal=True)
-            new_functions.append(("fini_function", sva))
+            fini_tup = ("fini_function", sva)
+            if fini_tup not in new_functions:
+                vw.makeName(sva, "fini_function", filelocal=True, makeuniq=True)
+                new_functions.append(fini_tup)
 
         elif sname == ".fini_array":
             makeFunctionTable(elf, vw, sec.sh_addr, size, 'fini_function', new_functions, new_pointers, baseaddr, addbase)
@@ -639,8 +643,9 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     if rtype == Elf.R_X86_64_IRELATIVE:
                         # before making import, let's fix up the pointer as a BASEPTR Relocation
                         ptr = r.r_addend
-                        vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
-                        logger.info('Reloc: R_X86_64_IRELATIVE 0x%x', rlva)
+                        rloc = vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
+                        if rloc:
+                            logger.info('Reloc: R_X86_64_IRELATIVE 0x%x', rlva)
 
                     if rtype in (Elf.R_386_JMP_SLOT, Elf.R_X86_64_GLOB_DAT, Elf.R_X86_64_IRELATIVE):
                         logger.info('Reloc: making Import 0x%x (name: %s/%s) ', rlva, name, dmglname)
@@ -671,7 +676,9 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         # first make it a relocation that is based on the imagebase
                         ptr = r.r_addend
                         logger.info('R_X86_64_IRELATIVE: adding Relocation 0x%x -> 0x%x (name: %r %r) ', rlva, ptr, name, dmglname)
-                        vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
+                        rloc = vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
+                        if rloc is not None:
+                            continue
 
                         # next get the target and find a name, since the reloc itself doesn't have one
                         tgt = vw.readMemoryPtr(rlva)
@@ -741,6 +748,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                     # that does *not* mean it's not an IMPORT
                     if ptr and not isPLT(vw, ptr):
                         logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
+                        # even if addRelocation fails, still make the name, same thing down in GLOB_DAT
                         if addbase:
                             vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
                         else:
