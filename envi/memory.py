@@ -150,7 +150,7 @@ class IMemory:
     def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
         raise Exception("must implement allocateMemory!")
 
-    def addMemoryMap(self, mapva, perms, fname, bytes):
+    def addMemoryMap(self, mapva, perms, fname, bytes, align=None):
         raise Exception("must implement addMemoryMap!")
 
     def getMemoryMaps(self):
@@ -425,13 +425,13 @@ class MemoryObject(IMemory):
         self._map_defs = []
         self._supervisor = False
 
-    def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0x1000, name='', fill=b'\0'):
+    def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0x1000, name='', fill=b'\0', align=None):
         '''
         Find a free block of memory (no maps exist) and allocate a new map
         Uses findFreeMemoryBlock()
         '''
         baseva = self.findFreeMemoryBlock(size, suggestaddr)
-        self.addMemoryMap(baseva, perms, name, fill*size)
+        self.addMemoryMap(baseva, perms, name, fill*size, align)
         return baseva
 
     def findFreeMemoryBlock(self, size, suggestaddr=0x1000, MIN_MEM_ADDR = 0x1000):
@@ -481,15 +481,22 @@ class MemoryObject(IMemory):
 
         return baseva
 
-    def addMemoryMap(self, va, perms, fname, bytez):
+    def addMemoryMap(self, va, perms, fname, bytez, align=None):
         '''
         Add a memory map to this object...
+        Returns the length of the map (since alignment could alter it)
         '''
+        if align:
+            curlen = len(bytez)
+            newlen = e_bits.align(curlen, align)
+            delta = newlen - curlen
+            bytez += b'\x00' * delta
+
         msize = len(bytez)
         mmap = (va, msize, perms, fname)
         hlpr = [va, va+msize, mmap, bytez]
         self._map_defs.append(hlpr)
-        return
+        return msize
 
     def delMemoryMap(self, mapva):
         '''

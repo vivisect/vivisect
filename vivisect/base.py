@@ -383,10 +383,16 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
                 self._call_graph.setNodeProp(fnode, 'repr', name)
 
     def _handleADDMMAP(self, einfo):
-        va, perms, fname, mbytes = einfo
-        e_mem.MemoryObject.addMemoryMap(self, va, perms, fname, mbytes)
+        if len(einfo) == 5:
+            # new "alignment-friendly" event
+            va, perms, fname, mbytes, align = einfo
+        else:
+            # DEPRECATED (21-09-13) - old event style, to support older .viv's
+            va, perms, fname, mbytes = einfo
+            align = None
 
-        blen = len(mbytes)
+        blen = e_mem.MemoryObject.addMemoryMap(self, va, perms, fname, mbytes, align)
+
         self.locmap.initMapLookup(va, blen)
         self.blockmap.initMapLookup(va, blen)
 
