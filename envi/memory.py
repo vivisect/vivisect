@@ -528,6 +528,10 @@ class MemoryObject(IMemory):
     def readMemory(self, va, size, origva=None):
         '''
         Read memory from maps stored in memory maps.
+
+        If the read crosses memory maps and fails on a later map, the exception
+        will show the details of the last map/failure, but should include the
+        original va (not the size).
         '''
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
@@ -556,6 +560,13 @@ class MemoryObject(IMemory):
         raise envi.SegmentationViolation(va, msg)
 
     def writeMemory(self, va, bytez, origva=None):
+        '''
+        Write memory to maps stored in memory maps.
+
+        If the write crosses memory maps and fails on a later map, the exception
+        will show the details of the last map/failure, but should include the
+        original va (but not the original size).
+        '''
         byteslen = len(bytez)
         for mapdef in self._map_defs:
             mva, mmaxva, mmap, mbytes = mapdef
