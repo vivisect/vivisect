@@ -8,7 +8,7 @@ import signal
 import logging
 import ctypes.util as c_util
 
-import envi.memory as e_mem
+import envi.const as e_const
 
 import vtrace
 import vtrace.archs.i386 as v_i386
@@ -613,13 +613,13 @@ class DarwinMixin(v_posix.PosixMixin, v_posix.PtraceMixin):
             perms = 0
             p = info.protection
             if p & VM_PROT_READ:
-                perms |= e_mem.MM_READ
+                perms |= e_const.MM_READ
             if p & VM_PROT_WRITE:
-                perms |= e_mem.MM_WRITE
+                perms |= e_const.MM_WRITE
             if p & VM_PROT_EXECUTE:
-                perms |= e_mem.MM_EXEC
+                perms |= e_const.MM_EXEC
             if info.shared:
-                perms |= e_mem.MM_SHARED
+                perms |= e_const.MM_SHARED
             # If we got any perms, report the map
             if perms:
                 maps.append((address.value, mapsize.value, perms, ''))
