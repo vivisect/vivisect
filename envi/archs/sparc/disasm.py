@@ -133,9 +133,58 @@ class SparcOpCall(SparcOp):
 
     def __repr__(self):
         return "call "
+class SparcOpBranch:
+    def __init__(self, instr, offset, va, endian=envi.ENDIAN_MSB):
+        self._endian = endian
+        self.instr = instr
+        self.offset = offset
+        self.va = va
 
-#class SparcOpSetHi:
-#class SparcOpBranch:
+        self.a = (instr & MASK_A) >> SHIFT_A
+        self.cond = (instr & MASK_COND) >> SHIFT_COND
+        self.disp22 = (instr & MASK_DISP22)
+        self.op2 = (instr & MASK_OP2) >> SHIFT_OP2
+        
+
+    def __repr__(self):
+        annul = ",a" if self.a else ""
+        disp22 = disp22_to_signed_int(self.disp22)*4
+        if self.op2 == B_OP2_INT:
+           instruction = branch_cond_int_mnemonic[self.cond]
+           return "{instruction}{annul} {disp22}".format(instruction=instruction, annul=annul, disp22=disp22)
+        elif self.op2 == B_OP2_FLOAT:
+           instruction = branch_cond_float_mnemonic[self.cond]
+           return "{instruction}{annul} {disp22}".format(instruction=instruction, annul=annul, disp22=disp22)
+        elif self.op2 == B_OP2_CPROC:
+           instruction = branch_cond_cproc_mnemonic[self.cond]
+           return "{instruction}{annul} {disp22}".format(instruction=instruction, annul=annul, disp22=disp22)
+
+
+
+
+
+ 
+class SparcOpSetHi:
+    def __init__(self, instr, offset, va, endian=envi.ENDIAN_MSB):
+        self._endian = endian
+        self.instr = instr
+        self.offset = offset
+        self.va = va
+
+        self.rd = (instr & MASK_RD) >> SHIFT_RD
+        self.op = (instr & MASK_OP) >> SHIFT_OP
+        self.op2 = (instr & MASK_OP2) >> SHIFT_OP2
+        self.imm22 = (instr & MASK_IMM22)
+        
+    def __repr__(self):
+        regrd = register_label[self.rd]
+        imm22 = "0x%8x" % (self.imm22<<10)
+
+        if self.op2 == 4: 
+            return m_op2_sethi_mnemonic.format(regrd=regrd, imm22=imm22)
+
+        return "undefined"
+ 
 class SparcOpLoadStore(SparcOp):
     def __init__(self, instr, offset, va, endian=envi.ENDIAN_MSB):
         self._endian = endian
@@ -183,7 +232,6 @@ class SparcOpArithmetic:
         self.mnemonic_format = a_op3_mnemonic[self.op3]
 
     def __repr__(self):
-        
         regrs1 = register_label[self.rs1]
 
         if self.i == 0:
@@ -192,7 +240,6 @@ class SparcOpArithmetic:
             reg_or_imm = "%d" % self.simm13
 
         regrd = register_label[self.rd]
-
         cregrd = creg_label[self.rd]
 
         return self.mnemonic_format.format(regrs1=regrs1, reg_or_imm = reg_or_imm, regrd=regrd, cregrd=cregrd)
@@ -236,7 +283,11 @@ class SparcDisasm:
         op = (opcode & MASK_OP) >> SHIFT_OP
         if op == 0: 
             # Branches and SETHI
-            pass 
+            op2 = (opcode & MASK_OP2) >> SHIFT_OP2
+            if op2 == OP2_SETHI:
+                return SparcOpSetHi(opcode, offset, va)
+            else:
+                return SparcOpBranch(opcode, offset, va)
         elif op == 1:
             # CALL
             return SparcOpCall(opcode, offset, va)
