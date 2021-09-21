@@ -7,26 +7,28 @@ V1.0.5 - 2021-09-10
 
 Fixes
 -----
-- Fix ascii string size when the string terminates at the end of a memory map
+- Fix ascii string size when the string terminates at the end of a memory map.
   (`#437 <https://github.com/vivisect/vivisect/pull/437>`_)
-- Better handle PE delay imports that use VA pointers instead of RVA pointers
+- Better handle PE delay imports that use VA pointers instead of RVA pointers.
   (`#439 <https://github.com/vivisect/vivisect/pull/439>`_)
-- envi.IMemory.readMemValue: return None on truncated read
+- envi.IMemory.readMemValue: return None on truncated read.
   (`#444 <https://github.com/vivisect/vivisect/pull/444>`_)
-- Only apply the rep prefix on string instructions in intel emulation
+- Only apply the rep prefix on string instructions in intel emulation.
   (`#447 <https://github.com/vivisect/vivisect/pull/447>`_)
-- Fix a pair of regressions in ELF analysis
+- Fix a pair of regressions in ELF analysis.
   (`#448 <https://github.com/vivisect/vivisect/pull/448>`_)
-- Align ELF memory maps to page
+- Align ELF memory maps to page.
   (`#451 <https://github.com/vivisect/vivisect/pull/451>`_)
-- Integer division for struct array count in ELF
+- Integer division for struct array count in ELF.
   (`#455 <https://github.com/vivisect/vivisect/pull/455>`_)
-- Safe harness for addRelocation method on the workspace
+- Safe harness for addRelocation method on the workspace.
   (`#456 <https://github.com/vivisect/vivisect/pull/456>`_)
-- Log to appropriate logger in elfplt late module
+- Log to appropriate logger in elfplt late module.
   (`#458 <https://github.com/vivisect/vivisect/pull/458>`_)
-- Allow duplicate init and fini functions in ELF files
+- Allow duplicate init and fini functions in ELF files.
   (`#459 <https://github.com/vivisect/vivisect/pull/459>`_)
+- Add Vtrace Symbol test.
+  (`#460 <https://github.com/vivisect/vivisect/pull/460>`_)
 
 v1.0.4 - 2021-08-22
 ===================
