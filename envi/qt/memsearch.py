@@ -4,6 +4,7 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
 
 import envi.memory as e_mem
+import envi.const as e_const
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
 from vqt.main import getSaveFileName
@@ -137,7 +138,7 @@ class MemSearchDialog(QDialog):
 
         self.canvas.clearCanvas()
         mem = e_mem.MemoryObject()
-        mem.addMemoryMap(0, e_mem.MM_READ, b'', bytez)
+        mem.addMemoryMap(0, e_const.MM_READ, b'', bytez)
         self.canvas.mem = mem
         self.canvas.renderMemory(0, len(bytez))
         self.hex_edit.setPlainText(str(self.canvas))

@@ -2,7 +2,6 @@ import hashlib
 import operator
 import functools
 import itertools
-import collections
 
 import vstruct
 import envi.bits as e_bits

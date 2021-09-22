@@ -14,9 +14,9 @@ allows you a bunch of readelf-like functionality.
 and spit them back out in working order (not complete, you
 may notice some of the initial code).
 
-Send bug reports to Invisigoth or Metr0.
-
+Send bug reports to rakuyo or at1as in the issue tracker
 """
+
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import io
 import logging
@@ -196,13 +196,16 @@ class ElfSection:
         return self.name
 
     def __repr__(self):
-        return 'Elf Sec: [%20s] @0x%.8x (%8d)  ent/size: %8d/%8d  align: %8d' % (
+        flags = [name for idx, name in sh_flags.items() if idx & self.sh_flags]
+
+        return 'Elf Sec: [%20s] @0x%.8x (%8d) [ent/size: %8d/%8d] [align: %8d] [%s]' % (
                 self.name,
                 self.sh_addr,
                 self.sh_offset,
                 self.sh_entsize,
                 self.sh_size,
-                self.sh_addralign)
+                self.sh_addralign,
+                'Flags: ' + ', '.join(flags))
 
 class Elf32Section(ElfSection, vs_elf.Elf32Section):
     def __init__(self, bigend=False):
@@ -419,7 +422,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # only parse the symbols that are not already accounted for.
         # symbols are ordered, so existence of index Y is always the same
         sym = self._cls_symbol(bigend=self.bigend)
-        count = len(symtab) / len(sym)
+        count = len(symtab) // len(sym)
         diff = count - len(self.dynamic_symbols)
         if diff == 0:
             return

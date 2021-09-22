@@ -65,7 +65,7 @@ OPTYPE_fv = 0x18000000
 
 OPERSIZE = {
     0: (2, 4, 8),           # We will only end up here on regs embedded in opcodes
-    OPTYPE_a: (2, 4, 4),
+    OPTYPE_a: (4, 8, 8),
     OPTYPE_b: (1, 1, 1),
     OPTYPE_c: (1, 2, 2),           # 1/2   byte or word, depending on operand
     OPTYPE_d: (4, 4, 4),           # 4     double-word
@@ -197,15 +197,24 @@ INS_OFLOW = INS_TRAPS | 0x08       # gen overflow trap
 
 #/* INS_SYSTEM */
 INS_HALT    = INS_SYSTEM | 0x01 # halt machine
-INS_IN      = INS_SYSTEM | 0x02 # input form port
+INS_IN      = INS_SYSTEM | 0x02 # input from port
 INS_OUT     = INS_SYSTEM | 0x03 # output to port
 INS_CPUID   = INS_SYSTEM | 0x04 # iden
 
 INS_NOP     = INS_OTHER | 0x01
 INS_BCDCONV = INS_OTHER | 0x02  # convert to/from BCD
 INS_SZCONV  = INS_OTHER | 0x03  # convert size of operand
-INS_CRYPT   = INS_OTHER | 0x4  # AES-NI instruction support
+INS_CRYPT   = INS_OTHER | 0x04  # AES-NI instruction support
 
+# string instructions that support REP prefix
+REP_OPCODES = (
+    INS_IN,       # INS
+    INS_OUT,      # OUTS
+    INS_STRMOV,   # MOVS
+    INS_STRLOAD,  # LODS
+    INS_STRSTOR,  # STOS
+    INS_STRCMP    # CMPS, SCAS
+    )
 
 OP_R = 0x001
 OP_W = 0x002
@@ -255,6 +264,7 @@ cpu_AMD64 = 0x0000a000
 cpu_AESNI = 0x0000b000
 cpu_AVX   = 0x0000c000
 cpu_BMI   = 0x0000d000
+cpu_OSPKE = 0x0000e000
 
 #eventually, change this for your own codes
 #ADDEXP_SCALE_OFFSET= 0 
