@@ -18,6 +18,7 @@ Welcome to vivisect's documentation!
    vivisect/extensions
    vivisect/scripting
    vivisect/remote
+   vivisect/changelog
 
 
 Indices and tables
