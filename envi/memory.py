@@ -566,6 +566,7 @@ class MemoryObject(IMemory):
         If the write crosses memory maps and fails on a later map, the exception
         will show the details of the last map/failure, but should include the
         original va (but not the original size).
+        In this scenario, writes to the first map will succeed, up until the address of the exception.
         '''
         byteslen = len(bytez)
         for mapdef in self._map_defs:
