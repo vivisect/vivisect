@@ -538,7 +538,7 @@ class MemoryObject(IMemory):
                 mva, msize, mperms, mfname = mmap
                 if not mperms & MM_READ:
                     msg = "Bad Memory Read (no READ permission): %s: %s" % (hex(va), hex(size))
-                    if origva:
+                    if origva is not None:
                         msg += " (original va: %s)" % hex(origva)
                     raise envi.SegmentationViolation(va, msg)
 
