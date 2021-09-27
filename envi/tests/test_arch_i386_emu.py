@@ -47,8 +47,20 @@ i386Tests = [
      'tests': ({'ebx': 47}, {})},
     # bsr ecx, edx
     {'bytes': '0FBDCA',
-     'setup': ({'ecx': 0x47}, {}),
-     'tests': ({'ecx': 23}, {})},
+     'setup': ({'edx': 0x470000, 'eflags': 0x202}, {}),
+     'tests': ({'ecx': 22, 'eflags':0x202}, {})},
+    # bsr ecx, edx
+    {'bytes': '0FBDCA',
+     'setup': ({'edx': 0x470000, 'eflags': 0xffffffff}, {}),
+     'tests': ({'ecx': 22, 'eflags':0x44602}, {})},     # eflags verified in vdb
+    # bsr ecx, edx
+    {'bytes': '0FBDC9',
+     'setup': ({'ecx': 0, 'eflags':0x202}, {}),
+     'tests': ({'ecx': 0, 'eflags':0x246}, {})},        # eflags verified in vdb
+    # bsr ecx, edx
+    {'bytes': '0FBDC9',
+     'setup': ({'ecx': 0, 'eflags':0xffffffff}, {}),
+     'tests': ({'ecx': 0, 'eflags':0x44646}, {})},      # eflags verified in vdb
     # push word [esp+2]
     {'bytes': '66ff742402',
      'setup': ({}, {'esp': b'\xCD\xFE\x89\x43'}),
@@ -93,10 +105,19 @@ i386Tests = [
     {'bytes': '0fbaf111',
      'setup': ({'ecx': 0xF002000F}, {}),
      'tests': ({'eflags': 1, 'ecx': 0xF000000F}, {})},
+    # lea ecx,dword [esp + -973695896]  (test SIB getOperAddr)
+    {'bytes': '8d8c246894f6c5',
+     'setup': ({'esp': 0x7fd0}, {}),
+     'tests': ({'ecx': 0xc5f71438}, {})},
+    # rep ret
+    # The behavior of the REP prefix is undefined when used with non-string instructions.
+    {'bytes': 'f3c3',
+     'setup': ({'ecx': 0x1}, {'esp': b'\x00\x00\x00\x60'}),
+     'tests': ({'ecx': 0x1, 'eip': 0x60000000}, {})}
 ]
 
 
-class IntelEmulatorTests(unittest.TestCase):
+class IntelEmulatorTests(object):
     def setEmuDefaults(self, emu):
         for name in emu.getRegisterNames():
             emu.setRegisterByName(name, DEFREG)
@@ -129,13 +150,78 @@ class IntelEmulatorTests(unittest.TestCase):
                 # test both the registers and stack values
                 for name, valu in test['tests'][0].items():
                     reg = emu.getRegisterByName(name)
-                    self.assertEqual(reg, valu, msg='Given != Got for %s (%s)' % (byts, str(op)))
+                    self.assertEqual(reg, valu, msg='(reg: %r) Given != Got for %s (%s)' % (name, byts, str(op)))
 
                 for expr, valu in test['tests'][1].items():
                     addr = e_expr.evaluate(expr, emu.getRegisters())
                     mem = emu.readMemory(addr, len(valu))
-                    self.assertEqual(mem, valu)
+                    self.assertEqual(mem, valu, msg='(mem: 0x%x) %r != %r' % (addr, mem, valu))
 
+class i386EmulatorTests(unittest.TestCase, IntelEmulatorTests):
     def test_i386_emulator(self):
         arch = envi.getArchModule('i386')
         self.run_emulator_tests(arch, i386Tests)
+
+    def test_x86_OperAddrs(self):
+        arch32 = envi.getArchModule('i386')
+        emu32 = arch32.getEmulator()
+        emu32.setStackCounter(0x7fd0)
+        
+        op = arch32.archParseOpcode(bytes.fromhex('8d8c246894f6c5'), 0,0)
+        self.assertEqual(op.opers[1].getOperAddr(op, emu32), 0xc5f71438)
+
+        import envi.archs.i386.disasm as eaid
+        oper = eaid.i386SibOper(tsize=4, reg=eaid.REG_ESP, index=5, scale=2, disp=-0x98765432)
+        oper._dis_regctx = eaid.i386RegisterContext()
+        addr32 = oper.getOperAddr(op, emu32)
+        self.assertEqual(addr32, 0x678a2b9e)
+
+        oper = eaid.i386SibOper(tsize=4, imm=256, index=5, scale=2, disp=-0x98765432)
+        oper._dis_regctx = eaid.i386RegisterContext()
+        addr32 = oper.getOperAddr(op, emu32)
+        self.assertEqual(addr32, 0x6789acce)
+
+        oper = eaid.i386RegMemOper(reg=eaid.REG_ESP, tsize=4, disp=-0x98765432)
+        oper._dis_regctx = eaid.i386RegisterContext()
+        addr32 = oper.getOperAddr(op, emu32)
+        self.assertEqual(addr32, 0x678a2b9e)
+
+    def test_i386_reps(self):
+        arch32 = envi.getArchModule('i386')
+        emu32 = arch32.getEmulator()
+        emu32.addMemoryMap(0x40000000, 7, 'test', b'foobarbazbane' + b'\0'*100)
+        op_movsd = arch32.archParseOpcode(bytes.fromhex('f3a5'), 0, 0)  # rep movsd
+        op_movsb = arch32.archParseOpcode(bytes.fromhex('f3a4'), 0, 0)  # rep movsb
+        op_scasb = arch32.archParseOpcode(bytes.fromhex('f2ae'), 0, 0)  # repnz scasb
+        op_zscasb = arch32.archParseOpcode(bytes.fromhex('f3ae'), 0, 0)  # repz scasb
+
+        # rep Dword copy
+        desiredoutput1 = b'foobarbazbane\0\0\0foobarbazbane\0\0\0'
+        emu32.setRegisterByName('ecx', 5)
+        emu32.setRegisterByName('esi', 0x40000000)
+        emu32.setRegisterByName('edi', 0x40000010)
+        emu32.executeOpcode(op_movsd)
+        self.assertEqual(emu32.readMemory(0x40000000, 0x20), desiredoutput1)
+
+        # rep Byte copy
+        desiredoutput2 = b'foobarbazbane\0\0\0foobarbazbane\0\0\0foobarbazbane\0\0\0'
+        emu32.setRegisterByName('ecx', 16)
+        emu32.setRegisterByName('esi', 0x40000000)
+        emu32.setRegisterByName('edi', 0x40000020)
+        emu32.executeOpcode(op_movsb)
+        self.assertEqual(emu32.readMemory(0x40000000, 0x30), desiredoutput2)
+
+        # repnz Byte scan string
+        emu32.setRegisterByName('eax', 0)
+        emu32.setRegisterByName('ecx', -1)
+        emu32.setRegisterByName('edi', 0x40000000)
+        emu32.executeOpcode(op_scasb)
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xfffffff1)
+
+        # repz Byte scan string
+        emu32.setRegisterByName('eax', 0)
+        emu32.setRegisterByName('ecx', -1)
+        emu32.setRegisterByName('edi', 0x4000000d)
+        emu32.executeOpcode(op_zscasb)
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xfffffffb)
+
