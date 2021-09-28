@@ -113,19 +113,24 @@ class PpcOpcode(envi.Opcode):
 
 
 class PpcRegOper(envi.RegisterOper):
-    ''' register operand. defaults to 64-bit registers'''
+    '''
+    Register operand for full access to all registers (as opposed to PpcERegOper
+    which only accesses the low 32 bits of the first 32 GPRs (r0-r31).
 
-    def __init__(self, reg, va=0, tsize=8):
+    Base class for all register operands
+    '''
+
+    def __init__(self, reg, va=0, oflags=0):
         self.va = va
         self.reg = reg
-        self.tsize = tsize
+        self.oflags = oflags
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
         if self.reg != oper.reg:
             return False
-        if self.tsize != oper.tsize:
+        if self.oflags != oper.oflags:
             return False
         return True
 
@@ -144,14 +149,13 @@ class PpcRegOper(envi.RegisterOper):
 
         if emu == None:
             return None
+
         return emu.getRegister(self.reg)
 
     def setOperValue(self, op, emu=None, val=None):
         if emu == None:
             return None
 
-        mask = e_bits.u_maxes[emu.psize]
-        val &= mask
         emu.setRegister(self.reg, val)
 
     def render(self, mcanv, op, idx):
@@ -162,31 +166,82 @@ class PpcRegOper(envi.RegisterOper):
         rname = ppc_regs[self.reg][0]
         return rname
 
+    def getWidth(self, emu):
+        return emu.getRegisterWidth(self.reg) >> 3
+
+
+class PpcERegOper(PpcRegOper):
+    '''
+    Book E and VLE (particularly the e200z7 core) has a really weird access
+    mechanism for 32-bit cores, where regular PPC BookE and VLE instructions
+    access only the lower 32-bits of the otherwise 64-bit GPRs.  This class
+    takes that into account, so it should be assigned to all BookE and VLE
+    instructions, whereas the raw PpcRegOper should be used by SPE (CAT_SP).
+    '''
+    def getOperValue(self, op, emu=None):
+        if self.reg == REG_PC:
+            return self.va  # FIXME: is this modified?  or do we need to att # to this?
+
+        if emu == None:
+            return None
+
+        regval = emu.getRegister(self.reg)
+
+        if self.reg < 32:
+            size = emu.psize
+            regval &= e_bits.u_maxes[size]
+
+        return regval
+
+
+    def setOperValue(self, op, emu=None, val=None):
+        if emu == None:
+            return None
+
+        if self.reg < 32:
+            mask = e_bits.u_maxes[emu.psize]
+            val &= mask
+
+        emu.setRegister(self.reg, val)
+
+    def getWidth(self, emu):
+        if self.reg < 32 and emu.psize == 4:
+            return 4
+
+        return emu.getRegisterWidth(self.reg) >> 3
+
+
 class PpcFRegOper(PpcRegOper):
     ''' Floating Point register operand.'''
-    def __init__(self, reg, va=0, tsize=4):
+    def __init__(self, reg, va=0):
         reg += REG_OFFSET_FLOAT
-        super(PpcFRegOper, self).__init__(reg, va, tsize)
+        super(PpcFRegOper, self).__init__(reg, va)
 
 class PpcVRegOper(PpcRegOper):
     ''' Vector register operand.'''
-    def __init__(self, reg, va=0, tsize=4):
+    def __init__(self, reg, va=0):
         reg += REG_OFFSET_VECTOR
-        super(PpcVRegOper, self).__init__(reg, va, tsize)
+        super(PpcVRegOper, self).__init__(reg, va)
 
 class PpcCRegOper(PpcRegOper):
     ''' CR register operand field.'''
-    def __init__(self, field, va=0, tsize=4):
+    def __init__(self, field, va=0):
         reg = REG_CR
-        super(PpcCRegOper, self).__init__(reg, va, tsize)
+        super(PpcCRegOper, self).__init__(reg, va)
         self.field = field
+
+    def getWidth(self, emu):
+        '''
+        We cheat a little here, since the actual width is 4 bits...
+        '''
+        return 1
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
-        if self.reg != oper.reg:
+        if self.oflags != oper.oflags:
             return False
-        if self.tsize != oper.tsize:
+        if self.reg != oper.reg:
             return False
         if self.field != oper.field:
             return False
@@ -210,14 +265,14 @@ class PpcCRegOper(PpcRegOper):
         if emu == None:
             return
 
-        emu.setCr(self.field, val & 0xf)
+        emu.setCr(val & 0xf, self.field)
 
 CRBITS = ('lt', 'gt', 'eq', 'so')
 class PpcCBRegOper(PpcRegOper):
     ''' CR register bit operand.'''
-    def __init__(self, bit, va=0, tsize=4):
+    def __init__(self, bit, va=0):
         reg = REG_CR
-        super(PpcCBRegOper, self).__init__(reg, va, tsize)
+        super(PpcCBRegOper, self).__init__(reg, va)
         self.bit = bit
         self.bitidx = 31 - bit  # stupid NXP numbering
 
@@ -276,16 +331,13 @@ class PpcCBRegOper(PpcRegOper):
 
 class PpcImmOper(envi.ImmedOper):
     ''' Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
+    def __init__(self, val, va=0):
         self.val = val
-        self.tsize = tsize
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
         if self.getOperValue(None) != oper.getOperValue(None):
-            return False
-        if self.tsize != oper.tsize:
             return False
         return True
 
@@ -329,60 +381,68 @@ class PpcImmOper(envi.ImmedOper):
         val = self.getOperValue(op)
         return '%#x' % (val)
 
+    def getWidth(self, emu):
+        return emu.psize
+
 class PpcSImmOper(PpcImmOper):
     ''' Signed Immediate operand. '''
-    def __init__(self, val, va=0, bits=5, tsize=4):
+    def __init__(self, val, va=0, bits=5):
         val = e_bits.bsigned(val, bits)
-        super(PpcSImmOper, self).__init__(val, va, tsize)
+        super(PpcSImmOper, self).__init__(val, va)
 
 class PpcSImm5Oper(PpcSImmOper):
     ''' Signed Immediate operand bit 5. '''
-    def __init__(self, val, va=0, tsize=4):
-        super(PpcSImm5Oper, self).__init__(val, va, 5, tsize)
+    def __init__(self, val, va=0):
+        super(PpcSImm5Oper, self).__init__(val, va, 5)
 
 class PpcSImm12Oper(PpcSImmOper):
     ''' Signed Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
-        super(PpcSImm12Oper, self).__init__(val, va, 12, tsize)
+    def __init__(self, val, va=0):
+        super(PpcSImm12Oper, self).__init__(val, va, 12)
 
 class PpcSImm16Oper(PpcSImmOper):
     ''' Signed Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
-        super(PpcSImm16Oper, self).__init__(val, va, 16, tsize)
+    def __init__(self, val, va=0):
+        super(PpcSImm16Oper, self).__init__(val, va, 16)
 
-class PpcSImm32Oper(PpcSImmOper):
+class PpcSImm20Oper(PpcSImmOper):
     ''' Signed Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
-        super(PpcSImm32Oper, self).__init__(val, va, 32, tsize)
+    def __init__(self, val, va=0):
+        super(PpcSImm20Oper, self).__init__(val, va, 20)
 
 class PpcSImm3Oper(PpcSImmOper):
     ''' Signed Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
+    def __init__(self, val, va=0):
         val = e_bits.signed(val * 4, 2)
-        super(PpcSImm3Oper, self).__init__(val, va, tsize)
+        super(PpcSImm3Oper, self).__init__(val, va)
+
+class PpcSImm32Oper(PpcSImmOper):
+    ''' Signed Immediate operand. '''
+    def __init__(self, val, va=0):
+        super(PpcSImm32Oper, self).__init__(val, va, 32)
 
 class PpcUImmOper(PpcImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
-        super(PpcUImmOper, self).__init__(val, va, tsize)
+    def __init__(self, val, va=0):
+        super(PpcUImmOper, self).__init__(val, va)
 
 class PpcUImm1Oper(PpcUImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
+    def __init__(self, val, va=0):
         val *= 8
-        super(PpcUImm1Oper, self).__init__(val, va, tsize)
+        super(PpcUImm1Oper, self).__init__(val, va)
 
 class PpcUImm2Oper(PpcUImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
+    def __init__(self, val, va=0):
         val *= 2
-        super(PpcUImm2Oper, self).__init__(val, va, tsize)
+        super(PpcUImm2Oper, self).__init__(val, va)
 
 class PpcUImm3Oper(PpcUImmOper):
     ''' Unsigned Immediate operand. '''
-    def __init__(self, val, va=0, tsize=4):
+    def __init__(self, val, va=0):
         val *= 4
-        super(PpcUImm3Oper, self).__init__(val, va, tsize)
+        super(PpcUImm3Oper, self).__init__(val, va)
 
 class PpcMemOper(envi.DerefOper):
     '''
@@ -437,14 +497,16 @@ class PpcMemOper(envi.DerefOper):
         if emu is None:
             return None
 
-        return self._get_base_reg(emu) + self._get_offset(emu)
+        return (self._get_base_reg(emu) + self._get_offset(emu)) & e_bits.u_maxes[emu.psize]
 
-    def updateReg(self, op, emu):
+    def updateReg(self, op, emu, addr=None):
         if self.base_reg == 0:
             raise envi.InvalidInstruction(mesg='Cannot update base register when rA == 0')
 
-        ea = self.getOperAddr(op, emu)
-        emu.setRegister(self.base_reg, ea)
+        if addr is None:
+            addr = self.getOperAddr(op, emu)
+
+        emu.setRegister(self.base_reg, addr)
 
     def updateRegObj(self, emu):
         if self.base_reg == 0:
@@ -455,17 +517,47 @@ class PpcMemOper(envi.DerefOper):
         emu.setRegObj(self.base_reg, rval)
 
     def render(self, mcanv, op, idx):
+        mcanv.addNameText(hex(self._get_offset()))
+        mcanv.addText('(')
         if self.base_reg == 0:
-            mcanv.addNameText(f'{hex(self._get_offset())}(0)')
+            mcanv.addNameText('0x0')
         else:
-            mcanv.addNameText(hex(self._get_offset()))
-            mcanv.addText('(')
             mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
-            mcanv.addText(')')
+        mcanv.addText(')')
 
     def repr(self, op):
-        base = 0 if self.base_reg == 0 else ppc_regs[self.base_reg][0]
+        base = '0x0' if self.base_reg == 0 else ppc_regs[self.base_reg][0]
         return f'{hex(self._get_offset())}({base})'
+
+    def getWidth(self, emu):
+        return self.tsize
+
+class PpcSEMemOper(PpcMemOper):
+    '''
+    Just like a normal PpcMemOper but the base register is allowed to be r0
+    '''
+    def _get_base_reg(self, emu=None):
+        return emu.getRegister(self.base_reg)
+
+    def updateReg(self, op, emu, addr=None):
+        if addr is None:
+            addr = self.getOperAddr(op, emu)
+
+        emu.setRegister(self.base_reg, addr)
+
+    def updateRegObj(self, emu):
+        import vivisect.symboliks.common as vs_common
+        rval = emu.getRegObj(self.base_reg) + vs_common.Const(self._get_offset(emu), emu.psize)
+        emu.setRegObj(self.base_reg, rval)
+
+    def render(self, mcanv, op, idx):
+        mcanv.addNameText(hex(self._get_offset()))
+        mcanv.addText('(')
+        mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
+        mcanv.addText(')')
+
+    def repr(self, op):
+        return f'{hex(self._get_offset())}({ppc_regs[self.base_reg][0]})'
 
 class PpcIndexedMemOper(PpcMemOper):
     '''
@@ -493,7 +585,7 @@ class PpcIndexedMemOper(PpcMemOper):
 
     def render(self, mcanv, op, idx):
         if self.base_reg == 0:
-            mcanv.addNameText(f'0')
+            mcanv.addNameText('0x0')
         else:
             mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
 
@@ -501,7 +593,7 @@ class PpcIndexedMemOper(PpcMemOper):
         mcanv.addNameText(ppc_regs[self.offset][0], typename='registers')
 
     def repr(self, op):
-        base = "0x0" if self.base_reg == 0 else ppc_regs[self.base_reg][0]
+        base = '0x0' if self.base_reg == 0 else ppc_regs[self.base_reg][0]
         return f'{base},{ppc_regs[self.offset][0]}'
 
 class PpcJmpRelOper(PpcImmOper):
@@ -560,48 +652,6 @@ class PpcJmpAbsOper(PpcJmpRelOper):
 
 fields = (None, 'c', 'x', 'cx', 's', 'cs', 'xs', 'cxs',  'f', 'fc', 'fx', 'fcx', 'fs', 'fcs', 'fxs', 'fcxs')
 
-class PpcCrOper(envi.RegisterOper):
-    def __init__(self, val, va, mask=0xffffffff):
-        self.mask = mask
-        self.val = val
-
-    def __eq__(self, oper):
-        if not isinstance(oper, self.__class__):
-            return False
-        if self.val != oper.val:
-            return False
-        return True
-
-    def involvesPC(self):
-        return False
-
-    def isDeref(self):
-        return False
-
-    def getOperValue(self, op, emu=None):
-        if emu == None:
-            return None
-
-        psr = emu.getRegister(REG_CR)
-        return psr
-
-    def setOperValue(self, op, emu=None, val=None):
-        if emu == None:
-            return None
-
-        psr = emu.getRegister(REG_CR)
-        newpsr = psr & (~self.mask) | (val & self.mask)
-        emu.setRegister(REG_CR)
-
-        return newpsr
-
-    def repr(self, op):
-        return "cr%u" % self.val
-
-    def render(self, mcanv, op, idx):
-        name = "cr%u" % self.val
-        mcanv.addNameText(name, typename='cr')
-
 OPERCLASSES = {
     FIELD_BD : PpcSImm3Oper,
     FIELD_BH : PpcImmOper,
@@ -632,7 +682,7 @@ OPERCLASSES = {
     FIELD_PMRN5_9 : PpcImmOper,
     FIELD_SA : PpcImmOper,
     FIELD_SH : PpcImmOper,
-    FIELD_SIMM : PpcImmOper,
+    FIELD_SIMM : PpcSImmOper,
     FIELD_SIMM16 : PpcSImm16Oper,
     FIELD_SIMM5 : PpcSImm5Oper,
     FIELD_SPRN0_4 : PpcImmOper,
@@ -646,7 +696,7 @@ OPERCLASSES = {
     FIELD_TMRN0_4 : PpcImmOper,
     FIELD_TMRN5_9 : PpcImmOper,
     FIELD_TO : PpcImmOper,
-    FIELD_UIMM : PpcUImmOper,
+    FIELD_UIMM : PpcImmOper,
     FIELD_UIMM1 : PpcUImm1Oper,
     FIELD_UIMM2 : PpcUImm2Oper,
     FIELD_UIMM3 : PpcUImm3Oper,
@@ -671,11 +721,16 @@ OPERCLASSES = {
     FIELD_mb1_5 : PpcImmOper,
     FIELD_me0 : PpcImmOper,
     FIELD_me1_5 : PpcImmOper,
-    FIELD_rA : PpcRegOper,
-    FIELD_rB : PpcRegOper,
-    FIELD_rC : PpcRegOper,
-    FIELD_rD : PpcRegOper,
-    FIELD_rS : PpcRegOper,
+    FIELD_rA : PpcERegOper,
+    FIELD_sA : PpcRegOper,
+    FIELD_rB : PpcERegOper,
+    FIELD_sB : PpcRegOper,
+    FIELD_rC : PpcERegOper,
+    FIELD_sC : PpcRegOper,
+    FIELD_rD : PpcERegOper,
+    FIELD_sD : PpcRegOper,
+    FIELD_rS : PpcERegOper,
+    FIELD_sS : PpcRegOper,
     FIELD_sh0 : PpcImmOper,
     FIELD_sh1_5 : PpcImmOper,
     FIELD_vA : PpcVRegOper,

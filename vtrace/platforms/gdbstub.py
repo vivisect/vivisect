@@ -1,893 +1,1489 @@
+"""
+This file contains the GDB stub code for both clients and servers. The generic 
+protocol code is contained in GdbStubBase, while the client-specific code is
+located in GdbClientStub and the server-specific code is in GdbServerStub. By
+client we mean the code sending commands (e.g. GDB) and server we mean the code
+driving the execution engine (e.g. QEMU, gdbserver, Vivisect emulator,
+etc...).
 
-import os
-import re
-import time
-import socket
+The protocol itself is relatively simple and is documented here:
+    https://sourceware.org/gdb/onlinedocs/gdb/Remote-Protocol.html
+
+Adding support for new architectures requires adding the register ordering for
+that architecture to gdb_reg_fmts.py. The order of the register in each list is
+very important. If that list does not match between the client and the server,
+then interaction with registers will fail. The order of registers seems to be
+set by the server, and is not consistent (in my experience). However, it seems
+like the order displayed after running 'i r all' is  usually the order you want
+to follow.
+
+Consuming the client and server stubs should be done via inheritance.
+"""
+
+import time 
+import errno
+import base64
 import struct
 import logging
+import socket
 import binascii
-import tempfile
-import threading
+from . import gdb_reg_fmts
+import envi.common as e_cmn
 
-import PE
-import envi
-import vtrace
-
-import envi.bits as e_bits
-import envi.common as e_common
-import envi.registers as e_registers
-import vtrace.platforms.base as v_base
-import envi.symstore.resolver as e_resolv
-
-'''
-VMWare config options...
-debugStub.listen.guest64 = "TRUE" # ends up on port 8864 (or next avail)
-debugStub.listen.guest32 = "TRUE" # ....            8832
-
-debugStub.listen.guest32.remote = "TRUE"
-
-debugStub.hideBreakpoints = "TRUE" # Enable breakpoints
-
-From GDB stuff...
-===== i386
-src/gdb/i386-tdep.c
-src/gdb/regformats/reg-i386.dat
-===== amd64
-src/gdb/amd64-tdep.c
-src/gdb/regformats/reg-x86-64.dat
-===== arm
-name:arm
-expedite:r11,sp,pc
-32:r0
-32:r1
-32:r2
-32:r3
-32:r4
-32:r5
-32:r6
-32:r7
-32:r8
-32:r9
-32:r10
-32:r11
-32:r12
-32:sp
-32:lr
-32:pc
-96:f0
-96:f1
-96:f2
-96:f3
-96:f4
-96:f5
-96:f6
-96:f7
-32:fps
-32:cpsr
-'''
+from itertools import groupby
 
 logger = logging.getLogger(__name__)
 
-gdb_reg_defs = {
-    'i386': (
-        ['eax','ecx','edx','ebx','esp','ebp','esi','edi','eip','eflags','cs','ss','ds','es','fs','gs'
-        ],
-        '<16I'
-    ),
+e_cmn.initLogging(logger, level=logging.DEBUG)
 
-    'amd64': (
-        ['rax','rbx','rcx','rdx','rsi','rdi','rbp','rsp',
-         'r8','r9','r10','r11','r12','r13','r14','r15','rip',
-         'eflags','cs','ss','ds','es','fs','gs',
-         #'st0','st1','st2','st3','st4','st5','st6','st7',
-         #'fctrl','fstat','ftag','fiseg','fioff','foseg','fooff','fop'
-        ],
+class GdbStubBase:
+    def __init__(self, arch, addr_size, le, reg, port):
+        """ 
+        Base class for consumers of GDB protocol for remote debugging.
 
-        #'<17Q7L' + ('10s' * 8) + '8L'
-        '<17Q7L'
-    ),
+        Args:
+            arch (str): The architecture of the target being debugged.
 
-    # FIXME we will need arm flavors...
-    'arm': (
-        ["r0","r1","r2","r3","r4","r5","r6","r7","r8","r9","sl","fp","ip","sp",
-         "lr","pc", None, "cpsr"],
-        '<16I96sI'
-    ),
-}
+            addr_size (int): The addresss size of the target being debugged 
+            in bits (e.g. 64 for x86_64)
 
-exit_types = ('X', 'W')
+            le (bool): True if the byte storage used by the debugged target is 
+            little-endian, False if big-endian.
 
-def pkt(cmd):
-    return '$%s#%.2x' % (cmd, csum(cmd))
+            reg (list): The list of registers monitored by the debugger. The 
+            order of this list is very important, and must be the same 
+            used for both the client and server. If not, parsing of register 
+            packets will fail. The list itself contains sets of register names
+            (str) and register sizes (int) in bits (e.g. ('rip', 64)).
 
-def csum(bytes):
-    sum = 0
-    for b in bytes:
-        sum += ord(b)
-    return sum & 0xff
+            port (int): The port the debug target listens on.
 
-SIGINT  = 2
-SIGTRAP = 5
-
-trap_sigs = (SIGINT, SIGTRAP)
-
-class GdbServerDisconnected(Exception):
-    pass
-
-class GdbStubMixin:
-
-    def __init__(self, host=None, port=None):
-        self._gdb_host = host
+        Returns:
+            None
+        """
         self._gdb_port = port
+        self._arch = arch
+        self._gdb_reg_fmt = reg
+
+        # socket overwhich the client talks to the server
         self._gdb_sock = None
 
-        self._gdb_tx_lock = threading.Lock()  # socket tx lock
-        self._gdb_rx_lock = threading.Lock()  # socket rx lock
-        self._gdb_tns_lock = threading.Lock() # for "transact" API
+        # The list of supported features for a given client-server session
+        #TODO: complete the list, but for now the only thing we care about is
+        # PacketSize
+        self._supported_features = {b'PacketSize':None,
+                                    b'QPassSignals': None,}
 
-        self._gdb_filemagic = None # Tracers may use this to trigger _findLibraryMaps
+        self._le = le
+        self._addr_size = addr_size
 
-        # These get set by _gdbSetRegisterInfo
-        self._gdb_regfmt = ''
-        self._gdb_regsize = 0
-        self._gdb_reg_xlat = []
-        #self._gdb_regnames = []
+    def _decodeGDBVal(self, val):
+        """
+        Decodes a value from a GDB string into an int.
 
-        self.stepping = False
-        self.breaking = False
+        Args:
+            val (str): A value in GDB string format.
 
-        self._gdbSetArch( self.getMeta('Architecture') )
+        Returns:
+            int: The equivalent int value of the supplied string.
+        """
+        val_str = val
+        if self._le:
+            val_str = self._swapEndianness(val)
+        return self._atoi(val_str)
+
+    def _encodeGDBVal(self, val, size=None):
+        """
+        Encodes an int to its GDB compliant format.
+
+        Args:
+            val (int): A int value to convert.
+
+            size (int): The size of the integer in bits (e.g. uint64 -> 64) 
+            for padding purposes. If the val does not need to be padded, 
+            then no size needs to be provided.
+
+        Returns:
+            str: The int value as a GDB encoded string.
+        """
+        val_str = self._itoa(val)
+        
+        if size is not None:
+            val_str = self._padHexString(val_str, size)
+       
+        if self._le:
+            val_str = self._swapEndianness(val_str)
+        
+        return val_str
+
+    def _gdbCSum(self, cmd):
+        """
+        Generates a GDB-compliant checksum for a command
+        
+        Args:
+            cmd (str): command to be checksum-ed
+
+        Returns:
+            int: the GDB-compliant checksum of the provided command
+        """
+        sum = 0
+        for b in cmd:
+            sum += b
+        return sum & 0xff
+
+    def _buildPkt(self, cmd):
+        """
+        Builds a GDB command packet from a raw command.
+
+        Args:
+            cmd (str): command to be checksum-ed
+        
+        Returns:
+            str: a GDB command packet        
+        """
+        return b'$%s#%.2x' % (cmd, self._gdbCSum(cmd))
+
+    def _transPkt(self, pkt):
+        """
+        Transmits a packet over a socket connection
+
+        Args:
+            pkt (str): packet to send to target
+
+        Returns:
+            None
+        """
+        if self._gdb_sock is None:
+            raise Exception('No socket available for transmission')
+
+        logger.debug('Transmitting packet: %s' % (pkt))
+        self._gdb_sock.sendall(pkt)
+    
+    def _recvResponse(self):
+        """
+        Handles receiving data over the server-client socket.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        res = self._gdb_sock.recv(1)
+        status = None
+
+        if len(res) == 0:
+            raise Exception('Socket not responding')
+
+        # If this is an acknowledgment packet, return early
+        if (res == b'+') or (res == b'-'):
+            return res
+        elif res == b'$':
+            pass
+        else:
+            res = res + self._gdb_sock.recv(10)
+            raise Exception('Received unexpected packet: %s' % res)
+
+        pkt = b'$%s' % self._recvUntil(b'#')
+        msg_data = self._parseMsg(pkt)
+
+        expected_csum = int(self._gdb_sock.recv(2), 16)
+        actual_csum = self._gdbCSum(msg_data)
+
+        if expected_csum != actual_csum:
+            raise Exception('Invalid packet data checksum')
+
+        decoded = self._lengthDecode(msg_data)
+        return decoded
+
+    def _parseMsg(self, pkt):
+        """
+        Removes the protocol delimiters from a given packet.
+        
+        Args:
+            pkt (str): A GDB protocol packet.
+
+        Returns:
+            str: The contents of the packet
+        """
+        cmd_data = pkt
+        if b'#' in pkt:
+            cmd_data = cmd_data.split(b'#')[0]
+        cmd_data = cmd_data[1:]
+
+        return cmd_data
 
     def _recvUntil(self, c):
-        ret = ''
-        while not ret.endswith(c):
+        """
+        Recieve data from the socket until the specified character is reached.
+
+        Args:
+            c (str): the character to read until.
+
+        Returns:
+            str: The characters read up until and including the delimiting
+            character.
+        """
+        ret = []
+        while not c in ret:
             x = self._gdb_sock.recv(1)
             if len(x) == 0:
-                raise Exception('socket closed prematurely!')
-            ret += x
-        return ret
+                raise Exception('Socket closed unexpectedly')
+            ret.append(x)
+            
+        #logger.debug('_recvUntil(%r):  %r', c, ret)
+        return b''.join(ret)
 
-    def _recvPkt(self):
+    def _msgExchange(self, msg, expect_res= True):
+        """
+        Handles a message transaction (sending a message and receiving a 
+        response).
 
-        with self._gdb_rx_lock:
+        Args:
+            msg (str): The msg to send to the target.
 
-            b = self._gdb_sock.recv(1)
-            if len(b) == 0:
-                raise GdbServerDisconnected()
+            expect_res (bool): True if the sender expects both an ack and a response, 
+            False if the sender only expects an ack.
 
-            if b != '$':
-                raise Exception('Invalid Pkt Beginning! ->%s<-' % b)
+        Returns:
+            str: the response from the target.
+        """
+        logger.debug('_msgExchange: %r %r', msg, expect_res)
+        retry_count = 0
+        retry_max = 10
+        status = None
+        res = None
 
-            bytes = self._recvUntil('#')
-            bytes = bytes[:-1]
+        # Send the command until its receipt is acknowledged
+        while (status != b'+') and (retry_count < retry_max):
+            self._sendMsg(msg)
+            status = self._recvResponse()
+            retry_count += 1    
 
-            isum = int(self._gdb_sock.recv(2), 16)
-            ssum = csum(bytes)
-            if isum != ssum:
-                raise Exception('Invalid Checksum! his: 0x%.2x ours: 0x%.2x' % (isum, ssum))
+        # Return the response
+        if expect_res:
+            res = self._recvResponse()
+            # Acknowledge receipt of the packet
+            self._sendAck()
+        else:
+            res = status
+        
+        return res
 
-            self._gdb_sock.sendall('+')
+    def _sendAck(self):
+        """
+        Sends an acknowledgment packet.
 
-            logger.debug('RECV: ->%s<-', bytes)
-            return bytes
+        Args:
+            None
 
-    def _gdbAddMemBreak(self, addr, size):
-        resp = self._cmdTransact('Z0,%x,%x' % (addr, size))
-        self._raiseIfError( resp )
+        Returns:
+            None
+        """
+        self._transPkt(b'+')
 
-    def _gdbDelMemBreak(self, addr, size):
-        resp = self._cmdTransact('z0,%x,%x' % (addr, size))
-        self._raiseIfError( resp )
+    def _sendRetrans(self):
+        """
+        Sends a re-transmit request packet.
 
-    def _cmdTransact(self, cmd):
-        with self._gdb_tns_lock:
-            self._sendPkt(cmd)
-            return self._recvPkt()
+        Args:
+            None
 
-    def _sendPkt(self, cmd):
-        logger.debug('SEND: ->%s<-', cmd)
-        with self._gdb_tx_lock:
+        Returns:
+            None
+        """
+        self._transPkt(b'-')
 
-            self._gdb_sock.sendall(pkt(cmd))
-            b = self._gdb_sock.recv(1)
-            if b != '+':
-                raise Exception('Retrans! ->%s<-' % b)
+    def _disconnectSocket(self):
+        """
+        Closes the socket connection between the client and the server.
+        
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        if self._gdb_sock is not None:
+            self._gdb_sock.shutdown(2)
+            self._gdb_sock.close()
+            self._gdb_sock = None
+
+            
+    def _buildRegPkt(self, reg_state):
+        """
+        Constructs a register packet from the current register state.
+
+        Args:
+            reg_state (dict): Dict of register name (str) and value (int) 
+            pairs.
+
+        Returns:
+            str: The body of a GDB register packet.
+        """
+        reg_pkt = b''
+        reg_cnt = len(reg_state)
+        reg_updated = 0
+        for r in self._gdb_reg_fmt:
+            reg_name = r[0]
+
+            # Only updated the registers supported by the server
+            if reg_updated >= reg_cnt:
+                break
+
+            # size in bytes
+            reg_size = r[1] // 8
+            reg_val = reg_state[reg_name]
+           
+            reg_val = self._encodeGDBVal(reg_val, r[1])
+
+            # two ascii characters per byte
+            write_size = reg_size * 2
+            if reg_size != len(reg_val) // 2:
+                raise Exception('Attempt to store %d byte value in %d byte register' 
+                        % (len(reg_val) // 2, reg_size))
+            
+            reg_pkt += reg_val
+            reg_updated += 1
+
+        return reg_pkt
+
+    def _parseRegPacket(self, pkt):
+        """
+        Parses the body of a GDB register data packet.
+
+        Args: 
+            pkt (str): The register data packet (GDB protocol format) to be
+            parsed.
+
+        Returns:
+            dict: A dictionary of register names (str) and register value
+            (int) pairs.
+        """
+        regs = {}
+        offset = 0
+        for r in self._gdb_reg_fmt:
+            # GDB server doesn't have to send all registers, so bail if we 
+            # run out of data
+            if offset >= len(pkt):
+                break
+            reg_name = r[0]
+
+            # convert bits to bytes
+            reg_size = r[1] // 8
+            # each byte is a two digit hex number
+            read_size = reg_size * 2
+            reg_val = pkt[offset:offset + read_size]
+            # convert to an int
+            reg_val = self._decodeGDBVal(reg_val)
+
+            regs[reg_name] = reg_val
+            offset += read_size
+
+        return regs
+    
+    def _lengthEncode(self, data):
+        """
+        Encodes data with GDB's length encoding scheme.
+
+        Args:
+            data (str): The data to encode.
+
+        Returns:
+            str: The encoded data.
+        """
+        max_rep = 97
+        grouped = [b''.join([b'%c' % x for x in g]) for _, g in groupby(data)]
+        enc_data = b''
+        for g in grouped:
+            length = len(g)
+            char = g[0:1]
+            # Special handling for b'#' (6 + 29)
+            if length == 6:
+                enc_data += b'%s\"%s' % (char, char)
+            # Special handling for b'$' (7 + 29)
+            elif length == 7:
+                enc_data += b'%s\"%s%s' % (char, char, char)
+            # GDB only supports encoded up to 126 repetitions
+            elif length > max_rep:
+                q, r = divmod(length, max_rep)
+                # Split into chunks of 126 repetitions
+                chunk = b'%s*%s' % (char, b'%c' % (max_rep + 29))
+                enc_data += chunk * q
+                # Handle the remainder
+                if r == 6:
+                    enc_data += b'%s\"%s' % (char, char)
+                elif r == 7:
+                    enc_data += b'%s\"%s%s' % (char, char, char)
+                else:
+                    enc_data += b'%s*%s' % (char, b'%c' % (r + 29))
+            elif length > 2:
+                rep_count = length - 1
+                enc_data += b'%s*%s' % (char, b'%c' % (rep_count + 29))
+            else:
+                enc_data += g
+
+        return enc_data
+
+    def _lengthDecode(self, data):
+        """
+        Decodes data encoded in GDB's length encoding scheme.
+
+        Args: 
+            data (str): The data to decode.
+
+        Returns:
+            str: The decoded data.
+        """
+        dec_data = b''
+        i = 0
+        while i < len(data):
+            char = data[i:i+1]
+            if char != b'*':
+                dec_data += char
+                i += 1
+                continue
+           
+            rep_count = b'%s' % data[i+1:i+2]
+            rep_count = ord(rep_count) - 29
+            dec_data += data[i-1:i] * rep_count
+            i += 2
+
+        return dec_data
+
+    def _itoa(self, val):
+        """
+        Converts an integer to a string of that integer's hex value (e.g. 
+        65 -> '41').
+        
+        Args:
+            val (int): The integer to convert to a string of hex values.
+
+        Returns:
+            str: The string of hex characters of the provided integer.
+        """
+        val_str = b'%x' % val
+        if len(val_str) % 2 != 0:
+            val_str = b'0%x' % val
+
+        return val_str
+
+    def _atoi(self, val):
+        """
+        Converts a string containing hex values to an integer of equivalent 
+        value (e.g. '41' -> 65).
+
+        Args:
+            val (str): The string of hex values to convert to an integer.
+
+        Returns:
+            int: The integer value of the provided string.
+        """
+        return int(val, 16)
+
+    def _padHexString(self, val, size):
+        """
+        Pads a string of hex values to the provided size with leading zeros.
+
+        Args:
+            val (str): String of hex bytes.
+
+            size (int): Number of bits the string should be padded to.
+
+        Returns:
+            str: The padded string
+        """
+        # 2 characters per byte (8 bits)
+        cur_len = len(val)
+        target_len = (size // 8) * 2
+        if cur_len >= target_len:
+            return val
+
+        pad_len = target_len - cur_len
+        return b'%s%s' % (b'0' * pad_len, val)
+
+    def _swapEndianness(self, byte_str):
+        """
+        Swaps the endianness of the provided string of hex values.
+
+        Args:
+            byte_str (str): An even-length string of hex bytes.
+
+        Returns:
+            str: The original hex value with the endianness swapped 
+            (little-big or big-little).
+        """
+        dec = bytes.fromhex(byte_str.decode())
+        swapped = dec[::-1]
+        enc = swapped.hex().encode()
+        return enc
+
+    def _sendMsg(self, msg):
+        """
+        Sends a GDB remote protocol message.
+
+        Args:
+            msg (str): The GDB msg to send.
+
+        Returns:
+            None
+        """
+        logger.debug('Sending message: %s' % (msg))
+        
+        # Build the command packet
+        pkt = self._buildPkt(msg)
+        
+        # Transmit the packet
+        self._transPkt(pkt)
+
+class GdbClientStub(GdbStubBase):
+    """
+    The GDB client stub code. GDB clients should inherit from this class.
+    """
+    def __init__(self, arch, addr_size, le, reg, host, port, server):
+        """ 
+        The GDB client stub.
+
+        Args:
+            arch (str): The architecture of the target being debugged.
+
+            addr_size (int): The addresss size of the target being debugged 
+            in bits (e.g. 64 for x86_64)
+
+            le (bool): True if the byte storage used by the debugged target is 
+            little-endian, False if big-endian.
+
+            reg (list): The list of registers monitored by the debugger. The 
+            order of this list is very important, and must be the same 
+            used for both the client and server. If not, parsing of register 
+            packets will fail. The list itself contains sets of register names
+            (str) and register sizes (int) in bits (e.g. ('rip', 64)).
+
+            host (str): The hostname of the remote debugging server.
+
+            port (int): The port the debug target listens on.
+
+            server (str): The type of GDB server (qemu, gdbserver, etc...)
+
+        Returns:
+            None
+        """
+        GdbStubBase.__init__(self, arch, addr_size, le, reg, port)
+
+        self._gdb_host = host
+        self._gdb_server = server
+
+    def gdbDetach(self):
+        """
+        Detaches from the GDB server.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        res = self._msgExchange(b'D')
+        self._disconnectSocket()
+ 
+        if res == b'OK':
+            pass
+        elif res[0:1] == b'E':
+            raise Exception('Error occurred while detaching: %s' % (res[1:3]))
+        else:
+            raise Exception('Unexpected response when detaching %s' % (res))
+
 
     def _connectSocket(self):
+        """
+        Connects the host to the target via a socket.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         if self._gdb_sock is not None:
             self._gdb_sock.shutdown(2)
 
-        tries = 0
-        while tries < 10:
-            self._gdb_sock = socket.socket()
-            try:
-                self._gdb_sock.connect( (self._gdb_host, self._gdb_port) )
+        self._gdb_sock = socket.socket()
+        self._gdb_sock.connect((self._gdb_host, self._gdb_port))
+        self._gdb_sock.settimeout(None)
 
-                # Some gdb stubs seem to send/expect an initial '+'
-                try:
-                    self._gdb_sock.settimeout(1)
-                    self._gdb_sock.recv(1)
-                    self._gdb_sock.sendall('+')
+    
+    def gdbAttach(self):
+        """
+        Attaches to the GDB server.
 
-                except socket.timeout:
-                    pass
+        Args:
+            None
 
-                self._gdb_sock.settimeout(None)
-                break
-
-            except Exception:
-                time.sleep(0.2)
-                tries += 1
-
-    def _monitorCommand(self, cmd):
-        resp = ''
-        cmd = 'qRcmd,%s' % e_common.hexify(cmd)
-        pkt = self._cmdTransact(cmd)
-        while not pkt.startswith('OK'):
-            self._raiseIfError(pkt)
-            if not pkt.startswith('O'):
-                return binascii.unhexlify(pkt)
-            resp += binascii.unhexlify(pkt[1:])
-            pkt = self._recvPkt()
-        return resp
-
-    def platformAttach(self, pid):
+        Returns:
+            None
+        """
         self._connectSocket()
-        self.attaching = True
-        # Wait for the debug stub to stop the target
-        while True:
-            pkt = self._cmdTransact('?')
-            if len(pkt) == 0:
-                raise Exception('Attach Response Error!')
+        if self._gdb_server == b'gdbserver':
+            self._targetRemote()
 
-            if int(pkt[1:3], 16) == 0:
-                import time
-                time.sleep(0.1)
-                self.platformSendBreak()
-                pkt = self._cmdTransact('?')
-            break
-        self._sendPkt('?')
+    def _targetRemote(self):
+        """
+        Performs the initial handshake with the server (equivalent to the
+        'target remote' command in GDB).
 
-    def platformContinue(self):
-        sig = self.getCurrentSignal()
-        cmd = 'c'
-        if sig is not None:
-            cmd = 'C%.2x' % sig
-        self._sendPkt(cmd)
+        Args:
+            None
 
-    def platformStepi(self):
-        # FIXME by selected thread? and address?
-        #self._cmdTransact('s')
-        self._sendPkt('s')
-        self.stepping = True
-
-    def platformDetach(self):
-        if not self.running:
-            self.platformContinue()
-        self._gdb_sock.shutdown(2)
-        self._gdb_sock = None
-
-    def platformSendBreak(self):
-        '''
-        For now, the only way I know how to re-break the target
-        is to disconnect and re-connect...  TOTALLY GHETTO HACK!
-        '''
-        # If this isn't a break during attach, tell everybody we are
-        # breaking...
-        if not self.attaching:
-            self.breaking = True
-        self._gdb_sock.sendall('\x03')
-
-    def platformWait(self):
-        while True:
-            pkt = self._recvPkt()
-            if pkt.startswith('O'):
-                continue
-            break
-        return pkt
-
-    def _gdbJustAttached(self):
-        pass
-
-    def _gdbCreateThreads(self):
-        self._simpleCreateThreads()
-
-    def _gdbLoadLibraries(self):
-        if self._gdb_filemagic:
-            self._findLibraryMaps(self._gdb_filemagic, always=True)
-
-    def platformProcessEvent(self, event):
-        logger.debug('EVENT ->%s<-', str(event))
-
-        if len(event) == 0:
-            self.setMeta('ExitCode', 0xffffffff)
-            self.fireNotifiers(vtrace.NOTIFY_EXIT)
-            self._gdb_sock.shutdown(2)
-            self._gdb_sock = None
-            return
-
-        atype = event[0]
-        signo = int(event[1:3], 16)
-
-        # Is this a thread specific signal?
-        if atype == 'T':
-
-            logger.debug('Signal: %s', str(sig))
-
-            dictbytes = event[3:]
-
-            evdict = {}
-            for kvstr in dictbytes.split(';'):
-                if not kvstr:
-                    break
-                key, value = kvstr.split(':', 1)
-                evdict[key.lower()] = value
-
-            # Did we get a specific thread?
-            tidstr = evdict.get('thread')
-            if tidstr is not None:
-                tid = int(tidstr, 16)
-                self.setMeta('ThreadId', tid)
+        Returns:
+            None
+        """
+        f_name = None
+        f_val = None
+        res = self._msgExchange(b'qSupported')
+        features = res.split(b';')
+        for f in features:
+            if b'PacketSize' in f:
+                f_name = b'PacketSize'
+                f_val = f.split(b'=')[1]
             else:
-                logger.warning("We should ask for the current thread here!")
-
-        elif atype == 'S':
+                f_name = f[:-1]
+                f_val = f[-1]
+            if f_name in self._supported_features.keys():
+                self._supported_features[f_name] = f_val 
+        
+        #TODO: Might need this for multithreading support in the future
+        res = self._msgExchange(b'?')
+        halt_reason = self._parseStopReplyPkt(res)
+        if halt_reason[0:1] == b'W':
+            raise Exception('Debugged process exited')
+        elif halt_reason[0:1] == b'X':
+            raise Exception('Debugged process terminated')
+        elif halt_reason[0:1] == b'T' or halt_reason[0:1] == b'S':
             pass
-
-        elif atype in exit_types:
-
-            # Fire an exit event and GTFO!
-            self._fireExit(signo)
-            return
-
         else:
-            logger.warning('Unhandled Gdb Server Event: %s', str(event))
+            raise Exception('Unexpected reply received while attaching: %s' % 
+                    halt_reason[0:1])
 
-        # if self.attaching and signo in trap_sigs:
-        if self.attaching:
-            self.attaching = False
+        # TODO: make this more dynamic, which will probably be required for 
+        # multithreading support
+        self._msgExchange(b'Hc0')
+        self._msgExchange(b'qC')
+        self._msgExchange(b'qOffsets')
+        self._msgExchange(b'Hg0')
+        self._msgExchange(b'qSymbol')
 
-            self._gdbJustAttached()
-            self._gdbLoadLibraries()
-            self._gdbCreateThreads()
+    def gdbGetRegisters(self, reg = []):
+        """
+        Gathers and returns the contents of the specified registers (all 
+        if no registers are specified)
 
-            self.runAgain(False)  # Clear this, if they want BREAK to run, it will
-            self.fireNotifiers(vtrace.NOTIFY_BREAK)
+        Args:
+            reg (list): list of registers to dump. If no list is provided,
+            all registers are dumped.
 
-        elif self.breaking and signo in trap_sigs:
-            self.breaking = False
-            self.fireNotifiers(vtrace.NOTIFY_BREAK)
+        Returns:
+            dict: A dict of register names (str) and their values (int)
+        """
+        logger.debug('Requesting register state')
+        cmd = b"g"
+        res = self._msgExchange(cmd)
+        if res[0:1] == b'E':
+            raise Exception('Error occurred while dumping register info: %s' 
+                % res[1:])
+        return self._parseRegPacket(res)
 
-        # Process the signal and decide what to do...
-        elif signo == SIGTRAP:
+    def gdbSetRegisters(self, updates):
+        """
+        Updates a selection of registers with new values.
 
-            # Traps on posix systems are a little complicated
-            if self.stepping:
-                #FIXME try out was single step thing for intel
-                self.stepping = False
-                self.fireNotifiers(vtrace.NOTIFY_STEP)
+        Args:
+            update (dict): a dict of register names (str) and the values to 
+            assign to those registers (int).
 
-            elif self.checkBreakpoints():
-                return
+        Returns:
+            None
+        """
+        cur_reg_vals = self.gdbGetRegisters() 
 
-            #elif self.checkWatchpoints():
-                #return
+        for reg_name in updates.keys():
+            # Skip registers that GDB is not expecting. Ideally this would 
+            # exception, but the way Vivisect passes in registers updates 
+            # (one big context object), all updates will include all possible 
+            # registers.
+            if reg_name not in cur_reg_vals.keys():
+                logger.debug('Register %s not recognized by GDB' % reg_name)
+                continue
+            cur_reg_vals[reg_name] = updates[reg_name]
 
-            #elif self.checkBreakpoints():
-                # It was either a known BP or a sendBreak()
-                #return
+        # TODO: build the packet
+        reg_pkt_data = self._buildRegPkt(cur_reg_vals)
+        cmd = b'G%s' % reg_pkt_data
+        self._msgExchange(cmd)
 
-            #elif self.execing:
-                ##self.execing = False
-                #self.handleAttach()
+    # TODO: add support for setting kinds based on architecture
+    def _gdbSetBreakpoint(self, bp_type, addr):
+        """
+        Generic function for setting breakpoints.
 
-            else:
-                self._fireSignal(signo)
+        Args:
+            bp_type (str): The type of breakpoint to set.
 
-        #elif signo == signal.SIGSTOP:
-            #self.handleAttach()
+            addr (int): The address to set the breakpoint on.
 
+        Returns:
+            bool: True if breakpoint was set, False if not.
+        """
+        success = False
+        cmd = b"Z"
+        if bp_type == "soft":
+            cmd += b"0"
+        elif bp_type == "hard":
+            cmd += b"1"
         else:
-            self._fireSignal(signo)
+            raise Exception('Breakpoint type "%s" is unsupported' % bp_type)
 
-    #def _gdbCreateThreads(self):
-        #initid = self.getMeta('ThreadId')
-        #for tid in self.platformGetThreads().keys():
-            #self.setMeta('ThreadId', tid)
-            #self.fireNotifiers(vtrace.NOTIFY_CREATE_THREAD)
-        #self.setMeta('ThreadId', initid)
+        addr = self._itoa(addr)
 
-    #def _gdbSetRegisterInfo(self, fmt, names):
-        # Used by the Trace implementations to tell the gdb
-        # stub code how to unpack the register buf
+        cmd += b',%s' % addr
+        #TODO: proper kind selection based on architecture
+        cmd += b',0'
 
-        #self._gdb_regfmt = fmt
-        #self._gdb_regnames = names
+        res = self._msgExchange(cmd)
+        if res == b'OK':
+            success = True
+        elif res == b'':
+            logger.debug('Setting %s breakpoint is not supported' % bp_type)
+        elif res[0:1] == b'E':
+            logger.debug('Setting breakpoint failed with error %s' % res[1:3])
 
-        #self._gdb_reg_xlat = []
-        #self._gdb_regsize = struct.calcsize(fmt)
+        return success
 
+    def gdbSetSWBreakpoint(self, addr):
+        """
+        Sets a software breakpoint at the provided address.
 
-        #for i,name in enumerate(names):
-            #if name is None: # So we can skip parts of the gdb definition...
-                #continue
-            #j = self.getRegisterIndex(name)
-            #if j is not None:
-                #self._gdb_reg_xlat.append( (i, j) )
+        Args:
+            addr (int): Address to set the software breakpoint on.
 
-    def _gdbSetArch(self, arch):
+        Returns:
+            None
+        """
+        self._gdbSetBreakpoint("soft", addr)
 
-        reginfo = gdb_reg_defs.get(arch)
-        if reginfo is None:
-            raise Exception('No known register mappings for gdbstub on %s!' % arch)
+    def gdbSetHWBreakpoint(self, addr):
+        """
+        Sets a hardware breakpoint at the provided address.
 
-        regnames, regfmt = reginfo
+        Args:
+            addr (int): Address to set the hardware breakpoint on.
 
-        self._gdb_regfmt = regfmt
-        self._gdb_regsize = struct.calcsize( regfmt )
-        self._gdb_regnames = regnames
+        Returns:
+            None
+        """
+        self._gdbSetBreakpoint("hard", addr)
 
-    def platformGetRegCtx(self, tid):
-        '''
-        Get an envi register context from the target stub.
-        '''
+    def _gdbRemoveBreakpoint(self, bp_type, addr):
+        """
+        Generic function for removing breakpoints.
 
-        # FIXME tid!
-        regbuf = self._cmdTransact('g')
-        regbytes = self._runLengthDecode(regbuf)
-        rvals = struct.unpack(self._gdb_regfmt, regbytes[:self._gdb_regsize])
-        ctx = self.arch.archGetRegCtx()
+        Args:
+            bp_type (str): The type of breakpoint to remove.
 
-        for i,regval in enumerate(rvals):
-            regname = self._gdb_regnames[i]
-            if regname is not None:
-                ctx.setRegisterByName( regname, regval )
+            addr (int): The address to remove the breakpoint from.
 
-        return ctx
+        Returns:
+            bool: True if breakpoint was removed, False if not.
+        """
+        success = False
+        cmd = b"z"
+        if bp_type == "soft":
+            cmd += b"0"
+        elif bp_type == "hard":
+            cmd += b"1"
+        else:
+            raise Exception('Breakpoint type "%s" is unsupported' % bp_type)
 
-    def platformSetRegCtx(self, tid, ctx):
-        '''
-        Set the target stub's register context from the envi register context
-        '''
-        # FIXME tid!
-        regbytes = binascii.unhexlify(self._cmdTransact('g'))
-        regremain = regbytes[self._gdb_regsize:]
-        rvals = struct.unpack(self._gdb_regfmt, regbytes[:self._gdb_regsize])
-        rvals = list(rvals) # So we can assign to them...
-        for myidx, enviidx in self._gdb_reg_xlat:
-            rvals[myidx] = ctx.getRegister(enviidx)
-        newbytes = struct.pack(self._gdb_regfmt, rvals) + regremain
-        return self._cmdTransact('G' + e_common.hexify(newbytes))
+        addr = self._itoa(addr)
 
-    def platformGetThreads(self):
+        cmd += b',%s' % addr
+        #TODO: proper kind selection based on architecture
+        cmd += b',0'
 
-        ret = {}
+        res = self._msgExchange(cmd)
+        if res == b'OK':
+            success = True
+        elif res == b'':
+            logger.debug('Removing %s breakpoint is not supported' % bp_type)
+        elif res[0:1] == b'E':
+            logger.debug('Removing breakpoint failed with error %s' % res[1:3])
+        
+        return success
 
-        self._sendPkt('qfThreadInfo')
-        tbytes = self._recvPkt()
+    def gdbRemoveSWBreakpoint(self, addr):
+        """
+        Removes a software breakpoint at the provided address.
 
-        while tbytes.startswith('m'):
+        Args:
+            addr (int): Address to remove the software breakpoint from.
 
-            if tbytes.find(','):
-                for bval in tbytes[1:].split(','):
-                    ret[int(bval, 16)] = 0
-            else:
-                ret[int(tbytes[1:], 16)] = 0
+        Returns:
+            None
+        """
+        self._gdbRemoveBreakpoint("soft", addr)
 
-            self._sendPkt('qsThreadInfo')
-            tbytes = self._recvPkt()
+    def gdbRemoveHWBreakpoint(self, addr):
+        """
+        Removes a hardware breakpoint at the provided address.
+
+        Args:
+            addr (int): Address to remove the hardware breakpoint from.
+
+        Returns:
+            None
+
+        """
+        self._gdbRemoveBreakpoint("hard", addr)
+
+    def gdbContinue(self, addr = None):
+        """
+        Sends the continue command to the target.
+        
+        Args:
+            addr (str): Address to continue from. If omitted, execution 
+            resumes at the current address.
+
+        Returns:
+            None
+        """
+        cmd = b'c'
+        if addr is not None:
+            cmd += b'%s' % addr
+        self._msgExchange(cmd)
+
+    def gdbReadMem(self, addr, length):
+        """
+        Instructs GDB server to read and return memory contents from the target 
+        machine.
+
+        Args:
+            addr (int): The memory address to read from.
+
+            length (int): Size of the read in the architecture's "Addressable 
+            Memory Units" (set by GDB, eight bits in most cases).
+
+        Returns:
+            int: Memory contents read from the requested address.
+        """
+        if length < 1:
+            raise Exception('Cannot read negative amount of memory')
+
+        addr_str = self._itoa(addr)
+
+        cmd = b'm%s,%d' % (addr_str, length);
+        res = self._msgExchange(cmd)
+
+        if (len(res) == 3) and (res[0:1] == b'E'):
+            raise Exception('Error code %s received after attempt to read memory' % 
+                (res[1:3]))
+
+        # Decode the value read from memory
+        return self._decodeGDBVal(res)
+
+    def gdbWriteMem(self, addr, val):
+        """
+        Instructs GDB server to write the provided value at the specified 
+        memory address on the target machine.
+
+        Args:
+            addr (str): The memory address to write to.
+
+            val (int): Value to write to memory.
+
+        Returns:
+            None
+        """
+        #TODO: will this cause problems with archs that don't use 8-bit
+        # AMUs?
+
+        addr_str = self._itoa(addr)
+
+        # Convert the value to its GDB protocol format
+        val_str = self._encodeGDBVal(val)
+
+        write_length = len(val_str) // 2
+
+        cmd = b'M%s,%d:%s' % (addr_str, write_length, val_str)
+        res = self._msgExchange(cmd)
+
+        if res == b'OK':
+            pass
+        elif res[0:1] == b'E':
+            raise Exception('Error code %s received after attempt to write memory' %
+                (res[1:3]))
+        else:
+            raise Exception('Unexpected response to writing memory: %s' % res)
+            
+    def gdbStepi(self, addr = None):
+        """
+        Sends the single step (into) command to the target.
+
+        Args:
+            addr (str): Address to resume from. If omitted, execution 
+            resumes at the current address.
+
+        Returns:
+            None
+        """
+        cmd = b"s"
+        if addr is not None:
+            cmd += b'%s' % addr
+        res = self._msgExchange(cmd)
+        res_data = self._parseStopReplyPkt(res)
+
+    def _parseSignalPkt(self, pkt_data):
+        """
+        Parses signal packets.
+
+        Args:
+            pkt_data (str): The data segment from a reply/stop signal packet
+
+        Returns:
+            list: A list containing a signal number (str)
+        """
+        signal = pkt_data[1:3]
+        return [signal]
+
+    def _parseThreadPkt(self, pkt_data):
+        """
+        Parsess thread packets
+
+        Args:
+            pkt_data (str): The data segment from a reply/stop thread packet
+
+        Returns:
+            list: A list of sets of n, r pairs
+        """
+        ret = []
+        signal = pkt_data[1:3]
+        ret.append(signal)
+        # split into list of n:r pairs
+        pairs = pkt_data[3:].split(b';')
+        # messages end with b';'
+        pairs.pop()
+        for p in pairs:
+            vals = p.split(b':')
+            n = vals[0]
+            r = vals[1]
+            ret.append((n, r))
 
         return ret
 
-    def _raiseIfError(self, msg):
-        if msg.startswith('E'):
-            raise Exception('Error: %s' % msg)
+    def _parseStopReplyPkt(self, pkt_data):
+        """
+        Parses stop and reply packets.
 
-    def _runLengthDecode(self, buf):
-        # GDB RSP implements some run-length encoding to save space
-        i = buf.find('*')
-        while i != -1:
-            cnt = ord(buf[i+1]) - 29 # Run-length encoding is minus 29...
-            pad = buf[i-1] * cnt
-            buf = buf[:i] + pad + buf[i+2:]
+        Args:
+            pkt_data (str): The reply/stop packet to parse.
 
-            i = buf.find('*')
+        Returns:
+            list: The parsed packet data.
+        """
+        # TODO: we currently don't do much with this, although it will be 
+        # useful when adding multithreading support and maybe when plumbing 
+        # into vivisect
+        cmd = pkt_data[0:1]
+        data = [cmd]
+        if cmd == b'S':
+            data.append(self._parseSignalPkt(pkt_data))
+        elif cmd == b'T':
+            data.append(self._parseThreadPkt(pkt_data))
 
-        return binascii.unhexlify(buf)
+        # TODO: T and S are the two big ones, add support for the others at 
+        # a later time
+        elif cmd == b'W':
+            pass
+        elif cmd == b'X':
+            pass
+        elif cmd == b'w':
+            pass
+        elif cmd == b'N':
+            pass
+        elif cmd == b'O':
+            pass
+        elif cmd == b'F':
+            pass
+        else:
+            raise Exception('Client received unexpected reply/stop packet: ' \
+                    '%s' % (pkt_data))
 
-    def platformReadMemory(self, addr, size):
-        mbytes = ''
-        offset = 0
-        logger.debug('READ: 0x%.8x (%d)', addr, size)
-        while len(mbytes) < size:
-            # FIXME is this 256 problem just in the VMWare gdb stub?
-            cmd = 'm%x,%x' % (addr + offset, min(256, size-offset))
-            pkt = self._cmdTransact(cmd)
-            self._raiseIfError(pkt)
-            pbytes = self._runLengthDecode(pkt)
-            offset += len(pbytes)
-            mbytes += pbytes
-        return mbytes
+        return data
 
-    def platformWriteMemory(self, addr, mbytes):
-        cmd = 'M%x,%x:%s' % (addr, len(mbytes), e_common.hexify(mbytes))
-        pkt = self._cmdTransact(cmd)
+class GdbServerStub(GdbStubBase):
+    """
+    The GDB server stub code. GDB server implementations should inherit from
+    this class. Functions that start with '_server' must be implemented by 
+    the code controlling the debugged process (e.g. the vivisect emulator).
+    """
+    def __init__(self, arch, addr_size, le, reg, port):
+        """ 
+        The GDB sever stub.
 
-    def platformGetMaps(self):
-        # No way to enumerate these by default...
-        return []
+        Args:
+            arch (str): The architecture of the target being debugged.
 
-    def platformPs(self):
-        return [ (1, 'GdbStubTarget'), ]
+            addr_size (int): The addresss size of the target being debugged 
+            in bits (e.g. 64 for x86_64)
 
-    def platformGetFds(self):
-        return []
+            le (bool): True if the byte storage used by the debugged target is 
+            little-endian, False if big-endian.
 
-# FROM HERE DOWN IS ALL CRAP THAT IS STILL GETTING SORTED OUT
+            reg (list): The list of registers monitored by the debugger. The 
+            order of this list is very important, and must be the same 
+            used for both the client and server. If not, parsing of register 
+            packets will fail. The list itself contains sets of register names
+            (str) and register sizes (int) in bits (e.g. ('rip', 64)).
 
-class GdbStubMixin_old(e_registers.RegisterContext):
+            port (int): The port the debug target listens on.
 
-    def __init__(self):
+        Returns:
+            None
+        """
+        GdbStubBase.__init__(self, arch, addr_size, le, reg, port)
 
-        self.stepping = False
-        self.attaching = False
-        self.breaking = False
+    def runServer(self):
+        """
+        Trivial listening server. This should only be used for unit testing.
 
-        self.bigmask = e_bits.u_maxes[ self.getPointerSize() ]
+        Args:
+            None
 
-        aname = self.getMeta('Architecture')
-        self._addArchNamespace(aname)
-
-        self.setMeta('Platform', 'gdbstub')
-
-        self.setMeta('GdbServerHost', 'localhost')
-        self.setMeta('GdbServerPort', 0)
-        self.setMeta('GdbPlatform', 'Unknown')
-        self.setMeta('GdbTargetPlatform', 'Unknown')
-
-        self.setMeta('BinaryFormat', None)
-
-        arch_reg_info = gdb_reg_defs.get(aname)
-        if arch_reg_info is None:
-            raise Exception('We dont know the GDB register definition for arch: %s' % name)
-
-        self._arch_regnames, self._arch_regfmt = arch_reg_info
-        self._arch_regsize = struct.calcsize(self._arch_regfmt)
-
-        self._arch_rctx = self.arch.archGetRegCtx()
-        self._arch_reg_xlat = []
-        for i,name in enumerate(self._arch_regnames):
-            if name is None: # So we can skip parts of the gdb definition...
-                continue
-            j = self._arch_rctx.getRegisterIndex(name)
-            if j is not None:
-                self._arch_reg_xlat.append((i,j))
-
-        # Load up our register definition!
-        e_registers.RegisterContext.__init__(self)
-        rinfo = self._arch_rctx.getRegisterInfo(meta=True)
-        self.setRegisterInfo(rinfo)
-
-    def _addArchNamespace(self, aname):
-        if aname == 'arm':
-            import vstruct.defs.arm7 as vs_arm7
-            self.vsbuilder.addVStructNamespace('arm7', vs_arm7)
-
-    def normFileName(self, fname):
-        # We don't know if it's / or \ ...   do both!
-        basename = fname.split('/')[-1].split('\\')[-1]
-        return basename.split(".")[0].split("-")[0].lower()
-
-    def platformParseBinary(self, filename, baseaddr, normname):
-        logger.warning('Not implemented: platformParseBinary: 0x%.8x %s', baseaddr, normname)
-
-    def platformParseBinaryPe(self, filename, baseaddr, normname):
-
-        # If we're on windows, fake out the PE header and use dbghelp
-        if False:
-            # FIXME this code is stolen and should be a function!
-            import ctypes
-            import vtrace.platforms.win32 as vt_win32
-            fakepe = self.readMemory(baseaddr, 1024)
-            tfile = tempfile.NamedTemporaryFile(delete=False)
-            tfilename = tfile.name
-            pebuf = ctypes.create_string_buffer(fakepe)
+        Returns:
+            None
+        """
+        sock = socket.socket()
+        sock.bind(('localhost', self._gdb_port))
+        sock.listen(5)
+        self._gdb_sock, addr = sock.accept()
+        
+        while True:
             try:
-                try:
-                    tfile.write(fakepe)
-                    tfile.close()
-                    #parser = vt_win32.Win32SymbolParser(-1, tfilename, baseaddr)
-                    parser = vt_win32.Win32SymbolParser(-1, None, ctypes.addressof(pebuf))
-                    parser.parse()
-                    parser.loadSymsIntoTrace(self, normname)
-                finally:
-                    os.unlink(tfilename)
+                data = self._recvUntil(b'#')
             except Exception as e:
-                logger.warning(str(e))
-
-        else:
-            pe = PE.peFromMemoryObject(self, baseaddr)
-            for rva, ord, name in pe.getExports():
-                self.addSymbol(e_resolv.Symbol(name, baseaddr+rva, 0, normname))
-
-    def platformPs(self):
-        return [ (1, 'SystemProcess'), ]
-
-    def _getVmwareReg(self, rname):
-        '''
-        Use VMWare's monitor extension to get a register we wouldn't
-        normally have...
-        '''
-        #fs 0x30 base 0xffdff000 limit 0x00001fff type 0x3 s 1 dpl 0 p 1 db 1
-        fsstr = self._monitorCommand('r %s' % rname)
-        fsparts = fsstr.split()
-        return int(fsparts[3], 16)
-
-    def _getVmwareIdtr(self):
-        istr = self._monitorCommand('r idtr')
-        m = re.match('.* base=(0x\w+) .*', istr)
-        idtr = int(m.groups()[0], 0)
-        return idtr
-
-    def _getNtOsKrnl(self, idtr):
-        x1, kptr, x2 = self.readMemoryFormat(idtr, '<IQI')
-        try:
-            kptr -= kptr & 0xfff
-            while not self.readMemory(kptr, 16).startswith('MZ\x90\x00'):
-                kptr -= 4096
-            return kptr
-        except Exception as e:
-            return None
-
-    def _enumTargetOs(self, fsbase):
-
-        self.setVariable('fsbase', fsbase)
-
-        fs_fields = self.readMemoryFormat(fsbase, '<8I')
-
-        # Windows has a self reference in the KPCR...
-        if fs_fields[7] == fsbase:
-
-            # Use KPCR from XP for now...
-            import vstruct.defs.windows.win_5_1_i386.ntoskrnl as vs_w_ntoskrnl
-            self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
-
-            self.setMeta('GdbTargetPlatform', 'windows')
-            self.casesens = False
-
-            kpcr = self.getStruct('nt.KPCR', fsbase)
-            kver = self.getStruct('nt.DBGKD_GET_VERSION64', kpcr.KdVersionBlock)
-
-            kernbase = kver.KernBase & self.bigmask
-            modlist = kver.PsLoadedModuleList & self.bigmask
-
-            self.setVariable('PsLoadedModuleList', modlist)
-            self.setVariable('KernelBase', kernbase)
-
-            self.platformParseBinary = self.platformParseBinaryPe
-
-            self.fireNotifiers(vtrace.NOTIFY_ATTACH)
-
-            self.addLibraryBase('nt', kernbase, always=True)
-            ldr_entry = self.readMemoryFormat(modlist, '<I')[0]
-            while ldr_entry != modlist:
-                ldte = self.getStruct('nt.LDR_DATA_TABLE_ENTRY', ldr_entry)
-                dllname = self.readMemory(ldte.FullDllName.Buffer, ldte.FullDllName.Length).decode('utf-16le')
-                dllbase = ldte.DllBase & self.bigmask
-                self.addLibraryBase(dllname, dllbase, always=True)
-                ldr_entry = ldte.InLoadOrderLinks.Flink & self.bigmask
-
-
-        else:
-            # FIXME enumerate non-windows OSs!
-            self.fireNotifiers(vtrace.NOTIFY_ATTACH)
-
-    def _enumGdbTarget(self):
-        psize = self.getPointerSize()
-        vercmd = self._monitorCommand('version')
-
-        monhelp = self._monitorCommand('help')
-
-        if monhelp.find('netdev_add') != -1:
-
-            self.setMeta('GdbPlatform', 'Qemu32')
-
-            fsbase = None
-            monreg = self._monitorCommand('info registers')
-            for line in monreg.split('\n'):
-                if not line.startswith('FS'):
-                    continue
-                parts = line.split()
-                fsbase = int(parts[2], 16)
+                logger.warning('gdbstub.runServer() Exception: %r', e, exc_info=1)
                 break
 
-            self._enumTargetOs(fsbase)
-            #logger.debug(monreg)
-            #m = re.match('FS =\w+ (\w+)', monreg, re.G)
-            #fsbase = long(m.groups()[0], 0)
-            #logger.debug('FSBASE',hex(fsbase))
+            # TODO: check the checksum
+            data = b'%s%s' % (data, self._gdb_sock.recv(2))
+            self._cmdHandler(data)  
+    
+        self._gdb_sock.close()
+        sock.close()
 
-        elif monhelp.find('linuxoffsets') != -1:
+    def _cmdHandler(self, data):
+        """
+        Generic dispatcher for GDB command handling.
 
-            self.setMeta('GdbPlatform', 'VMware%d' % (psize * 8))
+        Args:
+            data (str): A message from the GDB client.
 
-            if psize == 4: # Use the fs register to get KPCR
-                fsbase = self._getVmwareReg('fs')
-                self._enumTargetOs(fsbase)
+        Returns:
+            None
+        """
+        res = None
+        msg_data = self._parseMsg(data)
+        cmd = msg_data[0:1]
+        cmd_data = msg_data[1:]
+        logger.debug('Server received command: %s' % cmd)
+        expect_res = False
 
-            else: # FIXME 64bit vmware!
+        self._transPkt(b'+')
+        # TODO: the error codes could be finer-grain
+        try:
+            if cmd == b'?':
+                res = self._handleHaltInfo()
+            elif cmd == b'g':
+                res = self._handleReadRegs()
+            elif cmd == b'G':
+                res = self._handleWriteRegs(cmd_data)
+            elif cmd == b'c':
+                res = self._handleCont()
+            elif cmd == b'D':
+                res = self._handleDetach()
+            elif cmd == b'Z':
+                res = self._handleSetBreak(cmd_data)
+            elif cmd == b'z':
+                res = self._handleRemoveBreak(cmd_data)
+            elif cmd == b'm':
+                res = self._handleReadMem(cmd_data)
+            elif cmd == b'M':
+                res = self._handleWriteMem(cmd_data)
+            elif cmd == b's':
+                res = self._handleStepi()
+            else:
+                raise Exception(b'Unsupported command %s' % cmd)
+        except:
+            self._msgExchange(b'E%.2x' % errno.EPERM)
+            raise
 
-                idtr = self._getVmwareIdtr()
-                self.setVariable('idtr', idtr)
+        enc_res = self._lengthEncode(res)
+        self._msgExchange(enc_res, expect_res)
 
-                win_kpcr = 0x07fffffde000
+    def _parseBreakPkt(self, pkt_data):
+        """
+        Parses breakpoint-related GDB packets.
 
-                fields = [-1,]
-                try:
-                    fields = self.readMemoryFormat(win_kpcr, '<7Q')
-                except Exception as e:
-                    logger.warning(str(e))
+        Args:
+            pkt_data (str): The GDB packet containing a breakpoint command.
 
-                # FIXME other heuristics for linux/bsd/etc...
-                if fields[-1] == win_kpcr:
-                    self._initWin64(win_kpcr)
-                else:
-                    self.fireNotifiers(vtrace.NOTIFY_ATTACH)
+        Returns:
+            str, int: The breakpoint type and corresponding memory address.
+        """
+        #TODO: add support for break params and kinds
+        break_type = pkt_data[0]
+        addr = pkt_data.split(b',')[1]
+        addr = self._decodeGDBVal(addr)
+        
+        return break_type, addr
 
-                #fsbase = self._getVmwareReg('fs')
-                #self.setVariable('fsbase', fsbase)
+    def _handleSetBreak(self, cmd_data):
+        """
+        Handles requests to set different types of breakpoints.
 
-                #fs_fields = self.readMemoryFormat(fsbase, '<8I')
+        Args:
+            cmd_data (str): The client request body.
 
-                #nt = self._getNtOsKrnl(idtr)
-                #if nt is not None:
-                    # We are 64bit windows!
-                    #import vstruct.defs.windows.win_6_1_amd64.ntoskrnl as vs_w_ntoskrnl
-                    #self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
-                    #self.setMeta('GdbTargetPlatform', 'windows')
-                    #self.setVariable('KernelBase', nt)
-                    #self.platformParseBinary = self.platformParseBinaryPe
-                    #self.fireNotifiers(vtrace.NOTIFY_ATTACH)
-                    #self.addLibraryBase('nt', nt, always=True)
+        Returns:
+            str: The GDB status code.
+        """
+        break_type, addr = self._parseBreakPkt(cmd_data)
 
-                #else:
-
-        elif vercmd.lower().find('open on-chip debugger') != -1:
-
-            self.setMeta('GdbPlatform', 'OpenOCD')
-            self.fireNotifiers(vtrace.NOTIFY_ATTACH)
-
+        if break_type == b'0':
+            self._serverSetSWBreak(addr)
+        elif break_type == b'1':
+            self._serverSetHWBreak(addr)
         else:
-            logger.warning('Unidentified gdbstub: %s', vercmd)
-            self.fireNotifiers(vtrace.NOTIFY_ATTACH)
+            raise Exception('Unsupported breakpoint type: %s' % break_type)
 
+        return b'OK'
 
-    # FIXME implement getRegister(idx) and steal get/set for regs which are not part of the whole...
-    def _initWin64(self, kpcr):
+    def _serverSetHWBreak(self, addr):
+        """
+        Instructs the execution engine to set a hardware breakpoint at the
+        specified address.
 
-        import vstrct.defs.windows.win_6_1_amd64.ntoskrnl as vs_w_ntoskrnl
-        self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
-        self._initWinBase()
-                #nt = self._getNtOsKrnl(idtr)
-                #if nt is not None:
-                    # We are 64bit windows!
-                    #import vstruct.defs.windows.win_6_1_amd64.ntoskrnl as vs_w_ntoskrnl
-                    #self.vsbuilder.addVStructNamespace('nt', vs_w_ntoskrnl)
-                    #self.setMeta('GdbTargetPlatform', 'windows')
-                    #self.setVariable('KernelBase', nt)
-                    #self.platformParseBinary = self.platformParseBinaryPe
-                    #self.fireNotifiers(vtrace.NOTIFY_ATTACH)
-                    #self.addLibraryBase('nt', nt, always=True)
+        Args:
+            addr (int): The memory address at which to set the hardware
+            breakpoint.
 
-    def _initWinBase(self, kpcr):
+        Returns:
+            None
+        """
+        raise Exception('Server translation layer must implement this function')
+   
+    def _serverSetSWBreak(self, addr):
+        """
+        Instructs the execution engine to set a software breakpoint at the
+        specified address.
 
-        self.setMeta('GdbTargetPlatform', 'windows')
-        self.casesens = False
+        Args:
+            addr (int): The memory address at which to set the software
+            breakpoint.
 
-        kpcr = self.getStruct('nt.KPCR', kpcr)
-        kver = self.getStruct('nt.DBGKD_GET_VERSION64', kpcr.KdVersionBlock)
+        Returns:
+            None
+        """
+        raise Exception('Server translation layer must implement this function')
+ 
+    def _handleRemoveBreak(self, cmd_data):
+        """
+        Handles client requests to remove breakpoints.
 
-        kernbase = kver.KernBase & self.bigmask
-        modlist = kver.PsLoadedModuleList & self.bigmask
+        Args:
+            cmd_data (str): The GDB request packet body.
 
-        self.setVariable('PsLoadedModuleList', modlist)
-        self.setVariable('KernelBase', kernbase)
+        Returns:
+            str: The GDB status code.
+        """
+        break_type, addr = self._parseBreakPkt(cmd_data)
+    
+        if break_type == b'0':
+            self._serverRemoveSWBreak(addr)
+        elif break_type == b'1':
+            self._serverRemoveHWBreak(addr)
+        else:
+            raise Exception('Unsupported breakpoint type: %s' % break_type)
 
-        self.platformParseBinary = self.platformParseBinaryPe
+        return b'OK'
 
-        self.fireNotifiers(vtrace.NOTIFY_ATTACH)
+    def _serverRemoveHWBreak(self, addr):
+        """
+        Instructs the execution engine to remove a hardware breakpoint at the
+        given address.
 
-        self.addLibraryBase('nt', kernbase, always=True)
-        ldr_entry = self.readMemoryFormat(modlist, '<P')[0]
-        while ldr_entry != modlist:
-            ldte = self.getStruct('nt.LDR_DATA_TABLE_ENTRY', ldr_entry)
-            dllname = self.readMemory(ldte.FullDllName.Buffer, ldte.FullDllName.Length).decode('utf-16le')
-            dllbase = ldte.DllBase & self.bigmask
-            self.addLibraryBase(dllname, dllbase, always=True)
-            ldr_entry = ldte.InLoadOrderLinks.Flink & self.bigmask
+        Args:
+            addr (int): The memory address at which to remove the hardware
+            breakpoint.
 
-        try:
-            self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheck'))
-        except Exception as e:
-            logger.warning('Error Seting KeBugCheck Bp: %s', e)
+        Returns:
+            None
+        """
+        raise Exception('Server translation layer must implement this function')
 
-        try:
-            self.addBreakpoint(KeBugCheckBreak('nt.KeBugCheckEx'))
-        except Exception as e:
-            logger.warning('Error Seting KeBugCheck Bp: %s', e)
+    def _serverRemoteSWBreak(self, addr):
+        """
+        Instructs the execution engine to remove a software breakpoint at the
+        given address.
 
+        Args:
+            addr (int): The memory address at which to remove the software
+            breakpoint.
 
-GDB_BP_SOFTWARE     = 0
-GDB_BP_HARDWARE     = 1
-GDB_BP_WATCH_WRITE  = 2
-GDB_BP_WATCH_READ   = 3
-GDB_BP_WATCH_ACCESS = 4
+        Returns:
+            None
+        """
+        raise Exception('Server translation layer must implement this function')
 
-class GdbStubTrace(
-        vtrace.Trace,
-        GdbStubMixin,
-        v_base.TracerBase):
+    def _handleHaltInfo(self):
+        """
+        Requests from the execution engine the reason for the current halt.
 
-    def __init__(self, archname):
+        Args:
+            None
 
-        # First things first, lets steal ourself an arch!
-        envi.stealArchMethods(self, archname)
-        vtrace.Trace.__init__(self, archname=archname)
-        v_base.TracerBase.__init__(self)
-        GdbStubMixin.__init__(self)
+        Returns:
+            str: A GDB response packet containing the halt reason.
+        """
+        signal = self._serverGetHaltSignal()
+        res = b'%s%.2x' % (b'S', signal)
+        return res
 
-        self._break_after_bp = False    # We break *at* the bp
+    def _serverGetHaltSignal(self):
+        """
+        Returns the signal number responsible for the current halt.
 
-    # FIXME this should have a cleaner abstraction to allow for stuff...
-    # platformActivateBreak / Watch!
-    # platformDeactivateBreak / Watch!
+        Args:
+            None
 
-    # FIXME we also need cleaner abstraction for checkBreakpoints
-    # (some platforms stop *on* break and some stop *after...)
+        Returns:
+            int: The signal number corresponding to the halt.
+        """
+        raise Exception('Server translation layer must implement this function')
 
-    #def _activateBreak(self, bp):
-        ## For now, we don't support watchpoints...
-        #if not bp.active:
-            #addr = bp.resolveAddress(self)
-            #self._cmdTransact('Z%d,%x,%x' % (GDB_BP_SOFTWARE,addr,1))
+    def _handleReadMem(self, cmd_data):
+        """
+        Handles client requests for reading memory.
 
-    #def _cleanupBreakpoints(self, force=False):
-        #'''
-        #Cleanup any non-fastbreak breakpoints.  This routine doesn't even get
-        #called in the event of mode FastBreak=True.
-        #'''
-        #self.fb_bp_done = False
-        #for bp in self.breakpoints.itervalues():
-            ## No harm in calling deactivate on
-            ## an inactive bp
-            #if force or not bp.fastbreak:
-                #self._cmdTransact('z%d,%x,%x' % (GDB_BP_SOFTWARE,bp.getAddress(),1))
-                #bp.active = False
-                ##bp.deactivate(self)
+        Args:
+            cmd_data (str): The body of the request.
 
-    #def _checkForBreak(self):
-        #"""
-        #Check to see if we've landed on a breakpoint, and if so
-        #deactivate and step us past it.
-#
-        #WARNING: Unfortunatly, cause this is used immidiatly before
-        #a call to run/wait, we must block briefly even for the GUI
-        #"""
-        ## Steal a reference because the step should
-        ## clear curbp...
-        #bp = self.curbp
-        #if bp is not None and bp.isEnabled():
-            ## We had to remove a check for active and a deactivate here...
-            #orig = self.getMode("FastStep")
-            #self.setMode("FastStep", True)
-            #self.stepi()
-            #self.setMode("FastStep", orig)
-            #self._activateBreak(bp)
+        Returns:
+            str: The value read by the execution engine at the specified
+            address in GDB encoding.
+        """
+        addr = cmd_data.split(b',')[0] 
+        addr = self._atoi(addr)
+        size = cmd_data.split(b',')[1]
+        size = self._atoi(size)
 
-    def buildNewTrace(self):
-        arch = self.getMeta('Architecture')
-        newt = GdbStubTrace(arch)
-        newt.setMeta('GdbServerHost', self.getMeta('GdbServerHost'))
-        newt.setMeta('GdbServerPort', self.getMeta('GdbServerPort'))
-        return newt
+        val = self._serverReadMem(addr, size)
+        val = self._encodeGDBVal(val)
+        
+        return val
 
+    def _serverReadMem(self, addr, size):
+        """
+        Instructions the execution to read virtual memory and return its 
+        contents.
+
+        Args:
+            addr (int): The virtual address to read from.
+
+            size (int): The size of the read in GDB "Addressible Memory Units"
+            (architecture define, but bytes in most cases).
+
+        Returns:
+            int: The value read from memory.
+        """
+        raise Exception('Server translation layer must implement this function')
+
+    def _handleWriteMem(self, cmd_data):
+        """
+        Handles memory write events.
+
+        Args:
+            cmd_data (str): The body of the command from the client.
+
+        Returns:
+            str: The GDB status update.
+        """
+        addr = cmd_data.split(b',')[0]
+        addr = self._atoi(addr)
+
+        val = cmd_data.split(b':')[1]
+        val = self._decodeGDBVal(val)
+
+        self._serverWriteMem(addr, val)
+
+        return b'OK'
+
+    def _serverWriteMem(self, addr, val):
+        """
+        Instructs the execution engine to write a new value at the specified
+        address.
+
+        Args:
+            addr (int): The address at which to perform the write.
+
+            val (int): The value to write.
+
+        Returns:
+            None
+        """
+        raise Exception('Server translation layer must implement this function')
+
+    def _handleWriteRegs(self, reg_data):
+        """
+        Handles client requests to write to registers.
+
+        Args:
+            reg_data (str): The request packet.
+
+        Returns:
+            str: GDB status code
+        """
+        registers = self._parseRegPacket(reg_data)
+        for reg_name in registers.keys():
+            self._serverWriteRegVal(reg_name, registers[reg_name])
+
+        return b'OK'
+
+    def _serverWriteRegVal(self, reg_name, reg_val):
+        """
+        Instructs the execution engine to write the provided value into the 
+        provided register.
+
+        Args:
+            reg_name (str): The name of the register to write to.
+
+            reg_val (int): The value to write into the register.
+
+        Returns:
+            None
+        """
+        raise Exception('Server translation layer must implement this function')
+
+    def _handleReadRegs(self):
+        """
+        Instructs the execution engine to read the values in all registers.
+
+        Args:
+            None
+
+        Returns:
+            str: A GDB remote protocol register packet.
+        """
+        registers = {}
+        for reg in self._gdb_reg_fmt:
+            reg_name = reg[0]
+            reg_val = self._serverReadRegVal(reg_name)
+            registers[reg_name] = reg_val
+
+        reg_pkt = self._buildRegPkt(registers)
+        return reg_pkt
+
+    def _serverReadRegVal(self, reg_name):
+        """
+        Returns the value currently stored in a given register.
+
+        Args:
+            reg_name (str): The register name.
+
+        Returns:
+            int: The value stored in the provided register
+        """
+        raise Exception('Server translation layer must implement this function')
+
+    def _handleStepi(self):
+        """
+        Handles requests to single step (into).
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        signal = self._serverStepi()
+        res = b'S%.2x' % (signal)
+        return res
+
+    def _serverStepi(self):
+        """
+        Instructs the execution engine to single step (into) from the current
+        instruction address. The function should return when the next halt
+        occurs (usually once the single step is complete).
+
+        Args:
+            None
+
+        Returns:
+            int: The signal corresponding to the next halt after the single
+            step.
+        """
+        raise Exception('Server translation layer must implement this function')
+
+    def _handleDetach(self):
+        """
+        Informs the execution engine that the debugging client is being
+        detached.
+
+        Args:
+            None
+
+        Returns:
+            str: 'OK' status code
+        """
+        self._serverDetach()
+        return b'OK'
+
+    def _serverDetach(self):
+        """
+        Instructs the execution engine to continue execution and no longer
+        report halts to the server.
+
+        Args:
+            None
+
+        Returns:
+            str: GDB status code
+        """
+        raise Exception('Server translation layer must implement this function')
+
+    def _handleCont(self):
+        """
+        Instructs the execution engine to continue execution at the current
+        address.
+
+        Args:
+            None
+
+        Returns:
+            int: The reason for the next halt.
+        """
+        signal = self._serverCont()
+        res = b'S%.2x' % (signal)
+        return res
+        
+    def _serverCont(self):
+        """
+        Resumes target execution at the current address. This function should
+        block until the execution engine halts (e.g. hits a breakpoint).
+
+        Args:
+            None
+
+        Returns:
+            int: The reason for the next halt (should always be a signal number
+            such as 5 for a TRAP).
+        """
+        raise Exception('Server translation layer must implement this function')

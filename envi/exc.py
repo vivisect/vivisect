@@ -152,7 +152,7 @@ class MultiplyError(EmuException):
 
 class DivideError(EmuException):
     """
-    Raised by an Emulator when a a divide falls out
+    Raised by an Emulator when a divide falls out
     of the specified range.
     """
     pass

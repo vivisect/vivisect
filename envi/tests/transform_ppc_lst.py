@@ -158,15 +158,15 @@ class ppc_instr(object):
         'iselgt':       'special_r0_handling',     # A:    special handling of param rA r0 case
 
         # Store Doubleword
-        'std':          'signed_ds',               # DS:   unsigned 14 bit value << 2
-        'stdu':         'signed_ds',               # DS:   unsigned 14 bit value << 2
+        'std':          'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
+        'stdu':         'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
 
         # Store Float Double
         'stfd':         'signed_d',                # D:    unsigned 16 bit value
 
         # Load Doubleword
-        'ld':           'signed_ds',               # DS:   unsigned 14 bit value << 2
-        'ldu':          'signed_ds',               # DS:   unsigned 14 bit value << 2
+        'ld':           'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
+        'ldu':          'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
 
         # Store Word
         'se_stw':       'unsigned_sd4_word_addr',  # SD4:  unsigned 4 bit value << 2
@@ -213,7 +213,7 @@ class ppc_instr(object):
         'e_ldmvcrrw':   'signed_d8',               # D8:   signed 8 bit value
         'e_ldmvdrrw':   'signed_d8',               # D8:   signed 8 bit value
         'lwz':          'signed_d_handle_r0',      # D:    signed 16 bit value
-        'lwa':          'signed_ds',               # DS:   unsigned 14 bit value << 2
+        'lwa':          'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
         'lwzu':         'signed_d_handle_r0',      # D:    signed 16 bit value
         'lwzx':         'special_r0_handling',     # X:    special handling of param rA r0 case
 
@@ -340,7 +340,7 @@ class ppc_instr(object):
         'se_addi':      'unsigned_oim5',           # OIM5: unsigned 5 bit value
         'e_add16i':     'signed_d',                # D:    signed 16 bit value
         'e_add2i.':     'signed_i16a',             # I16A: signed 16 bit value
-        'e_add2is':     'unsigned_i16a',           # I16A: unsigned 16 bit value
+        'e_add2is':     'signed_i16a',             # I16A: signed 16 bit value
         'e_addi':       'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
         'e_addi.':      'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
         'addi':         'signed_d',                # D:    signed 16 bit value
@@ -810,7 +810,12 @@ class ppc_instr(object):
                     err = '{} (@ {}) needs fixing ({})'.format(self.op.value, self._line_nr, self._tokens)
                     raise NotImplementedError(err)
             else:
-                fixed_args.append(arg)
+                # Sometimes instructions will modify a trailin INDIRECT_REF
+                # argument also, if so don't append the parsed value, otherwise
+                # add it.
+                if arg.type != 'INDIRECT_REF' or \
+                        (arg.type == 'INDIRECT_REF' and fixed_args[-1].type != 'INDIRECT_REF'):
+                    fixed_args.append(arg)
 
         if self.op.value in cr0_prepend:
             if len(self.args) == 0:
@@ -1192,13 +1197,20 @@ class ppc_instr(object):
         val = (data & mask) - (data & sign)
         return self._dec_token(val)
 
-    def signed_ds(self, data):
+    def signed_ds_handle_r0(self, data):
         sign = 0x00008000
         mask = 0x00007FFC # This format takes bits 16-29 then left shifts by 2
                           # bits, which is the same as just masking off the
                           # lower 2 bits
         val = (data & mask) - (data & sign)
-        return self._dec_token(val)
+
+        reg_mask = 0x001F0000
+        reg = (data & reg_mask) >> 16
+
+        if reg != 0:
+            return self._dec_token(val)
+        else:
+            return [self._dec_token(val), lst_parser.Token('INDIRECT_REF', '(0x0)', '(0x0)', None)]
 
     def signed_d(self, data):
         sign = 0x00008000
@@ -1245,10 +1257,10 @@ class ppc_instr(object):
         reg_mask = 0x001F0000
         reg = (data & reg_mask) >> 16
 
-        if reg == 0:
-            return [self._dec_token(reg), self._dec_token(val)]
-        else:
+        if reg != 0:
             return self._dec_token(val)
+        else:
+            return [self._dec_token(val), lst_parser.Token('INDIRECT_REF', '(0x0)', '(0x0)', None)]
 
     def unsigned_d(self, data):
         mask = 0x0000FFFF
@@ -1422,8 +1434,8 @@ class ppc_instr(object):
     def signed_i16a(self, data):
         unsigned_val = self._get_i16a_imm(data)
 
-        sign = 0x00100000
-        mask = 0x000FFFFF
+        sign = 0x00008000
+        mask = 0x00007FFF
         signed_val = (unsigned_val & mask) - (unsigned_val & sign)
 
         # For signed values return a decimal operand

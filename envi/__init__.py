@@ -68,7 +68,7 @@ arch_by_name = {
     'ppc64-embedded': ARCH_PPC_E64,
     'ppc-spe':      ARCH_PPC_E64,
     'ppc-vle':      ARCH_PPCVLE,
-    'ppc64-vle':    ARCH_PPCVLE,
+    'ppc32-vle':    ARCH_PPCVLE,
     'ppcvle':       ARCH_PPCVLE,
     'vle':          ARCH_PPCVLE,
     'ppc32-server': ARCH_PPC_S32,
@@ -845,7 +845,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Do the core of integer addition but only *return* the
         resulting value rather than assigning it.
 
-        Architectures shouldn't have to override this as operand order 
+        Architectures shouldn't have to override this as operand order
         doesn't matter
         """
         src = self.getOperValue(op, 0)
@@ -1353,7 +1353,7 @@ def getArchModule(name=None):
         import envi.archs.ppc as e_ppc
         return e_ppc.Ppc32ServerModule()
 
-    elif name in ('vle', 'ppc-vle', 'ppcvle', 'ppc64-vle'):
+    elif name in ('vle', 'ppc-vle', 'ppcvle', 'ppc32-vle'):
         import envi.archs.ppc as e_ppc
         return e_ppc.PpcVleModule()
 

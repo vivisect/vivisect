@@ -133,9 +133,9 @@ arch_names = {
 
 def getArchName(elf):
     machine = elf.e_machine
-    if machine == Elf.EM_PPC64 and elf.e_flags & Elf.EM_PPC_EMB:
+    if machine == Elf.EM_PPC64 and elf.e_flags & Elf.EF_PPC_EMB:
         machine = Elf.EM_PPC64E
-    elif machine == Elf.EM_PPC and elf.e_flags & Elf.EM_PPC_EMB:
+    elif machine == Elf.EM_PPC and elf.e_flags & Elf.EF_PPC_EMB:
         machine = Elf.EM_PPCE
     arch = arch_names.get(elf.e_machine)
 
@@ -570,6 +570,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     # Data Items (eg. literal pool)
                     logger.info('mapping (NOTYPE) data symbol: 0x%x: %r', sva, dmglname)
                     data_ptrs.append(sva)
+
         elif s.getInfoType() == Elf.STT_OBJECT:
             symname = s.getName()
             if addbase:
@@ -687,7 +688,6 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
             logger.debug('relocs: 0x%x: %s (%s)', rlva, dmglname, name)
             if arch in ('i386', 'amd64'):
                 if name:
-                    #if dmglname == 
                     if rtype == Elf.R_X86_64_IRELATIVE:
                         # before making import, let's fix up the pointer as a BASEPTR Relocation
                         ptr = r.r_addend

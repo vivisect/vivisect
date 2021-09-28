@@ -447,6 +447,9 @@ def form_X(disasm, va, ival, opcode, operands, iflags):
         if otype == FIELD_rA and iflags & IF_INDEXED:
             _, rB_val = next(operands_iterator) # get rB and skip over it in next iteration
             opers.append(PpcIndexedMemOper(val, rB_val, va, tsize=tsizes_formX.get(opcode)))
+        elif otype == FIELD_rA and val == 0 and (iflags & IF_MEM_EA) != 0:
+            # Some FORM_X rA == 0 instructions are not load/store instructions
+            opers.append(PpcImmOper(0, va))
         else:
             opers.append(OPERCLASSES[otype](val, va))
 

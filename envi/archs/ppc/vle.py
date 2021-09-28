@@ -24,13 +24,17 @@ import envi.bits as e_bits
 
 operands = (
     None,
-    PpcRegOper,
-    PpcRegOper,
+    PpcERegOper,
+    PpcERegOper,
     PpcImmOper,
+    PpcSImm16Oper,
+    PpcSImm20Oper,
     PpcSImm32Oper,
     PpcMemOper,
+    PpcSEMemOper,
     PpcJmpRelOper,
-    PpcCrOper,
+    PpcCRegOper,
+    PpcCBRegOper,
 )
 
 def case_E_X(types, data, va):
@@ -56,7 +60,7 @@ def case_E_XL(types, data, va):
     opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
-def case_E_D(types, data, va):
+def case_E_D(types, data, va, tsize):
     val0 = (data & 0x3E00000) >> 21
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16
@@ -70,14 +74,14 @@ def case_E_D(types, data, va):
         if types[2] == TYPE_REG and val1 == 0:
             opers = ( op0(val0, va), PpcImmOper(val2, va) )
         else:
-            opers = ( op0(val0, va), op1(val1, val2, va) )
+            opers = ( op0(val0, va), op1(val1, val2, va, tsize=tsize) )
     else:
         op2 = operands[types[2]]
         opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
 
     return opers
 
-def case_E_D8(types, data, va):
+def case_E_D8(types, data, va, tsize):
     val0 = (data & 0x3E00000) >> 21
     op0 = operands[types[0]]
 
@@ -86,32 +90,30 @@ def case_E_D8(types, data, va):
 
     val2 = data & 0xFF
     if (val2 & 0x80):
-            val2 = 0xFFFFFF00 | val2
+        val2 = 0xFFFFFF00 | val2
 
-    opers = ( op0(val0, va), op1(val1, val2, va) )
+    opers = ( op0(val0, va), op1(val1, val2, va, tsize=tsize) )
     return opers
 
 # Handles the new multiple load/store VLE instructions
-def case_E_D8VLS(types, data, va):
+def case_E_D8VLS(types, data, va, tsize):
     val0 = (data & 0x1F0000) >> 16
-    op0 = operands[types[0]]
+    op0 = operands[types[1]]
 
     val1 = data & 0xFF
     if (val1 & 0x80):
         val1 = 0xFFFFFF00 | val1
 
-    opers = ( op0(val0, val1, va), )
+    opers = ( op0(val0, val1, va, tsize=tsize), )
     return opers
 
 def case_E_I16A(types, data, va):
-    val1 = (data & 0x3E00000) >> 10
-    op1 = operands[types[0]]
     val0 = (data & 0x1F0000) >> 16
     op0 = operands[types[1]]
-    val1 |= (data & 0x7FF)
+    val1 = ((data & 0x3E00000) >> 10) | (data & 0x7FF)
+    op1 = operands[types[0]]
 
     opers = ( op0(val0, va), op1(val1, va) )
-    #print("E_I16/A", opers)
     return opers
 
 
@@ -271,8 +273,6 @@ def case_E_LI20(types, data, va):
     val1 |= ((data & 0x7800) << 5)
     val1 |= (data & 0x7FF)
     op1 = operands[types[1]]
-    if (val1 & 0x80000) :
-            val1 = 0xFFF00000 | val1
 
     opers = ( op0(val0, va), op1(val1, va) )
     return opers
@@ -293,7 +293,7 @@ def case_E_M(types, data, va):
     return opers
 
 def case_E_XCR(types, data, va):
-    val0 = (data & 0x3000000) >> 24
+    val0 = (data & 0x3800000) >> 23
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16
     op1 = operands[types[1]]
@@ -353,6 +353,41 @@ e_handlers: Dict[int, Callable] = {
     E_NONE: case_E_NONE,
 }
 
+tsizes = {
+    INS_STB: 1,
+    INS_STH: 2,
+    INS_STW: 4,
+    INS_LBZ: 1,
+    INS_LHZ: 2,
+    INS_LWZ: 4,
+    INS_LBZU: 1,
+    INS_LHZU: 2,
+    INS_LWZU: 4,
+    INS_LHAU: 2,
+    INS_STBU: 1,
+    INS_STHU: 2,
+    INS_STWU: 4,
+    INS_LMW: 4,
+    INS_STMW: 4,
+    INS_E_LDMVGPRW: 4,
+    INS_E_STMVGPRW: 4,
+    INS_E_LDMVSPRW: 4,
+    INS_E_STMVSPRW: 4,
+    INS_E_LDMVSRRW: 4,
+    INS_E_STMVSRRW: 4,
+    INS_E_LDMVCSRRW: 4,
+    INS_E_STMVCSRRW: 4,
+    INS_E_LDMVDSRRW: 4,
+    INS_E_STMVDSRRW: 4,
+    INS_LBZ: 1,
+    INS_STB: 1,
+    INS_LHA: 2,
+    INS_LWZ: 4,
+    INS_STW: 4,
+    INS_LHZ: 2,
+    INS_STH: 2,
+    INS_ADD: 4, # not used but needs to be present since it's E_D
+}
 
 def is_opcode_32bit(first_short: int) -> bool:
     # From "VLE 16-bit and 32-bit Instruction Length Decode Algorithm" pg.5
@@ -383,7 +418,7 @@ class VleDisasm(Ppc32EmbeddedDisasm):
             candidate_opcode = inst_data & form_mask
             candidate_instruction = mask_dict.get(candidate_opcode, None)
             if candidate_instruction:
-                mnem, op, mask, num_fields, opcode, cond, fields, iflags = candidate_instruction
+                mnem, num_fields, opcode, fields, iflags = candidate_instruction
                 # TODO: this field calculation step seems like it should be precomputed
                 opieces: List[tuple] = [()] * num_fields
 
@@ -396,7 +431,7 @@ class VleDisasm(Ppc32EmbeddedDisasm):
 
                     if ftype == TYPE_JMP:
                         value = e_bits.bsigned(value, 9)
-                    elif ftype in [TYPE_MEM, TYPE_REG_SE]:
+                    elif ftype in (TYPE_MEM, TYPE_SE_MEM, TYPE_REG_SE):
                         if value & 8:
                             value = (value & 0x7) + 24
 
@@ -410,20 +445,20 @@ class VleDisasm(Ppc32EmbeddedDisasm):
                     if handler is None:
                         raise Exception(f'Instruction {inst_data:04x} opiece {k} ftype {ftype} had no handler')
 
-                    if ftype == TYPE_MEM:
+                    if ftype in (TYPE_MEM, TYPE_SE_MEM):
                         k += 1
                         ft2, val2 = opieces[k]
                         if ft2 != TYPE_IMM:
                             print("PROBLEM! ft2 is not TYPE_IMM!")
 
-                        opers.append(handler(value, val2, va))
+                        opers.append(handler(value, val2, va, tsize=tsizes.get(opcode)))
                     else:
                         opers.append(handler(value, va))
 
                     k += 1
 
                 iflags |= envi.ARCH_PPCVLE
-                return PpcOpcode(va, 0, mnem, size=2, operands=opers, iflags=iflags)
+                return PpcOpcode(va, opcode, mnem, size=2, operands=opers, iflags=iflags)
 
         raise envi.InvalidInstruction(bytez[offset:offset+4], 'No matching 16-bit instruction: 0x%04x' % inst_data, va)
 
@@ -435,17 +470,20 @@ class VleDisasm(Ppc32EmbeddedDisasm):
             candidate_opcode = inst_data & form_mask
             candidate_instruction = mask_dict.get(candidate_opcode, None)
             if candidate_instruction:
-                mnem, op, mask, form, op_type, cond, types, iflags = candidate_instruction
-                #print(mnem, hex(op), hex(mask), types, hex(inst_data))
+                mnem, form, opcode, types, iflags = candidate_instruction
 
                 handler = e_handlers[form]
                 if handler == None:
                     raise Exception("Unknown FORM handler: %x" % form)
 
-                opers = handler(types, inst_data, va)
+                # Special-case certain forms as we work out when to pass tsize
+                if form in (E_D, E_D8, E_D8VLS):
+                    opers = handler(types, inst_data, va, tsize=tsizes[opcode])
+                else:
+                    opers = handler(types, inst_data, va)
 
                 iflags |= envi.ARCH_PPCVLE
-                return PpcOpcode(va, 0, mnem, size=4, operands=opers, iflags=iflags)
+                return PpcOpcode(va, opcode, mnem, size=4, operands=opers, iflags=iflags)
 
         # Didn't parse as an e_op, so fall back to PpcDisasm
         return super(Ppc32EmbeddedDisasm, self).disasm(bytez, offset, va)

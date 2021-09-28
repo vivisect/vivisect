@@ -130,9 +130,9 @@ class Ppc32EmbeddedModule(Ppc64EmbeddedModule):
     def getEmulator(self):
         return Ppc32EmbeddedEmulator()
 
-class PpcVleModule(Ppc64EmbeddedModule):
+class PpcVleModule(Ppc32EmbeddedModule):
     def __init__(self):
-        Ppc64EmbeddedModule.__init__(self, mode=32, archname='ppc-vle')
+        Ppc32EmbeddedModule.__init__(self)
         self._arch_dis = vle.VleDisasm()
 
     def isVle(self, va):

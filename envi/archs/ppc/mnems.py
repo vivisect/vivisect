@@ -10497,7 +10497,6 @@ FIELD_DATA = {
     'rS' :      (6,5),
     'vS' :      (6,5),
     'frS' :     (6,5),
-    'rS' :      (6,5),
 
     'rD' :      (6,5),
     'vD' :      (6,5),
@@ -11603,6 +11602,11 @@ def buildOutput():
         out.append("FIELD_%s = %d" % (ffield, fieldcounter))
         fieldcounter += 1
 
+        # If this is an rX field, add an sX field
+        if ffield[0] == 'r' and len(ffield) == 2:
+            out.append("FIELD_s%s = %d" % (ffield[1:], fieldcounter))
+            fieldcounter += 1
+
     keys = [key for key in FIELD_M_DATA.keys() if key not in IGNORE_CONSTS]
     keys.sort()
     for field in keys:
@@ -11764,11 +11768,15 @@ for _mnem in const_gen_vle.mnems:
                 if fname == 'SIMM':
                     fname = 'SIMM%d' % sz
 
-                fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_"+fname, shr, fmask))
-
+                # If this instruction is in the SP category and the field is an
+                # GPR (rX) then use FIELD_sX instead of FIELD_rX
+                if cat.startswith('SP') and fname[0] == 'r':
+                    fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_s"+fname[1:], shr, fmask))
+                else:
+                    fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_"+fname, shr, fmask))
 
             #### fix up the operand ordering where possible.  this is faster and simpler than doing it in the decoder
-            if len(fout) > 1 and 'FIELD_rS' in fout[0] and form not in  ('EVX', ):
+            if len(fout) > 1 and ('FIELD_rS' in fout[0] or 'FIELD_rS' in fout[0]) and form not in ('EVX', ):
                 if mnem not in ('evstddepx', ) and not mnem.startswith('st'):    # WONKY AS SHIT!
                     temp = fout[0]
                     fout[0] = fout[1]
@@ -11904,7 +11912,10 @@ for _mnem in const_gen_vle.mnems:
     for key in operkeys:
         nkey = key.replace('-','_').replace(' ','')
         if key[0] == 'r':
-            out3.append('    FIELD_%s : PpcRegOper,' % (nkey))
+            # Add the normal GPR FIELD_rX == PpcERegOper and the SPE-compatible
+            # FIELD_sX == PpcRegOper
+            out3.append('    FIELD_%s : PpcERegOper,' % (nkey))
+            out3.append('    FIELD_s%s : PpcRegOper,' % (nkey[1:]))
         elif key[0] == 'v':
             out3.append('    FIELD_%s : PpcVRegOper,' % (nkey))
         elif key[0:2] == 'fr':
@@ -11917,6 +11928,8 @@ for _mnem in const_gen_vle.mnems:
             out3.append('    FIELD_%s : PpcSImm16Oper,' % (nkey))
         elif nkey == 'DE':
             out3.append('    FIELD_%s : PpcSImm12Oper,' % (nkey))
+        elif nkey == 'SIMM':
+            out3.append('    FIELD_%s : PpcSImmOper,' % (nkey))
         elif nkey == 'SIMM5':
             out3.append('    FIELD_%s : PpcSImm5Oper,' % (nkey))
         elif nkey == 'SIMM16':
