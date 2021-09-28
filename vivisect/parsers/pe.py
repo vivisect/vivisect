@@ -527,6 +527,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 # ensure sub-pe can be parsed
                 subpe = pe_carve.CarvedPE(fbytes, offset, [i])
             except vivisect.exc.CorruptPeFile:
+                logger.warning("could not parse carved PE at offset 0x%x, XOR key: 0x%x", offset, i)
                 continue
 
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
