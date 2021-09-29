@@ -1,5 +1,5 @@
 chown_data = {
-    'imports' : [
+    'imports': [
         (0x220fd80, 8, 9, '*.endgrent'),
         (0x220fd88, 8, 9, '*.__uflow'),
         (0x220fd90, 8, 9, '*.getenv'),
@@ -82,7 +82,7 @@ chown_data = {
         (0x220fff8, 8, 9, '*.__cxa_finalize'),
     ],
 
-    'exports' : [
+    'exports': [
         (0x20027a0, 0, '__entry', 'chown'),
         (0x2008420, 0, 'fts_open', 'chown'),
         (0x20087c0, 0, 'fts_close', 'chown'),
@@ -107,7 +107,7 @@ chown_data = {
         (0x22100f8, 1, 'program_name', 'chown'),
     ],
 
-    'relocs' : [
+    'relocs': [
         ('chown', 0x20f950, 2, 0x28a0),
         ('chown', 0x20f958, 2, 0x2860),
         ('chown', 0x20f960, 2, 0xb19a),
@@ -137,11 +137,16 @@ chown_data = {
         ('chown', 0x210010, 2, 0xc0d4),
         ('chown', 0x210060, 2, 0x210070),
         ('chown', 0x210078, 2, 0x210100),
+        ('chown', 0x210080, 0, 0),
+        ('chown', 0x210088, 0, 0),
+        ('chown', 0x210090, 0, 0),
+        ('chown', 0x2100a0, 0, 0),
+        ('chown', 0x2100a8, 0, 0),
+        ('chown', 0x2100c0, 0, 0),
     ],
 
-    'names' : [
+    'names': [
         (0x2001d38, 'chown.init_function'),
-        (0x2001d50, 'chown.LazyLoaderTrampoline'),
         (0x2001d60, 'chown.plt_endgrent'),
         (0x2001d70, 'chown.plt___uflow'),
         (0x2001d80, 'chown.plt_getenv'),
@@ -325,8 +330,7 @@ chown_data = {
         (0x22100f8, 'chown.program_name'),
     ],
 
-    'pltgot' : [
+    'pltgot': [
     ],
 
 }
-

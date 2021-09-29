@@ -27,4 +27,4 @@ def listReportModules():
 
 def runReportModule(vw, modname):
     mod = vw.loadModule(modname)
-    return mod.report(vw)
+    return (mod.columns, mod.report(vw))

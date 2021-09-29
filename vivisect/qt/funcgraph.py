@@ -48,8 +48,11 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         if evt.type() == Qt.QEvent.Wheel:
             return self._wheelEvent(evt)
         if evt.type() == Qt.QEvent.MouseMove:
+            # Intercept mouse movements because frickin qt broke those for our shift scrolling,
+            # but return False so we don't block the event from propagating to other event handlers
+            # (this was the cause of the edge lines not highlighting on mouse over)
             self._mouseMoveEvent(evt)
-            return True
+            return False
         return vq_memory.VivCanvasBase.eventFilter(self, src, evt)
 
     def _wheelEvent(self, event):
@@ -93,6 +96,8 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         cb(data)
 
     def _renderMemoryCallback(self, cb, data):
+        if not data:
+            return
         va = int(data[0])
         size = int(data[1])
         self._canv_rendtagid = '#codeblock_%.8x' % va
@@ -106,7 +111,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         js = '''var node = document.querySelector("#%s");
         if (node == null) {
             canv = document.querySelector("#memcanvas");
-            canv.innerHTML += '<div class="codeblock" id="%s"></div>'
+            if (canv != null) {
+                canv.innerHTML += '<div class="codeblock" id="%s"></div>'
+            }
         }
         [%d, %d]
         ''' % (selector, selector, va, size)
@@ -145,91 +152,6 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         '''
         self.page().runJavaScript(f'window.scroll({x}, {y})')
         eatevents()
-
-
-funcgraph_js = '''
-svgns = "http://www.w3.org/2000/svg";
-
-function createSvgElement(ename, attrs) {
-    var elem = document.createElementNS(svgns, ename);
-    for (var aname in attrs) {
-        elem.setAttribute(aname, attrs[aname]);
-    }
-    return elem
-}
-
-function svgwoot(parentid, svgid, width, height) {
-
-    var elem = document.getElementById(parentid);
-
-    var svgelem = createSvgElement("svg", { "height":height.toString(), "width":width.toString() })
-    svgelem.setAttribute("id", svgid);
-
-    elem.appendChild(svgelem);
-}
-
-function addSvgForeignObject(svgid, foid, width, height) {
-    var foattrs = {
-        "class":"node",
-        "id":foid,
-        "width":width,
-        "height":height
-    };
-
-    var foelem = createSvgElement("foreignObject", foattrs);
-
-    var svgelem = document.getElementById(svgid);
-    svgelem.appendChild(foelem);
-}
-
-function addSvgForeignHtmlElement(foid, htmlid) {
-
-    var foelem = document.getElementById(foid);
-    var htmlelem = document.getElementById(htmlid);
-    htmlelem.parentNode.removeChild(htmlelem);
-
-    //foelem.appendChild(htmlid);
-
-    var newbody = document.createElement("body");
-    newbody.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-    newbody.appendChild( htmlelem );
-
-    foelem.appendChild(newbody);
-}
-
-function moveSvgElement(elemid, xpos, ypos) {
-    var elem = document.getElementById(elemid);
-    elem.setAttribute("x", xpos);
-    elem.setAttribute("y", ypos);
-}
-
-function plineover(pline) {
-    pline.setAttribute("style", "fill:none;stroke:yellow;stroke-width:2")
-}
-
-function plineout(pline) {
-    pline.setAttribute("style", "fill:none;stroke:green;stroke-width:2")
-}
-
-
-function drawSvgLine(svgid, lineid, points) {
-    var plineattrs = {
-        "id":lineid,
-        "points":points,
-        "style":"fill:none;stroke:green;stroke-width:2",
-        "onmouseover":"plineover(this)",
-        "onmouseout":"plineout(this)"
-    };
-
-    var lelem = createSvgElement("polyline", plineattrs);
-    var svgelem = document.getElementById(svgid);
-
-    //var rule = "polyline." + lineclass + ":hover { stroke: red; }";
-    //document.styleSheets[0].insertRule(rule, 0);
-
-    svgelem.appendChild(lelem);
-}
-'''
 
 
 class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
@@ -413,6 +335,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         expr = state.get('expr','')
         self.enviNavGoto(expr)
 
+    def setMemWindowName(self, mwname):
+        '''
+        Set the memory window name/title prefix to the given string.
+        '''
+        self.setEnviNavName(mwname)
+        self.updateWindowTitle()
+
     def updateWindowTitle(self, data=None):
         ename = self.getEnviNavName()
         expr = str(self.addr_entry.text())
@@ -427,31 +356,118 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
     # DEV: None of these methods are meant to be called directly by anybody but themselves,
     # since they're setup in a way to make renderFunctionGraph play nicely with pyqt5
     def _finishFuncRender(self, data):
+        '''
+        Update the window title and emit the renderDoneSignal so other things can run that
+        are sitting on that signal
+        '''
         addr = self.updateWindowTitle()
         if addr is not None:
             vqtevent('viv:colormap', {addr: 'orange'})
         self._renderDoneSignal.emit()
 
     def _edgesDone(self, data):
+        '''
+        Almost done. All this does is scroll the selected virtual address into view.
+        '''
         addr = self.updateWindowTitle()
         if addr is None:
             return
         self.mem_canvas.page().runJavaScript('''
         var node = document.getElementsByName("viv:0x%.8x")[0];
-        node.scrollIntoView();
+        if (node != null) {
+            node.scrollIntoView();
+        }
         ''' % addr, self._finishFuncRender)
 
     def _layoutEdges(self, data):
+        '''
+        So...before this, we would only highlight part of the edge lines. That's because
+        The dynadag layout class shoves a bunch of ghost nodes and edges into the graph
+        class member, and each of those end up getting their own html polyline element.
+
+        It'd be a massive change to the Dynadag class to rip those out, and those edges are necessary.
+        So instead, we take care of things here. What the edges/nodes end up looking like in
+        the graph after the dynadag layout is:
+        (VA1, VA2)
+        (VA3, GHOST_NODE1)
+        (GHOST_NODE1, GHOST_NODE2)
+        (GHOST_NODE2, GHOST_NODE3)
+        (GHOST_NODE3, VA3)
+
+        Where a bunch of ghost edges for layout purposes were inserted between the codeblocks for
+        VA3 and VA4. So this function deals with that via creating a bunch of paths, keeping
+        in mind the possibility that an edge line can possibly split for things like switch
+        statements, and links all the points on the edge paths together to make one big
+        polyline.
+
+        This is done in two stages. First loop is to identify the possible series of ghost edges,
+        and only graph the starting point, where we have (Actual_VA1, Ghost_Node). The other
+        cases, like (Ghost_Node, Actual_VA2), (Ghost_Node, Ghost_Node) are ignored, since the
+        second loop picks those up, and the (Actual_VA1, Actual_VA2) is dealt with since that's the
+        base, super easy just do the thing case.
+
+        The second loop just follows all the edge lines and ghost edges to make the one big polyline
+        for each edge so the entire thing can be highlighted via the plineover function we've got
+        stashed in envi/qt/html.py
+        '''
         edgejs = ''
         svgid = 'funcgraph_%.8x' % self.fva
-        for eid, n1, n2, einfo in self.graph.getEdges():
+        graph = self.graph
+        todo = []
+        for eid, n1, n2, einfo in graph.getEdges():
+            src = graph.getNode(n1)
+            dst = graph.getNode(n2)
             points = einfo.get('edge_points')
-            pointstr = ' '.join(['%d,%d' % (x, y) for (x, y) in points])
 
-            edgejs += f'drawSvgLine("{svgid}", "edge_%.8s", "{pointstr}");' % eid
+            # if neither are ghosts, cool. just make the edge
+            if not src[1].get('ghost', False) and not dst[1].get('ghost', False):
+                pointstr = ' '.join(['%d,%d' % (x, y) for (x, y) in points])
+                edgejs += f'drawSvgLine("{svgid}", "edge_%.8s", "{pointstr}");' % eid
+                continue
+
+            # if both are ghosts, w/e. skip it. we'll pick it up later
+            if src[1].get('ghost', False) and dst[1].get('ghost', False):
+                continue
+
+            # if n1 is a ghost and n2 is not, that's fine. We'll pick it up later
+            if src[1].get('ghost', False) and not dst[1].get('ghost', False):
+                continue
+
+            # ok. juicy case
+            # if n1 is not a ghost and n2 is, we gotta build all the possible paths from this guy out
+            todo.append((eid, n1, n2, einfo))
+
+        # Build out the pointstr lines starting from the concrete n1, following the ghost n2's
+        for edge in todo:
+            eid, n1, n2, einfo = edge
+            points = einfo.get('edge_points')
+            splits = [([n1, n2], points)]
+
+            while splits:
+                path, points = splits.pop()
+                node = graph.getNode(path[-1])
+
+                # we've hit the end of this chain, finish the points chain
+                # and add the completed points to a done list
+                if not node[1].get('ghost', False):
+                    pointstr = ' '.join(['%d,%d' % (x, y) for (x, y) in points])
+                    edgejs += f'drawSvgLine("{svgid}", "edge_%.8s", "{pointstr}");' % eid
+                    continue
+
+                # Otherwise, deal with splits
+                for ref in graph.getRefsFrom(node):
+                    eid, n1, n2, einfo = ref
+                    newpoints = einfo.get('edge_points')
+                    path.append(n2)
+                    points.extend(newpoints)
+                    splits.append((path, points))
+
         self.mem_canvas.page().runJavaScript(edgejs, self._edgesDone)
 
     def _layoutDynadag(self, data):
+        '''
+        This actually lays codeblocks out on the memory canvas where they should be
+        '''
         for nid, nprops in self.graph.getNodes():
             width, height = data[str(nid)]
             self.graph.setNodeProp((nid, nprops), "size", (width, height+7))
@@ -482,17 +498,21 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         self.mem_canvas.page().runJavaScript(svgjs, self._layoutEdges)
 
-    def _getNodeSizes(self, data):
+    def _getNodeSizes(self):
         '''
-        So uhh...yea. This is needed.
+        Actually grab all the sizes of the codeblocks that we renderd in the many calls to
+        _renderCodeBlock. runJavaScript has some limited ability to return values from
+        javascript land to python town, so in this case, we're shoving the offsetWidth
+        and offsetHeight of each of the codeblocks into a dictionary that _layoutDynadag
+        can reach into to get the sizes so it can set them for use in the line layout stuff
         '''
         js = 'var sizes = {};'
 
         for nid, nprops in self.graph.getNodes():
             try:
                 cbname = 'codeblock_%.8x' % nid
-            except:
-                self.vw.vprint('Failed to build cbname during funcgraph building')
+            except Exception as e:
+                self.vw.vprint('Failed to build cbname during funcgraph building: %s' % str(e))
                 return
             js += f'''
             sizes[{nid}] = [document.getElementById("{cbname}").offsetWidth, document.getElementById("{cbname}").offsetHeight];
@@ -501,15 +521,41 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.mem_canvas.page().runJavaScript(js, self._layoutDynadag)
 
     def _renderCodeBlock(self, data):
+        '''
+        Render a codeblock to the canvas. self.mem_canvas.renderMemory ends up having
+        to run a bunch of javascript to render the block to the screen. So we do them
+        one at a time, chaining callbacks together with some state in self.nodes to let us
+        know when we've rendered all the codeblocks in the function.
+
+        One day we'll optimize this to be one big blob of JS. But not today. But this could use
+        some safety rails if the user switches functions in the middle of rendering
+        '''
         if len(self.nodes):
             node = self.nodes.pop(0)
             cbva = node[1].get('cbva')
             cbsize = node[1].get('cbsize')
             self.mem_canvas.renderMemory(cbva, cbsize, self._renderCodeBlock)
         else:
-            self.mem_canvas.page().runJavaScript(funcgraph_js, self._getNodeSizes)
+            self._getNodeSizes()
 
     def renderFunctionGraph(self, fva=None, graph=None):
+        '''
+        Begins the process of drawing the function graph to the canvas.
+
+        So, this is a bit of complicated mess due to how PyQt5's runJavaScript method works.
+        runJavaScript is asynchronous, but not like actual python async, but Qt's async variant
+        with their event loop. The only way to get some level of a guarantee that the
+        javascript ran (which we need for getting the size of codeblocks and line layouts) is
+        via the secondary parameter, which is a callback that gets run when the javascript
+        completes. That being said, technically according to their docs, the callback is guaranteed
+        to be run, but it might be during page destruction. In practice it's somewhat responsive.
+        runJavascript also doesn't check if the DOM has been created. So...yea. In practice
+        that doesn't matter too much, but something to keep in mind.
+
+        So the general method is to build up a bunch of javascript that we need to run in order
+        to render the codeblocks to get their sizes, layout the graph lines, realign everything
+        nicely, etc. And it's all callbacks, all the way down.
+        '''
         if fva is not None:
             self.fva = fva
 
@@ -594,7 +640,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             }
             ''' % svgid
 
-        js += 'document.querySelector("#memcanvas").innerHTML = "";'
+        js += '''
+        var canv = document.querySelector("#memcanvas");
+        if (canv != null) {
+            canv.innerHTML = "";
+        }
+        '''
         self.mem_canvas.page().runJavaScript(js)
 
     def _hotkey_paintUp(self, va=None):

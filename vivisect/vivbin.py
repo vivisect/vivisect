@@ -50,7 +50,7 @@ def main():
     vw = viv_cli.VivCli(confdir=args.config, autosave=args.autosave)
 
     # setup logging
-    vw.verbose = min(args.verbose, 4)
+    vw.verbose = min(args.verbose, len(e_common.LOG_LEVELS)-1)
     level = e_common.LOG_LEVELS[vw.verbose]
     e_common.initLogging(logger, level=level)
 

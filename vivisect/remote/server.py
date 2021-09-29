@@ -7,12 +7,14 @@ import argparse
 import binascii
 import threading
 
+import cobra.dcode
+
+import envi.common as e_common
+import envi.threads as e_threads
+
 import vivisect.cli as v_cli
 import vivisect.parsers as v_parsers
 import vivisect.storage.basicfile as viv_basicfile
-
-import cobra.dcode
-import envi.threads as e_threads
 
 from vivisect.const import *
 
@@ -199,7 +201,7 @@ class VivServer:
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
-        chan = binascii.hexlify(os.urandom(16)).decode('utf-8')
+        chan = e_common.hexify(os.urandom(16))
 
         lock, fpath, pevents, users = wsinfo
         with lock:

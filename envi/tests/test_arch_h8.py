@@ -4,6 +4,7 @@ import binascii
 
 import envi
 import envi.exc as e_exc
+import envi.common as e_common
 import envi.archs.h8 as e_h8
 import vivisect
 from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
@@ -731,7 +732,7 @@ class H8InstrTest(unittest.TestCase):
             op = h8m.archParseOpcode(inst, 0, 0x50)
             if len(op) != len(inst):
                 raise Exception(" LENGTH FAILURE:  %s '%s'  expected: %d  real: %d  '%s'" % (
-                    instr[0], op, len(inst), len(op), binascii.hexlify(inst)))
+                    instr[0], op, len(inst), len(op), e_common.hexify(inst)))
 
 
 def generateTestInfo(ophexbytez='6e'):
