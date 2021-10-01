@@ -134,7 +134,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             archmod = i386Module()
 
         envi.Emulator.__init__(self, archmod=archmod)
-        self.initEmuOpt('i386:reponce', False, 'Set to True to short circuit rep prefix')
+        self.initEmuOpt('i386:repmax', 0, 'Specify value to short circuit rep prefix')
 
         for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
@@ -247,11 +247,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # The behavior of the REP prefix is undefined when used with non-string instructions.
         rep_prefix = op.prefixes & PREFIX_REP_MASK
-        if rep_prefix and op.opcode in REP_OPCODES and not self.getEmuOpt('i386:reponce'):
+        if rep_prefix and op.opcode in REP_OPCODES and self.getEmuOpt('i386:repmax') > 1:
             # REP instructions (REP/REPNZ/REPZ/REPSIMD) get their own handlers
             handler = self.__rep_prefix_handlers__.get(rep_prefix)
-            newpc = handler(meth, op)
-
+            newpc = handler(meth, op, self.getEmuOpt('i386:repmax'))
         else:
             newpc = meth(op)
 
@@ -265,7 +264,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     ###### Repeat Prefix Handlers
 
-    def doRepzPrefix(emu, meth, op):
+    def doRepzPrefix(emu, meth, op, repmax=0):
         '''
         Handle REP and REPZ prefixes (which are basically the same, but used for 
         different instructions.
@@ -273,9 +272,14 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ZF starts off being set. 
         Then the instruction is repeated and ECX decremented until either
         ECX reaches 0 or the ZF is cleared.
+
+        repmax specifies the maximum number of reps
         '''
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 1)
+
+        if repmax:
+            ecx = min(ecx, repmax)
 
         ret = None
         while ecx and emu.getFlag(EFLAGS_ZF):
@@ -284,16 +288,21 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             emu.setRegister(REG_ECX, ecx)
         return ret
 
-    def doRepnzPrefix(emu, meth, op):
+    def doRepnzPrefix(emu, meth, op, repmax=0):
         '''
         Handle REPNZ prefix.
 
         ZF starts off being cleared. 
         Then the instruction is repeated and ECX decremented until either
         ECX reaches 0 or the ZF is set.
+
+        repmax specifies the maximum number of reps
         '''
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 0)
+
+        if repmax:
+            ecx = min(ecx, repmax)
 
         ret = None
         while ecx and not emu.getFlag(EFLAGS_ZF):
@@ -303,7 +312,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         return ret
 
 
-    def doRepSIMDPrefix(emu, meth, op):
+    def doRepSIMDPrefix(emu, meth, op, repmax=0):
         # TODO
         raise Exception("doRepSIMDPrefix() not implemented.  Fix and retry.")
 

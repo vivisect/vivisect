@@ -21,7 +21,7 @@ class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator
         '''
         e_i386.IntelEmulator.__init__(self)
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
-        self.setEmuOpt('i386:reponce', True)
+        self.setEmuOpt('i386:repmax', 1)
 
     def getRegister(self, index):
         rval = value = e_i386.IntelEmulator.getRegister(self, index)
