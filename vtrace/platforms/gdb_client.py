@@ -7,6 +7,8 @@ import vtrace.platforms.base as v_base
 import vtrace.platforms.gdbstub as gdbstub
 import vtrace.platforms.gdb_reg_fmts as gdb_reg_fmts
 
+import xml.etree.ElementTree as xmlET
+
 class GdbStubMixin(gdbstub.GdbClientStub):
     """
     This class serves as the translation layer between Vivisect and GDB.
@@ -19,7 +21,8 @@ class GdbStubMixin(gdbstub.GdbClientStub):
                     True, #TODO, endianness,
                     self._getRegFmt(arch_name, server), #TODO: reg formats,
                     host,
-                    port)
+                    port,
+                    server)
 
     def _getRegFmt(self, arch, server):
         """
@@ -28,19 +31,134 @@ class GdbStubMixin(gdbstub.GdbClientStub):
         if server == 'qemu_gdb':
             if arch == 'amd64':
                 reg_fmt = gdb_reg_fmts.GDB_QEMU_X86_64_REG
+            elif arch == 'ppc32':
+                reg_fmt = gdb_reg_fmts.QEMU_PPC64_REG
             else:
                 raise Exception('Debugging %s with %s not currently supported' % 
                         (arch, server))
+
         elif server == 'gdbserver':
             if arch == 'amd64':
                 reg_fmt = gdb_reg_fmts.GDB_USER_X86_64_REG
+            elif arch in ('ppc32', 'ppc64'):
+                reg_fmt = gdb_reg_fmts.QEMU_PPC64_REG
             else:
                 raise Exception('Debugging %s with %s not currently supported' % 
                         (arch, server))
+
         else:
             raise Exception('Unknown GDB server type: %s' % server)
 
         return reg_fmt
+
+    def _genRegFmtFromTarget(self):
+        '''
+        pull target.xml (and supporting xi resources) from target and generate
+        a register file from that (updates self._gdb_reg_fmt)
+        '''
+        outregs = []
+        localTypes = {}
+
+        # get target.xml
+        target = self._getAndParseTargetXml()
+
+        # parse target.xml
+        nextridx = 0
+        for elem in target:
+            if elem.tag == 'architecture':
+                self.gdbSetArch(elem.text)     # powerpc:vle
+
+            elif elem.tag == 'feature':
+                featurename = elem.name
+                for featelem in elem:
+                    # this is where the "reg", "flags", and "vector" and other things are
+                    fattr = featattrib
+                    if featelem.tag == 'reg':
+                        rname = fattr['name']
+                        rsz = int(fattr['bitsize'])
+                        ridx = int(fattr.get('regnum', str(nextridx)))
+                        # track, but continue after any regnum is set  ORDER COUNTS!
+                        nextridx = ridx + 1
+                        outregs.append((rname, rsz, ridx))
+
+                    elif featelem.tag == 'flags':
+                        pass
+                    elif featelem.tag == 'union':
+                        pass
+                    elif featelem.tag == 'vector':
+                        pass
+
+        # extract target.xml data into list of tuples: (regname, bitsize, regindex)
+
+    def _getAndParseTargetXml(self):
+        '''In [17]: tgtxmlqemux86                                                                                                          
+        Out[17]: b'<?xml version="1.0"?><!DOCTYPE target SYSTEM "gdb-target.dtd"><target><architecture>i386:x86-64</architecture><xi:include href="i386-64bit.xml"/></target>'
+
+        In [18]: off=0; start=tgtxmlqemux86.find(b'<xi:include', off); stop = tgtxmlqemux86.find(b'/>', start); print(tgtxmlqemux86[star
+            ...: t:stop])                                                                                                               
+        b'<xi:include href="i386-64bit.xml"'
+
+        In [19]: off=0; start=tgtxmlqemux86.find(b'<xi:include', off); stop = tgtxmlqemux86.find(b'/>', start); print(tgtxmlqemux86[star
+            ...: t:stop])                                                                                                               
+        b'<xi:include href="i386-64bit.xml"'
+
+        In [20]: off=0; start=tgtxmlqemux86.find(b'<xi:include', off); stop = tgtxmlqemux86.find(b'/>', start); field = tgtxmlqemux86[st
+            ...: art:stop+2]                                                                                                            
+
+        In [21]: off=0; start=tgtxmlqemux86.find(b'<xi:include', off); stop = tgtxmlqemux86.find(b'/>', start); field = tgtxmlqemux86[st
+            ...: art:stop+2]; field                                                                                                     
+        Out[21]: b'<xi:include href="i386-64bit.xml"/>'
+
+        In [22]: tgtx86 = tgtxmlqemux86[:start] + tgtxmlqemux86xi + tgtxmlqemux86[stop+2:]                                              
+
+        In [23]: ET.fromstring(tgtx86)                                                                                                  
+        Traceback (most recent call last):
+        ParseError: XML or text declaration not at start of entity: line 1, column 110
+        In [26]: tgtx86[110:200]
+        Out[26]: b'<?xml version="1.0"?>\n<!-- Copyright (C) 2010-2017 Free Software Foundation, Inc.\n\n     Co'
+
+        In [115]: feature0 = list(tgtx)[1]
+
+        In [126]: list(feature0)[0]
+        Out[126]: <Element 'reg' at 0x7f99fabb7310>
+
+        In [127]: tmpreg = list(feature1)[0]
+
+        In [128]: tmpreg.attrib
+        Out[128]: {'bitsize': '32', 'name': 'DEC', 'regnum': '122'}
+
+        In [129]: feature0
+        Out[129]: <Element 'feature' at 0x7f9a18e9bcc0>
+
+        In [130]: feature0.attrib
+        Out[130]: {'name': 'org.gnu.gdb.power.core'}
+
+        In [134]: feature0.attrib['name']
+        Out[134]: 'org.gnu.gdb.power.core'
+
+        '''
+        # start off with the default
+        targetXml = self.gdbGetFeatureFile(b'target.xml')
+
+        # make the XI tags actually parse correctly. and parse
+        targetXml = targetXml.replace(b"<xi:include ", b"<xi ")
+        target = xmlET.XML(targetXml)
+
+        ## tack the XI's into the target XML file
+        # iterate through children looking for XI's.  currently we only support XI at the top level
+        # any tags that are 'xi' will be replaced in the DOM by their linked feature file
+        for eidx, elem in enumerate(target):
+            if elem.tag != 'xi':
+                continue
+
+            newxmlurl = elem.attrib.get('href')
+            newxml = self.gdbGetFeatureFile(newxmlurl.encode())
+            new = xmlET.XML(newxml)
+            # swap out the XI element with the new Element
+            target[eidx] = new
+
+        return target
+
 
     def platformGetRegCtx(self, tid):
         """

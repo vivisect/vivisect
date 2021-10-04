@@ -34,7 +34,7 @@ from itertools import groupby
 
 logger = logging.getLogger(__name__)
 
-e_cmn.initLogging(logger, level=logging.DEBUG)
+e_cmn.initLogging(logger, level=logging.INFO)
 
 class GdbStubBase:
     def __init__(self, arch, addr_size, le, reg, port):
@@ -71,8 +71,14 @@ class GdbStubBase:
         # The list of supported features for a given client-server session
         #TODO: complete the list, but for now the only thing we care about is
         # PacketSize
-        self._supported_features = {b'PacketSize':None,
-                                    b'QPassSignals': None,}
+        self._supported_features = {
+                b'Supported': None,
+                b'PacketSize': None,
+                b'QPassSignals': None,
+                b'qXfer:memory-map:read': None,
+                b'qXfer:features:read': None,
+                b'QStartNoAckMode': None,
+                }
 
         self._le = le
         self._addr_size = addr_size
@@ -185,6 +191,7 @@ class GdbStubBase:
             raise Exception('Received unexpected packet: %s' % res)
 
         pkt = b'$%s' % self._recvUntil(b'#')
+        logger.debug('_recvMessage: pkt=%r' % pkt)
         msg_data = self._parseMsg(pkt)
 
         expected_csum = int(self._gdb_sock.recv(2), 16)
@@ -194,6 +201,7 @@ class GdbStubBase:
             raise Exception('Invalid packet data checksum')
 
         decoded = self._lengthDecode(msg_data)
+        logger.info('_recvMessage: decoded=%r' % decoded)
         return decoded
 
     def _parseMsg(self, pkt):
@@ -248,7 +256,7 @@ class GdbStubBase:
         Returns:
             str: the response from the target.
         """
-        logger.debug('_msgExchange: %r %r', msg, expect_res)
+        #logger.debug('_msgExchange: %r %r', msg, expect_res)
         retry_count = 0
         retry_max = 10
         status = None
@@ -528,7 +536,7 @@ class GdbStubBase:
         Returns:
             None
         """
-        logger.debug('Sending message: %s' % (msg))
+        logger.info('Sending message: %s' % (msg))
         
         # Build the command packet
         pkt = self._buildPkt(msg)
@@ -623,8 +631,10 @@ class GdbClientStub(GdbStubBase):
             None
         """
         self._connectSocket()
-        if self._gdb_server == b'gdbserver':
+        if self._gdb_server == 'gdbserver':
             self._targetRemote()
+        else:
+            logger.warning("not 'gdbserver', not initializing handshake")
 
     def _targetRemote(self):
         """
@@ -642,27 +652,29 @@ class GdbClientStub(GdbStubBase):
         res = self._msgExchange(b'qSupported')
         features = res.split(b';')
         for f in features:
-            if b'PacketSize' in f:
-                f_name = b'PacketSize'
-                f_val = f.split(b'=')[1]
+            if b'=' in f:
+                f_name, f_val = f.split(b'=', 1)
             else:
                 f_name = f[:-1]
                 f_val = f[-1]
+
+            logger.debug("feature processing: f_name: %r\t f_val: %r" % (f_name, f_val))
             if f_name in self._supported_features.keys():
                 self._supported_features[f_name] = f_val 
         
         #TODO: Might need this for multithreading support in the future
         res = self._msgExchange(b'?')
-        halt_reason = self._parseStopReplyPkt(res)
-        if halt_reason[0:1] == b'W':
+        halt_data = self._parseStopReplyPkt(res)
+        halt_reason = halt_data[0]
+        if halt_reason == b'W':
             raise Exception('Debugged process exited')
-        elif halt_reason[0:1] == b'X':
+        elif halt_reason == b'X':
             raise Exception('Debugged process terminated')
-        elif halt_reason[0:1] == b'T' or halt_reason[0:1] == b'S':
+        elif halt_reason in (b'T', b'S'):
             pass
         else:
             raise Exception('Unexpected reply received while attaching: %s' % 
-                    halt_reason[0:1])
+                    halt_reason)
 
         # TODO: make this more dynamic, which will probably be required for 
         # multithreading support
@@ -671,6 +683,27 @@ class GdbClientStub(GdbStubBase):
         self._msgExchange(b'qOffsets')
         self._msgExchange(b'Hg0')
         self._msgExchange(b'qSymbol')
+
+    def gdbGetFeatureFile(self, fname=b'target.xml'):
+        off = 0
+        size = int(self._supported_features.get(b'PacketSize', '1024'))
+        out = []
+        while True:
+            print('gdbGetFeatureFile:  %r' % fname)
+            data = self._msgExchange(b'qXfer:features:read:%s:%x,%x' % (fname, off, size))
+            if len(data):
+                if data[0:1] in (b'm', b'l'):
+                    out.append(data[1:])
+                    off += len(data) - 1
+                else:
+                    logger.warning("gdbGetFeatureFile(%s)[off=0x%x]: unexpected response: %r", fname, off, data)
+
+            # go until we get less than we asked for
+            if len(data) < size:
+                break
+
+        return b''.join(out)
+
 
     def gdbGetRegisters(self, reg = []):
         """
@@ -711,7 +744,7 @@ class GdbClientStub(GdbStubBase):
             # (one big context object), all updates will include all possible 
             # registers.
             if reg_name not in cur_reg_vals.keys():
-                logger.debug('Register %s not recognized by GDB' % reg_name)
+                logger.warning('Register %s not recognized by GDB' % reg_name)
                 continue
             cur_reg_vals[reg_name] = updates[reg_name]
 
@@ -752,9 +785,9 @@ class GdbClientStub(GdbStubBase):
         if res == b'OK':
             success = True
         elif res == b'':
-            logger.debug('Setting %s breakpoint is not supported' % bp_type)
+            logger.warning('Setting %s breakpoint is not supported' % bp_type)
         elif res[0:1] == b'E':
-            logger.debug('Setting breakpoint failed with error %s' % res[1:3])
+            logger.warning('Setting breakpoint failed with error %s' % res[1:3])
 
         return success
 
@@ -813,9 +846,9 @@ class GdbClientStub(GdbStubBase):
         if res == b'OK':
             success = True
         elif res == b'':
-            logger.debug('Removing %s breakpoint is not supported' % bp_type)
+            logger.warning('Removing %s breakpoint is not supported' % bp_type)
         elif res[0:1] == b'E':
-            logger.debug('Removing breakpoint failed with error %s' % res[1:3])
+            logger.warning('Removing breakpoint failed with error %s' % res[1:3])
         
         return success
 
