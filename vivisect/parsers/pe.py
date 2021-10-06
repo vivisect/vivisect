@@ -523,8 +523,13 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         pe.fd.seek(0)
         fbytes = pe.fd.read()
         for offset, i in pe_carve.carve(fbytes, 1):
-            # Found a sub-pe!
-            subpe = pe_carve.CarvedPE(fbytes, offset, [i])
+            try:
+                # ensure sub-pe can be parsed
+                subpe = pe_carve.CarvedPE(fbytes, offset, [i])
+            except vivisect.exc.CorruptPeFile:
+                logger.warning("could not parse carved PE at offset 0x%x, XOR key: 0x%x", offset, i)
+                continue
+
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
             rva = pe.offsetToRva(offset) + baseaddr
             vw.markDeadData(rva, rva+len(pebytes))
