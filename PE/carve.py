@@ -8,7 +8,7 @@ from itertools import cycle
 import PE
 
 
-MAX_OFFSET_PE_AFTER_MZ = 0x100
+MAX_OFFSET_PE_AFTER_MZ = 0x200
 
 
 def xorbytes(data, key):
