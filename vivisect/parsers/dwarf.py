@@ -1,4 +1,5 @@
 import logging
+import sys
 
 import Elf
 import envi.bits as e_bits
@@ -11,27 +12,6 @@ from vstruct.defs.dwarf import *
 logger = logging.getLogger(__name__)
 
 
-def leb128ToInt(bytez, bitlen=64, signed=False):
-    '''
-    Return tuple of the decoded value and how many bytes it consumed to decode the value
-    '''
-    valu = 0
-    shift = 0
-    signBit = False
-    for i, bz in enumerate(bytez, start=1):
-        bz = bz
-        valu |= (bz & 0x7f) << shift
-        shift += 7
-        if not bz & 0x80:
-            signBit = True if bz & 0x40 else False
-            break
-
-    if signed and signBit and shift < bitlen:
-        valu |= - (1 << shift)
-
-    return valu, i
-
-
 class DwarfInfo:
     def __init__(self, vw, pbin, strtab=b''):
         self.vw = vw
@@ -39,6 +19,8 @@ class DwarfInfo:
         # strab typically only shows up in cygwin binaries
         self.secmap = {}
         self.strtable = strtab
+        # cygwin PE binaries can use debug info, but in a special way where the names
+        # of the sections are just refs into a different section
         if self.strtable:
             for sec in pbin.getSections():
                 # so this is cygwin's shorthand for certain section with long names
@@ -46,6 +28,7 @@ class DwarfInfo:
                     indx = int(sec.Name[1:], 10)
                     name = self.strtable[indx:].split(b'\x00', 1)[0]
                     self.secmap[name.decode('utf-8')] = sec
+        self.is64BitDwarf = False
         self.abbrev = self._parseDebugAbbrev()
         self.info = self._parseDebugInfo()
         self.line = self._parseDebugLine()
@@ -78,7 +61,7 @@ class DwarfInfo:
     def _getExprLoc(self, bytez):
         pass
 
-    def _getFormData(self, form, bytez, addrsize, is64BitDwarf=False, use_utf8=False):
+    def _getFormData(self, form, bytez, addrsize, use_utf8=False):
         '''
         TODO: So for anything marked "constant", we technically have to use "context" to determine if it's
         signed, unsigned, target machine endianness, etc. as per the dwarf docs
@@ -148,7 +131,7 @@ class DwarfInfo:
 
         elif form == DW_FORM_strp:  # string
             # a ptr-sized offset into the string table .debug_str
-            if is64BitDwarf:
+            if self.is64BitDwarf:
                 offset = vs_prim.v_int64(bigend=self.vw.bigend)
                 offset.vsParse(bytez)
             else:
@@ -178,7 +161,7 @@ class DwarfInfo:
                 return vs_prim.v_uint32(ulen), extra
 
         elif form == DW_FORM_ref_addr:  # ref
-            if is64BitDwarf:
+            if self.is64BitDwarf:
                 vsData = vs_prim.v_ptr64(bigend=self.vw.bigend)
             else:
                 vsData = vs_prim.v_ptr32(bigend=self.vw.bigend)
@@ -215,7 +198,7 @@ class DwarfInfo:
             return vsData, extra
 
         elif form == DW_FORM_sec_offset:  # lineptr, loclistptr, macptr, rangelistptr
-            if is64BitDwarf:
+            if self.is64BitDwarf:
                 vsData = vs_prim.v_int64(bigend=self.vw.bigend)
                 vsData.vsParse(bytez)
             else:
@@ -247,14 +230,15 @@ class DwarfInfo:
 
     def _parseDebugInfo(self):
         '''
+        Parse out the main body of debug info. This sets a couple useful properties
         '''
         # Use that to parse out things from the .debug_info section
         vw = self.vw
         debuginfo = []
-        is64BitDwarf = False
         bytez = self.getSectionBytes('.debug_info')
         if bytez is None:
             return
+
         consumed = 0
         while consumed < len(bytez):
             # Parse the compile unit header
@@ -264,7 +248,7 @@ class DwarfInfo:
             if version == 0xFFFFFFFF:
                 consumed += 4
                 header = Dwarf64CompileHeader(bigend=vw.bigend)
-                is64BitDwarf = True
+                self.is64BitDwarf = True
             else:
                 header = Dwarf32CompileHeader(bigend=vw.bigend)
                 # So it says it's 12 bytes, but the first 4 are ffffffff
@@ -295,7 +279,7 @@ class DwarfInfo:
                 struct = vstruct.VStruct()
                 struct.vsAddField('tag', vs_prim.v_uint16(tag))
                 for attr, attrForm in typeinfo:
-                    if attr > DW_AT_lo_user and attr < DW_AT_hi_user:
+                    if DW_AT_lo_user < attr < DW_AT_hi_user:
                         # try reaching into the gnu attribute names since they're a well known
                         # "vendor"
                         name = gnu_attribute_names.get(attr, "UNK")
@@ -304,8 +288,7 @@ class DwarfInfo:
 
                     vsForm, flen = self._getFormData(attrForm,
                                                      bytez[consumed+unitConsumed:],
-                                                     addrsize=header.ptrsize,
-                                                     is64BitDwarf=is64BitDwarf)
+                                                     addrsize=header.ptrsize)
                     struct.vsAddField(name, vsForm)
                     unitConsumed += flen
 
@@ -324,7 +307,46 @@ class DwarfInfo:
         return debuginfo
 
     def _parseDebugLine(self):
-        pass
+        vw = self.vw
+        consumed = 0
+        byts = self.getSectionBytes('.debug_line')
+
+        version = vs_prim.v_uint32(bigend=vw.bigend)
+        if version == 0xFFFFFFFF:
+            consumed += 4
+            header = Dwarf64UnitLineHeader(bigend=vw.bigend)
+        else:
+            header = Dwarf32UnitLineHeader(bigend=vw.bigend)
+
+        header.vsParse(byts[consumed:])
+        consumed += len(header)
+        while byts[consumed] != 0:
+            dirn = v_str(val=byts[consumed:])
+            dirn.vsSetLength(len(dirn.vsGetValue()) + 1)
+            header.include_directories.vsAddElement(dirn)
+            consumed += len(dirn)
+
+        consumed += 1
+
+        file_names = []
+        while byts[consumed] != 0:
+            srcpath = v_str(val=byts[consumed:])
+            srcpath.vsSetLength(len(srcpath.vsGetValue()) + 1)
+            consumed += len(srcpath)
+
+            diridx, con = leb128ToInt(byts[consumed:])
+            consumed += con
+
+            modtime, con = leb128ToInt(byts[consumed:])
+            consumed += con
+
+            filelen, con = leb128ToInt(byts[consumed:])
+            consumed += con
+
+            file_names.append((srcpath, diridx, modtime, filelen))
+        consumed += 1
+        breakpoint()
+        print('wat')
 
     def _parseDebugAbbrev(self):
         bytez = self.getSectionBytes('.debug_abbrev')

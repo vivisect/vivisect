@@ -1,6 +1,25 @@
 import vstruct
 from vstruct.primitives import *
 
+def leb128ToInt(bytez, bitlen=64, signed=False):
+    '''
+    Return tuple of the decoded value and how many bytes it consumed to decode the value
+    '''
+    valu = 0
+    shift = 0
+    signBit = False
+    for i, bz in enumerate(bytez, start=1):
+        bz = bz
+        valu |= (bz & 0x7f) << shift
+        shift += 7
+        if not bz & 0x80:
+            signBit = True if bz & 0x40 else False
+            break
+
+    if signed and signBit and shift < bitlen:
+        valu |= - (1 << shift)
+
+    return valu, i
 
 class Dwarf32CompileHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -8,7 +27,7 @@ class Dwarf32CompileHeader(vstruct.VStruct):
         self.length = v_uint32(bigend=bigend)
         self.version = v_uint16(bigend=bigend)
         self.abbrev_offset = v_uint32(bigend=bigend)
-        self.ptrsize= v_uint8()
+        self.ptrsize = v_uint8()
 
 
 class Dwarf32TypeHeader(vstruct.VStruct):
@@ -17,10 +36,31 @@ class Dwarf32TypeHeader(vstruct.VStruct):
         self.length = v_uint32(bigend=bigend)
         self.version = v_uint16(bigend=bigend)
         self.abbrev_offset = v_uint32(bigend=bigend)
-        self.ptrsize= v_uint8()
+        self.ptrsize = v_uint8()
         self.type_sig = v_uint64(bigend=bigend)
         self.type_offset = v_uint32(bigend=bigend)
 
+class Dwarf32UnitLineHeader(vstruct.VStruct):
+    def __init__(self, bigend=False):
+        vstruct.VStruct.__init__(self)
+        self.unit_length = v_uint32(bigend=bigend)
+        self.version = v_uint16(bigend=bigend)
+        self.header_length = v_uint32(bigend=bigend)
+
+        self.min_instr_len = v_uint8(bigend=bigend)
+        self.max_opts_per_instr = v_uint8(bigend=bigend)
+        self.default_is_statement = v_uint8(bigend=bigend)
+        self.line_base = v_int8(bigend=bigend)
+        self.line_range = v_int8(bigend=bigend)
+        self.opcode_base = v_uint8(bigend=bigend)
+
+        # coudl also be an array.
+        self.standard_opcode_lengths = v_bytes()
+        self.include_directories = vstruct.VArray()
+        self.file_names = vstruct.VArray()
+
+    def pcb_opcode_base(self):
+        self.standard_opcode_lengths = v_bytes(size=self.opcode_base - 1)
 
 class Dwarf64CompileHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -28,8 +68,7 @@ class Dwarf64CompileHeader(vstruct.VStruct):
         self.length = v_uint96(bigend=bigend)
         self.version = v_uint16(bigend=bigend)
         self.abbrev_offset = v_uint64(bigend=bigend)
-        self.ptrsize= v_uint8()
-
+        self.ptrsize = v_uint8()
 
 class Dwarf64TypeHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -40,6 +79,10 @@ class Dwarf64TypeHeader(vstruct.VStruct):
         self.ptrsize = v_uint8()
         self.type_sig = v_uint64(bigend=bigend)
         self.type_offset = v_uint64(bigend=bigend)
+
+class Dwarf64UnitLineHeader(vstruct.VStruct):
+    def __init__(self, bigend=False):
+        vstruct.VStruct.__init__(self)
 
 # DWARF Debugging info Enums
 
