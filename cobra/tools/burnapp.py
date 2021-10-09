@@ -34,15 +34,15 @@ def release():
 
     if opts.cacert:
         with open(opts.cacert, 'rb') as f:
-            castr = '"%s"' % binascii.hexlify(f.read())
+            castr = '"%s"' % e_common.hexify(f.read())
 
     if opts.sslkey:
         with open(opts.sslkey, 'rb') as f:
-            keystr = '"%s"' % binascii.hexlify(f.read())
+            keystr = '"%s"' % e_common.hexify(f.read())
 
     if opts.sslcert:
         with open(opts.sslcert, 'rb') as f:
-            certstr = '"%s"' % binascii.hexlify(f.read())
+            certstr = '"%s"' % e_common.hexify(f.read())
 
     mainlines.append('    appuri="%s"' % appuri)
     mainlines.append('    cacrt=%s' % castr)

@@ -123,14 +123,31 @@ class v_prim(v_base):
 
 
 num_fmts = {
+    # big endian unsigned
     (True, 1): '>B',
     (True, 2): '>H',
     (True, 4): '>I',
     (True, 8): '>Q',
+
+    # little endian unsigned
     (False, 1): '<B',
     (False, 2): '<H',
     (False, 4): '<I',
     (False, 8): '<Q',
+}
+
+signed_fmts = {
+    # big endian signed
+    (True, 1): '>b',
+    (True, 2): '>h',
+    (True, 4): '>i',
+    (True, 8): '>q',
+
+    # little endian signed
+    (False, 1): '<b',
+    (False, 2): '<h',
+    (False, 4): '<i',
+    (False, 8): '<q',
 }
 
 
@@ -140,13 +157,13 @@ class v_number(v_prim):
     def __init__(self, value=0, bigend=False, enum=None):
         v_prim.__init__(self)
         self._vs_bigend = bigend
-        self._vs_value = value
         self._vs_enum = enum
         self._vs_length = self.__class__._vs_length
         self._vs_fmt = num_fmts.get((bigend, self._vs_length))
 
         # TODO: could use envi.bits, but do we really want to dep on envi?
         self.maxval = (2 ** (8 * self._vs_length)) - 1
+        self.vsSetValue(value)
 
     def vsGetValue(self):
         return self._vs_value
@@ -171,7 +188,7 @@ class v_number(v_prim):
         else:
             r = []
             for i in range(self._vs_length):
-                r.append(ord(fbytes[offset + i]))
+                r.append(fbytes[offset + i])
 
             if not self._vs_bigend:
                 r.reverse()
@@ -328,12 +345,12 @@ class v_number(v_prim):
 class v_snumber(v_number):
     _vs_length = 1
 
-    def __init__(self, value=0, bigend=False):
-        v_number.__init__(self, value=value, bigend=bigend)
-
-        # TODO: could use envi.bits, but do we really want to dep on envi?
+    def __init__(self, value=0, bigend=False, enum=None):
         smaxval = (2**((8 * self._vs_length)-1)) - 1
         self.smask = smaxval + 1
+
+        v_number.__init__(self, value=value, bigend=bigend, enum=enum)
+        self._vs_fmt = signed_fmts.get((bigend, self._vs_length))
 
     def vsSetValue(self, value):
         value = value & self.maxval

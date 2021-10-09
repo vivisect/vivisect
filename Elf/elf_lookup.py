@@ -776,46 +776,47 @@ DT_HIPROC = 0x7fffffff
 dt_names = { v:k for k,v in globals().items() if k.startswith('DT_')}
 
 dt_types = {
-    DT_NULL: "Marks end of dynamic section ",
-    DT_NEEDED: "Name of needed library ",
-    DT_PLTRELSZ: "Size in bytes of PLT relocs ",
-    DT_PLTGOT: "Processor defined value ",
-    DT_HASH: "Address of symbol hash table ",
-    DT_STRTAB: "Address of string table ",
-    DT_SYMTAB: "Address of symbol table ",
-    DT_RELA: "Address of Rela relocs ",
-    DT_RELASZ: "Total size of Rela relocs ",
-    DT_RELAENT: "Size of one Rela reloc ",
-    DT_STRSZ: "Size of string table ",
-    DT_SYMENT: "Size of one symbol table entry ",
-    DT_INIT: "Address of init function ",
-    DT_FINI: "Address of termination function ",
-    DT_SONAME: "Name of shared object ",
-    DT_RPATH: "Library search path (deprecated) ",
-    DT_SYMBOLIC: "Start symbol search here ",
-    DT_REL: "Address of Rel relocs ",
-    DT_RELSZ: "Total size of Rel relocs ",
-    DT_RELENT: "Size of one Rel reloc ",
-    DT_PLTREL: "Type of reloc in PLT ",
-    DT_DEBUG: "For debugging; unspecified ",
-    DT_TEXTREL: "Reloc might modify .text ",
-    DT_JMPREL: "Address of PLT relocs ",
-    DT_BIND_NOW: "Process relocations of object ",
-    DT_INIT_ARRAY: "Array with addresses of init fct ",
-    DT_FINI_ARRAY: "Array with addresses of fini fct ",
-    DT_INIT_ARRAYSZ: "Size in bytes of DT_INIT_ARRAY ",
-    DT_FINI_ARRAYSZ: "Size in bytes of DT_FINI_ARRAY ",
-    DT_RUNPATH: "Library search path ",
-    DT_FLAGS: "Flags for the object being loaded ",
-    DT_ENCODING: "Start of encoded range ",
-    DT_PREINIT_ARRAY: "Array with addresses of preinit fct",
-    DT_PREINIT_ARRAYSZ: "size in bytes of DT_PREINIT_ARRAY ",
-    DT_NUM: "Number used ",
-    DT_LOOS: "Start of OS-specific ",
-    DT_HIOS: "End of OS-specific ",
-    DT_LOPROC: "Start of processor-specific ",
-    DT_HIPROC: "End of processor-specific ",
-    DT_VERDEF: "Version Definition Offset ",
+    DT_NULL     : "Marks end of dynamic section ",
+    DT_NEEDED   : "Name of needed library ",
+    DT_PLTRELSZ : "Size in bytes of PLT relocs ",
+    DT_PLTGOT   : "Processor defined value ",
+    DT_HASH     : "Address of symbol hash table ",
+    DT_STRTAB   : "Address of string table ",
+    DT_SYMTAB   : "Address of symbol table ",
+    DT_RELA     : "Address of Rela relocs ",
+    DT_RELASZ   : "Total size of Rela relocs ",
+    DT_RELAENT  : "Size of one Rela reloc ",
+    DT_STRSZ    : "Size of string table ",
+    DT_SYMENT   : "Size of one symbol table entry ",
+    DT_INIT     : "Address of init function ",
+    DT_FINI     : "Address of termination function ",
+    DT_SONAME   : "Name of shared object ",
+    DT_RPATH    : "Library search path (deprecated) ",
+    DT_SYMBOLIC : "Start symbol search here ",
+    DT_REL      : "Address of Rel relocs ",
+    DT_RELSZ    : "Total size of Rel relocs ",
+    DT_RELENT   : "Size of one Rel reloc ",
+    DT_PLTREL   : "Type of reloc in PLT ",
+    DT_DEBUG    : "For debugging; unspecified ",
+    DT_TEXTREL  : "Reloc might modify .text ",
+    DT_JMPREL   : "Address of PLT relocs ",
+    DT_BIND_NOW : "Process relocations of object ",
+    DT_INIT_ARRAY   : "Array with addresses of init fct ",
+    DT_FINI_ARRAY   : "Array with addresses of fini fct ",
+    DT_INIT_ARRAYSZ : "Size in bytes of DT_INIT_ARRAY ",
+    DT_FINI_ARRAYSZ : "Size in bytes of DT_FINI_ARRAY ",
+    DT_RUNPATH  : "Library search path ",
+    DT_FLAGS    : "Flags for the object being loaded ",
+    DT_FLAGS_1  : "Flags (auxiliary) for the object being loaded ",
+    DT_ENCODING : "Start of encoded range ",
+    DT_PREINIT_ARRAY : "Array with addresses of preinit fct",
+    DT_PREINIT_ARRAYSZ : "size in bytes of DT_PREINIT_ARRAY ",
+    DT_NUM      : "Number used ",
+    DT_LOOS     : "Start of OS-specific ",
+    DT_HIOS     : "End of OS-specific ",
+    DT_LOPROC   : "Start of processor-specific ",
+    DT_HIPROC   : "End of processor-specific ",
+    DT_VERDEF   : "Version Definition Offset ",
     DT_VERDEFNUM: "Version Definition Structure Count ",
     DT_VERNEED: "Required Version Offset ",
     DT_VERNEEDNUM: "Required Version Structure Count ",
@@ -823,21 +824,38 @@ dt_types = {
     # DT_PROCNUM  : "Most used by any processor ",
 }
 
-PT_NULL = 0
-PT_LOAD = 1
-PT_DYNAMIC = 2
-PT_INTERP = 3
-PT_NOTE = 4
-PT_SHLIB = 5
-PT_PHDR = 6
-PT_TLS = 7
-PT_NUM = 8
-PT_LOOS = 0x60000000
-PT_GNU_EH_FRAME = 0x6474e550
-PT_GNU_STACK = 0x6474e551
-PT_GNU_RELRO = 0x6474e552
-PT_LOSUNW = 0x6ffffffa
-PT_SUNWBSS = 0x6ffffffa
+DF_ORIGIN =         0x00000001
+DF_SYMBOLIC =       0x00000002        
+DF_TEXTREL =        0x00000004        
+DF_BIND_NOW =       0x00000008        
+DF_STATIC_TLS =     0x00000010        
+
+df_names = { v:k for k,v in globals().items() if k.startswith('DF_')}
+
+df_types = {
+    DF_ORIGIN: 'Object may use DF_ORIGIN',
+    DF_SYMBOLIC: 'Symbol resolutions starts here',
+    DF_TEXTREL: 'Object contains text relocations',
+    DF_BIND_NOW: 'No lazy binding for this object',
+    DF_STATIC_TLS: 'Module uses the static TLS model',
+}
+
+
+PT_NULL     = 0
+PT_LOAD     = 1
+PT_DYNAMIC  = 2
+PT_INTERP   = 3
+PT_NOTE     = 4
+PT_SHLIB    = 5
+PT_PHDR     = 6
+PT_TLS      = 7
+PT_NUM      = 8
+PT_LOOS     = 0x60000000
+PT_GNU_EH_FRAME  = 0x6474e550
+PT_GNU_STACK  = 0x6474e551
+PT_GNU_RELRO  = 0x6474e552
+PT_LOSUNW   = 0x6ffffffa
+PT_SUNWBSS  = 0x6ffffffa
 PT_SUNWSTACK = 0x6ffffffb
 PT_HISUNW = 0x6fffffff
 PT_HIOS = 0x6fffffff

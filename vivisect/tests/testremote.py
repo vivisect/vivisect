@@ -6,6 +6,7 @@ import threading
 import multiprocessing as mp
 
 import vivisect
+import vivisect.const as v_const
 import vivisect.tests.helpers as helpers
 import vivisect.remote.server as v_r_server
 
@@ -34,10 +35,11 @@ class VivisectRemoteTests(unittest.TestCase):
         good = vivisect.VivWorkspace()
         good.loadFromFile(testfile)
 
-        host = '0.0.0.0'
+        host = 'localhost'
         port = 0x4097
         with tempfile.TemporaryDirectory() as tmpd:
-            with tempfile.NamedTemporaryFile(dir=tmpd) as tmpf:
+            tmpf = tempfile.NamedTemporaryFile(dir=tmpd, delete=False)
+            try:
                 proc = mp.Process(target=runServer, args=(tmpf.name, port,))
                 proc.daemon = True
                 proc.start()
@@ -45,7 +47,7 @@ class VivisectRemoteTests(unittest.TestCase):
                 # give the other process time to spin up
                 time.sleep(0.5)
 
-                # So...yea. The server could not be up yet, but I'm not waiting a mmillion years to
+                # So...yea. The server could not be up yet, but I'm not waiting a million years to
                 # wait for it.
                 retry = 0
                 conn = False
@@ -71,18 +73,27 @@ class VivisectRemoteTests(unittest.TestCase):
                 retry = 0
                 while retry < 5:
                     locs = othr.getLocations()
-                    if len(locs) != 1380:
+                    if len(locs) != 1389:
                         retry += 1
                         time.sleep(0.2)
                     else:
                         break
 
-                self.assertEqual(len(othr.getLocations()), 1380)
+                self.assertEqual(len(othr.getLocations()), 1389)
                 self.assertEqual(set(othr.getLocations()), set(good.getLocations()))
                 self.assertEqual(set(othr.getXrefs()), set(good.getXrefs()))
 
                 try:
+                    othr.server = None
+                    q = othr.chan_lookup.get(othr.rchan)
+                    if q:
+                        # So it's not reeeealy auto analysis fini, but it's a good enough stand-in to get
+                        # the server thread to shutdown cleaner
+                        q.puts((v_const.VWE_AUTOANALFIN, None))
                     proc.terminate()
                     proc.close()
                 except:
                     pass
+            finally:
+                tmpf.close()
+                os.unlink(tmpf.name)
