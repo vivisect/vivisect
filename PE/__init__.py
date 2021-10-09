@@ -1618,7 +1618,7 @@ class PE(object):
         '''
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
         # ridlen = header.Rid % 8 + (1 if header.Rid % 8 > 0  else 0)
-        raise NotImplementedError("FUCK")
+        raise NotImplementedError("UNOPT -- TODO")
 
     def parseStringHeap(self, offset, size):
         '''

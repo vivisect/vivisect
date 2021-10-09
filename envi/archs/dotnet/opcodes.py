@@ -2,7 +2,7 @@ from envi.archs.dotnet.opconst import *
 
 MAIN_OPCODES = {
     # General format is (type, args, pops, pushes, name)
-    # More specific Format is (type, (arg_mask, arg_mask), (pop_mask, pop_mask), (push_mask, push_mask), name)
+    # More specific Format is (type, (args,), (pop_mask,), (push_mask,), name)
     # So each element should be of length 5, with elements 1, 2, 3, being tuples of various length
     0x0: (INS_NOP,     (), (), (), 'nop'),
     0x1: (INS_BREAK,   (), (), (), 'break'),
@@ -10,10 +10,10 @@ MAIN_OPCODES = {
     0x3: (INS_LOADARG, (), (), (TYPE_ANY,), 'ldarg.1'),
     0x4: (INS_LOADARG, (), (), (TYPE_ANY,), 'ldarg.2'),
     0x5: (INS_LOADARG, (), (), (TYPE_ANY,), 'ldarg.3'),
-    0x6: (INS_LOADLOC, (), (), (TYPE_ANY,),'lodloc.0'),
-    0x7: (INS_LOADLOC, (), (), (TYPE_ANY,),'lodloc.1'),
-    0x8: (INS_LOADLOC, (), (), (TYPE_ANY,),'lodloc.2'),
-    0x9: (INS_LOADLOC, (), (), (TYPE_ANY,),'lodloc.3'),
+    0x6: (INS_LOADLOC, (), (), (TYPE_ANY,), 'lodloc.0'),
+    0x7: (INS_LOADLOC, (), (), (TYPE_ANY,), 'lodloc.1'),
+    0x8: (INS_LOADLOC, (), (), (TYPE_ANY,), 'lodloc.2'),
+    0x9: (INS_LOADLOC, (), (), (TYPE_ANY,), 'lodloc.3'),
 
     0xA: (INS_STLOC, (), (), (), 'stloc.0'),
     0xB: (INS_STLOC, (), (), (), 'stloc.1'),
