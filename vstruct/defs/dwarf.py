@@ -21,6 +21,7 @@ def leb128ToInt(bytez, bitlen=64, signed=False):
 
     return valu, i
 
+
 class Dwarf32CompileHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
         vstruct.VStruct.__init__(self)
@@ -40,6 +41,7 @@ class Dwarf32TypeHeader(vstruct.VStruct):
         self.type_sig = v_uint64(bigend=bigend)
         self.type_offset = v_uint32(bigend=bigend)
 
+
 class Dwarf32UnitLineHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
         vstruct.VStruct.__init__(self)
@@ -48,19 +50,20 @@ class Dwarf32UnitLineHeader(vstruct.VStruct):
         self.header_length = v_uint32(bigend=bigend)
 
         self.min_instr_len = v_uint8(bigend=bigend)
-        self.max_opts_per_instr = v_uint8(bigend=bigend)
+        self.max_ops_per_instr = v_uint8(bigend=bigend)
         self.default_is_statement = v_uint8(bigend=bigend)
         self.line_base = v_int8(bigend=bigend)
         self.line_range = v_int8(bigend=bigend)
         self.opcode_base = v_uint8(bigend=bigend)
 
-        # coudl also be an array.
+        # could also be an array.
         self.standard_opcode_lengths = v_bytes()
         self.include_directories = vstruct.VArray()
-        self.file_names = vstruct.VArray()
+        self.file_names = []
 
     def pcb_opcode_base(self):
         self.standard_opcode_lengths = v_bytes(size=self.opcode_base - 1)
+
 
 class Dwarf64CompileHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -69,6 +72,7 @@ class Dwarf64CompileHeader(vstruct.VStruct):
         self.version = v_uint16(bigend=bigend)
         self.abbrev_offset = v_uint64(bigend=bigend)
         self.ptrsize = v_uint8()
+
 
 class Dwarf64TypeHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -79,6 +83,7 @@ class Dwarf64TypeHeader(vstruct.VStruct):
         self.ptrsize = v_uint8()
         self.type_sig = v_uint64(bigend=bigend)
         self.type_offset = v_uint64(bigend=bigend)
+
 
 class Dwarf64UnitLineHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -747,7 +752,7 @@ DW_OP_ARGLEN = {
 
     DW_OP_plus_uconst: (OP_uleb128,),
     DW_OP_skip: (OP_s16,),
-    DW_OP_bra: (OP_s16),
+    DW_OP_bra: (OP_s16,),
 
     DW_OP_breg0:  (OP_sleb128,),
     DW_OP_breg1:  (OP_sleb128,),
@@ -798,3 +803,23 @@ DW_OP_ARGLEN = {
     DW_OP_implict_value: (OP_uleb128,
                           OP_block),
 }
+
+DW_LNS_copy = 0x01
+DW_LNS_advance_pc = 0x02
+DW_LNS_advance_line = 0x3
+DW_LNS_set_file = 0x4
+DW_LNS_set_column = 0x5
+DW_LNS_negate_stmt = 0x6
+DW_LNS_set_basic_block = 0x7
+DW_LNS_const_add_pc = 0x08
+DW_LNS_fixed_advance_pc = 0x09
+DW_LNS_set_prologue_end = 0x0a
+DW_LNS_set_epilogue_begin = 0x0b
+DW_LNS_set_isa = 0x0c
+
+DW_LNE_end_sequence = 0x01
+DW_LNE_set_address = 0x02
+DW_LNE_define_file = 0x03
+DW_LNE_set_discriminator = 0x04
+DW_LNE_lo_user = 0x80
+DW_LNE_hi_user = 0xff

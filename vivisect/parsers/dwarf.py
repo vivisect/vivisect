@@ -1,15 +1,241 @@
-import logging
+'''
+Stuff still to do:
+* Still don't support macros
+* need to plumb this into the event stream
+'''
+
+
 import sys
+import logging
 
 import Elf
 import envi.bits as e_bits
 import vivisect.exc as v_exc
+
 import vstruct
 import vstruct.primitives as vs_prim
 
 from vstruct.defs.dwarf import *
 
 logger = logging.getLogger(__name__)
+
+
+class LineStateMachine:
+    '''
+    So line information in dwarf is modelled as a state machine with
+    1 byte opcodes, a few special opcodes, and (possibly) extensions to such.
+
+    There's a base set of opcode, a couple extensions that are access by a 00
+    opcode, and the possibly a set of special opcodes that I'm not going to
+    currently support for a POC
+    '''
+    def __init__(self, byts, header, bigend=False):
+        '''
+        * header
+            - Type: Dwarf32UnitLineHeader or Dwarf64UnitLineHeader
+            - Desc: Header info for the compile unit we're looking at currently
+                    (We need it for grabbing things like file names and the opcode_base)
+        '''
+        self.header = header
+        self.consumed = 0
+        self.bigend = bigend
+        self.byts = byts
+
+        # don't mess with the order here
+        self.funcs = [
+            self._op_extended,
+            self._op_copy,
+            self._op_advance_pc,
+            self._op_advance_line,
+            self._op_set_file,
+            self._op_set_column,
+            self._op_negate_stmt,
+            self._op_set_basic_block,
+            self._op_const_add_pc,
+            self._op_fixed_advance_pc,
+            self._op_set_prologue_end,
+            self._op_set_epilogue_begin,
+            self._op_set_isa,
+        ]
+
+        self.extended_funcs = [
+            None,
+            self._op_ext_end_sequence,
+            self._op_ext_set_address,
+            self._op_ext_define_file,
+            self._op_ext_set_discriminator,
+        ]
+        self._reset_registers()
+
+    def _reset_registers(self):
+        self._reg_address = 0  # pc
+        self._reg_op_index = 0
+        self._reg_file = 1  # indicates the index of the file
+        self._reg_line = 1
+        self._reg_column = 0  # begins at 1
+        self._reg_is_stmt = False  # TODO: This is determined by the header actually
+        self._reg_basic_block = False
+        self._reg_end_sequence = False
+        self._reg_prologue_end = False
+        self._reg_epilogue_begin = False
+        self._reg_isa = 0
+        self._reg_discriminator = 0
+
+    def _op_special(self, opcode):
+        '''
+        See page 117 in DWARFv4 standard for the full formulas
+        '''
+        adjusted = opcode - self.header.opcode_base
+        adv = adjusted // self.header.line_range
+
+        addr_add = self.header.min_instr_len * ((self._reg_op_index + adv) // self.header.max_ops_per_instr)
+        opidx = (self._reg_op_index + adv) % self.header.max_ops_per_instr
+        line_add = self.header.line_base + (adjusted % self.header.line_range)
+
+        self._reg_address += addr_add
+        self._reg_op_index = opidx
+        self._reg_line += line_add
+
+        self._reg_discriminator = 0
+        self._reg_basic_block = False
+        self._reg_prologue_end = False
+        self._reg_epilogue_begin = False
+
+    def _op_extended(self):
+        oplen, con = leb128ToInt(self.byts[self.consumed:], signed=False)
+        self.consumed += con
+
+        opcode = self.byts[self.consumed]
+        self.consumed += 1
+        if opcode > len(self.extended_funcs):
+            breakpoint()
+
+        self.extended_funcs[opcode](oplen - 1)
+
+    def _op_copy(self):
+        '''
+        should be more here
+        '''
+        breakpoint()
+        self._reg_discriminator = 0
+        self._reg_basic_block = False
+        self._reg_prologue_end = False
+        self._reg_epilogue_begin = False
+
+    def _op_advance_pc(self):
+        # modified address and op_indx according to the same stuff
+        # as a special opcode, except the parameter is unsigned leb128
+        # that acts as the operation advance
+        adv, con = leb128ToInt(self.byts[self.consumed:])
+        self.consumed += con
+
+        addr_add = self.header.min_instr_len * ((self._reg_op_index + adv) // self.header.max_ops_per_instr)
+        opidx = (self._reg_op_index + adv) % self.header.max_ops_per_instr
+
+        self._reg_address += addr_add
+        self._reg_op_index = opidx
+
+    def _op_advance_line(self):
+        adv, con = leb128ToInt(self.byts[self.consumed:], signed=True)
+        self.consumed += con
+        self._reg_line += adv
+
+    def _op_set_file(self):
+        fidx, con = leb128ToInt(self.byts[self.consumed:])
+        self.consumed += con
+        self._reg_file = fidx
+
+    def _op_set_column(self):
+        column, con = leb128ToInt(self.byts[self.consumed:])
+        self.consumed += con
+        self._reg_column = column
+
+    def _op_negate_stmt(self):
+        self._reg_is_stmt = ~self._reg_is_stmt
+
+    def _op_set_basic_block(self):
+        self._reg_basic_block = True
+
+    def _op_const_add_pc(self):
+        # advances address and op_index by increments corresponding to special
+        # opcode 255.
+        # TODO: Functionalize this since it's kinda in a couple spots
+        adjusted = 255 - self.header.opcode_base
+        adv = adjusted // self.header.line_range
+
+        addr_add = self.header.min_instr_len * ((self._reg_op_index + adv) // self.header.max_ops_per_instr)
+        opidx = (self._reg_op_index + adv) % self.header.max_ops_per_instr
+        self._reg_address += addr_add
+        self._reg_op_index = opidx
+
+    def _op_fixed_advance_pc(self):
+        addend = e_bits.parsebytes(self.byts[self.consumed:], offset=0, size=2, bigend=self.bigend)
+        self._reg_address += addend
+        self._reg_op_index = 0
+
+    def _op_set_prologue_end(self):
+        self._reg_prologue_end = True
+
+    def _op_set_epilogue_begin(self):
+        self._reg_epilogue_begin = True
+
+    def _op_set_isa(self):
+        isa, con = leb128ToInt(self.byts[self.consumed:])
+        self.consumed += con
+        self._reg_isa = isa
+
+    def _op_ext_end_sequence(self, blen):
+        breakpoint()
+        self._reset_registers()
+        self._reg_end_sequence = True
+
+    def _op_ext_set_address(self, blen):
+        addr = e_bits.parsebytes(self.byts[self.consumed:], offset=0, size=blen, bigend=self.bigend)
+        self.consumed += blen
+        self._reg_address = addr
+
+    def _op_ext_define_file(self, blen):
+        # TODO: Should this emit some debug info? Or is it *literally* just
+        # defining a file?
+        breakpoint()
+        srcfile = v_str(val=self.byts[self.consumed:])
+        srcfile.vsSetLength(len(srcfile) + 1)
+        self.consumed += len(srcfile)
+
+        diridx, con = leb128ToInt(self.byts[self.consumed:])
+        self.consumed += con
+
+        modtime, con = leb128ToInt(self.byts[self.consumed:])
+        self.consumed += con
+
+        filelen, con = leb128ToInt(self.byts[self.consumed:])
+        self.consumed += con
+
+    def _op_ext_set_discriminator(self, blen):
+        dis, con = leb128ToInt(self.byts[self.consumed:])
+        self.consumed += con
+        self._reg_discriminator = dis
+
+    def getConsumed(self):
+        return self.consumed
+
+    def run(self):
+        '''
+        Run a set of line program bytes through the state machine.
+        Eventually will yield out a bunch of events that should
+        go into the even stream
+        '''
+        opbase = self.header.opcode_base
+        oplen = len(self.funcs)
+        while True:
+            byt = self.byts[self.consumed]
+            self.consumed += 1
+            print("Opcode -- %d" % byt)
+            if byt >= opbase:
+                yield self._op_special(byt)
+                continue
+
+            yield self.funcs[byt]()
 
 
 class DwarfInfo:
@@ -326,9 +552,9 @@ class DwarfInfo:
             header.include_directories.vsAddElement(dirn)
             consumed += len(dirn)
 
+        # skip over terminator byte
         consumed += 1
 
-        file_names = []
         while byts[consumed] != 0:
             srcpath = v_str(val=byts[consumed:])
             srcpath.vsSetLength(len(srcpath.vsGetValue()) + 1)
@@ -343,8 +569,17 @@ class DwarfInfo:
             filelen, con = leb128ToInt(byts[consumed:])
             consumed += con
 
-            file_names.append((srcpath, diridx, modtime, filelen))
+            header.file_names.append((srcpath, diridx, modtime, filelen))
+
+        # skip over terminator byte
         consumed += 1
+
+        # actually run the line number program through the state machine
+        vm = LineStateMachine(byts[consumed:], header, bigend=vw.bigend)
+        for dbginfo in vm.run():
+            # print(hex(vm._reg_address))
+            print('0x%.8x -- %d' % (vm._reg_address, vm._reg_line))
+            pass
         breakpoint()
         print('wat')
 
