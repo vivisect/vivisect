@@ -134,7 +134,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             archmod = i386Module()
 
         envi.Emulator.__init__(self, archmod=archmod)
-        self.initEmuOpt('i386:reponce', False, 'Set to True to short circuit rep prefix')
+        self.initEmuOpt('i386:repmax', 0, 'Specify value > 0 to short circuit rep prefix')
 
         for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
@@ -247,11 +247,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # The behavior of the REP prefix is undefined when used with non-string instructions.
         rep_prefix = op.prefixes & PREFIX_REP_MASK
-        if rep_prefix and op.opcode in REP_OPCODES and not self.getEmuOpt('i386:reponce'):
+        if rep_prefix and op.opcode in REP_OPCODES and self.getEmuOpt('i386:repmax') != 1:
             # REP instructions (REP/REPNZ/REPZ/REPSIMD) get their own handlers
             handler = self.__rep_prefix_handlers__.get(rep_prefix)
             newpc = handler(meth, op)
-
         else:
             newpc = meth(op)
 
@@ -277,6 +276,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 1)
 
+        repmax = emu.getEmuOpt('i386:repmax')
+        if repmax:
+            ecx = min(ecx, repmax)
+
         ret = None
         while ecx and emu.getFlag(EFLAGS_ZF):
             ret = meth(op)
@@ -294,6 +297,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         '''
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 0)
+
+        repmax = emu.getEmuOpt('i386:repmax')
+        if repmax:
+            ecx = min(ecx, repmax)
 
         ret = None
         while ecx and not emu.getFlag(EFLAGS_ZF):
