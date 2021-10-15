@@ -78,6 +78,7 @@ class RegistersListView(vq_tree.VQTreeView, VQTraceNotifier):
     def __init__(self, trace=None, parent=None):
         VQTraceNotifier.__init__(self, trace)
         vq_tree.VQTreeView.__init__(self, parent=parent)
+        self.trace = trace
 
         self.descrend = e_mem_rend.AutoBytesRenderer()
 
@@ -216,8 +217,7 @@ class RegistersView(QWidget):
         splitview.addWidget(statusreg_widget)
         vbox.addWidget(splitview)
 
-        sig = QtCore.SIGNAL('currentIndexChanged(str)')
-        self.viewnames.connect(self.viewnames, sig, self.regViewNameSelected)
+        self.viewnames.currentIndexChanged.connect(self.regViewNameSelected)
 
         self.setLayout(vbox)
 
