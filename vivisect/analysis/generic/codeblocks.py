@@ -75,8 +75,12 @@ def analyzeFunction(vw, funcva):
                 brefs.append((va, False))
                 break
 
-            op = vw.parseOpcode(va)     # parseOpcode() pulls arch from the location db, if exists
-            mnem[op.mnem] += 1
+            try:
+                op = vw.parseOpcode(va)
+                mnem[op.mnem] += 1
+            except Exception as e:
+                logger.warning('Codeblock bad opcode at 0x%x, breaking on error %s', va, e)
+                break
             size += lsize
             opcount += 1
             nextva = va + lsize
@@ -141,7 +145,7 @@ def analyzeFunction(vw, funcva):
                 vw.addCodeBlock(bva, bsize, funcva)
             bcnt += 1
         except Exception as e:
-            logger.warning('Codeblock analysis hit exception: %s', e)
+            logger.warning('Codeblock analysis for 0x%.8x hit exception: %s', funcva, e)
             break
 
     vw.setFunctionMeta(funcva, 'Size', size)

@@ -1,5 +1,9 @@
 import unittest
 
+import vivisect.const as v_const
+
+import vivisect.tools.graphutil as v_t_graph
+
 import vivisect.symboliks.archs.i386 as i386sym
 import vivisect.symboliks.analysis as v_s_analysis
 
@@ -25,6 +29,7 @@ class IntelSymTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.i386_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
+        #cls.gcc_vw = helpers.getTestWorkspace('linux', 'amd64', 'gcc-7')
 
     def test_constraints(self):
         fva = 0x080509e0
@@ -165,3 +170,23 @@ class IntelSymTests(unittest.TestCase):
         ]
         for ret, effects in sctx.getSymbolikOutputs(fva):
             self.assertTrue((ret, effects) in out, msg='(%s, %s) is not in the symbolik outputs' % (ret, effects))
+
+    def SKIPtest_symbolik_gcc_subchildren(self):
+        '''
+        So before intify in vivisect/symboliks/common.py, this would bomb out on int has no
+        attribute "kids" because the dellocate callspace function wasn't properly marshalling
+        argc dellocation as Const() (and instead as raw ints)
+
+        This is here mostly for codification purposes, since actually running this consumes
+        more RAM than CI can handle.
+        '''
+        vw = self.gcc_vw
+        fva = 0x00406ad6
+        sctx = v_s_analysis.getSymbolikAnalysisContext(vw, consolve=True)
+        graph = sctx.getSymbolikGraph(fva)
+        for path in v_t_graph.getLongPath(graph):
+            for emu, effects in sctx.getSymbolikPaths(fva, paths=[path, ], graph=graph):
+                break
+
+        calls = [x for x in effects if x.efftype == v_const.EFFTYPE_CALLFUNC]
+        self.assertEqual(len(calls), 26)

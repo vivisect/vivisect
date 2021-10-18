@@ -10,7 +10,7 @@ import traceback
 import threading
 
 import vtrace
-import envi.memory as e_mem
+import envi.const as e_const
 import envi.threads as e_threads
 import envi.symstore.resolver as e_sym_resolv
 
@@ -71,10 +71,11 @@ class TracerBase(vtrace.Notifier):
         # Set up some globally expected metadata
         self.setMeta('PendingSignal', None)
         self.setMeta('SignalInfo', None)
-        self.setMeta("IgnoredSignals",[])
-        self.setMeta("LibraryBases", {}) # name -> base address mappings for binaries
-        self.setMeta("LibraryPaths", {}) # base -> path mappings for binaries
-        self.setMeta("ThreadId", 0) # If you *can* have a thread id put it here
+        self.setMeta("IgnoredSignals", [])
+        self.setMeta("LibraryBases", {})  # name -> base address mappings for binaries
+        self.setMeta("LibraryPaths", {})  # base -> path mappings for binaries
+        self.setMeta("ThreadId", 0)  # If you *can* have a thread id put it here
+        self.setMeta("BadMaps", [])  # Maps like [vvar] on linux that we can't read from normally
         plat = platform.system().lower()
         rel  = platform.release().lower()
         self.setMeta("Platform", plat)
@@ -567,17 +568,19 @@ class TracerBase(vtrace.Notifier):
     def _findLibraryMaps(self, magic, always=False):
         # A utility for platforms which lack library load
         # notification through the operating system
+        bmaps = self.getMeta("BadMaps", [])
         done = {}
         mlen = len(magic)
 
         for addr, size, perms, fname in self.getMemoryMaps():
-
             if not fname:
                 continue
 
             if done.get(fname):
                 continue
 
+            if fname in bmaps:
+                continue
             try:
 
                 if self.readMemory(addr, mlen) == magic:
@@ -803,7 +806,7 @@ class TracerBase(vtrace.Notifier):
     def platformProtectMemory(self, va, size, perms):
         raise Exception("Plaform does not implement protect memory")
 
-    def platformAllocateMemory(self, size, perms=e_mem.MM_RWX, suggestaddr=0):
+    def platformAllocateMemory(self, size, perms=e_const.MM_RWX, suggestaddr=0):
         raise Exception("Plaform does not implement allocate memory")
 
     def platformReadMemory(self, address, size):

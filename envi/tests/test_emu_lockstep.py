@@ -1,3 +1,4 @@
+import types
 import unittest
 import vtrace.tests as vt_tests
 
@@ -21,6 +22,16 @@ undefs = {
 }
 
 
+def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    '''
+    Monkey patching the emulator's actual getByteDef because the emu._map_defs isn't
+    populated and populating it via just ripping through all the actual memory maps
+    leads to a bunch of partial read errors that I don't feel like dealing with right now.
+    '''
+    byts = self.readMemory(va, 16)
+    return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(byts, 0, va)
+
+
 class LockStepper:
 
     def __init__(self, trace):
@@ -37,15 +48,21 @@ class LockStepper:
 
         # gotta setup fs at least...
         if plat == 'windows' and self.archname in ('i386', 'amd64'):
+            # so 32 and 64 bit are flipped. In x86-land FS:[0] points to the TIB. On x64, it's GS:[0] that points to the
+            # TEB
             tid = trace.getCurrentThread()
             tinfo = trace.getThreads().get(tid)
-            self.emu.setSegmentInfo(e_i386.SEG_FS, tinfo, 0xffffffff)
+            if self.archname == 'i386':
+                self.emu.setSegmentInfo(e_i386.SEG_FS, tinfo, 0xffffffff)
+            elif self.archname == 'amd64':
+                self.emu.setSegmentInfo(e_i386.SEG_GS, tinfo, 0xffffffff)
 
         # Monkey patch the emulator's read methods
         self.emu.readMemory = self.memcache.readMemory
         self.emu.writeMemory = self.memcache.writeMemory
         self.emu.getMemoryMap = self.memcache.getMemoryMap
         self.emu.getMemoryMaps = self.memcache.getMemoryMaps
+        self.emu.parseOpcode = parseOpcode.__get__(self.emu)
 
         regctx = trace.getRegisterContext()
         self.emu.setRegisterSnap(regctx.getRegisterSnap())
@@ -60,14 +77,14 @@ class LockStepper:
             op2 = self.trace.parseOpcode(tracepc)
 
             try:
-                self.emu.stepi()
-            except Exception as e:
-                raise Exception('Emu Exception: %s on %s' % (e, repr(op1)))
-
-            try:
                 self.trace.stepi()
             except Exception as e:
                 raise Exception('Trace Exception: %s on %s' % (e, repr(op2)))
+
+            try:
+                self.emu.stepi()
+            except Exception as e:
+                raise Exception('Emu Exception: %s on %s' % (e, repr(op1)))
 
             self.cmpregs(op1, op2)
             self.cmppages(op1, op2)
@@ -119,6 +136,7 @@ class LockStepTest(vt_tests.VtraceProcessTest):
 
         # Just like runUntilExit()
         self.proc.stdin.write('testmod\n')
+        self.proc.stdin.flush()
         self.trace.run(until=untilva)
 
         lock = LockStepper(self.trace)

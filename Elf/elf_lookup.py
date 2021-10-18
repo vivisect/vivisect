@@ -807,6 +807,7 @@ dt_types = {
     DT_FINI_ARRAYSZ : "Size in bytes of DT_FINI_ARRAY ",
     DT_RUNPATH  : "Library search path ",
     DT_FLAGS    : "Flags for the object being loaded ",
+    DT_FLAGS_1  : "Flags (auxiliary) for the object being loaded ",
     DT_ENCODING : "Start of encoded range ",
     DT_PREINIT_ARRAY : "Array with addresses of preinit fct",
     DT_PREINIT_ARRAYSZ : "size in bytes of DT_PREINIT_ARRAY ",
@@ -821,6 +822,22 @@ dt_types = {
     DT_VERNEEDNUM: "Required Version Structure Count ",
     DT_VERSYM   : "Address of Version Section"
     #DT_PROCNUM  : "Most used by any processor ",
+}
+
+DF_ORIGIN =         0x00000001        
+DF_SYMBOLIC =       0x00000002        
+DF_TEXTREL =        0x00000004        
+DF_BIND_NOW =       0x00000008        
+DF_STATIC_TLS =     0x00000010        
+
+df_names = { v:k for k,v in globals().items() if k.startswith('DF_')}
+
+df_types = {
+    DF_ORIGIN: 'Object may use DF_ORIGIN',
+    DF_SYMBOLIC: 'Symbol resolutions starts here',
+    DF_TEXTREL: 'Object contains text relocations',
+    DF_BIND_NOW: 'No lazy binding for this object',
+    DF_STATIC_TLS: 'Module uses the static TLS model',
 }
 
 

@@ -7,7 +7,6 @@ import shlex
 import pprint
 import socket
 import logging
-import binascii
 import traceback
 from getopt import getopt
 
@@ -29,7 +28,7 @@ import vdb
 
 import envi.cli as e_cli
 import envi.common as e_common
-import envi.memory as e_mem
+import envi.memory as e_memory
 import envi.expression as e_expr
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
@@ -75,27 +74,17 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if not line:
             self.vprint("Report Modules")
             for descr, modname in viv_reports.listReportModules():
-                self.vprint("%32s %s" % (modname, descr))
+                self.vprint("Path: %32s (Name: %s)" % (modname, descr))
             return
 
-        mod = self.loadModule(line)
-        cols, results = mod.report(self)
-        for row in results:
-            for i in range(len(cols)+1):
-                val = row[i]
-                if i == 0:
-                    name = self.arch.pointerString(val)
-                    self.canvas.addVaText(name, val)
-
-                else:
-                    self.canvas.addText(": %s" % val)
-
-        for va, pri, info in mod.report(self):
-            name = self.getName(va)
-            if name is None:
-                name = self.arch.pointerString(va)
-            self.canvas.addVaText(name, va)
-            self.canvas.addText(": %s\n" % info)
+        cols, results = viv_reports.runReportModule(self, line)
+        for va, row in results.items():
+            for indx in range(len(cols)):
+                valu = row[indx]
+                name, typename = cols[indx]
+                self.canvas.addVaText(name, va)
+                self.canvas.addText(": %s\n" % valu)
+            self.canvas.addText("\n")
 
     def do_pathcount(self, line):
         '''
@@ -244,7 +233,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         '''
         parser = e_cli.VOptionParser()
-        parser.add_option('-f', action='store', dest='funcva', type='long')
+        parser.add_option('-f', action='store', dest='funcva', type='int')
         parser.add_option('-c', action='store_true', dest='searchComments')
         parser.add_option('-o', action='store_true', dest='searchOperands')
         parser.add_option('-t', action='store_true', dest='searchText')
@@ -268,7 +257,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if options.funcva:
             # setup valist from function data
             try:
-                fva = int(args[0], 0)
+                fva = options.funcva
                 graph = viv_graph.buildFunctionGraph(self, fva)
             except Exception as e:
                 self.vprint(repr(e))
@@ -340,9 +329,13 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
                 # search full text
                 if options.searchText or defaultSearchAll:
+                    # search through the rendering of the opcode, as well as the comment
                     canv.clearCanvas()
                     op.render(canv)
                     oprepr = canv.strval
+                    cmt = self.getComment(va)
+                    if cmt is not None:
+                        oprepr += "  ; " + cmt
 
                     if options.is_regex:
                         if len(re.findall(pattern, oprepr)):
@@ -358,7 +351,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 self.vprint(''.join(traceback.format_exception(*sys.exc_info())))
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
             return
 
         # set the color for each finding
@@ -368,10 +361,10 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             from vqt.main import vqtevent
             vqtevent('viv:colormap', colormap)
 
-        self.vprint('matches for: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+        self.vprint('matches for: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
         for va in res:
             mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
-            pname = e_mem.reprPerms(mperm)
+            pname = e_memory.reprPerms(mperm)
             sname = self.reprPointer(va)
 
             op = self.parseOpcode(va)
@@ -748,8 +741,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             self.vprint("Invalid Function Address: 0x%.8x (%s)" % (va, line))
 
         sig, mask = viv_vamp.genSigAndMask(self, fva)
-        self.vprint("SIGNATURE: %s" % binascii.hexlify(sig))
-        self.vprint("MASK: %s" % binascii.hexlify(mask))
+        self.vprint("SIGNATURE: %s" % e_common.hexify(sig))
+        self.vprint("MASK: %s" % e_common.hexify(mask))
 
     def do_vdb(self, line):
         '''
