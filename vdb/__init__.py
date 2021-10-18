@@ -81,7 +81,7 @@ def setupBreakOnEntry(trace):
             otb = vtrace.OneTimeBreak(None, expression=entrySymExpr)
             trace.addBreakpoint(otb)
 
-class VdbTrace:
+class VdbTrace(object):
     """
     Used to hand thing that need a persistant reference to a trace
     when using vdb to manage tracers.
