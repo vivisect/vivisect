@@ -257,7 +257,7 @@ class VQFlagsGridView(QWidget, VQTraceNotifier):
 
     def buttonClicked(self):
         obj = self.sender()
-        name = str(obj.text().toAscii())
+        name = obj.text()
 
         value = self.trace.getRegisterByName(name)
         if value not in (0, 1):
