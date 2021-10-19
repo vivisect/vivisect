@@ -71,14 +71,13 @@ class RegisterListModel(envi_qt_memory.EnviNavModel):
 
         return True
 
-class RegistersListView(vq_tree.VQTreeView, VQTraceNotifier):
+class RegistersListView(VQTraceNotifier, vq_tree.VQTreeView):
     '''
     A pure "list view" object for registers
     '''
     def __init__(self, trace=None, parent=None):
         VQTraceNotifier.__init__(self, trace)
         vq_tree.VQTreeView.__init__(self, parent=parent)
-        self.trace = trace
 
         self.descrend = e_mem_rend.AutoBytesRenderer()
 
@@ -200,12 +199,12 @@ class RegistersView(QWidget):
         # show general in dropdown by default if exists, otherwise all
         # (preferences will re-set)
         if 'general' in self.regviews:
-            self.regViewNameSelected('general')
             idx = self.viewnames.findText('general')
+            self.regViewNameSelected('general')
             self.viewnames.setCurrentIndex(idx)
         else:
-            self.regViewNameSelected('all')
             idx = self.viewnames.findText('all')
+            self.regViewNameSelected('all')
             self.viewnames.setCurrentIndex(idx)
 
         statusreg_widget = VQFlagsGridView(trace=trace, parent=self)
@@ -217,7 +216,7 @@ class RegistersView(QWidget):
         splitview.addWidget(statusreg_widget)
         vbox.addWidget(splitview)
 
-        self.viewnames.currentIndexChanged.connect(self.regViewNameSelected)
+        self.viewnames.currentTextChanged.connect(self.regViewNameSelected)
 
         self.setLayout(vbox)
 
@@ -225,7 +224,7 @@ class RegistersView(QWidget):
         self.reglist.regnames = self.regviews.get(str(name), None)
         self.reglist.vqLoad()
 
-class VQFlagsGridView(QWidget, VQTraceNotifier):
+class VQFlagsGridView(VQTraceNotifier, QWidget):
     '''
     Show the state of the status register (if available).
     '''
@@ -366,7 +365,7 @@ def getProcessPid(trace=None, parent=None):
 class FileDescModel(vq_tree.VQTreeModel):
     columns = ('Fd','Type','Name')
 
-class VQFileDescView(vq_tree.VQTreeView, VQTraceNotifier):
+class VQFileDescView(VQTraceNotifier, vq_tree.VQTreeView):
 
     def __init__(self, trace, parent=None):
         VQTraceNotifier.__init__(self, trace)
@@ -490,7 +489,7 @@ class VQTraceToolBar(QToolBar, vtrace.Notifier):
         else:
             self._updateActions(trace.isAttached(), trace.shouldRunAgain())
 
-class VQMemoryMapView(envi_qt_memmap.VQMemoryMapView, VQTraceNotifier):
+class VQMemoryMapView(VQTraceNotifier, envi_qt_memmap.VQMemoryMapView):
     '''
     A memory map view which is sensitive to the status of a
     trace object.
@@ -517,8 +516,8 @@ class VQThreadsView(vq_tree.VQTreeView, VQTraceNotifier):
 
     def __init__(self, trace=None, parent=None, selectthread=None):
         # selectthread is an optional endpoint to connect to
-        VQTraceNotifier.__init__(self, trace)
         vq_tree.VQTreeView.__init__(self, parent=parent)
+        VQTraceNotifier.__init__(self, trace)
         self.setWindowTitle('Threads')
         self.setModel(VQThreadListModel(parent=self))
         self.setAlternatingRowColors(True)
