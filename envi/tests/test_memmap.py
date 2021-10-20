@@ -1,5 +1,6 @@
 import unittest
 
+import envi.exc as e_exc
 import envi.const as e_const
 import envi.memory as e_memory
 
@@ -59,3 +60,26 @@ class Memory(unittest.TestCase):
 
         # test reading
         self.assertEqual(self.mem.readMemory(0x20f0, 0x20), b'@'*0x20)
+
+    def test_cross_map_failure(self):
+        mmaps = [
+                (0x2000, e_const.MM_READ, None, 0x100 * b'\x43'),
+                (0x2100, e_const.MM_RWX, None, 0x100 * b'\x44'),
+                (0x2200, e_const.MM_WRITE, None, 0x100 * b'\x45'),
+                (0x2300, e_const.MM_READ, None, 0x100 * b'\x46'),
+                ]
+
+        # reverse the list just to make sure we aren't making assumptions
+        # about ascending order.  alternately, we could make addMemoryMap
+        # sort them every time.
+        mmaps = reversed(mmaps)
+        for mmap in mmaps:
+            self.mem.addMemoryMap(*mmap)
+
+        # test write failure
+        self.assertRaises(e_exc.SegmentationViolation, self.mem.writeMemory, 0x2100, b'@' * 0x220)
+        self.assertEqual(self.mem.readMemory(0x2100, 0x100), b"@" * 0x100)
+        self.assertEqual(self.mem.readMemory(0x2300, 0x100), b"\x46" * 0x100)
+
+        # test read failure
+        self.assertRaises(e_exc.SegmentationViolation, self.mem.readMemory, 0x20f0, 0x200)
