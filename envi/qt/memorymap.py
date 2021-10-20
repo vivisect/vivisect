@@ -10,6 +10,7 @@ import envi.cli as e_cli
 from vqt.common import ACT
 import vqt.tree as vq_tree
 
+# TODO: Why is this here and not jut mixed in w/ vtrace since they're the only consumers?
 class VQMemoryMapView(vq_tree.VQTreeView):
 
     def __init__(self, mem, parent=None):
