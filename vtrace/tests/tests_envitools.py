@@ -39,7 +39,7 @@ class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
 
         print("\n\nStrict collapse")
         print('\n'.join([repr(x) for x in vwmaps]))
-        self.assertGreater(len(vwmaps), 50)
+        self.assertGreater(len(vwmaps), 40)
 
     def test_workspaceFromTraceWithCollapse_Nonstrict(self):
         vw = vtrace.util.vwFromTrace(self.trace, collapse=True, strict=False)
