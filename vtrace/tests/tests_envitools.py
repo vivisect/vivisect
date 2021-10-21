@@ -37,8 +37,6 @@ class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
             filename = vw.getFileByVa(mva)
             self.assertTrue(filename in mfname)
 
-        #print("\n\nStrict collapse")
-        #print('\n'.join([repr(x) for x in vwmaps]))
         self.assertGreater(len(vwmaps), 40)
 
     def test_workspaceFromTraceWithCollapse_Nonstrict(self):
@@ -53,6 +51,4 @@ class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
             filename = vw.getFileByVa(mva)
             self.assertTrue(filename in mfname)
 
-        #print("\n\nNonStrict collapse")
-        #print('\n'.join([repr(x) for x in vwmaps]))
         self.assertGreater(len(vwmaps), 20)
