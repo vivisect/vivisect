@@ -204,11 +204,11 @@ class LockStepper:
 
             except v_exc.RegisterException as e:
                 logger.warning("    \tError: %s: %s" % (repr(op), msg))
-                cond = self.cbhandler._cb_register_failure(self)
+                cont = self.cbhandler._cb_register_failure(self)
 
             except v_exc.MemoryException as e:
                 logger.warning("    \tError: %s: %s" % (repr(op), msg))
-                cond = self.cbhandler._cb_memory_failure(self)
+                cont = self.cbhandler._cb_memory_failure(self)
 
             except Exception as e:
                 logger.warning("\t\tLockstep Error: %s" % e, exc_info=1)
@@ -216,8 +216,7 @@ class LockStepper:
                     cont = self.fail_handler._cb_unknown_exception(self, exc)
 
             finally:
-                if not self.cbhandler._cb_opcode_post(self):
-                    break
+                cont = cont and self.cbhandler._cb_opcode_post(self):
 
     def cmpregs(self, emuop, traceop):
         emuregs = self.emu.getRegisters()
