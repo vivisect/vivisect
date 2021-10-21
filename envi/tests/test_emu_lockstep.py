@@ -1,7 +1,7 @@
 import types
 import unittest
 import vtrace.tests as vt_tests
-from vtrace.envitools import Lockstepper
+from vtrace.envitools import LockStepper
 
 import envi
 import envi.memory as e_mem
