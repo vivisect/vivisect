@@ -3,8 +3,7 @@ import logging
 import argparse
 
 import envi
-import envi.memory as e_memory
-import envi.archs.i386.regs as eair
+import envi.memory as e_mem
 import envi.archs.i386.opconst as e_i386const
 
 import vtrace
@@ -34,11 +33,88 @@ skip_mem_opcodes_by_arch = {
         }
 
 
-class LockStepper:
+class LockStepMonitor:
+    '''
+    This is an abstract class intended to be subclassed for different purposes
 
-    def __init__(self, trace):
+    Each callback should return True or False for whether the LockStepper
+    should continue or fail
+    '''
+    def _cb_opcode_pre(self, lstep):
+        '''
+        Called before *each* instruction is executed.
+        This (and _post) are outliers, where nothing actually went wrong.
+
+        These callbacks are for use of analysis context only.
+        '''
+        return True
+
+    def _cb_opcode_post(self, lstep):
+        '''
+        Called after *each* instruction is executed.
+        This (and _pre) are outliers, where nothing actually went wrong.
+
+        These callbacks are for use of analysis context only.
+        '''
+        return True
+
+    def _cb_branch_failure(self, lstep, tracepc, emupc):
+        '''
+        Called when the Emulator and Tracer think the ProgramCounter should
+        be different things.
+        '''
+        return False
+
+    def _cb_decode_failure(self, lstep, traceop, emuop):
+        '''
+        Called when the Emulator and Tracer decode the next instruction should
+        be different things.
+        '''
+        return False
+
+    def _cb_register_failure(self, lstep, traceregs, emuregs):
+        '''
+        Called when the Register Context differs between the Emu and Tracer
+        '''
+        return False
+
+    def _cb_memory_failure(self, lstep, va_diffs):
+        '''
+        Called when Memory differences are detected between the Emu and Tracer
+        '''
+        return False
+
+    def _cb_trace_exc(self, lstep, exc):
+        '''
+        Called when Tracer.stepi() throws exceptions
+        '''
+        return False
+
+    def _cb_emu_exc(self, lstep, exc):
+        '''
+        Called when Emu.stepi() throws exceptions
+        '''
+        return False
+
+    def _cb_unknown_exception(self, lstep, exc):
+        '''
+        Called when we haven't prepared for this kind of exception!
+        '''
+        return False
+
+class LockStepper:
+    '''
+    LockStepper is used for comparing execution of an emulator to execution of 
+    a debug trace.  An emulator copy is created of the debug trace, where 
+    memory and registers are duplicated.  
+    '''
+    def __init__(self, trace, fail_handler=None):
 
         self.trace = trace
+        if fail_handler:
+            self.fail_handler = fail_handler
+        else:
+            self.fail_handler = LockStepMonitor()
 
         self.archname = trace.getMeta('Architecture')
         self.arch = envi.getArchModule(self.archname)
@@ -66,30 +142,82 @@ class LockStepper:
         self.emu.getMemoryMaps = self.memcache.getMemoryMaps
         self.emu.parseOpcode = parseOpcode.__get__(self.emu)
 
-        regctx = trace.getRegisterContext()
+        self.syncRegsFromTrace()
+
+    def syncRegsFromTrace(self):
+        '''
+        Syncronizes the Register Context from the Trace to the Emulator
+        '''
+        regctx = self.trace.getRegisterContext()
         self.emu.setRegisterSnap(regctx.getRegisterSnap())
 
+    def syncMemFromTrace(self):
+        '''
+        Syncronizes the MemoryMaps from the Trace to the Emulator
+        (in reality, it clears the differences tracked)
+        '''
+        self.memcache.pagedirty = {}
+        self.memcache.pagecache = {}
+
     def stepi(self, count=1):
+        '''
+        Execute/Emulate one instruction and compare memory/registers
+
+        If issues are discovered, 
+        '''
+        cont = True
         for i in range(count):
-            emupc = self.emu.getProgramCounter()
-            tracepc = self.trace.getProgramCounter()
-
-            op1 = self.emu.parseOpcode(emupc)
-
-            op2 = self.trace.parseOpcode(tracepc)
+            if not cont:
+                break
 
             try:
-                self.trace.stepi()
-            except Exception as e:
-                raise Exception('Trace Exception: %s on %s' % (e, repr(op2)))
+                if not self.callback_handler._cb_opcode_pre(self):
+                    break
 
-            try:
-                self.emu.stepi()
-            except Exception as e:
-                raise Exception('Emu Exception: %s on %s' % (e, repr(op1)))
+                # get and compare Program Counter for both
+                emupc = self.emu.getProgramCounter()
+                tracepc = self.trace.getProgramCounter()
+                if emupc != tracepc:
+                    if not self.fail_handler._cb_branch_failure(self, tracepc, emupc):
+                        break
 
-            self.cmpregs(op1, op2)
-            self.cmppages(op1, op2)
+                op1 = self.emu.parseOpcode(emupc)
+                op2 = self.trace.parseOpcode(tracepc)
+                if op1 != op2:
+                    if not self.fail_handler._cb_decode_failure(self, op1, op2):
+                        break
+
+                try:
+                    self.trace.stepi()
+
+                except Exception as e:
+                    raise Exception('Trace Exception: %s on %s' % (e, repr(op2)))
+
+                try:
+                    self.emu.stepi()
+
+                except Exception as e:
+                    raise Exception('Emu Exception: %s on %s' % (e, repr(op1)))
+
+                self.cmpregs(op1, op2)
+                self.cmppages(op1, op2)
+
+            except v_exc.RegisterException as e:
+                logger.warning("    \tError: %s: %s" % (repr(op), msg))
+                cond = self.cbhandler._cb_register_failure(self)
+
+            except v_exc.MemoryException as e:
+                logger.warning("    \tError: %s: %s" % (repr(op), msg))
+                cond = self.cbhandler._cb_memory_failure(self)
+
+            except Exception as e:
+                logger.warning("\t\tLockstep Error: %s" % e, exc_info=1)
+                if self.fail_handler:
+                    cont = self.fail_handler._cb_unknown_exception(self, exc)
+
+            finally:
+                if not self.cbhandler._cb_opcode_post(self):
+                    break
 
     def cmpregs(self, emuop, traceop):
         emuregs = self.emu.getRegisters()
@@ -103,7 +231,7 @@ class LockStepper:
                 traceval &= ~mask
 
             if traceval != regval:
-                raise Exception('LockStep: emu 0x%.8x %s %s=0x%.8x | trace 0x%.8x %s %s=0x%.8x' % (emuop.va, repr(emuop), regname, regval, traceop.va, repr(traceop), regname, traceval))
+                raise v_exc.RegisterException('LockStep: emu 0x%.8x %s %s=0x%.8x | trace 0x%.8x %s %s=0x%.8x' % (emuop.va, repr(emuop), regname, regval, traceop.va, repr(traceop), regname, traceval))
 
     def cmppages(self, emuop, traceop):
         for va, bytez in self.memcache.getDirtyPages():
@@ -111,8 +239,20 @@ class LockStepper:
             diffs = e_mem.memdiff(bytez, tbytez)
             if diffs:
                 diffstr = ','.join(['0x%.8x: %d' % (va+offset, size) for offset, size in diffs])
-                raise Exception('LockStep: emu 0x%.8x %s | trace 0x%.8x %s | DIFFS: %s' % (emuop.va, repr(emuop), traceop.va, repr(traceop), diffstr))
+                raise v_exc.MemoryException('LockStep: emu 0x%.8x %s | trace 0x%.8x %s | DIFFS: %s' % (emuop.va, repr(emuop), traceop.va, repr(traceop), diffstr))
         self.memcache.clearDirtyPages()
+
+
+def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    '''
+    Monkey patching the emulator's actual getByteDef because the emu._map_defs isn't
+    populated and populating it via just ripping through all the actual memory maps
+    leads to a bunch of partial read errors that I don't feel like dealing with right now.
+    '''
+    byts = self.readMemory(va, 16)
+    return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(byts, 0, va)
+
+
 
 
 class LockstepEmulator:

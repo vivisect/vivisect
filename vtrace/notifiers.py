@@ -139,7 +139,6 @@ class DistributedNotifier(Notifier):
         nlist.remove(notif)
 
 class LibraryNotifer(Notifier):
-    @idlethread
     def notify(self, event, trace):
         #check meta
         if trace.getMeta('BreakOnLibraryLoad', False):
@@ -157,7 +156,11 @@ class LibraryNotifer(Notifier):
             try:
                 initva = trace.parseExpression(entryname)
                 logger.warning("LoadLibrary(%r): Breakpoint added at 0x%x (%r)", libnormname, initva, entryname)
-                trace.addBreakByExpr(entryname)
+                self._doAddBreakByExp(trace, entryname)
 
             except Exception as e:
                 logger.warning("LoadLibrary(%r): Can't add breakpoint!  %r", libnormname, e)
+
+    @idlethread
+    def _doAddBreakByExp(self, trace, expr):
+        trace.addBreakByExpr(expr)

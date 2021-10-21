@@ -4,7 +4,6 @@ import vtrace.tests as vt_tests
 from vtrace.envitools import LockStepper
 
 import envi
-import envi.memory as e_mem
 import envi.archs.i386 as e_i386
 
 undefs = {
@@ -22,15 +21,6 @@ undefs = {
     }
 }
 
-
-def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
-    '''
-    Monkey patching the emulator's actual getByteDef because the emu._map_defs isn't
-    populated and populating it via just ripping through all the actual memory maps
-    leads to a bunch of partial read errors that I don't feel like dealing with right now.
-    '''
-    byts = self.readMemory(va, 16)
-    return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(byts, 0, va)
 
 
 breakpoints = {
