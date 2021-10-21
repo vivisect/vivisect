@@ -15,6 +15,7 @@ import logging
 import traceback
 
 import vtrace
+from vqt.main import idlethread
 
 
 logger = logging.getLogger(__name__)
@@ -138,6 +139,7 @@ class DistributedNotifier(Notifier):
         nlist.remove(notif)
 
 class LibraryNotifer(Notifier):
+    @idlethread
     def notify(self, event, trace):
         #check meta
         if trace.getMeta('BreakOnLibraryLoad', False):
@@ -153,9 +155,9 @@ class LibraryNotifer(Notifier):
             # __entry.  every library *does*, we just need to make sure Viv/
             # Vtrace names them appropriately.
             try:
-                trace.addBreakByExpr(entryname)
                 initva = trace.parseExpression(entryname)
-                logger.warning("LoadLibrary(%r): Breakpoint added at 0x%x", libnormname, initva)
+                logger.warning("LoadLibrary(%r): Breakpoint added at 0x%x (%r)", libnormname, initva, entryname)
+                trace.addBreakByExpr(entryname)
 
             except Exception as e:
                 logger.warning("LoadLibrary(%r): Can't add breakpoint!  %r", libnormname, e)
