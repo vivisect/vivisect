@@ -560,31 +560,83 @@ class MemoryObject(IMemory):
     def getMemoryMaps(self):
         return [mmap for mva, mmaxva, mmap, mbytes in self._map_defs]
 
-    def readMemory(self, va, size):
+    def readMemory(self, va, size, _origva=None):
         '''
         Read memory from maps stored in memory maps.
+
+        If the read crosses memory maps and fails on a later map, the exception
+        will show the details of the last map/failure, but should include the
+        original va (not the size).
+
+        _origva is an internal field and should not be used.
         '''
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
                 if not mperms & MM_READ:
-                    raise envi.SegmentationViolation(va)
-                offset = va - mva
-                return mbytes[offset:offset+size]
-        raise envi.SegmentationViolation(va)
+                    msg = "Bad Memory Read (no READ permission): %s: %s" % (hex(va), hex(size))
+                    if _origva is not None:
+                        msg += " (original va: %s)" % hex(_origva)
+                    raise envi.SegmentationViolation(va, msg)
 
-    def writeMemory(self, va, bytes):
+                offset = va - mva
+                maxreadlen = msize - offset
+                if size > maxreadlen:
+                    # if we're reading past the end of this map, recurse to find the next map
+                    # perms checks for that map will be performed, and size, etc... and if
+                    # an exception must be thrown, future readMemory() can throw it
+                    if not _origva:
+                        _origva = va
+                    return mbytes[offset:] + self.readMemory(mva + msize, size-maxreadlen, _origva=_origva)
+
+                return mbytes[offset:offset+size]
+        msg = "Bad Memory Read (invalid memory address): %s: %s" % (hex(va), hex(size))
+        if _origva:
+            msg += " (original va: %s)" % hex(_origva)
+
+        raise envi.SegmentationViolation(va, msg)
+
+    def writeMemory(self, va, bytez, _origva=None):
+        '''
+        Write memory to maps stored in memory maps.
+
+        If the write crosses memory maps and fails on a later map, the exception
+        will show the details of the last map/failure, but should include the
+        original va (but not the original size).
+        In this scenario, writes to the first map will succeed, up until the address of the exception.
+
+        _origva is an internal field and should not be used.
+        '''
+        byteslen = len(bytez)
         for mapdef in self._map_defs:
             mva, mmaxva, mmap, mbytes = mapdef
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
                 if not (mperms & MM_WRITE or self._supervisor):
-                    raise envi.SegmentationViolation(va)
+                    msg = "Bad Memory Write (no WRITE permission): %s: %s" % (hex(va), hex(byteslen))
+                    if _origva:
+                        msg += " (original va: %s)" % hex(_origva)
+                    raise envi.SegmentationViolation(va, msg)
+
                 offset = va - mva
-                mapdef[3] = mbytes[:offset] + bytes + mbytes[offset+len(bytes):]
+                maxwritelen = msize - offset
+                if byteslen > maxwritelen:
+                    # if we're writing past the end of this map, recurse to find the next map
+                    # perms checks for that map will be performed, and size, etc... and if
+                    # an exception must be thrown, future writeMemory() can throw it
+                    if not _origva:
+                        _origva = va
+                    mapdef[3] = mbytes[:offset] + bytez[:maxwritelen]
+                    self.writeMemory(mva + msize, bytez[maxwritelen:], _origva=_origva)
+                else:
+                    mapdef[3] = mbytes[:offset] + bytez + mbytes[offset+byteslen:]
                 return
 
-        raise envi.SegmentationViolation(va)
+        msg = "Bad Memory Write (invalid memory address): %s: %s" % (hex(va), hex(byteslen))
+        if _origva:
+            msg += " (original va: %s)" % hex(_origva)
+
+        raise envi.SegmentationViolation(va, msg)
 
     def getByteDef(self, va):
         """
