@@ -906,13 +906,13 @@ class SwitchCase:
 
         # skip when the function is the first instruction (PLT?)
         if funcva == self.jmpva:
-            logger.error("ERROR function va IS jmpva 0x%x", self.jmpva)
+            logger.info("function va IS jmpva 0x%x (PLT?)", self.jmpva)
             return
 
         # skip if insufficient instructions in the function to have an interesting switchcase.
         instrcount = vw.getFunctionMeta(funcva, 'InstructionCount')
         if instrcount < self.min_func_instr_size:
-            logger.error("Ignoring jmp in too small a function: %d instructions (0x%x)", instrcount, self.jmpva)
+            logger.info("Ignoring jmp in too small a function: %d instructions (0x%x)", instrcount, self.jmpva)
             return
 
         # skip if we don't have a multiply in the jmpva calculation (always going to be an offset 
