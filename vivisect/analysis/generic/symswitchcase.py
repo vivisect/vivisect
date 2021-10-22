@@ -362,7 +362,7 @@ class SwitchCase:
     Tracks the state of analysis so each component can easily do it's part 
     without handing a ton of variables around between functions.
     '''
-    def __init__(self, vw, jmpva, timeout=60):
+    def __init__(self, vw, jmpva, timeout=180):
         self.vw = vw
         self.jmpva = jmpva
         self.timeout = timeout
