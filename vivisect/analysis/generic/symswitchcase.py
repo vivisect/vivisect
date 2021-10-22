@@ -1286,6 +1286,7 @@ def analyzeFunction(vw, fva, timeout=45):
         dynbranches = vw.getVaSet('DynamicBranches')
     vw.setMeta('analyzedDynBranches', done)
     # TODO: we need a better way to store changing lists/dicts, that don't show up in the UI.  VaSet would be great, but ugly
+    gc.collect()
 
 
 def pathGenConvert(pathgen):
