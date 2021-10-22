@@ -216,7 +216,7 @@ class LockStepper:
                     cont = self.fail_handler._cb_unknown_exception(self, exc)
 
             finally:
-                cont = cont and self.cbhandler._cb_opcode_post(self):
+                cont = cont and self.cbhandler._cb_opcode_post(self)
 
     def cmpregs(self, emuop, traceop):
         emuregs = self.emu.getRegisters()
