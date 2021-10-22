@@ -1018,6 +1018,7 @@ class SwitchCase:
 
         except PathForceQuitException as e:
             logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
+            vw.setVaSetRow('SwitchCases_TimedOut', (self.jmpva,) )
 
         except RuntimeError as e:
             if 'StopIteration' in repr(e):
@@ -1237,7 +1238,7 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
     vw.setComment(jmpva, "lower: 0x%x, upper: 0x%x" % (lower, upper))
 
 
-def analyzeFunction(vw, fva):
+def analyzeFunction(vw, fva, timeout=45):
     '''
     Function analysis module.
     This is inserted right after codeblock analysis
@@ -1276,19 +1277,9 @@ def analyzeFunction(vw, fva):
                     continue
                 done.append(jmpva)
 
-                sc = SwitchCase(vw, jmpva)
+                sc = SwitchCase(vw, jmpva, timeout)
                 sc.analyze()
                 
-                '''inp = input("PRESS ENTER TO CONTINUE...")
-                while len(inp):
-                    try:
-                        print(repr(eval(inp, globals(), locals())))
-                    except:
-                        logger.exception('error')
-
-                    inp = input("PRESS ENTER TO CONTINUE...")
-                    '''
-                #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
             except:
                 logger.info('Exception processing SwitchCase in function 0x%x', fva, exc_info=1)
 
