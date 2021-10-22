@@ -819,7 +819,12 @@ class PathGenerator:
         tocbva = getGraphNodeByVa(fgraph, tova)
         frcbva = getGraphNodeByVa(fgraph, fromva)
 
+        # preroute
         preRouteGraph(fgraph, fromva, tova)
+        reduceGraph(fgraph)
+
+        # get node weights for reference later
+        weights = fgraph.getHierNodeWeights()
         
         pnode = vg_pathcore.newPathNode(nid=frcbva, eid=None)
 
@@ -852,21 +857,19 @@ class PathGenerator:
                     return
 
             for eid, fromid, toid, einfo in refsfrom:
-                if fgraph.getNodeProps(fromid).get('down') != True:
-                    #sys.stderr.write('.')
-                    # TODO: drop the bad edges from graph in preprocessing? instead of "if" here
-                    continue
+                curlvl = weights.get(fromid)
+                tgtlvl = weights.get(toid)
+                if tgtlvl <= curlvl:
+                    # if we're moving *up* in the world, check for loops
+                    loops = vg_pathcore.getPathLoopCount(cpath, 'nid', fromid)
+                    if loops > loopcnt:
+                        vg_pathcore.trimPath(cpath)
+                        #sys.stderr.write('o')
 
-                # Skip loops if they are "deeper" than we are allowed
-                loops = vg_pathcore.getPathLoopCount(cpath, 'nid', fromid)
-                if loops > loopcnt:
-                    vg_pathcore.trimPath(cpath)
-                    #sys.stderr.write('o')
-
-                    # as long as we have at least one path, we count loops as paths, lest we die.
-                    if pathcnt: 
-                        pathcnt += 1
-                    continue
+                        # as long as we have at least one path, we count loops as paths, lest we die.
+                        if pathcnt: 
+                            pathcnt += 1
+                        continue
 
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=toid, eid=eid)
                 todo.append((toid,npath))
