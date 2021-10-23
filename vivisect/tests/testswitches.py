@@ -370,7 +370,7 @@ cbs_amd64_ls_402980 = [
     (0x4028fd, 34, 0x402690),
     (0x40291f, 15, 0x402690),
     (0x402968, 12, 0x402690),
-    (0x402974, 12, 0x402690),
+    (0x402974, 10, 0x402690),
     (0x402980, 7, 0x402690),
     (0x402fb0, 27, 0x402690),
     (0x402fcb, 22, 0x402690),
@@ -1546,8 +1546,8 @@ class MsSwitchTest(unittest.TestCase):
 
         logger.debug("\n\n%s blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_ms_0))
         logger.debug("switches: %r" % vw.getVaSetRows('SwitchCases') )
-        self.assertEqual(vw.getFunctionBlocks(fva), cbs_ms_0)
-        self.assertEqual(len(vw.getXrefsFrom(base+0x11257)), 5)
+        self.assertEqual(cbs_ms_0, vw.getFunctionBlocks(fva))
+        self.assertEqual(5, len(vw.getXrefsFrom(base+0x11257)))
 
 class PosixSwitchTest(unittest.TestCase):
     def test_libc_switch_0(self):
@@ -1558,7 +1558,7 @@ class PosixSwitchTest(unittest.TestCase):
 
         logger.debug("\n\n%s blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs_libc_0))
         logger.debug("switches: %r" % vw.getVaSetRows('SwitchCases') )
-        self.assertEqual(vw.getFunctionBlocks(0x500000), cbs_libc_0)
+        self.assertEqual(cbs_libc_0, vw.getFunctionBlocks(0x500000))
 
 class WalkerSwitchTest(unittest.TestCase):
     def test_walker_switch_0(self):
@@ -1567,7 +1567,7 @@ class WalkerSwitchTest(unittest.TestCase):
         #funcblocks = vw.getFunctionBlocks(0x600000)
         #funcblocks.sort()
 
-        #self.assertEqual(vw.getFunctionBlocks(0x600000), cbs_walker_0)
+        #self.assertEqual(cbs_walker_0, vw.getFunctionBlocks(0x600000))
         # TODO: enable this when we actually identify this switchcase
 
 
@@ -1678,7 +1678,7 @@ class i386_ld_SwitchTest(unittest.TestCase):
         cur_switches = [x for x, y, z in vw.getVaSetRows('SwitchCases')]
         cur_switches.sort()
         ld_switches.sort()
-        self.assertListEqual(cur_switches, ld_switches)
+        self.assertListEqual(ld_switches, cur_switches)
 
         '''
         .text:0x0200214c  loc_0200214c: [5 XREFS]
@@ -1708,7 +1708,7 @@ def _do_test_thingy(self, vw, jmpva, fva, cbs, xrefcnt):
     logger.debug("\n\n%s (3) blocks:\n\t%r\n\t%r" % (self, funcblocks, cbs))
     logger.debug("switches: %r" % vw.getVaSetRows('SwitchCases') )
     self.assertEqual(cbs, funcblocks)
-    self.assertEqual(len(vw.getXrefsFrom(jmpva)), xrefcnt)
+    self.assertEqual(xrefcnt, len(vw.getXrefsFrom(jmpva)))
 
 #=======  test generator code =======
 
