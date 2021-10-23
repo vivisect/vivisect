@@ -162,7 +162,7 @@ class VivisectTest(unittest.TestCase):
                               (134576974,), (134576909,),
                               ],
             'Bookmarks': [],
-            'SwitchCases': [(134533577, 134533577, 125),
+            'SwitchCases': [(134533577, 134533577, 162),
                             (134578347, 134578347, 53),
                             (134524193, 134524193, 3),
                             (134578230, 134578230, 101),
@@ -172,18 +172,18 @@ class VivisectTest(unittest.TestCase):
                             (134548286, 134548286, 93),
                             (134524938, 134524938, 173),
                             (134579289, 134579289, 53),
-                            (134569625, 134569625, 160),
+                            (134569625, 134569625, 128),
                             (134533775, 134533775, 120),
                             (134528750, 134528750, 4),
                             (134535515, 134535515, 106),
                             (134533607, 134533607, 36),
-                            (134570812, 134570812, 33),
+                            (134570812, 134570812, 1),
                             (134579170, 134579170, 101),
                             (134521960, 134521960, 453),
                             (134562878, 134562878, 140),
                             (134544641, 134544641, 11),
                             (134561776, 134561776, 94),
-                            (134569031, 134569031, 171),
+                            (134569031, 134569031, 139),
                             (134576219, 134576219, 9)],
             'thunk_reg': [(134519744, 'ebx', 134615040),
                           (134519715, 'ebx', 134615040)],
@@ -479,7 +479,7 @@ class VivisectTest(unittest.TestCase):
         '''
         vw = self.firefox_vw
         self.assertIsNotNone(vw.parsedbin)
-        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals']), set(vw.getVaSetNames()))
+        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut']), set(vw.getVaSetNames()))
 
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60, adjacent=True))
