@@ -8,6 +8,7 @@ import pprint
 import socket
 import logging
 import traceback
+import collections
 from getopt import getopt
 
 import vtrace
@@ -156,7 +157,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 if emu.isLocalMemory(addrsym):
                     continue
                 self.vprint('[ %s ] = %s' % (addrsym, valsym))
-            self.vprint('RETURN', emu.getFunctionReturn().reduce())
+            self.vprint('RETURN  %r' % emu.getFunctionReturn().reduce())
 
     def do_names(self, line):
         '''
@@ -452,12 +453,9 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         Usage: exports [fname]
         """
-        edict = {}
+        edict = collections.defaultdict(list)
         for va, etype, name, filename in self.getExports():
-            exps = edict.get(filename)
-            if exps is None:
-                edict[filename] = []
-            exps.append((name, va))
+            edict[filename].append((name, va))
 
         if line:
             x = edict.get(line)

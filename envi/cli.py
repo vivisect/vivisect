@@ -309,6 +309,7 @@ class EnviCli(Cmd):
             if self.config.cli.verbose:
                 self.vprint(traceback.format_exc())
             self.vprint("\nERROR: (%s) %s" % (msg.__class__.__name__, msg))
+            logger.warning("\nERROR: (%s) %s", msg.__class__.__name__, msg, exc_info=1)
 
         if self.shutdown.isSet():
             return True
@@ -626,7 +627,7 @@ class EnviCli(Cmd):
             self.onecmd(command)
 
             with open(fname, 'wb') as f:
-                f.write(str(strcanvas))
+                f.write(str(strcanvas).encode())
 
     def do_search(self, line):
         '''
