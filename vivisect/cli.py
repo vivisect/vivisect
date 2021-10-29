@@ -39,7 +39,7 @@ from vivisect.const import *
 logger = logging.getLogger(__name__)
 
 
-class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
+class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
     '''
     A class that builds upon the VivWorkspace to provide command line capabilities so that
     things like the Vivisect UI can provide a cleaner interface that just a direct python
