@@ -622,8 +622,9 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         trace = vt_envitools.TraceEmulator(emu)
 
-        db = vdb.Vdb(trace=trace)
-        db.cmdloop()
+        import vivisect.vdbext as viv_vdbext
+        vivgui = self.getVivGui()
+        viv_vdbext.runVdb(vivgui, trace=trace)
 
     def do_argtrack(self, line):
         """
