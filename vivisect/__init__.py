@@ -177,9 +177,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
 
-    def vprint(self, msg):
-        logger.info(msg)
-
     def getVivGui(self):
         '''
         Return a reference to the vivisect GUI object for this workspace.  If
