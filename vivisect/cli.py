@@ -8,6 +8,7 @@ import pprint
 import socket
 import logging
 import traceback
+import collections
 from getopt import getopt
 
 import vtrace
@@ -38,7 +39,7 @@ from vivisect.const import *
 logger = logging.getLogger(__name__)
 
 
-class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
+class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
     '''
     A class that builds upon the VivWorkspace to provide command line capabilities so that
     things like the Vivisect UI can provide a cleaner interface that just a direct python
@@ -156,7 +157,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 if emu.isLocalMemory(addrsym):
                     continue
                 self.vprint('[ %s ] = %s' % (addrsym, valsym))
-            self.vprint('RETURN', emu.getFunctionReturn().reduce())
+            self.vprint('RETURN  %r' % emu.getFunctionReturn().reduce())
 
     def do_names(self, line):
         '''
@@ -452,12 +453,9 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         Usage: exports [fname]
         """
-        edict = {}
+        edict = collections.defaultdict(list)
         for va, etype, name, filename in self.getExports():
-            exps = edict.get(filename)
-            if exps is None:
-                edict[filename] = []
-            exps.append((name, va))
+            edict[filename].append((name, va))
 
         if line:
             x = edict.get(line)
@@ -616,9 +614,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if not line:
             return self.do_help("emulate")
 
-        emu = self.getEmulator()
         addr = self.parseExpression(line)
-        emu.setProgramCounter(addr)
+        emu = self.getEmulator(va=addr)
 
         trace = vt_envitools.TraceEmulator(emu)
 

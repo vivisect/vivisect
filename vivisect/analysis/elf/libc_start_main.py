@@ -29,7 +29,7 @@ def analyzeFunction(vw, funcva, lcsm=None):
     then check for arg0
     '''
     try:
-        emu = vw.getEmulator()
+        emu = vw.getEmulator(va=funcva)
         if lcsm is None:
             lcsm = getMainVas(vw)
         emumon = AnalysisMonitor(vw, funcva, lcsm)

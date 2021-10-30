@@ -41,6 +41,11 @@ class WorkspaceEmulator:
         but most children like the ArmWorkspaceEmulator and any others that live in vivisect/impemu/platarm/
 
         Current Keyword Arguments:
+        * va
+            - Type: Integer
+            - Default: None
+            - Desc: The address to begin emulating from.  emu.setProgramCounter() is called with this value,
+                    and in the case of ArmWorkspaceEmulator, appropriate architecture is set.
         * logwrite
             - Type: Boolean
             - Default: False
@@ -168,6 +173,11 @@ class WorkspaceEmulator:
         self.stack_map_top = None
         self.stack_pointer = None
         self.initStackMemory()
+
+        # set Program Counter if provided
+        va = kwargs.get(va)
+        if va:
+            self.setProgramCounter(va)
 
     def initStackMemory(self, stacksize=init_stack_size):
         '''

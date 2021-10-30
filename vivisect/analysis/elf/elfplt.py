@@ -203,7 +203,7 @@ def analyzePLT(vw, ssva, ssize):
 
         # drag an emulator along to calculate branches, if available
         try:
-            emu = vw.getEmulator()
+            emu = vw.getEmulator(va=ssva)
             emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
         except Exception as e:
             logger.debug("no emulator available: %r", e, exc_info=1)
@@ -325,7 +325,7 @@ def analyzeFunction(vw, funcva):
     gotva, gotsize = getGOTByFilename(vw, fname)
 
     # all architectures should at least have some minimal emulator
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(va=funcva)
     emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
 
     # roll through instructions looking for a branch (pretty quickly)
