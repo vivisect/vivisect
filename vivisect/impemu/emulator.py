@@ -175,7 +175,7 @@ class WorkspaceEmulator:
         self.initStackMemory()
 
         # set Program Counter if provided
-        va = kwargs.get(va)
+        va = kwargs.get('va')
         if va:
             self.setProgramCounter(va)
 
