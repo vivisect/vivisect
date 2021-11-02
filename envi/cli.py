@@ -625,7 +625,7 @@ class EnviCli(Cmd):
             self.onecmd(command)
 
             with open(fname, 'wb') as f:
-                f.write(str(strcanvas).encode())
+                f.write(str(strcanvas).encode('utf-8'))
 
     def do_search(self, line):
         '''
