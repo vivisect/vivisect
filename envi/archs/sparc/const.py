@@ -217,6 +217,7 @@ A_OP3_WRTBR = 51
 A_OP3_FLUSH = 59
 A_OP3_FPOP1 = 52
 A_OP3_FPOP2 = 53
+A_OP3_Ticc = 58
 
 a_op3_table = {
     0 : "ADD",
@@ -259,7 +260,7 @@ a_op3_table = {
     41 : "RDPSR",
     42 : "RDWIM",
     43 : "RDTBR",
-    48 : "WRY",
+    48 : "WR",
     49 : "WRPSR",
     50 : "WRWIM",
     51 : "WRTBR",
@@ -267,6 +268,7 @@ a_op3_table = {
     53 : "FPOP2",
     56 : "JMPL",
     57 : "RETT",
+    58 : "Ticc",
     59 : "FLUSH",
     60 : "SAVE",
     61 : "RESTORE",
@@ -309,7 +311,7 @@ a_op3_mnemonic = {
     37 : "sll {regrs1}, {reg_or_imm}, {regrd}",
     38 : "srl {regrs1}, {reg_or_imm}, {regrd}",
     39 : "sra {regrs1}, {reg_or_imm}, {regrd}",
-    40 : "rd {aregrs1}, {regrd}",
+    40 : "rd {asregrs1}, {regrd}",
     41 : "rd %psr, {regrd}",
     42 : "rd %wim, {regrd}",
     43 : "rd %tbr, {regrd}",
@@ -320,6 +322,8 @@ a_op3_mnemonic = {
     52 : "fpop1",
     53 : "fpop2",
     56 : "jmpl {address}, {regrd}",
+    57 : "rett {address}",
+    58 : "{icccond} {address}",
     59 : "flush {address}",
     60 : "save {regrs1}, {reg_or_imm}, {regrd}",
     61 : "restore {regrs1}, {reg_or_imm}, {regrd}",
@@ -439,3 +443,9 @@ creg_label = ['%c0', '%c1', '%c2', '%c3', '%c4', '%c5', '%c6', '%c7',
               '%c8', '%c9', '%c10', '%c11', '%c12', '%c13', '%c14', '%c15', 
               '%c16', '%c17', '%c18', '%c19', '%c20', '%c21', '%c22', '%c23', 
               '%c24', '%c25', '%c26', '%c27', '%c28', '%c29', '%c30', '%c31']
+
+asreg_label = [ '%y0', '%asr1', '%asr2', '%asr3', '%asr4', '%asr5', '%asr6', '%asr7', 
+        '%asr8', '%asr9', '%asr10', '%asr11', '%asr12', '%asr13', '%asr14', '%asr15', 
+        '%asr16', '%asr17', '%asr18', '%asr19', '%asr20', '%asr21', '%asr22', '%asr23',
+        '%asr24', '%asr25', '%asr26', '%asr27', '%asr28', '%asr29', '%asr30', '%asr31' ]
+
