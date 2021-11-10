@@ -266,7 +266,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
             for nva, node in graph.getNodes():
                 va = nva
-                endva = va + node.get('cbsize')
+                endva = nva + node.get('cbsize')
                 while va < endva:
                     lva, lsz, ltype, ltinfo = self.getLocation(va)
                     valist.append(va)
@@ -564,7 +564,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         """
         argv = e_cli.splitargs(line)
         try:
-            opts, args = getopt(argv, "csup:S:")
+            opts, args = getopt(argv, "csufn:p:S:")
         except Exception as e:
             logger.warning(str(e))
             return self.do_help("make")
@@ -614,9 +614,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         if not line:
             return self.do_help("emulate")
 
-        emu = self.getEmulator()
         addr = self.parseExpression(line)
-        emu.setProgramCounter(addr)
+        emu = self.getEmulator(va=addr)
 
         trace = vt_envitools.TraceEmulator(emu)
 

@@ -4,6 +4,7 @@ import unittest
 
 import envi
 import envi.memory as e_memory
+import envi.memcanvas as e_mcanvas
 
 import vivisect
 import vivisect.exc as v_exc
@@ -31,6 +32,13 @@ class VivisectTest(unittest.TestCase):
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
 
+        for vw in cls.vdir_vw, cls.chgrp_vw, cls.firefox_vw:
+            oldcanv = vw.canvas
+            vw.canvas = e_mcanvas.StringMemoryCanvas(vw)
+            vw.canvas.renderers = oldcanv.renderers
+            vw.canvas.setRenderer('viv')
+
+
     def test_xrefs_types(self):
         '''
         Test that we have data consistency in xrefs
@@ -50,30 +58,223 @@ class VivisectTest(unittest.TestCase):
         '''
         Test that EnviCli.do_search works
         '''
-        #TODO: make real tests with asserts
         self.chgrp_vw.do_search("-e utf-16le foo")
-        self.chgrp_vw.do_search("-e utf-16le foo")
-        self.chgrp_vw.do_search("-X 41414141")
-        self.chgrp_vw.do_search("-E 0x41414141")
-        self.chgrp_vw.do_search("-E 0x41414142")
-        self.chgrp_vw.do_search("-r 0x4141.*42")
-        self.chgrp_vw.do_search("-r 0x4141.*42 -c")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("pattern not found: 66006f006f00 (b'f\\x00o\\x00o\\x00')", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
+        self.chgrp_vw.do_search("-X ffffffff253c40050868")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('0x08048e5d: -r-x loc_08048e5d + 0x0\ndone ', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_search("-E 0x805104b")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("matches for: 4b100508 (b'K\\x10\\x05\\x08')\n0x08050818: -r-x loc_08050818 + 0x0\ndone (1 results).", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_search("-r ab.*rt")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("(b'ab.*rt')\n0x0804874e:", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
+        self.chgrp_vw.do_search("-r al.*rt -c")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x8051333  61 6c 6d 6f 73 74 20 63 65 72 74 61 69 6e 6c 79   almost certainly", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
         self.chgrp_vw.do_search("-c -r qsort")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x80488e3  71 73 6f 72 74 00 66 63 6e 74 6c 00 6d 65 6d 6d   qsort.fcntl", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
         self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x200")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("searching from 0x08048000 for 512 bytes\npattern not found: 71736f7274 (b'qsort')\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
         self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x2000")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x80488e3  71 73 6f 72 74 00 66 63 6e 74 6c 00 6d 65 6d 6d   qsort.fcntl.memm\n0x80488f3  6f 76 65 00 62 69 6e 64 74 65 78 74 64 6f 6d 61   ove.bindtextdoma\n\ndone (1 results).\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
 
     def test_cli_searchopcode(self):
         '''
         Test that VivCli.do_searchopcodes works
         '''
-        #TODO: make real tests with asserts
-        self.chgrp_vw.do_searchopcodes('foo')
+        # i have no idea why this is necessary (we did it at setup time)
+        # but the current renderer at this point is envi.memcanvas.renderers.ByteRend
+        self.chgrp_vw.canvas.setRenderer('viv')
+        self.chgrp_vw.do_searchopcodes('sar')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(".text:0x08049294  d1f8             sar eax,1\n\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-f 0x08050200 ret')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("matches for: 726574 ('ret')\n.text:0x0805020a  c3               ret \n\ndone (1 results).\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-c rol')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("pattern not found: 726f6c ('rol')\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-o rol')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("pattern not found: 726f6c ('rol')\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-t rol')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(".text:0x08050249  66d3c0           rol ax,cl", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-M red rol')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(".text:0x08050268  d2c0             rol al,cl", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-f 0x08050200 -R r.t')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("matches for: 722e74 ('r.t')\n.text:0x0805020a  c3               ret \n\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_argtrack(self):
+        self.chgrp_vw.do_argtrack('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('Usage: argtrack <func_addr_expr> <arg_idx>', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        ## FIXME: make tests when this works
+        self.chgrp_vw.do_argtrack('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('Usage: argtrack <func_addr_expr> <arg_idx>', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_chat(self):
+        self.chgrp_vw.do_chat('foo')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(': foo', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_codepath(self):
+        self.chgrp_vw.do_codepath('0x0804bc10 0x0804c5c0')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('chgrp.quotearg_n_options\n0x0804c6e0\t0x0804c6e0\t   5\tchgrp.xcharalloc\n0x0804c5c0\t0x0804c5c0', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    # still unsure how to test do_emulate() well
+
+    def test_cli_eval(self):
+        self.chgrp_vw.do_eval('chgrp')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("chgrp = 0x08048000 loc_08048000 + 0", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_exports(self):
+        self.chgrp_vw.do_exports('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("chgrp:\n    0x08050654  _IO_stdin_used\n    0x080491e0  __entry\n    0x08054170  __progname\n    0x08054180  __progname_full\n    0x08048e20  free\n    0x08054198  optarg\n    0x08054190  optind\n    0x08054180  program_invocation_name\n    0x08054170  program_invocation_short_name\n    0x08054178  stderr\n    0x08054194  stdout\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_filemeta(self):
+        self.chgrp_vw.do_filemeta('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("Loaded Files:\n    chgrp\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_filemeta('chgrp')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("'DT_INIT': 134516068", output)
+        self.assertIn("'addbase': False,\n 'canaries': False,\n 'imagebase': 134512640", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_fscope(self):
+        self.chgrp_vw.do_fscope('-S 0x804c8a0')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x0804caf1 'strtol_error xstrtoul(const char *, char **, int, unsigned long *, const char *)\\x00'\n0x0804cb01 './lib/xstrtol.c\\x00'\n0x0804cb09 '0 <= strtol_base && strtol_base <= 36\\x00'\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_funcmeta(self):
+        self.chgrp_vw.do_funcmeta('chgrp.plt_free')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("'MnemDist': {'jmp': 1},")
+        self.assertIn("'Thunk': 'plt_free',")
+        self.assertIn("'api': ('void', None, 'cdecl', '*.free', [('void *', 'ptr')])}")
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_imports(self):
+        self.chgrp_vw.do_imports('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x08054114 *.calloc", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_loc(self):
+        self.chgrp_vw.do_loc('0x08054108')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("IMPORT: *.getgrgid", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_make(self):
+        # create a play area so we don't dork up other analysis
+        self.chgrp_vw.addMemoryMap(0x41008000, 7, 'play area', self.chgrp_vw.readMemory(0x8048000, 0xb000))
+        self.chgrp_vw.addMemoryMap(0x41013f0c, 7, 'play area', self.chgrp_vw.readMemory(0x8053f0c, 0x1000))
+
+        # -n <size> Make a number
+        self.chgrp_vw.do_make('-n 4 0x41011987')
+        self.chgrp_vw.do_loc('0x41011987')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("4 BYTES: 2701171072 (0xa1009980)", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -s Make a string
+        self.chgrp_vw.do_make('-s 0x41011980')
+        self.chgrp_vw.do_loc('0x41011980')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('"\'\\x00"\n', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -u Make a unicode string
+        self.chgrp_vw.do_make('-u 0x41011628')
+        self.chgrp_vw.do_loc('0x41011628')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("u'-'\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -p <size> Make a pad
+        self.chgrp_vw.do_make('-p 1 0x4100c49f')
+        self.chgrp_vw.do_loc('0x4100c49f')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("90", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -c Make code
+        self.chgrp_vw.do_make('-c 0x41011982')
+        self.chgrp_vw.do_loc('0x41011982')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("loop 0x41011904", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -f Make function
+        self.chgrp_vw.do_make('-f 0x41011982')
+        self.assertEqual(self.chgrp_vw.getFunction(0x41011982), 0x41011982)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.delMemoryMap(0x41008000)
+        self.chgrp_vw.delMemoryMap(0x41013f0c)
+
+    def test_cli_mem(self):
+        self.chgrp_vw.do_mem('-F viv chgrp.plt_free')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(".plt:0x08048e20  FUNC: void cdecl chgrp.plt_free( void * ptr, )", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_mem('chgrp.plt_free')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x8048e20  ff 25 2c 40 05 08 68 40 00 00 00 e9 60 ff ff ff  ", output)
+        self.chgrp_vw.canvas.clearCanvas()
 
     def test_loc_types(self):
         '''
