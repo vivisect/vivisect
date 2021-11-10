@@ -2,11 +2,14 @@ import os
 import time
 import random
 import signal
+import struct
 import logging
 import unittest
 import itertools
 import threading
-import subprocess 
+import subprocess
+
+import envi.bits as e_bits
 
 
 import vivisect.tests.helpers as vt_help
@@ -23,7 +26,7 @@ class TestServer(gdbstub.GdbServerStub):
     integration is complete, we shouldn't need this code.
     """
 
-    def __init__(self, arch, addr_size, little_endian, reg, port):
+    def __init__(self, arch, addr_size, big_endian, reg, port):
         """
         Constructor for the TestSever class.
 
@@ -32,7 +35,7 @@ class TestServer(gdbstub.GdbServerStub):
 
             addr_size (int): Pointer size of the debug target in bits.
 
-            little_endian (bool): True if the debug target uses little-endian
+            big_endian (bool): True if the debug target uses big-endian
             notation.
 
             reg (list): The list of regisers (and their sizes) made available 
@@ -44,10 +47,11 @@ class TestServer(gdbstub.GdbServerStub):
             Returns:
                 None
         """
-        gdbstub.GdbServerStub.__init__(self, arch, addr_size, little_endian, 
+        gdbstub.GdbServerStub.__init__(self, arch, addr_size, big_endian, 
                 reg, port)
 
-        self.targetAddr = {0x1000: 0xdeadbeef}
+        fmt32bit = e_bits.getFormat(4, big_endian)
+        self.targetAddr = {0x1000: struct.pack(fmt32bit, 0xdeadbeef)}
         self.targetRegs = {
                 'rax': 0xcafebabe,
                 'rbx': 0xfeedface,
@@ -162,7 +166,7 @@ class TestGdbServerStub(unittest.TestCase):
         self.port = 1235
         self.arch = 'amd64'
         self.addr_size = 64 # bits
-        self.le = True # little-endian
+        self.bigend = False # little-endian
 
         super(TestGdbServerStub, self).__init__(methodName=methodName)
 
@@ -180,12 +184,12 @@ class TestGdbServerStub(unittest.TestCase):
         logger.warning("\n\nTestGdbServerStub: setUp(): port %d" % self.port)
 
         # Create a GDB client instance
-        self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.le, 
+        self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.bigend, 
                 gdb_reg_fmts.QEMU_X86_64_REG, self.host, self.port,
                 'serverstub')
 
         # Create a test server
-        self.server = TestServer(self.arch, self.addr_size, self.le,
+        self.server = TestServer(self.arch, self.addr_size, self.bigend,
                 gdb_reg_fmts.QEMU_X86_64_REG, self.port)
 
         # Start the server
@@ -279,7 +283,8 @@ class TestGdbServerStub(unittest.TestCase):
             None
         """
         addr = 0x1000
-        expected = 0xdeadface
+        fmt32bit = e_bits.getFormat(4, self.bigend)
+        expected = struct.pack(fmt32bit, 0xdeadface)
         self.client.gdbWriteMem(addr, expected)
         actual = self.server.targetAddr[addr]
         self.assertEqual(expected, actual)
@@ -322,6 +327,7 @@ class TestGdbClientStub(unittest.TestCase):
         # This should be guarenteed to be on the host
         # FIXME: this assumes amd64/Linux
         self.test_binary = vt_help.getTestPath('linux/amd64/static64.llvm.elf')
+        self.bigend = False
         
         super(TestGdbClientStub, self).__init__(methodName=methodName)
 
@@ -338,12 +344,13 @@ class TestGdbClientStub(unittest.TestCase):
         """
         logger.warning("\n\nTestGdbClientStub: setUp()")
         # Start the GDB server
-        self.qemu_proc = subprocess.Popen(['qemu-x86_64-static', '-g', str(self.port),
+        port = self.port + next(portadd)
+        self.qemu_proc = subprocess.Popen(['qemu-x86_64-static', '-g', str(port),
         self.test_binary])
 
         # Create a GDB client instance
-        self.client = gdbstub.GdbClientStub('amd64', 64, True, 
-                gdb_reg_fmts.QEMU_X86_64_REG, self.host, self.port, 'qemu')
+        self.client = gdbstub.GdbClientStub('amd64', 64, False, 
+                gdb_reg_fmts.QEMU_X86_64_REG, self.host, port, 'qemu')
 
         time.sleep(1)
 
@@ -361,6 +368,7 @@ class TestGdbClientStub(unittest.TestCase):
             None
         """
         logger.warning("\n\nTestGdbClientStub: tearDown()")
+        self.client.gdbKill()
         self.client.gdbDetach()
         # Kill the qemu process
         self.qemu_proc.kill()
@@ -444,9 +452,7 @@ class TestGdbClientStub(unittest.TestCase):
             write_size = random.randint(1, 8) # in bytes
             
             # Gen a random val to write that fits in the write size
-            min_val = 2 ** (write_size * 8 - 1) - 1
-            max_val = 2 ** (write_size * 8) - 1
-            expected = random.randint(min_val, max_val)
+            expected = b''.join([b'%c' % random.randint(0, 256) for x in range (write_size)])
 
             self.client.gdbWriteMem(addr, expected)
             actual = self.client.gdbReadMem(addr, write_size)
@@ -463,7 +469,8 @@ class TestGdbClientStub(unittest.TestCase):
         Returns:
             None
         """
-        expected = 0x8949ed31
+        fmt32bit = e_bits.getFormat(4, self.bigend)
+        expected = struct.pack(fmt32bit, 0x8949ed31)
         actual = self.client.gdbReadMem(0x400a40, 4)
         self.assertEqual(expected, actual)
 

@@ -1407,17 +1407,20 @@ def getTrace(target=None, **kwargs):
 
     """
     if target == 'gdbserver':
+        import vtrace.platforms.gdb_client as vt_gdb_client
 
         host = reqTargOpt(kwargs, 'gdbserver', 'host', '<host>')
         port = reqTargOpt(kwargs, 'gdbserver', 'port', '<port>')
         arch = reqTargOpt(kwargs, 'gdbserver', 'arch', '<i386|amd64|arm>')
         plat = reqTargOpt(kwargs, 'gdbserver', 'plat', '<windows|linux>')
 
-        if arch not in ('i386', 'amd64', 'arm'):
+        if arch not in envi.arch_by_name.keys():
             raise Exception('Invalid arch specified for "gdbserver" target: %s' % arch)
 
-        if plat not in ('windows', 'linux'):
+        if plat not in ('windows', 'linux', 'raw'):
             raise Exception('Invalid plat specified for "gdbserver" target: %s' % plat)
+
+        return vt_gdb_client.GdbStubTrace(arch, host, port, 'gdbserver')
 
     if target == 'vmware32':
 

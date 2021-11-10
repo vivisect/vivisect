@@ -7,25 +7,44 @@ import vtrace.platforms.base as v_base
 import vtrace.platforms.gdbstub as gdbstub
 import vtrace.platforms.gdb_reg_fmts as gdb_reg_fmts
 
+import logging
 import xml.etree.ElementTree as xmlET
+from vtrace.platforms.signals import *
+
+logger = logging.getLogger(__name__)
+import envi.common as ecmn
+ecmn.initLogging(logger, logging.DEBUG)
+
+exit_types = (b'X', b'W')
+
 
 class GdbStubMixin(gdbstub.GdbClientStub):
     """
     This class serves as the translation layer between Vivisect and GDB.
     """
 
-    def __init__(self, arch_name, host, port, server):
+    def __init__(self, arch_name, host, port, server, psize=8, endian=False):
         gdbstub.GdbClientStub.__init__(self, 
                     arch_name,
-                    64, #TODO: pointer size in bits,
-                    True, #TODO, endianness,
+                    psize * 8, #TODO: pointer size in bits,
+                    endian,
                     self._getRegFmt(arch_name, server), #TODO: reg formats,
                     host,
                     port,
                     server)
 
+        self.ctx = self.arch.archGetRegCtx()
+        self._rctx_pcindex = self.ctx._rctx_pcindex
+        self._rctx_spindex = self.ctx._rctx_spindex
+
+        self._gdb_filemagic = None
+        self.stepping = False
+        self.breaking = False
+
+
     def _getRegFmt(self, arch, server):
         """
+        This needs to be updatable after gdbAttach()
         """
         reg_fmt = None
         if server == 'qemu_gdb':
@@ -51,7 +70,28 @@ class GdbStubMixin(gdbstub.GdbClientStub):
 
         return reg_fmt
 
-    def _genRegFmtFromTarget(self):
+    def _gdbJustAttached(self):
+        '''
+        '''
+        try:
+            logger.info("attempting to pull register metadata from GDB Server")
+            self._gdb_reg_fmt = self._processTargetMeta()
+
+        except Exception as e:
+            logger.warning("Exception reading registers dynamically: %r", e)
+
+    def _setGdbArchitecture(self, gdbarch):
+        '''
+        GdbStubMixin version.  Calls GdbStub's version
+        '''
+        self.setGdbArchitecture(gdbarch)  # powerpc:vle - style
+        envi.stealArchMethods(self, self._arch)   # self._arch should be updated in the prev call
+        print("ARCH: %r" % self.arch)
+        self.ctx = self.arch.archGetRegCtx()
+        self._rctx_pcindex = self.ctx._rctx_pcindex
+        self._rctx_spindex = self.ctx._rctx_spindex
+
+    def _processTargetMeta(self):
         '''
         pull target.xml (and supporting xi resources) from target and generate
         a register file from that (updates self._gdb_reg_fmt)
@@ -63,22 +103,24 @@ class GdbStubMixin(gdbstub.GdbClientStub):
         target = self._getAndParseTargetXml()
 
         # parse target.xml
+        # extract target.xml data into list of tuples: (regname, bitsize, regindex)
         nextridx = 0
         for elem in target:
             if elem.tag == 'architecture':
-                self.gdbSetArch(elem.text)     # powerpc:vle
+                self._setGdbArchitecture(elem.text)
 
             elif elem.tag == 'feature':
-                featurename = elem.name
+                featurename = elem.get('name')
                 for featelem in elem:
                     # this is where the "reg", "flags", and "vector" and other things are
-                    fattr = featattrib
+                    fattr = featelem.attrib
                     if featelem.tag == 'reg':
                         rname = fattr['name']
                         rsz = int(fattr['bitsize'])
                         ridx = int(fattr.get('regnum', str(nextridx)))
                         # track, but continue after any regnum is set  ORDER COUNTS!
                         nextridx = ridx + 1
+
                         outregs.append((rname, rsz, ridx))
 
                     elif featelem.tag == 'flags':
@@ -88,7 +130,8 @@ class GdbStubMixin(gdbstub.GdbClientStub):
                     elif featelem.tag == 'vector':
                         pass
 
-        # extract target.xml data into list of tuples: (regname, bitsize, regindex)
+        self._gdb_reg_fmt = outregs
+        return outregs
 
     def _getAndParseTargetXml(self):
         '''In [17]: tgtxmlqemux86                                                                                                          
@@ -162,10 +205,10 @@ class GdbStubMixin(gdbstub.GdbClientStub):
 
     def platformGetRegCtx(self, tid):
         """
+        Get all registers from target
         """
         rvals = self.gdbGetRegisters()
         
-        ctx = self.arch.archGetRegCtx()
         for reg_name in rvals.keys():
             reg_val = rvals[reg_name]
             # The list of registers known by Vtrace and the list of registers 
@@ -177,7 +220,7 @@ class GdbStubMixin(gdbstub.GdbClientStub):
             # state. Added local register caching will require a solution to 
             # this problem, however.
             try:
-                ctx.setRegisterByName(reg_name, reg_val)
+                self.ctx.setRegisterByName(reg_name, reg_val)
             except envi.exc.InvalidRegisterName:
                 # Vtrace expects control register names to be 'ctrlN', whereas 
                 # GDB expects 'crN.'
@@ -186,15 +229,17 @@ class GdbStubMixin(gdbstub.GdbClientStub):
                 else:
                     pass
 
-        return ctx
+        return self.ctx
 
-    def platformSetRegCtx(self, tid, ctx):
+    def platformSetRegCtx(self, tid, ctx=None):
         """
         """
+        if ctx:
+            self.ctx = ctx
         updates = {}
-        regs = ctx.getRegisters()
+        regs = self.ctx.getRegisters()
         for reg_name in regs:
-            updates[reg_name] = ctx.getRegisterByName(reg_name)
+            updates[reg_name] = self.ctx.getRegisterByName(reg_name)
 
         self.gdbSetRegisters(updates)
 
@@ -211,35 +256,204 @@ class GdbStubMixin(gdbstub.GdbClientStub):
     def platformStepi(self):
         """
         """
-        self.gdbStepi()
+        self.stepping = True
+        self.gdbStepi(processResp=False)
 
     def platformAttach(self, pid):
         """
         """
         self.gdbAttach()
+        self.attaching = True
+
+        while True:
+            pkt = self._msgExchange(b'?')
+            if not len(pkt):
+                raise Exception('Attach Response Error!')
+
+            resp = int(pkt[1:3], 16) 
+            if resp == 0:
+                import time
+                time.sleep(0.1)
+                self.platformSendBreak()
+                pkt = self._msgExchange(b'?')
+
+            break
+
+        self._msgExchange(b'?', False)
 
     def platformDetach(self):
         """
         """
         self.gdbDetach()
 
+    def platformWait(self):
+        """
+        Wait for an event
+        """
+        # TODO: rework event model to have a background thread constantly processing received pkts
+        while True:
+            pkt = self._recvResponse()
+            print("platformWait() ==> %r" % pkt)
+            if pkt.startswith(b'O'):
+                continue
+
+            break
+        return pkt
+
     def platformContinue(self):
         """
+        Send "Continue" to target
         """
-        self.gdbContinue()
+        sig = self.getCurrentSignal()
+        self.gdbContinue(sig)
+
+    def platformSendBreak(self):
+        """
+        """
+        if not self.attaching:
+            self.breaking = True
+        res = self.gdbSendBreak()
+
+    def platformKill(self):
+        """
+        Kill the target process
+        """
+        return self.gdbKill()
+
+    def platformPs(self):
+        """
+        Process List on target (which we hard-code for compliance)
+        """
+        return (1, 'GdbServer Stuf')
+
+    def platformGetThreads(self):
+        """
+        """
+        return {tid:tid for tid in self.gdbGetThreadInfo()}
+
+    def platformSelectThread(self, threadid):
+        """
+        Select the thread to interact with.  Uses "Hg" as the gdb-stub command.
+        """
+        res = self.gdbSelectThread(threadid)
+        TracerBase.platformSelectThread(threadid)
+        return res
+
+    def platformProcessEvent(self, event):
+        """
+        Handle target system events, wire up to VDB events
+        """
+        logger.debug('EVENT ->%s<-', str(event))
+
+        if len(event) == 0:
+            self.setMeta('ExitCode', 0xffffffff)
+            self.fireNotifiers(vtrace.NOTIFY_EXIT)
+            self._gdb_sock.shutdown(2)
+            self._gdb_sock = None
+            import gc
+            gc.collect()
+            return
+
+        atype = event[0:1]
+        signo = int(event[1:3], 16)
+
+        # Is this a thread-specific signal?
+        if atype == b'T':
+            logger.debug('Signal: %s', str(signo))
+
+            dictbytes = event[3:]
+
+            evdict = {}
+            for kvstr in dictbytes.split(b';'):
+                if not kvstr:
+                    break
+                key, val = kvstr.split(b':', 1)
+                evdict[key.lower()] = val
+
+            # did we get a specific thread?
+            tidstr = evdict.get('thread')
+            if tidstr is not None:
+                tid = int(tidstr, 16)
+                self.setMeta('ThreadId', tid)
+
+            else:
+                logger.warning("We should ask for the current thread here!")
+
+        elif atype == b'S':
+            pass
+
+        elif atype in exit_types:
+            # Fire an exit event and GTFO!
+            self._fireExit(signo)
+
+        else:
+            logger.warning("Unhandled Gdb Server Event: %s", str(event))
+
+        # if self.attaching and signo in trap_sigs:
+        if self.attaching:
+            self.attaching = False
+            self._gdbJustAttached()
+            self._gdbLoadLibraries()
+            self._gdbCreateThreads()
+
+        elif self.breaking and signo in trap_sigs:
+            self.breaking = False
+            self.fireNotifiers(vtrace.NOTIFY_BREAK)
+
+        # Process the signal and decide what to do....
+        elif signo == SIGTRAP:
+
+            # Traps on posix systems are a little complicated
+            if self.stepping:
+                #FIXME: try out was single step thing for intel
+                self.stepping = False
+                self.fireNotifiers(vtrace.NOTIFY_STEP)
+
+            elif self.checkBreakpoints():
+                return
+
+            else:
+                self._fireSignal(signo)
+
+        else:
+            self._fireSignal(signo)
+
+    def _gdbCreateThreads(self):
+        initid = self.getMeta('ThreadId')
+        for tid in self.platformGetThreads().keys():
+            self.setMeta('ThreadId', tid)
+            self.fireNotifiers(vtrace.NOTIFY_CREATE_THREAD)
+        self.setMeta('ThreadId', initid)
+
+    def _gdbSetRegisterInfo(self, fmt, names):
+        """
+        Used by the Trace implementations to tell the gdb 
+        stub code hot o unpack the register buf
+        """
+        # for now... perhaps we'll use this later to automatically update from the target....
+        pass
+
+    def _gdbSetArch(self, arch):
+        reginfo
+
+    def _gdbLoadLibraries(self):
+        if self._gdb_filemagic:
+            self._findLibraryMaps(self._gdb_filemagic, always=True)
+
+
+
 
 class GdbStubTrace(
-        vtrace.Trace,
         GdbStubMixin,
+        vtrace.Trace,
         v_base.TracerBase):
 
-    def __init__(self, archname, host, port, server):
+    def __init__(self, archname, host, port, server, psize=8, bigend=False):
         """
         """
-        envi.stealArchMethods(self, archname)
         vtrace.Trace.__init__(self, archname = archname)
         v_base.TracerBase.__init__(self)
-        GdbStubMixin.__init__(self, archname, host, port, server)
+        GdbStubMixin.__init__(self, archname, host, port, server, psize, bigend)
 
 if __name__ == '__main__':
     gs = GdbStubTrace('amd64', 'localhost', 1234, 'gdbserver')

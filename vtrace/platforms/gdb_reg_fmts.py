@@ -7,6 +7,35 @@
 # order sent by the server is the same as the order you receive when sending 
 # the 'info registers all' command to a standalone GDB client.
 
+from envi.const import *
+
+ARCH_META = {
+        'powerpc:vle':{
+            'arch': 'ppc32',
+            'bigend': ENDIAN_MSB,
+            'psize': 4,
+            'pcname': 'pc',
+            'spname': 'r1',
+        },
+
+        'i386:x86-64': {
+            'arch': 'amd64',
+            'bigend': ENDIAN_LSB,
+            'psize': 8,
+            'pcname': 'rip',
+            'spname': 'rsp',
+        },
+
+        'i386:x86-32': {
+            'arch': 'i386',
+            'bigend': ENDIAN_LSB,
+            'psize': 4,
+            'pcname': 'eip',
+            'spname': 'esp',
+        },
+}
+
+
 QEMU_PPC64_REG = [
         ('r0', 0x40, 0x0),
         ('r1', 0x40, 0x1),

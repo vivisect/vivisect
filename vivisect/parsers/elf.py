@@ -220,10 +220,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.setFileMeta(fname, 'runpath', hasRUNPATH(elf))
     vw.setFileMeta(fname, 'stripped', isStripped(elf))
 
-    secnames = []
-    for sec in elf.getSections():
-        secnames.append(sec.getName())
-
+    # Process Program Headers and Section Headers
     pgms = elf.getPheaders()
     secs = elf.getSections()
 
