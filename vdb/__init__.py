@@ -81,7 +81,7 @@ def setupBreakOnEntry(trace):
             otb = vtrace.OneTimeBreak(None, expression=entrySymExpr)
             trace.addBreakpoint(otb)
 
-class VdbTrace:
+class VdbTrace(object):
     """
     Used to hand thing that need a persistant reference to a trace
     when using vdb to manage tracers.
@@ -2293,6 +2293,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these yourself
-version = (1, 0, 4)
+version = (1, 0, 5)
 verstring = '.'.join([str(x) for x in version])
 commit = ''
