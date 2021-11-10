@@ -30,7 +30,7 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
         '''
         e_amd64.Amd64Emulator.__init__(self)
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
-        self.setEmuOpt('i386:reponce', True)
+        self.setEmuOpt('i386:repmax', 1)
 
     def getRegister(self, index):
         """
