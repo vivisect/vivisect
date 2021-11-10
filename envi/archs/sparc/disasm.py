@@ -133,6 +133,7 @@ class SparcOpCall(SparcOp):
 
     def __repr__(self):
         return "call "
+
 class SparcOpBranch:
     def __init__(self, instr, offset, va, endian=envi.ENDIAN_MSB):
         self._endian = endian
@@ -159,8 +160,7 @@ class SparcOpBranch:
            instruction = branch_cond_cproc_mnemonic[self.cond]
            return "{instruction}{annul} {disp22}".format(instruction=instruction, annul=annul, disp22=disp22)
 
-
-
+        raise ValueError("Instruction 0x{opcode:08x} at address {address} is invalid.".format(opcode=self.instr, address="0x{:08x}".format(self.va) if self.va is not None else "None"))
 
 
  
@@ -228,21 +228,36 @@ class SparcOpArithmetic:
         self.i = (instr & MASK_I) >> SHIFT_I
         self.rs2 = (instr & MASK_RS2) >> SHIFT_RS2
         self.simm13 = simm13_to_signed_int((instr & MASK_SIMM13) >> SHIFT_SIMM13)
-
-        self.mnemonic_format = a_op3_mnemonic[self.op3]
+        self.cond = (instr & MASK_COND) >> SHIFT_COND
 
     def __repr__(self):
-        regrs1 = register_label[self.rs1]
+        if not self.op3 in a_op3_mnemonic:
+            print("instruction: {instr:08x}".format(instr=self.instr))
+            print("rd: {rd} op3: {op3} rs1: {rs1} i: {i} rs2: {rs2} simm13: {simm13} cond: {cond}".format(rd=self.rd, op3=self.op3, rs1=self.rs1,
+                i=self.i, rs2=self.rs2, simm13=self.simm13, cond=self.cond))
+            raise ValueError("unrecognized op3 value: {op3}".format(op3=self.op3))
 
+        regrs1 = register_label[self.rs1]
+        regrs2 = register_label[self.rs2]
+        
+        mnemonic_format = a_op3_mnemonic[self.op3]
+        icccond = branch_cond_traps_mnemonic[self.cond].upper()
+
+        # reg_or_imm or address both depend on the value of i, but are otherwise unrelated and both are never used
         if self.i == 0:
             reg_or_imm = register_label[self.rs2]
+            self.address = "{rs1} + {rs2}".format(rs1=regrs1, rs2=regrs2)
         else:
-            reg_or_imm = "%d" % self.simm13
+            reg_or_imm = int(self.simm13)
+            self.address = "{rs1} + {simm13}".format(rs1=regrs1, simm13=self.simm13)
 
         regrd = register_label[self.rd]
         cregrd = creg_label[self.rd]
+        asregrd = asreg_label[self.rd]
+        asregrs1 = asreg_label[self.rs1]
 
-        return self.mnemonic_format.format(regrs1=regrs1, reg_or_imm = reg_or_imm, regrd=regrd, cregrd=cregrd)
+        return mnemonic_format.format(regrs1=regrs1, reg_or_imm=reg_or_imm, regrd=regrd, cregrd=cregrd, 
+                address=self.address, icccond=icccond, asregrd=asregrd, asregrs1=asregrs1)
 
 class SparcOpCall:
     def __init__(self, instr, offset, va, endian=envi.ENDIAN_MSB):
@@ -273,8 +288,6 @@ class SparcDisasm:
                 raise ValueError("instruction must be four bytes long")
 
             opcode = struct.unpack(">I", bytecode)[0]
-        elif isinstance(bytecode, long):
-            opcode = int(bytecode)
         else:
             opcode = bytecode
 
@@ -288,6 +301,7 @@ class SparcDisasm:
                 return SparcOpSetHi(opcode, offset, va)
             else:
                 return SparcOpBranch(opcode, offset, va)
+
         elif op == 1:
             # CALL
             return SparcOpCall(opcode, offset, va)
@@ -299,11 +313,6 @@ class SparcDisasm:
         elif op == 3:
             # Memory
             return SparcOpLoadStore(opcode, offset, va)
-
         else:
             raise ValueError("op field may not exceed 3")
             
-
-
-
-
