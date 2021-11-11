@@ -276,6 +276,78 @@ class VivisectTest(unittest.TestCase):
         self.assertIn("0x8048e20  ff 25 2c 40 05 08 68 40 00 00 00 e9 60 ff ff ff  ", output)
         self.chgrp_vw.canvas.clearCanvas()
 
+    def test_cli_maps(self):
+        self.chgrp_vw.do_maps('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("[ address ] [ size ] [ perms ] [ File ]\n0x08048000     44K\t-r-x\tchgrp\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_memcmp(self):
+        self.chgrp_vw.do_memcmp('chgrp.plt_strcmp chgrp.plt_strncmp 16')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('==== 1 byte difference at offset 2\n0x08048db2:10\n0x08049122:ec\n==== 2 byte difference at offset 7\n0x08048db7:0800\n0x08049127:c001\n==== 2 byte difference at offset 12\n0x08048dbc:d0ff\n0x0804912c:60fc\n', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_memdump(self):
+        self.chgrp_vw.do_memdump('chgrp.plt_strncmp /tmp/memdumptest 16')
+        dumpedmem = open('/tmp/memdumptest', 'rb').read()
+        vwmem = self.chgrp_vw.readMemory(self.chgrp_vw.parseExpression('chgrp.plt_strncmp'), 16) 
+        self.assertEqual(dumpedmem, vwmem)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_names(self):
+        self.chgrp_vw.do_names('plt_.*64')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x08048e60: chgrp.plt_fseeko64", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_pathcount(self):
+        self.chgrp_vw.do_pathcount('chgrp.quotearg_free')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("Path through 0x0804b8a0: ['0x804b8a0', '0x804b8d5', '0x804b8fb', '0x804b915']", output)
+        self.assertIn("Total Paths: 8", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_report(self):
+        self.chgrp_vw.do_report('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("Path:     vivisect.reports.overlaplocs (Name: Overlapped Locations)", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_report('vivisect.reports.funccomplexity')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("Function: 0x8048e60 ('chgrp.plt_fseeko64')\nCode Blocks: 1\nMnem Dist: {'jmp': 1}\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_symboliks(self):
+        self.chgrp_vw.do_symboliks('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("-A  Run the emu and show the state of the machine for all found paths", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_symboliks('0x08050129')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("RETURN  Mem(o_add(Arg(0,width=4),Const(0x00000008,4),4), Const(0x00000004,4))", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_vampsig(self):
+        self.chgrp_vw.do_vampsig('chgrp.rpl_fseeko')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("""SIGNATURE: 5553575683ec0c8b7424208b46083b4604750e8b46143b46107506837e2400740c83c40c5e5f5b5de9538dffff8b7c24288b5c24248b6c242c83ec0c56e82e8fffff83c41055575350e8a28fffff83c41089c121d183f9ff740d8026ef89464c89565031c0eb05b8ffffffff83c40c5e5f5b5dc3\nMASK: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff""", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_xrefs(self):
+        self.chgrp_vw.do_xrefs('-F 0x08050129')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("From: 0x08050129, To: 0x080490d0, Type: Code, Flags: 0x00010001\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_xrefs('-T chgrp.plt_lseek64')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("From: 0x0804fe94, To: 0x080490d0, Type: Code, Flags: 0x00010001\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+
     def test_loc_types(self):
         '''
         Test that we have data consistency in locations

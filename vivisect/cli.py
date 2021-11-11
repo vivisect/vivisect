@@ -95,9 +95,16 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         Usage: pathcount <func_expr>
         '''
-        fva = self.parseExpression(line)
-        if not self.isFunction(fva):
-            self.vprint('Not a function!')
+        if not line:
+            return self.do_help('pathcount')
+        try:
+            fva = self.parseExpression(line)
+            if not self.isFunction(fva):
+                self.vprint('Not a function!')
+                return
+
+        except Exception as e:
+            self.vprint(str(e))
             return
 
         g = v_t_graph.buildFunctionGraph(self, fva)
@@ -117,6 +124,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             to the given address
 
         '''
+        if not line:
+            return self.do_help("symboliks")
 
         watchaddr = None
 
@@ -368,13 +377,16 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             pname = e_memory.reprPerms(mperm)
             sname = self.reprPointer(va)
 
-            op = self.parseOpcode(va)
-            self.canvas.renderMemory(va, len(op))
-            cmt = self.getComment(va)
-            if cmt is not None:
-                self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
+            try:
+                op = self.parseOpcode(va)
+                self.canvas.renderMemory(va, len(op))
+                cmt = self.getComment(va)
+                if cmt is not None:
+                    self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
 
-            self.canvas.addText('\n')
+                self.canvas.addText('\n')
+            except envi.SegmentationViolation as e:
+                logger.debug("segv at 0x%x", va)
 
         self.vprint('done (%d results).' % len(res))
 
