@@ -634,9 +634,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         db = vdb.Vdb(trace=trace)
         db.cmdloop()
 
-    def do_argtrack(self, line):
+    def _do_argtrack(self, line):
+        #FIXME: this is currently broken and needs to be revamped to use 
+        # apiCall and VivTaints
         """
         Track input arguments to the given function by name or address.
+
+        (this is currently broken.  sorry!)
 
         Usage: argtrack <func_addr_expr> <arg_idx>
         """

@@ -141,17 +141,17 @@ class VivisectTest(unittest.TestCase):
         self.assertIn("matches for: 722e74 ('r.t')\n.text:0x0805020a  c3               ret \n\n", output)
         self.chgrp_vw.canvas.clearCanvas()
 
-    def test_cli_argtrack(self):
-        self.chgrp_vw.do_argtrack('')
-        output = self.chgrp_vw.canvas.strval
-        self.assertIn('Usage: argtrack <func_addr_expr> <arg_idx>', output)
-        self.chgrp_vw.canvas.clearCanvas()
-
         ## FIXME: make tests when this works
-        self.chgrp_vw.do_argtrack('')
-        output = self.chgrp_vw.canvas.strval
-        self.assertIn('Usage: argtrack <func_addr_expr> <arg_idx>', output)
-        self.chgrp_vw.canvas.clearCanvas()
+    #def test_cli_argtrack(self):
+    #    self.chgrp_vw.do_argtrack('')
+    #    output = self.chgrp_vw.canvas.strval
+    #    self.assertIn('Usage: argtrack <func_addr_expr> <arg_idx>', output)
+    #    self.chgrp_vw.canvas.clearCanvas()
+
+    #    self.chgrp_vw.do_argtrack('')
+    #    output = self.chgrp_vw.canvas.strval
+    #    self.assertIn('Usage: argtrack <func_addr_expr> <arg_idx>', output)
+    #    self.chgrp_vw.canvas.clearCanvas()
 
     def test_cli_chat(self):
         self.chgrp_vw.do_chat('foo')
