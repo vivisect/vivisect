@@ -995,7 +995,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         regs = self.trace.getRegisters()
-        rnames = list(regs.keys())
+        rnames = [reg for reg in regs.keys() if reg is not None]
         rnames.sort()
         final = []
         for r in rnames:

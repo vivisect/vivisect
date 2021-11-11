@@ -25,7 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'vivbin=vivisect.vivbin:main',
-            'vdbbin=vdbbin.vdbbin:main',
+            'vdbbin=vdb.vdbbin:main',
         ]
     },
     install_requires=[

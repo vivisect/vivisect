@@ -80,10 +80,12 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         cols, results = viv_reports.runReportModule(self, line)
         for va, row in results.items():
+            self.canvas.addVaText("%s:\n" % self.getName(va), va)
+
             for indx in range(len(cols)):
                 valu = row[indx]
                 name, typename = cols[indx]
-                self.canvas.addVaText(name, va)
+                self.canvas.addVaText("    " + name, va)
                 self.canvas.addText(": %s\n" % valu)
             self.canvas.addText("\n")
 
@@ -95,9 +97,16 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         Usage: pathcount <func_expr>
         '''
-        fva = self.parseExpression(line)
-        if not self.isFunction(fva):
-            self.vprint('Not a function!')
+        if not line:
+            return self.do_help('pathcount')
+        try:
+            fva = self.parseExpression(line)
+            if not self.isFunction(fva):
+                self.vprint('Not a function!')
+                return
+
+        except Exception as e:
+            self.vprint(str(e))
             return
 
         g = v_t_graph.buildFunctionGraph(self, fva)
@@ -117,6 +126,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             to the given address
 
         '''
+        if not line:
+            return self.do_help("symboliks")
 
         watchaddr = None
 
@@ -266,7 +277,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
             for nva, node in graph.getNodes():
                 va = nva
-                endva = va + node.get('cbsize')
+                endva = nva + node.get('cbsize')
                 while va < endva:
                     lva, lsz, ltype, ltinfo = self.getLocation(va)
                     valist.append(va)
@@ -368,13 +379,16 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             pname = e_memory.reprPerms(mperm)
             sname = self.reprPointer(va)
 
-            op = self.parseOpcode(va)
-            self.canvas.renderMemory(va, len(op))
-            cmt = self.getComment(va)
-            if cmt is not None:
-                self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
+            try:
+                op = self.parseOpcode(va)
+                self.canvas.renderMemory(va, len(op))
+                cmt = self.getComment(va)
+                if cmt is not None:
+                    self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
 
-            self.canvas.addText('\n')
+                self.canvas.addText('\n')
+            except envi.SegmentationViolation as e:
+                logger.debug("segv at 0x%x", va)
 
         self.vprint('done (%d results).' % len(res))
 
@@ -564,7 +578,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         """
         argv = e_cli.splitargs(line)
         try:
-            opts, args = getopt(argv, "csup:S:")
+            opts, args = getopt(argv, "csufn:p:S:")
         except Exception as e:
             logger.warning(str(e))
             return self.do_help("make")
@@ -622,9 +636,13 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         db = vdb.Vdb(trace=trace)
         db.cmdloop()
 
-    def do_argtrack(self, line):
+    def _do_argtrack(self, line):
+        #FIXME: this is currently broken and needs to be revamped to use 
+        # apiCall and VivTaints
         """
         Track input arguments to the given function by name or address.
+
+        (this is currently broken.  sorry!)
 
         Usage: argtrack <func_addr_expr> <arg_idx>
         """
