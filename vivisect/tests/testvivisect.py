@@ -319,6 +319,13 @@ class VivisectTest(unittest.TestCase):
         self.assertIn("Function: 0x8048e60 ('chgrp.plt_fseeko64')\nCode Blocks: 1\nMnem Dist: {'jmp': 1}\n", output)
         self.chgrp_vw.canvas.clearCanvas()
 
+    def test_cli_script(self):
+        open('/tmp/vivscript', 'wb').write(b"vw.vprint('doin the do')\nvw.vprint(repr(argv))")
+        self.chgrp_vw.do_script('/tmp/vivscript arg1 arg2 arg3') 
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("doin the do\n['/tmp/vivscript', 'arg1', 'arg2', 'arg3']", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
     def test_cli_symboliks(self):
         self.chgrp_vw.do_symboliks('')
         output = self.chgrp_vw.canvas.strval
