@@ -477,7 +477,8 @@ def analyzeFunction(vw, funcva):
         funcname = funcname[:-9]
 
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
-    vw.makeFunctionThunk(funcva, "plt_" + funcname, addVa=False, filelocal=True)
+    vw.makeFunctionThunk(funcva, "*." + funcname, addVa=False, filelocal=True, 
+            basename="plt_" + funcname)
 
 '''
 def printPLTs(vw):

@@ -944,7 +944,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 loctup = self.getLocation(va)
                 if loctup is not None:
-                    offset += loctup[L_SIZE]
+                    nextva = loctup[L_VA] + loctup[L_SIZE]
+                    offset = nextva - mva
                     if offset % align:
                         offset += align
                         offset &= -align
@@ -1672,7 +1673,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             ret = []
         return ret
 
-    def makeFunctionThunk(self, fva, thname, addVa=True, filelocal=False):
+    def makeFunctionThunk(self, fva, thname, addVa=True, filelocal=False, basename=None):
         """
         Inform the workspace that a given function is considered a "thunk" to another.
         This allows the workspace to process argument inheritance and several other things.
@@ -1681,13 +1682,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         self.checkNoRetApi(thname, fva)
         self.setFunctionMeta(fva, "Thunk", thname)
-        n = self.getName(fva)
 
-        base = thname.split(".")[-1]
+        if basename is None:
+            basename = thname.split(".")[-1]
+
         if addVa:
-            name = "%s_%.8x" % (base,fva)
+            name = "%s_%.8x" % (basename, fva)
         else:
-            name = base
+            name = basename
         newname = self.makeName(fva, name, filelocal=filelocal, makeuniq=True)
 
         api = self.getImpApi(thname)
