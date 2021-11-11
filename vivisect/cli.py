@@ -80,10 +80,12 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         cols, results = viv_reports.runReportModule(self, line)
         for va, row in results.items():
+            self.canvas.addVaText("%s:\n" % self.getName(va), va)
+
             for indx in range(len(cols)):
                 valu = row[indx]
                 name, typename = cols[indx]
-                self.canvas.addVaText(name, va)
+                self.canvas.addVaText("    " + name, va)
                 self.canvas.addText(": %s\n" % valu)
             self.canvas.addText("\n")
 

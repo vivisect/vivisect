@@ -2,7 +2,6 @@
 # Reverse depth
 
 columns = (
-    ("Function", str),
     ("Code Blocks", int),
     ("Mnem Dist", int),
 )
@@ -16,8 +15,7 @@ def report(vw):
         cbtot[f] = len(fblocks)
 
     for f, c in cbtot.items():
-        funcstr = "0x%x (%r)" % (f, vw.getName(f))
         mndist = vw.getFunctionMeta(f, "MnemDist", -1)
-        ret[f] = (funcstr, c, mndist)
+        ret[f] = (c, mndist)
 
     return ret

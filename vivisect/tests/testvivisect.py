@@ -316,7 +316,7 @@ class VivisectTest(unittest.TestCase):
 
         self.chgrp_vw.do_report('vivisect.reports.funccomplexity')
         output = self.chgrp_vw.canvas.strval
-        self.assertIn("Function: 0x8048e60 ('chgrp.plt_fseeko64')\nCode Blocks: 1\nMnem Dist: {'jmp': 1}\n", output)
+        self.assertIn("chgrp.plt_fseeko64:\n    Code Blocks: 1\n    Mnem Dist: {'jmp': 1}\n", output)
         self.chgrp_vw.canvas.clearCanvas()
 
     def test_cli_script(self):
