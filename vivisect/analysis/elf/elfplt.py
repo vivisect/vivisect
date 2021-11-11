@@ -299,7 +299,6 @@ def analyzePLT(vw, ssva, ssize):
         logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
 
 
-
 MAX_OPS = 10
 
 def analyzeFunction(vw, funcva):
@@ -386,7 +385,10 @@ def analyzeFunction(vw, funcva):
             elif ltype == vivisect.LOC_POINTER:
                 # we have a deref to a pointer.
                 funcname = vw.getName(ltinfo)
-                logger.debug("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
+                if ltinfo:
+                    logger.debug("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
+                else:
+                    logger.debug("0x%x: (0x%x->%r) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
             else:
                 logger.warning("0x%x: (0x%x) not LOC_IMPORT or LOC_POINTER?? by BR_DEREF %r", funcva, opval, loctup)
 
