@@ -126,6 +126,13 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
             logger.warning("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
+    def apicall(self, emu, op, pc, api, argv):
+        logger.info("apiCall(%r, 0x%x, %r, %r)", op, pc, api, argv)
+        norets = emu.vw.getMeta('NoReturnApisVa', {})
+        if norets.get(pc, False):
+            logger.warning("=== halting emu: NoReturnApisVa 0x%x", pc)
+            emu.stopEmu()
+        
     def posthook(self, emu, op, starteip):
         if op.opcode == INS_BLX:
             emu.setFlag(PSR_T_bit, self.last_tmode)
