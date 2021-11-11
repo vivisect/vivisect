@@ -27,12 +27,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
         va = kwargs.get('va')
         if va:
-            loc = vw.getLocation(va)
-            if loc:
-                lva, lsz, lt, lflags = loc
-                self.setMemArchitecture(lflags)
-                tmode = (lflags & envi.ARCH_MASK == envi.ARCH_THUMB)
-                self.setThumbMode(tmode)
+            self._prep(va)
 
     def setThumbMode(self, thumb=1):
         e_arm.ArmEmulator.setThumbMode(self, thumb)
