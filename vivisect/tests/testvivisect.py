@@ -1501,12 +1501,14 @@ class VivisectTest(v_t_utils.VivTest):
             rtyp = vw.getRelocation(rva)
             self.assertEqual(2, rtyp)
 
+            old = len(vw.getRelocations())
             self.assertEqual(2, vw.delRelocation(rva, full=True))
 
             self.none(vw.getLocation(rva))
             self.len(vw.getXrefsFrom(rva), 0)
             self.len(vw.getXrefsTo(0x20028a0), 1)
             self.eq(2, self.chown_vw.getRelocation(rva))
+            self.eq(1, old - len(vw.getRelocations()))
 
             self.none(vw.delRelocation(0xabad1dea))
 
