@@ -34,6 +34,10 @@ def do_analyze(vw):
             logging.warning("ERROR in analysis module: (%r): %r", mod, e, exc_info=1)
 
 def cmpnames(x, y):
+    '''
+    Names comparator.  Skips "_#" duplicate name parts so that processing order
+    doesn't matter.
+    '''
     nmset = [x, y]
 
     for nmidx in range(2):
