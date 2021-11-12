@@ -37,12 +37,12 @@ def cmpnames(x, y):
     nmset = [x, y]
 
     for nmidx in range(2):
-        name = nmset[nmidx]
+        va, name = nmset[nmidx]
         if len(name) <= 2:
             continue
 
-        if name[-2:] in (b'_0', b'_1', b'_2', b'_3', b'_4', b'_5', b'_6', b'_7', b'_8', b'_9'):
-            nmset[nmidx] = name[:-2]
+        if name[-2:] in ('_0', '_1', '_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9'):
+            nmset[nmidx] = va, name[:-2]
 
     return nmset[0] == nmset[1]
 
@@ -156,7 +156,7 @@ class ELFTests(unittest.TestCase):
         # So this portion is because on windows, there's no good python equivalent for cxxfilt that I
         # can find. So we have to skip the portions of the tests that rely on decoding the names
         cmpr = lambda x, y: x == y
-        if platform.system().lower() == 'windows' and testname in comparators:
+        if testname in comparators:
             cmpr = comparators[testname]
 
         for base in baseline:
