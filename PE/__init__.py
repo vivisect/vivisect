@@ -6,6 +6,7 @@ import struct
 
 import vstruct
 import vstruct.defs.pe as vs_pe
+import vivisect.exc as v_exc
 
 from . import ordlookup
 
@@ -388,6 +389,7 @@ class PE(object):
         object.__init__(self)
         self.inmem = inmem
         self.filesize = None
+        self.min_rva = None
         self.max_rva = None
 
         if not inmem:
@@ -454,7 +456,13 @@ class PE(object):
         '''
         if self.IMAGE_EXPORT_DIRECTORY is not None:
             rawname = self.readAtRva(self.IMAGE_EXPORT_DIRECTORY.Name, 32)
-            return rawname.split(b'\x00')[0].decode('utf-8')
+            if not rawname:
+                return None
+
+            try:
+                return rawname.partition(b'\x00')[0].decode('ascii')
+            except UnicodeDecodeError:
+                return None
         return None
 
     def getImports(self):
@@ -488,6 +496,17 @@ class PE(object):
     def getSections(self):
         return self.sections
 
+    def vaToRva(self, va):
+        rva = va - self.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+        assert rva >= 0
+        return rva
+
+    def vaToOffset(self, va):
+        if self.inmem:
+            return va
+
+        return self.rvaToOffset(self.vaToRva(va))
+ 
     def rvaToOffset(self, rva):
         if self.inmem:
             return rva
@@ -702,7 +721,12 @@ class PE(object):
         off += self.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes * len(vstruct.getStructure("pe.IMAGE_DATA_DIRECTORY"))
 
         secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
-        sbytes = self.readAtOffset(off, secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections)
+        hdrsize = secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections
+        sbytes = self.readAtOffset(off, hdrsize)
+
+        if len(sbytes) != hdrsize:
+            raise v_exc.CorruptPeFile("truncated section headers")
+
         indx = off
         while sbytes:
             s = vstruct.getStructure("pe.IMAGE_SECTION_HEADER")
@@ -717,6 +741,10 @@ class PE(object):
         fbytes = self.readAtRva(rva, size)
         return struct.unpack(fmt, fbytes)
 
+    def readAtVa(self, va, size, shortok=False):
+        offset = self.vaToOffset(va)
+        return self.readAtOffset(offset, size, shortok)
+         
     def readAtRva(self, rva, size, shortok=False):
         offset = self.rvaToOffset(rva)
         return self.readAtOffset(offset, size, shortok)
@@ -748,9 +776,21 @@ class PE(object):
             fmt = "<Q"
         return struct.unpack(fmt, self.readAtOffset(off, self.psize))[0]
 
+    def readPointerAtVa(self, va):
+        off = self.vaToOffset(va)
+        return self.readPointerAtOffset(off)
+
     def readPointerAtRva(self, rva):
         off = self.rvaToOffset(rva)
         return self.readPointerAtOffset(off)
+
+    def getMinRva(self):
+        '''
+        Minimum RVA is the smallest virtual address that might be observed.
+        '''
+        if not self.min_rva:
+            self.min_rva = min(map(lambda sec: sec.VirtualAddress, self.getSections()))
+        return self.min_rva
 
     def getMaxRva(self):
         '''
@@ -798,6 +838,9 @@ class PE(object):
             ret += x
             rva += 1
         return ret
+ 
+    def readStringAtVa(self, va, maxsize=None):
+        return self.readStringAtRva(self.vaToRva(va), maxsize=maxsize)
 
     def parseImports(self):
         idir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_IMPORT)
@@ -809,7 +852,7 @@ class PE(object):
             self.imports = []
             return
 
-        self.imports = self.parseImportTable(x, irva, is_imports=True)
+        self.imports = self.parseImportTable(x, irva, flavor="import table", uses_rva=True)
 
     def parseDelayImports(self):
         didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
@@ -821,68 +864,244 @@ class PE(object):
             self.delayImports = []
             return
 
-        self.delayImports = self.parseImportTable(x, irva, is_imports=False)
+        # `doesDelayImportTableUseRVAs` modifies the given vstruct,
+        # so we parse and provide another copy.
+        y = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
+        uses_rva = self.doesDelayImportTableUseRVAs(y, irva)
+        if not uses_rva:
+            logger.debug("delayed imports: delay import table uses VAs (unusual, might be VS6)")
 
-    def parseImportTable(self, x, irva, is_imports=True):
+        self.delayImports = self.parseImportTable(x, irva, flavor="delay import table", uses_rva=uses_rva)
+
+    def doesDelayImportTableUseRVAs(self, x, irva):
+        """
+        return True if the delay import table at the given irva appears to use RVAs.
+        this is the common case. but, VS6 had a bug in which the delay import table used VAs, instead.
+        there's no standard, because its up to the compiler to insert the delayed import handling code.
+        ref: https://stackoverflow.com/questions/40570909/difference-between-bound-imports-and-delayed-imports-in-pe-header
+        """
+        isize = len(x)
+
+        # we'll loop through all the DLL entries in the delay import table
+        # casting a vote if the name pointer appears to be an RVA or not.
+        # then the case with the most votes at the end wins.
+        # this handles the case when a small number of the pointers may be hard to interpret.
+        votes = []
+        while True:
+            if x.rvaDLLName == 0:
+                break
+
+            ptr = x.rvaINT
+            if ptr == 0:
+                ptr = x.rvaIAT
+
+            if ptr == 0:
+                break
+
+            # cast a vote:
+            # does ptr appear to be an RVA or VA?
+            if ptr < self.getMinRva():
+                # not a valid VA (too small), so must be a RVA
+                votes.append(True)
+
+            elif ptr >= self.getMaxRva():
+                # we have no idea: address is neither RVA or VA
+                # this is probably corrupt.
+                pass
+
+            elif self.getMinRva() <= ptr < self.getMaxRva():
+                # probably a VA,
+                # though if we're dealing with a large program,
+                # the range of VA and RVA values may overlap.
+
+                # when the file is small, RVA and VA ranges don't overlap:
+                #
+                #                               base addr
+                #  0                            min VA       max VA
+                #  |                            |------------|
+                #  |------------|
+                #  min RVA      max RVA
+                #
+                #
+                # but when the file is large relative to the base address:
+                #
+                #           base addr
+                #  0        min VA                  max VA
+                #  |        |----------------------|
+                #  |----------------------|
+                #  min RVA                max RVA
+                #
+                #            ^^^^^^^^^^^^^ we can't tell if these addresses are RVA or VA
+
+                if (self.getMaxRva() - self.getMinRva()) > self.getMinRva():
+                    # the VA and RVA range overlap, and
+                    # we can't directly tell if this is an RVA or VA.
+                    #
+                    # so, we use a couple heuristics to make our best guess.
+                    try:
+                        self.readPointerAtRva(ptr)
+                    except:
+                        can_deref_as_rva = False
+                    else:
+                        can_deref_as_rva = True
+
+                    try:
+                        self.readPointerAtVa(ptr)
+                    except:
+                        can_deref_as_va = False
+                    else:
+                        can_deref_as_va = True
+
+                    if (can_deref_as_rva, can_deref_as_va) == (True, False):
+                        # can only be interpreted as an RVA
+                        votes.append(True)
+
+                    elif (can_deref_as_rva, can_deref_as_va) == (False, True):
+                        # can only be interpreted as an VA
+                        votes.append(False)
+
+                    elif (can_deref_as_rva, can_deref_as_va) == (False, False):
+                        # cannot be interpreted as either VA nor RVA
+                        pass
+
+                    elif (can_deref_as_rva, can_deref_as_va) == (True, True):
+                        # both VA and RVA interpretation could work.
+                        # so, we assume the difference between
+                        # the location of the pointer and the pointed-to location are fairly similar.
+                        # this is because the import table probably points to a nearby structure,
+                        # e.g., in the same section.
+                        #
+                        # so, is `abs(*ptr - ptr) < min rva`?
+                        # this should be the case for everything except:
+                        #  - REALLY large import tables, and
+                        #  - import tables split across more than one large section
+                        #
+                        # dereference as an RVA, and if the heuristic works, vote yes.
+                        # otherwise, its probably a VA.
+                        deref = self.readPointerAtRva(ptr)
+                        if abs(deref - ptr) < self.getMinRva():
+                            # the data is nearby, so the delta is small, so its probably an RVA.
+                            votes.append(True)
+                        else:
+                            # the treating the data as an RVA resulting in a large delta,
+                            # so its probably a VA.
+                            votes.append(False)
+                    else:
+                        # for clarity: all the cases are explicit above.
+                        raise Exception("impossible")
+
+                else:
+                    # its not an RVA,
+                    # and there' no overlap between valid VA and RVA ranges,
+                    # so it must be a VA.
+                    votes.append(False)
+
+            else:
+                # for clarity: all the cases are explicit above.
+                raise Exception("impossible")
+
+            irva += isize
+
+            if not self.checkRva(irva, size=isize):
+                # if import table is at the end of the file
+                # we may run to the end.
+                break
+
+            x.vsParse(self.readAtRva(irva, isize))
+
+        logger.debug("delayed imports: votes for RVAs: %d", sum([1 for vote in votes if vote]))
+        logger.debug("delayed imports: votes for VAs: %d", sum([1 for vote in votes if not vote]))
+
+        # more votes for RVA than for VA
+        return sum([1 for vote in votes if vote]) > sum([1 for vote in votes if not vote])
+
+    def parseImportTable(self, x, irva, flavor="import table", uses_rva=True):
         '''
         Parse a standard or delayed import table, adding to imports_list.
         Start with x and irva set to the first entry in the table.
         '''
+        if flavor not in ("import table", "delay import table"):
+            raise ValueError("unexpected flavor: " + flavor)
+
         imports_list = []
         isize = len(x)
 
         while True:
-            if is_imports:
+            if flavor == "import table":
                 entry_name = x.Name
-            else:
+            elif flavor == "delay import table":
                 entry_name = x.rvaDLLName
+            else:
+                raise ValueError("unexpected flavor: " + flavor)
 
             if not self.checkRva(entry_name):
                 break
 
+            if uses_rva:
+                entry_name_rva = entry_name
+            else:
+                entry_name_rva = self.vaToRva(entry_name)
+
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(entry_name, maxsize=256).decode('utf-8')
+            libname = self.readStringAtRva(entry_name_rva, maxsize=256).decode('utf-8')
             idx = 0
 
-            if is_imports:
+            if flavor == "import table":
                 imp_by_name = x.OriginalFirstThunk
                 if imp_by_name == 0:
                     imp_by_name = x.FirstThunk
                 save_name = x.FirstThunk
-            else:
+            elif flavor == "delay import table":
                 imp_by_name = x.rvaINT
                 if imp_by_name == 0:
                     imp_by_name = x.rvaIAT
                 save_name = x.rvaIAT
+            else:
+                raise ValueError("unexpected flavor: " + flavor)
 
-            if not self.checkRva(imp_by_name):
+            if uses_rva and not self.checkRva(imp_by_name):
                 break
 
-            while True:
+            if uses_rva:
+                imp_by_name_rva = imp_by_name
+            else:
+                imp_by_name_rva = self.vaToRva(imp_by_name)
 
+            while True:
                 arrayoff = self.psize * idx
                 if self.filesize is not None and arrayoff > self.filesize:
-                    return [] # we probably put garbage in the list
+                    # we've read more pointers than could possibly be in this file
+                    # so we probably already put garbage in the list.
+                    # therefore, bail with empty results.
+                    return []
 
-                ibn_rva = self.readPointerAtRva(imp_by_name+arrayoff)
-                if ibn_rva == 0:
+                ibn_addr = self.readPointerAtRva(imp_by_name_rva+arrayoff)
+
+                if ibn_addr == 0:
                     break
 
-                if ibn_rva & self.high_bit_mask:
-                    funcname = ordlookup.ordLookup(libname, ibn_rva & 0x7fffffff)
+                if ibn_addr & self.high_bit_mask:
+                    funcname = ordlookup.ordLookup(libname, ibn_addr & 0x7fffffff)
 
-                elif not self.checkRva(ibn_rva):
+                elif uses_rva and not self.checkRva(ibn_addr):
                     break
 
                 else:
+                    if uses_rva:
+                        ibn_rva = ibn_addr
+                    else:
+                        ibn_rva = self.vaToRva(ibn_addr)
+
                     # RP BUG FIX - we can't use this API on this call because we can have binaries that put their import table
                     # right at the end of the file, statically saying the imported function name is 128 will cause use to potentially
                     # over run our read and traceback...
-
-                    diff = self.getMaxRva() - ibn_rva - 2
+                    diff = self.getMaxRva() - ibn_addr - 2
                     ibn = vstruct.getStructure("pe.IMAGE_IMPORT_BY_NAME")
                     ibn.vsGetField('Name').vsSetLength(min(diff, 128))
+
+
                     bytes = self.readAtRva(ibn_rva, len(ibn), shortok=True)
+
                     if not bytes:
                         break
                     try:
@@ -891,9 +1110,19 @@ class PE(object):
                         idx+=1
                         continue
 
-                    funcname = ibn.Name
+                    try:
+                        funcname = ibn.Name
+                    except UnicodeDecodeError:
+                        funcname = None
+                        logger.warning("pe: failed to read import name at RVA 0x%x", ibn_rva)
 
-                imports_list.append((save_name + arrayoff, libname, funcname))
+                if uses_rva:
+                    import_rva = save_name + arrayoff
+                else:
+                    import_rva = self.vaToRva(save_name + arrayoff)
+
+                if funcname is not None:
+                    imports_list.append((import_rva, libname, funcname))
 
                 idx += 1
 
@@ -932,24 +1161,28 @@ class PE(object):
                 return
 
             pageva, chunksize = struct.unpack("<II", relbytes[:8])
-            relcnt = (chunksize - 8) / 2
+            relcnt = (chunksize - 8) // 2
 
             # if chunksize == 0 bail
             if not chunksize:
+                logger.warning("PE: corrupt relocation table: chunk size is 0")
                 return
 
             # RP BUG FIX - sometimes the chunksize is invalid we do a quick check to make sure we dont overrun the buffer
             if chunksize > len(relbytes):
+                logger.warning("PE: corrupt relocation table: chunk size > table size")
                 return
 
             if relcnt < 0:
+                logger.warning("PE: corrupt relocation table: negative relocation count")
                 return
 
-            rels = struct.unpack("<%dH" % relcnt, relbytes[8:chunksize])
-            for r in rels:
+            for roffset in range(8, min(chunksize, len(relbytes)), 2):
+                r = struct.unpack_from("<H", relbytes, roffset)[0]
                 rtype = r >> 12
                 roff  = r & 0xfff
                 self.relocations.append((pageva+roff, rtype))
+
             relbytes = relbytes[chunksize:]
 
     def getExportName(self):

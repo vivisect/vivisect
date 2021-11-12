@@ -96,9 +96,11 @@ def lsb(value):
     return value & 0x1
 
 def msb(value, size):
-    if value & sign_bits[size]:
-        return 1
-    return 0
+    return bool(value & sign_bits[size])
+
+def msb_minus_one(value, size):
+    bsize = size << 3
+    return bool(value & bsign_bits[bsize-1])
 
 def is_signed_half_carry(value, size, src):
     '''
@@ -168,9 +170,9 @@ def getFormat(size, big_endian=False, signed=False):
     '''
     Returns the proper struct format for numbers up to 8 bytes in length
     Endianness and Signedness aware.
-    
+
     Only useful for *full individual* numbers... ie. 1, 2, 4, 8.  Numbers
-    of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted 
+    of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted
     for here and will return None.
     '''
     return master_fmts[signed][big_endian][size]
@@ -179,9 +181,9 @@ def getFloatFormat(size, big_endian=False):
     '''
     Returns the proper struct format for numbers up to 8 bytes in length
     Endianness and Signedness aware.
-    
+
     Only useful for *full individual* numbers... ie. 1, 2, 4, 8.  Numbers
-    of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted 
+    of 24-bits (3), 40-bit (5), 48-bits (6) or 56-bits (7) are not accounted
     for here and will return None.
     '''
     return fmt_floats[big_endian][size]
@@ -351,3 +353,14 @@ def masktest(s):
     def domask(testval):
         return testval & maskin == matchval
     return domask
+
+def align(origsize, alignment):
+    '''
+    Returns an aligned size based on alignment argument
+    '''
+    remainder = origsize % alignment
+    if remainder == 0:
+        return origsize
+    else:
+        return origsize + (alignment - remainder)
+

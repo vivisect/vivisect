@@ -12,7 +12,6 @@ import queue
 import string
 import hashlib
 import logging
-import binascii
 import itertools
 import traceback
 import threading
@@ -54,7 +53,7 @@ STORAGE_MAP = {
 
 
 def guid(size=16):
-    return binascii.hexlify(os.urandom(size))
+    return e_common.hexify(os.urandom(size))
 
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
@@ -193,6 +192,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 vwgui.doStuffAndThings()
         '''
         return self._viv_gui
+
+    def getPointerSize(self):
+        return self.psize
 
     def addCtxMenuHook(self, name, handler):
         '''
@@ -387,11 +389,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Expects data to have whatever is necessary for the reloc type. eg. addend
         """
         # split "current" va into fname and offset.  future relocations will want to base all va's from an image base
-        mmva, mmsz, mmperm, fname = self.getMemoryMap(va)    # FIXME: getFileByVa does not obey file defs
+        mmap = self.getMemoryMap(va)
+        if not mmap:
+            logger.warning('addRelocation: No matching map found for %s', va)
+            return None
+        mmva, mmsz, mmperm, fname = mmap    # FIXME: getFileByVa does not obey file defs
         imgbase = self.getFileMeta(fname, 'imagebase')
         offset = va - imgbase
 
         self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
+        return self.getRelocation(va)
 
     def getRelocations(self):
         """
@@ -721,7 +728,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             n = self.getName(lva)
             if n is not None:
                 return n
-            return binascii.hexlify(self.readMemory(lva, lsize)).decode('utf-8')
+            return e_common.hexify(self.readMemory(lva, lsize))
 
     def followPointer(self, va):
         """
@@ -937,7 +944,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 loctup = self.getLocation(va)
                 if loctup is not None:
-                    offset += loctup[L_SIZE]
+                    nextva = loctup[L_VA] + loctup[L_SIZE]
+                    offset = nextva - mva
                     if offset % align:
                         offset += align
                         offset &= -align
@@ -1236,7 +1244,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.delXref(va)
 
     def makeJumpTable(self, op, tova, rebase=False, psize=4):
-        fname = self.getMemoryMap(tova)[3]
+        fname = self.getFileByVa(tova)
         imgbase = self.getFileMeta(fname, 'imagebase')
 
         ptrbase = tova
@@ -1298,7 +1306,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             except envi.InvalidInstruction as msg:
                 # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
-                logger.warning("Invalid Instruct Attempt At:", hex(va), binascii.hexlify(bytez))
+                logger.warning("Invalid Instruct Attempt At:", hex(va), e_common.hexify(bytez))
                 raise InvalidLocation(va, msg)
             except Exception as msg:
                 raise InvalidLocation(va, msg)
@@ -1665,7 +1673,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             ret = []
         return ret
 
-    def makeFunctionThunk(self, fva, thname, addVa=True, filelocal=False):
+    def makeFunctionThunk(self, fva, thname, addVa=True, filelocal=False, basename=None):
         """
         Inform the workspace that a given function is considered a "thunk" to another.
         This allows the workspace to process argument inheritance and several other things.
@@ -1674,13 +1682,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         self.checkNoRetApi(thname, fva)
         self.setFunctionMeta(fva, "Thunk", thname)
-        n = self.getName(fva)
 
-        base = thname.split(".")[-1]
+        if basename is None:
+            basename = thname.split(".")[-1]
+
         if addVa:
-            name = "%s_%.8x" % (base,fva)
+            name = "%s_%.8x" % (basename, fva)
         else:
-            name = base
+            name = basename
         newname = self.makeName(fva, name, filelocal=filelocal, makeuniq=True)
 
         api = self.getImpApi(thname)
@@ -1791,15 +1800,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return xrefs
         return [ xtup for xtup in xrefs if xtup[XR_RTYPE] == rtype ]
 
-    def addMemoryMap(self, va, perms, fname, bytes):
+    def addMemoryMap(self, va, perms, fname, bytes, align=None):
         """
         Add a memory map to the workspace.  This is the *only* way to
         get memory backings into the workspace.
         """
-        self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes))
+        self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes, align))
 
-    def delMemoryMap(self, va):
-        raise "OMG"
+        # since we don't return anything from _fireEvent(), pull the new info:
+        mva, msz, mperm, mbytes = self.getMemoryMap(va)
+        return msz
+
+    def delMemoryMap(self, mapva):
+        '''
+        Remove a memory map from the workspace.
+        '''
+        self._fireEvent(VWE_DELMMAP, mapva)
 
     def addSegment(self, va, size, name, filename):
         """
@@ -2269,7 +2285,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytez = self.getByteDef(va)
         foff = bytez.find(b'\x00', offset)
         if foff == -1:
-            return foff
+            return len(bytez) - offset
         return (foff - offset) + 1
 
     def uniStringSize(self, va):
@@ -2624,10 +2640,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.mergeConfig(mod.config)
 
         fd.seek(0)
-        filename = hashlib.md5(fd.read()).hexdigest()
-        fname = mod.parseFd(self, fd, filename, baseaddr=baseaddr)
+        fname = mod.parseFd(self, fd, filename=None, baseaddr=baseaddr)
 
-        self.initMeta("StorageName", filename+".viv")
+        outfile = hashlib.md5(fd.read()).hexdigest()
+        self.initMeta("StorageName", outfile+".viv")
 
         # Snapin our analysis modules
         self._snapInAnalysisModules()
@@ -2720,7 +2736,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.normFileName(filename)
 
         mod = viv_parsers.getParserModule(fmtname)
-        fname = mod.parseFile(self, filename, baseaddr=baseaddr)
+        fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
 
         self.initMeta("StorageName", filename+".viv")
 
@@ -3130,6 +3146,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 0, 3)
+version = (1, 0, 5)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

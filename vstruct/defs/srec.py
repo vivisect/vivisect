@@ -4,6 +4,8 @@ Parser objects for the SRECORD file format.
 import logging
 import binascii
 
+import envi.const as e_const
+
 import vstruct
 from vstruct.primitives import *
 
@@ -130,8 +132,6 @@ class SRecFile(vstruct.VArray):
         Memory maps are returned as a list of
         ( va, perms, fname, bytes ) tuples.
         '''
-        import envi.memory as e_mem
-
         # Get all the binary parts....
         memparts = []
 
@@ -168,7 +168,7 @@ class SRecFile(vstruct.VArray):
             if maps and addr == ( maps[-1][0] + len(maps[-1][3]) ):
                 maps[-1][3] += bytes
             else:
-                maps.append( [ addr, e_mem.MM_RWX, '', bytes ] )
+                maps.append( [ addr, e_const.MM_RWX, '', bytes ] )
 
         return maps
 

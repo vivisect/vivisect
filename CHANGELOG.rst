@@ -2,6 +2,89 @@
 Vivisect Changelog
 ******************
 
+V1.0.5 - 2021-09-10
+===================
+
+Fixes
+-----
+- Fix ascii string size when the string terminates at the end of a memory map.
+  (`#437 <https://github.com/vivisect/vivisect/pull/437>`_)
+- Better handle PE delay imports that use VA pointers instead of RVA pointers.
+  (`#439 <https://github.com/vivisect/vivisect/pull/439>`_)
+- envi.IMemory.readMemValue: return None on truncated read.
+  (`#444 <https://github.com/vivisect/vivisect/pull/444>`_)
+- Only apply the rep prefix on string instructions in intel emulation.
+  (`#447 <https://github.com/vivisect/vivisect/pull/447>`_)
+- Fix a pair of regressions in ELF analysis.
+  (`#448 <https://github.com/vivisect/vivisect/pull/448>`_)
+- Align ELF memory maps to page.
+  (`#451 <https://github.com/vivisect/vivisect/pull/451>`_)
+- Integer division for struct array count in ELF.
+  (`#455 <https://github.com/vivisect/vivisect/pull/455>`_)
+- Safe harness for addRelocation method on the workspace.
+  (`#456 <https://github.com/vivisect/vivisect/pull/456>`_)
+- Log to appropriate logger in elfplt late module.
+  (`#458 <https://github.com/vivisect/vivisect/pull/458>`_)
+- Allow duplicate init and fini functions in ELF files.
+  (`#459 <https://github.com/vivisect/vivisect/pull/459>`_)
+- Add Vtrace Symbol test.
+  (`#460 <https://github.com/vivisect/vivisect/pull/460>`_)
+
+v1.0.4 - 2021-08-22
+===================
+
+Features
+--------
+- Add structures to UI and a compressed version of the file to the meta events.
+  (`#396 <https://github.com/vivisect/vivisect/pull/396>`_)
+- Actual documentation!
+  (`#400 <https://github.com/vivisect/vivisect/pull/400>`_)
+- Massive ELFPLT overhaul.
+  (`#401 <https://github.com/vivisect/vivisect/pull/401>`_)
+- Speed tweaks for the pointers pass and the workspace emulator.
+  (`#402 <https://github.com/vivisect/vivisect/pull/402>`_)
+
+Fixes
+-----
+- RTD didn't like python 3.9, so go with 3.8.
+  (`#400 <https://github.com/vivisect/vivisect/pull/400>`_)
+- Have ud2 on amd64 halt codeflow and fix a MACH-O bug.
+  (`#403 <https://github.com/vivisect/vivisect/pull/403>`_)
+- Fix issues in vtrace's windows, vivisect/reports, PE/carve, and others.
+  (`#404 <https://github.com/vivisect/vivisect/pull/404>`_)
+- Tons of i386 emulator fixes.
+  (`#405 <https://github.com/vivisect/vivisect/pull/405>`_)
+- Safeguard mnemonic counting in codeblocks.py.
+  (`#408 <https://github.com/vivisect/vivisect/pull/408>`_)
+- Fix funcgraph issues with line highlighting.
+  (`#409 <https://github.com/vivisect/vivisect/pull/409>`_)
+- Fix issues in i386 decoding, a new thunk pass, new ELF relocations support, and more.
+  (`#411 <https://github.com/vivisect/vivisect/pull/411>`_)
+- Fix vstruct signed number issue.
+  (`#412 <https://github.com/vivisect/vivisect/pull/412>`_)
+- Change AMD64 symboliks class declaration to get the right dealloc method.
+  (`#413 <https://github.com/vivisect/vivisect/pull/413>`_)
+- Remove wintypes import for vtrace to avoid a python bug.
+  (`#416 <https://github.com/vivisect/vivisect/pull/416>`_)
+- Raise specific exception on invalid architecture.
+  (`#418 <https://github.com/vivisect/vivisect/pull/418>`_)
+- Raise specific exception on invalid section alignment.
+  (`#420 <https://github.com/vivisect/vivisect/pull/420>`_)
+- Raise specific exception on corrupt file.
+  (`#422 <https://github.com/vivisect/vivisect/pull/422>`_)
+- Better handle invalid exported filename in PE files.
+  (`#426 <https://github.com/vivisect/vivisect/pull/426>`_)
+- Fix struct.unpack issue and float issue on corrupt files.
+  (`#428 <https://github.com/vivisect/vivisect/pull/428>`_)
+- ARM impapi files.
+  (`#431 <https://github.com/vivisect/vivisect/pull/431>`_)
+- Fix python 3.8 compatibility issues (and add to CI) and fix platformDetach.
+  (`#432 <https://github.com/vivisect/vivisect/pull/432>`_)
+- Alignment and padding of PE sections.
+  (`#436 <https://github.com/vivisect/vivisect/pull/436>`_)
+- Better handle invalid import name.
+  (`#441 <https://github.com/vivisect/vivisect/pull/441>`_)
+
 v1.0.3 - 2021-05-02
 ===================
 

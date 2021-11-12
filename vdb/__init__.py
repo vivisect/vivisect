@@ -27,8 +27,9 @@ import vdb.extensions as v_ext
 import envi
 import envi.cli as e_cli
 import envi.bits as e_bits
-import envi.memory as e_mem
+import envi.common as e_common
 import envi.config as e_config
+import envi.memory as e_memory
 import envi.symstore.resolver as e_resolv
 
 import vstruct.primitives as vs_prims
@@ -80,7 +81,7 @@ def setupBreakOnEntry(trace):
             otb = vtrace.OneTimeBreak(None, expression=entrySymExpr)
             trace.addBreakpoint(otb)
 
-class VdbTrace:
+class VdbTrace(object):
     """
     Used to hand thing that need a persistant reference to a trace
     when using vdb to manage tracers.
@@ -484,7 +485,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             faddr,fperm = trace.getMemoryFault()
             if faddr is not None:
-                accstr = e_mem.getPermName(fperm)
+                accstr = e_memory.getPermName(fperm)
                 self.vprint('Memory Fault: addr: 0x%.8x perm: %s' % (faddr, accstr))
 
         elif event == vtrace.NOTIFY_BREAK:
@@ -994,7 +995,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         regs = self.trace.getRegisters()
-        rnames = list(regs.keys())
+        rnames = [reg for reg in regs.keys() if reg is not None]
         rnames.sort()
         final = []
         for r in rnames:
@@ -1320,14 +1321,20 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         import vqt.main as vq_main
-        import vdb.qt.main as vdb_q_main
-        import vqt.colors as vq_colors
+        if vq_main.isGuiStarted():
+            import vivisect.vdbext as viv_vdbext
+            viv_vdbext.runVdb(self._viv_gui)
 
-        vq_main.startup(css=vq_colors.qt_matrix)
-        qgui = vdb_q_main.VdbWindow(self)
-        qgui.show()
+        else:
 
-        vq_main.main()
+            import vqt.colors as vq_colors
+            import vdb.qt.main as vdb_q_main
+
+            vq_main.startup(css=vq_colors.qt_matrix)
+            qgui = vdb_q_main.VdbWindow(self)
+            qgui.show()
+
+            vq_main.main()
 
     def do_waitlib(self, line):
         '''
@@ -1513,6 +1520,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.trace.release()
 
         except Exception as e:
+            import traceback
+            self.vprint(traceback.format_exc())
             self.vprint('Exception during quit (may need: quit force): %s' % e)
 
     def do_detach(self, line):
@@ -1950,10 +1959,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     self.vprint('No Differences!')
                 else:
                     for va,thenbytes,nowbytes in difs:
-                        self.vprint('0x%.8x: %s %s' %
-                                    (va,
-                                     binascii.hexlify(thenbytes),
-                                     binascii.hexlify(nowbytes)))
+                        self.vprint('0x%.8x: %s %s' % (va,
+                                                       e_common.hexify(thenbytes),
+                                                       e_common.hexify(nowbytes)))
 
             elif opt == '-M':
                 va = self.parseExpression(optarg)
@@ -2291,6 +2299,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these yourself
-version = (1, 0, 3)
+version = (1, 0, 5)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

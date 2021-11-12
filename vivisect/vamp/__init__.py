@@ -64,17 +64,17 @@ def genSigAndMask(vw, funcva):
 
     bytez = vw.readMemory(funcva, fsize)
 
-    sig = ""
-    mask = ""
+    sig = b""
+    mask = b""
     i = 0
     while i < fsize:
         rtype = vw.getRelocation(funcva + i)
         if rtype is None:
-            sig += bytez[i]
-            mask += "\xff"
+            sig += bytez[i:i+1]
+            mask += b"\xff"
             i += 1
         elif rtype == RTYPE_BASERELOC:
-            x = "\x00" * vw.psize
+            x = b"\x00" * vw.psize
             sig += x
             mask += x
             i += vw.psize

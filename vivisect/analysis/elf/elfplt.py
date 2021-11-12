@@ -206,7 +206,7 @@ def analyzePLT(vw, ssva, ssize):
 
         # drag an emulator along to calculate branches, if available
         try:
-            emu = vw.getEmulator()
+            emu = vw.getEmulator(va=ssva)
             emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
         except Exception as e:
             logger.debug("no emulator available: %r", e, exc_info=1)
@@ -302,7 +302,6 @@ def analyzePLT(vw, ssva, ssize):
         logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
 
 
-
 MAX_OPS = 10
 
 def analyzeFunction(vw, funcva):
@@ -328,7 +327,7 @@ def analyzeFunction(vw, funcva):
     gotva, gotsize = getGOTByFilename(vw, fname)
 
     # all architectures should at least have some minimal emulator
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(va=funcva)
     emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
 
     # roll through instructions looking for a branch (pretty quickly)
@@ -389,7 +388,10 @@ def analyzeFunction(vw, funcva):
             elif ltype == vivisect.LOC_POINTER:
                 # we have a deref to a pointer.
                 funcname = vw.getName(ltinfo)
-                logger.debug("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
+                if ltinfo:
+                    logger.debug("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
+                else:
+                    logger.debug("0x%x: (0x%x->%r) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
             else:
                 logger.warning("0x%x: (0x%x) not LOC_IMPORT or LOC_POINTER?? by BR_DEREF %r", funcva, opval, loctup)
 
@@ -478,7 +480,8 @@ def analyzeFunction(vw, funcva):
         funcname = funcname[:-9]
 
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
-    vw.makeFunctionThunk(funcva, "plt_" + funcname, addVa=False, filelocal=True)
+    vw.makeFunctionThunk(funcva, "*." + funcname, addVa=False, filelocal=True, 
+            basename="plt_" + funcname)
 
 '''
 def printPLTs(vw):
