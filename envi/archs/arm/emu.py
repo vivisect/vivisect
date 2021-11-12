@@ -1278,6 +1278,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     def setArmMode(self, arm=1):
         self.setFlag(PSR_T_bit, not arm)
 
+    def getArmThumbMode(self):
+        '''
+        Returns 1 for Thumb mode, 0 for Arm mode
+        '''
+        return self.getFlag(PSR_T_bit)
+
     def i_ldr(self, op):
         # hint: covers ldr, ldrb, ldrbt, ldrd, ldrh, ldrsh, ldrsb, ldrt   (any instr where the syntax is ldr{condition}stuff)
         # need to check that t variants only allow non-priveleged access (ldrt, ldrht etc)
