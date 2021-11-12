@@ -201,7 +201,7 @@ class VivisectTest(unittest.TestCase):
         self.chgrp_vw.do_funcmeta('chgrp.plt_free')
         output = self.chgrp_vw.canvas.strval
         self.assertIn("'MnemDist': {'jmp': 1},", output)
-        self.assertIn("'Thunk': 'plt_free',", output)
+        self.assertIn("'Thunk': '*.free',", output)
         self.assertIn("'api': ('void', None, 'cdecl', '*.free', [('void *', 'ptr')])}", output)
         self.chgrp_vw.canvas.clearCanvas()
 

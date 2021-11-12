@@ -130,7 +130,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         logger.info("apiCall(%r, 0x%x, %r, %r)", op, pc, api, argv)
         norets = emu.vw.getMeta('NoReturnApisVa', {})
         if norets.get(pc, False):
-            logger.warning("=== halting emu: NoReturnApisVa 0x%x", pc)
+            logger.info("=== halting emu: NoReturnApisVa 0x%x", pc)
             emu.stopEmu()
         
     def posthook(self, emu, op, starteip):

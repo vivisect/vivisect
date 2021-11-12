@@ -33,8 +33,23 @@ def do_analyze(vw):
             import traceback
             logging.warning("ERROR in analysis module: (%r): %r", mod, e, exc_info=1)
 
+def cmpnames(x, y):
+    nmset = [x, y]
+
+    for nmidx in range(2):
+        name = nmset[nmidx]
+        if len(name) <= 2:
+            continue
+
+        if name[-2:] in (b'_0', b'_1', b'_2', b'_3', b'_4', b'_5', b'_6', b'_7', b'_8', b'_9'):
+            nmset[nmidx] = name[:-2]
+
+    return nmset[0] == nmset[1]
+
+
+
 comparators = {
-    'names': lambda x, y: x[0] == y[0],
+    'names': cmpnames,
     'imports': lambda x, y: x[:3] == y[:3],
     'exports': lambda x, y: x[:1] == y[:1] and x[3] == y[3],
 }
