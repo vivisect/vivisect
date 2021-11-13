@@ -103,32 +103,32 @@ e_reg.addLocalEnums(l, ppc_regs)
 ppc_meta32 = [
         ('SP', REG_R1, 0, 32),
         ('TOC', REG_R2, 0, 32),
-        ('cr0', REG_CR, 60-32, 4),
-        ('cr1', REG_CR, 60-36, 4),
-        ('cr2', REG_CR, 60-40, 4),
-        ('cr3', REG_CR, 60-44, 4),
-        ('cr4', REG_CR, 60-48, 4),
-        ('cr5', REG_CR, 60-52, 4),
-        ('cr6', REG_CR, 60-56, 4),
-        ('cr7', REG_CR, 60-60, 4),
-        ('CA',  REG_XER, 63-34, 1),
+        ('cr0', REG_CR, 63-35, 4),
+        ('cr1', REG_CR, 63-39, 4),
+        ('cr2', REG_CR, 63-43, 4),
+        ('cr3', REG_CR, 63-47, 4),
+        ('cr4', REG_CR, 63-51, 4),
+        ('cr5', REG_CR, 63-55, 4),
+        ('cr6', REG_CR, 63-59, 4),
+        ('cr7', REG_CR, 63-63, 4),
         ('SO',  REG_XER, 63-32, 1),
         ('OV',  REG_XER, 63-33, 1),
+        ('CA',  REG_XER, 63-34, 1),
 ]
 ppc_meta64 = [
         ('SP', REG_R1, 0, 64),
         ('TOC', REG_R2, 0, 64),
-        ('cr0', REG_CR, 60-32, 4),
-        ('cr1', REG_CR, 60-36, 4),
-        ('cr2', REG_CR, 60-40, 4),
-        ('cr3', REG_CR, 60-44, 4),
-        ('cr4', REG_CR, 60-48, 4),
-        ('cr5', REG_CR, 60-52, 4),
-        ('cr6', REG_CR, 60-56, 4),
-        ('cr7', REG_CR, 60-60, 4),
-        ('CA',  REG_XER, 63-34, 1),
+        ('cr0', REG_CR, 63-35, 4),
+        ('cr1', REG_CR, 63-39, 4),
+        ('cr2', REG_CR, 63-43, 4),
+        ('cr3', REG_CR, 63-47, 4),
+        ('cr4', REG_CR, 63-51, 4),
+        ('cr5', REG_CR, 63-55, 4),
+        ('cr6', REG_CR, 63-59, 4),
+        ('cr7', REG_CR, 63-63, 4),
         ('SO',  REG_XER, 63-32, 1),
         ('OV',  REG_XER, 63-33, 1),
+        ('CA',  REG_XER, 63-34, 1),
 ]
 REG_SP = REG_R1
 
@@ -188,12 +188,16 @@ statmetas = [   # FIXME
         ('FPSCR_FI',     REG_FPSCR, 63-46, 1, 'Floating-Point Fraction Inexact'),
         ('FPSCR_FPRF',   REG_FPSCR, 63-46, 5, 'Floating-Point Results Flags'),
         ('FPSCR_C',      REG_FPSCR, 63-47, 1, 'Floating-Point Result Class Descriptor'),
-        ('FPSCR_FPCC',   REG_FPSCR, 63-48, 4, 'Floating-Point Condition Code'),
-        ('FPSCR_C_FPCC', REG_FPSCR, 63-47, 5, 'Floating-Point Result Class Descriptor and Condition Code'),
+
+        # The FPCC field is like the CRx fields, so we give them some special
+        # names to make it easier to remember
         ('FPCC_FL',      REG_FPSCR, 63-48, 1, 'Floating-Point Less Than or Negative'),
         ('FPCC_FG',      REG_FPSCR, 63-49, 1, 'Floating-Point Greater Than or Positive'),
         ('FPCC_FE',      REG_FPSCR, 63-50, 1, 'Floating-Point Equal or Zero'),
         ('FPCC_FU',      REG_FPSCR, 63-51, 1, 'Floating-Point Unordered or NaN'),
+        ('FPCC',         REG_FPSCR, 63-51, 4, 'Floating-Point Condition Code'),
+
+        ('FPSCR_C_FPCC', REG_FPSCR, 63-51, 5, 'Floating-Point Result Class Descriptor and Condition Code'),
         ('FPSCR_VXSOFT', REG_FPSCR, 63-53, 1, 'Floating-Point Invalid Operation Exception (software request)'),
         ('FPSCR_VXSQRT', REG_FPSCR, 63-54, 1, 'Floating-Point Invalid Operation Exception (invalid square root)'),
         ('FPSCR_VXCVI',  REG_FPSCR, 63-55, 1, 'Floating-Point Invalid Operation Exception (invalid integer convert)'),
@@ -230,7 +234,7 @@ def getCrFields(regval):
         ret.append( (name, regval >> shift & 1) )
     return ret
 
-e_reg.addLocalStatusMetas(l, ppc_meta64, statmetas, 'REG_FIELD')
+e_reg.addLocalStatusMetas(l, ppc_meta64, statmetas, 'EFLAGS')
 e_reg.addLocalMetas(l, ppc_meta64)
 
 class Ppc32RegisterContext(e_reg.RegisterContext):

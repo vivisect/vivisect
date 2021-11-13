@@ -4,29 +4,17 @@ import envi.symstore.resolver as e_resolv
 
 from envi import IF_NOFALL, IF_BRANCH, IF_CALL, IF_RET, IF_PRIV, IF_COND
 
+import struct
+
 from .regs import *
 from .const import *
 from .bits import BITMASK, COMPLEMENT
 
 def addrToName(mcanv, va):
-    sym = getSymByAddr(mcanv.syms, va)
-    if sym != None:
+    sym = mcanv.syms.getSymByAddr(va)
+    if sym is not None:
         return repr(sym)
     return "0x%.4x" % va
-
-def getSymByAddr(self, addr, exact=True):
-    '''
-    local version for only 4-digit repr locations
-    '''
-    name = self.getName(addr)
-    if name == None:
-        if addr > 0xffff and self.isValidPointer(addr):
-            name = "loc_%.4x" % addr
-
-    if name != None:
-        #FIXME fname
-        #FIXME functions/segments/etc...
-        return e_resolv.Symbol(name, addr, 0)
 
 
 IF_CALLCC = (IF_CALL | IF_COND)
@@ -217,11 +205,57 @@ class PpcFRegOper(PpcRegOper):
         reg += REG_OFFSET_FLOAT
         super(PpcFRegOper, self).__init__(reg, va)
 
+vector_fmt_chars_int = { 1: 'B', 2: 'H', 4: 'I', 8: 'Q' }
+vector_fmt_chars_flt = { 4: 'f', 8: 'd' }
+
 class PpcVRegOper(PpcRegOper):
     ''' Vector register operand.'''
-    def __init__(self, reg, va=0):
+    def __init__(self, reg, va=0, elemsize=1, signed=False, floating=False):
         reg += REG_OFFSET_VECTOR
+        self.elemsize = elemsize
+        self.elemcount = 16 // elemsize
+        self.signed = signed
+        self.floating = floating
+
+        if elemsize != 16 and not floating:
+            fmt_char = vector_fmt_chars_int[elemsize]
+            if signed:  # the equivalent signed format characters are lowercase
+                fmt_char = fmt_char.lower()
+            self.fmt = f">{self.elemcount}{fmt_char}"
+        elif floating:
+            fmt_char = vector_fmt_chars_flt[elemsize]
+            self.fmt = f">{self.elemcount}{fmt_char}"
+        else:
+            self.fmt = None
+
         super(PpcVRegOper, self).__init__(reg, va)
+
+    def getValues(self, op, emu=None):
+        if emu is None:
+            return None
+
+        if self.fmt is None:
+            return [self.getOperValue(op, emu)]
+
+        reg = emu.getRegister(self.reg)
+        reg_bytes = struct.pack('>2Q', reg >> 64, reg & 0xffffffffffffffff)
+        return struct.unpack(self.fmt, reg_bytes)
+
+    def setValues(self, op, emu=None, vals=None):
+        if emu is None:
+            return None
+
+        if self.fmt is None:
+            return self.setOperValue(op, emu, *vals)
+
+        # Ensure our values will fit before we try and pack them
+        if self.signed:
+            vals = [e_bits.signed(x, self.elemsize) for x in vals]
+
+        val_bytes = struct.pack(self.fmt, *vals)
+        val_left, val_right = struct.unpack('>2Q', val_bytes)
+        val = (val_left << 64) | (val_right & 0xffffffffffffffff)
+        emu.setRegister(self.reg, val)
 
 class PpcCRegOper(PpcRegOper):
     ''' CR register operand field.'''

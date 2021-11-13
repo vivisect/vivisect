@@ -10726,12 +10726,214 @@ rAnegades_but_not_mem_access = [
     'isel',
 ]
 
+# Field flags for Altivec instructions. These are indexed by mnemonic because
+# they're used before the constants are generated. Also because it doesn't make
+# a difference.
+altivec_fields = {
+    'lvebx': {'vD': 'OF_VEC_8'},
+    'lvehx': {'vD': 'OF_VEC_16'},
+    'lvepx': {'vD': 'OF_VEC_128'},
+    'lvepxl': {'vD': 'OF_VEC_128'},
+    'lvewx': {'vD': 'OF_VEC_32'},
+    'lvexbx': {'vD': 'OF_VEC_8'},
+    'lvexhx': {'vD': 'OF_VEC_16'},
+    'lvexwx': {'vD': 'OF_VEC_32'},
+    'lvsl': {'vD': 'OF_VEC_128'},
+    'lvsm': {'vD': 'OF_VEC_8'},
+    'lvsr': {'vD': 'OF_VEC_128'},
+    'lvswx': {'vD': 'OF_VEC_8'},
+    'lvswxl': {'vD': 'OF_VEC_8'},
+    'lvtlx': {'vD': 'OF_VEC_8'},
+    'lvtlxl': {'vD': 'OF_VEC_8'},
+    'lvtrx': {'vD': 'OF_VEC_8'},
+    'lvtrxl': {'vD': 'OF_VEC_8'},
+    'lvx': {'vD': 'OF_VEC_128'},
+    'lvxl': {'vD': 'OF_VEC_128'},
+    'mfvscr': {'vD': 'OF_VEC_128'},
+    'mtvscr': {'vB': 'OF_VEC_128'},
+    'mvidsplt': {'vD': 'OF_VEC_64'},
+    'mviwsplt': {'vD': 'OF_VEC_32'},
+    'stvebx': {'vS': 'OF_VEC_8'},
+    'stvehx': {'vS': 'OF_VEC_16'},
+    'stvepx': {'vS': 'OF_VEC_128'},
+    'stvepxl': {'vS': 'OF_VEC_128'},
+    'stvewx': {'vS': 'OF_VEC_32'},
+    'stvx': {'vS': 'OF_VEC_128'},
+    'stvexbx': {'vS': 'OF_VEC_8'},
+    'stvexhx': {'vS': 'OF_VEC_16'},
+    'stvflx': {'vS': 'OF_VEC_8'},
+    'stvflxl': {'vS': 'OF_VEC_8'},
+    'stvfrx': {'vS': 'OF_VEC_8'},
+    'stvfrxl': {'vS': 'OF_VEC_8'},
+    'stvswx': {'vS': 'OF_VEC_8'},
+    'stvswxl': {'vS': 'OF_VEC_8'},
+    'stvxl': {'vS': 'OF_VEC_128'},
+    'stvexwx': {'vS': 'OF_VEC_32'},
+    'vabsdub': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8'},
+    'vabsduh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16'},
+    'vabsduw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32'},
+    'vaddcuw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vaddfp': {'vD': 'OF_VEC_FLT', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT' },
+    'vaddsbs': {'vD': 'OF_VEC_8 | OF_SIGNED', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED' },
+    'vaddshs': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED' },
+    'vaddsws': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vaddubm': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vaddubs': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vadduhm': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vadduhs': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vadduwm': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vadduws': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vand': {'vD': 'OF_VEC_128', 'vA': 'OF_VEC_128', 'vB': 'OF_VEC_128' },
+    'vandc': {'vD': 'OF_VEC_128', 'vA': 'OF_VEC_128', 'vB': 'OF_VEC_128' },
+    'vavgsb': {'vD': 'OF_VEC_8 | OF_SIGNED', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED' },
+    'vavgsh': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED' },
+    'vavgsw': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vavgub': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vavguh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vavguw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vcmpequb': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vcmpequb.': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vcmpequh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vcmpequh.': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vcmpequw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vcmpequw.': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vcmpgtsb': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED' },
+    'vcmpgtsb.': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED' },
+    'vcmpgtsh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED' },
+    'vcmpgtsh.': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED' },
+    'vcmpgtsw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vcmpgtsw.': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vcmpgtub': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vcmpgtub.': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vcmpgtuh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vcmpgtuh.': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vcmpgtuw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vcmpgtuw.': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vcfsx': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_32 | OF_SIGNED'},
+    'vcfux': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_32'},
+    'vcmpbfp': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vcmpbfp.': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vcmpeqfp': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vcmpeqfp.': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vcmpgefp': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vcmpgefp.': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vcmpgtfp': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vcmpgtfp.': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vctsxs': {'vD': 'OF_VEC_32', 'vB': 'OF_VEC_FLT | OF_SIGNED'},
+    'vctuxs': {'vD': 'OF_VEC_32', 'vB': 'OF_VEC_FLT'},
+    'vexptefp': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vlogefp': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vmaddfp': {'vD': 'OF_VEC_FLT', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT', 'vC': 'OF_VEC_FLT'},
+    'vmaxfp': {'vD': 'OF_VEC_FLT', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT' },
+    'vmaxsb': {'vD': 'OF_VEC_8 | OF_SIGNED', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED' },
+    'vmaxsh': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED' },
+    'vmaxsw': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vmaxub': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vmaxuh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vmaxuw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vmhaddshs': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED', 'vC': 'OF_VEC_16 | OF_SIGNED'},
+    'vmhraddshs': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED', 'vC': 'OF_VEC_16 | OF_SIGNED'},
+    'vminfp': {'vD': 'OF_VEC_FLT', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT' },
+    'vminsb': {'vD': 'OF_VEC_8 | OF_SIGNED', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED' },
+    'vminsh': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED' },
+    'vminsw': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vminub': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vminuh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vminuw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vmladduhm': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16', 'vC': 'OF_VEC_16 | OF_SIGNED'},
+    'vmrghb': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vmrghh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vmrghw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vmrglb': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vmrglh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vmrglw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vmsummbm': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8', 'vC': 'OF_VEC_32 | OF_SIGNED'},
+    'vmsumshm': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED', 'vC': 'OF_VEC_32 | OF_SIGNED'},
+    'vmsumshs': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED', 'vC': 'OF_VEC_32 | OF_SIGNED'},
+    'vmsumubm': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8', 'vC': 'OF_VEC_32'},
+    'vmsumuhm': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16', 'vC': 'OF_VEC_32'},
+    'vmsumuhs': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16', 'vC': 'OF_VEC_32'},
+    'vmulesb': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED' },
+    'vmulesh': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED' },
+    'vmuleub': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vmuleuh': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vmulosb': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED' },
+    'vmulosh': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED' },
+    'vmuloub': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vmulouh': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vnmsubfp': {'vD': 'OF_VEC_FLT', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT', 'vC': 'OF_VEC_FLT'},
+    'vnor': {'vD': 'OF_VEC_128', 'vA': 'OF_VEC_128', 'vB': 'OF_VEC_128' },
+    'vor': {'vD': 'OF_VEC_128', 'vA': 'OF_VEC_128', 'vB': 'OF_VEC_128' },
+    'vperm': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8', 'vC': 'OF_VEC_8'},
+    'vpkpx': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32'},
+    'vpkshss': {'vD': 'OF_VEC_8 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED'},
+    'vpkshus': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED'},
+    'vpkswss': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED'},
+    'vpkswus': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED'},
+    'vpkuhum': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16'},
+    'vpkuhus': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16'},
+    'vpkuwum': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32'},
+    'vpkuwus': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32'},
+    'vrefp': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vrfim': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vrfin': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vrfip': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vrfiz': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vrlb': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vrlh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vrlw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vrsqrtefp': {'vD': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT'},
+    'vsel': {'vD': 'OF_VEC_128', 'vA': 'OF_VEC_128', 'vB': 'OF_VEC_128', 'vC': 'OF_VEC_128'},
+    'vsl': {'vD': 'OF_VEC_128', 'vA': 'OF_VEC_128', 'vB': 'OF_VEC_8' },
+    'vslb': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vsldoi': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vslh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vslo': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_128' },
+    'vslw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vspltb': {'vD': 'OF_VEC_8', 'vB': 'OF_VEC_8'},
+    'vsplth': {'vD': 'OF_VEC_16', 'vB': 'OF_VEC_16'},
+    'vspltisb': {'vD': 'OF_VEC_8 | OF_SIGNED'},
+    'vspltish': {'vD': 'OF_VEC_16 | OF_SIGNED'},
+    'vspltisw': {'vD': 'OF_VEC_32 | OF_SIGNED'},
+    'vspltw': {'vD': 'OF_VEC_32', 'vB': 'OF_VEC_32'},
+    'vsr': {'vD': 'OF_VEC_128', 'vA': 'OF_VEC_128', 'vB': 'OF_VEC_8' },
+    'vsrab': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8' },
+    'vsrah': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16' },
+    'vsraw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32' },
+    'vsrb': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vsrh': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vsro': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_128' },
+    'vsrw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vsubcuw': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vsubfp': {'vD': 'OF_VEC_FLT', 'vA': 'OF_VEC_FLT', 'vB': 'OF_VEC_FLT' },
+    'vsubsbs': {'vD': 'OF_VEC_8 | OF_SIGNED', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED' },
+    'vsubshs': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED' },
+    'vsubsws': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vsububm': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vsububs': {'vD': 'OF_VEC_8', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_8' },
+    'vsubuhm': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vsubuhs': {'vD': 'OF_VEC_16', 'vA': 'OF_VEC_16', 'vB': 'OF_VEC_16' },
+    'vsubuwm': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vsubuws': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_32', 'vB': 'OF_VEC_32' },
+    'vsumsws': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vsum2sws': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vsum4sbs': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_8 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vsum4shs': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vA': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_32 | OF_SIGNED' },
+    'vsum4ubs': {'vD': 'OF_VEC_32', 'vA': 'OF_VEC_8', 'vB': 'OF_VEC_32' },
+    'vupkhpx': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_16'},
+    'vupkhsb': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED'},
+    'vupkhsh': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED'},
+    'vupklpx': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_16'},
+    'vupklsb': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED'},
+    'vupklsh': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED'},
+    'vxor': {'vD': 'OF_VEC_128', 'vA': 'OF_VEC_128', 'vB': 'OF_VEC_128'},
+}
 
 TAG_APPEND  = -1
 TAG_PREPEND = 0
 EXTRA_OPCODES = {
         0x1f:   (
-            (TAG_APPEND, 0xfe0007ff, 0x7c0006a5, ( 'tlbsrx.', 'INS_TLBSX', 'FORM_X', 'CAT_EMBEDDED', "(  ( 'rA', FIELD_rA, 16, 0x1f ), ( 'rB', FIELD_rB, 11, 0x1f ),)" , "IF_RC|IF_MEM_EA" ), ),
+            (TAG_APPEND, 0xfe0007ff, 0x7c0006a5, ( 'tlbsrx.', 'INS_TLBSX', 'FORM_X', 'CAT_EMBEDDED', "(  ( 'rA', FIELD_rA, 16, 0x1f, OF_NONE ), ( 'rB', FIELD_rB, 11, 0x1f, OF_NONE ),)" , "IF_RC|IF_MEM_EA" ), ),
             ),
         }
 
@@ -11711,6 +11913,17 @@ for _mnem in const_gen_vle.mnems:
     out.append('IF_INDEXED = 1<<14')
     out.append('')
 
+    out.append('OF_NONE      = 0')
+    out.append('OF_SIGNED    = 1<<1')
+    out.append('OF_VEC_8     = 1<<2')
+    out.append('OF_VEC_16    = 1<<3')
+    out.append('OF_VEC_32    = 1<<4')
+    out.append('OF_VEC_64    = 1<<5')
+    out.append('OF_VEC_128   = 1<<6')
+    out.append('OF_VEC_FLT   = 1<<7')
+    out.append('OF_VEC_DBL   = 1<<8')
+    out.append('')
+
     # now build the instruction tables.
     out2 = []
     out2.append('import envi')
@@ -11755,6 +11968,12 @@ for _mnem in const_gen_vle.mnems:
             fout = []
             for field in fields:
                 n, fname, start, sz, ftyp = field
+                fname = fname.strip()
+
+                try:
+                    oflags = altivec_fields[mnem][fname]
+                except KeyError:
+                    oflags = 'OF_NONE'
 
                 # HACK: if mtfsfi has a field type of IMM change it to UIMM
                 if mnem.startswith('mtfsfi') and fname == 'IMM':
@@ -11771,9 +11990,9 @@ for _mnem in const_gen_vle.mnems:
                 # If this instruction is in the SP category and the field is an
                 # GPR (rX) then use FIELD_sX instead of FIELD_rX
                 if cat.startswith('SP') and fname[0] == 'r':
-                    fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_s"+fname[1:], shr, fmask))
+                    fout.append(" ( '%s', %s, %s, 0x%x, %s )," % (fname, "FIELD_s"+fname[1:], shr, fmask, oflags))
                 else:
-                    fout.append(" ( '%s', %s, %s, 0x%x )," % (fname, "FIELD_"+fname, shr, fmask))
+                    fout.append(" ( '%s', %s, %s, 0x%x, %s )," % (fname, "FIELD_"+fname, shr, fmask, oflags))
 
             #### fix up the operand ordering where possible.  this is faster and simpler than doing it in the decoder
             if len(fout) > 1 and ('FIELD_rS' in fout[0] or 'FIELD_rS' in fout[0]) and form not in ('EVX', ):
@@ -11843,11 +12062,11 @@ for _mnem in const_gen_vle.mnems:
             # specify the CR to use for that instruction, rather than the full
             # CR bit mask.
             bc_operands = {
-                'BO': "( 'BO', FIELD_BO, 21, 0x1f )",
-                'BI': "( 'BI', FIELD_BI, 16, 0x1f )",
-                'BD': "( 'BD', FIELD_BD, 2, 0x3fff )",
-                'crBI': "( 'crBI', FIELD_crBI, 18, 0x7 )",
-                'BH': "( 'BH', FIELD_BH, 10, 0x3 )",
+                'BO': "( 'BO', FIELD_BO, 21, 0x1f, OF_NONE )",
+                'BI': "( 'BI', FIELD_BI, 16, 0x1f, OF_NONE )",
+                'BD': "( 'BD', FIELD_BD, 2, 0x3fff, OF_NONE )",
+                'crBI': "( 'crBI', FIELD_crBI, 18, 0x7, OF_NONE )",
+                'BH': "( 'BH', FIELD_BH, 10, 0x3, OF_NONE )",
             }
 
             ###### fixup bc
@@ -11982,7 +12201,7 @@ def make_unit_tests(outfile='test_ppc_by_cat'):
                 if not opcat & cat:
                     continue
 
-                shifters = [(shl, mask) for nm,tp,shl,mask in instrline[2][-2]]
+                shifters = [(shl, mask) for nm,tp,shl,mask,oflags in instrline[2][-2]]
                 shifters.sort()
                 for oidx in range(len(shifters)):
                     shl, mask = shifters[oidx]

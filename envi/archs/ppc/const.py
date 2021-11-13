@@ -136,6 +136,47 @@ OEMODE_MULDIV = 2
 # special instruction aliases:
 INS_VMR = inscounter ; inscounter += 1
 
+# Constants used for checking ESR values
+ESR_PIL_MASK    = 0x08000000
+ESR_PPR_MASK    = 0x04000000
+ESR_PTR_MASK    = 0x02000000
+ESR_FP_MASK     = 0x01000000
+ESR_ST_MASK     = 0x00800000
+ESR_DLK_MASK    = 0x00200000
+ESR_ILK_MASK    = 0x00100000
+ESR_AP_MASK     = 0x00080000
+ESR_PUO_MASK    = 0x00040000
+ESR_BO_MASK     = 0x00020000
+ESR_PIE_MASK    = 0x00010000
+ESR_SPE_MASK    = 0x00000080
+ESR_VLEMI_MASK  = 0x00000020
+ESR_MIF_MASK    = 0x00000002
+
+# Constants used for checking MSR values, this is all possible PowerPC MSR 
+# masks, most PPC processors only support a subset of these flags
+MSR_CM_MASK     = 0x80000000  # Computation Mode (CAT_64)
+MSR_GS_MASK     = 0x80000000  # Guest State (CAT_HV)
+MSR_UCLE_MASK   = 0x04000000  # User-mode cache lock enable (E.CL)
+MSR_SPE_MASK    = 0x02000000  # Enables SPE, SP.FD, SP.FV instructions (CAT_SP)
+MSR_VECTOR_MASK = 0x02000000  # Enables Vector (Altivec) instructions (CAT_V)
+MSR_WE_MASK     = 0x00040000  # Wait State Enable (deprecated) (CAT_WT)
+MSR_CE_MASK     = 0x00020000  # Critical Enable
+MSR_EE_MASK     = 0x00008000  # External Enable
+MSR_PR_MASK     = 0x00004000  # User Mode (Problem State) (CAT_EM?)
+MSR_FP_MASK     = 0x00002000  # Floating-Point Enable (CAT_FP)
+MSR_ME_MASK     = 0x00001000  # Machine-Check Enable
+MSR_FE0_MASK    = 0x00000800  # Floating-Point Exception Mode 0 (CAT_FP)
+MSR_DE_MASK     = 0x00000200  # Debug Interrupt Enable
+MSR_FE1_MASK    = 0x00000100  # Floating-Point Exception Mode 1 (CAT_FP)
+MSR_IS_MASK     = 0x00000020  # Instruction Address Space (CAT_E)
+MSR_DS_MASK     = 0x00000010  # Data Address Space (CAT_E)
+MSR_PMM_MASK    = 0x00000004  # Performance Monitor Mark (CAT_E.PM)
+MSR_RI_MASK     = 0x00000002  # Recoverable Interrupt
+
+# Some shift amounts used for accessing specific MSR bits
+MSR_IS_SHIFT    = 5
+MSR_DS_SHIFT    = 4
+
 # flag bit numbers and masks
 FLAGS_LT_bitnum = 3-0   # noted to tie back to the manual's referencing this as bit 0
 FLAGS_GT_bitnum = 3-1
@@ -267,6 +308,16 @@ FPSCRFLAGS_C_FPCC_shift = 16
 
 FPSCRFLAGS_MASK = 0b11111 << FPSCRFLAGS_C_FPCC_shift
 
+# This mask is for [.] instructions that set cr1.  FPSCR will be touched after every
+# floating point instruction but cr1 will only be touched if the RC bit is set.  This
+# behaves similarly to "if op.iflags & IF_RC: self.setFlags(result)" but with cr1.
+# In [.] instructions cr1 is set to equal what the FX || FEX ||  VX || OX bits in FPSCR
+
+FPSCR_FLOAT_RC_MASK = 0xF0000000
+
+# Shift for moving FPSCR 0xF0000000 to 0xf to put in cr1 for setFloatCr()
+FPSCR_FLOAT_RC_SHIFT = 28
+
 # Mask to convert the combined C_FPCC flags into the standard flags to store in
 # CR1 (just drop the 'C' class descriptor)
 C_FPCC_TO_CR1_MASK      = 0x01111
@@ -332,6 +383,21 @@ FP_DOUBLE_POS_ZERO  = 0x0000_0000_0000_0000
 
 FP_SINGLE_NEG_ZERO  = 0x8000_0000
 FP_SINGLE_POS_ZERO  = 0x0000_0000
+
+FNAN_ALL_TUP = (FP_DOUBLE_NEG_PYNAN,FP_DOUBLE_POS_PYNAN,FP_SINGLE_NEG_PYNAN,\
+    FP_SINGLE_POS_PYNAN,FP_DOUBLE_NEG_QNAN,FP_DOUBLE_POS_QNAN,FP_DOUBLE_NEG_SNAN,\
+    FP_DOUBLE_POS_SNAN,FP_SINGLE_NEG_QNAN,FP_SINGLE_POS_QNAN,FP_SINGLE_NEG_SNAN,\
+    FP_SINGLE_POS_SNAN)
+
+FNAN_SNAN_TUP = (FP_DOUBLE_NEG_SNAN,FP_DOUBLE_POS_SNAN,FP_SINGLE_NEG_SNAN,FP_SINGLE_POS_SNAN,)
+
+FNAN_QNAN_TUP = (FP_DOUBLE_NEG_QNAN,FP_DOUBLE_POS_QNAN,FP_SINGLE_NEG_QNAN,FP_SINGLE_POS_QNAN,)
+
+FNAN_PYNAN_TUP = (FP_DOUBLE_NEG_PYNAN,FP_DOUBLE_POS_PYNAN,FP_SINGLE_NEG_PYNAN,FP_SINGLE_POS_PYNAN,)
+
+F_INF_TUP = (FP_DOUBLE_NEG_INF,FP_DOUBLE_POS_INF,FP_SINGLE_NEG_INF,FP_SINGLE_POS_INF,)
+
+F_ZERO_TUP = (FP_DOUBLE_NEG_ZERO,FP_DOUBLE_POS_ZERO,FP_SINGLE_POS_ZERO,FP_SINGLE_NEG_ZERO,)
 
 # A dictionary for setting the C_FPCC flags based on a floating-point
 # calculation when the value is in the "unordered" category.  This isn't as fast

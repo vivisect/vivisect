@@ -6,7 +6,8 @@ import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
 
-import copy
+import math
+import operator
 import struct
 
 from envi import *
@@ -55,7 +56,7 @@ OPER_DST = 0
 # documentation for 32 and 64 bit values
 _ppc64_bitmasks = tuple(0x8000_0000_0000_0000 >> i for i in range(64))
 _ppc32_bitmasks = tuple(0x8000_0000 >> i for i in range(32))
-_ppc_bitmasks = (None, None, None, None, _ppc32_bitmasks, None, None, None, _ppc64_bitmasks,)
+_ppc_bitmasks = (None, None, None, None, _ppc32_bitmasks, None, None, None, _ppc64_bitmasks)
 
 def BITMASK(bit, psize=8):
     '''
@@ -91,7 +92,13 @@ _ppc_signed_saturate_results = (_ppc_signed_saturate_max, _ppc_signed_saturate_m
 
 def CARRY(val, size):
     '''
-    Return the MSB+1 (CA) bit
+    Return the MSB+1 (CA) bit.  If your math uses negative values, this function might give incorrect information
+    due to the fact that negative numbers have all sig bits set indefinitely and are not limited to the pointer size.
+    If the result supplied to this function to check for carry has already been limited to the pointer size, Carry will
+    never be detected.
+
+    Don't use negative numbers in the math.
+
     '''
     ca_mask = _ppc_carry_masks[size]
     ca_shift = _ppc_carry_shift[size]
@@ -100,17 +107,37 @@ def CARRY(val, size):
 
 def SIGNED_SATURATE(val, size):
     '''
-    Return the min or max value for a size depending on if the "CA" bit of
-    the result is set
-    '''
-    ca = CARRY(val, size)
-    return _ppc_signed_saturate_results[ca]
+    Return the min or max value for a size depending on if the value exceeds
+    the range specified by size (in bytes).
 
-def UNSIGNED_SATURATE(size):
+    e.g. for size 1, if val is > (2^7-1), or 127, then it gets clamped to 127
     '''
-    Return the max value for a size
+    saturated = False
+    if val > _ppc_signed_saturate_max[size]:
+        val = _ppc_signed_saturate_max[size]
+        saturated = True
+    elif val < _ppc_signed_saturate_min[size]:
+        val = _ppc_signed_saturate_min[size]
+        saturated = True
+
+    return val, saturated
+
+def UNSIGNED_SATURATE(val, size):
     '''
-    return e_bits.u_maxes[size]
+    Return the min or max value for a size depending on if the value exceeds
+    the range specified by size (in bytes).
+
+    e.g. for size 1, if val is > (2^8-1), or 255, then it gets clamped to 255
+    '''
+    saturated = False
+    if val > e_bits.u_maxes[size]:
+        val = e_bits.u_maxes[size]
+        saturated = True
+    elif val < 0:
+        val = 0
+        saturated = True
+
+    return val, saturated
 
 def COMPLEMENT(val, size):
     '''
@@ -135,6 +162,12 @@ def MASK(b, e):
     real_shift = 63 - e
     return e_bits.bu_maxes[delta] << (real_shift)
 
+def MASK16(b, e):
+    return MASK(b+48, e+48)
+
+def MASK32(b, e):
+    return MASK(b+32, e+32)
+
 def EXTS(val, size=8, psize=8):
     '''
     The PowerPC manual uses EXTS() often to indicate sign extending, so
@@ -143,12 +176,31 @@ def EXTS(val, size=8, psize=8):
     '''
     return e_bits.sign_extend(val, size, psize)
 
+def EXTS_BIT(val, newsize=8):
+    '''
+    Sign-extend a single bit to the given size, in bits.
+    '''
+    return (~((val & 0x1) - 1)) & MASK(64 - newsize, 63)
+
 def EXTZ(val, size=8):
     '''
     The PowerPC manual uses EXTZ() often to indicate zero extending, so
     this is a convenience function that calls envi.bits.unsigned.
     '''
     return e_bits.unsigned(val, size)
+
+def ROTL(val, rot, size):
+    '''
+    Rotate `val` left `rot` bits, around `size` bits.
+    'val` must be between 0 and `size`-1
+    `size` must be 8, 16, 32, 64, or 128
+
+    Note: ROTL32() and ROTL64() were written specifically to implement as
+    the PowerISA documentation describes, for traceability and
+    troubleshooting, and remain for historical reasons.
+    '''
+    tmp = val >> (size - rot)
+    return ((val << rot) | tmp) & e_bits.u_maxes[size // 8]
 
 def ROTL32(x, y, psize=8):
     '''
@@ -172,6 +224,15 @@ def ROTL64(x, y, psize=8):
     '''
     tmp = x >> (64-y)
     return ((x << y) | tmp) & e_bits.u_maxes[psize]
+
+def ROTR(val, rot, size):
+    '''
+    Rotate `val` right `rot` bits, around `size` bits.
+    'val` must be between 0 and `size`-1
+    `size` must be 8, 16, 32, 64, or 128
+    '''
+    tmp = val << (size - rot)
+    return (tmp | (val >> rot)) & e_bits.u_maxes[size // 8]
 
 def ONES_COMP(val, size):
     '''
@@ -407,6 +468,25 @@ class PpcAbstractEmulator(envi.Emulator):
                 if emu_method not in assigned_methods:
                     logger.warning("%r emulation method not assigned an opcode" % name)
 
+    ####################### Placeholder Functions ###########################
+    # These functions are expected to be overridden with core-specific behavior
+    # when the abstract emulator is subclassed
+
+    def _rfi(self, op):
+        pass
+
+    def _trap(self, op):
+        print('TRAP 0x%08x: %r' % (op.va, op))
+
+    def _sc(self, op):
+        print('SC 0x%08x: %r' % (op.va, op))
+
+    def _ehpriv(self, op):
+        print('EHPRIV 0x%08x: %r' % (op.va, op))
+
+    def _wait(self, op):
+        pass
+
     ####################### Helper Functions ###########################
     def doPush(self, val):
         psize = self.getPointerSize()
@@ -578,7 +658,7 @@ class PpcAbstractEmulator(envi.Emulator):
 
         self.setCr(flags, crnum)
 
-    def setFloatFlags(self, result, fpsize=8):
+    def setFloatFlags(self, result, iflags, fpsize):
         assert not isinstance(result, float)
 
         # See if any of the simple result class values match
@@ -586,7 +666,7 @@ class PpcAbstractEmulator(envi.Emulator):
             fflags = FP_FLAGS[fpsize][result]
         except KeyError:
             denormalized = (result & FP_EXP_MASK[fpsize]) == 0
-            signed = bool(x & e_bits.sign_bits[size])
+            signed = bool(result & e_bits.sign_bits[fpsize])
 
             # Set the class based on if the value is normalized/denormalized and
             # the sign bit
@@ -601,8 +681,12 @@ class PpcAbstractEmulator(envi.Emulator):
 
         self.setRegister(REG_FPSCR, fpscr)
 
-        # After FPSCR is set copy the FX/FEX/VX/OX bits into CR1
-        self.setCr(fflags & C_FPCC_TO_CR1_MASK, crnum=1)
+
+        # Used like setFlags() but specifically for Float instructions that have [.] variants
+    def setFloatCr(self):
+        fpscr = self.getRegister(REG_FPSCR)
+        val = (fpscr & FPSCR_FLOAT_RC_MASK) >> FPSCR_FLOAT_RC_SHIFT
+        self.setCr(val, crnum=1)
 
     def float2decimal(self, value, fpsize=8):
         '''
@@ -630,11 +714,12 @@ class PpcAbstractEmulator(envi.Emulator):
         # Use the emulator pointer size for converting floating point values
         # into their decimal/integer representations. Non-platform sized
         # floating point are handled later.
-        float_value = e_bits.floattodecimel(value, emu.psize, self.getEndian())
+
+        float_value = e_bits.floattodecimel(value, fpsize, self.getEndian())
 
         # If the result is the python version of NaN convert it to the correct
         # PPC QNAN representation
-        if emu.psize == 8:
+        if self.psize == 8:
             if float_value == FP_DOUBLE_NEG_PYNAN:
                 float_value = FP_DOUBLE_NEG_QNAN
             elif float_value == FP_DOUBLE_POS_PYNAN:
@@ -659,7 +744,15 @@ class PpcAbstractEmulator(envi.Emulator):
         convert the values produced by the above float2decimal() function into
         floating point values without special checks.
         '''
-        return e_bits.decimeltofloat(result, fpsize, self.getEndian())
+        return e_bits.decimeltofloat(value, fpsize, self.getEndian())
+
+        '''
+        PPC stores single precision values as double precision values with the lower
+        29 bits masked off.  The solution to this was to do all single precision operations
+        as double precision and then mask off the results.  Rounding will have to be accounted for
+        in the FPSCR and python math operations will have to be done in 32 bits.  Not sure how to
+        make python do that though.
+        '''
 
     # Beginning of Instruction methods
 
@@ -1965,9 +2058,9 @@ class PpcAbstractEmulator(envi.Emulator):
         result = src1 + src2
 
 
-        ov = int(quotient > e_bits.u_maxes[4])
+        ov = int(result > e_bits.u_maxes[4])
         if ov:
-            result = UNSIGNED_SATURATE(opsize)
+            result = e_bits.u_maxes[opsize]
 
         self.setOverflow(ov)
         if op.iflags & IF_RC: self.setFlags(result)
@@ -2116,9 +2209,9 @@ class PpcAbstractEmulator(envi.Emulator):
         imm = self.getOperValue(op, 1) << 16
         self.setOperValue(op, 0, reg + imm)
 
-    def i_se_not(self,op):
-        result = ONES_COMP(self.getOperValue(op,0),self.getRegisterWidth(REG_R0))
-        self.setOperValue(op,0,result)
+    def i_se_not(self, op):
+        result = ONES_COMP(self.getOperValue(op, 0), self.getRegisterWidth(REG_R0))
+        self.setOperValue(op, 0, result)
 
     def i_and(self, op):
         src1 = self.getOperValue(op, 1)
@@ -2305,7 +2398,7 @@ class PpcAbstractEmulator(envi.Emulator):
             ov = 1
             # Result is undefined, use the "saturate" style values described in
             # the divwu instruction
-            quotient = UNSIGNED_SATURATE(opsize)
+            quotient = e_bits.u_maxes[opsize]
         else:
             ov = 0
             quotient = dividend // divisor
@@ -2372,7 +2465,7 @@ class PpcAbstractEmulator(envi.Emulator):
 
         if divisor == 0:
             ov = 1
-            quotient = UNSIGNED_SATURATE(4)
+            quotient = e_bits.u_maxes[4]
         else:
             quotient = dividend // divisor
 
@@ -2380,7 +2473,7 @@ class PpcAbstractEmulator(envi.Emulator):
             ov = int(quotient > e_bits.u_maxes[4])
 
             if ov:
-                quotient = UNSIGNED_SATURATE(4)
+                quotient = e_bits.u_maxes[4]
 
         if oe: self.setOverflow(ov)
         if op.iflags & IF_RC: self.setFlags(result)
@@ -2394,46 +2487,353 @@ class PpcAbstractEmulator(envi.Emulator):
     # TODO: In theory MSR[FP] == 0 should cause a floating-point unavailable
     # interrupt, but when finding valid source we don't want that to happen.
 
-    def i_fabs(self, op):
-        val = self.getOperValue(op, 1)
-        size = op.opers[1].getWidth(self)
+    def i_fabs(self, op, fpsize=8):
+        frB = self.getOperValue(op, 1)
 
-        # Clear the sign bit
-        result = val & (~e_bits.sign_bits[size])
-
-        val = self.setOperValue(op, 0, result)
-        if op.iflags & IF_RC: self.setFloatFlags(result, size)
+        result = frB & ~e_bits.sign_bits[op.opers[0].getWidth(self)]
+        
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
 
     def i_fdiv(self, op, fpsize=8):
         frA = self.getOperValue(op, 1)
         frB = self.getOperValue(op, 2)
 
-        dividend = self.decimal2float(frA, fpsize)
-        divisor = self.decimal2float(frB, fpsize)
+        dividend = self.decimal2float(frA)
+        divisor = self.decimal2float(frB)
 
-        fresult = dividend / divisor
+        if divisor == 0:
+            self.setRegister(REG_FPSCR_FX, 1)
+            self.setRegister(REG_FPSCR_ZX, 1)
+            fresult = 0
 
-        result = self.float2decimal(fresult, fpsize)
-        if op.iflags & IF_RC: self.setFloatFlags(result, size)
+        else:
+            fresult = dividend / divisor
+
+        result = self.float2decimal(fresult)
+
+        if fpsize ==4:
+            result = result & 0xffffffffe0000000
+
         self.setOperValue(op, 0, result)
+
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fdivs(self,op):
+        self.i_fdiv(op,fpsize=4)
+
+    def i_fadd(self, op, fpsize=8):
+        frA = self.getOperValue(op, 1)
+        frB = self.getOperValue(op, 2)
+
+        addend1 = self.decimal2float(frA)
+        addend2 = self.decimal2float(frB)
+        result = self.float2decimal(addend1 + addend2)
+
+        if fpsize ==4:
+            result = result & 0xffffffffe0000000
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fadds(self, op):
+        self.i_fadd(op, fpsize=4)
+
+    i_efsadd = i_fadds
+
+    def i_fsub(self, op, fpsize=8):
+        frA = self.getOperValue(op, 1)
+        frB = self.getOperValue(op, 2)
+
+        minuend = self.decimal2float(frA)
+        subtrahend = self.decimal2float(frB)
+
+        result = self.float2decimal(minuend - subtrahend)
+
+        if fpsize ==4:
+            result = result & 0xffffffffe0000000
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fsubs(self, op):
+        self.i_fsub(op, fpsize=4)
+
+    def i_fmadd(self, op, fpsize=8):
+        frD = self.getOperValue(op, 0)
+        frA = self.getOperValue(op, 1)
+        frC = self.getOperValue(op, 2)
+        frB = self.getOperValue(op, 3)
+
+        multiplier = self.decimal2float(frA)
+        multiplicand = self.decimal2float(frC)
+        addend = self.decimal2float(frB)
+
+        result = self.float2decimal(((multiplier * multiplicand) + addend), fpsize=8)
+
+        if fpsize == 4:
+            result = result & 0xffffffffe0000000
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fmadds(self, op):
+        self.i_fmadd(op, fpsize=4)
+
+    def i_fmsub(self, op, fpsize=8):
+        frD = self.getOperValue(op, 0)
+        frA = self.getOperValue(op, 1)
+        frC = self.getOperValue(op, 2)
+        frB = self.getOperValue(op, 3)
+
+        multiplier = self.decimal2float(frA)
+        multiplicand = self.decimal2float(frC)
+        subtrahend = self.decimal2float(frB)
+
+        result = self.float2decimal(((multiplier * multiplicand) - subtrahend), fpsize=8)
+
+        if fpsize == 4:
+            result = result & 0xffffffffe0000000
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fmsubs(self, op):
+        self.i_fmsub(op, fpsize=4)
+
+    def i_fmul(self, op, fpsize=8):
+        frD = self.getOperValue(op, 0)
+        frA = self.getOperValue(op, 1)
+        frC = self.getOperValue(op, 2)
+
+        multiplier = self.decimal2float(frA)
+        multiplicand = self.decimal2float(frC)
+
+        fresult = (multiplier * multiplicand)
+
+        result = self.float2decimal(fresult)
+
+        if fpsize ==4:
+            result = result & 0xffffffffe0000000
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fmuls(self, op):
+        self.i_fmul(op, fpsize=4)
+
+    def i_fnabs(self, op, fpsize=8):
+        frB = self.getOperValue(op, 1)
+        
+        result = frB | e_bits.sign_bits[fpsize]
+        
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fneg(self, op, fpsize=8):
+        frB = self.getOperValue(op, 1)
+
+        result = frB ^ 0x8000000000000000
+        
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fnmadd(self, op, fpsize=8):
+        frA = self.getOperValue(op, 1)
+        frC = self.getOperValue(op, 2)
+        frB = self.getOperValue(op, 3)
+
+        multiplier = self.decimal2float(frA)
+        multiplicand = self.decimal2float(frC)
+        addend1 = self.decimal2float(frB)
+
+        result = self.float2decimal(-1 * ((multiplier * multiplicand) + addend1))
+
+        if fpsize ==4:
+            result = result & 0xffffffffe0000000
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fnmadds(self, op):
+        self.i_fnmadd(op, fpsize=4)
+
+    def i_fnmsub(self, op, fpsize=8):
+        frA = self.getOperValue(op, 1)
+        frC = self.getOperValue(op, 2)
+        frB = self.getOperValue(op, 3)
+
+        multiplier = self.decimal2float(frA)
+        multiplicand = self.decimal2float(frC)
+        subtrahend = self.decimal2float(frB)
+
+        result = self.float2decimal(-1 * ((multiplier * multiplicand) - subtrahend))
+
+        if fpsize ==4:
+            result = result & 0xffffffffe0000000
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fnmsubs(self, op):
+        self.i_fnmsub(op, fpsize=4)
+
+    def i_fmr(self, op):
+        src = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, src)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_mffs(self, op, fpsize=8):
+        self.setOperValue(op, 0, self.getRegister(REG_FPSCR))
+        if op.iflags & IF_RC: self.setFloatCr()
+
+
+    def i_fcmpu(self, op):
+        frA = self.getOperValue(op, 1)
+        frB = self.getOperValue(op, 2)
+
+        a = self.decimal2float(frA)
+        b = self.decimal2float(frB)
+
+        if (frA or frB) in FNAN_ALL_TUP:
+            c = 0b0001
+            if (frA or frB) in FNAN_SNAN_TUP:
+                self.setRegister(REG_FPSCR_VXSNAN, 1)
+
+        else:
+            if a > b:
+                c = 0b0100
+            elif a < b:
+                c = 0b1000
+            else:
+                c = 0b0010
+
+        self.setRegister(REG_FPCC, c)
+        self.setOperValue(op, 0, c)
+
+    def i_fcmpo(self, op):
+        frA = self.getOperValue(op, 1)
+        frB = self.getOperValue(op, 2)
+
+        a = self.decimal2float(frA)
+        b = self.decimal2float(frB)
+
+        if (frA or frB) in FNAN_ALL_TUP:
+            c = 0b0001
+            if (frA or frB) in FNAN_SNAN_TUP:
+                self.setRegister(REG_FPSCR_VXSNAN, 1)
+                if self.getRegister(REG_FPSCR_VE) == 0:
+                    self.setRegister(REG_FPSCR_VXVC, 1)
+            elif (frA or frB) in FNAN_QNAN_TUP:
+                self.setRegister(REG_FPSCR_VXVC, 1)
+        else:
+            if a > b:
+                c = 0b0100
+            elif a < b:
+                c = 0b1000
+            else:
+                c = 0b0010
+
+        self.setRegister(REG_FPCC, c)
+        self.setOperValue(op, 0, c)
+
+    def i_fctid(self, op, fpsize=8, round=0): # "round" placholder object for when we determine how to do rounding
+        frD = self.getOperValue(op, 0)
+        frB = self.getOperValue(op, 1)
+
+        if frB in FNAN_ALL_TUP:
+            result = FDNZ
+            self.setRegister(REG_FPSCR_VXCVI, 1)
+            if frB in FNAN_SNAN_TUP:
+                self.setRegister(REG_FPSCR_VXSAN, 1)
+        else:
+            result = int(self.decimal2float(frB)) # TODO how to do rounding? issue #87 (FPSCR[RN])
+            if result > (2**63-1):
+                result = 0x7FFF_FFFF_FFFF_FFFF
+                self.setRegister(FPSCR_VXCVI, 1)
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fctidz(self, op):
+        self.i_fctid(op, round=1)
+
+    def i_fres(self, op, fpsize=8): # Math is wrong on this one.  Python does 64 bit math.
+        frD = self.getOperValue(op, 0)
+        frB = self.getOperValue(op, 1)
+
+        result = e_bits.floattodecimel(1/e_bits.decimeltofloat(frB)) & 0xffffffffe0000000
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_frsp(self, op): # needs rounding work.  Issue #87 made with FPSCR
+        frD = self.getOperValue(op, 0)
+        frB = self.getOperValue(op, 1)
+
+        result = self.decimal2float(self.float2decimal(frB)) & 0xffffffffe0000000
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_fsel(self, op):
+        frA = self.getOperValue(op, 1)
+        frC = self.getOperValue(op, 2)
+        frB = self.getOperValue(op, 3)
+
+        if frA >= 0.0 and frA not in [FNAN_ALL_TUP]:
+            result = frC
+        else:
+            result = frB
+
+        self.setOperValue(op, 0, result)
+        self.setFloatFlags(result, op.iflags, self.psize)
+        if op.iflags & IF_RC: self.setFloatCr()
+
 
     ########################## LOAD/STORE INSTRUCTIONS ################################
 
-    def _load_signed(self, op):
+    def _load_signed(self, op, fpsize=8):
         self.setOperValue(op, 0, e_bits.signed(self.getOperValue(op, 1), op.opers[1].getWidth(self)))
 
-    def _load_signed_update(self, op):
+    def _load_signed_update(self, op, fpsize=8):
         addr = self.getOperAddr(op, 1)
         self._load_signed(op)
         op.opers[1].updateReg(op, self, addr)
 
-    def _load_unsigned(self, op):
+    def _load_unsigned(self, op, fpsize=8):
         self.setOperValue(op, 0, self.getOperValue(op, 1))
 
-    def _load_unsigned_update(self, op):
+    def _load_unsigned_update(self, op, fpsize=8):
         addr = self.getOperAddr(op, 1)
         self._load_unsigned(op)
         op.opers[1].updateReg(op, self, addr)
+
+    def _single_f_load(self, op):
+        val = self.getOperValue(op, 1)
+        fval = self.float2decimal(self.decimal2float(val, 4), self.psize)
+        self.setOperValue(op, 0, fval)
+
+    def _single_f_load_update(self, op):
+        addr = self.getOperAddr(op, 1)
+        val = self.getOperValue(op, 1)
+        fval = self.float2decimal(self.decimal2float(val, 4), self.psize)
+        op.opers[1].updateReg(op, self, addr)
+        self.setOperValue(op, 0, fval)
 
     i_lha = _load_signed
     i_lwa = _load_signed
@@ -2461,6 +2861,25 @@ class PpcAbstractEmulator(envi.Emulator):
     i_lhzux = _load_unsigned_update
     i_lwzux = _load_unsigned_update
     i_ldux = _load_unsigned_update
+    i_lfdux = _load_unsigned_update
+    i_lfdu = _load_unsigned_update
+
+    i_lfd = _load_signed
+    i_lfs = _load_signed
+    i_lfddx = _load_signed
+    i_lfdx = _load_signed
+
+    i_lfdu = _load_signed_update
+    i_lfdux = _load_signed_update
+
+
+
+
+    i_lfs = _single_f_load
+    i_lfsu = _single_f_load_update
+    i_lfsux = _single_f_load_update
+    i_lfsx = _single_f_load
+
 
     ####### load/store multiple words #######
 
@@ -2519,6 +2938,9 @@ class PpcAbstractEmulator(envi.Emulator):
         self._store_signed(op)
         op.opers[1].updateReg(op, self)
 
+    def i_stfiwx(self, op):
+        self.setOperValue(op, 1, (self.getOperValue(op, 0) & 0xffffffff))
+
     i_stb = _store_signed
     i_sth = _store_signed
     i_stw = _store_signed
@@ -2537,13 +2959,27 @@ class PpcAbstractEmulator(envi.Emulator):
     i_stwux = _store_signed_update
     i_stdux = _store_signed_update
 
-    ########################## MOVE FROM/TO INSTRUCTIONS ################################
+    i_stfd = _store_signed
+    i_stfddx = _store_signed
+    i_stfdx = _store_signed
 
+    i_stfdu = _store_signed_update
+    i_stfdux = _store_signed_update
+
+    i_stfddx = i_stfdx
+    i_stfdepx = i_stfdx
+
+
+
+
+
+
+    ########################## MOVE FROM/TO INSTRUCTIONS ################################
+    
     def i_mov(self, op):
         src = self.getOperValue(op, 1)
-        print(hex(src))
         self.setOperValue(op, 0, src)
-        print(hex(self.getOperValue(op, 0)))
+        if op.iflags & IF_RC: self.setFlags(src)
 
     def i_mfmsr(self, op):
         src = self.getRegister(REG_MSR)
@@ -2588,7 +3024,6 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, src)
 
     ########################## Special case MT/F instructions ################################
-#'INS_MCRFS' emulation method missing
 #'INS_MCRXR' emulation method missing
 #
 #'INS_MFFS' emulation method missing
@@ -3058,20 +3493,20 @@ class PpcAbstractEmulator(envi.Emulator):
         cr = self.getRegister(REG_CR)
         self.setOperValue(op, 0, cr & 0xffffffff)
 
-    def i_se_mtctr(self,op):
-        r = self.getOperValue(op,0)
+    def i_se_mtctr(self, op):
+        r = self.getOperValue(op, 0)
         self.setRegister(REG_CTR, r)
 
-    def i_se_mfctr(self,op):
+    def i_se_mfctr(self, op):
         ctr = self.getRegister(REG_CTR)
-        self.setOperValue(op,0,ctr)
+        self.setOperValue(op, 0, ctr)
 
-    def i_se_mflr(self,op):
+    def i_se_mflr(self, op):
         lr = self.getRegister(REG_LR)
-        self.setOperValue(op,0,lr)
+        self.setOperValue(op, 0, lr)
 
-    def i_se_mtlr(self,op):
-        lr = self.getOperValue(op,0)
+    def i_se_mtlr(self, op):
+        lr = self.getOperValue(op, 0)
         self.setRegister(REG_LR, lr)
 
     def i_mcrfs(self, op):
@@ -3098,12 +3533,12 @@ class PpcAbstractEmulator(envi.Emulator):
         if oeflags: self.setOEflags(result, size, ra, rb + addone)
         if op.iflags & IF_RC: self.setFlags(result)
 
-    def i_se_sub(self,op):
-        rx = self.getOperValue(op,0)
-        ry = self.getOperValue(op,1)
+    def i_se_sub(self, op):
+        rx = self.getOperValue(op, 0)
+        ry = self.getOperValue(op, 1)
         result = rx + (~ry+1)
 
-        self.setOperValue(op,0, result)
+        self.setOperValue(op, 0, result)
         if op.iflags & IF_RC: self.setFlags(result)
 
     def i_subf(self, op):
@@ -3216,21 +3651,17 @@ class PpcAbstractEmulator(envi.Emulator):
 
     def i_subfe(self, op, oe=False):
         ca = self.getRegister(REG_CA)
-
-        dsize = op.opers[0].getWidth(self)
         asize = op.opers[1].getWidth(self)
 
         ra = self.getOperValue(op, 1)
-        ra ^= e_bits.u_maxes[asize] # 1's complement
+        ra ^= e_bits.u_maxes[asize]  # 1's complement        
         rb = self.getOperValue(op, 2)
+        
         result = ra + rb + ca
 
-        ures = result & e_bits.u_maxes[dsize]
-        sres = e_bits.signed(ures, dsize)
-
-        self.setOperValue(op, 0, sres & e_bits.u_maxes[dsize])
+        self.setOperValue(op, 0, result)
         self.setCA(result)
-        if oe: self.setOEflags(result, size, ra, rb + ca)
+        if oe: self.setOEflags(result, self.psize, ra, rb + ca)
         if op.iflags & IF_RC: self.setFlags(result)
 
     def i_subfeo(self, op):
@@ -3373,6 +3804,10 @@ class PpcAbstractEmulator(envi.Emulator):
         nextpc = self.getRegister(REG_SRR0)
         msr = self.getRegister(REG_SRR1)
         self.setRegister(REG_MSR, msr)
+
+        # Do any core-specific RFI actions now
+        self._rfi(op)
+
         return nextpc
 
     def i_rfci(self, op):
@@ -3382,6 +3817,10 @@ class PpcAbstractEmulator(envi.Emulator):
         nextpc = self.getRegister(REG_CSRR0)
         msr = self.getRegister(REG_CSRR1)
         self.setRegister(REG_MSR, msr)
+
+        # Do any core-specific RFI actions now
+        self._rfi(op)
+
         return nextpc
 
     def i_rfdi(self, op):
@@ -3391,6 +3830,10 @@ class PpcAbstractEmulator(envi.Emulator):
         nextpc = self.getRegister(REG_DSRR0)
         msr = self.getRegister(REG_DSRR1)
         self.setRegister(REG_MSR, msr)
+
+        # Do any core-specific RFI actions now
+        self._rfi(op)
+
         return nextpc
 
     def i_rfmci(self, op):
@@ -3400,6 +3843,10 @@ class PpcAbstractEmulator(envi.Emulator):
         nextpc = self.getRegister(REG_MCSRR0)
         msr = self.getRegister(REG_MCSRR1)
         self.setRegister(REG_MSR, msr)
+
+        # Do any core-specific RFI actions now
+        self._rfi(op)
+
         return nextpc
 
     i_se_rfi = i_rfi
@@ -3410,9 +3857,8 @@ class PpcAbstractEmulator(envi.Emulator):
     ####### Unconditional Trap #######
 
     def i_trap(self, op):
-        print('TRAP 0x%08x: %r' % (op.va, op))
-        # FIXME: if this is used for software permission transition (like a kernel call),
-        #   this approach may need to be rethought
+        # core-specific trap handling
+        self._trap(op)
 
     # The "unconditional" simplified mnemonics are defined in the PowerISA to
     # indicate unconditional-non "tw" instructions
@@ -3696,16 +4142,16 @@ class PpcAbstractEmulator(envi.Emulator):
     # context
 
     def i_sc(self, op):
-        # SYSTEM CALL EXCEPTION
-        print('SC 0x%08x: %r' % (op.va, op))
+        # Do core-specific system call handling
+        self._sc(op)
 
     def i_ehpriv(self, op):
-        print('EHPRIV 0x%08x: %r' % (op.va, op))
+        # Do core-specific embedded hypervisor privilege handling
+        self._ehpriv(op)
 
     def i_wait(self, op):
-        # This should wait until an "interrupt" occurs, for now just assume the
-        # interrupt has happened and continue processing
-        pass
+        # Do core-specific "wait" handling
+        self._wait(op)
 
     ######################## misc instructions ##########################
 
@@ -3713,7 +4159,7 @@ class PpcAbstractEmulator(envi.Emulator):
         '''
         bit permute doubleword
 
-        bpermd rA,rS,rB
+        bpermd rA, rS, rB
 
         From the manual:
             If byte i of RS is less than 64, permuted bit i is set to the bit
@@ -3728,7 +4174,7 @@ class PpcAbstractEmulator(envi.Emulator):
 
         # Now combine those values with a list of shift values to indicate which
         # bit (in sane numbering) in rA should be set
-        shift_list = range(7,-1,-1)
+        shift_list = range(7, -1, -1)
 
         # Now smash all those bits together
         result = sum(BIT(rb, val) << shift \
@@ -3737,31 +4183,31 @@ class PpcAbstractEmulator(envi.Emulator):
 
         self.setOperValue(op, 0, result)
 
-    def i_se_bclri(self,op):
+    def i_se_bclri(self, op):
         rx = self.getOperValue(op, 0)
         a = self.getOperValue(op, 1)
-        val = rx & ~BITMASK(a,self.psize)
+        val = rx & ~BITMASK(a, self.psize)
         self.setOperValue(op, 0, val)
 
-    def i_se_bseti(self,op):
+    def i_se_bseti(self, op):
         rx = self.getOperValue(op, 0)
         a = self.getOperValue(op, 1)
-        val = rx | BITMASK(a,self.psize)
+        val = rx | BITMASK(a, self.psize)
         self.setOperValue(op, 0, val)
 
-    def i_se_btsti(self,op):
+    def i_se_btsti(self, op):
         rx = self.getOperValue(op, 0)
         a = self.getOperValue(op, 1)
-        b = BITMASK(a,self.psize)
+        b = BITMASK(a, self.psize)
         c = rx & b
         d = bool(c)
         self.setFlags(d)
 
-    def i_se_bgeni(self,op):
-        a = self.getOperValue(op,1)
-        b = 0 | BITMASK(a,self.psize)
+    def i_se_bgeni(self, op):
+        a = self.getOperValue(op, 1)
+        b = 0 | BITMASK(a, self.psize)
 
-        self.setOperValue(op,0,b)
+        self.setOperValue(op, 0, b)
 
 
     ######################## VLE instructions ##########################
@@ -3812,7 +4258,12 @@ class PpcAbstractEmulator(envi.Emulator):
         return self.i_neg(op, oe=True)
 
     def i_wrteei(self, op):
-        print("Write MSR External Enable")
+        if self.getOperValue(op, 0):
+            msr = self.getRegister(REG_MSR)
+            self.setRegister(REG_MSR, msr | MSR_EE_MASK)
+        else:
+            msr = self.getRegister(REG_MSR)
+            self.setRegister(REG_MSR, msr & ~MSR_EE_MASK)
 
     i_wrtee = i_wrteei
 
@@ -3830,20 +4281,20 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, results)
 
     def i_extsh(self, op):
-        self.i_extsb(op,opsize=2)
+        self.i_extsb(op, opsize=2)
 
     def i_extsw(self, op):
-        self.i_extsb(op,opsize=4)
+        self.i_extsb(op, opsize=4)
 
-    def i_extzb(self,op):
-        rx = self.getOperValue(op,0)
+    def i_extzb(self, op):
+        rx = self.getOperValue(op, 0)
         a = rx & 0xFF
-        self.setOperValue(op,0,a)
+        self.setOperValue(op, 0, a)
 
-    def i_extzh(self,op):
-        rx = self.getOperValue(op,0)
+    def i_extzh(self, op):
+        rx = self.getOperValue(op, 0)
         a = rx & 0xFFFF
-        self.setOperValue(op,0,a)
+        self.setOperValue(op, 0, a)
 
     def i_xor(self, op):
         src1 = self.getOperValue(op, 1)
@@ -3880,14 +4331,14 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, result)
         if op.iflags & IF_RC: self.setFlags(result)
 
-    def i_se_bmaski(self,op):
+    def i_se_bmaski(self, op):
         a = self.getOperValue(op, 1)
         if a == 0:
             b = 0xffffffff
         else:
             b = envi.bits.b_masks[a]
 
-        self.setOperValue(op,0, b)
+        self.setOperValue(op, 0, b)
 
     # These condition register logical operations use CR source/dest
     # pseudo-registers, but otherwise is the same logic as the normal logical
@@ -3901,78 +4352,875 @@ class PpcAbstractEmulator(envi.Emulator):
     i_crxor = i_xor
     i_creqv = i_eqv
 
+    ## Vector Instructions
+
+    # Helpers
+    def modulo(self, val, bytelen):
+        # More like a mask, but that's what this operation is in this context
+        return val & e_bits.u_maxes[bytelen]
+
+    def signed_saturate(self, val, bytelen):
+        result, saturated = SIGNED_SATURATE(val, bytelen)
+        if saturated:
+            self.setRegister(REG_VSCR, 1)
+        return result
+
+    def unsigned_saturate(self, val, bytelen):
+        result, saturated = UNSIGNED_SATURATE(val, bytelen)
+        if saturated:
+            self.setRegister(REG_VSCR, 1)
+        return result
+
+    def abs(self, val, bytelen):
+        return abs(val)
+
+    def arbitrary_pack(self, val, bytelen):
+        return ((val & MASK32(7, 12)) >> 9) | ((val & MASK32(16, 20)) >> 6) | ((val & MASK32(24, 28)) >> 3)
+
+    # Load
+    # These are weird, the vector field they write into is based on the address
+    # read from. Also, we don't use getOperValue() from the second operand
+    # because the address we're accessing isn't the address it actually refers to.
+    def lvx(self, op):
+        elemsize = op.opers[0].elemsize
+        addr = self.getOperAddr(op, 1) & ~(elemsize - 1)
+        m = (addr & (16 - elemsize)) >> ((elemsize >> 1) & 0x3)
+        result_vector = [0] * (op.opers[0].elemcount)
+        result_vector[m] = self.readMemValue(addr, op.opers[1].tsize)
+        op.opers[0].setValues(op, self, result_vector)
+
+    i_lvebx = lvx
+    i_lvehx = lvx
+    i_lvewx = lvx
+    i_lvx = lvx
+    i_lvxl = lvx
+
+    def lvex(self, op):
+        addr = self.getOperAddr(op, 1) & ~(op.opers[0].elemsize - 1)
+        m = (self.getRegister(op.opers[1].offset) & MASK(60, 63 - (op.opers[1].tsize >> 1))) >> (op.opers[1].tsize >> 1)
+        result_vector = [0] * op.opers[0].elemcount
+        result_vector[m] = self.readMemValue(addr, op.opers[1].tsize)
+        op.opers[0].setValues(op, self, result_vector)
+
+    i_lvexbx = lvex
+    i_lvexhx = lvex
+    i_lvexwx = lvex
+
+    lvs_bytes = bytes([x for x in range(0, 0x20)])
+
+    def i_lvsl(self, op):
+        offset = self.getOperAddr(op, 1) & 0xf
+        value = int.from_bytes(self.lvs_bytes[offset:offset+16], 'big')
+        op.opers[0].setOperValue(op, self, value)
+
+    def i_lvsr(self, op):
+        offset = self.getOperAddr(op, 1) & 0xf
+        value = int.from_bytes(self.lvs_bytes[16-offset:32-offset], 'big')
+        op.opers[0].setOperValue(op, self, value)
+
+    def i_lvsm(self, op):
+        pivot = self.getOperAddr(op, 1) & 0xf
+        op.opers[0].setValues(op, self, [0xff] * (16 - pivot) + [0] * pivot)
+
+    def i_lvswx(self, op):
+        addr = self.getOperAddr(op, 1) & ~0xf
+        pivot = self.getOperAddr(op, 1) & 0xf
+        result = ROTL(self.readMemValue(addr, 16), pivot * 8, 128)
+        self.setOperValue(op, 0, result)
+
+    i_lvswxl = i_lvswx
+
+    def i_lvtlx(self, op):
+        addr = self.getOperAddr(op, 1) & ~0xf
+        pivot = self.getOperAddr(op, 1) & 0xf
+        result = (self.readMemValue(addr, 16) << (pivot * 8))
+        self.setOperValue(op, 0, result)
+
+    i_lvtlxl = i_lvtlx
+
+    def i_lvtrx(self, op):
+        addr = self.getOperAddr(op, 1) & ~0xf
+        pivot = self.getOperAddr(op, 1) & 0xf
+        result = (self.readMemValue(addr, 16) >> ((16 - pivot) * 8))
+        self.setOperValue(op, 0, result)
+
+    i_lvtrxl = i_lvtrx
+
+    # TODO: MSR[SPV] == 0 should cause an AltiVec unavailable interrupt
+    # interrupt, but we don't have that infrastructure yet.
+    i_lvepx = lvx
+    i_lvepxl = lvx
+
+    # Store -- these are weird like Load above
+    def stv_index(self, op, elemsize):
+        addr = self.getOperAddr(op, 1) & ~(elemsize - 1)
+        return (addr & (16 - elemsize)) >> ((elemsize >> 1) & 0x3)
+
+    def stv_index_indexed(self, op, elemsize):
+        return (self.getRegister(op.opers[1].offset) & MASK(60, 63 - (elemsize >> 1))) >> (elemsize >> 1)
+
+    def stv(self, op, index_func):
+        elemsize = op.opers[0].elemsize
+        addr = self.getOperAddr(op, 1) & ~(elemsize - 1)
+        m = index_func(op, elemsize)
+        if elemsize == 16:
+            value = self.getOperValue(op, 0).to_bytes(elemsize, 'big')
+            self.writeMemory(addr, value)
+        else:
+            value = op.opers[0].getValues(op, self)[m]
+            self.writeMemValue(addr, value, op.opers[1].tsize)
+
+    def stvx(self, op):
+        self.stv(op, self.stv_index)
+
+    i_stvebx = stvx
+    i_stvehx = stvx
+    i_stvewx = stvx
+    i_stvx = stvx
+    i_stvxl = stvx
+
+    def stvex(self, op):
+        self.stv(op, self.stv_index_indexed)
+
+    i_stvexbx = stvex
+    i_stvexhx = stvex
+    i_stvexwx = stvex
+
+    def i_stvflx(self, op):
+        addr = self.getOperAddr(op, 1) & ~0xf
+        pivot = self.getOperAddr(op, 1) & 0xf
+        storelen = 16 - pivot
+        values = op.opers[0].getValues(op, self)[0:storelen]
+        for i, value in enumerate(values):
+            self.writeMemValue(addr + pivot + i, value, 1)
+
+    i_stvflxl = i_stvflx
+
+    def i_stvfrx(self, op):
+        addr = self.getOperAddr(op, 1) & ~0xf
+        pivot = self.getOperAddr(op, 1) & 0xf
+        storelen = 16 - pivot
+        values = op.opers[0].getValues(op, self)[storelen:]
+        for i, value in enumerate(values):
+            self.writeMemValue(addr + i, value, 1)
+
+    i_stvfrxl = i_stvfrx
+
+    def i_stvswx(self, op):
+        addr = self.getOperAddr(op, 1) & ~0xf
+        pivot = self.getOperAddr(op, 1) & 0xf
+        result = ROTR(self.getOperValue(op, 0), pivot * 8, 128).to_bytes(16, 'big')
+        self.writeMemory(addr, result)
+
+    i_stvswxl = i_stvswx
+
+    # TODO: MSR[SPV] == 0 should cause an AltiVec unavailable interrupt
+    # interrupt, but we don't have that infrastructure yet.
+    i_stvepx = stvx
+    i_stvepxl = stvx
+
+    # Permute
+    def i_vperm(self, op):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+        vC = op.opers[3].getValues(op, self)
+
+        src = vA + vB
+        for c in vC:
+            result_vector.append(src[c & 0x1f])
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    # Pack
+    def vpk(self, op, func):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+
+        for elem in vA + vB:
+            result_vector.append(func(elem, op.opers[0].elemsize))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_vpkpx(self, op):
+        self.vpk(op, self.arbitrary_pack)
+
+    def vpksss(self, op):
+        self.vpk(op, self.signed_saturate)
+
+    i_vpkshss = vpksss
+    i_vpkswss = vpksss
+
+    def vpksus(self, op):
+        self.vpk(op, self.unsigned_saturate)
+
+    i_vpkshus = vpksus
+    i_vpkswus = vpksus
+    i_vpkuhus = vpksus
+    i_vpkuwus = vpksus
+
+    def vpkuum(self, op):
+        self.vpk(op, self.modulo)
+
+    i_vpkuhum = vpkuum
+    i_vpkuwum = vpkuum
+
+    # Unpack
+    def vupkpx(self, op, elemslice):
+        result_vector = []
+        vB = op.opers[1].getValues(op, self)
+
+        for b in vB[elemslice]:
+            byte0 = EXTS_BIT((b & MASK16(0, 0)) >> 15, 8) << 24
+            byte1 = (b & MASK32(17, 21)) << 6
+            byte2 = (b & MASK32(22, 26)) << 3
+            byte3 = (b & MASK32(27, 31))
+            result_vector.append(byte0 | byte1 | byte2 | byte3)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_vupkhpx(self, op):
+        self.vupkpx(op, slice(0, 4))
+
+    def i_vupklpx(self, op):
+        self.vupkpx(op, slice(4, 8))
+
+    def vupk(self, op, elemslice):
+        result_vector = []
+        vB = op.opers[1].getValues(op, self)
+        for b in vB[elemslice]:
+            result_vector.append(e_bits.sign_extend(b, op.opers[1].elemsize, op.opers[0].elemsize))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def vupkh(self, op):
+        return self.vupk(op, slice(0, op.opers[0].elemcount))
+
+    def vupkl(self, op):
+        return self.vupk(op, slice(op.opers[0].elemcount, None))
+
+    i_vupkhsb = vupkh
+    i_vupkhsh = vupkh
+    i_vupklsb = vupkl
+    i_vupklsh = vupkl
+
+    # Rotate
+    def vrl(self, op):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+        elemsize_bits = op.opers[1].elemsize << 3
+        rotsize_mask = elemsize_bits - 1
+
+        for a, b in zip(vA, vB):
+            result_vector.append(ROTL(a, b & rotsize_mask, elemsize_bits))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    i_vrlb = vrl
+    i_vrlh = vrl
+    i_vrlw = vrl
+
+    # Shift
+    def i_vsl(self, op):
+        shift = op.opers[2].getValues(op, self)[0] & 0x7
+        op.opers[0].setOperValue(op, self, self.getOperValue(op, 1) << shift)
+
+    def i_vsr(self, op):
+        shift = op.opers[2].getValues(op, self)[0] & 0x7
+        op.opers[0].setOperValue(op, self, self.getOperValue(op, 1) >> shift)
+
+    def vslr(self, op, func):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+        result_mask = e_bits.u_maxes[op.opers[1].elemsize]
+        shift_mask = (op.opers[1].elemsize << 3) - 1
+
+        for a, b in zip(vA, vB):
+            result_vector.append(func(a, (b & shift_mask)) & result_mask)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def vsl(self, op):
+        self.vslr(op, operator.lshift)
+
+    def vsr(self, op):
+        self.vslr(op, operator.rshift)
+
+    i_vslb = vsl
+    i_vslh = vsl
+    i_vslw = vsl
+    i_vsrb = vsr
+    i_vsrh = vsr
+    i_vsrw = vsr
+    i_vsrab = vsr
+    i_vsrah = vsr
+    i_vsraw = vsr
+
+    def i_vsldoi(self, op):
+        src = op.opers[1].getValues(op, self) + op.opers[2].getValues(op, self)
+        index = self.getOperValue(op, 3)
+        op.opers[0].setValues(op, self, src[index:index+16])
+
+    def i_vslo(self, op):
+        src = op.opers[1].getValues(op, self) + ((0,) * 16)
+        index = (self.getOperValue(op, 2) & 0x78) >> 3
+        op.opers[0].setValues(op, self, src[index:index+16])
+
+    def i_vsro(self, op):
+        src = ((0,) * 16) + op.opers[1].getValues(op, self)
+        index = 16 - ((self.getOperValue(op, 2) & 0x78) >> 3)
+        op.opers[0].setValues(op, self, src[index:index+16])
+
+    # Vector Conditional Select
+    def i_vsel(self, op):
+        vA = self.getOperValue(op, 1)
+        vB = self.getOperValue(op, 2)
+        vC = self.getOperValue(op, 3)
+        self.setOperValue(op, 0, (vB & vC) | (vA & ~vC))
+
+    # Splat
+    # Note that the UIMM field is 5 bits, but there are only enough potential
+    # indicdes in vB for 2-4 bits. When running this on hardware, it's observed
+    # that the most significant bit seems to be ignored, so this replicates
+    # that behavior by masking it away.
+    def vsplt(self, op):
+        vB = op.opers[1].getValues(op, self)
+        uimm = self.getOperValue(op, 2) & (op.opers[1].elemcount - 1)
+        op.opers[0].setValues(op, self, [vB[uimm]] * op.opers[1].elemcount)
+
+    i_vspltb = vsplt
+    i_vsplth = vsplt
+    i_vspltw = vsplt
+
+    def vspltis(self, op):
+        op.opers[0].setValues(op, self, [self.getOperValue(op, 1)] * op.opers[0].elemcount)
+
+    i_vspltisb = vspltis
+    i_vspltish = vspltis
+    i_vspltisw = vspltis
+
+    # Move
+
+    # On Noisy, this ONLY impacts the two defined bits, NJ and SAT, regardless
+    # of what's in the register's other bits. That behavior is left undefined
+    # (explicitly) in the docs. We are going to follow that behavior here.
+    def i_mfvscr(self, op):
+        self.setOperValue(op, 0, self.getRegister(REG_VSCR) & 0x00010001)
+
+    def i_mtvscr(self, op):
+        self.setRegister(REG_VSCR, self.getOperValue(op, 0) & 0x00010001)
+
+    def i_mviwsplt(self, op):
+        rA_lower = self.getOperValue(op, 1) & MASK(32, 63)
+        rB_lower = self.getOperValue(op, 2) & MASK(32, 63)
+        op.opers[0].setValues(op, self, [rA_lower, rB_lower, rA_lower, rB_lower])
+
+    def i_mvidsplt(self, op):
+        op.opers[0].setValues(op, self, [self.getOperValue(op, 1), self.getOperValue(op, 2)])
+
+    # Average
+    def vavg(self, op):
+        result_vector = []
+        a = op.opers[1].getValues(op, self)
+        b = op.opers[2].getValues(op, self)
+        for elem1, elem2 in zip(a, b):
+            result_vector.append((elem1 + elem2 + 1) >> 1)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    i_vavgsb = vavg
+    i_vavgsh = vavg
+    i_vavgsw = vavg
+    i_vavgub = vavg
+    i_vavguh = vavg
+    i_vavguw = vavg
+
+    # Add
+    def vadd(self, op, func):
+        result_vector = []
+        a = op.opers[1].getValues(op, self)
+        b = op.opers[2].getValues(op, self)
+        for elem1, elem2 in zip(a, b):
+            result_vector.append(func(elem1 + elem2, op.opers[1].elemsize))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_vaddubm(self, op):
+        return self.vadd(op, self.modulo)
+
+    i_vadduhm = i_vaddubm
+    i_vadduwm = i_vaddubm
+
+    def i_vaddubs(self, op):
+        return self.vadd(op, self.unsigned_saturate)
+
+    i_vadduhs = i_vaddubs
+    i_vadduws = i_vaddubs
+
+    def i_vaddcuw(self, op):
+        return self.vadd(op, CARRY)
+
+    def i_vaddsbs(self, op):
+        return self.vadd(op, self.signed_saturate)
+
+    i_vaddshs = i_vaddsbs
+    i_vaddsws = i_vaddsbs
+
+    def i_vaddfp(self, op):
+        return self.vadd(op, lambda val, _: val)
+
+    # Subtract
+    def vsub(self, op, func):
+        result_vector = []
+        a = op.opers[1].getValues(op, self)
+        b = op.opers[2].getValues(op, self)
+        for elem1, elem2 in zip(a, b):
+            result_vector.append(func(elem1 - elem2, op.opers[1].elemsize))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_vsubcuw(self, op):
+        return self.vsub(op, lambda val, size: ~CARRY(val, size) & 0x1)
+
+    def i_vsubsbs(self, op):
+        return self.vsub(op, self.signed_saturate)
+
+    i_vsubshs = i_vsubsbs
+    i_vsubsws = i_vsubsbs
+
+    def i_vsububm(self, op):
+        return self.vsub(op, self.modulo)
+
+    i_vsubuhm = i_vsububm
+    i_vsubuwm = i_vsububm
+
+    def i_vsububs(self, op):
+        return self.vsub(op, self.unsigned_saturate)
+
+    i_vsubuhs = i_vsububs
+    i_vsubuws = i_vsububs
+
+    def vabsdu(self, op):
+        return self.vsub(op, self.abs)
+
+    i_vabsdub = vabsdu
+    i_vabsduh = vabsdu
+    i_vabsduw = vabsdu
+
+    def i_vsubfp(self, op):
+        return self.vsub(op, lambda val, _: val)
+
+    # Sum
+    def i_vsumsws(self, op):
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+
+        result = self.signed_saturate(sum(vA + (vB[3],)), 4)
+        result_vector = [0, 0, 0, result]
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_vsum2sws(self, op):
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+
+        result1 = self.signed_saturate(sum(vA[0:2] + (vB[1],)), 4)
+        result2 = self.signed_saturate(sum(vA[2:4] + (vB[2],)), 4)
+        result_vector = [0, result1, 0, result2]
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def vsum4(self, op, func):
+        result_vector = []
+        # We use groups of multiple vA for each vB
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+
+        groupsize = op.opers[1].elemcount // 4
+        vA_sums = [sum(vA[i:i + groupsize]) for i in range(0, len(vA), groupsize)]
+        for a, b in zip(vA_sums, vB):
+            result_vector.append(func(a + b, 4))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_vsum4sbs(self, op):
+        self.vsum4(op, self.signed_saturate)
+
+    i_vsum4shs = i_vsum4sbs
+
+    def i_vsum4ubs(self, op):
+        self.vsum4(op, self.unsigned_saturate)
+
+    # Logic
+    def i_vandc(self, op):
+        src1 = self.getOperValue(op, 1)
+        src2 = COMPLEMENT(self.getOperValue(op, 2), op.opers[2].getWidth(self))
+        self.setOperValue(op, 0, src1 & src2)
+
+    def i_vnor(self, op):
+        src1 = self.getOperValue(op, 1)
+        src2 = self.getOperValue(op, 2)
+        self.setOperValue(op, 0, COMPLEMENT(src1 | src2, 16))
+
+    i_vand = i_and
+    i_vor = i_or
+    i_vxor = i_xor
+
+    # Integer comparison
+
+    def vcmp(self, op, cmp):
+        result_vector = []
+        a = op.opers[1].getValues(op, self)
+        b = op.opers[2].getValues(op, self)
+        num_true = 0
+        for elem1, elem2 in zip(a, b):
+            if cmp(elem1, elem2):
+                result_vector.append(e_bits.u_maxes[op.opers[1].elemsize])
+                num_true += 1
+            else:
+                result_vector.append(0x00)
+
+        if op.iflags & IF_RC:
+            if num_true == len(a):
+                self.setCr(0b1000, 6)
+            elif num_true == 0:
+                self.setCr(0b0010, 6)
+            else:
+                self.setCr(0b0000, 6)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def vcmpgt(self, op):
+        return self.vcmp(op, operator.gt)
+
+    def vcmpeq(self, op):
+        return self.vcmp(op, operator.eq)
+
+    def vcmpge(self, op):
+        return self.vcmp(op, operator.ge)
+
+    i_vcmpequb = vcmpeq
+    i_vcmpequh = vcmpeq
+    i_vcmpequw = vcmpeq
+    i_vcmpgtsb = vcmpgt
+    i_vcmpgtsh = vcmpgt
+    i_vcmpgtsw = vcmpgt
+    i_vcmpgtub = vcmpgt
+    i_vcmpgtuh = vcmpgt
+    i_vcmpgtuw = vcmpgt
+
+    # Floating-point comparison
+    def i_vcmpbfp(self, op):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+
+        in_bounds = True
+        for a, b in zip(vA, vB):
+            le = int(not (a <= b)) << 31
+            ge = int(not (a >= -b)) << 30
+            if le | ge != 0:
+                in_bounds = False
+
+            result_vector.append(le | ge)
+
+        if op.iflags & IF_RC:
+            cr6 = 0b0010 if in_bounds else 0b0000
+            self.setCr(cr6, 6)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    i_vcmpeqfp = vcmpeq
+    i_vcmpgefp = vcmpge
+    i_vcmpgtfp = vcmpgt
+
+    # Integer max
+
+    def vminmax(self, op, cmp):
+        result_vector = []
+        a = op.opers[1].getValues(op, self)
+        b = op.opers[2].getValues(op, self)
+        for elem1, elem2 in zip(a, b):
+            result_vector.append(elem1 if cmp(elem1, elem2) else elem2)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def vmax(self, op):
+        return self.vminmax(op, lambda a, b: a >= b)
+
+    def vmin(self, op):
+        return self.vminmax(op, lambda a, b: a < b)
+
+    i_vmaxsb = vmax
+    i_vmaxsh = vmax
+    i_vmaxsw = vmax
+    i_vmaxub = vmax
+    i_vmaxuh = vmax
+    i_vmaxuw = vmax
+    i_vmaxfp = vmax
+    i_vminsb = vmin
+    i_vminsh = vmin
+    i_vminsw = vmin
+    i_vminub = vmin
+    i_vminuh = vmin
+    i_vminuw = vmin
+    i_vminfp = vmin
+
+    # Multiplication
+
+    def i_vmladduhm(self, op):
+        result_vector = []
+        a = op.opers[1].getValues(op, self)
+        b = op.opers[2].getValues(op, self)
+        c = op.opers[3].getValues(op, self)
+        for elem1, elem2, elem3 in zip(a, b, c):
+            result_vector.append(((elem1 * elem2) + elem3) & 0xffff)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_vmhaddshs(self, op):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+        vC = op.opers[3].getValues(op, self)
+        for a, b, c in zip(vA, vB, vC):
+            prod = a * b
+            result_vector.append(self.signed_saturate((prod >> 15) + c, 2))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_vmhraddshs(self, op):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+        vC = op.opers[3].getValues(op, self)
+        for a, b, c in zip(vA, vB, vC):
+            prod = (a * b) + 0x4000
+            result_vector.append(self.signed_saturate((prod >> 15) + c, 2))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def vmsum(self, op, func):
+        result_vector = []
+        # We use groups of multiple vA & vB for each vC
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+        vC = op.opers[3].getValues(op, self)
+
+        groupsize = op.opers[1].elemcount // 4
+        vA_group = [vA[i:i + groupsize] for i in range(0, len(vA), groupsize)]
+        vB_group = [vB[i:i + groupsize] for i in range(0, len(vB), groupsize)]
+        for a_group, b_group, c in zip(vA_group, vB_group, vC):
+            tmp = 0
+            for a, b in zip(a_group, b_group):
+                tmp += a * b
+
+            result_vector.append(func(tmp + c, op.opers[3].elemsize))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def vmsum_modulo(self, op):
+        self.vmsum(op, self.modulo)
+
+    i_vmsummbm = vmsum_modulo
+    i_vmsumshm = vmsum_modulo
+    i_vmsumubm = vmsum_modulo
+    i_vmsumuhm = vmsum_modulo
+
+    def i_vmsumshs(self, op):
+        self.vmsum(op, self.signed_saturate)
+
+    def i_vmsumuhs(self, op):
+        self.vmsum(op, self.unsigned_saturate)
+
+    def vmul(self, op, start):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+        vA_subset = [vA[i] for i in range(start, len(vA), 2)]
+        vB_subset = [vB[i] for i in range(start, len(vB), 2)]
+        for a, b in zip(vA_subset, vB_subset):
+            result_vector.append(a * b)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def vmul_even(self, op):
+        self.vmul(op, 0)
+
+    def vmul_odd(self, op):
+            self.vmul(op, 1)
+
+    i_vmulesb = vmul_even
+    i_vmulesh = vmul_even
+    i_vmuleub = vmul_even
+    i_vmuleuh = vmul_even
+    i_vmulosb = vmul_odd
+    i_vmulosh = vmul_odd
+    i_vmuloub = vmul_odd
+    i_vmulouh = vmul_odd
+
+    def i_vmaddfp(self, op):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+        vC = op.opers[3].getValues(op, self)
+        for a, b, c in zip(vA, vB, vC):
+            result_vector.append((a * c) + b)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_vnmsubfp(self, op):
+        result_vector = []
+        vA = op.opers[1].getValues(op, self)
+        vB = op.opers[2].getValues(op, self)
+        vC = op.opers[3].getValues(op, self)
+        for a, b, c in zip(vA, vB, vC):
+            result_vector.append(-((a * c) - b))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    # Merging
+
+    def vmrg(self, op, elemslice):
+        result_vector = []
+        a = op.opers[1].getValues(op, self)[elemslice]
+        b = op.opers[2].getValues(op, self)[elemslice]
+        for elem1, elem2 in zip(a, b):
+            result_vector.extend([elem1, elem2])
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def vmrgh(self, op):
+        return self.vmrg(op, slice(0, op.opers[1].elemcount // 2))
+
+    def vmrgl(self, op):
+        return self.vmrg(op, slice(op.opers[1].elemcount // 2, op.opers[1].elemcount))
+
+    i_vmrghb = vmrgh
+    i_vmrghh = vmrgh
+    i_vmrghw = vmrgh
+    i_vmrglb = vmrgl
+    i_vmrglh = vmrgl
+    i_vmrglw = vmrgl
+
+    # Conversion
+    def i_vcfsx(self, op):
+        uimm = self.getOperValue(op, 2)
+        vB = op.opers[1].getValues(op, self)
+        result_vector = [b / (2**uimm) for b in vB]
+        op.opers[0].setValues(op, self, result_vector)
+
+    i_vcfux = i_vcfsx
+
+    def i_vctsxs(self, op):
+        uimm = self.getOperValue(op, 2)
+        vB = op.opers[1].getValues(op, self)
+        result_vector = [int(self.signed_saturate(b * (2**uimm), 4)) for b in vB]
+        op.opers[0].setValues(op, self, result_vector)
+
+    i_vctuxs = i_vctsxs
+
+    # Floating-point rounding
+    def vrfi(self, op, func):
+        vB = op.opers[1].getValues(op, self)
+        op.opers[0].setValues(op, self, [func(b) for b in vB])
+
+    def i_vrfim(self, op):
+        self.vrfi(op, math.floor)
+
+    def i_vrfin(self, op):
+        self.vrfi(op, round)
+
+    def i_vrfip(self, op):
+        self.vrfi(op, math.ceil)
+
+    def i_vrfiz(self, op):
+        self.vrfi(op, int)
+
+    # Data stream stuff
+    # We don't currently do anything with these
+    i_dss = i_nop
+    i_dssall = i_nop
+    i_dst = i_nop
+    i_dstst = i_nop
+    i_dststt = i_nop
+    i_dstt = i_nop
+
     '''
-    i_se_bclri                         rX,UI5
-    i_se_bgeni                         rX,UI5
-    i_se_bmaski                        rX,UI5
-    i_se_bseti                         rX,UI5
-    i_se_btsti                         rX,UI5
+    i_se_bclri                         rX, UI5
+    i_se_bgeni                         rX, UI5
+    i_se_bmaski                        rX, UI5
+    i_se_bseti                         rX, UI5
+    i_se_btsti                         rX, UI5
     i_e_cmpli instructions, or CR0 for the se_cmpl, e_cmp16i, e_cmph16i, e_cmphl16i, e_cmpl16i, se_cmp,
     i_se_cmph, se_cmphl, se_cmpi, and se_cmpli instructions, is set to reflect the result of the comparison. The
-    i_e_cmp16i                             rA,SI
-    i_e_cmpi                   crD32,rA,SCI8
-    i_se_cmp                              rX,rY
-    i_se_cmpi                           rX,UI5
-    i_e_cmph                        crD,rA,rB
-    i_se_cmph                            rX,rY
-    i_e_cmph16i                           rA,SI
-    i_e_cmphl                       crD,rA,rB
-    i_se_cmphl                           rX,rY
-    i_e_cmphl16i                         rA,UI
-    i_e_cmpl16i                           rA,UI
-    i_e_cmpli                  crD32,rA,SCI8
-    i_se_cmpl                             rX,rY
-    i_se_cmpli                      rX,OIMM
+    i_e_cmp16i                             rA, SI
+    i_e_cmpi                   crD32, rA, SCI8
+    i_se_cmp                              rX, rY
+    i_se_cmpi                           rX, UI5
+    i_e_cmph                        crD, rA, rB
+    i_se_cmph                            rX, rY
+    i_e_cmph16i                           rA, SI
+    i_e_cmphl                       crD, rA, rB
+    i_se_cmphl                           rX, rY
+    i_e_cmphl16i                         rA, UI
+    i_e_cmpl16i                           rA, UI
+    i_e_cmpli                  crD32, rA, SCI8
+    i_se_cmpl                             rX, rY
+    i_se_cmpli                      rX, OIMM
     i_se_cmph, se_cmphl, se_cmpi, and se_cmpli instructions, is set to reflect the result of the comparison. The
-    i_e_cmph                        crD,rA,rB
-    i_se_cmph                            rX,rY
-    i_e_cmph16i                           rA,SI
-    i_e_cmphl                       crD,rA,rB
-    i_se_cmphl                           rX,rY
-    i_e_cmphl16i                         rA,UI
-    i_e_crnand               crbD,crbA,crbB
-    i_e_crnor               crbD,crbA,crbB
-    i_e_cror                 crbD,crbA,crbB
-    i_e_crorc               crbD,crbA,crbB
-    i_e_cror                 crbD,crbA,crbB
-    i_e_crorc               crbD,crbA,crbB
-    i_e_crxor                crbD,crbA,crbB
+    i_e_cmph                        crD, rA, rB
+    i_se_cmph                            rX, rY
+    i_e_cmph16i                           rA, SI
+    i_e_cmphl                       crD, rA, rB
+    i_se_cmphl                           rX, rY
+    i_e_cmphl16i                         rA, UI
+    i_e_crnand               crbD, crbA, crbB
+    i_e_crnor               crbD, crbA, crbB
+    i_e_cror                 crbD, crbA, crbB
+    i_e_crorc               crbD, crbA, crbB
+    i_e_cror                 crbD, crbA, crbB
+    i_e_crorc               crbD, crbA, crbB
+    i_e_crxor                crbD, crbA, crbB
     i_se_illegal
     i_se_illegal is used to request an illegal instruction exception. A program interrupt is generated. The contents
     i_se_isync
     i_se_isync instruction have been performed.
-    i_e_lmw                         rD,D8(rA)
-    i_e_lwz                           rD,D(rA)                                                             (D-mode)
-    i_se_lwz                       rZ,SD4(rX)                                                            (SD4-mode)
-    i_e_lwzu                         rD,D8(rA)                                                            (D8-mode)
-    i_e_mcrf                          crD,crS
-    i_se_mfar                         rX,arY
+    i_e_lmw                         rD, D8(rA)
+    i_e_lwz                           rD, D(rA)                                                             (D-mode)
+    i_se_lwz                       rZ, SD4(rX)                                                            (SD4-mode)
+    i_e_lwzu                         rD, D8(rA)                                                            (D8-mode)
+    i_e_mcrf                          crD, crS
+    i_se_mfar                         rX, arY
     i_se_mfctr                             rX
     i_se_mflr                              rX
-    i_se_mr                             rX,rY
-    i_se_mtar                         arX,rY
+    i_se_mr                             rX, rY
+    i_se_mtar                         arX, rY
     i_se_mtctr                             rX
     i_se_mtlr                              rX
     i_se_rfci
     i_se_rfi
-    i_e_rlw                           rA,rS,rB                                                               (Rc = 0)
-    i_e_rlw.                          rA,rS,rB                                                               (Rc = 1)
-    i_e_rlwi                          rA,rS,SH                                                               (Rc = 0)
-    i_e_rlwi.                         rA,rS,SH                                                               (Rc = 1)
-    i_e_rlwimi             rA,rS,SH,MB,ME
-    i_e_rlwinm              rA,rS,SH,MB,ME
-    i_e_rlwimi             rA,rS,SH,MB,ME
-    i_e_rlwinm              rA,rS,SH,MB,ME
+    i_e_rlw                           rA, rS, rB                                                               (Rc = 0)
+    i_e_rlw.                          rA, rS, rB                                                               (Rc = 1)
+    i_e_rlwi                          rA, rS, SH                                                               (Rc = 0)
+    i_e_rlwi.                         rA, rS, SH                                                               (Rc = 1)
+    i_e_rlwimi             rA, rS, SH, MB, ME
+    i_e_rlwinm              rA, rS, SH, MB, ME
+    i_e_rlwimi             rA, rS, SH, MB, ME
+    i_e_rlwinm              rA, rS, SH, MB, ME
     i_se_sc provides the same functionality as sc without the LEV field. se_rfi, se_rfci, se_rfdi, and se_rfmci
     i_se_sc
     i_se_sc is used to request a system service. A system call interrupt is generated. The contents of the MSR
-    i_e_stmw                        rS,D8(rA)                                                               (D8-mode)
-    i_se_sub                            rX,rY
-    i_se_subf                           rX,rY
-    i_e_subfic                    rD,rA,SCI8                                                                  (Rc = 0)
-    i_e_subfic.                   rD,rA,SCI8                                                                  (Rc = 1)
-    i_se_subi                       rX,OIMM                                                                 (Rc = 0)
-    i_se_subi.                      rX,OIMM                                                                 (Rc = 1)
+    i_e_stmw                        rS, D8(rA)                                                               (D8-mode)
+    i_se_sub                            rX, rY
+    i_se_subf                           rX, rY
+    i_e_subfic                    rD, rA, SCI8                                                                  (Rc = 0)
+    i_e_subfic.                   rD, rA, SCI8                                                                  (Rc = 1)
+    i_se_subi                       rX, OIMM                                                                 (Rc = 0)
+    i_se_subi.                      rX, OIMM                                                                 (Rc = 1)
     '''
 
 
@@ -3984,7 +5232,7 @@ t_arch = e_ppc.PpcModule()
 e = t_arch.getEmulator()
 m = e_m.MemoryObject()
 e.setMemoryObject(m)
-m.addMemoryMap(0x0000,0777,"memmap1", "\xff"*1024)
+m.addMemoryMap(0x0000, 0777, "memmap1", "\xff"*1024)
 
 """
 
@@ -4028,7 +5276,7 @@ In [3]: for lva, lsz, ltype, ltinfo in vw.getLocations(vivisect.LOC_OP):
    ...:     mnems[op.mnem] = mnems.get(op.mnem, 0) + 1
    ...:
 
-In [5]: dist = [(y, x) for x,y in mnems.items()]
+In [5]: dist = [(y, x) for x, y in mnems.items()]
 
 In [7]: dist.sort()
 

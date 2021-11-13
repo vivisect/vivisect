@@ -4,6 +4,7 @@ import vivisect
 import envi.archs.ppc
 import envi.exc as e_exc
 import envi.const as e_const
+import envi.common as e_common
 import envi.expression as e_exp
 import envi.archs.ppc.vle as eapvd
 import envi.archs.ppc.emu as eape
@@ -15,9 +16,13 @@ from binascii import unhexlify
 from envi.archs.ppc.regs import *
 from envi.archs.ppc.const import *
 
+logging.basicConfig()
 logger = logging.getLogger(__name__)
-_log_level = getattr(logging, os.environ.get('LOG_LEVEL', 'INFO'))
-logger.setLevel(_log_level)
+_log_level = os.environ.get('LOG_LEVEL', 'INFO')
+if hasattr(logging, _log_level):
+    e_common.initLogging(logger, level=getattr(logging, _log_level))
+else:
+    e_common.initLogging(logger, level=int(_log_level))
 
 MARGIN_OF_ERROR = 200
 

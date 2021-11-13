@@ -293,7 +293,6 @@ class GdbStubMixin(gdbstub.GdbClientStub):
         # TODO: rework event model to have a background thread constantly processing received pkts
         while True:
             pkt = self._recvResponse()
-            print("platformWait() ==> %r" % pkt)
             if pkt.startswith(b'O'):
                 continue
 

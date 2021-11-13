@@ -35,14 +35,15 @@ from .gdb_reg_fmts import ARCH_META
 
 import envi.exc as e_exc
 import envi.common as e_cmn
+import vtrace.platforms.gdb_exc as gdb_exc
 
 from itertools import groupby
 
 logger = logging.getLogger(__name__)
-e_cmn.initLogging(logger, level=logging.INFO)
+#e_cmn.initLogging(logger, level=logging.INFO)
 
 class GdbStubBase:
-    def __init__(self, arch, addr_size, bigend, reg, port):
+    def __init__(self, arch, addr_size, bigend, reg, port, find_port=True):
         """ 
         Base class for consumers of GDB protocol for remote debugging.
 
@@ -67,6 +68,7 @@ class GdbStubBase:
             None
         """
         self._gdb_port = port
+        self._gdb_find_port = find_port
         self._arch = arch
         self._gdbarch = None    # do a lookup?  sort this out.
         self._gdb_reg_fmt = reg
@@ -197,6 +199,7 @@ class GdbStubBase:
     def _recvResponse(self):
         """
         Handles receiving data over the server-client socket.
+        This includes both Data response as well as Ack/Retrans
 
         Args:
             None
@@ -211,13 +214,16 @@ class GdbStubBase:
             raise Exception('Socket not responding')
 
         # If this is an acknowledgment packet, return early
-        if (res == b'+') or (res == b'-'):
+        if res in (b'+', b'-'):
             return res
+
         elif res == b'$':
             pass
+
         else:
             res = res + self._gdb_sock.recv(10)
             raise Exception('Received unexpected packet: %s' % res)
+
 
         pkt = b'$%s' % self._recvUntil((b'#',))
         logger.debug('_recvMessage: pkt=%r' % pkt)
@@ -229,6 +235,8 @@ class GdbStubBase:
         if expected_csum != actual_csum:
             raise Exception('Invalid packet data checksum')
 
+        # only send Ack if this is *not* an Ack/Retrans and if everything 
+        # checks out ok (checksum, $/#/etc)
         self._sendAck()
 
         decoded = self._lengthDecode(msg_data)
@@ -263,6 +271,7 @@ class GdbStubBase:
             str: The characters read up until and including the delimiting
             character.
         """
+        logger.debug("_recvUntil(%r)", clist)
         ret = []
         x = b''
         while x not in clist:
@@ -271,7 +280,7 @@ class GdbStubBase:
                 raise Exception('Socket closed unexpectedly')
             ret.append(x)
             
-        #logger.debug('_recvUntil(%r):  %r', c, ret)
+        logger.debug('_recvUntil(%r):  %r', clist, ret)
         return b''.join(ret)
 
     def _msgExchange(self, msg, expect_res= True):
@@ -298,13 +307,14 @@ class GdbStubBase:
         while (status != b'+') and (retry_count < retry_max):
             self._sendMsg(msg)
             status = self._recvResponse()
-            retry_count += 1    
+            retry_count += 1
+        if retry_count >= retry_max:
+            logger.warning("_msgExchange:  Not received Ack in retry_max (%r) attempts!", retry_max)
 
         # Return the response
         if expect_res:
             res = self._recvResponse()
-            # Acknowledge receipt of the packet
-            self._sendAck()
+            
         else:
             res = status
         
@@ -774,7 +784,7 @@ class GdbClientStub(GdbStubBase):
                     out.append(msg)
                     off += len(msg)
                 else:
-                    logger.warning("gdbGetFeatureFile(%s)[off=0x%x]: unexpected response: %r", name, off, data)
+                    logger.warning("qXfer:%s:%s:%s [off=0x%x]: unexpected response: %r", qtype, cmd, name, off, data)
 
             # go until we get less than we asked for
             if res == b'l' or len(data) < size:
@@ -1346,13 +1356,19 @@ class GdbClientStub(GdbStubBase):
 
         return data
 
+
+STATE_STARTUP = 0
+STATE_RUNNING = 1
+STATE_SHUTDOWN = 2
+
+
 class GdbServerStub(GdbStubBase):
     """
     The GDB server stub code. GDB server implementations should inherit from
     this class. Functions that start with '_server' must be implemented by 
     the code controlling the debugged process (e.g. the vivisect emulator).
     """
-    def __init__(self, arch, addr_size, bigend, reg, port):
+    def __init__(self, arch, addr_size, bigend, reg, port, find_port=True):
         """ 
         The GDB sever stub.
 
@@ -1376,34 +1392,56 @@ class GdbServerStub(GdbStubBase):
         Returns:
             None
         """
-        GdbStubBase.__init__(self, arch, addr_size, bigend, reg, port)
+        GdbStubBase.__init__(self, arch, addr_size, bigend, reg, port, find_port)
+        self.state = STATE_STARTUP
+
+        self.curThread = None
+        self.threadList = []
+        self.threadOps = {'m': 0,
+                'M': 0,
+                'g': 0,
+                'G': 0,
+                'c': 0,
+                's': 0,
+                'vCont': 0,
+        }
+
+        self.breakPointsSW = []
+        self.breakPointsHW = []
+
 
     def _recvServer(self, maxlen=10000):
         '''
         Receive packets for the server (from a connected client)
         '''
+        logger.debug("_recvServer")
         data = b''
-        while not len(data) or data[-1] != b'#':
+        while not len(data) or data[-1:] != b'#':
             data += self._recvUntil((b'#', b'\x03'))
+            logger.debug("_recvServer: data=%r", data)
             if data == b'\x03':
-                raise GdbBreakException()
+                logger.info("Received BREAK!  Raising GdbBreakException")
+                raise gdb_exc.GdbBreakException()
 
-            if len(data) > maxdata:
-                raise InvalidGdbPacketException(data)
+            if len(data) > maxlen:
+                logger.warning("fail: len(data): %d   maxlen: %d", len(data), maxlen)
+                raise gdb_exc.InvalidGdbPacketException("Invalid Packet: %r" % data)
 
 
+        logger.debug("done with read loop:  %r", data)
         # now do our packet checks
         if data[0:1] != b'$':
-            raise InvalidGdbPacketException(data)
+            logger.warning("fail: data doesn't start with '$'")
+            raise gdb_exc.InvalidGdbPacketException("Invalid Packet: %r" % data)
 
         data = data[1:-1]
 
+        # pull the checksum bytes
         csum = self._gdb_sock.recv(2)
         calccsum = self._gdbCSum(data)
-        print("DATA: %r" % data)
-        print("CSUM: %r (calculated: %.2x)" % (csum, calccsum))
+        logger.debug("DATA: %r     CSUM: %r (calculated: %.2x)", data, csum, calccsum)
         if int(csum, 16) != calccsum:
-            raise InvalidGdbPacketException(data, csum, calccsum)
+            raise gdb_exc.InvalidGdbPacketException("Invalid Packet (checksum): %r  %r!=%r" % (data, csum, calccsum))
 
         return data
 
@@ -1420,32 +1458,65 @@ class GdbServerStub(GdbStubBase):
         Returns:
             None
         """
+        data = b''
+        logger.info("runServer starting...")
         sock = socket.socket()
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(('localhost', self._gdb_port))
-        sock.listen(5)
-        self._gdb_sock, addr = sock.accept()
-        
-        reqBreak = False
         while True:
             try:
-                data = self._recvServer()
-                #TODO: coalesce with _parseMsg?
-                # ack receipt
-                self._gdb_sock.sendall(b'+')
-
-            except GdbBreakException as e:
-                logger.info("Received BREAK signal: %r", e)
-                reqBreak = True
-
-            except Exception as e:
-                logger.warning('gdbstub.runServer() Exception: %r', e, exc_info=1)
+                sock.bind(('localhost', self._gdb_port))
                 break
 
-            self._cmdHandler(data)  
-    
-        self._gdb_sock.close()
+            except OSError as e:
+                if not self._gdb_find_port:
+                    raise e
+
+                self._gdb_port += 1
+
+        sock.listen(5)
+        logger.info("runServer listening on port %d", self._gdb_port)
+
+        self.state = STATE_RUNNING
+
+        while self.state == STATE_RUNNING:
+            try:
+                self._gdb_sock, addr = sock.accept()
+                logger.info("runServer: Received Connection from %r", addr)
+                
+                while True:
+                    logger.info("runServer continuing...")
+                    try:
+                        data = self._recvServer()
+                        #TODO: coalesce with _parseMsg?
+                        # ack receipt
+                        logger.info("received: %r    xmitting '+'", data)
+                        self._sendAck()
+                        #self._gdb_sock.sendall(b'+')
+
+                    except gdb_exc.InvalidGdbPacketException as e:
+                        logger.info("Invalid Packet Exception!  %r", e)
+                        self._sendRetrans()
+                        continue
+
+                    except gdb_exc.GdbBreakException as e:
+                        logger.info("Received BREAK signal: %r", e)
+                        data = b'\x03'
+
+                    except Exception as e:
+                        logger.warning('gdbstub.runServer() Exception: %r', e, exc_info=1)
+                        break
+
+                    logger.debug("runServer: %r" % data)
+                    self._cmdHandler(data)  
+            
+            except Exception as e:
+                logger.critical("runServer exception!", exc_info=1)
+
+            finally:
+                self._gdb_sock.close()
+
         sock.close()
+
 
     def _cmdHandler(self, data):
         """
@@ -1496,8 +1567,12 @@ class GdbServerStub(GdbStubBase):
                 res = self._handleBREAK()
 
             else:
-                raise Exception(b'Unsupported command %s' % cmd)
-        except:
+                #raise Exception(b'Unsupported command %s' % cmd)
+                logger.warning('Unsupported command %s' % cmd)
+                self._msgExchange(b'')
+
+        except Exception as e:
+            logger.warning("_cmdHandler(%r): EXCEPTION: %r", data, e)
             self._msgExchange(b'E%.2x' % errno.EPERM)
             raise
 
@@ -1534,9 +1609,13 @@ class GdbServerStub(GdbStubBase):
         break_type, addr = self._parseBreakPkt(cmd_data)
 
         if break_type == b'0':
+            self.breakPointsSW.append(addr)
             self._serverSetSWBreak(addr)
+
         elif break_type == b'1':
+            self.breakPointsHW.append(addr)
             self._serverSetHWBreak(addr)
+
         else:
             raise Exception('Unsupported breakpoint type: %s' % break_type)
 
@@ -1584,8 +1663,12 @@ class GdbServerStub(GdbStubBase):
     
         if break_type == b'0':
             self._serverRemoveSWBreak(addr)
+            self.breakPointsSW.remove(addr)
+
         elif break_type == b'1':
             self._serverRemoveHWBreak(addr)
+            self.breakPointsHW.remove(addr)
+
         else:
             raise Exception('Unsupported breakpoint type: %s' % break_type)
 
@@ -1630,7 +1713,16 @@ class GdbServerStub(GdbStubBase):
             str: A GDB response packet containing the halt reason.
         """
         signal = self._serverGetHaltSignal()
-        res = b'%s%.2x' % (b'S', signal)
+        if type(signal) == int:
+            res = b'S%.2x' % (signal)
+
+        else:
+            #signal better be a (int, dict)
+            # regdict should be "regname": <intvalue> pairs
+            signal, regdict = signal
+            res = b'T%.2x' % (signal)
+            res += b';'.join(["%s:%.2x" % (k, v) for k, v in list(regdict.items())])
+
         return res
 
     def _serverGetHaltSignal(self):
@@ -1865,6 +1957,34 @@ class GdbServerStub(GdbStubBase):
         """
         raise Exception('Server translation layer must implement this function')
 
+    def _handleBREAK(self):
+        """
+        Sends a BREAK signal to the execution engine
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        signal = self._serverCont()
+        res = b'S%.2x' % (signal)
+        return res
+       
+    def _serverBREAK(self):
+        """
+        Halt target execution at the current address.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        raise Exception('Server translation layer must implement this function')
+
+
+
     def _handleQuery(self, cmd_data):
         """
         Provides information from the query.  This is a very complex portion 
@@ -1890,11 +2010,19 @@ class GdbServerStub(GdbStubBase):
         Returns:
             String response with appropriate data
         """
+        logger.warning("_serverQuery: %r", cmd_data)
         if cmd_data.startswith(b'Supported'):
-            print("QUERY: SUPPORTED STUFF!")
+            logger.debug("QUERY: SUPPORTED STUFF!")
             #TODO: parse what the client asserts it supports and store
-            return b"PacketSize=1000;qXfer:features:read+;qXfer:memorymap:read+;multiprocess+"
-        elif cmd_data.startswith(b'Xfer'):
-            print("QUERY: Xfer!")
+            return self._serverQSupported(cmd_data)
 
-        return b"E01"
+        elif cmd_data.startswith(b'Xfer'):
+            logger.debug("QUERY: Xfer!")
+            return self._serverQXfer(cmd_data)
+
+        elif cmd_data == b'C':
+            logger.debug("QUERY: C!")
+            return self._serverQC(cmd_data)
+
+
+        return b""

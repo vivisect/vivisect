@@ -388,9 +388,41 @@ def form_DFLT(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
-    for onm, otype, oshr, omask in operands:
+    for onm, otype, oshr, omask, oflags in operands:
         val = (ival >> oshr) & omask
         oper = OPERCLASSES[otype](val, va)
+        opers.append(oper)
+
+    return opcode, opers, iflags
+
+elemsizes = {
+    OF_VEC_8: 1,
+    OF_VEC_16: 2,
+    OF_VEC_32: 4,
+    OF_VEC_64: 8,
+    OF_VEC_128: 16,
+    OF_VEC_FLT: 4,
+    OF_VEC_DBL: 8,
+}
+OF_VEC_MASK = (OF_VEC_8 | OF_VEC_16 | OF_VEC_32 | OF_VEC_64 | OF_VEC_128 | OF_VEC_FLT | OF_VEC_DBL)
+
+def oflags_elemsize(oflags):
+    return elemsizes[oflags & OF_VEC_MASK]
+
+def form_VX(disasm, va, ival, opcode, operands, iflags):
+    opers = []
+    opcode = None
+
+    # Default with special-casing for passing in size and signedness flags
+    for onm, otype, oshr, omask, oflags in operands:
+        val = (ival >> oshr) & omask
+        if OPERCLASSES[otype] == PpcVRegOper:
+            elemsize = oflags_elemsize(oflags)
+            signed = oflags & OF_SIGNED
+            floating = (oflags & OF_VEC_FLT) | (oflags & OF_VEC_DBL)
+            oper = OPERCLASSES[otype](val, va, elemsize=elemsize, signed=signed, floating=floating)
+        else:
+            oper = OPERCLASSES[otype](val, va)
         opers.append(oper)
 
     return opcode, opers, iflags
@@ -398,7 +430,7 @@ def form_DFLT(disasm, va, ival, opcode, operands, iflags):
 def form_A(disasm, va, ival, opcode, operands, iflags):
     # fallback for all non-memory-accessing FORM_X opcodes
     opers = []
-    for onm, otype, oshr, omask in operands:
+    for onm, otype, oshr, omask, oflags in operands:
         val = (ival >> oshr) & omask
 
         # In addition to instructions that calculate an EA, the isel instruction
@@ -435,6 +467,45 @@ tsizes_formX = {
     INS_STHUX: 2,
     INS_STWUX: 4,
     INS_STDUX: 8,
+    INS_LFSUX: 4,
+    INS_LFSX: 4,
+    INS_STFDX: 8,
+    INS_STFIWX: 4,
+    INS_STFDEPX: 8,
+    INS_STFDUX: 8,
+    INS_LVEBX: 1,
+    INS_LVEHX: 2,
+    INS_LVEPX: 16,
+    INS_LVEPXL: 16,
+    INS_LVEWX: 4,
+    INS_LVEXBX: 1,
+    INS_LVEXHX: 2,
+    INS_LVEXWX: 4,
+    INS_LVX: 16,
+    INS_LVXL: 16,
+    INS_LVSL: 1,    # irrelevant, never deref'd
+    INS_LVSM: 1,    # irrelevant, never deref'd
+    INS_LVSR: 1,    # irrelevant, never deref'd
+    INS_LVSWX: 1,   # irrelevant, never deref'd
+    INS_LVSWXL: 1,  # irrelevant, never deref'd
+    INS_LVTLX: 1,   # irrelevant, never deref'd
+    INS_LVTLXL: 1,  # irrelevant, never deref'd
+    INS_LVTRX: 1,   # irrelevant, never deref'd
+    INS_LVTRXL: 1,  # irrelevant, never deref'd
+    INS_STVEBX: 1,
+    INS_STVEHX: 2,
+    INS_STVEWX: 4,
+    INS_STVEXBX: 1,
+    INS_STVEXHX: 2,
+    INS_STVEXWX: 4,
+    INS_STVFLX: 1,
+    INS_STVFLXL: 1,
+    INS_STVFRX: 1,
+    INS_STVFRXL: 1,
+    INS_STVX: 16,
+    INS_STVXL: 16,
+    INS_STVEPX: 16,
+    INS_STVEPXL: 16,
 }
 
 def form_X(disasm, va, ival, opcode, operands, iflags):
@@ -442,14 +513,18 @@ def form_X(disasm, va, ival, opcode, operands, iflags):
     # a PpcIndexedMemOper. rB is ALWAYS after rA if it's present, and part of the
     # definition of IF_INDEXED is that rA and rB are both present.
     opers = []
-    operands_iterator = iter([(o[1], (ival >> o[2]) & o[3]) for o in operands])
-    for otype, val in operands_iterator:
+    operands_iterator = iter([(o[1], (ival >> o[2]) & o[3], o[4]) for o in operands])
+    for otype, val, oflags in operands_iterator:
         if otype == FIELD_rA and iflags & IF_INDEXED:
-            _, rB_val = next(operands_iterator) # get rB and skip over it in next iteration
+            _, rB_val, _ = next(operands_iterator) # get rB and skip over it in next iteration
             opers.append(PpcIndexedMemOper(val, rB_val, va, tsize=tsizes_formX.get(opcode)))
         elif otype == FIELD_rA and val == 0 and (iflags & IF_MEM_EA) != 0:
             # Some FORM_X rA == 0 instructions are not load/store instructions
             opers.append(PpcImmOper(0, va))
+        elif OPERCLASSES[otype] == PpcVRegOper:
+            elemsize = oflags_elemsize(oflags)
+            signed = oflags & OF_SIGNED
+            opers.append(OPERCLASSES[otype](val, va, elemsize=elemsize, signed=signed))
         else:
             opers.append(OPERCLASSES[otype](val, va))
 
@@ -459,7 +534,7 @@ def form_XL(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
-    for onm, otype, oshr, omask in operands:
+    for onm, otype, oshr, omask, oflags in operands:
         val = (ival >> oshr) & omask
         if otype == FIELD_crBI:
             # Only add this operand if it has a non-zero value
@@ -476,7 +551,7 @@ def form_EVX(disasm, va, ival, opcode, operands, iflags):
 
     # if the last operand is UIMM[123], it's a memory deref.
     if len(operands) == 3 and operands[2][1] in (FIELD_UIMM1, FIELD_UIMM2, FIELD_UIMM3):
-        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask, oflags in operands]
         oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
         opers.append(oper0)
 
@@ -484,7 +559,7 @@ def form_EVX(disasm, va, ival, opcode, operands, iflags):
         opers.append(oper1)
         return opcode, opers, iflags
 
-    for onm, otype, oshr, omask in operands:
+    for onm, otype, oshr, omask, oflags in operands:
         val = (ival >> oshr) & omask
         oper = OPERCLASSES[otype](val, va)
         # FIXME: FORM_X seems to use Signed IMM's
@@ -523,7 +598,7 @@ tsizes_formD = {
 def form_D(disasm, va, ival, opcode, operands, iflags):
     opers = []
 
-    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask, oflags in operands]
     # if the last operand is FIELD_D, it's a memory deref. (load/store instructions)
     if len(operands) == 3 and operands[2][1] == FIELD_D:
         # let's figure out what *memory size* the operand uses
@@ -535,7 +610,7 @@ def form_D(disasm, va, ival, opcode, operands, iflags):
         return opcode, opers, iflags
 
     oidx = 0
-    for onm, otype, oshr, omask in operands:
+    for onm, otype, oshr, omask, oflags in operands:
         val = opvals[oidx]
         oper = OPERCLASSES[otype](val, va)
         opers.append(oper)
@@ -554,7 +629,7 @@ def form_B(disasm, va, ival, opcode, operands, iflags):
     # removed from the operand list because "cr0" is the default condition
     # register and the PPC simplified mnemonics leave cr0 off.
 
-    for onm, otype, oshr, omask in operands:
+    for onm, otype, oshr, omask, oflags in operands:
         opval = (ival >> oshr) & omask
         if otype == FIELD_BD:
             offset = e_bits.bsigned(opval << 2, 16)
@@ -577,7 +652,7 @@ def form_I(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
-    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask, oflags in operands]
 
     offset = e_bits.bsigned(opvals[0] << 2, 26)
     if iflags & IF_ABS:
@@ -599,7 +674,7 @@ tsizes_formDS = {
 
 def form_DS(disasm, va, ival, opcode, operands, iflags):
     tsize = tsizes_formDS.get(opcode)
-    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask, oflags in operands]
     oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
     oper1 = PpcMemOper(opvals[1], opvals[2] * 4, va, tsize=tsize)
     opers = (oper0, oper1)
@@ -609,7 +684,7 @@ def form_MDS(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
-    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask, oflags in operands]
     oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
     oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
     oper2 = OPERCLASSES[operands[2][1]](opvals[2], va)
@@ -624,7 +699,7 @@ def form_MD(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
-    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask, oflags in operands]
     oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
     oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
 
@@ -640,7 +715,7 @@ def form_XS(disasm, va, ival, opcode, operands, iflags):
     opers = []
     opcode = None
 
-    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+    opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask, oflags in operands]
     oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
     oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
     val = (opvals[3] << 5) | opvals[2]
@@ -664,7 +739,7 @@ def form_XFX(disasm, va, ival, opcode, operands, iflags):
 
     operlen = len(operands)
     if operlen == 3 and operands[2][1] in (FIELD_DCRN0_4, FIELD_PMRN0_4, FIELD_SPRN0_4, FIELD_TMRN0_4, FIELD_TBRN0_4,):
-        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask in operands]
+        opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask, oflags in operands]
 
         if operands[1][1] in (FIELD_DCRN5_9, FIELD_PMRN5_9, FIELD_SPRN5_9, FIELD_TMRN5_9, FIELD_TBRN5_9,):
             val = (opvals[2] << 5) | opvals[1]
@@ -685,7 +760,7 @@ def form_XFX(disasm, va, ival, opcode, operands, iflags):
         # mtfsf special case ordering
         operands = (operands[1], operands[3], operands[0], operands[2])
 
-    for onm, otype, oshr, omask in operands:
+    for onm, otype, oshr, omask, oflags in operands:
         val = (ival >> oshr) & omask
         oper = OPERCLASSES[otype](val, va)
         opers.append(oper)
@@ -705,6 +780,9 @@ decoders[FORM_MDS] = form_MDS
 decoders[FORM_MD] = form_MD
 decoders[FORM_XS] = form_XS
 decoders[FORM_XL] = form_XL
+decoders[FORM_VX] = form_VX
+decoders[FORM_VC] = form_VX
+decoders[FORM_VA] = form_VX
 
 
 def genTests(abytez):

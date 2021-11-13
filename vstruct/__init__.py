@@ -340,7 +340,7 @@ class VStruct(vs_prims.v_base):
 
     def vsGetOffset(self, name, offset=0):
         """
-        Return the offset of a member (by name).  This is recursive and will 
+        Return the offset of a member (by name).  This is recursive and will
         descend into nested structures to return the offset of a sub field.
         """
         nameparts = name.split('.')
@@ -484,6 +484,9 @@ class VArray(VStruct):
 
     def __getitem__(self, index):
         return self.vsGetField("%d" % index)
+
+    def __setitem__(self, index, valu):
+        return self.vsSetField("%d" % index, valu)
 
     #FIXME slice asignment
 
