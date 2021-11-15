@@ -158,9 +158,10 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
         hits = {}
         todo = [(funcva, self.getEmuSnap(), self.path)]
-        vw = self.vw    # Save a dereference many many times
+        vw = self.vw  # Save a dereference many many times
 
         while len(todo):
+
             va, esnap, self.curpath = todo.pop()
 
             self.setEmuSnap(esnap)
@@ -193,12 +194,11 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     hits[starteip] = h
 
                 # If we ran out of path (branches that went
-                # somewhere that we couldn't follow?
+                # somewhere that we couldn't follow)?
                 if self.curpath is None:
                     break
 
                 try:
-
                     # FIXME unify with stepi code...
                     op = self.parseOpcode(starteip | tmode)
 
@@ -207,8 +207,10 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         try:
                             self.emumon.prehook(self, op, starteip)
                         except v_exc.BadOpBytes as e:
-                            logger.debug(repr(e))
+                            logger.debug(str(e))
                             break
+                        except v_exc.BadOutInstruction:
+                            pass
                         except Exception as e:
                             logger.log(self._log_level, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon prehook: %r)", funcva, starteip, op, e, self.emumon)
 
@@ -224,8 +226,14 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if self.emumon:
                         try:
                             self.emumon.posthook(self, op, endeip)
+                        except v_exc.BadOpBytes as e:
+                            logger.debug(str(e))
+                            break
+                        except v_exc.BadOutInstruction:
+                            pass
                         except Exception as e:
                             logger.log(self._log_level, "funcva: 0x%x opva: 0x%x:  %r   (%r) (in emumon posthook: %r)", funcva, starteip, op, e, self.emumon)
+
                         if self.emustop:
                             return
 
@@ -257,15 +265,26 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         vg_path.setNodeProp(self.curpath, 'cleanret', True)
                         break
 
+                    # TODO: hook things like error(...) when they have a param that indicates to
+                    # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
+                    # Make sure we can at least get past the first instruction in certain functions
+                    if self.vw.isNoReturnVa(op.va) and op.va != funcva:
+                        vg_path.setNodeProp(self.curpath, 'cleanret', False)
+                        break
+
+                except envi.BadOpcode:
+                    break
                 except envi.UnsupportedInstruction as e:
                     if self.strictops:
                         logger.debug('runFunction breaking after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
                         raise e
                     else:
                         logger.debug('runFunction continuing after unsupported instruction: 0x%08x %s', e.op.va, e.op.mnem)
-                        self.setProgramCounter(e.op.va+ e.op.size)
+                        self.setProgramCounter(e.op.va + e.op.size)
+                except v_exc.BadOutInstruction:
+                    break
                 except Exception as e:
-                    if self.emumon is not None:
+                    if self.emumon is not None and not isinstance(e, e_exc.BreakpointHit):
                         self.emumon.logAnomaly(self, starteip, str(e))
                     logger.debug('runFunction breaking after exception (fva: 0x%x): %s', funcva, e)
                     break # If we exc during execution, this branch is dead.
