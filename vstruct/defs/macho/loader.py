@@ -437,11 +437,53 @@ class fvmfile_command(vstruct.VStruct):
         self.name        = lc_str() # files pathname
         self.header_addr = v_uint32() # files virtual address
 
+# Thread commands contain machine-specific data structures suitable for
+# use in the thread state primitives.  The machine specific data structures
+# follow the struct thread_command as follows.
+# Each flavor of machine specific data structure is preceded by an unsigned
+# long constant for the flavor of that data structure, an uint32_t
+# that is the count of longs of the size of the state data structure and then
+# the state data structure follows.  This triple may be repeated for many
+# flavors.  The constants for the flavors, counts and state data structure
+# definitions are expected to be in the header file <machine/thread_status.h>.
+# These machine specific data structures sizes must be multiples of
+# 4 bytes  The cmdsize reflects the total size of the thread_command
+# and all of the sizes of the constants for the flavors, counts and state
+# data structures.
+#
+# For executable objects that are unix processes there will be one
+# thread_command (cmd == LC_UNIXTHREAD) created for it by the link-editor.
+# This is the same as a LC_THREAD, except that a stack is automatically
+# created (based on the shell's limit for the stack size).  Command arguments
+# and environment variables are copied onto that stack.
+class thread_command(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.cmd     = v_uint32() # LC_UNIXTHREAD
+        self.cmdsize = v_uint32() # strings that follow this command
+        self.flavor  = v_uint32() # flavor of thread state
+        self.count   = v_uint32() # count of longs in thread state
+
+# The entry_point_command is a replacement for thread_command.
+# It is used for main executables to specify the location (file offset)
+# of main().  If -stack_size was used at link time, the stacksize
+# field will contain the stack size need for the main thread.
+class entry_point_command(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.cmd     = v_uint32()       # LC_MAIN
+        self.cmdsize = v_uint32()       # strings that follow this command
+        self.entryoff  = v_uint64()     # file (__TEXT) offset of main() */
+        self.stacksize = v_uint64()     # if not zero, initial stack size */
+
 command_classes = {
     LC_SEGMENT:     segment_command,
     LC_SEGMENT_64:  segment_command_64,
     LC_SYMTAB:      symtab_command,
+    LC_DYSYMTAB:    dysymtab_command,
     LC_LOAD_DYLIB:  dylib_command,
+    LC_MAIN:        entry_point_command,
+    LC_UNIXTHREAD:  thread_command,
 }
 
 def getCommandClass(cmdtype):

@@ -3,6 +3,7 @@ Structure definitions for the OSX MachO binary format.
 '''
 import struct
 import vstruct
+import envi.bits as e_bits
 
 from vstruct.defs.macho.fat import *
 from vstruct.defs.macho.const import *
@@ -15,6 +16,8 @@ class mach_o(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self._raw_bytes = ''
         self._symbols = None
+        self._entrypoints = None
+        self._struct_info = []
 
         self.mach_header = mach_header()
         self.load_commands = vstruct.VStruct()
@@ -30,7 +33,7 @@ class mach_o(vstruct.VStruct):
             return self._symbols
 
         self._symbols = []
-        for fname,vs in self.load_commands:
+        for fname, vs in self.load_commands:
             if vs.cmd != LC_SYMTAB:
                 continue
             strbytes = self._raw_bytes[vs.stroff:vs.stroff+vs.strsize]
@@ -42,6 +45,29 @@ class mach_o(vstruct.VStruct):
                 #symstr = strtab[n.n_strx]
                 # FIXME this is slow!
                 symstr = strbytes[n.n_strx:].split('\x00', 1)[0]
+
+    def getEntryPoints(self):
+        if self._entrypoints is not None:
+            return self._entrypoints
+
+        self._entrypoints = []
+        offset = len(self.mach_header)
+        for fname, vs in self.load_commands:
+            if vs.cmd == LC_UNIXTHREAD:
+                eoff = len(vs)
+                psize = vs.flavor
+                endian = self.getEndian()
+
+                fmt = e_bits.getFormat(psize, endian)
+
+                for x in range(vs.count):
+                    ptr, = struct.unpack_from(fmt, self._raw_bytes, eoff+offset)
+                    self._entrypoints.append((offset + eoff, ptr))
+                    eoff += psize
+
+            offset += vs.cmdsize
+
+        return self._entrypoints
 
     def getLibDeps(self):
         '''
@@ -79,6 +105,7 @@ class mach_o(vstruct.VStruct):
         Returns Structure information usable by the loader to tag file structures
         '''
         structs = []
+        cmdsyms = []
         for fname, vs in self.load_commands:
             if vs.cmd not in (LC_SEGMENT, LC_SEGMENT_64):
                 continue
@@ -98,11 +125,12 @@ class mach_o(vstruct.VStruct):
                     structs.append(('macho.mach_header', va))
                     offset += len(mach_header())
 
-                for cmd, vs in self.load_commands:
-                    structs.append(('macho.' + vs.vsGetTypeName(), va + offset))
-                    offset += vs.cmdsize
+                for fcmd, fvs in self.load_commands:
+                    structs.append(('macho.' + fvs.vsGetTypeName(), va + offset))
+                    offset += fvs.cmdsize
+                    cmdsyms.append((va+offset, fcmd))
 
-        return structs
+        return structs, cmdsyms
 
     def vsParse(self, bytes, offset=0):
         self._raw_bytes = bytes[offset:]

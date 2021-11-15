@@ -80,6 +80,7 @@ LC_VERSION_MIN_MACOSX     = 0x24
 LC_VERSION_MIN_IPHONEOS   = 0x25
 LC_FUNCTION_STARTS        = 0x26
 LC_DYLD_ENVIRONMENT       = 0x27
+LC_MAIN                   = (0x28|LC_REQ_DYLD)
 
 SG_HIGHVM                 = 0x1 #  the file contents for this segment is forthe high part of the VM space, the low partis zero filled (for stacks in core files) 
 SG_FVMLIB                 = 0x2 #  this segment is the VM that is allocated bya fixed VM library, for overlap checking inthe link editor 

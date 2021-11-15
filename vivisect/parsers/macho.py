@@ -125,12 +125,26 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
     logger.debug("memoryMaps: \n%r", '\n'.join(["0x%x, 0x%x, 0x%x, %r" % (w,x,y,z) for w,x,y,z in vw.getMemoryMaps()]))
     # Add Mach-O structures
-    for sname, va in macho.getStructureInfo():
+    structinfo, cmdinfo = macho.getStructureInfo()
+    for sname, va in structinfo:
         try:
             logger.debug("Applying struct %r at 0x%x", sname, va+offset)
             vw.makeStructure(va + offset, sname)
         except Exception as e:
             print("Error: %r" % e)
+
+    for va, cmdname in cmdinfo:
+        vw.makeName(va, "macho_" + cmdname)
+
+
+    for soff, va in macho.getEntryPoints():
+        va += baseaddr
+        if vw.isValidPointer(va):
+            vw.addEntryPoint(va)
+
+        ptr = baseaddr + soff
+        logger.debug("adding entrypoint: 0x%x (off: 0x%x/0x%x)", va, ptr, soff) 
+        vw.makePointer(ptr, follow=False)
 
     return fname
 
