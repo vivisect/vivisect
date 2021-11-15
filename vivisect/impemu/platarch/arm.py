@@ -1,6 +1,7 @@
 import logging
 
 import envi
+import envi.exc as e_exc
 import envi.archs.arm as e_arm
 from envi.archs.arm.regs import *
 
