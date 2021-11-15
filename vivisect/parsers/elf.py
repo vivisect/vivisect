@@ -43,6 +43,87 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('FIXME implement parseMemory for elf!')
 
+def getBaseAndSize(vw, filename, baseaddr=None):
+    '''
+    Returns the default baseaddr and memory size required to load the file
+    '''
+    savebase = baseaddr
+
+    fd = open(filename, 'rb')
+    elf = Elf.Elf(fd)
+
+    memmaps = getMemoryMapInfo(elf)
+    baseaddr = 0xffffffffffffffffffffffff
+    topmem = 0
+
+    for mapva, mperms, mname, mbytes, malign in memmaps:
+        if mapva < baseaddr:
+            baseaddr = mapva
+        endva = mapva + len(mbytes)
+        if endva > topmem:
+            topmem = endva
+
+    size = topmem - baseaddr
+    if savebase:
+        # if we provided a baseaddr, override what the file wants
+        baseaddr = savebase
+        
+    return baseaddr, size
+
+
+
+def getMemoryMapInfo(elf):
+    '''
+    Gets the default baseaddr and memory map information
+    All the information necessary to add memory maps (or get overall size info)
+    '''
+    memmaps = []
+
+    addbase, baseaddr = getAddBaseAddr(elf)
+
+    pgms = elf.getPheaders()
+    for pgm in pgms:
+        if pgm.p_type == Elf.PT_LOAD:
+            if pgm.p_memsz == 0:
+                continue
+            logger.info('Loading: %s', pgm)
+            bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
+            bytez += b'\x00' * (pgm.p_memsz - pgm.p_filesz)
+            pva = pgm.p_vaddr
+            if addbase:
+                pva += baseaddr
+            memmaps.append((pva, pgm.p_flags & 0x7, fname, bytez, e_const.PAGE_SIZE))
+        else:
+            logger.info('Skipping: %s', pgm)
+
+    if len(pgms) == 0:
+        secs = elf.getSections()
+        # fall back to loading sections as best we can...
+        vw.vprint('elf: no program headers found!')
+
+        maps = [ [s.sh_offset,s.sh_size] for s in secs if s.sh_offset and s.sh_size ]
+        maps.sort()
+
+        merged = []
+        for i in range(len(maps)):
+
+            if merged and maps[i][0] == (merged[-1][0] + merged[-1][1]):
+                merged[-1][1] += maps[i][1]
+                continue
+
+            merged.append( maps[i] )
+
+        baseaddr = 0x05000000
+        for offset,size in merged:
+            bytez = elf.readAtOffset(offset,size)
+            memmaps.append((baseaddr + offset, 0x7, fname, bytez, None))
+
+        for sec in secs:
+            if sec.sh_offset and sec.sh_size:
+                sec.sh_addr = baseaddr + sec.sh_offset
+
+
+
 def makeStringTable(vw, va, maxva):
 
     while va < maxva:
@@ -133,6 +214,17 @@ archcalls = {
     'thumb16': 'armcall',
 }
 
+def getAddBaseAddr(elf, baseaddr=None):
+    '''
+    # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.
+    '''
+    addbase = False
+    if not elf.isPreLinked() and elf.isSharedObject():
+        addbase = True
+    if baseaddr is None:
+        baseaddr = elf.getBaseAddress()
+    return addbase, baseaddr
+
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # analysis of discovered functions and data locations should be stored until the end of loading
     data_ptrs = []
@@ -172,12 +264,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.setEndian(elf.getEndian())
 
     # Base addr is earliest section address rounded to pagesize
-    # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.
-    addbase = False
-    if not elf.isPreLinked() and elf.isSharedObject():
-        addbase = True
-    if baseaddr is None:
-        baseaddr = elf.getBaseAddress()
+    # Some ELF's require adding the baseaddr to most/all later addresses
+    addbase, baseaddr = getAddBaseAddr(elf, baseaddr)
 
     elf.fd.seek(0)
     md5hash = v_parsers.md5Bytes(byts)
@@ -210,6 +298,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     pgms = elf.getPheaders()
     secs = elf.getSections()
 
+    '''
     for pgm in pgms:
         if pgm.p_type == Elf.PT_LOAD:
             if pgm.p_memsz == 0:
@@ -248,7 +337,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         for sec in secs:
             if sec.sh_offset and sec.sh_size:
                 sec.sh_addr = baseaddr + sec.sh_offset
-
+    '''
 
     # First add all section definitions so we have them
     for sec in secs:

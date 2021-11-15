@@ -202,3 +202,14 @@ N_SECT   = 0xe # defined in section number n_sect
 N_PBUD   = 0xc # prebound undefined (defined in a dylib)
 N_INDR   = 0xa # indirect
 
+ENDIAN_LSB = 0
+ENDIAN_MSB = 1
+
+hdr_info = {
+        'cefaedfe': (4, ENDIAN_LSB), # Mach-O Little Endian (32-bit)
+        'cffaedfe': (8, ENDIAN_LSB), # Mach-O Little Endian (64-bit)
+        'feedface': (4, ENDIAN_MSB), # Mach-O Big Endian (32-bit)
+        'feedfacf': (8, ENDIAN_MSB), # Mach-O Big Endian (64-bit)
+        'cafebabe': (0, -1),         # Universal Binary Big Endian. These fat binaries are archives that can include binaries for multiple architectures, but typically contain PowerPC and Intel x86.
+        'bebafeca': (0, -1),         # Universal Binary Big Endian. These fat binaries are archives that can include binaries for multiple architectures, but typically contain PowerPC and Intel x86.
+}
