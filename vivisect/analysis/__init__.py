@@ -148,6 +148,8 @@ def addAnalysisModules(vw):
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
 
+        vw.addStructureModule('osx', 'vstruct.defs.macho')
+
         # Add the one that brute force finds function entry signatures
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
         vw.addAnalysisModule("vivisect.analysis.generic.relocations")

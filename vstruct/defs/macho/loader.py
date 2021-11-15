@@ -1,4 +1,5 @@
 import vstruct
+import envi.common as e_common
 
 from vstruct.primitives import *
 from vstruct.defs.macho.const import *
@@ -23,6 +24,16 @@ class mach_header(vstruct.VStruct):
     def vsParse(self, bytes, offset=0):
         # Over-ride this so we can do the parse, and make sure we
         # had the right endianness.
+        magic = e_common.hexify(bytes[:4])
+        psize, endian = hdr_info.get(magic)
+
+        self.vsSetMeta('psize', psize)
+        self.vsSetMeta('endian', endian)
+
+        if psize == 8:
+            # mach_header_4 has one reserved field at the end
+            self.reserved = v_uint32()
+
         ret = vstruct.VStruct.vsParse(self, bytes, offset=offset)
         if self.magic == MH_CIGAM:
             self._vs_fmtbase = '>'
@@ -73,7 +84,7 @@ class segment_command_64(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.cmd         = v_uint32() # LC_SEGMENT_64
         self.cmdsize     = v_uint32() # includes sizeof section_64 structs
-        self.segname[16] = v_uint8() # segment name
+        self.segname     = v_str(size=16) # segment name
         self.vmaddr      = v_uint64() # memory address of this segment
         self.vmsize      = v_uint64() # memory size of this segment
         self.fileoff     = v_uint64() # file offset of this segment
@@ -145,7 +156,7 @@ class dylib_command(vstruct.VStruct):
         retoff = vstruct.VStruct.vsParse(self, bytes, offset=offset)
         # Grab the name from the inline data...
         name = bytes[ offset + self.name : offset + self.cmdsize ]
-        name = name.split('\x00', 1)[0]
+        name = name.split(b'\x00', 1)[0]
         self.vsGetField('namedata').vsSetLength(len(name))
         self.namedata = name
         return retoff
@@ -428,6 +439,7 @@ class fvmfile_command(vstruct.VStruct):
 
 command_classes = {
     LC_SEGMENT:     segment_command,
+    LC_SEGMENT_64:  segment_command_64,
     LC_SYMTAB:      symtab_command,
     LC_LOAD_DYLIB:  dylib_command,
 }
