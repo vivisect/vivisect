@@ -32,6 +32,7 @@ class VivisectTest(v_t_utils.VivTest):
         cls.firefox_vw = helpers.getTestWorkspace('windows', 'amd64', 'firefox.exe')
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
+        cls.sh_vw = helpers.getTestWorkspace('linux', 'arm', 'sh')
         cls.chown_vw = helpers.getTestWorkspace('linux', 'amd64', 'chown')
 
         for vw in cls.vdir_vw, cls.chgrp_vw, cls.firefox_vw:
@@ -203,7 +204,7 @@ class VivisectTest(v_t_utils.VivTest):
         self.chgrp_vw.do_funcmeta('chgrp.plt_free')
         output = self.chgrp_vw.canvas.strval
         self.assertIn("'MnemDist': {'jmp': 1},", output)
-        self.assertIn("'Thunk': 'plt_free',", output)
+        self.assertIn("'Thunk': '*.free',", output)
         self.assertIn("'api': ('void', None, 'cdecl', '*.free', [('void *', 'ptr')])}", output)
         self.chgrp_vw.canvas.clearCanvas()
 
@@ -1488,6 +1489,35 @@ class VivisectTest(v_t_utils.VivTest):
                     0x140049b40, 0x140049aa0, 0x1400497a0, 0x140049720, 0x140049820, 0x140049a20]
 
         self.assertEqual(thunks, set(impthunk))
+
+    def test_NoRet(self):
+
+        # test analysis stops after a few known NoRets
+        # arm/sh
+        self.assertIsNone(self.sh_vw.getLocation(0x0000ddaa))
+        self.assertIsNone(self.sh_vw.getLocation(0x000288ce))
+       
+        # linux/i386/vdir.llvm
+        self.assertIsNone(self.vdir_vw.getLocation(0x080589ba))
+        self.assertIsNone(self.vdir_vw.getLocation(0x0805875f))
+        self.assertIsNone(self.vdir_vw.getLocation(0x08057b12))
+        self.assertIsNone(self.vdir_vw.getLocation(0x0804adc9))
+
+        # linux/i386/chgrp.llvm
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804cb15))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804c814))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804c66e))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804b7b9))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804d0ae))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x080494d6))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x080499e5))
+
+        # windows/amd64/firefox
+        self.assertIsNone(self.firefox_vw.getLocation(0x14000dd2c))
+        self.assertIsNone(self.firefox_vw.getLocation(0x1400175bb))
+        self.assertIsNone(self.firefox_vw.getLocation(0x140048e8f))
+        self.assertIsNone(self.firefox_vw.getLocation(0x14001bd26))
+        self.assertIsNone(self.firefox_vw.getLocation(0x1400163a7))
 
     def test_del_reloc(self):
         with self.snap(self.chown_vw) as vw:
