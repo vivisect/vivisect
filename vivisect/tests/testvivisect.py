@@ -12,6 +12,7 @@ import vivisect.const as v_const
 import vivisect.tools.graphutil as v_t_graphutil
 
 import vivisect.tests.helpers as helpers
+import vivisect.tests.utils as v_t_utils
 
 
 logger = logging.getLogger(__name__)
@@ -25,13 +26,14 @@ def isint(x):
     return type(x) is int
 
 
-class VivisectTest(unittest.TestCase):
+class VivisectTest(v_t_utils.VivTest):
     @classmethod
     def setUpClass(cls):
         cls.firefox_vw = helpers.getTestWorkspace('windows', 'amd64', 'firefox.exe')
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
         cls.sh_vw = helpers.getTestWorkspace('linux', 'arm', 'sh')
+        cls.chown_vw = helpers.getTestWorkspace('linux', 'amd64', 'chown')
 
         for vw in cls.vdir_vw, cls.chgrp_vw, cls.firefox_vw:
             oldcanv = vw.canvas
@@ -1516,3 +1518,30 @@ class VivisectTest(unittest.TestCase):
         self.assertIsNone(self.firefox_vw.getLocation(0x140048e8f))
         self.assertIsNone(self.firefox_vw.getLocation(0x14001bd26))
         self.assertIsNone(self.firefox_vw.getLocation(0x1400163a7))
+
+    def test_del_reloc(self):
+        with self.snap(self.chown_vw) as vw:
+            base = vw.getFileMeta('chown', 'imagebase')
+
+            va = 0x20f950
+            rva = 0x20f950 + base
+
+            reloc = [rdat for rdat in vw.getRelocations() if rdat[1] == va]
+            self.len(reloc, 1)
+            rtyp = vw.getRelocation(rva)
+            self.assertEqual(2, rtyp)
+
+            old = len(vw.getRelocations())
+            self.assertEqual(2, vw.delRelocation(rva, full=True))
+
+            self.none(vw.getLocation(rva))
+            self.len(vw.getXrefsFrom(rva), 0)
+            self.len(vw.getXrefsTo(0x20028a0), 1)
+            self.eq(2, self.chown_vw.getRelocation(rva))
+            self.eq(1, old - len(vw.getRelocations()))
+
+            self.none(vw.delRelocation(0xabad1dea))
+
+            self.nn(self.chown_vw.getLocation(rva))
+            self.len(self.chown_vw.getXrefsFrom(rva), 1)
+            self.len(self.chown_vw.getXrefsTo(0x20028a0), 2)
