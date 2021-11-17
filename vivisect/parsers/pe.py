@@ -535,3 +535,60 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             vw.markDeadData(rva, rva+len(pebytes))
 
     return fname
+
+def getMemBaseAndSize(vw, filename, baseaddr=None):
+    '''
+    Returns the default baseaddr and memory size required to load the file
+    '''
+    savebase = baseaddr
+
+    pe = PE.PE(open(filename, 'rb'))
+
+    if baseaddr is None:
+        baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+
+    memmaps = [(baseaddr, e_const.MM_READ, '', 0x1000)]
+    codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
+    for idx, sec in enumerate(pe.sections):
+        secrva = sec.VirtualAddress
+        secvsize = sec.VirtualSize
+        secfsize = sec.SizeOfRawData
+        secbase = secrva + baseaddr
+        secname = sec.Name.strip("\x00")
+        secrvamax = secrva + secvsize
+
+        if sec.VirtualSize == 0 or sec.SizeOfRawData == 0:
+            if idx+1 >= len(pe.sections):
+                continue
+            # fill the gap with null bytes..
+            nsec = pe.sections[idx+1]
+            nbase = nsec.VirtualAddress + baseaddr
+
+            mlen = nbase - secbase
+            memmaps.append((secbase, 7, '', plen))
+            continue
+
+        if sec.SizeOfRawData < sec.VirtualSize:
+            if sec.SizeOfRawData > pe.filesize:
+                continue
+
+        mlen = sec.VirtualSize
+        memmaps.append((secbase, 0, '', mlen))
+
+    baseaddr = 0xffffffffffffffffffffffff
+    topmem = 0
+
+    for mapva, mperms, mname, lenbytes in memmaps:
+        if mapva < baseaddr:
+            baseaddr = mapva
+        endva = mapva + lenbytes
+        if endva > topmem:
+            topmem = endva
+
+    size = topmem - baseaddr
+    if savebase:
+        # if we provided a baseaddr, override what the file wants
+        baseaddr = savebase
+        
+    return baseaddr, size
+
