@@ -67,7 +67,7 @@ def parseFile(vw, filename, baseaddr=None):
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('ihex loader cannot parse memory!')
 
-def getBaseAndSize(vw, filename, baseaddr=None):
+def getMemBaseAndSize(vw, filename, baseaddr=None):
     '''
     Returns the default baseaddr and memory size required to load the file
     '''
@@ -84,11 +84,11 @@ def getBaseAndSize(vw, filename, baseaddr=None):
 
     ihex.vsParse(sbytes)
 
-    memmaps = ihex.geMemoryMaps()
+    memmaps = ihex.getMemoryMaps()
     baseaddr = 0xffffffffffffffffffffffff
     topmem = 0
 
-    for mapva, mperms, mname, mbytes, malign in memmaps:
+    for mapva, mperms, mname, mbytes in memmaps:
         if mapva < baseaddr:
             baseaddr = mapva
         endva = mapva + len(mbytes)

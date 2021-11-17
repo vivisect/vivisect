@@ -1,3 +1,4 @@
+import os
 import envi
 import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
@@ -78,7 +79,7 @@ def parseMemory(vw, memobj, baseaddr):
     vw.addMemoryMap(va, perms, fname, bytez)
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
-def getBaseAndSize(vw, filename, baseaddr=None):
+def getMemBaseAndSize(vw, filename, baseaddr=None):
     if baseaddr is None:
         baseaddr = vw.config.viv.parsers.blob.baseaddr
     size = os.lstat(filename).st_size

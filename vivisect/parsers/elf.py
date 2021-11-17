@@ -43,7 +43,7 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('FIXME implement parseMemory for elf!')
 
-def getBaseAndSize(vw, filename, baseaddr=None):
+def getMemBaseAndSize(vw, filename, baseaddr=None):
     '''
     Returns the default baseaddr and memory size required to load the file
     '''
@@ -72,7 +72,7 @@ def getBaseAndSize(vw, filename, baseaddr=None):
 
 
 
-def getMemoryMapInfo(elf):
+def getMemoryMapInfo(elf, fname=None):
     '''
     Gets the default baseaddr and memory map information
     All the information necessary to add memory maps (or get overall size info)
@@ -99,7 +99,7 @@ def getMemoryMapInfo(elf):
     if len(pgms) == 0:
         secs = elf.getSections()
         # fall back to loading sections as best we can...
-        vw.vprint('elf: no program headers found!')
+        logger.info('elf: no program headers found! (in %r)', fname)
 
         maps = [ [s.sh_offset,s.sh_size] for s in secs if s.sh_offset and s.sh_size ]
         maps.sort()
@@ -121,6 +121,8 @@ def getMemoryMapInfo(elf):
         for sec in secs:
             if sec.sh_offset and sec.sh_size:
                 sec.sh_addr = baseaddr + sec.sh_offset
+
+    return memmaps
 
 
 
@@ -295,49 +297,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     for sec in elf.getSections():
         secnames.append(sec.getName())
 
-    pgms = elf.getPheaders()
     secs = elf.getSections()
 
-    '''
-    for pgm in pgms:
-        if pgm.p_type == Elf.PT_LOAD:
-            if pgm.p_memsz == 0:
-                continue
-            logger.info('Loading: %s', pgm)
-            bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
-            bytez += b'\x00' * (pgm.p_memsz - pgm.p_filesz)
-            pva = pgm.p_vaddr
-            if addbase:
-                pva += baseaddr
-            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez, align=e_const.PAGE_SIZE)
-        else:
-            logger.info('Skipping: %s', pgm)
-
-    if len(pgms) == 0:
-        # fall back to loading sections as best we can...
-        vw.vprint('elf: no program headers found!')
-
-        maps = [ [s.sh_offset,s.sh_size] for s in secs if s.sh_offset and s.sh_size ]
-        maps.sort()
-
-        merged = []
-        for i in range(len(maps)):
-
-            if merged and maps[i][0] == (merged[-1][0] + merged[-1][1]):
-                merged[-1][1] += maps[i][1]
-                continue
-
-            merged.append( maps[i] )
-
-        baseaddr = 0x05000000
-        for offset,size in merged:
-            bytez = elf.readAtOffset(offset,size)
-            vw.addMemoryMap(baseaddr + offset, 0x7, fname, bytez)
-
-        for sec in secs:
-            if sec.sh_offset and sec.sh_size:
-                sec.sh_addr = baseaddr + sec.sh_offset
-    '''
+    for mmapva, mmperms, mfname, mbytez, malign in getMemoryMapInfo(elf, fname):
+        vw.addMemoryMap(mmapva, mmperms, mfname, mbytez, malign)
 
     # First add all section definitions so we have them
     for sec in secs:

@@ -2759,7 +2759,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         mod = viv_parsers.getParserModule(fmtname)
         # get baseaddr and size, then make sure we have a good baseaddr
-        baseaddr, size = mod.getMemoryBaseAndSize(self, filename=filename, baseaddr=baseaddr)
+        baseaddr, size = mod.getMemBaseAndSize(self, filename=filename, baseaddr=baseaddr)
         baseaddr = self.findFreeMemoryBlock(size, baseaddr)
         logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
 
