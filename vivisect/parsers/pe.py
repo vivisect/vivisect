@@ -13,6 +13,7 @@ import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
 import envi.exc as e_exc
+import envi.bits as e_bits
 import envi.const as e_const
 import envi.symstore.symcache as e_symcache
 
@@ -76,8 +77,8 @@ archcalls = {
 
 # map PE relocation types to vivisect types where possible
 relmap = {
-    PE.IMAGE_REL_BASED_HIGHLOW: vivisect.RTYPE_BASEOFF,
-    PE.IMAGE_REL_BASED_DIR64: vivisect.RTYPE_BASEOFF,
+    PE.IMAGE_REL_BASED_HIGHLOW: (vivisect.RTYPE_BASEOFF, 4),
+    PE.IMAGE_REL_BASED_DIR64: (vivisect.RTYPE_BASEOFF, 8),
 }
 
 
@@ -105,18 +106,24 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setMeta('Platform', platform)
 
     vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
+    logger.info("PE loader: Arch: %r\tFormat: pe\tPlatform: %r\tFilename: %r\tBaseAddr: 0x%x", \
+            arch, platform, filename, baseaddr)
 
     # Set ourselves up for extended windows binary analysis
 
+    imagebase = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
     if baseaddr is None:
-        baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
-    entry = pe.IMAGE_NT_HEADERS.OptionalHeader.AddressOfEntryPoint + baseaddr
-    entryrva = entry - baseaddr
+        baseaddr = imagebase
+
+    entryrva = pe.IMAGE_NT_HEADERS.OptionalHeader.AddressOfEntryPoint
+    entry = entryrva + baseaddr
 
     codebase = pe.IMAGE_NT_HEADERS.OptionalHeader.BaseOfCode
     codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
     codervamax = codebase+codesize
 
+    logger.info("PE Imagebase: 0x%x\tentry: 0x%x\tcodebase: 0x%x\tcodesize: 0x%x", \
+            imagebase, entry, codebase, codesize)
     # grab the file bytes for hashing
     pe.fd.seek(0)
     fhash = v_parsers.md5Bytes(byts)
@@ -130,6 +137,9 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     if fvivname is None:
         fvivname = fhash
+
+    logger.info("PE dllname: %r\tfvivname: %r\tmd5: %r\tsha256: %r", \
+            dllname, fvivname, fhash, sha256)
 
     # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
@@ -350,15 +360,18 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     for rva, rtype in pe.getRelocations():
 
         # map PE reloc to VIV reloc ( or dont... )
-        vtype = relmap.get(rtype)
-        if vtype is None:
+        vtypedata = relmap.get(rtype)
+        if vtypedata is None:
             logger.info('Skipping PE Relocation type: %d at %d (no handler)', rtype, rva)
             continue
 
+        vtype, vtsize = vtypedata
+
         try:
-            mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
-        except:
-            # the target adderss of the relocation is not accessible.
+            vtfmt = e_bits.getFormat(vtsize)    # for PowerPC, will need to get Endianness
+            mapoffset = vw.readMemoryFormat(rva + baseaddr, vtfmt)[0] - imagebase
+        except Exception as e:
+            # the target address of the relocation is not accessible.
             # for example, it's not mapped, or split across sections, etc.
             # technically, the PE is corrupt.
             # by continuing on here, we are a bit more robust (but maybe incorrect)
@@ -366,9 +379,10 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             #
             # discussed in:
             # https://github.com/vivisect/vivisect/issues/346
-            logger.warning('Skipping invalid PE relocation: %d', rva)
+            logger.warning('Skipping invalid PE relocation: %d (%r)', rva, e)
             continue
         else:
+            logger.info('PE relocation: 0x%x -> %r+0x%x', baseaddr+rva, fname, mapoffset)
             vw.addRelocation(rva + baseaddr, vtype, mapoffset)
 
     for rva, lname, iname in pe.getImports():
