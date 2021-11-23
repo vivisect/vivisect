@@ -308,6 +308,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     secs = elf.getSections()
 
     for mmapva, mmperms, mfname, mbytez, malign in getMemoryMapInfo(elf, fname, baseaddr):
+        logger.debug("vw.addMemoryMap(0x%x, 0x%x, %r, 0x%x, 0x%x)", mmapva, mmperms, mfname, len(mbytez), malign)
         vw.addMemoryMap(mmapva, mmperms, mfname, mbytez, malign)
 
     # First add all section definitions so we have them

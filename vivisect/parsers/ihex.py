@@ -30,7 +30,7 @@ def parseFile(vw, filename, baseaddr=None):
 
     vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
 
-    # figure out of there's an offset into the file we need to skip
+    # figure out if there's an offset into the file we need to skip
     offset = vw.config.viv.parsers.ihex.offset
     if not offset:
         offset = 0

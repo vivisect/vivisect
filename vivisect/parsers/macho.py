@@ -27,7 +27,7 @@ archcalls = {
 }
 
 '''
-The full Mach-O filetype doco is here. The various magic byte strings are as follows:
+The various magic byte strings are as follows:
 cefaedfe: Mach-O Little Endian (32-bit)
 cffaedfe: Mach-O Little Endian (64-bit)
 feedface: Mach-O Big Endian (32-bit)

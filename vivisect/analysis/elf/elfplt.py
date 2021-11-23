@@ -180,7 +180,7 @@ def getPLTs(vw):
             if vw.getFileMeta(fname, 'addbase'):
                 imgbase = vw.getFileMeta(fname, 'baseoff')
                 FPLT += imgbase
-                logger.debug('Adding Imagebase(%r): 0x%x (0x%x)', fname, imgbase, FPLT)
+                logger.debug('Adding Imagebase(%r) for Dynamics PLT: 0x%x (0x%x)', fname, imgbase, FPLT)
 
             newish = True
             for pltva, pltsize in plts:
