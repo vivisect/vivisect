@@ -20,6 +20,7 @@ def addAnalysisModules(vw):
 
     if fmt == 'pe':
 
+        vw.addAnalysisModule("vivisect.analysis.generic.linker")
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.pe")
 
@@ -90,6 +91,7 @@ def addAnalysisModules(vw):
 
         # elfplt wants to be run before generic.entrypoints.
         vw.addAnalysisModule("vivisect.analysis.elf.elfplt")
+        vw.addAnalysisModule("vivisect.analysis.generic.linker")
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.elf")
 
@@ -143,6 +145,7 @@ def addAnalysisModules(vw):
 
     elif fmt == 'macho': # MACH-O ###################################################
 
+        vw.addAnalysisModule("vivisect.analysis.generic.linker")
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         if arch == 'i386':
             viv_analysis_i386.addEntrySigs(vw)
