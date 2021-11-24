@@ -102,12 +102,6 @@ def getGOTByFilename(vw, filename):
     if fdyns is not None:
         FGOT = fdyns.get('DT_PLTGOT')
         if FGOT is not None:
-            # be sure to add the imgbase to FGOT if required
-            if vw.getFileMeta(filename, 'addbase'):
-                imgbase = vw.getFileMeta(filename, 'baseoff')
-                FGOT += imgbase
-                logger.debug('Adding Imagebase(%r) for Dynamics GOT: 0x%x (0x%x)', filename, imgbase, FGOT)
-
             if FGOT != gotva and None not in (FGOT, gotva):
                 logger.warning("Dynamics and Sections have different GOT entries: S:0x%x D:0x%x. using Dynamics", gotva, FGOT)
 
@@ -135,12 +129,6 @@ def getGOTs(vw):
         if fdyns is not None:
             FGOT = fdyns.get('DT_PLTGOT')
             if FGOT is not None:
-                # be sure to add the imgbase to FGOT if required
-                if vw.getFileMeta(filename, 'addbase'):
-                    imgbase = vw.getFileMeta(filename, 'baseoff')
-                    FGOT += imgbase
-                    logger.debug('Adding Imagebase(%r) for Dynamics GOT: 0x%x (0x%x)', filename, imgbase, FGOT)
-
                 flist = out[filename]
 
                 skip = False
@@ -176,11 +164,6 @@ def getPLTs(vw):
             # if we don't have FPLT or FPLTSZ, skip this
             if None in (FPLT, FPLTSZ):
                 continue
-
-            if vw.getFileMeta(fname, 'addbase'):
-                imgbase = vw.getFileMeta(fname, 'baseoff')
-                FPLT += imgbase
-                logger.debug('Adding Imagebase(%r) for Dynamics PLT: 0x%x (0x%x)', fname, imgbase, FPLT)
 
             newish = True
             for pltva, pltsize in plts:

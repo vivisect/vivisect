@@ -234,6 +234,20 @@ def getAddBaseAddr(elf, baseaddr=None):
     logger.debug("baseaddr: %r\tbaseoff: 0x%x", baseaddr, baseoff)
     return addbase, baseoff, baseaddr
 
+# which Dynamic Types require rebasing
+dt_rebase = (
+        Elf.DT_INIT, 
+        Elf.DT_FINI, 
+        Elf.DT_INIT_ARRAY, 
+        Elf.DT_FINI_ARRAY, 
+        Elf.DT_GNU_HASH,
+        Elf.DT_STRTAB,
+        Elf.DT_SYMTAB,
+        Elf.DT_PLTGOT,
+        Elf.DT_JMPREL,
+        Elf.DT_REL,
+        Elf.DT_VERNEED,
+)
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # analysis of discovered functions and data locations should be stored until the end of loading
     logger.info("loadElfIntoWorkspace(filename=%r, baseaddr: %r", filename, baseaddr)
@@ -457,8 +471,12 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             vw.addLibraryDependancy(name)
         else:
             logger.debug("DYNAMIC:\t%r", d)
+        
+        dval = d.d_value
+        if d.d_tag in dt_rebase and addbase:
+            dval += baseoff
 
-        elfmeta[Elf.dt_names.get(d.d_tag)] = d.d_value
+        elfmeta[Elf.dt_names.get(d.d_tag)] = dval
 
     # TODO: create a VaSet instead? setMeta allows more free-form info,
     # but isn't currently accessible from the gui
