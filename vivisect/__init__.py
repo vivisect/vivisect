@@ -400,6 +400,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
         return self.getRelocation(va)
 
+    def delRelocation(self, va, full=False):
+        """
+        Delete a tracked relocation.
+        """
+        mmap = self.getMemoryMap(va)
+        if not mmap:
+            logger.warning('delRelocation: No matching map found for %s', va)
+            return None
+
+        mmva, mmsz, mmperm, fname = mmap    # FIXME: getFileByVa does not obey file defs
+        reloc = self.getRelocation(va)
+        if not reloc:
+            return None
+        self._fireEvent(VWE_DELRELOC, (fname, va, reloc, full))
+        return reloc
+
     def getRelocations(self):
         """
         Get the current list of relocation entries.
