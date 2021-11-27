@@ -735,7 +735,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Do pointer analysis and folllow up the recomendation
         by creating locations etc...
         """
-        ltype = self.analyzePointer(va)
+        ltype, ltextra = self.analyzePointer(va)
         if ltype is None:
             return False
 
@@ -745,7 +745,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
             logger.debug('discovered new function (followPointer(0x%x))', va)
-            self.makeFunction(va)
+            self.makeFunction(va, arch=ltextra)
             return True
 
         elif ltype == LOC_STRING:
@@ -1111,7 +1111,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return False
 
         if wat.looksgood():
-            self.iscode[va] = True
+            self.iscode[va] = wat.arch
         else:
             self.iscode[va] = False
 
@@ -1917,14 +1917,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         no idea.
         """
         if self.getLocation(va) is not None:
-            return None
+            return (None, None)
         if self.isProbablyUnicode(va):
-            return LOC_UNI
+            return (LOC_UNI, None)
         elif self.isProbablyString(va):
-            return LOC_STRING
-        elif self.isProbablyCode(va):
-            return LOC_OP
-        return None
+            return (LOC_STRING, None)
+        else:
+            arch = self.isProbablyCode(va)
+            if arch:
+                return (LOC_OP, arch)
+        return (None, None)
 
     def getMeta(self, name, default=None):
         return self.metadata.get(name, default)

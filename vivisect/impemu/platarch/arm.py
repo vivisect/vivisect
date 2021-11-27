@@ -110,6 +110,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                         armthumb -= 5
                     elif thumbop.mnem == 'ldr':
                         armthumb -= 2
+                    elif thumbop.mnem == 'b':
+                        armthumb -= 2
 
                 except InvalidInstruction as e:
                     logger.debug("  heuristics: decoding ARM: %r", e)
@@ -123,6 +125,9 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     elif armop.mnem == 'ldr':
                         armthumb += 2
 
+                    if armop.prefixes: # highly unlikely for a function to start with a conditional
+                        armthumb -= 3
+
                 except InvalidInstruction as e:
                     logger.debug("  heuristics: decoding THUMB: %r", e)
 
@@ -133,8 +138,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     raise Exception("Neither architecture parsed the first opcode")
 
                 elif armthumb < 0:
-                        self.setFlag(PSR_T_bit, 1)
-                        logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x", funcva)
+                    self.setFlag(PSR_T_bit, 1)
+                    logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x", funcva)
                 else:
                     self.setFlag(PSR_T_bit, 0)
                     logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is ARM:  0x%x", funcva)
