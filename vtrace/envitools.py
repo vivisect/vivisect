@@ -129,7 +129,7 @@ class InteractiveLSMon(LockStepMonitor):
 
     def _cb_opcode_pre(self, lstep):
         self.count += 1
-        print("\n%4d  Lockstep: 0x%.8x" % (self.count, lstep.emu.getProgramCounter()), end='')
+        print("\n%4d  Lockstep: 0x%.8x  %-20r" % (self.count, lstep.emu.getProgramCounter(), lstep.op1), end='')
         op = lstep.op1
         for oper in op.opers:
             if op.opcode in self.skip_mem_opcodes:
@@ -139,8 +139,8 @@ class InteractiveLSMon(LockStepMonitor):
         return True
 
     def _cb_opcode_post(self, lstep):
-        print("(eflags: 0x%x)" % lstep.trace.getRegisterByName('eflags'), end='')
-        print("(eflags: 0x%x)" % lstep.emu.getRegisterByName('eflags'), end='')
+        print("(flags: 0x%x)" % lstep.trace.getStatusRegister(), end='')
+        print("(flags: 0x%x)" % lstep.emu.getStatusRegister(), end='')
         return True
 
     def _cb_register_failure(self, lstep, exc):
