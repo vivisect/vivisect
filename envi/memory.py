@@ -80,6 +80,25 @@ class IMemory:
         if arch is not None:
             self.setMemArchitecture(arch)
 
+        self.bigend = envi.ENDIAN_LSB
+
+    def getEndian(self):
+        '''
+        Returns the Endianness setting
+        '''
+        return self.bigend
+
+    def setEndian(self, endian):
+        '''
+        Set endianness for memory and architecture modules
+        '''
+        self.bigend = endian
+        for arch in self.imem_archs:
+            arch.setEndian(self.bigend)
+
+        if self.arch is not None:
+            self.arch.setEndian(self.bigend)
+
     def setMemArchitecture(self, arch):
         '''
         Set the hardware architecture for the current memory object.

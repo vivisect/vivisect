@@ -101,7 +101,12 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             # FIXME color code and get args parsing goin on
             mcanv.addText(" ")
             xrtag = mcanv.getTag("xrefs")
-            mcanv.addText("[%d XREFS]\n" % xrcount, tag=xrtag)
+            mcanv.addText("[%d XREFS] " % xrcount, tag=xrtag)
+
+            if self.vw.getMeta('NoReturnApisVa', {}).get(lva):
+                mcanv.addNameText('NORET', typename='funcflags')
+
+            mcanv.addText('\n')
 
             mcanv.addText(linepre, tag=vatag)
             mcanv.addText('\n')
