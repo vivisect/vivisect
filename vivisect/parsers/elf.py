@@ -566,11 +566,12 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                                                                         Elf.st_info_bind.get(s.st_other, s.st_other),
                                                                         s.name)
 
-        if s.getInfoType() == Elf.STT_FILE:
+        symtype = s.getInfoType()
+        if symtype == Elf.STT_FILE:
             vw.setVaSetRow('FileSymbols', (dmglname, sva))
             continue
 
-        elif s.getInfoType() == Elf.STT_NOTYPE:
+        elif symtype == Elf.STT_NOTYPE:
             # mapping symbol
             if arch in ('arm', 'thumb', 'thumb16'):
                 symname = s.getName()
@@ -589,7 +590,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     # Data Items (eg. literal pool)
                     logger.info('mapping (NOTYPE) data symbol: 0x%x: %r', sva, dmglname)
                     data_ptrs.append(sva)
-        elif s.getInfoType() == Elf.STT_OBJECT:
+        elif symtype == Elf.STT_OBJECT:
             symname = s.getName()
             sva += baseoff
             if symname:
@@ -621,6 +622,15 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                                 new_pointers.append((addr, valu, symname))
                     else:
                         vw.makeNumber(sva, size=s.st_size)
+
+        elif symtype == Elf.STT_FUNC:
+            sva += baseoff
+
+            symname = s.getName()
+            if symname:
+                vw.makeName(sva, symname, filelocal=True, makeuniq=True)
+
+            new_functions.append(("Symbol: FUNC", sva))
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
         sname = demangle(s.name)
