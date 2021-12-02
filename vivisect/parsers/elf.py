@@ -623,15 +623,6 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     else:
                         vw.makeNumber(sva, size=s.st_size)
 
-        elif symtype == Elf.STT_FUNC:
-            sva += baseoff
-
-            symname = s.getName()
-            if symname and vw.isValidPointer(sva):
-                vw.makeName(sva, symname, filelocal=True, makeuniq=True)
-
-            new_functions.append(("Symbol: FUNC", sva))
-
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
         sname = demangle(s.name)
         if sva == 0:
