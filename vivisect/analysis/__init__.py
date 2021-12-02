@@ -91,9 +91,9 @@ def addAnalysisModules(vw):
 
         # elfplt wants to be run before generic.entrypoints.
         vw.addAnalysisModule("vivisect.analysis.elf.elfplt")
-        vw.addAnalysisModule("vivisect.analysis.generic.linker")
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.elf")
+        vw.addAnalysisModule("vivisect.analysis.generic.linker")
 
         if arch in ('i386', 'amd64', 'arm'):
             vw.addImpApi('posix', arch)

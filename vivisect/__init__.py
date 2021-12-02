@@ -2835,6 +2835,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 if impfname not in (efname, '*'):
                     continue
 
+                if self.isFunctionThunk(eva):
+                    logger.info("Skipping Exported Thunk")
+                    continue
+
                 # file and symbol name match.  apply the magic.
                 # do we ever *not* write in the full address at the import site?
                 logger.debug("connecting Import 0x%x -> Export 0x%x (%r)", iva, eva, isym)
