@@ -93,7 +93,6 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.elf.elfplt")
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.elf")
-        vw.addAnalysisModule("vivisect.analysis.generic.linker")
 
         if arch in ('i386', 'amd64', 'arm'):
             vw.addImpApi('posix', arch)
@@ -140,6 +139,7 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
         # late-analysis ELF PLT tidying up, allowing unused PLT entries to be made into functions
         vw.addAnalysisModule("vivisect.analysis.elf.elfplt_late")
+        vw.addAnalysisModule("vivisect.analysis.generic.linker")
         vw.addAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
