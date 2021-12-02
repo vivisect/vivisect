@@ -1359,7 +1359,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 # which *removes* the deref flag...
                 # If we're an xref to something real, rip out the deref flag, but if we're
                 # an xref to a big fat 0, fuggedaboutit
-                if ptrdest and self.analyzePointer(ptrdest[0]):
+                if ptrdest and self.analyzePointer(ptrdest[0])[0]:
                     self.addXref(va, ptrdest[0], REF_CODE, bflags & ~envi.BR_DEREF)
                 else:
                     self.addXref(va, tova, REF_CODE, bflags)
