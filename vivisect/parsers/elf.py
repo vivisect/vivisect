@@ -627,7 +627,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             sva += baseoff
 
             symname = s.getName()
-            if symname:
+            if symname and vw.isValidPointer(sva):
                 vw.makeName(sva, symname, filelocal=True, makeuniq=True)
 
             new_functions.append(("Symbol: FUNC", sva))
