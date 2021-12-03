@@ -57,7 +57,7 @@ def analyzeFunction(vw, fva):
     # roll through the first few opcodes looking for one to load a register with .got's address
     success = 0
     tva = fva
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(va=fva)
     emu._prep(tva)
 
     for x in range(MAX_INIT_OPCODES):

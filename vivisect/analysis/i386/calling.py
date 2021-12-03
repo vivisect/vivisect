@@ -127,7 +127,7 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
 
 def analyzeFunction(vw, fva):
 
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(va=fva)
     emumon = AnalysisMonitor(vw, fva)
 
     stkstart = emu.getStackCounter()
