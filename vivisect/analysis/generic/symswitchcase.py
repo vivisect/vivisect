@@ -4,7 +4,6 @@ which use pointer arithetic to determine code path for each case.
 
 This will not connect switch cases which are actually explicit cmp/jz in the code.
 '''
-import gc
 import sys
 import time
 
@@ -1287,7 +1286,6 @@ def analyzeFunction(vw, fva, timeout=45):
         dynbranches = vw.getVaSet('DynamicBranches')
     vw.setMeta('analyzedDynBranches', done)
     # TODO: we need a better way to store changing lists/dicts, that don't show up in the UI.  VaSet would be great, but ugly
-    gc.collect()
 
 
 def pathGenConvert(pathgen):
