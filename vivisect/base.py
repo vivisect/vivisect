@@ -261,6 +261,29 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self._handleADDXREF((rva, ptr, REF_PTR, 0))
             self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
 
+    def _handleDELRELOC(self, einfo):
+        fname, rva, rtyp, full = einfo
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        ptroff = rva - imgbase
+
+        self.reloc_by_va.pop(rva, None)
+        delidx = -1
+
+        for idx, (fn, off, typ, data) in enumerate(self.relocations):
+            if fn == fname and off == ptroff and typ == rtyp:
+                delidx = idx
+                break
+
+        if delidx >= 0:
+            self.relocations.pop(delidx)
+
+        if full:
+            if rtyp == RTYPE_BASEPTR:
+                ptr = imgbase + data
+                ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
+                self._handleDELXREF((rva, ptr, REF_PTR, 0))
+                self._handleDELLOCATION((rva, self.psize, LOC_POINTER, ptr))
+
     def _handleADDMODULE(self, einfo):
         logger.warning('DEPRECATED (ADDMODULE) ignored: %s', einfo)
 
@@ -280,7 +303,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
         # node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
         node = self._call_graph.getFunctionNode(va)
-        self._call_graph.setNodeProp(node,'repr', self.getName(va))
+        self._call_graph.setNodeProp(node, 'repr', self.getName(va))
 
         # Tell the codeflow subsystem about this one!
         calls_from = meta.get('CallsFrom')
@@ -510,7 +533,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_ADDSEGMENT] = self._handleADDSEGMENT
         self.ehand[VWE_DELSEGMENT] = None
         self.ehand[VWE_ADDRELOC] = self._handleADDRELOC
-        self.ehand[VWE_DELRELOC] = None
+        self.ehand[VWE_DELRELOC] = self._handleDELRELOC
         self.ehand[VWE_ADDMODULE] = self._handleADDMODULE
         self.ehand[VWE_DELMODULE] = self._handleDELMODULE
         self.ehand[VWE_ADDFMODULE] = self._handleADDFMODULE
@@ -609,17 +632,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     #def _loadImportApi(self, apidict):
         #self._imp_api.update( apidict )
-
-    def getEndian(self):
-        return self.bigend
-
-    def setEndian(self, endian):
-        self.bigend = endian
-        for arch in self.imem_archs:
-            arch.setEndian(self.bigend)
-
-        if self.arch is not None:
-            self.arch.setEndian(self.bigend)
 
 
 #################################################################

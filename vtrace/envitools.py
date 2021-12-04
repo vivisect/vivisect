@@ -103,9 +103,6 @@ class TraceEmulator(vtrace.Trace, v_base.TracerBase):
         # We only support single step events now
         return True
 
-    def archGetRegCtx(self):
-        return self.emu
-
     def platformGetRegCtx(self, threadid):
         return self.emu
 
@@ -130,12 +127,24 @@ class TraceEmulator(vtrace.Trace, v_base.TracerBase):
     def platformGetFds(self):
         return []  # FIXME perhaps tie this into magic?
 
+    def archGetRegCtx(self):
+        return self.emu
+
+    def archGetRegisterGroups(self):
+        return self.arch.archGetRegisterGroups()
+
+    def pointerString(self, val):
+        return self.arch.pointerString(val)
+
     def getStackTrace(self):
         # FIXME i386...
         return [(self.emu.getProgramCounter(), 0), (0, 0)]
 
     def platformDetach(self):
         pass
+
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+        return self.emu.parseOpcode(va, arch)
 
 
 def setup():

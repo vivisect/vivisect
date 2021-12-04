@@ -141,7 +141,7 @@ def analyze(vw):
                 elif vw.isProbablyString(va):
                     vw.makeString(va)
             else:
-                emu = vw.getEmulator()
+                emu = vw.getEmulator(va=va)
                 wat = watcher(vw, va)
                 emu.setEmulationMonitor(wat)
 

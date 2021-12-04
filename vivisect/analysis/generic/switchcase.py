@@ -140,5 +140,5 @@ if 'vw' in globals():
         if op is None:
             vw.vprint("Cannot analyze none op at 0x%x" % va)
             continue
-        analyzeJmp(None, vw.getEmulator(), op, va)  # it doesn't use archmod anyway
+        analyzeJmp(None, vw.getEmulator(va=va), op, va)  # it doesn't use archmod anyway
     vw.vprint("Switchcase Done")

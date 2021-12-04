@@ -10126,7 +10126,7 @@ libstdc_data = {
         (0x206b3a0, 'libstdc___so_6_0.plt_std::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::append(std::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> > const&)'),
         (0x206b3b0, 'libstdc___so_6_0.plt_std::time_get<wchar_t, std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> > >::_M_extract_via_format(std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> >, std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> >, std::ios_base&, std::_Ios_Iostate&, tm*, wchar_t const*) const'),
         (0x206b3c0, 'libstdc___so_6_0.plt_std::logic_error::what() const'),
-        (0x206b3d0, 'libstdc___so_6_0.)'),
+        (0x206b3d0, 'libstdc___so_6_0.plt_std::__throw_out_of_range_fmt(char const*, ...)'),
         (0x206b3e0, 'libstdc___so_6_0.plt_std::basic_filebuf<char, std::char_traits<char> >::~basic_filebuf()'),
         (0x206b3f0, 'libstdc___so_6_0.plt_std::length_error::length_error(char const*)'),
         (0x206b400, 'libstdc___so_6_0.plt_std::__cxx11::time_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::_M_extract_num(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, int&, int, int, unsigned int, std::ios_base&, std::_Ios_Iostate&) const'),

@@ -50,7 +50,7 @@ def analyzeFunction(vw, fva):
             break
 
     if emulate:
-        emu = vw.getEmulator()
+        emu = vw.getEmulator(va=fva)
         instrwat = instrhook_watcher(vw, fva)
         emu.setEmulationMonitor(instrwat)
         try:

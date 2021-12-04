@@ -927,6 +927,7 @@ sh_data = {
         (0xc3b8, 'sh.__entry'),
         (0xc41c, 'sh.fini_function_0'),
         (0xc438, 'sh.init_function_0'),
+        (0xc554, 'sh.ptr_stderr_0000c554'),
         (0xc8d0, 'sh.ptr_optind_0000c8d0'),
         (0xdf60, 'sh.ptr_optind_0000df60'),
         (0xe418, 'sh.ptr_stdout_0000e418'),
