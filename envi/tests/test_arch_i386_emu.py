@@ -85,6 +85,10 @@ i386Tests = [
     {'bytes': '66f7f0',
      'setup': ({'eax': 48, 'edx': 1}, {}),
      'tests': ({'eax': 1366, 'edx': 16}, {})},
+    # idiv edi
+    {'bytes': 'f7ff',
+     'setup': ({'eax': 0xffffffe2, 'edx': 0xffffffff}, {}),
+     'tests': ({'eax': 0, 'edx': 0xffffffe2}, {})},
     # rol eax, 4
     {'bytes': 'c1c004',
      'setup': ({'eax': 5}, {}),
