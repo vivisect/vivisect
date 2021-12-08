@@ -211,7 +211,7 @@ class DynadagLayout(vg_layout.GraphLayout):
         # Create ghost nodes for edges which pass through a weight layer
         for eid, n1, n2, einfo in self.graph.getEdges():
             xweight = weights.get(n1, 0)
-            yweight = weights.get(n2)
+            yweight = weights.get(n2, 0)
             if xweight + 1 < yweight:
                 self.graph.delEdgeByEid(eid)
                 while xweight + 1 < yweight:

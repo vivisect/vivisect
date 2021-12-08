@@ -220,6 +220,9 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         self.addHotKey('ctrl+b','debug:break')
         self.addHotKey('ctrl+p','vdb:view:python')
 
+        self.addHotKey('ctrl+w', 'file:quit')
+        self.addHotKeyTarget('file:quit', self.close)
+
         # Get hotkey overrides
         self.loadHotKeys(self._vq_settings)
 

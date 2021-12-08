@@ -298,6 +298,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         self._stopped_hack = False
 
         self.fireTracerThread()
+        self.setMeta('BadMaps', ['[vvar]', '[vsyscall]'])
 
         self.initMode("Syscall", False, "Break On Syscalls")
 
@@ -418,10 +419,10 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 if not dname.isdigit():
                     continue
                 cmdline = self.platformReadFile('/proc/%s/cmdline' % dname)
-                cmdline = cmdline.replace("\x00", " ")
+                cmdline = cmdline.replace(b"\x00", b" ")
                 if len(cmdline) > 0:
-                    pslist.append((int(dname), cmdline))
-            except:
+                    pslist.append((int(dname), cmdline.decode('utf-8')))
+            except Exception as e:
                 pass  # Permissions...  quick process... whatev.
         return pslist
 

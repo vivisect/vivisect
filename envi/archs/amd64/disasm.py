@@ -3,20 +3,22 @@ import struct
 import envi
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
-import envi.archs.i386.opconst as e_i386_const
 from . import opcode64 as opcode86
 
 from envi.const import RMETA_NMASK
 
 from envi.archs.i386.disasm import iflag_lookup, operand_range, priv_lookup, \
         i386Opcode, i386ImmOper, i386RegOper, i386ImmMemOper, i386RegMemOper, \
-        i386SibOper, PREFIX_REPNZ, PREFIX_REP, PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, \
-        MANDATORY_PREFIXES, PREFIX_REP_MASK, RMETA_LOW8, RMETA_LOW16
+        i386SibOper, PREFIX_REPNZ, PREFIX_REPZ, PREFIX_REP, PREFIX_REP_SIMD, \
+        PREFIX_OP_SIZE, PREFIX_ADDR_SIZE, MANDATORY_PREFIXES, PREFIX_REP_MASK,\
+        RMETA_LOW8, RMETA_LOW16
 
 from .regs import *
 from envi.archs.i386.opconst import OP_EXTRA_MEMSIZES, OP_MEM_B, OP_MEM_W, OP_MEM_D, \
                                     OP_MEM_Q, OP_MEM_DQ, OP_MEM_QQ, OP_MEMMASK, \
-                                    INS_VEXREQ, OP_NOVEXL
+                                    INS_VEXREQ, OP_NOVEXL, INS_VEXNOPREF, OP_NOREX, \
+                                    PREFIX_REX, PREFIX_REX_B, PREFIX_REX_X, PREFIX_REX_W, \
+                                    PREFIX_REX_MASK, PREFIX_REX_RXB, PREFIX_REX_R
 all_tables = opcode86.tables86
 
 # Pre generate these for fast lookup. Because our REX prefixes have the same relative
@@ -42,20 +44,6 @@ amd64_prefixes[0xc5] = (0x20 << 16)  # VEX 2byte
 amd64_prefixes[0xc4] = (0x40 << 16)  # VEX 3byte
 
 
-# NOTE: some notes from the intel manual...
-# REX.W overrides 66, but alternate registers (via REX.B etc..) can have 66 to be 16 bit..
-# REX.R only modifies reg for GPR/SSE(SIMD)/ctrl/debug addressing modes.
-# REX.X only modifies the SIB index value
-# REX.B modifies modrm r/m field, or SIB base (if SIB present), or opcode reg.
-# We inherit all the regular intel prefixes...
-# VEX replaces REX, and mixing them is invalid
-PREFIX_REX   = 0x100000  # Shows that the rex prefix is present
-PREFIX_REX_B = 0x010000  # Bit 0 in REX prefix (0x41) means ModR/M r/m field, SIB base, or opcode reg
-PREFIX_REX_X = 0x020000  # Bit 1 in REX prefix (0x42) means SIB index extension
-PREFIX_REX_R = 0x040000  # Bit 2 in REX prefix (0x44) means ModR/M reg extention
-PREFIX_REX_W = 0x080000  # Bit 3 in REX prefix (0x48) means 64 bit operand
-PREFIX_REX_MASK = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_W | PREFIX_REX_R
-PREFIX_REX_RXB  = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_R
 REX_HIGH_DROP = ~(e_i386.RMETA_HIGH8 ^ e_i386.RMETA_LOW8)  # FIXME: this is ugly
 
 PREFIX_VEX2  = 0x200000  # 2 byte VEX (data stored in opcode)
@@ -89,7 +77,7 @@ class Amd64Opcode(i386Opcode):
         So oh well
         '''
         envi.Opcode.__init__(self, va, opcode, mnem, prefixes, size, operands, iflags)
-        if prefixes & PREFIX_VEX and not opcode & e_i386_const.INS_VEXNOPREF:
+        if prefixes & PREFIX_VEX and not opcode & INS_VEXNOPREF:
             mnem = 'v' + mnem
         self.mnem = mnem
 
@@ -454,7 +442,6 @@ class Amd64Disasm(e_i386.i386Disasm):
 
             # handles tsize calculations including new REX prefixes
             tsize = self._dis_calc_tsize(opertype, prefixes, operflags)
-
             # If addrmeth is zero, we have operands embedded in the opcode
             if addrmeth == 0:
                 osize = 0
@@ -496,10 +483,15 @@ class Amd64Disasm(e_i386.i386Disasm):
                     else:
                         # see same code section in i386 for this rationale
                         osize, oper = ameth(bytez, offset, tsize, prefixes, operflags)
-                        if getattr(oper, "_is_deref", False):
+                        if oper and oper.isDeref():
                             memsz = OP_EXTRA_MEMSIZES[(operflags & OP_MEMMASK) >> 4]
                             if memsz is not None:
                                 oper.tsize = memsz
+                            if prefixes & PREFIX_ADDR_SIZE:
+                                if getattr(oper, 'reg', None) is not None:
+                                    oper.reg |= RMETA_LOW32
+                                elif getattr(oper, 'index', None) is not None:
+                                    oper.index |= RMETA_LOW32
 
                 except struct.error:
                     # Catch struct unpack errors due to insufficient data length
@@ -582,7 +574,6 @@ class Amd64Disasm(e_i386.i386Disasm):
                     operval = (operval & RMETA_NMASK) | META_SIZES[tsize]
                 else:
                     operval |= META_SIZES[tsize]
-
             width = self._dis_regctx.getRegisterWidth(operval) >> 3
             o = i386RegOper(operval, width)
         elif operflags & opcode86.OP_IMM:
@@ -590,15 +581,15 @@ class Amd64Disasm(e_i386.i386Disasm):
         else:
             raise Exception("Unknown ameth_0! operflags: 0x%.8x" % operflags)
 
-        # If it has a builtin register, we need to check for bump prefix
-        if prefixes & PREFIX_REX_W and isinstance(o, e_i386.i386RegOper):
+        if not (operflags & OP_NOREX) and prefixes & PREFIX_REX_W and getattr(o, 'reg', None):
             o.reg &= 0xffff
+
         if prefixes & PREFIX_REX_B and isinstance(o, e_i386.i386RegOper):
             # the optable entries for AH with REX_B is terribly unhelpful.
             if o.reg & e_i386.RMETA_HIGH8 == e_i386.RMETA_HIGH8:
                 o.reg &= REX_HIGH_DROP
                 o.reg += 4
-            if not (operflags & e_i386_const.OP_NOREXB):
+            if not (operflags & OP_NOREX):
                 o.reg += REX_BUMP
         return o
 

@@ -2,10 +2,13 @@ import sys
 import struct
 import argparse
 
-from io import StringIO
+from io import BytesIO
 from itertools import cycle
 
 import PE
+
+
+MAX_OFFSET_PE_AFTER_MZ = 0x200
 
 
 def xorbytes(data, key):
@@ -44,6 +47,10 @@ def carve(pbytes, offset=0):
         if nextres != -1:
             todo.append((nextres, mzx, pex, i))
 
+        # PE header should occur soon after MZ
+        if newoff > MAX_OFFSET_PE_AFTER_MZ:
+            continue
+
         peoff = off + newoff
         if pblen < (peoff + 2):
             continue
@@ -57,7 +64,9 @@ class CarvedPE(PE.PE):
         self.carved_offset = offset
         self.fbytes = fbytes
         self.xorkey = xkey
-        PE.PE.__init__(self, StringIO())
+        PE.PE.__init__(self, BytesIO())
+        # ensure sections can be parsed
+        self.getSections()
 
     def readAtOffset(self, offset, size):
         offset += self.carved_offset
@@ -65,7 +74,7 @@ class CarvedPE(PE.PE):
 
     def getFileSize(self):
         ret = 0
-        for sec in self.getSections():
+        for sec in self.sections:
             ret = max(ret, sec.PointerToRawData + sec.SizeOfRawData)
         return ret
 

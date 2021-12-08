@@ -1,27 +1,19 @@
 import re
 import struct
+import logging
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 
+from envi.const import *
 """
 A module containing memory utilities and the definition of the
 memory access API used by all vtoys trace/emulators/workspaces.
 """
 
-# Memory Map Permission Flags
-# TODO: move these into envi.const
-MM_NONE = 0x0
-MM_READ = 0x4
-MM_WRITE = 0x2
-MM_EXEC = 0x1
-MM_SHARED = 0x08
 
-MM_READ_WRITE = MM_READ | MM_WRITE
-MM_READ_EXEC = MM_READ | MM_EXEC
-MM_RWX = MM_READ | MM_WRITE | MM_EXEC
-
-pnames = ['No Access', 'Execute', 'Write', None, 'Read']
+logger = logging.getLogger(__name__)
 
 
 def getPermName(perm):
@@ -74,6 +66,25 @@ class IMemory:
         self.imem_archs = envi.getArchModules()
         if arch is not None:
             self.setMemArchitecture(arch)
+
+        self.bigend = envi.ENDIAN_LSB
+
+    def getEndian(self):
+        '''
+        Returns the Endianness setting
+        '''
+        return self.bigend
+
+    def setEndian(self, endian):
+        '''
+        Set endianness for memory and architecture modules
+        '''
+        self.bigend = endian
+        for arch in self.imem_archs:
+            arch.setEndian(self.bigend)
+
+        if self.arch is not None:
+            self.arch.setEndian(self.bigend)
 
     def setMemArchitecture(self, arch):
         '''
@@ -145,7 +156,7 @@ class IMemory:
     def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
         raise Exception("must implement allocateMemory!")
 
-    def addMemoryMap(self, mapva, perms, fname, bytes):
+    def addMemoryMap(self, mapva, perms, fname, bytes, align=None):
         raise Exception("must implement addMemoryMap!")
 
     def getMemoryMaps(self):
@@ -180,7 +191,8 @@ class IMemory:
 
         # FIXME change this (and all uses of it) to passing in format...
         if len(bytes) != size:
-            raise Exception("Read gave wrong length at va: 0x%.8x (wanted %d got %d)" % (addr, size, len(bytes)))
+            logger.warning("Read gave wrong length at va: 0x%.8x (wanted %d got %d)", addr, size, len(bytes))
+            return None
 
         return e_bits.parsebytes(bytes, 0, size, False, self.getEndian())
 
@@ -419,17 +431,88 @@ class MemoryObject(IMemory):
         self._map_defs = []
         self._supervisor = False
 
-    #FIXME MemoryObject: def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
+    def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0x1000, name='', fill=b'\0', align=None):
+        '''
+        Find a free block of memory (no maps exist) and allocate a new map
+        Uses findFreeMemoryBlock()
+        '''
+        baseva = self.findFreeMemoryBlock(size, suggestaddr)
+        self.addMemoryMap(baseva, perms, name, fill*size, align)
+        return baseva
 
-    def addMemoryMap(self, va, perms, fname, bytez):
+    def findFreeMemoryBlock(self, size, suggestaddr=0x1000, MIN_MEM_ADDR = 0x1000):
+        '''
+        Find a block of memory in the address-space of the correct size which 
+        doesn't overlap any existing maps.  Attempts to offer the map starting
+        at suggestaddr.  If not possible, scans the rest of the address-space
+        until it finds a suitable location or loops twice(ie. no gap large 
+        enough to accommodate a map of this size exists.
+
+        DOES NOT ALLOCATE.  see allocateMemory() if you want the map created
+        '''
+        baseva = None
+        looped = False
+
+        tmpva = suggestaddr
+        maxaddr = (1 << (8 * self.imem_psize)) - 1
+
+        while baseva is None:
+            # if we roll into illegal memory, start over at page 2.  skip 0.
+            if tmpva > maxaddr:
+                if looped:
+                    raise e_exc.NoValidFreeMemoryFound(size)
+
+                looped = True
+                tmpva = MIN_MEM_ADDR
+
+            # check potential map for any overlap
+            good = True
+            tmpendva = tmpva + size - 1
+            for mmva, mmsz, mmperm, mmname in self.getMemoryMaps():
+                mmendva = mmva + mmsz - 1
+                if tmpva <= mmva < tmpendva or \
+                        tmpva <= mmendva < tmpendva or \
+                        mmva <= tmpva < mmendva or \
+                        mmva <= tmpendva < mmendva:
+
+                    # we ran into a memory map.  adjust.
+                    good = False
+                    tmpva = mmendva
+                    tmpva += PAGE_NMASK
+                    tmpva &= PAGE_MASK
+                    break
+
+            if good:
+                baseva = tmpva
+
+        return baseva
+
+    def addMemoryMap(self, va, perms, fname, bytez, align=None):
         '''
         Add a memory map to this object...
+        Returns the length of the map (since alignment could alter it)
         '''
+        if align:
+            curlen = len(bytez)
+            newlen = e_bits.align(curlen, align)
+            delta = newlen - curlen
+            bytez += b'\x00' * delta
+
         msize = len(bytez)
         mmap = (va, msize, perms, fname)
         hlpr = [va, va+msize, mmap, bytez]
         self._map_defs.append(hlpr)
-        return
+        return msize
+
+    def delMemoryMap(self, mapva):
+        '''
+        Delete a memory map from this object...
+        '''
+        for midx, (mva, mmaxva, mmap, mbytes) in enumerate(self._map_defs):
+            if mva == mapva:
+                return self._map_defs.pop(midx)
+
+        raise e_exc.MapNotFoundException(mapva)
 
     def getMemorySnap(self):
         '''
@@ -461,29 +544,83 @@ class MemoryObject(IMemory):
     def getMemoryMaps(self):
         return [mmap for mva, mmaxva, mmap, mbytes in self._map_defs]
 
-    def readMemory(self, va, size):
+    def readMemory(self, va, size, _origva=None):
+        '''
+        Read memory from maps stored in memory maps.
 
+        If the read crosses memory maps and fails on a later map, the exception
+        will show the details of the last map/failure, but should include the
+        original va (not the size).
+
+        _origva is an internal field and should not be used.
+        '''
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
                 if not mperms & MM_READ:
-                    raise envi.SegmentationViolation(va)
-                offset = va - mva
-                return mbytes[offset:offset+size]
-        raise envi.SegmentationViolation(va)
+                    msg = "Bad Memory Read (no READ permission): %s: %s" % (hex(va), hex(size))
+                    if _origva is not None:
+                        msg += " (original va: %s)" % hex(_origva)
+                    raise envi.SegmentationViolation(va, msg)
 
-    def writeMemory(self, va, bytes):
+                offset = va - mva
+                maxreadlen = msize - offset
+                if size > maxreadlen:
+                    # if we're reading past the end of this map, recurse to find the next map
+                    # perms checks for that map will be performed, and size, etc... and if
+                    # an exception must be thrown, future readMemory() can throw it
+                    if not _origva:
+                        _origva = va
+                    return mbytes[offset:] + self.readMemory(mva + msize, size-maxreadlen, _origva=_origva)
+
+                return mbytes[offset:offset+size]
+        msg = "Bad Memory Read (invalid memory address): %s: %s" % (hex(va), hex(size))
+        if _origva:
+            msg += " (original va: %s)" % hex(_origva)
+
+        raise envi.SegmentationViolation(va, msg)
+
+    def writeMemory(self, va, bytez, _origva=None):
+        '''
+        Write memory to maps stored in memory maps.
+
+        If the write crosses memory maps and fails on a later map, the exception
+        will show the details of the last map/failure, but should include the
+        original va (but not the original size).
+        In this scenario, writes to the first map will succeed, up until the address of the exception.
+
+        _origva is an internal field and should not be used.
+        '''
+        byteslen = len(bytez)
         for mapdef in self._map_defs:
             mva, mmaxva, mmap, mbytes = mapdef
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
                 if not (mperms & MM_WRITE or self._supervisor):
-                    raise envi.SegmentationViolation(va)
+                    msg = "Bad Memory Write (no WRITE permission): %s: %s" % (hex(va), hex(byteslen))
+                    if _origva:
+                        msg += " (original va: %s)" % hex(_origva)
+                    raise envi.SegmentationViolation(va, msg)
+
                 offset = va - mva
-                mapdef[3] = mbytes[:offset] + bytes + mbytes[offset+len(bytes):]
+                maxwritelen = msize - offset
+                if byteslen > maxwritelen:
+                    # if we're writing past the end of this map, recurse to find the next map
+                    # perms checks for that map will be performed, and size, etc... and if
+                    # an exception must be thrown, future writeMemory() can throw it
+                    if not _origva:
+                        _origva = va
+                    mapdef[3] = mbytes[:offset] + bytez[:maxwritelen]
+                    self.writeMemory(mva + msize, bytez[maxwritelen:], _origva=_origva)
+                else:
+                    mapdef[3] = mbytes[:offset] + bytez + mbytes[offset+byteslen:]
                 return
 
-        raise envi.SegmentationViolation(va)
+        msg = "Bad Memory Write (invalid memory address): %s: %s" % (hex(va), hex(byteslen))
+        if _origva:
+            msg += " (original va: %s)" % hex(_origva)
+
+        raise envi.SegmentationViolation(va, msg)
 
     def getByteDef(self, va):
         """

@@ -242,6 +242,9 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         out = []
         for vqDW in self.getFuncGraphs():
             w = vqDW.widget()
+            if name != w.getEnviNavName():
+                continue
+
             if firstonly:
                 return w, vqDW
 
@@ -266,7 +269,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
                 break
         return True
 
-    def sendFuncGraphTo(self, va, wname='funcgraph0', firstonly=False):
+    def sendFuncGraphTo(self, va, wname='FuncGraph0', firstonly=False):
         '''
         Tells the named Envi Nav Widget to navigate to the given VA
         '''

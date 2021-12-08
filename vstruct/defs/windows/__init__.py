@@ -32,4 +32,13 @@ def getCurrentDef(normname):
         mod = __import__(modname, {}, {}, 1)
     except ImportError:
         mod = None
+
+    if mod is None:
+        modname = 'vstruct.defs.windows.win_%s_%s_%s.%s' % (6, 3, arch, normname)
+
+    try:
+        mod = __import__(modname, {}, {}, 1)
+    except ImportError:
+        mod = None
+
     return mod

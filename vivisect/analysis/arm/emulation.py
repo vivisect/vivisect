@@ -111,8 +111,8 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                         logger.info("0x%x: +++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", op.va)
                         if op.va not in self.infloops:
                             self.infloops.append(op.va)
-                            if 'InfiniteLoops' not in vw.getVaSetNames():
-                                vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
+                            if 'InfiniteLoops' not in self.vw.getVaSetNames():
+                                self.vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
                             self.vw.setVaSetRow('InfiniteLoops', (op.va, self.fva))
 
                 except Exception as e:
@@ -126,6 +126,13 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
             logger.warning("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
+    def apicall(self, emu, op, pc, api, argv):
+        logger.info("apiCall(%r, 0x%x, %r, %r)", op, pc, api, argv)
+        norets = emu.vw.getMeta('NoReturnApisVa', {})
+        if norets.get(pc, False):
+            logger.warning("=== halting emu: NoReturnApisVa 0x%x", pc)
+            emu.stopEmu()
+        
     def posthook(self, emu, op, starteip):
         if op.opcode == INS_BLX:
             emu.setFlag(PSR_T_bit, self.last_tmode)
@@ -176,7 +183,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
 
 def analyzeFunction(vw, fva):
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(va=fva)
     emumon = AnalysisMonitor(vw, fva)
     emu.setEmulationMonitor(emumon)
 
