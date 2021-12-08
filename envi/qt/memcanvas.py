@@ -259,23 +259,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._appendInside(text, cb)
 
     def addText(self, text, tag=None, cb=None):
-        text = html.escape(text)\
-                .replace(r'\0', r'\\0')\
-                .replace(r'\1', r'\\1')\
-                .replace(r'\2', r'\\2')\
-                .replace(r'\3', r'\\3')\
-                .replace(r'\4', r'\\4')\
-                .replace(r'\5', r'\\5')\
-                .replace(r'\6', r'\\6')\
-                .replace(r'\7', r'\\7')\
-                .replace(r'\8', r'\\8')\
-                .replace(r'\9', r'\\9')\
-                .replace(r'\f', r'\\f')\
-                .replace(r'\r', r'\\r')\
-                .replace(r'\n', r'\\n')\
-                .replace(r'\t', r'\\t')\
-                .replace(r'\x', r'\\x')\
-                .replace(r'\o', r'\\o')
+        text = html.escape(text).encode('unicode_escape').decode('utf-8')
         if tag is not None:
             otag, ctag = tag
             text = otag + text + ctag
