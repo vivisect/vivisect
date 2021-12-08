@@ -4,6 +4,7 @@ import unittest
 
 import envi
 import envi.memory as e_memory
+import envi.memcanvas as e_mcanvas
 
 import vivisect
 import vivisect.exc as v_exc
@@ -11,6 +12,7 @@ import vivisect.const as v_const
 import vivisect.tools.graphutil as v_t_graphutil
 
 import vivisect.tests.helpers as helpers
+import vivisect.tests.utils as v_t_utils
 
 
 logger = logging.getLogger(__name__)
@@ -24,12 +26,21 @@ def isint(x):
     return type(x) is int
 
 
-class VivisectTest(unittest.TestCase):
+class VivisectTest(v_t_utils.VivTest):
     @classmethod
     def setUpClass(cls):
         cls.firefox_vw = helpers.getTestWorkspace('windows', 'amd64', 'firefox.exe')
         cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
         cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
+        cls.sh_vw = helpers.getTestWorkspace('linux', 'arm', 'sh')
+        cls.chown_vw = helpers.getTestWorkspace('linux', 'amd64', 'chown')
+
+        for vw in cls.vdir_vw, cls.chgrp_vw, cls.firefox_vw:
+            oldcanv = vw.canvas
+            vw.canvas = e_mcanvas.StringMemoryCanvas(vw)
+            vw.canvas.renderers = oldcanv.renderers
+            vw.canvas.setRenderer('viv')
+
 
     def test_xrefs_types(self):
         '''
@@ -50,30 +61,302 @@ class VivisectTest(unittest.TestCase):
         '''
         Test that EnviCli.do_search works
         '''
-        #TODO: make real tests with asserts
         self.chgrp_vw.do_search("-e utf-16le foo")
-        self.chgrp_vw.do_search("-e utf-16le foo")
-        self.chgrp_vw.do_search("-X 41414141")
-        self.chgrp_vw.do_search("-E 0x41414141")
-        self.chgrp_vw.do_search("-E 0x41414142")
-        self.chgrp_vw.do_search("-r 0x4141.*42")
-        self.chgrp_vw.do_search("-r 0x4141.*42 -c")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("pattern not found: 66006f006f00 (b'f\\x00o\\x00o\\x00')", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
+        self.chgrp_vw.do_search("-X ffffffff253c40050868")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('0x08048e5d: -r-x loc_08048e5d + 0x0\ndone ', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_search("-E 0x805104b")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("matches for: 4b100508 (b'K\\x10\\x05\\x08')\n0x08050818: -r-x loc_08050818 + 0x0\ndone (1 results).", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_search("-r ab.*rt")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("(b'ab.*rt')\n0x0804874e:", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
+        self.chgrp_vw.do_search("-r al.*rt -c")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x8051333  61 6c 6d 6f 73 74 20 63 65 72 74 61 69 6e 6c 79   almost certainly", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
         self.chgrp_vw.do_search("-c -r qsort")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x80488e3  71 73 6f 72 74 00 66 63 6e 74 6c 00 6d 65 6d 6d   qsort.fcntl", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
         self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x200")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("searching from 0x08048000 for 512 bytes\npattern not found: 71736f7274 (b'qsort')\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
         self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x2000")
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x80488e3  71 73 6f 72 74 00 66 63 6e 74 6c 00 6d 65 6d 6d   qsort.fcntl.memm\n0x80488f3  6f 76 65 00 62 69 6e 64 74 65 78 74 64 6f 6d 61   ove.bindtextdoma\n\ndone (1 results).\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+        
 
     def test_cli_searchopcode(self):
         '''
         Test that VivCli.do_searchopcodes works
         '''
-        #TODO: make real tests with asserts
-        self.chgrp_vw.do_searchopcodes('foo')
+        # i have no idea why this is necessary (we did it at setup time)
+        # but the current renderer at this point is envi.memcanvas.renderers.ByteRend
+        self.chgrp_vw.canvas.setRenderer('viv')
+        self.chgrp_vw.do_searchopcodes('sar')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(".text:0x08049294  d1f8             sar eax,1\n\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-f 0x08050200 ret')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("matches for: 726574 ('ret')\n.text:0x0805020a  c3               ret \n\ndone (1 results).\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-c rol')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("pattern not found: 726f6c ('rol')\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-o rol')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("pattern not found: 726f6c ('rol')\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-t rol')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(".text:0x08050249  66d3c0           rol ax,cl", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-M red rol')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(".text:0x08050268  d2c0             rol al,cl", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
         self.chgrp_vw.do_searchopcodes('-f 0x08050200 -R r.t')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("matches for: 722e74 ('r.t')\n.text:0x0805020a  c3               ret \n\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        ## FIXME: make tests when this works
+    #def test_cli_argtrack(self):
+    #    self.chgrp_vw.do_argtrack('')
+    #    output = self.chgrp_vw.canvas.strval
+    #    self.assertIn('Usage: argtrack <func_addr_expr> <arg_idx>', output)
+    #    self.chgrp_vw.canvas.clearCanvas()
+
+    #    self.chgrp_vw.do_argtrack('')
+    #    output = self.chgrp_vw.canvas.strval
+    #    self.assertIn('Usage: argtrack <func_addr_expr> <arg_idx>', output)
+    #    self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_chat(self):
+        self.chgrp_vw.do_chat('foo')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(': foo', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_codepath(self):
+        self.chgrp_vw.do_codepath('0x0804bc10 0x0804c5c0')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('chgrp.quotearg_n_options\n0x0804c6e0\t0x0804c6e0\t   5\tchgrp.xcharalloc\n0x0804c5c0\t0x0804c5c0', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    # still unsure how to test do_emulate() well
+
+    def test_cli_eval(self):
+        self.chgrp_vw.do_eval('chgrp')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("chgrp = 0x08048000 loc_08048000 + 0", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_exports(self):
+        self.chgrp_vw.do_exports('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("chgrp:\n    0x08050654  _IO_stdin_used\n    0x080491e0  __entry\n    0x08054170  __progname\n    0x08054180  __progname_full\n    0x08048e20  free\n    0x08054198  optarg\n    0x08054190  optind\n    0x08054180  program_invocation_name\n    0x08054170  program_invocation_short_name\n    0x08054178  stderr\n    0x08054194  stdout\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_filemeta(self):
+        self.chgrp_vw.do_filemeta('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("Loaded Files:\n    chgrp\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_filemeta('chgrp')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("'DT_INIT': 134516068", output)
+        self.assertIn("'addbase': False,\n 'canaries': False,\n 'imagebase': 134512640", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_fscope(self):
+        self.chgrp_vw.do_fscope('-S 0x804c8a0')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x0804caf1 'strtol_error xstrtoul(const char *, char **, int, unsigned long *, const char *)\\x00'\n0x0804cb01 './lib/xstrtol.c\\x00'\n0x0804cb09 '0 <= strtol_base && strtol_base <= 36\\x00'\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_funcmeta(self):
+        self.chgrp_vw.do_funcmeta('chgrp.plt_free')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("'MnemDist': {'jmp': 1},", output)
+        self.assertIn("'Thunk': '*.free',", output)
+        self.assertIn("'api': ('void', None, 'cdecl', '*.free', [('void *', 'ptr')])}", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_imports(self):
+        self.chgrp_vw.do_imports('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x08054114 *.calloc", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_loc(self):
+        self.chgrp_vw.do_loc('0x08054108')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("IMPORT: *.getgrgid", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_make(self):
+        # create a play area so we don't dork up other analysis
+        self.chgrp_vw.addMemoryMap(0x41008000, 7, 'play area', self.chgrp_vw.readMemory(0x8048000, 0xb000))
+        self.chgrp_vw.addMemoryMap(0x41013f0c, 7, 'play area', self.chgrp_vw.readMemory(0x8053f0c, 0x1000))
+
+        # -n <size> Make a number
+        self.chgrp_vw.do_make('-n 4 0x41011987')
+        self.chgrp_vw.do_loc('0x41011987')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("4 BYTES: 2701171072 (0xa1009980)", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -s Make a string
+        self.chgrp_vw.do_make('-s 0x41011980')
+        self.chgrp_vw.do_loc('0x41011980')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('"\'\\x00"\n', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -u Make a unicode string
+        self.chgrp_vw.do_make('-u 0x41011628')
+        self.chgrp_vw.do_loc('0x41011628')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("u'-'\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -p <size> Make a pad
+        self.chgrp_vw.do_make('-p 1 0x4100c49f')
+        self.chgrp_vw.do_loc('0x4100c49f')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("90", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -c Make code
+        self.chgrp_vw.do_make('-c 0x41011982')
+        self.chgrp_vw.do_loc('0x41011982')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("loop 0x41011904", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        # -f Make function
+        self.chgrp_vw.do_make('-f 0x41011982')
+        self.assertEqual(self.chgrp_vw.getFunction(0x41011982), 0x41011982)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.delMemoryMap(0x41008000)
+        self.chgrp_vw.delMemoryMap(0x41013f0c)
+
+    def test_cli_mem(self):
+        self.chgrp_vw.do_mem('-F viv chgrp.plt_free')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn(".plt:0x08048e20  FUNC: void cdecl chgrp.plt_free( void * ptr, )", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_mem('chgrp.plt_free')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x8048e20  ff 25 2c 40 05 08 68 40 00 00 00 e9 60 ff ff ff  ", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_maps(self):
+        self.chgrp_vw.do_maps('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("[ address ] [ size ] [ perms ] [ File ]\n0x08048000     44K\t-r-x\tchgrp\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_memcmp(self):
+        self.chgrp_vw.do_memcmp('chgrp.plt_strcmp chgrp.plt_strncmp 16')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn('==== 1 byte difference at offset 2\n0x08048db2:10\n0x08049122:ec\n==== 2 byte difference at offset 7\n0x08048db7:0800\n0x08049127:c001\n==== 2 byte difference at offset 12\n0x08048dbc:d0ff\n0x0804912c:60fc\n', output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_memdump(self):
+        self.chgrp_vw.do_memdump('chgrp.plt_strncmp /tmp/memdumptest 16')
+        dumpedmem = open('/tmp/memdumptest', 'rb').read()
+        vwmem = self.chgrp_vw.readMemory(self.chgrp_vw.parseExpression('chgrp.plt_strncmp'), 16) 
+        self.assertEqual(dumpedmem, vwmem)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_names(self):
+        self.chgrp_vw.do_names('plt_.*64')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x08048e60: chgrp.plt_fseeko64", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_pathcount(self):
+        self.chgrp_vw.do_pathcount('chgrp.quotearg_free')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("Path through 0x0804b8a0: ['0x804b8a0', '0x804b8d5', '0x804b8fb', '0x804b915']", output)
+        self.assertIn("Total Paths: 8", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_report(self):
+        self.chgrp_vw.do_report('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("Path:     vivisect.reports.overlaplocs (Name: Overlapped Locations)", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_report('vivisect.reports.funccomplexity')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("chgrp.plt_fseeko64:\n    Code Blocks: 1\n    Mnem Dist: {'jmp': 1}\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_script(self):
+        open('/tmp/vivscript', 'wb').write(b"vw.vprint('doin the do')\nvw.vprint(repr(argv))")
+        self.chgrp_vw.do_script('/tmp/vivscript arg1 arg2 arg3') 
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("doin the do\n['/tmp/vivscript', 'arg1', 'arg2', 'arg3']", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_symboliks(self):
+        self.chgrp_vw.do_symboliks('')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("-A  Run the emu and show the state of the machine for all found paths", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_symboliks('0x08050129')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("RETURN  Mem(o_add(Arg(0,width=4),Const(0x00000008,4),4), Const(0x00000004,4))", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_vampsig(self):
+        self.chgrp_vw.do_vampsig('chgrp.rpl_fseeko')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("""SIGNATURE: 5553575683ec0c8b7424208b46083b4604750e8b46143b46107506837e2400740c83c40c5e5f5b5de9538dffff8b7c24288b5c24248b6c242c83ec0c56e82e8fffff83c41055575350e8a28fffff83c41089c121d183f9ff740d8026ef89464c89565031c0eb05b8ffffffff83c40c5e5f5b5dc3\nMASK: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff""", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+    def test_cli_xrefs(self):
+        self.chgrp_vw.do_xrefs('-F 0x08050129')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("From: 0x08050129, To: 0x080490d0, Type: Code, Flags: 0x00010001\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
+        self.chgrp_vw.do_xrefs('-T chgrp.plt_lseek64')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("From: 0x0804fe94, To: 0x080490d0, Type: Code, Flags: 0x00010001\n", output)
+        self.chgrp_vw.canvas.clearCanvas()
+
 
     def test_loc_types(self):
         '''
@@ -91,6 +374,9 @@ class VivisectTest(unittest.TestCase):
                     self.assertTrue(type(linfo) in (int, str, list))
 
     def test_vaset_populate(self):
+        '''
+        Make sure the the VASEts are populated in roughly the way we expect
+        '''
         vw = self.vdir_vw
         ans = {
             'FileSymbols': [('', 0), ('filenamecat-lgpl.c', 0), ('gettime.c', 0),
@@ -131,7 +417,10 @@ class VivisectTest(unittest.TestCase):
                               (134550582,), (134579529,), (134572857,), (134534204,), (134577471,), (134580544,),
                               (134568769,), (134546505,), (134578743,), (134553208,), (134555349,),
                               (134580057,), (134521306,), (134531547,), (134572084,), (134578576,), (134554727,),
-                              (134576873,), (134580336,), (134521331,), (134550133,), (134521336,), (134529017,)],
+                              (134576873,), (134580336,), (134521331,), (134550133,), (134521336,), (134529017,),
+                              (134524668,), (134577049,), (134547258,), (134577158,), (134524356,), (134524581,),
+                              (134576974,), (134576909,),
+                              ],
             'Bookmarks': [],
             'SwitchCases': [],
             'thunk_bx': [(134519744,),
@@ -141,14 +430,253 @@ class VivisectTest(unittest.TestCase):
                                     (134544390, 'DivideByZero at 0x804fc06'),
                                     (134545954, 'DivideByZero at 0x8050222'),
                                     (134546126, 'DivideByZero at 0x80502ce')],
-            'WeakSymbols': [('__x86.get_pc_thunk.bx', 134519744), ('__udivdi3', 134583136),
-                            ('lstat64', 134583968), ('__TMC_END__', 134615780),
-                            ('fstat64', 134583920), ('__umoddi3', 134583424),
-                            ('fstatat64', 134584016), ('atexit', 134583824),
-                            ('__dso_handle', 134615476), ('__divdi3', 134582800),
-                            ('_dl_relocate_static_pie', 134519728), ('stat64', 134583872)],
+            'WeakSymbols': [('data_start', 0x80611b0),
+                            ('program_invocation_name', 0x8061300),
+                            ('program_invocation_short_name', 0x80612f0),
+                            ('__gmon_start__', 0x8060ffc)],
             'PointersFromFile': [(134614800, 134519888, 'vdir', 'fini_function_0'),
-                                 (134614796, 134519936, 'vdir', 'init_function_0')],
+                                 (134614796, 134519936, 'vdir', 'init_function_0'),
+                                 (0x805a00c, 0x805d77c, 'vdir', 'long_options'),
+                                 (0x805a01c, 0x805e7c9, 'vdir', 'long_options'),
+                                 (0x805a02c, 0x805da20, 'vdir', 'long_options'),
+                                 (0x805a03c, 0x805d6fa, 'vdir', 'long_options'),
+                                 (0x805a04c, 0x805d700, 'vdir', 'long_options'),
+                                 (0x805a05c, 0x805d70a, 'vdir', 'long_options'),
+                                 (0x805a06c, 0x805d722, 'vdir', 'long_options'),
+                                 (0x805a07c, 0x805d731, 'vdir', 'long_options'),
+                                 (0x805a08c, 0x805d737, 'vdir', 'long_options'),
+                                 (0x805a09c, 0x805d741, 'vdir', 'long_options'),
+                                 (0x805a0ac, 0x805d751, 'vdir', 'long_options'),
+                                 (0x805a0bc, 0x805d75a, 'vdir', 'long_options'),
+                                 (0x805a0cc, 0x805d76d, 'vdir', 'long_options'),
+                                 (0x805a0dc, 0x805d54a, 'vdir', 'long_options'),
+                                 (0x805a0ec, 0x805d534, 'vdir', 'long_options'),
+                                 (0x805a0fc, 0x805d775, 'vdir', 'long_options'),
+                                 (0x805a10c, 0x805d780, 'vdir', 'long_options'),
+                                 (0x805a11c, 0x805d78f, 'vdir', 'long_options'),
+                                 (0x805a12c, 0x805d798, 'vdir', 'long_options'),
+                                 (0x805a13c, 0x805d7a2, 'vdir', 'long_options'),
+                                 (0x805a14c, 0x805d7a5, 'vdir', 'long_options'),
+                                 (0x805a15c, 0x805d7be, 'vdir', 'long_options'),
+                                 (0x805a16c, 0x805d7e6, 'vdir', 'long_options'),
+                                 (0x805a17c, 0x805d7eb, 'vdir', 'long_options'),
+                                 (0x805a18c, 0x805d585, 'vdir', 'long_options'),
+                                 (0x805a19c, 0x805d7f2, 'vdir', 'long_options'),
+                                 (0x805a1ac, 0x805d7fe, 'vdir', 'long_options'),
+                                 (0x805a1bc, 0x805d806, 'vdir', 'long_options'),
+                                 (0x805a1cc, 0x805d597, 'vdir', 'long_options'),
+                                 (0x805a1dc, 0x805d811, 'vdir', 'long_options'),
+                                 (0x805a1ec, 0x805d55f, 'vdir', 'long_options'),
+                                 (0x805a1fc, 0x805d81b, 'vdir', 'long_options'),
+                                 (0x805a20c, 0x805d551, 'vdir', 'long_options'),
+                                 (0x805a21c, 0x805d82e, 'vdir', 'long_options'),
+                                 (0x805a22c, 0x805d558, 'vdir', 'long_options'),
+                                 (0x805a23c, 0x805d836, 'vdir', 'long_options'),
+                                 (0x805a24c, 0x805d571, 'vdir', 'long_options'),
+                                 (0x805a25c, 0x805d579, 'vdir', 'long_options'),
+                                 (0x805a26c, 0x805d841, 'vdir', 'long_options'),
+                                 (0x805a27c, 0x805d84c, 'vdir', 'long_options'),
+                                 (0x805a28c, 0x805d854, 'vdir', 'long_options'),
+                                 (0x805a29c, 0x805d85b, 'vdir', 'long_options'),
+                                 (0x805a2ac, 0x805dae1, 'vdir', 'long_options'),
+                                 (0x805a2e0, 0x805d860, 'vdir', 'sort_args'),
+                                 (0x805a2e4, 0x805d558, 'vdir', 'sort_args'),
+                                 (0x805a2e8, 0x805d54a, 'vdir', 'sort_args'),
+                                 (0x805a2ec, 0x805d865, 'vdir', 'sort_args'),
+                                 (0x805a2f0, 0x805dae1, 'vdir', 'sort_args'),
+                                 (0x805a30c, 0x805d86f, 'vdir', 'time_args'),
+                                 (0x805a310, 0x805d875, 'vdir', 'time_args'),
+                                 (0x805a314, 0x805d87c, 'vdir', 'time_args'),
+                                 (0x805a318, 0x805d880, 'vdir', 'time_args'),
+                                 (0x805a31c, 0x805d886, 'vdir', 'time_args'),
+                                 (0x805a324, 0x0, 'vdir', 'format_types'),
+                                 (0x805a340, 0x805d88d, 'vdir', 'format_args'),
+                                 (0x805a344, 0x805d895, 'vdir', 'format_args'),
+                                 (0x805a348, 0x805d89a, 'vdir', 'format_args'),
+                                 (0x805a34c, 0x805d8a1, 'vdir', 'format_args'),
+                                 (0x805a350, 0x805d8ac, 'vdir', 'format_args'),
+                                 (0x805a354, 0x805d8b3, 'vdir', 'format_args'),
+                                 (0x805a358, 0x805d8bc, 'vdir', 'format_args'),
+                                 (0x805a384, 0x805e7dd, 'vdir', 'when_args'),
+                                 (0x805a388, 0x805d8ca, 'vdir', 'when_args'),
+                                 (0x805a38c, 0x805d8ce, 'vdir', 'when_args'),
+                                 (0x805a390, 0x805d8d4, 'vdir', 'when_args'),
+                                 (0x805a394, 0x805d8da, 'vdir', 'when_args'),
+                                 (0x805a398, 0x805d860, 'vdir', 'when_args'),
+                                 (0x805a39c, 0x805d8dd, 'vdir', 'when_args'),
+                                 (0x805a3a0, 0x805d8e5, 'vdir', 'when_args'),
+                                 (0x805a3a4, 0x805d8e2, 'vdir', 'when_args'),
+                                 (0x805a3ac, 0x0, 'vdir', 'indicator_style_types'),
+                                 (0x805a3bc, 0x805d860, 'vdir', 'indicator_style_args'),
+                                 (0x805a3c0, 0x805d8e9, 'vdir', 'indicator_style_args'),
+                                 (0x805a3c4, 0x805d798, 'vdir', 'indicator_style_args'),
+                                 (0x805a3c8, 0x805d78f, 'vdir', 'indicator_style_args'),
+                                 (0x805a3d8, 0x805d566, 'vdir', 'time_style_args'),
+                                 (0x805a3dc, 0x805d905, 'vdir', 'time_style_args'),
+                                 (0x805a3e0, 0x805d90a, 'vdir', 'time_style_args'),
+                                 (0x805a3e4, 0x805b6f2, 'vdir', 'time_style_args'),
+                                 (0x805a3ec, 0x0, 'vdir', 'time_style_types'),
+                                 (0x805a3fc, 0x805d987, 'vdir', 'indicator_name'),
+                                 (0x805a400, 0x805d98a, 'vdir', 'indicator_name'),
+                                 (0x805a404, 0x805d98d, 'vdir', 'indicator_name'),
+                                 (0x805a408, 0x805d76a, 'vdir', 'indicator_name'),
+                                 (0x805a40c, 0x805d8da, 'vdir', 'indicator_name'),
+                                 (0x805a410, 0x805d990, 'vdir', 'indicator_name'),
+                                 (0x805a414, 0x805d993, 'vdir', 'indicator_name'),
+                                 (0x805a418, 0x805d996, 'vdir', 'indicator_name'),
+                                 (0x805a41c, 0x805d999, 'vdir', 'indicator_name'),
+                                 (0x805a420, 0x805d90b, 'vdir', 'indicator_name'),
+                                 (0x805a424, 0x805d99c, 'vdir', 'indicator_name'),
+                                 (0x805a428, 0x805d99f, 'vdir', 'indicator_name'),
+                                 (0x805a42c, 0x805d9a2, 'vdir', 'indicator_name'),
+                                 (0x805a430, 0x805d858, 'vdir', 'indicator_name'),
+                                 (0x805a434, 0x805d9a5, 'vdir', 'indicator_name'),
+                                 (0x805a438, 0x805d9a8, 'vdir', 'indicator_name'),
+                                 (0x805a43c, 0x805d9ab, 'vdir', 'indicator_name'),
+                                 (0x805a440, 0x805d9ae, 'vdir', 'indicator_name'),
+                                 (0x805a444, 0x805d71f, 'vdir', 'indicator_name'),
+                                 (0x805a448, 0x805d9b1, 'vdir', 'indicator_name'),
+                                 (0x805a44c, 0x805d9b4, 'vdir', 'indicator_name'),
+                                 (0x805a450, 0x805d9b7, 'vdir', 'indicator_name'),
+                                 (0x805a454, 0x805d9ba, 'vdir', 'indicator_name'),
+                                 (0x805a458, 0x805d9bd, 'vdir', 'indicator_name'),
+                                 (0x805b524, 0x804e130, 'vdir', 'sort_functions'),
+                                 (0x805b528, 0x804e150, 'vdir', 'sort_functions'),
+                                 (0x805b52c, 0x804e1b0, 'vdir', 'sort_functions'),
+                                 (0x805b530, 0x804e1d0, 'vdir', 'sort_functions'),
+                                 (0x805b534, 0x804e230, 'vdir', 'sort_functions'),
+                                 (0x805b538, 0x804e250, 'vdir', 'sort_functions'),
+                                 (0x805b53c, 0x804e2b0, 'vdir', 'sort_functions'),
+                                 (0x805b540, 0x804e2d0, 'vdir', 'sort_functions'),
+                                 (0x805b544, 0x804e330, 'vdir', 'sort_functions'),
+                                 (0x805b548, 0x804e350, 'vdir', 'sort_functions'),
+                                 (0x805b54c, 0x804e3b0, 'vdir', 'sort_functions'),
+                                 (0x805b550, 0x804e3d0, 'vdir', 'sort_functions'),
+                                 (0x805b554, 0x804e430, 'vdir', 'sort_functions'),
+                                 (0x805b558, 0x804e450, 'vdir', 'sort_functions'),
+                                 (0x805b55c, 0x804e4b0, 'vdir', 'sort_functions'),
+                                 (0x805b560, 0x804e4d0, 'vdir', 'sort_functions'),
+                                 (0x805b564, 0x804e530, 'vdir', 'sort_functions'),
+                                 (0x805b568, 0x804e550, 'vdir', 'sort_functions'),
+                                 (0x805b56c, 0x804e5b0, 'vdir', 'sort_functions'),
+                                 (0x805b570, 0x804e5d0, 'vdir', 'sort_functions'),
+                                 (0x805b574, 0x804e630, 'vdir', 'sort_functions'),
+                                 (0x805b578, 0x804e650, 'vdir', 'sort_functions'),
+                                 (0x805b57c, 0x804e6b0, 'vdir', 'sort_functions'),
+                                 (0x805b580, 0x804e6d0, 'vdir', 'sort_functions'),
+                                 (0x805b584, 0x804e730, 'vdir', 'sort_functions'),
+                                 (0x805b588, 0x804e740, 'vdir', 'sort_functions'),
+                                 (0x805b58c, 0x804e790, 'vdir', 'sort_functions'),
+                                 (0x805b590, 0x804e7a0, 'vdir', 'sort_functions'),
+                                 (0x805b5a4, 0x804e7f0, 'vdir', 'sort_functions'),
+                                 (0x805b5a8, 0x804e810, 'vdir', 'sort_functions'),
+                                 (0x805b5ac, 0x804e870, 'vdir', 'sort_functions'),
+                                 (0x805b5b0, 0x804e890, 'vdir', 'sort_functions'),
+                                 (0x805b5b4, 0x804e8f0, 'vdir', 'sort_functions'),
+                                 (0x805b5b8, 0x804e910, 'vdir', 'sort_functions'),
+                                 (0x805b5bc, 0x804e970, 'vdir', 'sort_functions'),
+                                 (0x805b5c0, 0x804e990, 'vdir', 'sort_functions'),
+                                 (0x805b5c4, 0x804e9f0, 'vdir', 'sort_functions'),
+                                 (0x805b5c8, 0x804ea10, 'vdir', 'sort_functions'),
+                                 (0x805b5cc, 0x804ea70, 'vdir', 'sort_functions'),
+                                 (0x805b5d0, 0x804ea90, 'vdir', 'sort_functions'),
+                                 (0x805b5d4, 0x804eaf0, 'vdir', 'sort_functions'),
+                                 (0x805b5d8, 0x804eb10, 'vdir', 'sort_functions'),
+                                 (0x805b5dc, 0x804eb70, 'vdir', 'sort_functions'),
+                                 (0x805b5e0, 0x804eb90, 'vdir', 'sort_functions'),
+                                 (0x805b5e4, 0x804ebf0, 'vdir', 'sort_functions'),
+                                 (0x805b5e8, 0x804ec10, 'vdir', 'sort_functions'),
+                                 (0x805b5ec, 0x804ec70, 'vdir', 'sort_functions'),
+                                 (0x805b5f0, 0x804ec90, 'vdir', 'sort_functions'),
+                                 (0x805b5f4, 0x804ecf0, 'vdir', 'sort_functions'),
+                                 (0x805b5f8, 0x804ed10, 'vdir', 'sort_functions'),
+                                 (0x805b5fc, 0x804ed70, 'vdir', 'sort_functions'),
+                                 (0x805b600, 0x804ed90, 'vdir', 'sort_functions'),
+                                 (0x805e014, 0x0, 'vdir', 'default_tuning'),
+                                 (0x805e050, 0x805d722, 'vdir', 'block_size_args'),
+                                 (0x805e054, 0x805d7a2, 'vdir', 'block_size_args'),
+                                 (0x805e75c, 0x805d7fe, 'vdir', 'quoting_style_args'),
+                                 (0x805e760, 0x805e7b0, 'vdir', 'quoting_style_args'),
+                                 (0x805e764, 0x805e7b6, 'vdir', 'quoting_style_args'),
+                                 (0x805e768, 0x805e7c3, 'vdir', 'quoting_style_args'),
+                                 (0x805e76c, 0x805e7d0, 'vdir', 'quoting_style_args'),
+                                 (0x805e770, 0x805edb8, 'vdir', 'quoting_style_args'),
+                                 (0x805e774, 0x805e7e4, 'vdir', 'quoting_style_args'),
+                                 (0x805e778, 0x805e7c9, 'vdir', 'quoting_style_args'),
+                                 (0x805e77c, 0x805b6f2, 'vdir', 'quoting_style_args'),
+                                 (0x805e780, 0x805e7ec, 'vdir', 'quoting_style_args'),
+                                 (0x805e788, 0x0, 'vdir', 'quoting_style_vals'),
+                                 (0x805f3a0, 0x0, 'vdir', '__FRAME_END__'),
+                                 (0x80611b4, 0x0, 'vdir', '__dso_handle'),
+                                 (0x80611bc, 0x805b722, 'vdir', 'color_indicator'),
+                                 (0x80611c4, 0x805dca1, 'vdir', 'color_indicator'),
+                                 (0x80611d4, 0x805b789, 'vdir', 'color_indicator'),
+                                 (0x80611ec, 0x805d420, 'vdir', 'color_indicator'),
+                                 (0x80611f4, 0x805d426, 'vdir', 'color_indicator'),
+                                 (0x80611fc, 0x805d435, 'vdir', 'color_indicator'),
+                                 (0x8061204, 0x805d42c, 'vdir', 'color_indicator'),
+                                 (0x806120c, 0x805d432, 'vdir', 'color_indicator'),
+                                 (0x8061214, 0x805d432, 'vdir', 'color_indicator'),
+                                 (0x806122c, 0x805d438, 'vdir', 'color_indicator'),
+                                 (0x8061234, 0x805d42c, 'vdir', 'color_indicator'),
+                                 (0x806123c, 0x805d43e, 'vdir', 'color_indicator'),
+                                 (0x8061244, 0x805d444, 'vdir', 'color_indicator'),
+                                 (0x806124c, 0x805d44a, 'vdir', 'color_indicator'),
+                                 (0x8061254, 0x805d450, 'vdir', 'color_indicator'),
+                                 (0x806125c, 0x805d456, 'vdir', 'color_indicator'),
+                                 (0x8061264, 0x805d45c, 'vdir', 'color_indicator'),
+                                 (0x8061274, 0x805d462, 'vdir', 'color_indicator'),
+                                 (0x8061280, 0x805d8ef, 'vdir', 'long_time_format'),
+                                 (0x8061284, 0x805d8f9, 'vdir', 'long_time_format'),
+                                 (0x8061294, 0x805dd7b, 'vdir', 'Version'),
+                                 (0x8061298, 0x8050730, 'vdir', 'argmatch_die'),
+                                 (0x80612a0, 0x80612a8, 'vdir', 'slotvec'),
+                                 (0x80612ac, 0x806231c, 'vdir', 'slotvec0'),
+                                 (0x80612e0, 0x8058980, 'vdir', 'obstack_alloc_failed_handler'),
+                                 (0x80612e4, 0x0, 'vdir', '__TMC_END__'),
+                                 (0x806131c, 0x0, 'vdir', 'completed.7282'),
+                                 (0x8061324, 0x0, 'vdir', 'print_dir_name'),
+                                 (0x806132c, 0x0, 'vdir', 'current_time'),
+                                 (0x8061334, 0x0, 'vdir', 'print_with_color'),
+                                 (0x8061335, 0x0, 'vdir', 'directories_first'),
+                                 (0x8061336, 0x0, 'vdir', 'check_symlink_mode'),
+                                 (0x8061337, 0x0, 'vdir', 'color_symlink_as_referent'),
+                                 (0x8061340, 0x0, 'vdir', 'immediate_dirs'),
+                                 (0x8061348, 0x0, 'vdir', 'recursive'),
+                                 (0x8061350, 0x0, 'vdir', 'dev_ino_obstack'),
+                                 (0x8061384, 0x0, 'vdir', 'print_scontext'),
+                                 (0x8061385, 0x0, 'vdir', 'print_block_size'),
+                                 (0x8061386, 0x0, 'vdir', 'format_needs_stat'),
+                                 (0x8061387, 0x0, 'vdir', 'format_needs_type'),
+                                 (0x8061388, 0x0, 'vdir', 'dired'),
+                                 (0x806138c, 0x0, 'vdir', 'dired_obstack'),
+                                 (0x80613b8, 0x0, 'vdir', 'subdired_obstack'),
+                                 (0x80613e4, 0x0, 'vdir', 'print_hyperlink'),
+                                 (0x80613fc, 0x0, 'vdir', 'used_color'),
+                                 (0x806140c, 0x0, 'vdir', 'RFC3986'),
+                                 (0x806150c, 0x0, 'vdir', 'caught_signals'),
+                                 (0x806158c, 0x0, 'vdir', 'qmark_funny_chars'),
+                                 (0x8061594, 0x0, 'vdir', 'sort_reverse'),
+                                 (0x8061595, 0x0, 'vdir', 'numeric_ids'),
+                                 (0x8061596, 0x0, 'vdir', 'print_inode'),
+                                 (0x80615ac, 0x0, 'vdir', 'print_owner'),
+                                 (0x80615b8, 0x0, 'vdir', 'output_block_size'),
+                                 (0x80615c0, 0x0, 'vdir', 'print_group'),
+                                 (0x80615c1, 0x0, 'vdir', 'print_author'),
+                                 (0x80615c8, 0x0, 'vdir', 'align_variable_outer_quotes'),
+                                 (0x80615d0, 0x0, 'vdir', 'abformat'),
+                                 (0x80621d0, 0x0, 'vdir', 'use_abformat'),
+                                 (0x80621dc, 0x0, 'vdir', 'print_dir.first'),
+                                 (0x80621dd, 0x0, 'vdir', 'cwd_some_quoted'),
+                                 (0x80621e4, 0x0, 'vdir', 'any_has_acl'),
+                                 (0x8062210, 0x0, 'vdir', 'has_capability_cache.unsupported_device'),
+                                 (0x8062218, 0x0, 'vdir', 'getfilecon_cache.unsupported_device'),
+                                 (0x8062220, 0x0, 'vdir', 'file_has_acl_cache.unsupported_device'),
+                                 (0x806222c, 0x0, 'vdir', 'failed_strcoll'),
+                                 (0x80622d4, 0x0, 'vdir', 'ignore_EPIPE'),
+                                 (0x80622ec, 0x0, 'vdir', 'default_quoting_options'),
+                                 (0x806231c, 0x0, 'vdir', 'slot0'),
+                                 ],
             'EmucodeFunctions': [(134582272,), (134583808,), (134552688,), (134556176,), (134548256,), (134575648,),
                                  (134549936,), (134556208,), (134548240,), (134582048,), (134577216,), (134572896,),
                                  (134582304,), (134576528,), (134573136,), (134556288,), (134548224,), (134572128,),
@@ -165,8 +693,10 @@ class VivisectTest(unittest.TestCase):
                                  (134553488,), (134556128,), (134559504,), (134573472,), (134554096,), (134572464,),
                                  (134575616,), (134575872,), (134575552,), (134582112,), (134561824,), (134573264,),
                                  (134561232,), (134574816,), (134547936,), (134582096,), (134552448,), (134552560,),
-                                 (134575584,), (134553216,), (134573760,), (134582064,), (134583824,), (134519952,),
-                                 (134568352,)]
+                                 (134575584,), (134553216,), (134573760,), (134582064,),
+                                 (134519472,), (134518848,), (134518128,), (134518112,),
+                                 (134518304,), (134518512,), (134518576,), (134518000,),
+                                 (134518672,), ]
 
         }
 
@@ -179,13 +709,14 @@ class VivisectTest(unittest.TestCase):
                 self.fail(mesg)
 
         self.assertEqual(len(vw.getVaSetRows('CodeFragments')), 213)
-        self.assertEqual(len(vw.getVaSetRows('EntryPoints')), 229)
+        self.assertEqual(len(vw.getVaSetRows('EntryPoints')), 230)
 
     def test_basic_apis(self):
         '''
         Test a bunch of the simpler workspace APIs
         '''
         vw = self.firefox_vw
+        self.assertIsNotNone(vw.parsedbin)
         self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals']), set(vw.getVaSetNames()))
 
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
@@ -215,17 +746,17 @@ class VivisectTest(unittest.TestCase):
         self.assertTrue(len(vw.getLocations()) > 76000)
 
         # tuples are Name, Number of Locations, Size in bytes, Percentage of space
-        ans = {0: ('Undefined', 0, 53924, 14),
-               1: ('Num/Int',   715, 3738, 0),
+        ans = {0: ('Undefined', 0, 55596, 14),
+               1: ('Num/Int',   715, 3703, 0),
                2: ('String',    265, 6485, 1),
-               3: ('Unicode',   174, 5593, 1),
-               4: ('Pointer',   360, 2880, 0),
-               5: ('Opcode',    72565, 279449, 74),
-               6: ('Structure', 1009, 12380, 3),
+               3: ('Unicode',   174, 5596, 1),
+               4: ('Pointer',   361, 2888, 0),
+               5: ('Opcode',    72507, 279377, 73),
+               6: ('Structure', 1018, 12740, 3),
                7: ('Clsid',     0, 0, 0),
                8: ('VFTable',   0, 0, 0),
                9: ('Import Entry', 370, 2960, 0),
-               10: ('Pad',      832, 8180, 2)}
+               10: ('Pad',      864, 8511, 2)}
         dist = vw.getLocationDistribution()
         for loctype, locdist in dist.items():
             self.assertEqual(locdist, ans[loctype])
@@ -336,6 +867,14 @@ class VivisectTest(unittest.TestCase):
         for va, disp in ans:
             self.assertEqual(disp, vw.reprVa(va))
 
+    def test_basic_reloc(self):
+        vw = self.chgrp_vw
+        rloc = vw.addRelocation(0xdeadbeef, v_const.RTYPE_BASEOFF)
+        self.assertIsNone(rloc)
+
+        rloc = vw.addRelocation(0x08054184, v_const.RTYPE_BASEPTR)
+        self.assertIsNotNone(rloc)
+
     def test_naughty(self):
         '''
         Test us some error conditions
@@ -433,6 +972,88 @@ class VivisectTest(unittest.TestCase):
             0x08051994
         ]
         self.assertEqual(casevas, cases)
+
+    def test_chgrp_sections(self):
+        '''
+        Test that section information lines up with what we expect
+        '''
+        vw = self.chgrp_vw
+        segments = set([
+            (0x08048154, 0x000013, '.interp', 'chgrp'),
+            (0x08048168, 0x000020, '.note.ABI-tag', 'chgrp'),
+            (0x08048188, 0x00004c, '.gnu.hash', 'chgrp'),
+            (0x080481d4, 0x0004e0, '.dynsym', 'chgrp'),
+            (0x080486b4, 0x000343, '.dynstr', 'chgrp'),
+            (0x080489f8, 0x00009c, '.gnu.version', 'chgrp'),
+            (0x08048a94, 0x000080, '.gnu.version_r', 'chgrp'),
+            (0x08048b14, 0x000038, '.rel.dyn', 'chgrp'),
+            (0x08048b4c, 0x000218, '.rel.plt', 'chgrp'),
+            (0x08048d64, 0x000023, '.init', 'chgrp'),
+            (0x08048d90, 0x000440, '.plt', 'chgrp'),
+            (0x080491d0, 0x000008, '.plt.got', 'chgrp'),
+            (0x080491e0, 0x00745b, '.text', 'chgrp'),
+            (0x0805063c, 0x000014, '.fini', 'chgrp'),
+            (0x08050650, 0x001be6, '.rodata', 'chgrp'),
+            (0x08052238, 0x00006c, '.eh_frame_hdr', 'chgrp'),
+            (0x080522a4, 0x000284, '.eh_frame', 'chgrp'),
+            (0x08053f0c, 0x000004, '.init_array', 'chgrp'),
+            (0x08053f10, 0x000004, '.fini_array', 'chgrp'),
+            (0x08053f14, 0x0000e8, '.dynamic', 'chgrp'),
+            (0x08053ffc, 0x000004, '.got', 'chgrp'),
+            (0x08054000, 0x000118, '.got.plt', 'chgrp'),
+            (0x08054118, 0x000050, '.data', 'chgrp'),
+            (0x08054170, 0x000184, '.bss', 'chgrp'),
+            (0x08048000, 0x00a528, 'PHDR0', 'chgrp'),
+            (0x08053f0c, 0x0003e8, 'PHDR1', 'chgrp')
+        ])
+        self.assertEqual(segments, set(vw.getSegments()))
+
+    def test_chgrp_exports(self):
+        '''
+        Test that some fo the exports/names made by the elf parser
+        aren't accidentally made into functions.
+        '''
+        vw = self.chgrp_vw
+        exports = [
+            # .rodata
+            (0x08050650, 4, v_const.LOC_POINTER, 'chgrp._fp_hw'),
+            (0x08050654, 4, v_const.LOC_POINTER, 'chgrp._IO_stdin_used'),
+
+            # long options is really an array of pointers, but that isn't obvi
+            # (0x08050748, 4, v_const.LOC_POINTER, 'chgrp.long_options'),
+            #(0x08050850, 0x27, v_const.LOC_STRING, None),
+
+            (0x8054170, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_short_name@@GLIBC_2.0'),
+            (0x8054178, 4, v_const.LOC_POINTER, 'chgrp.stderr@@GLIBC_2.0'),
+            (0x8054180, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_name@@GLIBC_2.0'),
+            (0x8054190, 4, v_const.LOC_POINTER, 'chgrp.optind@@GLIBC_2.0'),
+            (0x8054194, 4, v_const.LOC_POINTER, 'chgrp.stdout@@GLIBC_2.0'),
+            (0x8054198, 4, v_const.LOC_POINTER, 'chgrp.optarg@@GLIBC_2.0'),
+            (0x805419c, 1, v_const.LOC_NUMBER, 'chgrp.completed.7282'),
+
+            # .data pointers/numbers
+            (0x805411c, 4, v_const.LOC_POINTER, 'chgrp.__dso_handle'),
+            (0x8054120, 4, v_const.LOC_POINTER, 'chgrp.Version'),
+            (0x8054124, 4, v_const.LOC_POINTER, 'chgrp.exit_failure'),
+            (0x8054128, 4, v_const.LOC_POINTER, 'chgrp.slotvec'),
+            (0x805412c, 4, v_const.LOC_POINTER, 'chgrp.nslots'),
+            (0x8054130, 8, v_const.LOC_NUMBER, 'chgrp.slotvec0'),  # this one kinda pulls double duty as both 4 and 8....
+            # Another horrible little saved space of bytes for....well technically a struct, not that we
+            # can easily detect that
+            # (0x8054138, 4, v_const.LOC_POINTER, 'chgrp.quote_quoting_options'),
+        ]
+
+        for va, size, ltyp, name in exports:
+            loc = vw.getLocation(va)
+            try:
+                self.assertIsNotNone(loc)
+                self.assertEqual(loc[v_const.L_VA], va)
+                self.assertEqual(loc[v_const.L_SIZE], size)
+                self.assertEqual(loc[v_const.L_LTYPE], ltyp)
+                self.assertEqual(vw.getName(loc[v_const.L_VA]), name)
+            except:
+                breakpoint()
+                print('wat')
 
     def test_libfunc_meta_equality(self):
         '''
@@ -540,13 +1161,16 @@ class VivisectTest(unittest.TestCase):
         <va> should be actually be a VA in the middle of a string
         <strtbl> should be a table of *string* pointers, not code block pointers
         '''
+        vw = self.vdir_vw
         badva = 0x0805b6f2
-        loctup = self.vdir_vw.getLocation(badva, range=False)
+        loctup = vw.getLocation(badva, range=False)
         self.assertEqual((134592163, 86, 2, [(134592242, 7)]), loctup)
 
+        # this should directly reflect what's in src/ls.c for color_indicator
         strtbl = 0x805e75c
-        loctup = self.vdir_vw.getLocation(strtbl)
-        self.assertEqual(loctup, (strtbl, 4, 4, None))
+        loctup = vw.getLocation(strtbl)
+        for idx, addr in enumerate(range(strtbl, strtbl + 40, 4)):
+            self.assertEqual(vw.getLocation(addr), (addr, 4, 4, None))
 
     def test_consecutive_jump_table_diff_func(self):
         jumptabl = [
@@ -587,6 +1211,7 @@ class VivisectTest(unittest.TestCase):
 
     def test_main(self):
         vw = self.chgrp_vw
+        self.assertIsNotNone(vw.parsedbin)
         self.assertTrue(vw.isFunction(0x8049650))
         self.assertTrue(vw.getFunction(0x0804a9a0), 0x0804a920)
 
@@ -694,17 +1319,13 @@ class VivisectTest(unittest.TestCase):
         vw = self.firefox_vw
         g = v_t_graphutil.buildFunctionGraph(vw, 0x140010e60)
         paths = [
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778515, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778520, 5368778544, 5368778549]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778520, 5368778544, 5368778601, 5368778603]),
-            set([5368778336, 5368778350, 5368778362, 5368778366, 5368778498, 5368778520, 5368778560, 5368778603]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778515, 5368778394, 5368778400]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778520, 5368778544, 5368778549]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778520, 5368778544, 5368778601, 5368778603]),
-            set([5368778336, 5368778350, 5368778482, 5368778366, 5368778498, 5368778520, 5368778560, 5368778603]),
-            set([5368778336, 5368778400]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010e9a, 0x140010ea0]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010f02, 0x140010f13]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7a, 0x140010e7e, 0x140010f02, 0x140010f18]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010ef2]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010e9a, 0x140010ea0, 0x140010ef2, 0x140010f02, 0x140010f13]),
+            set([0x140010e60, 0x140010e6e, 0x140010e7e, 0x140010ef2, 0x140010f02, 0x140010f18]),
+            set([0x140010e60, 0x140010ea0]),
         ]
 
         pathcount = 0
@@ -714,11 +1335,11 @@ class VivisectTest(unittest.TestCase):
             self.assertIn(p, paths)
             pathcount += 1
 
-        self.assertEqual(11, pathcount)
+        self.assertEqual(7, pathcount)
 
         g = v_t_graphutil.buildFunctionGraph(vw, vw.getFunction(0x1400110a0))
         thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x1400110a0))
-        self.assertEqual(23, thruCnt)
+        self.assertEqual(21, thruCnt)
         thruCnt = glen(v_t_graphutil.getCodePathsThru(g, 0x1400110a0, maxpath=2))
         self.assertEqual(2, thruCnt)
 
@@ -811,14 +1432,14 @@ class VivisectTest(unittest.TestCase):
         vw = self.firefox_vw
         ans = {
             'PE_Header': (0x140000000, 0x1000, e_memory.MM_READ),
-            '.text': (0x140001000, 0x48f80, e_memory.MM_READ | e_memory.MM_EXEC),
-            '.rdata': (0x14004a000, 0xbf7c, e_memory.MM_READ),
-            '.data': (0x140056000, 0x2998, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.pdata': (0x140059000, 0x2f28, e_memory.MM_READ),
-            '.00cfg': (0x14005c000, 0x10, e_memory.MM_READ),
-            '.freestd': (0x14005d000, 0x10, e_memory.MM_READ),
-            '.tls': (0x14005e000, 0x11, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.reloc': (0x140092000, 0x338, e_memory.MM_READ),
+            '.text': (0x140001000, 0x49000, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.rdata': (0x14004a000, 0xc000, e_memory.MM_READ),
+            '.data': (0x140056000, 0x2a00, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.pdata': (0x140059000, 0x3000, e_memory.MM_READ),
+            '.00cfg': (0x14005c000, 0x200, e_memory.MM_READ),
+            '.freestd': (0x14005d000, 0x200, e_memory.MM_READ),
+            '.tls': (0x14005e000, 0x200, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.reloc': (0x140092000, 0x400, e_memory.MM_READ),
         }
         for sva, ssize, sname, sfname in vw.getSegments():
             self.assertEqual(ans[sname][0], sva)
@@ -830,3 +1451,97 @@ class VivisectTest(unittest.TestCase):
             self.assertEqual(msize, ssize)
             self.assertEqual(flags, ans[sname][2])
             self.assertEqual(mfname, sfname)
+
+    def test_opcache(self):
+        vw = self.firefox_vw
+        self.assertGreater(len(vw._op_cache), 0)
+        vw.clearOpcache()
+        self.assertEqual(len(vw._op_cache), 0)
+
+        op = vw.parseOpcode(0x140010ef2, skipcache=True)
+        self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
+        self.assertEqual(len(vw._op_cache), 0)
+
+        op = vw.parseOpcode(0x140010ef2)
+        self.assertEqual(str(op), 'mov rax,qword [rsi + 56]')
+        self.assertEqual(len(vw._op_cache), 1)
+
+    def test_string_without_termination(self):
+        vw = self.firefox_vw
+        vw.addMemoryMap(0x2000, 7, 'test', b'this is a string that never terminates.')
+        vw.makeString(0x2000)
+        self.assertEqual(vw.readMemString(0x2000), b'this is a string that never terminates.')
+
+    def test_function_thunks(self):
+        vw = self.firefox_vw
+
+        thunks = set([fva for fva in vw.getFunctions() if vw.isFunctionThunk(fva)])
+        impthunk = [0x140049920, 0x1400498a0, 0x140049ba0, 0x140049b10, 0x140049bb0, 0x140049c30, 0x140049b30,
+                    0x140049ab0, 0x1400498b0, 0x140049830, 0x140049930, 0x140049a30, 0x1400497b0, 0x140049730,
+                    0x140049bc0, 0x140049940, 0x1400498c0, 0x140049ac0, 0x140049c40, 0x140049a40, 0x1400497c0,
+                    0x140049840, 0x14001d2c0, 0x140049740, 0x140049ad0, 0x140049850, 0x14001d050, 0x140049bd0,
+                    0x140049950, 0x1400497d0, 0x1400498d0, 0x140049750, 0x140049c50, 0x140049b50, 0x140049ae0,
+                    0x140049be0, 0x1400498e0, 0x140049860, 0x14000dde0, 0x140049b60, 0x1400497e0, 0x140049760,
+                    0x140015c60, 0x140049af0, 0x1400499f0, 0x1400498f0, 0x1400496f0, 0x140049870, 0x1400497f0,
+                    0x140049770, 0x140049bf0, 0x140049b80, 0x140049780, 0x140049a00, 0x140049900, 0x140049700,
+                    0x140049800, 0x140049880, 0x140049c00, 0x140049b00, 0x140049a10, 0x140049790, 0x140049810,
+                    0x140049a90, 0x140049710, 0x14001ef10, 0x140049890, 0x140049910, 0x140049b90, 0x140049c10,
+                    0x140049b40, 0x140049aa0, 0x1400497a0, 0x140049720, 0x140049820, 0x140049a20]
+
+        self.assertEqual(thunks, set(impthunk))
+
+    def test_NoRet(self):
+
+        # test analysis stops after a few known NoRets
+        # arm/sh
+        self.assertIsNone(self.sh_vw.getLocation(0x0000ddaa))
+        self.assertIsNone(self.sh_vw.getLocation(0x000288ce))
+       
+        # linux/i386/vdir.llvm
+        self.assertIsNone(self.vdir_vw.getLocation(0x080589ba))
+        self.assertIsNone(self.vdir_vw.getLocation(0x0805875f))
+        self.assertIsNone(self.vdir_vw.getLocation(0x08057b12))
+        self.assertIsNone(self.vdir_vw.getLocation(0x0804adc9))
+
+        # linux/i386/chgrp.llvm
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804cb15))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804c814))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804c66e))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804b7b9))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x0804d0ae))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x080494d6))
+        self.assertIsNone(self.chgrp_vw.getLocation(0x080499e5))
+
+        # windows/amd64/firefox
+        self.assertIsNone(self.firefox_vw.getLocation(0x14000dd2c))
+        self.assertIsNone(self.firefox_vw.getLocation(0x1400175bb))
+        self.assertIsNone(self.firefox_vw.getLocation(0x140048e8f))
+        self.assertIsNone(self.firefox_vw.getLocation(0x14001bd26))
+        self.assertIsNone(self.firefox_vw.getLocation(0x1400163a7))
+
+    def test_del_reloc(self):
+        with self.snap(self.chown_vw) as vw:
+            base = vw.getFileMeta('chown', 'imagebase')
+
+            va = 0x20f950
+            rva = 0x20f950 + base
+
+            reloc = [rdat for rdat in vw.getRelocations() if rdat[1] == va]
+            self.len(reloc, 1)
+            rtyp = vw.getRelocation(rva)
+            self.assertEqual(2, rtyp)
+
+            old = len(vw.getRelocations())
+            self.assertEqual(2, vw.delRelocation(rva, full=True))
+
+            self.none(vw.getLocation(rva))
+            self.len(vw.getXrefsFrom(rva), 0)
+            self.len(vw.getXrefsTo(0x20028a0), 1)
+            self.eq(2, self.chown_vw.getRelocation(rva))
+            self.eq(1, old - len(vw.getRelocations()))
+
+            self.none(vw.delRelocation(0xabad1dea))
+
+            self.nn(self.chown_vw.getLocation(rva))
+            self.len(self.chown_vw.getXrefsFrom(rva), 1)
+            self.len(self.chown_vw.getXrefsTo(0x20028a0), 2)

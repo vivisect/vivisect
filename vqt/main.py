@@ -171,12 +171,20 @@ def workerThread():
         except Exception as e:
             logger.warning('vqt worker warning: %s', str(e))
 
+def isGuiStarted():
+    return QApplication.instance() is not None
+
 def startup(css=None):
     # yea yea.... globals suck...
     global qapp     # the main QApplication
     global guiq     # queue of GUI calls to proxy
     global ethread  # QtThread that consumes guiq
     global workerq  # queue of "worker" calls to proxy
+
+    # skip startup if already started
+    if isGuiStarted():
+        print("Returning from startup... already QApplication running")
+        return
 
     guiq = e_threads.EnviQueue()
     workerq = e_threads.EnviQueue()

@@ -6,6 +6,7 @@ import importlib
 
 import envi
 import envi.exc as e_exc
+import envi.common as e_common
 import envi.archs.arm as arm
 import vivisect
 
@@ -1980,8 +1981,8 @@ def genAdvSIMDtests():
                         opthumb = am.archParseOpcode(bytezthumb, 0, 0x4561)
                         #outthumb.append(bytezthumb)
 
-                        outarm.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytezarm), 0x4560, oparm))
-                        outthumb.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytezthumb), 0x4561, opthumb))
+                        outarm.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (e_common.hexify(bytezarm), 0x4560, oparm))
+                        outthumb.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (e_common.hexify(bytezthumb), 0x4561, opthumb))
 
                     except envi.InvalidInstruction as e:
                         logger.warning(str(e))
@@ -2014,26 +2015,26 @@ def genTestsODA(abytez, tbytez):
         #yield oparmjson[0]
 
         if len(oparmjson) == 0 or not len(oparmjson[0].get('opcode')):
-            print("ARM code error for val: 0x%s" % binascii.hexlify(bytez))
+            print("ARM code error for val: 0x%s" % e_common.hexify(bytez))
             continue
 
         oparm = oparmjson[0].get('opcode') + " " + oparmjson[0].get('operands')
         #oparm = am.archParseOpcode(bytezarm, 0, 0x4560)
         #outarm.append(bytezarm)
-        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytez), 0x4560, oparm))
+        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (e_common.hexify(bytez), 0x4560, oparm))
 
 
     for bytez in tbytez:
         opthumbjson = oda.disassembleOpcode(bytez, 0, 0x4561)
         if len(opthumbjson) == 0 or not len(opthumbjson[0].get('opcode')):
-            print("THUMB code error for val: 0x%s" % binascii.hexlify(bytez))
+            print("THUMB code error for val: 0x%s" % e_common.hexify(bytez))
             continue
 
         opthumb = opthumbjson[0].get('opcode') + " " + oparmjson[0].get('operands')
 
         #outthumb.append(bytezthumb)
 
-        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytez), 0x4561, opthumb))
+        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (e_common.hexify(bytez), 0x4561, opthumb))
 
 def genTestsObjdump(abytez, tbytez, bigend=False):
     '''

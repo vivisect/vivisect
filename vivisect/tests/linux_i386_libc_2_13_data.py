@@ -82,7 +82,7 @@ libc_data = {
         (0x215901c, 4, 9, '*._Unwind_Find_FDE'),
     ],
 
-    'exports' : [
+    'exports': [
         (0x2016c80, 0, '__libc_init_first', 'libc_2_13'),
         (0x2016d50, 0, '__libc_start_main', 'libc_2_13'),
         (0x2016f50, 0, 'gnu_get_libc_release', 'libc_2_13'),
@@ -2383,7 +2383,7 @@ libc_data = {
         (0x215c9cc, 1, 'svcauthdes_stats', 'libc_2_13'),
     ],
 
-    'relocs' : [
+    'relocs': [
         ('libc_2_13', 0x1571c8, 2, 0x1593a0),
         ('libc_2_13', 0x1571d0, 2, 0x16c10),
         ('libc_2_13', 0x1571d8, 2, 0x6ae70),
@@ -3640,8 +3640,7 @@ libc_data = {
         ('libc_2_13', 0x159998, 2, 0x171b0),
     ],
 
-    'names' : [
-        (0x2016b78, 'libc_2_13.LazyLoaderTrampoline'),
+    'names': [
         (0x2016b88, 'libc_2_13.plt_calloc'),
         (0x2016b98, 'libc_2_13.plt_realloc'),
         (0x2016ba8, 'libc_2_13.plt_feof'),

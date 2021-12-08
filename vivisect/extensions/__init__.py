@@ -86,7 +86,6 @@ def importExtensions(vw):
             modpath = os.path.join(dirname, fname)
             # dig into first level of directories and exec the __init__.py
             if os.path.isdir(modpath):
-                modname = fname
                 modpath = os.path.join(modpath, '__init__.py')
                 if not os.path.exists(modpath):
                     continue
@@ -94,10 +93,6 @@ def importExtensions(vw):
             # otherwise, run all the .py files in the VIV_EXT_PATH dir
             elif not modpath.endswith('.py'):
                 continue
-
-            else:
-                # it's a .py file
-                modname = fname[:-3]
 
             try:
                 logger.info('importExtensions: %s', modpath)

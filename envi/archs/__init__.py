@@ -5,6 +5,8 @@ import os
 import sys
 import binascii
 
+import envi.common as e_common
+
 
 def dismain(d):
     '''
@@ -22,5 +24,5 @@ def dismain(d):
     va = 0x41414141
     while offset < len(b):
         op = d.disasm(b, offset, va+offset)
-        print('0x%.8x %s %s' % (va+offset, binascii.hexlify(b[offset:offset+len(op)]).ljust(16), repr(op)))
+        print('0x%.8x %s %s' % (va+offset, e_common.hexify(b[offset:offset+len(op)]).ljust(16), repr(op)))
         offset += len(op)

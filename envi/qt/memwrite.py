@@ -1,7 +1,8 @@
 import string
 import binascii
 
-import envi.memory as e_mem
+import envi.common as e_common
+import envi.memory as e_memory
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
 
@@ -232,8 +233,8 @@ class MemWriteWindow(QWidget):
             return
 
         self.canvas_orig.clearCanvas()
-        mem = e_mem.MemoryObject()
-        mem.addMemoryMap(va, e_mem.MM_READ, b'', bytez)
+        mem = e_memory.MemoryObject()
+        mem.addMemoryMap(va, e_memory.MM_READ, b'', bytez)
         self.canvas_orig.mem = mem
         self.canvas_orig.renderMemory(va, len(bytez))
         self.hex_edit.setPlainText(str(self.canvas_orig))
@@ -244,8 +245,8 @@ class MemWriteWindow(QWidget):
             return
 
         self.canvas_new.clearCanvas()
-        mem = e_mem.MemoryObject()
-        mem.addMemoryMap(va, e_mem.MM_READ, b'', bytez)
+        mem = e_memory.MemoryObject()
+        mem.addMemoryMap(va, e_memory.MM_READ, b'', bytez)
         self.canvas_new.mem = mem
         self.canvas_new.renderMemory(va, len(bytez))
         self.hex_preview.setPlainText(str(self.canvas_new))
@@ -256,7 +257,7 @@ class MemWriteWindow(QWidget):
         rbytes = str(self.data_edit.text())
         erbytes = self.encodeData(rbytes, encoding)
 
-        hexbytes = binascii.hexlify(erbytes)
+        hexbytes = e_common.hexify(erbytes)
         self.writeToMemory.emit(curexpr, hexbytes)
 
     def getValues(self):

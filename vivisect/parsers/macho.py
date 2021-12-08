@@ -1,6 +1,8 @@
 import struct
 import binascii
 
+import envi.common as e_common
+
 import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
 
@@ -51,7 +53,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     sha256 = viv_parsers.sha256Bytes(filebytes)
 
     # Check for the FAT binary magic...
-    if binascii.hexlify(filebytes[:4]) in ('cafebabe', 'bebafeca'):
+    if e_common.hexify(filebytes[:4]) in ('cafebabe', 'bebafeca'):
 
         archhdr = None
         fatarch = vw.config.viv.parsers.macho.fatarch

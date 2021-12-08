@@ -17,6 +17,7 @@ import collections
 
 import envi.bits as e_bits
 import envi.memory as e_mem
+import envi.common as e_common
 import envi.config as e_config
 import envi.memcanvas as e_canvas
 import envi.expression as e_expr
@@ -308,6 +309,7 @@ class EnviCli(Cmd):
             if self.config.cli.verbose:
                 self.vprint(traceback.format_exc())
             self.vprint("\nERROR: (%s) %s" % (msg.__class__.__name__, msg))
+            logger.warning("\nERROR: (%s) %s", msg.__class__.__name__, msg, exc_info=1)
 
         if self.shutdown.isSet():
             return True
@@ -371,17 +373,7 @@ class EnviCli(Cmd):
             return self.do_help('config')
 
         if len(args) <= 0 and not options.do_save:
-            #FIXME for now we will hard code one level of sections
-            subnames = self.config.getSubConfigNames()
-            subnames.sort()
-            for subname in subnames:
-                subcfg = self.config.getSubConfig(subname)
-                options = list(subcfg.keys())
-                options.sort()
-                for optname in options:
-                    optval = subcfg.get(optname)
-                    self.vprint('%s.%s=%s' % (subname, optname, json.dumps(optval)))
-
+            self.vprint(self.config.reprConfigPaths())
             return
 
         # 1 option per run
@@ -390,20 +382,28 @@ class EnviCli(Cmd):
 
         if len(args) == 1:
             parts = args[0].split('=', 1)
-            subname, optname = parts[0].split('.', 1)
+            subnames = parts[0].split('.')
 
-            subcfg = self.config.getSubConfig(subname, add=False)
-            if subcfg is None:
-                self.vprint('No Such Config Section: %s' % subname)
-                return
+            cfg = self.config
+            for subname in subnames[:-1]:
+                cfg = cfg.getSubConfig(subname, add=False)
+                if cfg is None:
+                    self.vprint('No Such Config Section: %s' % subname)
+                    return
 
-            optval = subcfg.get(optname)
+            optname = subnames[-1]
+            optval = cfg.get(optname)
             if optval is None:
                 self.vprint('No Such Config Option: %s' % optname)
                 return
 
             if len(parts) == 2:
-                newval = json.loads(parts[1])
+                # the config entry already has a value, let's use it to decide 
+                # whether to convert it to an int or leave it as a str.
+                if type(cfg[optname]) == int:
+                    newval = int(parts[1], 0)
+                else:
+                    newval = parts[1]
 
                 if (not isinstance(newval, str)) or not isinstance(optval, str):
                     if type(newval) != type(optval):
@@ -411,9 +411,9 @@ class EnviCli(Cmd):
                         return
 
                 optval = newval
-                subcfg[optname] = newval
+                cfg[optname] = newval
 
-            self.vprint('%s.%s=%s' % (subname, optname, json.dumps(optval)))
+            self.vprint('%s.%s=%s' % ('.'.join(subnames), optname, json.dumps(optval)))
 
         if options.do_save:
             self.config.saveConfigFile()
@@ -625,7 +625,7 @@ class EnviCli(Cmd):
             self.onecmd(command)
 
             with open(fname, 'wb') as f:
-                f.write(str(strcanvas))
+                f.write(str(strcanvas).encode('utf-8'))
 
     def do_search(self, line):
         '''
@@ -662,16 +662,17 @@ class EnviCli(Cmd):
             return self.do_help('search')
 
         if options.is_expr:
-            import struct #FIXME see below
             sval = self.parseExpression(pattern)
-            pattern = struct.pack('<L', sval) # FIXME 64bit (and alt arch)
+            endian = self.memobj.getEndian()
+            size = self.memobj.getPointerSize()
+            pattern = e_bits.buildbytes(sval, size, bigend=endian)
 
         if options.is_hex:
             pattern = binascii.unhexlify(pattern)
 
         if options.encode_as is not None:
             if options.encode_as == 'hex':
-                pattern = binascii.hexlify(pattern)
+                pattern = e_common.hexify(pattern)
             else:
                 import codecs
                 patternutf8 = pattern.decode('utf-8')
@@ -695,11 +696,11 @@ class EnviCli(Cmd):
             res = self.memobj.searchMemory(pattern, regex=options.is_regex)
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' % (e_common.hexify(pattern), repr(pattern)))
             return
 
         brend = e_render.ByteRend()
-        self.vprint('matches for: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+        self.vprint('matches for: %s (%s)' % (e_common.hexify(pattern), repr(pattern)))
         for va in res:
             mbase,msize,mperm,mfile = self.memobj.getMemoryMap(va)
             pname = e_mem.reprPerms(mperm)
@@ -801,11 +802,11 @@ class EnviCli(Cmd):
             self.canvas.addText('==== %d byte difference at offset %d\n' % (offsize,offset))
             self.canvas.addVaText("0x%.8x" % diff1, diff1)
             self.canvas.addText(":")
-            self.canvas.addText(binascii.hexlify(bytes1[offset:offset+offsize]))
+            self.canvas.addText(e_common.hexify(bytes1[offset:offset+offsize]))
             self.canvas.addText('\n')
             self.canvas.addVaText("0x%.8x" % diff2, diff2)
             self.canvas.addText(":")
-            self.canvas.addText(binascii.hexlify(bytes2[offset:offset+offsize]))
+            self.canvas.addText(e_common.hexify(bytes2[offset:offset+offsize]))
             self.canvas.addText('\n')
 
     def do_mem(self, line):

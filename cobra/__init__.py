@@ -479,6 +479,8 @@ class CobraDaemon(ThreadingTCPServer):
         self.authmod = None
         self.sflags = 0
 
+        self.allow_reuse_address = True
+
         if msgpack and json:
             raise Exception('CobraDaemon can not use both msgpack *and* json!')
 

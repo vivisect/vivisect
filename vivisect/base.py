@@ -1,4 +1,5 @@
 import queue
+import base64
 import logging
 import traceback
 import threading
@@ -17,6 +18,7 @@ import vstruct.constants as vs_const
 
 import vivisect.const as viv_const
 import vivisect.impapi as viv_impapi
+import vivisect.parsers as viv_parsers
 import vivisect.analysis as viv_analysis
 import vivisect.codegraph as viv_codegraph
 
@@ -166,6 +168,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.locmap = e_page.MapLookup()
         self.blockmap = e_page.MapLookup()
         self._mods_loaded = False
+        self.parsedbin = None
 
         # Storage for function local symbols
         self.localsyms = ddict()
@@ -228,16 +231,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        if len(einfo) == 2:     # FIXME: legacy: remove after 02/13/2020
-            rva, rtype = einfo
-            mmva, mmsz, mmperm, fname = self.getMemoryMap(rva)    # FIXME: getFileByVa does not obey file defs
-            imgbase = self.getFileMeta(fname, 'imagebase')
-            data = None
-            einfo = fname, rva-imgbase, rtype, data
-        else:
-            fname, ptroff, rtype, data = einfo
-            imgbase = self.getFileMeta(fname, 'imagebase')
-            rva = imgbase + ptroff
+        fname, ptroff, rtype, data = einfo
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        rva = imgbase + ptroff
 
         self.reloc_by_va[rva] = rtype
         self.relocations.append(einfo)
@@ -249,7 +245,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
             if ptr != (ptr & e_bits.u_maxes[self.psize]):
-                logger.warning('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+                logger.warning('Relocations calculated a bad pointer: 0x%x (imgbase: 0x%x) (relocation: %d)', ptr, imgbase, rtype)
 
             # writes are costly, especially on larger binaries
             if ptr != self.readMemoryPtr(rva):
@@ -264,6 +260,29 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
             self._handleADDXREF((rva, ptr, REF_PTR, 0))
             self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
+
+    def _handleDELRELOC(self, einfo):
+        fname, rva, rtyp, full = einfo
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        ptroff = rva - imgbase
+
+        self.reloc_by_va.pop(rva, None)
+        delidx = -1
+
+        for idx, (fn, off, typ, data) in enumerate(self.relocations):
+            if fn == fname and off == ptroff and typ == rtyp:
+                delidx = idx
+                break
+
+        if delidx >= 0:
+            self.relocations.pop(delidx)
+
+        if full:
+            if rtyp == RTYPE_BASEPTR:
+                ptr = imgbase + data
+                ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
+                self._handleDELXREF((rva, ptr, REF_PTR, 0))
+                self._handleDELLOCATION((rva, self.psize, LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
         logger.warning('DEPRECATED (ADDMODULE) ignored: %s', einfo)
@@ -284,7 +303,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
         # node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
         node = self._call_graph.getFunctionNode(va)
-        self._call_graph.setNodeProp(node,'repr', self.getName(va))
+        self._call_graph.setNodeProp(node, 'repr', self.getName(va))
 
         # Tell the codeflow subsystem about this one!
         calls_from = meta.get('CallsFrom')
@@ -387,16 +406,27 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
                 self._call_graph.setNodeProp(fnode, 'repr', name)
 
     def _handleADDMMAP(self, einfo):
-        va, perms, fname, mbytes = einfo
-        e_mem.MemoryObject.addMemoryMap(self, va, perms, fname, mbytes)
+        if len(einfo) == 5:
+            # new "alignment-friendly" event
+            va, perms, fname, mbytes, align = einfo
+        else:
+            # DEPRECATED (21-09-13) - old event style, to support older .viv's
+            va, perms, fname, mbytes = einfo
+            align = None
 
-        blen = len(mbytes)
+        blen = e_mem.MemoryObject.addMemoryMap(self, va, perms, fname, mbytes, align)
+
         self.locmap.initMapLookup(va, blen)
         self.blockmap.initMapLookup(va, blen)
 
         # On loading a new memory map, we need to crush a few
         # transmeta items...
         self.transmeta.pop('findPointers',None)
+
+    def _handleDELMMAP(self, mapva):
+        e_mem.MemoryObject.delMemoryMap(self, mapva)
+        self.locmap.delMapLookup(mapva)
+        self.blockmap.delMapLookup(mapva)
 
     def _handleADDEXPORT(self, einfo):
         va, etype, name, filename = einfo
@@ -490,7 +520,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     def _handleAUTOANALFIN(self, einfo):
         '''
-        This event is more for the storage subsystem than anything else.  It 
+        This event is more for the storage subsystem than anything else.  It
         marks the end of autoanalysis.  Any event beyond this is due to the
         end user or analysis modules they've executed.
         '''
@@ -503,7 +533,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_ADDSEGMENT] = self._handleADDSEGMENT
         self.ehand[VWE_DELSEGMENT] = None
         self.ehand[VWE_ADDRELOC] = self._handleADDRELOC
-        self.ehand[VWE_DELRELOC] = None
+        self.ehand[VWE_DELRELOC] = self._handleDELRELOC
         self.ehand[VWE_ADDMODULE] = self._handleADDMODULE
         self.ehand[VWE_DELMODULE] = self._handleDELMODULE
         self.ehand[VWE_ADDFMODULE] = self._handleADDFMODULE
@@ -518,7 +548,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_DELXREF] = self._handleDELXREF
         self.ehand[VWE_SETNAME] = self._handleSETNAME
         self.ehand[VWE_ADDMMAP] = self._handleADDMMAP
-        self.ehand[VWE_DELMMAP] = None
+        self.ehand[VWE_DELMMAP] = self._handleDELMMAP
         self.ehand[VWE_ADDEXPORT] = self._handleADDEXPORT
         self.ehand[VWE_DELEXPORT] = None
         self.ehand[VWE_SETMETA] = self._handleSETMETA
@@ -603,17 +633,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     #def _loadImportApi(self, apidict):
         #self._imp_api.update( apidict )
 
-    def getEndian(self):
-        return self.bigend
-
-    def setEndian(self, endian):
-        self.bigend = endian
-        for arch in self.imem_archs:
-            arch.setEndian(self.bigend)
-
-        if self.arch is not None:
-            self.arch.setEndian(self.bigend)
-
 
 #################################################################
 #
@@ -643,6 +662,14 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         defcall = self.arch.getPlatDefaultCall(value)
         if defcall:
             self.setMeta('DefaultCall', defcall)
+
+    def _mcb_FileBytes(self, name, value):
+        if not self.parsedbin:
+            byts = viv_parsers.uncompressBytes(value)
+            fmt = viv_parsers.guessFormat(byts)
+            parser = viv_parsers.getBytesParser(fmt)
+            if parser:
+                self.parsedbin = parser(byts)
 
     def _mcb_ustruct(self, name, ssrc):
         # All meta values in the "ustruct" namespace are user defined
@@ -685,7 +712,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    vw.vprint("0x%x: Dynamic Branch found at (%s)" % (op.va, op))
+    logger.info("0x%x: Dynamic Branch found at (%s)" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):

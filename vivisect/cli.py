@@ -7,8 +7,8 @@ import shlex
 import pprint
 import socket
 import logging
-import binascii
 import traceback
+import collections
 from getopt import getopt
 
 import vtrace
@@ -29,7 +29,7 @@ import vdb
 
 import envi.cli as e_cli
 import envi.common as e_common
-import envi.memory as e_mem
+import envi.memory as e_memory
 import envi.expression as e_expr
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
@@ -39,7 +39,7 @@ from vivisect.const import *
 logger = logging.getLogger(__name__)
 
 
-class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
+class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
     '''
     A class that builds upon the VivWorkspace to provide command line capabilities so that
     things like the Vivisect UI can provide a cleaner interface that just a direct python
@@ -75,27 +75,19 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if not line:
             self.vprint("Report Modules")
             for descr, modname in viv_reports.listReportModules():
-                self.vprint("%32s %s" % (modname, descr))
+                self.vprint("Path: %32s (Name: %s)" % (modname, descr))
             return
 
-        mod = self.loadModule(line)
-        cols, results = mod.report(self)
-        for row in results:
-            for i in range(len(cols)+1):
-                val = row[i]
-                if i == 0:
-                    name = self.arch.pointerString(val)
-                    self.canvas.addVaText(name, val)
+        cols, results = viv_reports.runReportModule(self, line)
+        for va, row in results.items():
+            self.canvas.addVaText("%s:\n" % self.getName(va), va)
 
-                else:
-                    self.canvas.addText(": %s" % val)
-
-        for va, pri, info in mod.report(self):
-            name = self.getName(va)
-            if name is None:
-                name = self.arch.pointerString(va)
-            self.canvas.addVaText(name, va)
-            self.canvas.addText(": %s\n" % info)
+            for indx in range(len(cols)):
+                valu = row[indx]
+                name, typename = cols[indx]
+                self.canvas.addVaText("    " + name, va)
+                self.canvas.addText(": %s\n" % valu)
+            self.canvas.addText("\n")
 
     def do_pathcount(self, line):
         '''
@@ -105,9 +97,16 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         Usage: pathcount <func_expr>
         '''
-        fva = self.parseExpression(line)
-        if not self.isFunction(fva):
-            self.vprint('Not a function!')
+        if not line:
+            return self.do_help('pathcount')
+        try:
+            fva = self.parseExpression(line)
+            if not self.isFunction(fva):
+                self.vprint('Not a function!')
+                return
+
+        except Exception as e:
+            self.vprint(str(e))
             return
 
         g = v_t_graph.buildFunctionGraph(self, fva)
@@ -127,6 +126,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             to the given address
 
         '''
+        if not line:
+            return self.do_help("symboliks")
 
         watchaddr = None
 
@@ -167,7 +168,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 if emu.isLocalMemory(addrsym):
                     continue
                 self.vprint('[ %s ] = %s' % (addrsym, valsym))
-            self.vprint('RETURN', emu.getFunctionReturn().reduce())
+            self.vprint('RETURN  %r' % emu.getFunctionReturn().reduce())
 
     def do_names(self, line):
         '''
@@ -276,7 +277,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
             for nva, node in graph.getNodes():
                 va = nva
-                endva = va + node.get('cbsize')
+                endva = nva + node.get('cbsize')
                 while va < endva:
                     lva, lsz, ltype, ltinfo = self.getLocation(va)
                     valist.append(va)
@@ -375,16 +376,19 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         self.vprint('matches for: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
         for va in res:
             mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
-            pname = e_mem.reprPerms(mperm)
+            pname = e_memory.reprPerms(mperm)
             sname = self.reprPointer(va)
 
-            op = self.parseOpcode(va)
-            self.canvas.renderMemory(va, len(op))
-            cmt = self.getComment(va)
-            if cmt is not None:
-                self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
+            try:
+                op = self.parseOpcode(va)
+                self.canvas.renderMemory(va, len(op))
+                cmt = self.getComment(va)
+                if cmt is not None:
+                    self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
 
-            self.canvas.addText('\n')
+                self.canvas.addText('\n')
+            except envi.SegmentationViolation as e:
+                logger.debug("segv at 0x%x", va)
 
         self.vprint('done (%d results).' % len(res))
 
@@ -463,12 +467,9 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         Usage: exports [fname]
         """
-        edict = {}
+        edict = collections.defaultdict(list)
         for va, etype, name, filename in self.getExports():
-            exps = edict.get(filename)
-            if exps is None:
-                edict[filename] = []
-            exps.append((name, va))
+            edict[filename].append((name, va))
 
         if line:
             x = edict.get(line)
@@ -577,7 +578,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         """
         argv = e_cli.splitargs(line)
         try:
-            opts, args = getopt(argv, "csup:S:")
+            opts, args = getopt(argv, "csufn:p:S:")
         except Exception as e:
             logger.warning(str(e))
             return self.do_help("make")
@@ -627,18 +628,21 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if not line:
             return self.do_help("emulate")
 
-        emu = self.getEmulator()
         addr = self.parseExpression(line)
-        emu.setProgramCounter(addr)
+        emu = self.getEmulator(va=addr)
 
         trace = vt_envitools.TraceEmulator(emu)
 
         db = vdb.Vdb(trace=trace)
         db.cmdloop()
 
-    def do_argtrack(self, line):
+    def _do_argtrack(self, line):
+        #FIXME: this is currently broken and needs to be revamped to use 
+        # apiCall and VivTaints
         """
         Track input arguments to the given function by name or address.
+
+        (this is currently broken.  sorry!)
 
         Usage: argtrack <func_addr_expr> <arg_idx>
         """
@@ -752,8 +756,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             self.vprint("Invalid Function Address: 0x%.8x (%s)" % (va, line))
 
         sig, mask = viv_vamp.genSigAndMask(self, fva)
-        self.vprint("SIGNATURE: %s" % binascii.hexlify(sig))
-        self.vprint("MASK: %s" % binascii.hexlify(mask))
+        self.vprint("SIGNATURE: %s" % e_common.hexify(sig))
+        self.vprint("MASK: %s" % e_common.hexify(mask))
 
     def do_vdb(self, line):
         '''

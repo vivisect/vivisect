@@ -45,8 +45,11 @@ Armed with plt_distance and plt_size, we then determine where each PLT entry
 begins, and make those Functions, and analysis continues from there.
 '''
 import logging
-import vivisect
+import collections
+
 import envi
+import vivisect
+import envi.common as e_cmn
 import envi.archs.i386 as e_i386
 
 logger = logging.getLogger(__name__)
@@ -59,13 +62,17 @@ def analyze(vw):
     Do simple linear disassembly of the .plt section if present.
     Make functions
     """
+    if vw.getMeta('Platform') == 'qnx':
+        logger.warning('skipping initial PLT section analysis for QNX binary.')
+        return
+
     for sva, ssize in getPLTs(vw):
         analyzePLT(vw, sva, ssize)
 
 
-def getGOT(vw, fileva):
+def getGOTByFilename(vw, filename):
     '''
-    Returns GOT location for the file which contains the address fileva.
+    Returns GOT location for the filename specified.
 
     First checks through Sections (vw.getSegments), then through Dynamics.
     If the two clash, Dynamics wins.
@@ -74,8 +81,6 @@ def getGOT(vw, fileva):
     OpenBSD is only Sections.
     QNX has only Dynamics.
     '''
-    filename = vw.getFileByVa(fileva)
-
     gottup = vw.getFileMeta(filename, 'GOT')
     if gottup is not None:
         return gottup
@@ -94,7 +99,7 @@ def getGOT(vw, fileva):
 
     # pull GOT info from Dynamics
     fdyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
-    if fdyns is not None and gotva is not None:
+    if fdyns is not None:
         FGOT = fdyns.get('DT_PLTGOT')
         if FGOT is not None:
             # be sure to add the imgbase to FGOT if required
@@ -103,18 +108,56 @@ def getGOT(vw, fileva):
                 logger.debug('Adding Imagebase: 0x%x', imgbase)
                 FGOT += imgbase
 
-            if FGOT != gotva:
+            if FGOT != gotva and None not in (FGOT, gotva):
                 logger.warning("Dynamics and Sections have different GOT entries: S:0x%x D:0x%x. using Dynamics", gotva, FGOT)
 
             # since Dynamics don't store the GOT size, just use to the end of the memory map
             mmva, mmsz, mmperm, mmname = vw.getMemoryMap(FGOT)
+            gotva = FGOT
             moffset = gotva - mmva
             gotsize = mmsz - moffset
-            gotva = FGOT
 
     vw.setFileMeta(filename, 'GOT', (gotva, gotsize))
     return gotva, gotsize
 
+def getGOTs(vw):
+    out = collections.defaultdict(set)
+
+    gotva = None
+    gotsize = None
+    for va, size, name, fname in vw.getSegments():
+        if name in ('.got.plt', '.got'):
+            out[fname].add((va, size))
+
+    # pull GOT info from Dynamics
+    for filename in vw.getFiles():
+        fdyns = vw.getFileMeta(filename, 'ELF_DYNAMICS')
+        if fdyns is not None:
+            FGOT = fdyns.get('DT_PLTGOT')
+            if FGOT is not None:
+                # be sure to add the imgbase to FGOT if required
+                if vw.getFileMeta(filename, 'addbase'):
+                    imgbase = vw.getFileMeta(filename, 'imagebase')
+                    #logger.debug('Adding Imagebase: 0x%x', imgbase)
+                    FGOT += imgbase
+
+                flist = out[filename]
+
+                skip = False
+                for va, size in flist:
+                    if FGOT == va:
+                        skip = True
+
+                if skip:
+                    continue
+
+                # since Dynamics don't store the GOT size, just use to the end of the memory map
+                mmva, mmsz, mmperm, mmname = vw.getMemoryMap(FGOT)
+                gotva = FGOT
+                moffset = gotva - mmva
+                gotsize = mmsz - moffset
+                flist.add((gotva, gotsize))
+    return out
 
 def getPLTs(vw):
     plts = []
@@ -152,9 +195,7 @@ def analyzePLT(vw, ssva, ssize):
         emu = None
         sva = ssva
         nextseg = sva + ssize
-        trampbr = None
-        has_tramp = False
-        gotva, gotsize = getGOT(vw, ssva)
+        gotva, gotsize = getGOTByFilename(vw, vw.getFileByVa(ssva))
 
         ###### make code for every opcode in PLT
         # make and parse opcodes.  keep track of unconditional branches
@@ -162,10 +203,10 @@ def analyzePLT(vw, ssva, ssize):
 
         # drag an emulator along to calculate branches, if available
         try:
-            emu = vw.getEmulator()
+            emu = vw.getEmulator(va=ssva)
             emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
         except Exception as e:
-            logger.debug("no emulator available: %r", e)
+            logger.debug("no emulator available: %r", e, exc_info=1)
             return
 
         while sva < nextseg:
@@ -243,10 +284,6 @@ def analyzePLT(vw, ssva, ssize):
                                                 logger.debug("0x%x: tbrref not in GOT (DT_PLTGOT)", tbrref)
                                                 realplt = False
 
-                        if not realplt:
-                            has_tramp = True
-                            logger.debug("HAS_TRAMP!")
-
                         branchvas.append((op.va, realplt, tbrva, op))
 
                     # after analyzing the situation, emulate the opcode
@@ -258,141 +295,11 @@ def analyzePLT(vw, ssva, ssize):
                 logger.warning('makeCode(0x%x) failed to make a location (probably failed instruction decode)!  incrementing instruction pointer by 1 to continue PLT analysis <fingers crossed>', sva)
                 sva += 1
 
-        if not len(branchvas):
-            return
-
-        # plt entries have:
-        #   a distance between starts/finish 
-        #   a size
-        # they are not the same.
-
-        if has_tramp:
-            # find the tramp's branch
-            trampbr = ssva
-            loc = vw.getLocation(trampbr)
-            while loc is not None and (loc[vivisect.L_TINFO] & envi.IF_BRANCH == 0):
-                lva, lsz, ltype, ltinfo = loc
-                trampbr += lsz
-                loc = vw.getLocation(trampbr)
-
-            # set our branchva list straight.  trampoline is *not* a realplt.
-            if branchvas[0][0] == trampbr:
-                branchvas[0] = (trampbr, False, branchvas[0][2], branchvas[0][3])
-            else:
-                logger.debug("has_tramp: trampbr: 0x%x    branchvas[0][0]: 0x%x -> 0x%x", trampbr, branchvas[0][0], branchvas[0][2])
-
-        ###### heuristically determine PLT entry size and distance
-        heur = {}
-        lastva = ssva
-        # first determine distance between GOT branches:
-        for vidx in range(1, len(branchvas)):
-            bva, realplt, brtgt, bop = branchvas[vidx]
-            if not realplt:
-                continue
-
-            delta = bva - lastva
-            lastva = bva
-            heur[delta] = heur.get(delta, 0) + 1
-
-        heurlist = [(y, x) for x, y in heur.items()]
-        heurlist.sort()
-
-        # there should be only one heuristic
-        if len(heurlist) > 1:
-            logger.warning("heuristics have more than one tracked branch: investigate!  PLT analysis may be wrong (%r)", heurlist)
-
-        # distance should be the greatest value.
-        if len(heurlist):
-            plt_distance = heurlist[-1][1]
-            logger.debug('plt_distance : 0x%x\n%r', plt_distance, heurlist)
-        else:
-            # if we don't have a heurlist, this shouldn't matter:
-            plt_distance = 16
-            logger.debug('plt_distance (fallback): 0x%x', plt_distance)
-
-
-        ###### now determine plt_size (basically, how far to backup from the branch to find the start of function
-        # *don't* use the first entry, because the trampoline is often oddly sized...
-        logger.debug('finding plt_size...')
-        plt_size = 0
-        # let's start at the end, since with or without a tramp, we have to have *one* good one,
-        # or we just don't care.
-        bridx = len(branchvas)-1
-
-        brva, realplt, brtgtva, op = branchvas[bridx]
-        while brva != trampbr and not realplt:
-            bridx -= 1
-            brva, realplt, brtgtva, op = branchvas[bridx]
-
-        # start off pointing at the branch location which bounces through GOT.
-        loc = vw.getLocation(brva)
-
-        # get the arch-dependent list of badops and the nop instruction bytes
-        badops = vw.arch.archGetBadOps()
-        nopbytes = vw.arch.archGetNopInstr()
-
-        # we're searching *backwards* for a point where either we hit:
-        #  * another branch/NO_FALL (ie. lazy-loader) or
-        #  * non-Opcode (eg. literal pool)
-        #  * or a NOP
-        # bounded to what we know is the distance between PLT branches
-        loc = vw.getLocation(loc[vivisect.L_VA] - 1)
-        while loc is not None and \
-                plt_size <= plt_distance:
-            # first we back up one location
-            lva, lsz, ltype, ltinfo = loc
-
-            # if we run past the beginning of the PLT section, we're done.
-            if lva < ssva:
-                break
-
-            if ltype != vivisect.LOC_OP:
-                # we've run into a non-opcode location: bail!
-                break
-
-            if ltinfo & envi.IF_BRANCH:
-                # we've hit another branch instruction.  stop!
-                break
-
-            op = vw.parseOpcode(lva)
-            if op.mnem == 'nop' or vw.readMemory(lva, len(nopbytes)) == nopbytes:
-                # we've run into inter-plt padding - curse you, gcc!
-                break
-
-            if op in badops:
-                # we've run into a "bad opcode" like \x00\x00 or \xff\xff...
-                break
-
-            # if we get through all those checks, the previous location is part
-            # of the PLT function.
-            plt_size += lsz
-            loc = vw.getLocation(loc[vivisect.L_VA] - 1)
-
-        logger.debug('plt_size : 0x%x', plt_size)
-
-        ###### now get start of first real PLT entry
-        bridx = 0
-        brlen = len(branchvas)
-        logger.debug('plt branchvas: %r', [(hex(x), y, z, a) for x, y, z, a in branchvas])
-
-        if has_tramp:
-            logger.debug('First function in PLT is not a PLT entry.  Found Lazy Loader Trampoline.')
-            vw.makeName(ssva, 'LazyLoaderTrampoline', filelocal=True, makeuniq=True)
-
-        # scroll through arbitrary length functions and make functions
-        for brva, realplt, brtgtva, op in branchvas:
-            if not realplt:
-                continue
-            sva = brva - plt_size
-            logger.info('making PLT function: 0x%x', sva)
-            vw.makeFunction(sva)
-
     except Exception as e:
         logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
 
 
 MAX_OPS = 10
-
 
 def analyzeFunction(vw, funcva):
     # check to make sure we're in the PLT
@@ -407,17 +314,17 @@ def analyzeFunction(vw, funcva):
 
     # if we're not 
     if not isplt:
-        logger.debug('0x%x: not part of a .plt section', funcva)
+        logger.log(e_cmn.SHITE, '0x%x: not part of a .plt section', funcva)
         return
 
     logger.info('analyzing PLT function: 0x%x', funcva)
     # start off spinning up an emulator to track through the PLT entry
     # slight hack, but we don't currently know if thunk_bx exists
     fname = vw.getFileByVa(funcva)
-    gotva, gotsize = getGOT(vw, funcva)
+    gotva, gotsize = getGOTByFilename(vw, fname)
 
     # all architectures should at least have some minimal emulator
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(va=funcva)
     emu.setRegister(e_i386.REG_EBX, gotva)  # every emulator will have a 4th register, and if it's not used, no harm done.
 
     # roll through instructions looking for a branch (pretty quickly)
@@ -429,7 +336,7 @@ def analyzeFunction(vw, funcva):
             emu.executeOpcode(op)
             opva += len(op)
             op = vw.parseOpcode(opva)
-            logging.debug("0x%x: %r", opva, op)
+            logger.log(e_cmn.SHITE, "0x%x: %r", opva, op)
             count += 1
     except Exception as e:
         logger.warning('failure analyzing PLT func 0x%x: %r', funcva, e)
@@ -459,8 +366,11 @@ def analyzeFunction(vw, funcva):
         if brflags & envi.BR_DEREF:
             if loctup is None:              ###### TODO: CHECK HERE FOR TAINT VALUE!
                 taintval = emu.getVivTaint(opval)
-                taintrepr = emu.reprVivTaint(taintval)
-                logger.exception('0x%x: opval=0x%x: brflags is BR_DEREF, but loctup is None.  Don\'t know what to do. skipping.%r %r', op.va, opval, taintval, taintrepr)
+                if taintval:
+                    taintrepr = emu.reprVivTaint(taintval)
+                else:
+                    taintrepr = 'None'
+                logger.exception('0x%x: opval=0x%x: brflags is BR_DEREF, but loctup is None.  Don\'t know what to do. skipping.  taint:%r (%r)', op.va, opval, taintval, taintrepr)
                 continue
 
             lva, lsz, ltype, ltinfo = loctup
@@ -478,7 +388,10 @@ def analyzeFunction(vw, funcva):
             elif ltype == vivisect.LOC_POINTER:
                 # we have a deref to a pointer.
                 funcname = vw.getName(ltinfo)
-                logger.debug("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
+                if ltinfo:
+                    logger.debug("0x%x: (0x%x->0x%x) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
+                else:
+                    logger.debug("0x%x: (0x%x->%r) LOC_POINTER by BR_DEREF %r", funcva, opval, ltinfo, funcname)
             else:
                 logger.warning("0x%x: (0x%x) not LOC_IMPORT or LOC_POINTER?? by BR_DEREF %r", funcva, opval, loctup)
 
@@ -567,7 +480,8 @@ def analyzeFunction(vw, funcva):
         funcname = funcname[:-9]
 
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
-    vw.makeFunctionThunk(funcva, "plt_" + funcname, addVa=False, filelocal=True)
+    vw.makeFunctionThunk(funcva, "*." + funcname, addVa=False, filelocal=True, 
+            basename="plt_" + funcname)
 
 '''
 def printPLTs(vw):
