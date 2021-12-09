@@ -4444,8 +4444,8 @@ class A64InstructionSet(unittest.TestCase):
 
         opstr = struct.pack('<I', 0xe59f3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
-        #print repr(op)
-        #print hex(op.getOperValue(1, emu))
+        #print(repr(op))
+        #print(hex(op.getOperValue(1, emu)))
 
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
 
@@ -4459,9 +4459,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
 
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(11))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(11)))
 
         self.assertEqual(hex(0xccddeeff), hex(value))
 
@@ -4475,9 +4475,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(11))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(11)))
 
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(11)))
         self.assertEqual(hex(0x10efcdab), hex(value))
@@ -4491,9 +4491,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(11))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(11)))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(11)))
         self.assertEqual(hex(0x10efcdab), hex(value))
@@ -4512,8 +4512,8 @@ class A64InstructionSet(unittest.TestCase):
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
         emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
-        #print repr(op)
-        #print hex(op.getOperValue(1, emu))
+        #print(repr(op))
+        #print(hex(op.getOperValue(1, emu)))
 
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
@@ -4530,9 +4530,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(10)))
 
         self.assertEqual(hex(0xbfb00010), hex(emu.getRegister(10)))
         self.assertEqual(hex(0x10efcdab), hex(value))
@@ -4550,9 +4550,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(10)))
 
         self.assertEqual(hex(0x00f000f0), hex(value))
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
@@ -4569,9 +4569,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(10)))
 
         self.assertEqual(hex(0xccddeeff), hex(value))
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
@@ -4590,8 +4590,8 @@ class A64InstructionSet(unittest.TestCase):
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  2)
         emu.writeMemory(0xbfb00008, "abcdef98".decode('hex'))
-        #print repr(op)
-        #print hex(op.getOperValue(1, emu))
+        #print(repr(op))
+        #print(hex(op.getOperValue(1, emu)))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
@@ -4614,9 +4614,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(10)))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
         #self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
@@ -4643,9 +4643,9 @@ class A64InstructionSet(unittest.TestCase):
         emu.setRegister(2,  8)
         emu.writeMemory(0xbfb00000, "abcdef98".decode('hex'))
         emu.writeMemory(0xbfb00008, "12345678".decode('hex'))
-        #print repr(op)
+        #print(repr(op))
         val = op.getOperValue(1, emu)
-        #print hex(val)
+        #print(hex(val))
 
         self.assertEqual(hex(0x3412), hex(val))
         self.assertEqual(hex(0xbfb00000), hex(emu.getRegister(10)))
@@ -4663,9 +4663,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(10)))
 
         self.assertEqual(hex(0xbfb00010), hex(emu.getRegister(10)))
         self.assertEqual(hex(0xcdab), hex(value))
@@ -4684,9 +4684,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(10)))
 
         self.assertEqual(hex(0xe040), hex(value))
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
@@ -4704,9 +4704,9 @@ class A64InstructionSet(unittest.TestCase):
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
         
         value = op.getOperValue(1, emu)
-        #print repr(op)
-        #print hex(value)
-        #print hex(emu.getRegister(10))
+        #print(repr(op))
+        #print(hex(value))
+        #print(hex(emu.getRegister(10)))
 
         self.assertEqual(hex(0xeeff), hex(value))
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
@@ -4732,21 +4732,21 @@ class A64InstructionSet(unittest.TestCase):
         for bytez, va, reprOp, iflags, emutests in instrs:
             #num, = struct.unpack("<I", bytez.decode('hex'))
             #bs = bin(num)[2:].zfill(32)
-            #print bytez, bs
-            #print reprOp
+            #print(bytez, bs)
+            #print(reprOp)
             op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
-            #print repr(op)
+            #print(repr(op))
             redoprepr = repr(op).replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()
             if redoprepr != redgoodop:
-                print  bytez,redgoodop
-                print  bytez,redoprepr
+                print( bytez,redgoodop)
+                print( bytez,redoprepr)
                 print
-                #print out binary representation of opcode for checking
+                #print(out binary representation of opcode for checking)
                 num, = struct.unpack("<I", bytez.decode('hex'))
-                print hex(num)
+                print(hex(num))
                 bs = bin(num)[2:].zfill(32)
-                print bs
+                print(bs)
                 
                 badcount += 1
                 
@@ -4757,7 +4757,7 @@ class A64InstructionSet(unittest.TestCase):
             else:
                 goodcount += 1
 
-            #print bytez, op
+            #print(bytez, op)
             if not len(emutests):
                 try:
                     # if we don't have special tests, let's just run it in the emulator anyway and see if things break
@@ -4766,11 +4766,11 @@ class A64InstructionSet(unittest.TestCase):
                     else:
                         bademu += 1
                 except envi.UnsupportedInstruction:
-                    #print "Instruction not in Emulator - ", repr(op)
+                    #print("Instruction not in Emulator - ", repr(op))
                     bademu += 1
                 except Exception as exp:
-                    print "Exception in Emulator for command - ",repr(op), bytez, reprOp
-                    print "  ",exp 
+                    print("Exception in Emulator for command - ",repr(op), bytez, reprOp)
+                    print("  ",exp )
                     sys.excepthook(*sys.exc_info())
                     bademu += 1
             else:
@@ -4794,9 +4794,9 @@ class A64InstructionSet(unittest.TestCase):
                         raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (va, bytez, op))
 
         
-        print "Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
+        print("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \)
                 (goodcount, badcount, goodemu, bademu)
-        print "Total of ", str(goodcount + badcount) + " tests completed."
+        print("Total of ", str(goodcount + badcount) + " tests completed.")
         self.assertEqual(goodcount, GOOD_TESTS)
         self.assertEqual(goodemu, GOOD_EMU_TESTS)
         
@@ -4874,7 +4874,7 @@ class A64InstructionSet(unittest.TestCase):
         
         # NOTE: Not sure how to test this to see if working
         # do some read/write tracking/testing
-        #print emu.curpath
+        #print(emu.curpath)
         if len(emu.curpath[2]['readlog']):
             outstr = emu.curpath[2]['readlog']
             if len(outstr) > 10000: outstr = outstr[:10000]
