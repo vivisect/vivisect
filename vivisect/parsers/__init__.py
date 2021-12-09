@@ -12,11 +12,17 @@ for vivisect.  Each parser module must implement the following functions:
 
 import io
 import sys
+import glob
 import struct
 import hashlib
+import importlib
 import zipfile
 
 import vstruct.defs.macho as vs_macho
+
+from os.path import dirname, basename, isfile, join
+parserpaths = glob.glob(join(dirname(__file__), "*.py"))
+__all__ = [ basename(f)[:-3] for f in parserpaths if isfile(f) and not f.endswith('__init__.py')]
 
 def md5File(filename):
     d = hashlib.md5()
@@ -39,40 +45,33 @@ def sha256File(filename):
 def sha256Bytes(bytes):
     return hashlib.sha256(bytes).hexdigest().upper()
 
-macho_magics = (
-    vs_macho.MH_MAGIC,
-    vs_macho.MH_CIGAM,
-    vs_macho.MH_MAGIC_64,
-    vs_macho.MH_CIGAM_64,
-    vs_macho.FAT_MAGIC,
-    vs_macho.FAT_CIGAM,
-)
+parsers = []
+parsedict = {}
+
+def getParsers():
+    global parsers, parsedict
+    if len(parsers):
+        return parsers
+
+    for idx, mname in enumerate(__all__):
+        parserpath = parserpaths[idx]
+        parser = importlib.import_module('vivisect.parsers.' + mname)
+        parser.__mname__ = mname
+        parsers.append(parser)
+        parsedict[mname] = parser
+
+    return parsers
 
 def guessFormat(bytez):
     if bytez.startswith(b'VIV'):
         return 'viv'
 
-    if b'MSGVIV' in bytez[:8]:
+    elif bytez.startswith(b'MSGVIV'):
         return 'mpviv'
 
-    if bytez.startswith(b"MZ"):
-        return 'pe'
-
-    if bytez.startswith(b'\x7fELF'):
-        return 'elf'
-
-    if bytez.startswith(b'\x7fCGC'):
-        return 'cgc'
-
-    bytemagic = struct.unpack('<I', bytez[:4])[0]
-    if bytemagic in macho_magics:
-        return 'macho'
-
-    if bytez[0] == ord(':'):
-        return 'ihex'
-
-    if bytez[0] == ord('S'):
-        return 'srec'
+    for parser in getParsers():
+        if parser.isParser(bytez):
+            return parser.__mname__
 
     return 'blob'
 

@@ -1,8 +1,24 @@
+import struct
+import binascii
+
 import envi.common as e_common
 
 import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
 
+macho_magics = (
+    vs_macho.MH_MAGIC,
+    vs_macho.MH_CIGAM,
+    vs_macho.MH_MAGIC_64,
+    vs_macho.MH_CIGAM_64,
+    vs_macho.FAT_MAGIC,
+    vs_macho.FAT_CIGAM,
+)
+
+def isParser(bytez):
+    bytemagic = struct.unpack('<I', bytez[:4])[0]
+    if bytemagic in macho_magics:
+        return True
 
 def parseFile(vw, filename, baseaddr=None):
     with open(filename, 'rb') as f:

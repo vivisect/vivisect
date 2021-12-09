@@ -13,6 +13,12 @@ archcalls = {
 }
 
 
+def isParser(bytez):
+    '''
+    blob is the "default" parser and the most generic, so let's not steal files from other parsers
+    '''
+    return False
+
 def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     arch = vw.config.viv.parsers.blob.arch

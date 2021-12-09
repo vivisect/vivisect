@@ -12,22 +12,71 @@ The module's vivExtension function takes a vivisect workspace
 
 import os
 import sys
+import logging
 import importlib
 import traceback
 
+logger = logging.getLogger(__name__)
+
+def earlyExtensions(vw):
+    logger.debug('earlyLoad')
+    for mname, mod in vw.getExtensions():
+        try:
+            if not hasattr(mod, 'earlyLoad'):
+                logger.debug('earlyLoad: %r (no earlyLoad() function)', mod)
+                continue
+
+            logger.debug('earlyLoad: %r', mod)
+            mod.earlyLoad(vw)
+
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            logger.warning('Extension Error (load:%r): %s' % (mod, e))
+
+
+def preFileLoadExtensions(vw, fname, bytez, fd):
+    logger.debug('preFileLoad')
+    for mname, mod in vw.getExtensions():
+        try:
+            if not hasattr(mod, 'preFileLoadHook'):
+                logger.debug('preFileLoad: %r (no preFileLoadHook() function)', mod)
+                continue
+
+            logger.debug('preFileLoad: %r', mod)
+            mod.preFileLoadHook(vw, fname, bytez, fd)
+
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            logger.warning('Extension Error (load:%r): %s' % (mod, e))
+
 
 def loadExtensions(vw, vwgui):
+    logger.debug('loadExtensions')
+    for mname, mod in vw.getExtensions():
+        logger.debug('loadExtensions %r', mod)
+        try:
+            if not hasattr(mod, 'vivExtension'):
+                logger.debug('loadExtensions: %r (no vivExtension() function)', mod)
+                continue
 
+            mod.vivExtension(vw, vwgui)
+
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            logger.warning('Extension Error (load:%r): %s' % (mod, e))
+
+def importExtensions(vw):
     extdir = os.getenv('VIV_EXT_PATH')
 
     if extdir is None:
-        # if user hasn't overridden the Extension Path, use the built-in default
-        extdir = os.sep.join([vw.vivhome, 'plugins'])
+        return
 
+    logger.info('importExtensions: VIV_EXT_PATH == %r', extdir)
     for dirname in extdir.split(os.pathsep):
+        logger.info('importExtensions: %r', dirname)
 
         if not os.path.isdir(dirname):
-            vw.vprint('Invalid VIV_EXT_PATH dir: %s' % dirname)
+            logger.warning('Invalid VIV_EXT_PATH dir: %s', dirname)
             continue
 
         if dirname not in sys.path:
@@ -46,14 +95,16 @@ def loadExtensions(vw, vwgui):
                 continue
 
             try:
+                logger.info('importExtensions: %s', modpath)
                 # Build code objects from the module files
                 spec = importlib.util.spec_from_file_location(fname, modpath)
                 module = importlib.util.module_from_spec(spec)
                 module.vw = vw
                 spec.loader.exec_module(module)
 
-                module.vivExtension(vw, vwgui)
                 vw.addExtension(fname, module)
-            except Exception:
-                vw.vprint('Extension Error: %s' % modpath)
-                vw.vprint(traceback.format_exc())
+
+            except Exception as e:
+                logger.warning(traceback.format_exc())
+                logger.warning('Extension Error (load:%r): %s' % (modpath, e))
+

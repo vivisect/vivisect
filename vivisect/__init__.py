@@ -33,6 +33,7 @@ import vstruct.cparse as vs_cparse
 import vstruct.primitives as vs_prims
 
 import vivisect.base as viv_base
+import vivisect.extensions as viv_ext
 import vivisect.parsers as viv_parsers
 import vivisect.codegraph as viv_codegraph
 import vivisect.impemu.lookup as viv_imp_lookup
@@ -177,6 +178,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
 
+        viv_ext.importExtensions(self)
+        viv_ext.earlyExtensions(self)
+
+
     def vprint(self, msg):
         logger.info(msg)
 
@@ -242,9 +247,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def delExtension(self, name):
         '''
-        Remove's extension module from the list of extensions.
+        Removes extension module from the list of extensions.
         '''
         self._extensions.pop(name, None)
+
+    def getExtensions(self):
+        '''
+        Returns the extensions registered with the workspace.
+        '''
+        return self._extensions.items()
+
+    def getExtension(self, mname):
+        '''
+        Lookup and return an extension
+        '''
+        if mname in self._extensions:
+            return self._extensions[mname]
 
     def getVivGuid(self):
         '''
@@ -2662,7 +2680,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.mergeConfig(mod.config)
 
         fd.seek(0)
-        fname = mod.parseFd(self, fd, filename=None, baseaddr=baseaddr)
+        filename = hashlib.md5(fd.read()).hexdigest()
+
+        viv_ext.preFileLoadExtensions(self, filename, None, fd)
+
+        fname = mod.parseFd(self, fd, filename, baseaddr=baseaddr)
 
         outfile = hashlib.md5(fd.read()).hexdigest()
         self.initMeta("StorageName", outfile+".viv")

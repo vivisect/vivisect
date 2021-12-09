@@ -32,6 +32,9 @@ for mod in (PE, vtrace):
 # 0x183   DEC Alpha AXP
 
 
+def isParser(bytez):
+    return bytez.startswith(b"MZ")
+
 def parseFile(vw, filename, baseaddr=None):
     pe = PE.PE(open(filename, "rb"))
     return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)

@@ -16,6 +16,9 @@ archcalls = {
 }
 
 
+def isParser(bytez):
+    return bytez.startswith(b'S')
+
 def parseFile(vw, filename, baseaddr=None):
 
     arch = vw.config.viv.parsers.srec.arch
