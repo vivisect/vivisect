@@ -10,7 +10,7 @@ import envi
 import envi.bits as e_bits
 from envi.const import *
 from envi.archs.aarch64.regs import *
-from envi.archs.aarch64 import Aarch64Module
+from envi.archs.aarch64 import A64Module
 
 logger = logging.getLogger(__name__)
 
@@ -124,15 +124,15 @@ conditionals = [
         c1101,
         ]
 
-class Aarch64Emulator(Aarch64Module, Aarch64RegisterContext, envi.Emulator):
+class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
     def __init__(self):
-        Aarch64Module.__init__(self)
+        A64Module.__init__(self)
 
         # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
         self.coprocs = [CoProcEmulator() for x in xrange(16)]       
 
         seglist = [ (0,0xffffffff) for x in xrange(6) ]
-        envi.Emulator.__init__(self, Aarch64Module())
+        envi.Emulator.__init__(self, A64Module())
 
         Aarch64RegisterContext.__init__(self)
 

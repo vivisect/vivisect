@@ -30,7 +30,7 @@ arch_names = {
     ARCH_DEFAULT:   'default',
     ARCH_I386:      'i386',
     ARCH_AMD64:     'amd64',
-    ARCH_AARCH64:   'aarch64',
+    ARCH_AARCH64:   'a64',
     ARCH_ARMV7:     'arm',
     ARCH_THUMB16:   'thumb16',
     ARCH_THUMB:     'thumb',
@@ -42,7 +42,7 @@ arch_by_name = {
     'default':  ARCH_DEFAULT,
     'i386':     ARCH_I386,
     'amd64':    ARCH_AMD64,
-    'aarch64':  ARCH_AARCH64,
+    'a64':      ARCH_AARCH64,
     'arm':      ARCH_ARMV7,
     'armv6l':   ARCH_ARMV7,
     'armv7l':   ARCH_ARMV7,
@@ -1308,9 +1308,9 @@ def getArchModule(name=None):
         import envi.archs.h8 as e_h8
         return e_h8.H8Module()
 
-    elif name in ( 'aarch64', ):
+    elif name in ( 'aarch64', 'a64'):
         import envi.archs.aarch64 as e_a64
-        return e_a64.Aarch64Module()
+        return e_a64.A64Module()
 
     else:
         raise ArchNotImplemented(name)
@@ -1336,7 +1336,7 @@ def getArchModules(default=ARCH_DEFAULT):
     archs.append(e_arm.ArmModule())
     archs.append(e_thumb16.Thumb16Module())
     archs.append(e_thumb16.ThumbModule())
-    archs.append(e_aarch64.Aarch64Module())
+    archs.append(e_aarch64.A64Module())
     archs.append(e_msp430.Msp430Module())
     archs.append(e_h8.H8Module())
 

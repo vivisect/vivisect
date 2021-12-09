@@ -7,7 +7,7 @@ import vivisect
 class A64(unittest.TestCase):
     def test_msr(self):     #FIXME: revamp for Aarch64
         # test the MSR instruction
-        import envi.archs.aarch64 as e_aarch64;reload(e_aarch64)
+        import envi.archs.aarch64 as e_aarch64
         am = e_aarch64.Aarch64Module()
         op = am.archParseOpcode('d3f021e3'.decode('hex'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
