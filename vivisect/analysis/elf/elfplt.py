@@ -184,8 +184,8 @@ def getPLTs(vw):
             for pltva, pltsize in plts:
                 if FPLT == pltva:
                     newish = False
-            if newish and FGOT and FGOTSZ:
-                plts.append((FGOT, FGOTSZ))
+            if newish:
+                plts.append((FPLT, FPLTSZ))
 
     return plts
 

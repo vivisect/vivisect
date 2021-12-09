@@ -4794,8 +4794,8 @@ class A64InstructionSet(unittest.TestCase):
                         raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (va, bytez, op))
 
         
-        print("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \)
-                (goodcount, badcount, goodemu, bademu)
+        print("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
+                (goodcount, badcount, goodemu, bademu))
         print("Total of ", str(goodcount + badcount) + " tests completed.")
         self.assertEqual(goodcount, GOOD_TESTS)
         self.assertEqual(goodemu, GOOD_EMU_TESTS)
@@ -4826,7 +4826,7 @@ class A64InstructionSet(unittest.TestCase):
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
-            except e_reg.InvalidRegisterName, e:
+            except e_reg.InvalidRegisterName as e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("PSR_"):
                     # it's a flag
@@ -4851,7 +4851,7 @@ class A64InstructionSet(unittest.TestCase):
                     success = 0
                 else:  # should be an else
                     raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
-            except e_reg.InvalidRegisterName, e:
+            except e_reg.InvalidRegisterName as e:
                 # it's not a register
                 if type(tgt) == str and tgt.startswith("PSR_"):
                     # it's a flag
