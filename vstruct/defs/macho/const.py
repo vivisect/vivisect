@@ -20,7 +20,7 @@ MH_DSYM                   = 0xa #  companion file with only debug
 MH_NOUNDEFS               = 0x1 #  the object file has no undefinedreferences 
 MH_INCRLINK               = 0x2 #  the object file is the output of anincremental link against a base fileand can't be link edited again 
 MH_DYLDLINK               = 0x4 #  the object file is input for thedynamic linker and can't be staticlylink edited again 
-MH_BINDATLOAD             = 0x8 #  the object file's undefinedreferences are bound by the dynamiclinker when loaded. 
+MH_BINDATLOAD             = 0x8 #  the object file's undefinedreferences are bound by the dynamic linker when loaded. 
 MH_PREBOUND               = 0x10 #  the file has its dynamic undefinedreferences prebound. 
 MH_SPLIT_SEGS             = 0x20 #  the file has its read-only andread-write segments split 
 MH_LAZY_INIT              = 0x40 #  the shared library init routine isto be run lazily via catching memoryfaults to its writeable segments(obsolete) 
@@ -39,7 +39,7 @@ MH_NO_REEXPORTED_DYLIBS   = 0x100000 #  When this bit is set on a dylib,the stat
 MH_PIE                    = 0x200000 #  When this bit is set, the OS willload the main executable at arandom address. Only used inMH_EXECUTE filetypes. 
 
 # Constants for the cmd field of all load commands, the type
-LC_REQ_DYLD               = 0x80000000 #  When this bit is set, the OS willload the main executable at arandom address. Only used inMH_EXECUTE filetypes. 
+LC_REQ_DYLD               = 0x80000000 #  When this bit is set, the OS will load the main executable at a random address. Only used in MH_EXECUTE filetypes. 
 LC_SEGMENT                = 0x1 #  segment of this file to be mapped 
 LC_SYMTAB                 = 0x2 #  link-edit stab symbol table info 
 LC_SYMSEG                 = 0x3 #  link-edit gdb symbol table info (obsolete) 
@@ -74,12 +74,16 @@ LC_REEXPORT_DYLIB         = (0x1f | LC_REQ_DYLD)
 LC_LAZY_LOAD_DYLIB        = 0x20 #  delay load of dylib until first use 
 LC_ENCRYPTION_INFO        = 0x21 #  encrypted segment information 
 LC_DYLD_INFO              = 0x22 #  compressed dyld information
-LC_DYLD_INFO_ONLY         = (0x22|LC_REQ_DYLD)
-LC_LOAD_UPWARD_DYLIB      = (0x23|LC_REQ_DYLD)
+LC_DYLD_INFO_ONLY         = (0x22 | LC_REQ_DYLD)
+LC_LOAD_UPWARD_DYLIB      = (0x23 | LC_REQ_DYLD)
 LC_VERSION_MIN_MACOSX     = 0x24
 LC_VERSION_MIN_IPHONEOS   = 0x25
 LC_FUNCTION_STARTS        = 0x26
 LC_DYLD_ENVIRONMENT       = 0x27
+LC_MAIN                   = (0x28 | LC_REQ_DYLD)  # replacement for LC_UNIXTHREAD
+LC_DATA_IN_CODE           = 0x29  # table of non-instructions in __text
+LC_SOURCE_VERSION         = 0x2A  # source version used to build binary
+LC_DYLIB_CODE_SIGN_DRS    = 0x2B  # Code signing DRs copied from linked dylibs
 
 SG_HIGHVM                 = 0x1 #  the file contents for this segment is forthe high part of the VM space, the low partis zero filled (for stacks in core files) 
 SG_FVMLIB                 = 0x2 #  this segment is the VM that is allocated bya fixed VM library, for overlap checking inthe link editor 
@@ -202,3 +206,75 @@ N_SECT   = 0xe # defined in section number n_sect
 N_PBUD   = 0xc # prebound undefined (defined in a dylib)
 N_INDR   = 0xa # indirect
 
+DICE_KIND_DATA              = 0x0001  # L$start$data$...  label
+DICE_KIND_JUMP_TABLE8       = 0x0002  # L$start$jt8$...   label
+DICE_KIND_JUMP_TABLE16      = 0x0003  # L$start$jt16$...  label
+DICE_KIND_JUMP_TABLE32      = 0x0004  # L$start$jt32$...  label
+DICE_KIND_ABS_JUMP_TABLE32  = 0x0005  # L$start$jta32$... label
+
+CSMAGIC_REQUIREMENT = 0xfade0c00  # single Requirement blob
+CSMAGIC_REQUIREMENTS = 0xfade0c01 # Requirements vector (internal requirements)
+CSMAGIC_CODEDIRECTORY = 0xfade0c02      # CodeDirectory blob
+CSMAGIC_EMBEDDED_SIGNATURE = 0xfade0cc0 # embedded form of signature data
+CSMAGIC_EMBEDDED_SIGNATURE_OLD = 0xfade0b02 # XXX */
+CSMAGIC_EMBEDDED_ENTITLEMENTS = 0xfade7171  # embedded entitlements
+CSMAGIC_DETACHED_SIGNATURE = 0xfade0cc1 # multi-arch collection of embedded signatures
+CSMAGIC_BLOBWRAPPER = 0xfade0b01 # CMS Signature, among other things
+
+CS_SUPPORTSSCATTER = 0x20100
+CS_SUPPORTSTEAMID = 0x20200
+CS_SUPPORTSCODELIMIT64 = 0x20300
+CS_SUPPORTSEXECSEG = 0x20400
+CS_SUPPORTSRUNTIME = 0x20500
+CS_SUPPORTSLINKAGE = 0x20600
+
+CSSLOT_CODEDIRECTORY = 0 # slot index for CodeDirectory
+CSSLOT_INFOSLOT = 1
+CSSLOT_REQUIREMENTS = 2
+CSSLOT_RESOURCEDIR = 3
+CSSLOT_APPLICATION = 4
+CSSLOT_ENTITLEMENTS = 5
+CSSLOT_REP_SPECIFIC = 6
+CSSLOT_ENTITLEMENTS_DER = 7
+
+CSSLOT_ALTERNATE_CODEDIRECTORIES =  0x1000
+CSSLOT_ALTERNATE_CODEDIRECTORIES_MAX = 5
+
+CSSLOT_CMS_SIGNATURE = 0x10000
+CSSLOT_IDENTIFICATIONSLOT = 0x10001
+CSSLOT_TICKETSLOT = 0x10002
+
+CSSLOT_ALTERNATE_CODEDIRECTORIES = 0x1000 # first alternate CodeDirectory, if any
+CSSLOT_ALTERNATE_CODEDIRECTORY_MAX = 5 # max number of alternate CD slots
+CSSLOT_ALTERNATE_CODEDIRECTORY_LIMIT = CSSLOT_ALTERNATE_CODEDIRECTORIES + CSSLOT_ALTERNATE_CODEDIRECTORY_MAX # one past the last
+
+CSSLOT_SIGNATURESLOT = 0x10000 # CMS Signature
+CSSLOT_IDENTIFICATIONSLOT = 0x10001
+CSSLOT_TICKETSLOT = 0x10002
+
+CSTYPE_INDEX_REQUIREMENTS = 0x00000002 # compat with amf
+CSTYPE_INDEX_ENTITLEMENTS = 0x00000005 # compat with amfi
+
+CS_HASHTYPE_SHA1 = 1
+CS_HASHTYPE_SHA256 = 2
+CS_HASHTYPE_SHA256_TRUNCATED = 3
+CS_HASHTYPE_SHA384 = 4
+CS_HASHTYPE_SHA512 = 5
+
+CS_SHA1_LEN = 20
+CS_SHA256_LEN = 32
+CS_SHA256_TRUNCATED_LEN = 20
+
+CS_CDHASH_LEN = 20    # always - larger hashes are truncated
+CS_HASH_MAX_SIZE = 48 # max size of the hash we'll support
+
+# From LLVM:
+# Currently only to support Legacy VPN plugins, and Mac App Store
+# but intended to replace all the various platform code, dev code etc. bits.
+CS_SIGNER_TYPE_UNKNOWN = 0
+CS_SIGNER_TYPE_LEGACYVPN = 5
+CS_SIGNER_TYPE_MAC_APP_STORE = 6
+
+CS_SUPPL_SIGNER_TYPE_UNKNOWN = 0
+CS_SUPPL_SIGNER_TYPE_TRUSTCACHE = 7
+CS_SUPPL_SIGNER_TYPE_LOCAL = 8
