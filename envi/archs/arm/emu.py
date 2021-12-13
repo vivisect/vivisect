@@ -1545,6 +1545,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             if oper.shimm == 0:
                 return
             logger.critical('FIXME: TEQ - do different shift types for Carry flag')
+
             # FIXME: make the operands handle a ThumbExpandImm_C (for immediate) or Shift_C (for RegShiftImm), etc...
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
        
