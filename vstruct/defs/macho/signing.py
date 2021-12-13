@@ -78,6 +78,7 @@ class CS_SuperBlob(vstruct.VStruct):
             indx.vsParse(bytes, offset=newoff)
             newoff += len(indx)
             self.blobindexes.vsAddElement(indx)
+        return retoff
 
 
 '''
