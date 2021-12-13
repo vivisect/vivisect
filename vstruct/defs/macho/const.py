@@ -80,6 +80,7 @@ LC_VERSION_MIN_MACOSX     = 0x24
 LC_VERSION_MIN_IPHONEOS   = 0x25
 LC_FUNCTION_STARTS        = 0x26
 LC_DYLD_ENVIRONMENT       = 0x27
+LC_MAIN                   = (0x28|LC_REQ_DYLD)
 
 SG_HIGHVM                 = 0x1 #  the file contents for this segment is forthe high part of the VM space, the low partis zero filled (for stacks in core files) 
 SG_FVMLIB                 = 0x2 #  this segment is the VM that is allocated bya fixed VM library, for overlap checking inthe link editor 
@@ -202,3 +203,14 @@ N_SECT   = 0xe # defined in section number n_sect
 N_PBUD   = 0xc # prebound undefined (defined in a dylib)
 N_INDR   = 0xa # indirect
 
+ENDIAN_LSB = 0
+ENDIAN_MSB = 1
+
+hdr_info = {
+        'cefaedfe': (4, ENDIAN_LSB), # Mach-O Little Endian (32-bit)
+        'cffaedfe': (8, ENDIAN_LSB), # Mach-O Little Endian (64-bit)
+        'feedface': (4, ENDIAN_MSB), # Mach-O Big Endian (32-bit)
+        'feedfacf': (8, ENDIAN_MSB), # Mach-O Big Endian (64-bit)
+        'cafebabe': (0, -1),         # Universal Binary Big Endian. These fat binaries are archives that can include binaries for multiple architectures, but typically contain PowerPC and Intel x86.
+        'bebafeca': (0, -1),         # Universal Binary Big Endian. These fat binaries are archives that can include binaries for multiple architectures, but typically contain PowerPC and Intel x86.
+}

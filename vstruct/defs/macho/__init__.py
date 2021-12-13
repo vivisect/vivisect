@@ -3,6 +3,7 @@ Structure definitions for the OSX MachO binary format.
 '''
 import struct
 import vstruct
+import envi.bits as e_bits
 
 from vstruct.defs.macho.fat import *
 from vstruct.defs.macho.const import *
@@ -15,16 +16,24 @@ class mach_o(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self._raw_bytes = ''
         self._symbols = None
+        self._entrypoints = None
+        self._struct_info = []
 
         self.mach_header = mach_header()
         self.load_commands = vstruct.VStruct()
+
+    def getEndian(self):
+        return self.mach_header.vsGetMeta('endian')
+
+    def getPointerSize(self):
+        return self.mach_header.vsGetMeta('psize')
 
     def getSymbols(self):
         if self._symbols is not None:
             return self._symbols
 
         self._symbols = []
-        for fname,vs in self.load_commands:
+        for fname, vs in self.load_commands:
             if vs.cmd != LC_SYMTAB:
                 continue
             strbytes = self._raw_bytes[vs.stroff:vs.stroff+vs.strsize]
@@ -36,6 +45,29 @@ class mach_o(vstruct.VStruct):
                 #symstr = strtab[n.n_strx]
                 # FIXME this is slow!
                 symstr = strbytes[n.n_strx:].split('\x00', 1)[0]
+
+    def getEntryPoints(self):
+        if self._entrypoints is not None:
+            return self._entrypoints
+
+        self._entrypoints = []
+        offset = len(self.mach_header)
+        for fname, vs in self.load_commands:
+            if vs.cmd == LC_UNIXTHREAD:
+                eoff = len(vs)
+                psize = vs.flavor
+                endian = self.getEndian()
+
+                fmt = e_bits.getFormat(psize, endian)
+
+                for x in range(vs.count):
+                    ptr, = struct.unpack_from(fmt, self._raw_bytes, eoff+offset)
+                    self._entrypoints.append((offset + eoff, ptr))
+                    eoff += psize
+
+            offset += vs.cmdsize
+
+        return self._entrypoints
 
     def getLibDeps(self):
         '''
@@ -55,22 +87,58 @@ class mach_o(vstruct.VStruct):
         '''
         ret = []
         for fname, vs in self.load_commands:
-            if vs.cmd != LC_SEGMENT:
+            if vs.cmd not in (LC_SEGMENT, LC_SEGMENT_64):
                 continue
+            if vs.segname == '__PAGEZERO':
+                continue
+
             # Slice the segment bytes from raw bytes
             fbytes = self._raw_bytes[ vs.fileoff: vs.fileoff + vs.filesize ]
             # Pad out to virtual size
-            fbytes = fbytes.ljust(vs.vmsize, '\x00')
+            fbytes = fbytes.ljust(vs.vmsize, b'\x00')
 
             ret.append((vs.segname, vs.vmaddr, vs.initprot, fbytes))
         return ret
+
+    def getStructureInfo(self):
+        '''
+        Returns Structure information usable by the loader to tag file structures
+        '''
+        structs = []
+        cmdsyms = []
+        for fname, vs in self.load_commands:
+            if vs.cmd not in (LC_SEGMENT, LC_SEGMENT_64):
+                continue
+            if vs.segname == '__PAGEZERO':
+                continue
+
+            if vs.fileoff == 0:
+                offset = 0
+                va = None
+                if self.mach_header.vsGetMeta('psize') == 8:
+                    va = vs.vmaddr
+                    structs.append(('macho.mach_header_64', va))
+                    offset += len(mach_header_64())
+
+                else:
+                    va = vs.vmaddr
+                    structs.append(('macho.mach_header', va))
+                    offset += len(mach_header())
+
+                for fcmd, fvs in self.load_commands:
+                    structs.append(('macho.' + fvs.vsGetTypeName(), va + offset))
+                    offset += fvs.cmdsize
+                    cmdsyms.append((va+offset, fcmd))
+
+        return structs, cmdsyms
 
     def vsParse(self, bytes, offset=0):
         self._raw_bytes = bytes[offset:]
         offset = self.mach_header.vsParse(bytes, offset=offset)
         for i in range(self.mach_header.ncmds):
             # should we use endian from header?
-            cmdtype, cmdlen = struct.unpack('<II', bytes[offset:offset+8])
+            fmt = ('<II','>II')[self.getEndian()]
+            cmdtype, cmdlen = struct.unpack(fmt, bytes[offset:offset+8])
             cmdclass = getCommandClass(cmdtype)
             cmdobj = cmdclass()
             cmdobj.vsParse(bytes, offset=offset)
