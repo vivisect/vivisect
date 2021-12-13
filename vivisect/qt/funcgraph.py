@@ -5,6 +5,7 @@ import collections
 
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
+import envi.qt.memory as e_mem_qt
 import envi.memcanvas as e_memcanvas
 import envi.qt.memory as e_qt_memory
 import envi.qt.memcanvas as e_qt_memcanvas
@@ -167,6 +168,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.vwqgui = vwqgui
         self._last_viewpt = None
         self.history = collections.deque((), 100)
+        self.mwlocked = False
+        self._autorefresh = None
+
+        self._leading = False
+        self._following = None
+        self._follow_menu = None  # init'd in handler below
 
         QWidget.__init__(self, parent=vwqgui)
         vq_hotkey.HotKeyMixin.__init__(self)
@@ -189,6 +196,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         self.addr_entry = QLineEdit(parent=self.top_box)
 
+        self.rend_tools = QPushButton('Opts', parent=self.top_box)
+        self.rend_tools.setMenu( self.getRendToolsMenu() )
+
         self.mem_canvas = VQVivFuncgraphCanvas(vw, syms=vw, parent=self)
         self.mem_canvas.setNavCallback(self.enviNavGoto)
         self.mem_canvas.refreshSignal.connect(self.refresh)
@@ -202,6 +212,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         hbox.addWidget(self.hist_button)
         hbox.addWidget(self.addr_entry)
+        hbox.addWidget(self.rend_tools)
 
         vbox = QVBoxLayout(self)
         vbox.setContentsMargins(4, 4, 4, 4)
@@ -236,6 +247,55 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.addHotKeyTarget('funcgraph:paintdown', self._hotkey_paintDown)
         self.addHotKey('ctrl+m', 'funcgraph:paintmerge')
         self.addHotKeyTarget('funcgraph:paintmerge', self._hotkey_paintMerge)
+        self.addHotKey('x', 'viv:xrefsto')
+        self.addHotKeyTarget('viv:xrefsto', self._viv_xrefsto)
+
+    def toggleAutoRefresh(self):
+        '''
+        This allows the function graph to auto-refresh on changes (or not)
+        '''
+        self._autorefresh.setChecked(not self._autorefresh.isChecked())
+
+    def _canHazAutoRefresh(self):
+        '''
+        Should we autorefresh on updates?
+        '''
+        return self._autorefresh.isChecked()
+
+    def rendToolsSetName(self):
+        mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name')
+        if ok:
+            self.setMemWindowName(str(mwname))
+
+    def getRendToolsMenu(self):
+        menu = e_mem_qt.VQMemoryWindow.getRendToolsMenu(self)
+        self._autorefresh = QAction('auto-refresh', menu, checkable=True, checked=True)
+
+        menu.addAction(self._autorefresh)
+
+        if self.vw.server:
+
+            leadact = QAction('lead', menu, checkable=True)
+
+            def leadToggle():
+                self._leading = not self._leading
+                # We can only follow if not leading... (deep huh? ;) )
+                self._follow_menu.setEnabled(not self._leading)
+                if self._leading:
+                    self._following = None
+                    self.vw.iAmLeader(self.getEnviNavName())
+                self.updateWindowTitle()
+
+            def clearFollow():
+                self._following = None
+                self.updateWindowTitle()
+
+            leadact.toggled.connect(leadToggle)
+            menu.addAction(leadact)
+            self._follow_menu = menu.addMenu('Follow..')
+            self._follow_menu.addAction('(disable)', clearFollow)
+
+        return menu
 
     def _nav_expr(self):
         expr = self.addr_entry.text()
@@ -273,6 +333,19 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             newzoom -= .25
 
         self.mem_canvas.setZoomFactor(newzoom)
+
+    def _viv_xrefsto(self):
+
+        if self.mem_canvas._canv_curva is not None:
+            xrefs = self.vw.getXrefsTo(self.mem_canvas._canv_curva)
+            if len(xrefs) == 0:
+                self.vw.vprint('No xrefs found!')
+                return
+
+            title = 'Xrefs To: 0x%.8x' % self.mem_canvas._canv_curva
+            view = viv_q_views.VQXrefView(self.vw, self.vwqgui, xrefs=xrefs, title=title)
+            dock = self.vwqgui.vqDockWidget(view, floating=True)
+            dock.resize(800, 600)
 
     def refresh(self):
         '''
@@ -322,7 +395,72 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             pass
         self.enviNavGoto(expr)
 
+    def VWE_SYMHINT(self, vw, event, einfo):
+        va, idx, hint = einfo
+        self.mem_canvas.renderMemoryUpdate(va, 1)
+        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
+            self.refresh()
+
+    def VWE_ADDLOCATION(self, vw, event, einfo):
+        va, size, ltype, tinfo = einfo
+        self.mem_canvas.renderMemoryUpdate(va, size)
+
+    def VWE_DELLOCATION(self, vw, event, einfo):
+        va, size, ltype, tinfo = einfo
+        self.mem_canvas.renderMemoryUpdate(va, size)
+
+    def VWE_ADDFUNCTION(self, vw, event, einfo):
+        va, meta = einfo
+        self.mem_canvas.renderMemoryUpdate(va, 1)
+
+    def VWE_SETFUNCMETA(self, vw, event, einfo):
+        fva, key, val = einfo
+        self._updateFunction(fva)
+
+    def VWE_SETFUNCARGS(self, vw, event, einfo):
+        fva, fargs = einfo
+        self._updateFunction(fva)
+
+    def VWE_COMMENT(self, vw, event, einfo):
+        va, cmnt = einfo
+        self.mem_canvas.renderMemoryUpdate(va, 1)
+        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
+            self.refresh()
+
+    @idlethread
+    def VWE_SETNAME(self, vw, event, einfo):
+        va, name = einfo
+        self.mem_canvas.renderMemoryUpdate(va, 1)
+        for fromva, tova, rtype, rflag in self.vw.getXrefsTo(va):
+            self.mem_canvas.renderMemoryUpdate(fromva, 1)
+        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
+            self.refresh()
+
+    @idlethread
+    def VTE_IAMLEADER(self, vw, event, einfo):
+        user, fname = einfo
+
+        def setFollow():
+            self._following = einfo
+            self.updateWindowTitle()
+
+        self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
+        # FIXME: manage this list in a central location for the VivGui.
+        # FIXME: add "DONTFOLLOWME" to stop (and remove entries)
+        # FIXME: change what's shared to uniquely identify each channel
+
+    @idlethread
+    def VTE_FOLLOWME(self, vw, event, einfo):
+        user, fname, expr = einfo
+        if self._following != (user, fname):
+            return
+        self.enviNavGoto(expr)
+
+    @idlethread
     def enviNavGoto(self, expr, sizeexpr=None):
+        if self._leading:
+            self.vw.followTheLeader(str(self.getEnviNavName()), str(expr))
+
         self.addr_entry.setText(expr)
         self.history.append( expr )
         self.updateWindowTitle()
