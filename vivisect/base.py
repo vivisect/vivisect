@@ -428,6 +428,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.locmap.delMapLookup(mapva)
         self.blockmap.delMapLookup(mapva)
 
+        # wipe the opcode cache in case we have cached deleted locations
+        self.clearOpcache()
+
     def _handleADDEXPORT(self, einfo):
         va, etype, name, filename = einfo
         self.exports.append(einfo)

@@ -164,9 +164,8 @@ class ElfMixin:
             sym = symclass(sym.name, sym.st_value+addbase, sym.st_size, normname)
             self.addSymbol(sym)
 
-        if elf.isExecutable():
-            sym = e_resolv.Symbol('__entry', elf.e_entry, 0, normname)
-            self.addSymbol(sym)
+        sym = e_resolv.Symbol('__entry', elf.e_entry+addbase, 0, normname)
+        self.addSymbol(sym)
 
 # As much as I would *love* if all the ptrace defines were the same all the time,
 # there seem to be small platform differences...

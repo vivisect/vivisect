@@ -156,6 +156,23 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         # Add event numbers to here for auto-continue
         self.auto_continue = [NOTIFY_LOAD_LIBRARY, NOTIFY_CREATE_THREAD, NOTIFY_UNLOAD_LIBRARY, NOTIFY_EXIT_THREAD, NOTIFY_DEBUG_PRINT]
 
+        # Create a LoadLibrary hook to enable simple and consistent 
+        # Break-On-Load/Init functionality
+        self.registerNotifier(NOTIFY_LOAD_LIBRARY, LibraryNotifer())
+
+    def setBreakOnLibraryLoad(self, setting=True):
+        '''
+        Cause execution to halt when a new library is loaded.
+        '''
+        self.setMeta('BreakOnLibraryLoad', setting) 
+
+    def setBreakOnLibraryInit(self, setting=True):
+        '''
+        Set breakpoint on a newly loaded Library's init function 
+        (aka. <Libname>.__entry)
+        '''
+        self.setMeta('BreakOnLibraryInit', setting)
+
     def execute(self, cmdline):
         """
         Start a new process and debug it
