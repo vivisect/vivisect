@@ -6,6 +6,7 @@ STYPE_CODE_INTERACT = 3
 
 class DummyNamespace:
     __spec__ = None
+    __name__ = "Dummy"
 
 
 def dbg_interact(lcls, gbls):
