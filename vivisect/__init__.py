@@ -1184,7 +1184,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             rdest += imgbase
 
         while self.isValidPointer(rdest) and self.isProbablyCode(rdest):
-            if self.analyzePointer(ptrbase) in STOP_LOCS:
+            if self.analyzePointer(ptrbase)[0] in STOP_LOCS:
                 break
 
             yield rdest
