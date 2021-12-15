@@ -408,18 +408,24 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
     def VWE_DELLOCATION(self, vw, event, einfo):
         va, size, ltype, tinfo = einfo
         self.mem_canvas.renderMemoryUpdate(va, size)
+        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
+            self.refresh()
 
     def VWE_ADDFUNCTION(self, vw, event, einfo):
         va, meta = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
+        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
+            self.refresh()
 
     def VWE_SETFUNCMETA(self, vw, event, einfo):
         fva, key, val = einfo
-        self._updateFunction(fva)
+        if fva == self.fva and self._canHazAutoRefresh():
+            self.refresh()
 
     def VWE_SETFUNCARGS(self, vw, event, einfo):
         fva, fargs = einfo
-        self._updateFunction(fva)
+        if fva == self.fva and self._canHazAutoRefresh():
+            self.refresh()
 
     def VWE_COMMENT(self, vw, event, einfo):
         va, cmnt = einfo
