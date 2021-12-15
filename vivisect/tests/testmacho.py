@@ -18,7 +18,7 @@ class MachOTests(utils.VivTest):
         byts = helpers.getTestBytes('osx', 'amd64', 'safaridriver.bin')
         cls.safari = vs_macho.mach_o()
         cls.safari.vsParse(byts)
-        #cls.safari_vw = helpers.getTestWorkspace('osx', 'amd64', 'safaridriver.bin')
+        # TODO: plumb a full workspace test after updating the parser
 
     def test_basic(self):
         header = self.safari.mach_header
@@ -239,3 +239,9 @@ class MachOTests(utils.VivTest):
                         self.eq(valu, str(realsect[name]))
                     else:
                         self.eq(valu, realsect[name])
+
+    def test_version_segment(self):
+        for idx, lc in self.safari.load_commands:
+            if lc.cmd == vsm_const.LC_SOURCE_VERSION:
+                ver = lc.getVersion()
+                self.eq('7605.1.33.1.4', ver)

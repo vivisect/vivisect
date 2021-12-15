@@ -79,7 +79,7 @@ class segment_command(load_command):
             step += sect.vsParse(bytes[offset+step:])
             self.sections.vsAddElement(sect)
 
-        return retoff
+        return len(self) + offset
 
 class segment_command_64(load_command):
 
@@ -111,7 +111,9 @@ class segment_command_64(load_command):
             step += sect.vsParse(bytes[offset+step:])
             self.sections.vsAddElement(sect)
 
-        return retoff
+        # as with all vsParse methods, we return the new offset,
+        # which is the old + len(seg header) + len(all associated sections we just parsed)
+        return len(self) + offset
 
 
 class section(vstruct.VStruct):
@@ -479,6 +481,16 @@ class source_version_command(load_command):
         load_command.__init__(self)
         self.version = v_uint64()  # A.B.C.D.E packed as a24.b10.c10.d10.e10
 
+    def getVersion(self):
+        verinfo = []
+        version = self.version
+        for i in range(4):
+            valu = version & 0x3FF
+            verinfo.insert(0, str(valu))
+            version >>= 10
+        last = version & 0xFFFFFF
+        verinfo.insert(0, str(last))
+        return '.'.join(verinfo)
 
 class data_in_code_entry(vstruct.VStruct):
     def __init__(self):
@@ -530,7 +542,7 @@ command_classes = {
     LC_DYLD_INFO_ONLY: dyld_info_command,
     # LC_LOAD_UPWARD_DYLIB: ,  # TODO: I can't find any refs on what this should be
     LC_VERSION_MIN_MACOSX: version_min_command,
-    LC_VERSION_MIN_IPHONEOS:version_min_command,
+    LC_VERSION_MIN_IPHONEOS: version_min_command,
     LC_FUNCTION_STARTS: linkedit_data_command,
     LC_DYLD_ENVIRONMENT: dylinker_command,
     LC_MAIN: entry_point_command,
