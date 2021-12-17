@@ -100,6 +100,16 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
             else:
                 # otherwise, let's use some heuristics to guess.
+                #
+                # basically, the heuristic is made up of:
+                # * does the current location decode as ARM or THUMB?
+                # * if both, check the mnemonic against common opcodes 
+                #       for start of functions
+                #
+                # armthumb is a tracker/counter.  
+                #   positive numbers prefer ARM
+                #   negative numbers prefer THUMB
+
                 armthumb = 0
                 armop  = None
                 thumbop = None
