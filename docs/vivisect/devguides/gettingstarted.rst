@@ -27,6 +27,8 @@ Vivisect has a rich environment for reverse-engineering / vulnerability research
 
     * Symboliks (vivisect/symboliks/) - Symbolic analysis framework based on Vivisect
 
+    * Workspace-Emulation (vivisect/impemu) - Special emulators focused on code analysis, typically performing "partial emulation"
+
 
 While there are many fully featured tools/libraries, most of the functionality is provided from the Vivisect Workspace (vivisect.VivWorkspace).  Unless you only want to use a particular library mentioned above, most exploration is best done there.
 
@@ -81,11 +83,9 @@ If you've already loaded and parsed a binary into a PE or Elf object provided by
     vw.loadParsedBin(binary_object)
     vw.analyze()
 
-where `binary_object` is your PE or Elf class object.
 
-
-My Comfort-Zone
-===============
+An Example Workflow
+===================
 
 When I'm writing tools, my most common path to getting spun up looks like this::
 
@@ -180,10 +180,10 @@ No filename is given, but the filename to be written is stored in the workspace 
     In [38]: vw.saveWorkspace(fullsave=True)                                                                                           
 
 
-Loading an ELF and Working With Functions
-=========================================
+Loading an ELF/PE/MACH-O binary and Working With Functions
+==========================================================
 
-Getting started working with files is really quite easy.  Cherry-picking from the illustrations above::
+Getting started working with binary files is really quite easy.  Using full-featured binary executable/library files is basically all the same.  Cherry-picking from the illustrations above, we'll show you how to load, analyze, and work with an ELF file... but PE and MACH-O are the same process.  Vivisect automatically identifies the file type and loads the correct parser::
 
     import vivisect
     vw = vivisect.VivWorkspace()
@@ -192,7 +192,7 @@ Getting started working with files is really quite easy.  Cherry-picking from th
     vw.setMeta('StorageName', '/home/atlas/work/chown-new.viv')
     vw.saveWorkspace(True)
 
-or:
+or::
     In [62]: vw = vivisect.VivWorkspace()                                                                                              
 
     In [63]: vw.loadFromFile('/bin/chown')                                                                                             
@@ -207,7 +207,32 @@ or:
 
     In [67]: vw.saveWorkspace(True) 
 
-`VivWorkspace.getFunctions()` returns a list of Virtual Addresses (va's) for the beginning of each function::
+Before we jump into just any functions, you can access the exports and imports as follows.  
+Imports are tuples of the format `(address, size, type, name)` (type is the constant LOC_IMPORT, and if you look into it deeper, you'll find these tuples are actually just the entry in the Locations Database within the workspace)::
+
+    In [1]: vw.getImports()                                                                                                                                                                                                                      
+    Out[1]: 
+    [(33628096, 8, 9, '*.free'),
+     (33628104, 8, 9, '*._ITM_deregisterTMCloneTable'),
+     (33628112, 8, 9, '*.__libc_start_main'),
+     (33628120, 8, 9, '*.__gmon_start__'),
+    ...]
+
+Exports are tuples of a different sort: `(address, exp_type, symbol, filename)` (exp_type can be one of EXP_FUNCTION, EXP_DATA, EXP_UNTYPED in the vivisect module)::
+    
+    In [2]: vw.getExports()                                                                                                                                                                                                                      
+    Out[2]: 
+    [(33628288, 1, '__progname', 'chown'),
+     (33590560, 0, 'fts_open', 'chown'),
+     (33628304, 1, 'optind', 'chown'),
+     (33628320, 1, 'program_invocation_name', 'chown'),
+     (33610784, 1, 'version_etc_copyright', 'chown'),
+     (33628176, 1, 'Version', 'chown'),
+     (33603584, 1, '_IO_stdin_used', 'chown'),
+    ...]
+
+
+Now on to normal Functions: `VivWorkspace.getFunctions()` returns a list of Virtual Addresses (va's) for the beginning of each function::
 
     In [67]: vw.getFunctions()                                                                                                         
     Out[67]: 
@@ -220,8 +245,6 @@ or:
     ...]
 
 Let's get more information about a function.  For our purpose, we'll play with 0x200b530::
-
-    fva = 0x200b530
 
     In [89]: fva = 0x200b530                                                                                                           
     
@@ -276,20 +299,13 @@ Let's get more information about a function.  For our purpose, we'll play with 0
       [('int', 'rdi'), ('int', 'rsi'), ('int', 'rdx')])}
 
 And a fun one to work with, the Mnemonic Distribution for a function.  ie. what opcodes and how many of them::
+
     In [97]: vw.getFunctionMeta(fva, 'MnemDist')                                                                                       
     Out[97]: 
     {'nop': 0x2,
      'push': 0x6,
      'lea': 0x2,
-     'mov': 0x6,
-     'sub': 0x2,
-     'call': 0x2,
-     'sar': 0x1,
-     'jz': 0x1,
-     'xor': 0x1,
-     'add': 0x2,
-     'cmp': 0x1,
-     'jnz': 0x1,
+     ... (same as above)
      'pop': 0x6,
      'ret': 0x1}
 
@@ -333,11 +349,46 @@ And one of the best features::
       {'va1': 0x200b584, 'va2': 0x200b586, 'codeflow': (0x200b584, 0x200b586)})]
     
 
-Loading a PE and Listing Its Exports
-====================================
+Loading and working with "dumb" file formats
+============================================
+Vivisect also supports less complete file formats, such as `blob`, `ihex`, and `srec`.  Once a workspace file has been saved, loading it is identical to any other format.  In order to work with these files to begin with, you much also be certain the necessary information is configured.  For `blob`s you must ensure the appropriate architecture (`arch`) is configured in `vw.config.viv.parsers.blob.arch` and the correct base-address is configured in `vw.config.viv.parsers.blob.baseaddr`.  Once these configuration items are setup, you load and analyze just as normal.  (Keep in mind, that each parser has it's own set of workspace-analysis-modules and function-analysis-modules, which you can discover in `vivisect/analysis/__init__.py`)::
 
-Having More Fun
-===============
+    In [6]: vw = vivisect.VivWorkspace()                                                                                                                                                                                                         
+
+    In [7]: vw.config.viv.parsers.blob.arch='arm'                                                                                                                                                                                               
+
+    In [8]: vw.config.viv.parsers.blob.baseaddr=0x20000000                                                                                                                                                                                      
+
+    In [9]: vw.loadFromFile('firmware.blob')
+
+    In [10]: vw.analyze()
+
+However, with blobs, analysis doesn't always know where to start, so you may need to kick things off with `vw.makeCode()` or `vw.makeFunction()`::
+
+    In [11]: len(vw.getLocations())                                                                                                                                                                                                              
+    Out[11]: 0x0
+
+    In [12]: vw.makeFunction(0x20000000)
+
+If you want to specify a particular architecture, provide it as part of the call to `vw.makeFunction()`::
+
+    In [12]: vw.makeFunction(0x20000000, arch=envi.ARCH_ARMV7)
+
+
+For `ihex` and `srec` the process is simpler.  Since both provide address information as well as the possibility of starting code, you need only ensure the architecture is correct::
+
+    In [6]: vw = vivisect.VivWorkspace()                                                                                                                                                                                                         
+
+    In [7]: vw.config.viv.parsers.ihex.arch='arm'
+
+    In [8]: vw.loadFromFile('firmware.blob')
+
+    In [9]: vw.analyze()
+
+
+
+Having More Fun with Workspaces
+===============================
 
 Vivisect maintains a list of Segments (in some cases, aka "sections"), which you can review like so::
 
@@ -348,5 +399,10 @@ Often more importantly, you can inspect the workspace's Memory Maps::
 
     In [45]: vw.getMemoryMaps()                                                                                                        
     Out[45]: [(0x20000000, 0x100000, 0x7, 'firmware')]
+
+And if you provide an address to the "singular" form, Vivisect will return the map for that particular address::
+
+    In [46]: vw.getMemoryMap(0x20000005)
+    Out[46]: (0x20000000, 0x100000, 0x7, 'firmware')
 
 
