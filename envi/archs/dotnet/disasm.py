@@ -21,7 +21,7 @@ _imm_valus = {
 }
 
 class DotNetImmOper(envi.Operand):
-    def __init__(self, typ, byts, bigend):
+    def __init__(self, typ, byts, bigend, md):
         info = _imm_valus.get(typ)
         if not info:
             raise e_exc.InvalidOperand('Type: %s on DotNetImmOper??')
@@ -40,12 +40,22 @@ class DotNetImmOper(envi.Operand):
     def repr(self, op):
         return str(self.valu)
 
+class DotNetMethod(envi.Operand):
+    def __init__(self, typ, byts, bigend, md):
+        self.mname = ''
+
+    def isImmed(self):
+        return True
+
+    def isDiscrete(self):
+        return True
+
 class DotNetOperand(envi.Operand):
-    def __init__(self, valu):
+    def __init__(self, typ, byts, bigend, md):
         pass
 
 class DotNetStackOperand(envi.Operand):
-    def __init__(self, valu):
+    def __init__(self, typ, byts, bigend, md):
         pass
 
 class DotNetOpcode(envi.Opcode):
@@ -53,6 +63,12 @@ class DotNetOpcode(envi.Opcode):
         super().__init__(va, opcode, mnem, prefixes, size, operands, iflags)
         self.push = push
         self.pop = pop
+
+    def __repr__(self):
+        pass
+
+    def render(self, mcanv):
+        pass
 
 # TODO: This would be faster as just a list
 _oper_ctors = {
@@ -62,7 +78,7 @@ _oper_ctors = {
     TYPE_INT32: DotNetImmOper,
     TYPE_UINT32: DotNetImmOper,
     TYPE_INT64: DotNetImmOper,
-    #TYPE_METHOD
+    TYPE_METHOD: DotNetMethod,
     #TYPE_SIG
     #TYPE_FIELD
     #TYPE_TYPE
@@ -79,15 +95,17 @@ _oper_ctors = {
 }
 
 class DotNetDisasm:
-    def __init__(self, psize=4, bigend=False):
+    def __init__(self, psize=4, bigend=False, metadata={}):
         self.bigend = bigend
         self.psize = psize
+        self.metadata = metadata
 
     def disasm(self, byts, offset, va):
         startoff = offset
         tabl = e_opcodes.MAIN_OPCODES
         obyt = byts[offset]
         offset += 1
+
         # TODO: This is actually prefixes
         if obyt == 0xFE:
             obyt = byts[offset]
@@ -104,8 +122,8 @@ class DotNetDisasm:
             ctor = _oper_ctors.get(param)
             if not ctor:
                 continue
-            args.append(ctor(param, byts[offset:], self.bigend))
-        #opers = [DotNetOperand(oper) for oper in params]
+            args.append(ctor(param, byts[offset:], self.bigend, self.metadata))
+
         poppers = [DotNetStackOperand(oper) for oper in pops]
         pushers = [DotNetStackOperand(oper) for oper in pushes]
 

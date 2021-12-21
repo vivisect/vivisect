@@ -1560,7 +1560,7 @@ class PE(object):
         RIDs are all 1 based, so the first element of most lists are going to be None
         '''
         header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
-        ridmask = (2 ** (header.Rid)) - 1
+        ridmask = (2 ** header.Rid) - 1
 
         strOffSz  = 4 if header.Heaps & 0x1 else 2
         guidOffSz = 4 if header.Heaps & 0x2 else 2

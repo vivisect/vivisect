@@ -58,10 +58,30 @@ opertests = [
     ('DUP', '25', 'dup ', 'dup '),
     ('POP', '26', 'pop ', 'pop '),
 
-    ('JMP', '', '', ''),
+    ('JMP', '27', 'jmp ', 'jmp '),
     ('CALL', '28B9600006', 'call ', ''),
     ('CALLI', '', '', ''),
     ('RET', '2A', 'ret ', 'ret '),
+
+    ('BR (SHORT)', '2B37', 'br.s 55', 'br 55'),
+    ('BR.FALSE (SHORT)', '2C66', 'brfalse.s ', 'brfalse.s '),
+    ('BR.TRUE (SHORT)', '2D12', 'brtrue.s ', 'brtrue.s '),
+    ('BEQ (SHORT)', '2E42FF', 'beq.s', 'beq.s'),
+    ('BGE (SHORT)', '2F9900', 'bge.s', 'bge.s'),
+    ('BGT (SHORT)', '30DF01', 'bgt.s', 'bgt.s'),
+    ('BLE (SHORT)', '31FE23', 'ble.s', 'ble.s'),
+    ('BLT (SHORT)', '32AD77', 'blt.s', 'blt.s'),
+    ('BNE (SHORT, UN)', '33', 'bne.un.s', 'bne.un.s'),
+    ('BGE (SHORT, UN)', '34', 'bge.un.s', 'bge.un.s'),
+    ('BGT (SHORT, UN)', '35', 'bgt.un.s', 'bgt.un.s'),
+    ('BLE (SHORT, UN)', '36', 'ble.un.s', 'ble.un.s'),
+    ('BLT (SHORT, UN)', '37', 'blt.un.s', 'blt.un.s'),
+
+    ('BR', '38', 'br ', ''),
+    ('BRFALSE', '', '', ''),
+    ('BRTRUE', '', '', ''),
+
+    ('CALLVIRT', '6F57190006', 'callvirt ', 'callvirt '),  # Terraria.GameContent.ShopHelper::LikeBiome
 ]
 
 class DotnetInstructionTests(unittest.TestCase):

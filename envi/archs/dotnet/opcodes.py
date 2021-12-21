@@ -1,5 +1,7 @@
 from envi.archs.dotnet.opconst import *
 
+# TODO: This would be faster as a list, with some gaps for the opcodes that aren't
+# defined
 MAIN_OPCODES = {
     # General format is (type, args, pops, pushes, name)
     # More specific Format is (type, (args,), (pop_mask,), (push_mask,), name)

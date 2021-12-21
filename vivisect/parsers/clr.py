@@ -69,10 +69,11 @@ def loadCLRIntoWorkspace(vw, pe):
     '''
     So....CLR is weird in that it's both a full-fledged architecture on it's own, but also
     can bring along with it unmanaged (native) code and can switch to those when it needs to
-    (kinda like how ARM/Thumb can switch). So that's something we need to keep in mind when
-    parsing things out
+    (kinda like how ARM/Thumb can switch).
     '''
     pe.parseCLR()
+    tables = {}
+
     for func in validityCheckers:
         func(pe)
     try:
@@ -80,6 +81,8 @@ def loadCLRIntoWorkspace(vw, pe):
     except:
         import pdb, sys
         pdb.post_mortem(sys.exc_info()[2])
+
+    vw.arch.setArchExtra('Tables', tables)
 
     breakpoint()
     return

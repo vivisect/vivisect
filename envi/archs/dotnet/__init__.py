@@ -1,4 +1,3 @@
-import envi
 import envi.archs.dotnet.emu as e_emu
 import envi.archs.dotnet.disasm as e_dotnet
 
@@ -9,8 +8,7 @@ class DotNetModule(envi.ArchitectureModule):
     def __init__(self):
         envi.ArchitectureModule(self, 'dotnet')
 
-        self._arch_dis = e_dotnet.DotNetDisasm()
-
+        self._arch_dis = e_dotnet.DotNetDisasm(tables=self.extrainfo.get('metadata'))
 
     def archGetRegCtx(self):
         return None

@@ -6,7 +6,7 @@ ArchitectureModule, Opcode, Operand, and Emulator objects.
 import types
 import struct
 import logging
-import platform
+import platform as plat
 import contextlib
 
 from envi.exc import *
@@ -93,6 +93,7 @@ class ArchitectureModule:
         self._arch_badopbytes = [b'\x00\x00\x00\x00\x00', b'\xff\xff\xff\xff\xff']
         self.setEndian(endian)
         self.badops = []
+        self.extrainfo = {}
 
     def getArchId(self):
         '''
@@ -247,6 +248,17 @@ class ArchitectureModule:
     def archGetPointerAlignment(self):
         return 1
 
+    def archSetExtra(self, key, valu):
+        '''
+        An escape hatch to where we can bleed information from outside an
+        ArchitectureModule down into it.
+
+        Current consumer is mostly the .NET module to propagate tables/names down
+        into the architecture/disassembler modules so that we can cross reference
+        things properly.
+        '''
+        self.extrainfo[key] = valu
+
 def stealArchMethods(obj, archname):
     '''
     Used by objects which are expected to inherit from an
@@ -259,7 +271,6 @@ def stealArchMethods(obj, archname):
             setattr(obj, name, o)
 
 class Operand:
-
     """
     Thses are the expected methods needed by any implemented operand object
     attached to an envi Opcode.  This does *not* have a constructor of it's
@@ -1257,7 +1268,7 @@ def getCurrentArch():
     Return an envi normalized name for the current arch.
     """
     width = struct.calcsize("P")
-    mach = platform.machine()   # 'i386','ppc', etc...
+    mach = plat.machine()   # 'i386','ppc', etc...
 
     if width == 4:
         ret = arch_xlate_32.get(mach)
