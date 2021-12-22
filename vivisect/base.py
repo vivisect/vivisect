@@ -715,7 +715,6 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    logger.info("0x%x: Dynamic Branch found at (%s)" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):

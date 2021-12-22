@@ -2,18 +2,22 @@
 Structure definitions for the OSX MachO binary format.
 '''
 import struct
-import vstruct
+import logging
+import binascii
 
+import vstruct
 from vstruct.defs.macho.fat import *
 from vstruct.defs.macho.const import *
 from vstruct.defs.macho.stabs import *
 from vstruct.defs.macho.loader import *
 
+logger = logging.getLogger(__name__)
+
 class mach_o(vstruct.VStruct):
 
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self._raw_bytes = ''
+        self._raw_bytes = b''
         self._symbols = None
 
         self.mach_header = mach_header()
@@ -55,17 +59,25 @@ class mach_o(vstruct.VStruct):
         '''
         ret = []
         for fname, vs in self.load_commands:
-            if vs.cmd != LC_SEGMENT:
+            if vs.cmd not in (LC_SEGMENT, LC_SEGMENT_64):
                 continue
             # Slice the segment bytes from raw bytes
             fbytes = self._raw_bytes[ vs.fileoff: vs.fileoff + vs.filesize ]
             # Pad out to virtual size
-            fbytes = fbytes.ljust(vs.vmsize, '\x00')
+            try:
+                fbytes = fbytes.ljust(vs.vmsize, b'\x00')
+            except:
+                logger.warning('Segment allocation failure')
+                continue
 
             ret.append((vs.segname, vs.vmaddr, vs.initprot, fbytes))
         return ret
 
     def vsParse(self, bytes, offset=0):
+        magic = struct.unpack('<I', bytes[:4])[0]
+        if magic in (MH_MAGIC_64, MH_CIGAM_64):
+            self.mach_header = mach_header_64()
+
         self._raw_bytes = bytes[offset:]
         offset = self.mach_header.vsParse(bytes, offset=offset)
         for i in range(self.mach_header.ncmds):
