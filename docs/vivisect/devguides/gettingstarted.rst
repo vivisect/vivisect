@@ -19,7 +19,7 @@ Vivisect has a rich environment for reverse-engineering / vulnerability research
     
     * VDB (vdb/) - Higher level Vulnerability Debugger code (depends on VTrace)
     
-    * VStruct (vstruct/) - Easy-to-use Structure builder/manipulation library
+    * VStruct (vstruct/) - Easy-to-use Structure builder/parsing/manipulation library
     
     * VisGraph (visgraph/) - Graph and Path libraries used to represent virtually anything with nodes and edges with properties
     
@@ -170,7 +170,7 @@ When you're happy with your workspace, be sure to save it::
 
 To save a workspace, `vw.saveWorkspace()` is used.  The "fullsave=True" means to write a complete file, instead of saving incrementally.  For the first time save, this is important, as it places the header on the workspace file which tells Viv what kind of file it is.
 
-No filename is given, but the filename to be written is stored in the workspace metadata.  The default name is the last file loaded into the workspace + ".viv".  You can see and modify this filename like so::
+`vw.saveWorkspace()` doesn't allow a filename to be provided, the filename to be written is located in the workspace metadata.  The default name is the last file loaded into the workspace + ".viv".  You can see and modify this filename like so::
 
     In [36]: vw.getMeta('StorageName')                                                                                                 
     Out[36]: '/home/atlas/work/firmware.hex.viv'
