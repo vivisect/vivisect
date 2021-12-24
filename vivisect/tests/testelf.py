@@ -33,8 +33,27 @@ def do_analyze(vw):
             import traceback
             logging.warning("ERROR in analysis module: (%r): %r", mod, e, exc_info=1)
 
+def cmpnames(x, y):
+    '''
+    Names comparator.  Skips "_#" duplicate name parts so that processing order
+    doesn't matter.
+    '''
+    nmset = [x, y]
+
+    for nmidx in range(2):
+        va, name = nmset[nmidx]
+        if len(name) <= 2:
+            continue
+
+        if name[-2:] in ('_0', '_1', '_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9'):
+            nmset[nmidx] = va, name[:-2]
+
+    return nmset[0] == nmset[1]
+
+
+
 comparators = {
-    'names': lambda x, y: x[0] == y[0],
+    'names': cmpnames,
     'imports': lambda x, y: x[:3] == y[:3],
     'exports': lambda x, y: x[:1] == y[:1] and x[3] == y[3],
 }
@@ -141,7 +160,7 @@ class ELFTests(unittest.TestCase):
         # So this portion is because on windows, there's no good python equivalent for cxxfilt that I
         # can find. So we have to skip the portions of the tests that rely on decoding the names
         cmpr = lambda x, y: x == y
-        if platform.system().lower() == 'windows' and testname in comparators:
+        if testname in comparators:
             cmpr = comparators[testname]
 
         for base in baseline:

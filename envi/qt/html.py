@@ -75,6 +75,16 @@ div.codeblock:hover {
     background-color: #ffff00;
 }
 
+.envi-funcflags {
+    color: #ff0088;
+    background-color: #000000;
+}
+
+.envi-funcflags-selected {
+    color: #ff0088;
+    background-color: #000000;
+}
+
 </style>
 
 <style type="text/css" id="cmapstyle">
