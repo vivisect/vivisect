@@ -150,14 +150,13 @@ class mach_o(vstruct.VStruct):
 
         # no callback is fired for mach_header, set we set it here
         self.vsSetEndian(self.mach_header.vsGetEndian())
-        endian = self.vsGetEndian()
-        fmt = ('<II','>II')[endian]
+        bigend = self.vsGetEndian()
+        fmt = ('<II','>II')[bigend]
 
         for i in range(self.mach_header.ncmds):
-            # should we use endian from header?
             cmdtype, cmdlen = struct.unpack(fmt, bytes[offset:offset+8])
             cmdclass = getCommandClass(cmdtype)
-            cmdobj = cmdclass(bigend=endian)
+            cmdobj = cmdclass(bigend=bigend)
             cmdobj.vsParse(bytes, offset=offset)
             self.load_commands.vsAddField('cmd%d' % i, cmdobj)
             offset += cmdobj.cmdsize
