@@ -4,7 +4,6 @@ from vivisect.const import archcalls
 import vivisect.parsers as viv_parsers
 import vstruct.defs.macho as vs_macho
 
-
 def parseFile(vw, filename, baseaddr=None):
     with open(filename, 'rb') as f:
         fbytes = f.read()
@@ -13,6 +12,21 @@ def parseFile(vw, filename, baseaddr=None):
 
 def parseBytes(vw, filebytes, baseaddr=None):
     return _loadMacho(vw, filebytes, baseaddr=baseaddr)
+
+
+def parseMemory(vw, memobj, baseaddr):
+    byts = memobj.read()
+    return _loadMacho(vw, byts, baseaddr=baseaddr)
+
+
+archcalls = {
+    'i386': 'cdecl',
+    'amd64': 'sysvamd64call',
+    'arm': 'armcall',
+    'thumb': 'armcall',
+    'thumb16': 'armcall',
+}
+
 
 def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
@@ -90,8 +104,3 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         vw.addLibraryDependancy(libname)
 
     return fname
-
-
-def parseMemory(vw, memobj, baseaddr):
-    # TODO: implement
-    pass
