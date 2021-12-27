@@ -7059,7 +7059,7 @@ class A64Opcode(envi.Opcode):
         # if we aren't a NOFALL instruction, add the fallthrough branch
         if not self.iflags & envi.IF_NOFALL:
             ret.append((self.va + self.size, envi.BR_FALL | self._def_arch))
-            #print "getBranches: next...", hex(self.va), self.size
+            #print("getBranches: next...", hex(self.va), self.size)
 
         flags = 0
 
@@ -7085,7 +7085,7 @@ class A64Opcode(envi.Opcode):
 
             # if we point to a valid address, add that branch as well:
             ret.append((operval, flags))
-            #print "getBranches: (0x%x) add  0x%x   %x"% (self.va, operval, flags)
+            #print("getBranches: (0x%x) add  0x%x   %x"% (self.va, operval, flags))
 
         return ret
 
@@ -7146,13 +7146,13 @@ class AArch64Disasm:
         then throw an exception.
         '''
         enc,nexttab = inittable[encfam]
-        #print "opval: 0x%x   - encfam: 0x%x  (enc/nexttab: %r/%r)" % (opval, encfam, enc, nexttab)
+        #print("opval: 0x%x   - encfam: 0x%x  (enc/nexttab: %r/%r)" % (opval, encfam, enc, nexttab))
         if nexttab != None: # we have to sub-parse...
             for mask,val,penc in nexttab:
-                #print "penc", penc, iencs[penc]
+                #print("penc", penc, iencs[penc])
                 if (opval & mask) == val:
                     enc = penc
-                    #print "- found: %r" % enc
+                    #print("- found: %r" % enc)
                     break
 
         # If we don't know the encoding by here, we never will ;)

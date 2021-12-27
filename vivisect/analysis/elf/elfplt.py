@@ -184,8 +184,8 @@ def getPLTs(vw):
             for pltva, pltsize in plts:
                 if FPLT == pltva:
                     newish = False
-            if newish and FGOT and FGOTSZ:
-                plts.append((FGOT, FGOTSZ))
+            if newish:
+                plts.append((FPLT, FPLTSZ))
 
     return plts
 
@@ -369,8 +369,11 @@ def analyzeFunction(vw, funcva):
         if brflags & envi.BR_DEREF:
             if loctup is None:              ###### TODO: CHECK HERE FOR TAINT VALUE!
                 taintval = emu.getVivTaint(opval)
-                taintrepr = emu.reprVivTaint(taintval)
-                logger.exception('0x%x: opval=0x%x: brflags is BR_DEREF, but loctup is None.  Don\'t know what to do. skipping.%r %r', op.va, opval, taintval, taintrepr)
+                if taintval:
+                    taintrepr = emu.reprVivTaint(taintval)
+                else:
+                    taintrepr = 'None'
+                logger.exception('0x%x: opval=0x%x: brflags is BR_DEREF, but loctup is None.  Don\'t know what to do. skipping.  taint:%r (%r)', op.va, opval, taintval, taintrepr)
                 continue
 
             lva, lsz, ltype, ltinfo = loctup

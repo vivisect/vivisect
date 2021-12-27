@@ -76,13 +76,13 @@ div.codeblock:hover {
 }
 
 .envi-funcflags {
-    color: #ff00dd;
+    color: #ff0088;
     background-color: #000000;
 }
 
 .envi-funcflags-selected {
-    color: #000000;
-    background-color: #ff00dd;
+    color: #ff0088;
+    background-color: #000000;
 }
 
 </style>

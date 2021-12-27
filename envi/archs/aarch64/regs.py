@@ -117,7 +117,7 @@ PSR_V_mask = 0xffffffff ^ PSR_V_bit
 PSR_T_bit  = 1 << PSR_T
 PSR_T_mask = 0xffffffff ^ PSR_T_bit
 
-psr_fields = [None for x in xrange(32)]
+psr_fields = [None for x in range(32)]
 psr_fields[PSR_M] = "M"
 psr_fields[PSR_T] = "T"
 psr_fields[PSR_F] = "F"
@@ -176,12 +176,12 @@ e_reg.addLocalStatusMetas(l, aarch64_metas, aarch64_status_metas, "CPSC")
 e_reg.addLocalMetas(l, aarch64_metas)
 
 
-class AArch64RegisterContext(e_reg.RegisterContext):
+class A64RegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)
         self.loadRegDef(reg_data)
         self.loadRegMetas(aarch64_metas, statmetas=aarch64_status_metas)
         self.setRegisterIndexes(REG_PC, REG_SP)
 
-rctx = AArch64RegisterContext()
+rctx = A64RegisterContext()
 

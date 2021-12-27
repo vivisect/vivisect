@@ -496,6 +496,7 @@ class WorkspaceEmulator:
 
                         if self.emustop:
                             return
+
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
                         return

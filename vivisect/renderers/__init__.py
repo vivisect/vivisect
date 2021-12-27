@@ -72,7 +72,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             segva, segsize, segname, segfname = seg
             if segva == lva:
                 mcanv.addText(linepre, tag=vatag)
-                mcanv.addText("Segment: %s (%d bytes) FIXME PERMS\n" % (segname, segsize))
+                mcanv.addText("Segment: %s (%d bytes)\n" % (segname, segsize))
 
         if isfunc:
             mcanv.addText(linepre, tag=vatag)
@@ -137,7 +137,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, tag=vatag)
             if name is None:
                 name = "loc_%.8x" % lva
-            mcanv.addText(urllib.parse.quote_plus(name), tag=vatag)
+            mcanv.addText(name, tag=vatag)
             mcanv.addText(": ")
             xrtag = mcanv.getTag("xrefs")
             mcanv.addText('[%d XREFS]\n' % xrcount, tag=xrtag)

@@ -8,9 +8,9 @@ import envi
 from envi.archs.aarch64.regs import *
 from envi.archs.aarch64.disasm import *
 
-class Aarch64Module(envi.ArchitectureModule):
+class A64Module(envi.ArchitectureModule):
 
-    def __init__(self, name='aarch64'):
+    def __init__(self, name='a64'):
         # these are required for setEndian() which is called from ArchitectureModule.__init__()
         self._arch_dis = AArch64Disasm()
 
