@@ -130,8 +130,8 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     for libname in macho.getLibDeps():
         logger.debug("deplib: %r", libname)
         # FIXME hack....
-        libname = libname.split(b'/')[-1]
-        libname = libname.split(b'.')[0].lower()
+        libname = libname.split('/')[-1]
+        libname = libname.split('.')[0].lower()
         vw.addLibraryDependancy(libname)
 
     logger.debug("memoryMaps: \n%r", '\n'.join(["0x%x, 0x%x, 0x%x, %r" % (w,x,y,z) for w,x,y,z in vw.getMemoryMaps()]))
