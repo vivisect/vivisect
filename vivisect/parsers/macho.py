@@ -18,12 +18,21 @@ def parseBytes(vw, filebytes, baseaddr=None):
     return _loadMacho(vw, filebytes, baseaddr=baseaddr)
 
 
+def parseMemory(vw, memobj, baseaddr):
+    byts = memobj.read()
+    return _loadMacho(vw, byts, baseaddr=baseaddr)
+
+
 archcalls = {
     'i386': 'cdecl',
     'amd64': 'sysvamd64call',
     'arm': 'armcall',
     'thumb': 'armcall',
     'thumb16': 'armcall',
+}
+
+arch_translation = {
+    'powerpc': 'ppc-server',
 }
 
 '''
@@ -74,7 +83,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         filename = 'macho_%.8x' % baseaddr  # FIXME more than one!
 
     # find the lowest loadable address, then get an offset so we can apply it later
-    fakebase, size = getMemoryBaseAndSize(vw, filename)
+    fakebase, size = getMemBaseAndSize(vw, filename)
     offset = baseaddr - fakebase
     logger.debug("address offset: 0x%x" % offset)
 
@@ -96,8 +105,10 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     if arch is None:
         raise Exception('Unknown MACH-O arch: %.8x' % macho.mach_header.cputype)
 
+    vwarch = arch_translation.get(arch, arch)
+
     # Setup arch/plat/fmt
-    vw.setMeta('Architecture', arch)
+    vw.setMeta('Architecture', vwarch)
     vw.setMeta("Platform", "Darwin")
     vw.setMeta("Format", "macho")
 
@@ -148,13 +159,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
     return fname
 
-
-def parseMemory(vw, memobj, baseaddr):
-    # TODO: implement
-    pass
-
-
-def getMemoryBaseAndSize(vw, filename, baseaddr=None):
+def getMemBaseAndSize(vw, filename, baseaddr=None):
     '''
     Returns the default baseaddr and memory size required to load the file
     '''
@@ -179,5 +184,5 @@ def getMemoryBaseAndSize(vw, filename, baseaddr=None):
             topmem = endva
 
     size = topmem - baseaddr
-    logger.debug("getMemoryBaseAndSize() => 0x%x:0x%x", baseaddr, size)
+    logger.debug("getMemBaseAndSize() => 0x%x:0x%x", baseaddr, size)
     return baseaddr, size
