@@ -1,5 +1,4 @@
 import vstruct
-import envi.common as e_common
 
 from vstruct.primitives import *
 from vstruct.defs.macho.const import *
@@ -502,9 +501,7 @@ class data_in_code_entry(vstruct.VStruct):
 
 command_classes = {
     LC_SEGMENT:     segment_command,
-    LC_SEGMENT_64:  segment_command_64,
     LC_SYMTAB:      symtab_command,
-    LC_DYSYMTAB:    dysymtab_command,
     LC_LOAD_DYLIB:  dylib_command,
 
     LC_SEGMENT: segment_command,

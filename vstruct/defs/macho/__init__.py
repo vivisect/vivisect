@@ -4,8 +4,6 @@ Structure definitions for the OSX MachO binary format.
 import struct
 import logging
 import binascii
-import vstruct
-import envi.bits as e_bits
 
 import vstruct
 import envi.bits as e_bits
