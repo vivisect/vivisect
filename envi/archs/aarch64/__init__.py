@@ -12,13 +12,13 @@ class A64Module(envi.ArchitectureModule):
 
     def __init__(self, name='a64'):
         # these are required for setEndian() which is called from ArchitectureModule.__init__()
-        self._arch_dis = AArch64Disasm()
+        self._arch_dis = A64Disasm()
 
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         self._arch_reg = self.archGetRegCtx()
 
     def archGetRegCtx(self):
-        return AArch64RegisterContext()
+        return A64RegisterContext()
 
     def archGetBreakInstr(self):
         raise Exception ("weird... what are you trying to do here?  ARM has a complex breakpoint instruction")
@@ -40,7 +40,7 @@ class A64Module(envi.ArchitectureModule):
         return self._arch_dis.disasm(bytes, offset, va)
 
     def getEmulator(self):
-        return AArch64Emulator()
+        return A64Emulator()
 
     def setEndian(self, endian):
         self._endian = endian

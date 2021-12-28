@@ -7090,7 +7090,7 @@ class A64Opcode(envi.Opcode):
         return ret
 
 
-class AArch64Disasm:
+class A64Disasm:
     #weird thing in envi/__init__. Figure out later
     _optype = envi.ARCH_AARCH64
     _opclass = A64Opcode
@@ -7215,6 +7215,6 @@ if __name__=="__main__":
     #for i in instrs:
     #    op = AArch64Disasm().disasm(i[1], 0, 0)
     #    print(op)
-    op = AArch64Disasm().disasm('54abcdef'.decode('hex'), 0, 0)
+    op = A64Disasm().disasm('54abcdef'.decode('hex'), 0, 0)
     print(op)
     
