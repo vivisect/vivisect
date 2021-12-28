@@ -26,8 +26,8 @@ class mach_header(vstruct.VStruct):
 
 class mach_header_64(vstruct.VStruct):
 
-    def __init__(self):
-        vstruct.VStruct.__init__(self, bigend=False)
+    def __init__(self, bigend=False):
+        vstruct.VStruct.__init__(self, bigend=bigend)
         self.magic      = v_uint32(bigend=bigend) # mach magic number identifier
         self.cputype    = cpu_type_t(bigend=bigend) # cpu specifier
         self.cpusubtype = cpu_subtype_t(bigend=bigend) # machine specifier
