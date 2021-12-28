@@ -74,7 +74,7 @@ class segment_command(load_command):
         # segment, which follows directly after the segment info structure
         step = len(self)
         for i in range(self.nsects):
-            sect = section(bigend=self.getEndian())
+            sect = section(bigend=self.vsGetEndian())
             step += sect.vsParse(bytes[offset+step:])
             self.sections.vsAddElement(sect)
 
@@ -106,7 +106,7 @@ class segment_command_64(load_command):
         # segment, which follows directly after the segment info structure
         step = len(self)
         for i in range(self.nsects):
-            sect = section_64(self.getEndian())
+            sect = section_64(self.vsGetEndian())
             step += sect.vsParse(bytes[offset+step:])
             self.sections.vsAddElement(sect)
 
