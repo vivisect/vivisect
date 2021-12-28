@@ -8,7 +8,7 @@ class A64(unittest.TestCase):
     def test_msr(self):     #FIXME: revamp for Aarch64
         # test the MSR instruction
         import envi.archs.aarch64 as e_aarch64
-        am = e_aarch64.Aarch64Module()
+        am = e_aarch64.A64Module()
         op = am.archParseOpcode('d3f021e3'.decode('hex'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
@@ -4405,13 +4405,13 @@ class A64InstructionSet(unittest.TestCase):
     def test_msr(self):     #FIXME: revamp for Aarch64
         return
         # test the MSR instruction
-        am = aarch64.Aarch64Module()
+        am = aarch64.A64Module()
         op = am.archParseOpcode('d3f021e3'.decode('hex'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
     def test_BigEndian(self):       #FIXME: revamp for Aarch64
         return
-        am = aarch64.Aarch64Module()
+        am = aarch64.A64Module()
         am.setEndian(envi.ENDIAN_MSB)
         op = am.archParseOpcode('e321f0d3'.decode('hex'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
