@@ -212,6 +212,10 @@ class PpcInstructionSet(unittest.TestCase):
         from . import ppc_vle_instructions
         self.do_envi_disasm('vle', ppc_vle_instructions)
 
+    def test_envi_ppc_embedded_disasm(self):
+        from . import ppc_embedded_instructions
+        self.do_envi_disasm('ppc-embedded', ppc_embedded_instructions)
+
     def test_envi_ppc_server_disasm(self):
         from . import ppc_server_instructions
         self.do_envi_disasm('ppc-server', ppc_server_instructions)
@@ -219,6 +223,10 @@ class PpcInstructionSet(unittest.TestCase):
     def test_envi_ppcvle_emu(self):
         from . import ppc_vle_emutests
         self.do_envi_emu('vle', ppc_vle_emutests)
+
+    def test_envi_ppc_embedded_emu(self):
+        from . import ppc_embedded_emutests
+        self.do_envi_emu('ppc-embedded', ppc_embedded_emutests)
 
     def test_envi_ppc_server_emu(self):
         from . import ppc_server_emutests

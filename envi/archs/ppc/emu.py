@@ -71,7 +71,7 @@ def BIT(val, bit, psize=8):
     '''
     Return value of specified bit provided in PPC numbering
     '''
-    return (val & _ppc_bitmasks[psize][bit]) >> bit
+    return (val & _ppc_bitmasks[psize][bit]) >> ((psize << 3) - bit - 1)
 
 # Carry bit mask and shift the tuple values are:
 #   1. CA mask
@@ -138,6 +138,15 @@ def UNSIGNED_SATURATE(val, size):
         saturated = True
 
     return val, saturated
+
+def SATURATE_SPE(ov, carry, sat_ovn, sat_ov, val):
+    if ov:
+        if carry:
+            return sat_ovn
+        else:
+            return sat_ov
+    return val
+
 
 def COMPLEMENT(val, size):
     '''
@@ -307,6 +316,25 @@ def CLZ(x, psize=8):
             x = x >> shift
     return n
 
+def CLO(x, psize=8):
+    '''
+    Count leading ones, supports maximum of 64bit values.
+    '''
+    # Make sure that the input value does not have any bits set above the
+    # maximum possible size for the byte size indicated
+    x = x & e_bits.u_maxes[psize]
+
+    n = 0
+    for i in range(64 - (psize * 8), 64):
+        mask = MASK(0, i)
+        tester = e_bits.u_maxes[psize] & mask
+        if (x & mask) == tester:
+            n += 1
+        else:
+            break
+
+    return n
+
 # Conditional Branch BO and BI decoding utilities
 
 def BO_UNCONDITIONAL(bo):
@@ -330,6 +358,14 @@ def BO_COND_OK(bo, cond):
     # If the BO_COND_MASK bit is set then the branch condition is met if the CR
     # condition is set
     return bool(bo & FLAGS_BO_COND) == bool(cond)
+
+def BITREVERSE32(x):
+    x = ((x & 0x55555555) << 1) | ((x & 0xAAAAAAAA) >> 1)
+    x = ((x & 0x33333333) << 2) | ((x & 0xCCCCCCCC) >> 2)
+    x = ((x & 0x0F0F0F0F) << 4) | ((x & 0xF0F0F0F0) >> 4)
+    x = ((x & 0x00FF00FF) << 8) | ((x & 0xFF00FF00) >> 8)
+    x = ((x & 0x0000FFFF) << 16) | ((x & 0xFFFF0000) >> 16)
+    return x
 
 class PpcAbstractEmulator(envi.Emulator):
 
@@ -5148,6 +5184,1087 @@ class PpcAbstractEmulator(envi.Emulator):
     i_dstst = i_nop
     i_dststt = i_nop
     i_dstt = i_nop
+
+    ### SPE Instructions
+    def i_evabs(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        for a in rA:
+            result_vector.append(abs(a) if a != 0x80000000 else 0x80000000)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evaddiw(self, op):
+        rB = op.opers[1].getValues(op, self)
+        uimm = self.getOperValue(op, 2)
+        result_vector = [self.modulo(b + uimm, op.opers[1].elemsize) for b in rB]
+        op.opers[0].setValues(op, self, result_vector)
+
+    i_evaddw = i_vadduwm
+
+    def i_evcntlsw(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        for a in rA:
+            elemsize = op.opers[1].elemsize
+            is_signed = e_bits.is_signed(a, op.opers[1].elemsize)
+            leading_bits = CLO(a, elemsize) if is_signed else CLZ(a, elemsize)
+            result_vector.append(leading_bits)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evcntlzw(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        for a in rA:
+            elemsize = op.opers[1].elemsize
+            result_vector.append(CLZ(a, elemsize))
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_eveqv(self, op):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        result_vector = [e_bits.unsigned(~(a ^ b), op.opers[1].elemsize) for a, b in zip(rA, rB)]
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evextsb(self, op, opsize=1):
+        rA = op.opers[1].getValues(op, self)
+        result_vector = [e_bits.sign_extend(a, opsize, op.opers[1].elemsize) for a in rA]
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evextsh(self, op):
+        self.i_evextsb(op, opsize=2)
+
+    def i_evfsabs(self, op):
+        rA = op.opers[1].getValues(op, self)
+        op.opers[0].setValues(op, self, [abs(a) for a in rA])
+
+    i_evfsadd = i_vaddfp
+
+    i_evldd = _load_unsigned
+    i_evlddx = _load_unsigned
+    i_evlddepx = _load_unsigned
+    i_evldh = _load_unsigned
+    i_evldhx = _load_unsigned
+    i_evldw = _load_unsigned
+    i_evldwx = _load_unsigned
+
+    def i_evlhhesplat(self, op):
+        val = self.getOperValue(op, 1)
+        op.opers[0].setValues(op, self, [val, 0, val, 0])
+
+    i_evlhhesplatx = i_evlhhesplat
+
+    def i_evlhhossplat(self, op):
+        val = EXTS(self.getOperValue(op, 1), 2, 4)
+        op.opers[0].setValues(op, self, [val, val])
+
+    i_evlhhossplatx = i_evlhhossplat
+
+    def i_evlhhousplat(self, op):
+        val = self.getOperValue(op, 1)
+        op.opers[0].setValues(op, self, [0, val, 0, val])
+
+    i_evlhhousplatx = i_evlhhousplat
+
+    def i_evlwhe(self, op):
+        valh, vall = struct.unpack(">2H", struct.pack(">I", self.getOperValue(op, 1)))
+        op.opers[0].setValues(op, self, [valh, 0, vall, 0])
+
+    i_evlwhex = i_evlwhe
+
+    def i_evlwhos(self, op):
+        valh, vall = struct.unpack(">2h", struct.pack(">I", self.getOperValue(op, 1)))
+        op.opers[0].setValues(op, self, [valh, vall])
+
+    i_evlwhosx = i_evlwhos
+
+    def i_evlwhou(self, op):
+        valh, vall = struct.unpack(">2H", struct.pack(">I", self.getOperValue(op, 1)))
+        op.opers[0].setValues(op, self, [valh, vall])
+
+    i_evlwhoux = i_evlwhou
+
+    def i_evlwhsplat(self, op):
+        valh, vall = struct.unpack(">2H", struct.pack(">I", self.getOperValue(op, 1)))
+        op.opers[0].setValues(op, self, [valh, valh, vall, vall])
+
+    i_evlwhsplatx = i_evlwhsplat
+
+    def i_evlwwsplat(self, op):
+        val = self.getOperValue(op, 1)
+        op.opers[0].setValues(op, self, [val, val])
+
+    i_evlwwsplatx = i_evlwwsplat
+
+    i_evmergehi = vmrgh
+    i_evmergelo = vmrgl
+
+    def i_evmergehilo(self, op):
+        a = op.opers[1].getValues(op, self)[0]
+        b = op.opers[2].getValues(op, self)[1]
+        op.opers[0].setValues(op, self, [a, b])
+
+    def i_evmergelohi(self, op):
+        a = op.opers[1].getValues(op, self)[1]
+        b = op.opers[2].getValues(op, self)[0]
+        op.opers[0].setValues(op, self, [a, b])
+
+    def i_evmra(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+        self.setRegister(REG_ACC, val)
+
+    def evaddacc(self, op, func):
+        result_vector = []
+        # Get ACC as an operand so we can use it like our vectors
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+
+        rA = op.opers[1].getValues(op, self)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = []
+        for a, acc in zip(rA, accVals):
+            result_vector.append(func(a + acc, rD.elemsize))
+
+        rD.setValues(op, self, result_vector)
+        accOper.setValues(op, self, result_vector)
+
+    def i_evaddsmiaaw(self, op):
+        self.evaddacc(op, self.modulo)
+
+    i_evaddumiaaw = i_evaddsmiaaw
+
+    def i_evaddssiaaw(self, op):
+        self.evaddacc(op, self.signed_saturate)
+
+    def i_evaddusiaaw(self, op):
+        self.evaddacc(op, self.unsigned_saturate)
+
+    # Multiply
+    def evmhg(self, op, idx, main_func, secondary_func, fractional=False, acc=False):
+        a = op.opers[1].getValues(op, self)[idx]
+        b = op.opers[2].getValues(op, self)[idx]
+
+        intermediate = a * b
+        if fractional:
+            intermediate <<= 1
+        val = secondary_func(main_func(self.getRegister(REG_ACC), intermediate), 8)
+        self.setOperValue(op, 0, val)
+        if acc:
+            self.setRegister(REG_ACC, val)
+
+    def i_evmhegsmfaa(self, op):
+        self.evmhg(op, 2, operator.add, self.modulo, fractional=True, acc=True)
+
+    def i_evmhegsmfan(self, op):
+        self.evmhg(op, 2, operator.sub, self.modulo, fractional=True, acc=True)
+
+    def i_evmhegsmiaa(self, op):
+        self.evmhg(op, 2, operator.add, self.modulo, acc=True)
+
+    def i_evmhegsmian(self, op):
+        self.evmhg(op, 2, operator.sub, self.modulo, acc=True)
+
+    i_evmhegumiaa = i_evmhegsmiaa
+    i_evmhegumian = i_evmhegsmian
+
+    def i_evmhogsmfaa(self, op):
+        self.evmhg(op, 3, operator.add, self.modulo, fractional=True, acc=True)
+
+    def i_evmhogsmfan(self, op):
+        self.evmhg(op, 3, operator.sub, self.modulo, fractional=True, acc=True)
+
+    def i_evmhogsmiaa(self, op):
+        self.evmhg(op, 3, operator.add, self.modulo, acc=True)
+
+    def i_evmhogsmian(self, op):
+        self.evmhg(op, 3, operator.sub, self.modulo, acc=True)
+
+    i_evmhogumiaa = i_evmhogsmiaa
+    i_evmhogumian = i_evmhogsmian
+
+    def _second(self, a, b):
+        return b
+
+    def evmh(self, op, main_func, secondary_func, fractional=False, acc=False, even=True):
+        idx = [0, 2] if even else [1, 3]
+        rA = operator.itemgetter(idx[0], idx[1])(op.opers[1].getValues(op, self))
+        rB = operator.itemgetter(idx[0], idx[1])(op.opers[2].getValues(op, self))
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = []
+        for a, b, c in zip(rA, rB, accVals):
+            intermediate = a * b
+            if fractional:
+                intermediate <<= 1
+            val = secondary_func(main_func(c, intermediate), 4)
+            result_vector.append(val)
+
+        rD.setValues(op, self, result_vector)
+        if acc:
+            accOper.setValues(op, self, result_vector)
+
+    def i_evmhesmf(self, op):
+        self.evmh(op, self._second, self.modulo, fractional=True)
+
+    def i_evmhesmfa(self, op):
+        self.evmh(op, self._second, self.modulo, fractional=True, acc=True)
+
+    def i_evmhesmfaaw(self, op):
+        self.evmh(op, operator.add, self.modulo, fractional=True, acc=True)
+
+    def i_evmhesmfanw(self, op):
+        self.evmh(op, operator.sub, self.modulo, fractional=True, acc=True)
+
+    def i_evmhesmi(self, op):
+        self.evmh(op, self._second, self.modulo)
+
+    def i_evmhesmia(self, op):
+        self.evmh(op, self._second, self.modulo, acc=True)
+
+    def i_evmhesmiaaw(self, op):
+        self.evmh(op, operator.add, self.modulo, acc=True)
+
+    def i_evmhesmianw(self, op):
+        self.evmh(op, operator.sub, self.modulo, acc=True)
+
+    i_evmheumi = i_evmhesmi
+    i_evmheumia = i_evmhesmia
+    i_evmheumiaaw = i_evmhesmiaaw
+    i_evmheumianw = i_evmhesmianw
+
+    def i_evmhosmf(self, op):
+        self.evmh(op, self._second, self.modulo, fractional=True, even=False)
+
+    def i_evmhosmfa(self, op):
+        self.evmh(op, self._second, self.modulo, fractional=True, acc=True, even=False)
+
+    def i_evmhosmfaaw(self, op):
+        self.evmh(op, operator.add, self.modulo, fractional=True, acc=True, even=False)
+
+    def i_evmhosmfanw(self, op):
+        self.evmh(op, operator.sub, self.modulo, fractional=True, acc=True, even=False)
+
+    def i_evmhosmi(self, op):
+        self.evmh(op, self._second, self.modulo, even=False)
+
+    def i_evmhosmia(self, op):
+        self.evmh(op, self._second, self.modulo, acc=True, even=False)
+
+    def i_evmhosmiaaw(self, op):
+        self.evmh(op, operator.add, self.modulo, acc=True, even=False)
+
+    def i_evmhosmianw(self, op):
+        self.evmh(op, operator.sub, self.modulo, acc=True, even=False)
+
+    i_evmhoumi = i_evmhosmi
+    i_evmhoumia = i_evmhosmia
+    i_evmhoumiaaw = i_evmhosmiaaw
+    i_evmhoumianw = i_evmhosmianw
+
+    def evmwh(self, op, main_func, secondary_func, fractional=False, acc=False):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = []
+        for a, b, c in zip(rA, rB, accVals):
+            intermediate = a * b
+            if fractional:
+                intermediate <<= 1
+            val = secondary_func(main_func(c, intermediate), 8)
+            result_vector.append((val >> 32) & 0xffffffff)
+
+        rD.setValues(op, self, result_vector)
+        if acc:
+            accOper.setValues(op, self, result_vector)
+
+    def i_evmwhsmf(self, op):
+        self.evmwh(op, self._second, self.modulo, fractional=True)
+
+    def i_evmwhsmfa(self, op):
+        self.evmwh(op, self._second, self.modulo, fractional=True, acc=True)
+
+    def i_evmwhsmi(self, op):
+        self.evmwh(op, self._second, self.modulo)
+
+    def i_evmwhsmia(self, op):
+        self.evmwh(op, self._second, self.modulo, acc=True)
+
+    i_evmwhumi = i_evmwhsmi
+    i_evmwhumia = i_evmwhsmia
+
+    def evmwl(self, op, main_func, secondary_func, fractional=False, acc=False):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = []
+        for a, b, c in zip(rA, rB, accVals):
+            intermediate = a * b
+            if fractional:
+                intermediate <<= 1
+            val = secondary_func(main_func(c, intermediate), 8)
+            result_vector.append(val & 0xffffffff)
+
+        rD.setValues(op, self, result_vector)
+        if acc:
+            accOper.setValues(op, self, result_vector)
+
+    def i_evmwlumi(self, op):
+        self.evmwl(op, self._second, self.modulo)
+
+    def i_evmwlumia(self, op):
+        self.evmwl(op, self._second, self.modulo, acc=True)
+
+    def i_evmwlsmiaaw(self, op):
+        self.evmwl(op, operator.add, self.modulo, acc=True)
+
+    def i_evmwlsmianw(self, op):
+        self.evmwl(op, operator.sub, self.modulo, acc=True)
+
+    i_evmwlumiaaw = i_evmwlsmiaaw
+    i_evmwlumianw = i_evmwlsmianw
+
+    def evmw(self, op, main_func, secondary_func, fractional=False, acc=False):
+        rA = op.opers[1].getValues(op, self)[1]
+        rB = op.opers[2].getValues(op, self)[1]
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVal = accOper.getValues(op, self)[0]
+
+        intermediate = rA * rB
+        if fractional:
+            intermediate <<= 1
+        val = secondary_func(main_func(accVal, intermediate), 8)
+        result_vector = [val]
+
+        rD.setValues(op, self, result_vector)
+        if acc:
+            accOper.setValues(op, self, result_vector)
+
+    def i_evmwsmf(self, op):
+        self.evmw(op, self._second, self.modulo, fractional=True)
+
+    def i_evmwsmfa(self, op):
+        self.evmw(op, self._second, self.modulo, fractional=True, acc=True)
+
+    def i_evmwsmfaa(self, op):
+        self.evmw(op, operator.add, self.modulo, fractional=True, acc=True)
+
+    def i_evmwsmfan(self, op):
+        self.evmw(op, operator.sub, self.modulo, fractional=True, acc=True)
+
+    def i_evmwsmi(self, op):
+        self.evmw(op, self._second, self.modulo)
+
+    def i_evmwsmia(self, op):
+        self.evmw(op, self._second, self.modulo, acc=True)
+
+    def i_evmwsmiaa(self, op):
+        self.evmw(op, operator.add, self.modulo, acc=True)
+
+    def i_evmwsmian(self, op):
+        self.evmw(op, operator.sub, self.modulo, acc=True)
+
+    i_evmwumi = i_evmwsmi
+    i_evmwumia = i_evmwsmia
+    i_evmwumiaa = i_evmwsmiaa
+    i_evmwumian = i_evmwsmian
+
+    def spefscr_set_overflow(self, val, low):
+        reg_overflow = REG_SPEFSCR_OV if low else REG_SPEFSCR_OVH
+        reg_summary = REG_SPEFSCR_SOV if low else REG_SPEFSCR_SOVH
+        summary = self.getRegister(reg_summary)
+        self.setRegister(reg_overflow, val)
+        self.setRegister(reg_summary, val | summary)
+
+    # Saturation is performed for SPE based on the initial parameters, not on the
+    # results of the multiplication.
+    def evmhs(self, op, fractional=False, acc=False, even=True):
+        idx = [0, 2] if even else [1, 3]
+        rA = operator.itemgetter(idx[0], idx[1])(op.opers[1].getValues(op, self))
+        rB = operator.itemgetter(idx[0], idx[1])(op.opers[2].getValues(op, self))
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = []
+        idx = 0
+        for a, b, c in zip(rA, rB, accVals):
+            intermediate = a * b
+            if fractional:
+                intermediate <<= 1
+
+            if e_bits.unsigned(a, 2) == 0x8000 and e_bits.unsigned(b, 2) == 0x8000:
+                val = 0x7fffffff
+                overflow = 1
+            else:
+                val = intermediate
+                overflow = 0
+
+            self.spefscr_set_overflow(overflow, idx)
+            # val = secondary_func(main_func(c, intermediate), 4)
+            result_vector.append(val)
+            idx += 1
+
+        rD.setValues(op, self, result_vector)
+        if acc:
+            accOper.setValues(op, self, result_vector)
+
+    def i_evmhessf(self, op):
+        self.evmhs(op, fractional=True, acc=False, even=True)
+
+    def i_evmhessfa(self, op):
+        self.evmhs(op, fractional=True, acc=True, even=True)
+
+    def i_evmhossf(self, op):
+        self.evmhs(op, fractional=True, acc=False, even=False)
+
+    def i_evmhossfa(self, op):
+        self.evmhs(op, fractional=True, acc=True, even=False)
+
+    def evmhsw(self, op, func, fractional=False, even=True):
+        idx = [0, 2] if even else [1, 3]
+        rA = operator.itemgetter(idx[0], idx[1])(op.opers[1].getValues(op, self))
+        rB = operator.itemgetter(idx[0], idx[1])(op.opers[2].getValues(op, self))
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = []
+
+        # Based pretty closely on pseudocode in SPEPEM
+        temp = rA[0] * rB[0]
+        if fractional:
+            temp <<= 1
+
+        if e_bits.unsigned(rA[0], 2) == 0x8000 and e_bits.unsigned(rB[0], 2) == 0x8000:
+            temp = 0x7fffffff
+            multiply_overflow_high = 1
+        else:
+            multiply_overflow_high = 0
+
+        temp = func(accVals[0], e_bits.signed(temp, 4))
+        overflow_high = BIT(temp, 31) ^ BIT(temp, 32)
+        result_vector.append(SATURATE_SPE(overflow_high, BIT(temp, 31), 0x80000000, 0x7fffffff, temp))
+
+        temp = rA[1] * rB[1]
+        if fractional:
+            temp <<= 1
+
+        if e_bits.unsigned(rA[1], 2) == 0x8000 and e_bits.unsigned(rB[1], 2) == 0x8000:
+            temp = 0x7fffffff
+            multiply_overflow_low = 1
+        else:
+            multiply_overflow_low = 0
+
+        temp = func(accVals[1], e_bits.signed(temp, 4))
+        overflow_low = BIT(temp, 31) ^ BIT(temp, 32)
+        result_vector.append(SATURATE_SPE(overflow_low, BIT(temp, 31), 0x80000000, 0x7fffffff, temp))
+
+        rD.setValues(op, self, result_vector)
+        accOper.setValues(op, self, result_vector)
+
+        # How these register bits are set are documented differently in the chip docs
+        # and the SPEPEM. The hardware seems to do what the chip does, so we do that.
+        self.spefscr_set_overflow(multiply_overflow_high | overflow_high, low=False)
+        self.spefscr_set_overflow(multiply_overflow_low | overflow_low, low=True)
+
+    def i_evmhessfaaw(self, op):
+        self.evmhsw(op, operator.add, fractional=True, even=True)
+
+    def i_evmhessfanw(self, op):
+        self.evmhsw(op, operator.sub, fractional=True, even=True)
+
+    def i_evmhossfaaw(self, op):
+        self.evmhsw(op, operator.add, fractional=True, even=False)
+
+    def i_evmhossfanw(self, op):
+        self.evmhsw(op, operator.sub, fractional=True, even=False)
+
+    def i_evmhessiaaw(self, op):
+        self.evmhsw(op, operator.add, fractional=False, even=True)
+
+    def i_evmhessianw(self, op):
+        self.evmhsw(op, operator.sub, fractional=False, even=True)
+
+    def i_evmhossiaaw(self, op):
+        self.evmhsw(op, operator.add, fractional=False, even=False)
+
+    def i_evmhossianw(self, op):
+        self.evmhsw(op, operator.sub, fractional=False, even=False)
+
+    def evmhuw(self, op, func, sat_val, even=True):
+        idx = [0, 2] if even else [1, 3]
+        rA = operator.itemgetter(idx[0], idx[1])(op.opers[1].getValues(op, self))
+        rB = operator.itemgetter(idx[0], idx[1])(op.opers[2].getValues(op, self))
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = []
+
+        # Based pretty closely on pseudocode in SPEPEM
+        temp = rA[0] * rB[0]
+        temp = func(accVals[0], temp & 0xffffffff)
+        overflow_high = BIT(temp, 31)
+        result_vector.append(SATURATE_SPE(overflow_high, 0, sat_val, sat_val, temp))
+
+        temp = rA[1] * rB[1]
+
+        temp = func(accVals[1], temp & 0xffffffff)
+        overflow_low = BIT(temp, 31)
+        result_vector.append(SATURATE_SPE(overflow_low, 0, sat_val, sat_val, temp))
+
+        rD.setValues(op, self, result_vector)
+        accOper.setValues(op, self, result_vector)
+
+        # How these register bits are set are documented differently in the chip docs
+        # and the SPEPEM. The hardware seems to do what the chip does, so we do that.
+        self.spefscr_set_overflow(overflow_high, low=False)
+        self.spefscr_set_overflow(overflow_low, low=True)
+
+    def i_evmheusiaaw(self, op):
+        self.evmhuw(op, operator.add, 0xffffffff, even=True)
+
+    def i_evmheusianw(self, op):
+        self.evmhuw(op, operator.sub, 0x00000000, even=True)
+
+    def i_evmhousiaaw(self, op):
+        self.evmhuw(op, operator.add, 0xffffffff, even=False)
+
+    def i_evmhousianw(self, op):
+        self.evmhuw(op, operator.sub, 0x00000000, even=False)
+
+    def evmwhs(self, op, func, fractional=False, acc=False):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+
+        result_vector = []
+
+        # Based pretty closely on pseudocode in SPEPEM
+        temp = rA[0] * rB[0]
+        if fractional:
+            temp <<= 1
+
+        if e_bits.unsigned(rA[0], 4) == 0x80000000 and e_bits.unsigned(rB[0], 4) == 0x80000000:
+            temp = 0x7fffffff
+            movh = 1
+        else:
+            temp = (temp >> 32) & 0xffffffff
+            movh = 0
+        result_vector.append(temp)
+
+        temp = rA[1] * rB[1]
+        if fractional:
+            temp <<= 1
+
+        if e_bits.unsigned(rA[1], 4) == 0x80000000 and e_bits.unsigned(rB[1], 4) == 0x80000000:
+            temp = 0x7fffffff
+            movl = 1
+        else:
+            temp = (temp >> 32) & 0xffffffff
+            movl = 0
+        result_vector.append(temp)
+
+        rD.setValues(op, self, result_vector)
+        if acc:
+            accOper.setValues(op, self, result_vector)
+
+        # How these register bits are set are documented differently in the chip docs
+        # and the SPEPEM. The hardware seems to do what the chip does, so we do that.
+        self.spefscr_set_overflow(movh, low=False)
+        self.spefscr_set_overflow(movl, low=True)
+
+    def i_evmwhssf(self, op):
+        self.evmwhs(op, None, fractional=True, acc=False)
+
+    def i_evmwhssfa(self, op):
+        self.evmwhs(op, None, fractional=True, acc=True)
+
+    def evmwssf(self, op, fractional=False, acc=False):
+        rA = op.opers[1].getValues(op, self)[1]
+        rB = op.opers[2].getValues(op, self)[1]
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        # accVals = accOper.getValues(op, self)
+
+        result_vector = []
+
+        # Based pretty closely on pseudocode in SPEPEM
+        temp = rA * rB
+        if fractional:
+            temp <<= 1
+
+        if e_bits.unsigned(rA, 4) == 0x8000_0000 and e_bits.unsigned(rB, 4) == 0x8000_0000:
+            temp = 0x7fff_ffff_ffff_ffff
+            mov = 1
+        else:
+            mov = 0
+        result_vector.append(temp)
+
+        rD.setValues(op, self, result_vector)
+        if acc:
+            accOper.setValues(op, self, result_vector)
+
+        # How these register bits are set are documented differently in the chip docs
+        # and the SPEPEM. The hardware seems to do what the chip does, so we do that.
+        self.spefscr_set_overflow(0, low=False)
+        self.spefscr_set_overflow(mov, low=True)
+
+    def i_evmwssf(self, op):
+        self.evmwssf(op, fractional=True, acc=False)
+
+    def i_evmwssfa(self, op):
+        self.evmwssf(op, fractional=True, acc=True)
+
+    def evmwssfa(self, op, func):
+        rA = op.opers[1].getValues(op, self)[1]
+        rB = op.opers[2].getValues(op, self)[1]
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        # Based pretty closely on pseudocode in SPEPEM
+        temp1 = (rA * rB) << 1
+        if e_bits.unsigned(rA, 4) == 0x8000_0000 and e_bits.unsigned(rB, 4) == 0x8000_0000:
+            temp2 = 0x7fff_ffff_ffff_ffff
+            mov = 1
+        else:
+            temp2 = temp1 & 0xffff_ffff_ffff_ffff
+            mov = 0
+
+        # The SPEPEM explicitly states that saturation does NOT occur on this step,
+        # but the hardware docs state the opposite. We're going with the hardware here.
+        # Note that this could produce a 65-bit value, so we can't use BIT()
+        temp3 = func(e_bits.signed(accVals[0], 8), e_bits.signed(temp2, 8))
+        temp3_0 = (temp3 & 0x1_0000_0000_0000_0000) >> 64
+        temp3_1 = (temp3 & 0x8000_0000_0000_0000) >> 63
+        temp3_1_64 = temp3 & 0xffff_ffff_ffff_ffff
+        ov = temp3_0 ^ temp3_1
+        temp = SATURATE_SPE(ov, temp3_0, 0x8000_0000_0000_0000, 0x7fff_ffff_ffff_ffff, temp3_1_64)
+        rD.setValues(op, self, [temp])
+        accOper.setValues(op, self, [temp])
+
+        # How these register bits are set are documented differently in the chip docs
+        # and the SPEPEM. The hardware seems to do what the chip does, so we do that.
+        self.spefscr_set_overflow(0, low=False)
+        self.spefscr_set_overflow(ov | mov, low=True)
+
+    def i_evmwssfaa(self, op):
+        self.evmwssfa(op, operator.add)
+
+    def i_evmwssfan(self, op):
+        self.evmwssfa(op, operator.sub)
+
+    def evmwls(self, op, func):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = []
+
+        temp = rA[0] * rB[0]
+        temp = func(accVals[0], temp & 0xffff_ffff)
+        ovh = BIT(temp, 31) ^ BIT(temp, 32)
+        result_vector.append(SATURATE_SPE(ovh, BIT(temp, 31), 0x8000_0000, 0x7fff_ffff, temp & 0xffff_ffff))
+
+        temp = rA[1] * rB[1]
+        temp = func(accVals[1], temp & 0xffff_ffff)
+        ovl = BIT(temp, 31) ^ BIT(temp, 32)
+        result_vector.append(SATURATE_SPE(ovl, BIT(temp, 31), 0x8000_0000, 0x7fff_ffff, temp & 0xffff_ffff))
+
+        rD.setValues(op, self, result_vector)
+        accOper.setValues(op, self, result_vector)
+
+        # How these register bits are set are documented differently in the chip docs
+        # and the SPEPEM. The hardware seems to do what the chip does, so we do that.
+        self.spefscr_set_overflow(ovh, low=False)
+        self.spefscr_set_overflow(ovl, low=True)
+
+    def i_evmwlssiaaw(self, op):
+        self.evmwls(op, operator.add)
+
+    def i_evmwlssianw(self, op):
+        self.evmwls(op, operator.sub)
+
+    def evmwlu(self, op, func, sat_val):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = []
+
+        temp = rA[0] * rB[0]
+        temp = func(accVals[0], temp & 0xffff_ffff)
+        ovh = BIT(temp, 31)
+        result_vector.append(SATURATE_SPE(ovh, 0, sat_val, sat_val, temp & 0xffff_ffff))
+
+        temp = rA[1] * rB[1]
+        temp = func(accVals[1], temp & 0xffff_ffff)
+        ovl = BIT(temp, 31)
+        result_vector.append(SATURATE_SPE(ovl, 0, sat_val, sat_val, temp & 0xffff_ffff))
+
+        rD.setValues(op, self, result_vector)
+        accOper.setValues(op, self, result_vector)
+
+        # How these register bits are set are documented differently in the chip docs
+        # and the SPEPEM. The hardware seems to do what the chip does, so we do that.
+        self.spefscr_set_overflow(ovh, low=False)
+        self.spefscr_set_overflow(ovl, low=True)
+
+    def i_evmwlusiaaw(self, op):
+        self.evmwlu(op, operator.add, 0xffff_ffff)
+
+    def i_evmwlusianw(self, op):
+        self.evmwlu(op, operator.sub, 0x0000_0000)
+
+    def i_evdivws(self, op):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        rD = op.opers[0]
+
+        dividendh = rA[0]
+        dividendl = rA[1]
+        divisorh = rB[0]
+        divisorl = rB[1]
+
+        ovh = 0
+        ovl = 0
+        result_vector = []
+
+        if dividendh < 0 and divisorh == 0:
+            result_vector.append(0x8000_0000)
+            ovh = 1
+        elif dividendh >= 0 and divisorh == 0:
+            result_vector.append(0x7fff_ffff)
+            ovh = 1
+        elif dividendh == 0x8000_0000 and divisorh == 0xffff_ffff:
+            result_vector.append(0x7fff_ffff)
+            ovh = 1
+        else:
+            result_vector.append(dividendh // divisorh)
+
+        if dividendl < 0 and divisorl == 0:
+            result_vector.append(0x8000_0000)
+            ovl = 1
+        elif dividendl >= 0 and divisorl == 0:
+            result_vector.append(0x7fff_ffff)
+            ovl = 1
+        elif dividendl == 0x8000_0000 and divisorl == 0xffff_ffff:
+            result_vector.append(0x7fff_ffff)
+            ovl = 1
+        else:
+            result_vector.append(dividendl // divisorl)
+
+        rD.setValues(op, self, result_vector)
+        self.spefscr_set_overflow(ovh, low=False)
+        self.spefscr_set_overflow(ovl, low=True)
+
+    def i_evdivwu(self, op):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        rD = op.opers[0]
+
+        dividendh = rA[0]
+        dividendl = rA[1]
+        divisorh = rB[0]
+        divisorl = rB[1]
+
+        ovh = 0
+        ovl = 0
+        result_vector = []
+
+        if divisorh == 0:
+            result_vector.append(0xffff_ffff)
+            ovh = 1
+        else:
+            result_vector.append(dividendh // divisorh)
+
+        if divisorl == 0:
+            result_vector.append(0xffff_ffff)
+            ovl = 1
+        else:
+            result_vector.append(dividendl // divisorl)
+
+        rD.setValues(op, self, result_vector)
+        self.spefscr_set_overflow(ovh, low=False)
+        self.spefscr_set_overflow(ovl, low=True)
+
+    def evcmp(self, op, cmp):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+
+        ch = cmp(rA[0], rB[0])
+        cl = cmp(rA[1], rB[1])
+        val = ch << 3 | cl << 2 | (ch | cl) << 1 | (ch & cl)
+        self.setOperValue(op, 0, val)
+
+    def i_evcmpeq(self, op):
+        self.evcmp(op, operator.eq)
+
+    def i_evcmpgts(self, op):
+        self.evcmp(op, operator.gt)
+
+    i_evcmpgtu = i_evcmpgts
+
+    def i_evcmplts(self, op):
+        self.evcmp(op, operator.lt)
+
+    i_evcmpltu = i_evcmplts
+
+    i_evand = i_and
+    i_evandc = i_andc
+    i_evnand = i_nand
+    i_evnor = i_nor
+    i_evor = i_or
+    i_evorc = i_orc
+    i_evxor = i_xor
+
+    def i_evneg(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+
+        if rA[0] == e_bits.unsigned(0x8000_0000, 4):
+            result_vector.append(0x8000_0000)
+        else:
+            result_vector.append(~rA[0] + 1)
+
+        if rA[1] == e_bits.unsigned(0x8000_0000, 4):
+            result_vector.append(0x8000_0000)
+        else:
+            result_vector.append(~rA[1] + 1)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evrlw(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        result_vector = [ROTL(rA[0], rB[0] & 0x1f, 32), ROTL(rA[1], rB[1] & 0x1f, 32)]
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evrlwi(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        uimm = self.getOperValue(op, 2)
+        result_vector = [ROTL(rA[0], uimm, 32), ROTL(rA[1], uimm, 32)]
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evrndw(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        result_vector = []
+        result_vector.append((rA[0] + 0x8000) & 0xffff_0000)
+        result_vector.append((rA[1] + 0x8000) & 0xffff_0000)
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evsel(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        ch = (self.getOperValue(op, 3) & 0x8) >> 3
+        cl = (self.getOperValue(op, 3) & 0x4) >> 2
+
+        result_vector.append(rA[0] if ch else rB[0])
+        result_vector.append(rA[1] if cl else rB[1])
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evslw(self, op):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        nh = rB[0] & 0x3f
+        nl = rB[1] & 0x3f
+        result_vector = [(rA[0] << nh) & 0xffff_ffff, (rA[1] << nl) & 0xffff_ffff]
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evslwi(self, op):
+        rA = op.opers[1].getValues(op, self)
+        n = self.getOperValue(op, 2)
+        result_vector = [(rA[0] << n) & 0xffff_ffff, (rA[1] << n) & 0xffff_ffff]
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evsrwis(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        n = self.getOperValue(op, 2)
+
+        result_vector.append(rA[0] >> n)
+        if rA[0] & 0x8000_0000:
+            result_vector[0] |= ((1 << n) - 1) << (32 - n)
+
+        result_vector.append(rA[1] >> n)
+        if rA[1] & 0x8000_0000:
+            result_vector[1] |= ((1 << n) - 1) << (32 - n)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evsrwiu(self, op):
+        rA = op.opers[1].getValues(op, self)
+        n = self.getOperValue(op, 2)
+        op.opers[0].setValues(op, self, [rA[0] >> n, rA[1] >> n])
+
+    def i_evsrws(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        nh = rB[0] & 0x3f
+        nl = rB[1] & 0x3f
+
+        result_vector.append(rA[0] >> nh)
+        if rA[0] & 0x8000_0000:
+            result_vector[0] |= ((1 << nh) - 1) << (32 - nh)
+
+        result_vector.append(rA[1] >> nl)
+        if rA[1] & 0x8000_0000:
+            result_vector[1] |= ((1 << nl) - 1) << (32 - nl)
+
+        op.opers[0].setValues(op, self, result_vector)
+
+    def i_evsrwu(self, op):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        nh = rB[0] & 0x3f
+        nl = rB[1] & 0x3f
+        op.opers[0].setValues(op, self, [rA[0] >> nh, rA[1] >> nl])
+
+    def i_evsubfsmiaaw(self, op):
+        rA = op.opers[1].getValues(op, self)
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        result_vector = [(accVals[0] - rA[0]) & 0xffff_ffff, (accVals[1] - rA[1]) & 0xffff_ffff]
+        rD.setValues(op, self, result_vector)
+        accOper.setValues(op, self, result_vector)
+
+    i_evsubfumiaaw = i_evsubfsmiaaw
+
+    def i_evsubfssiaaw(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        temp = accVals[0] - rA[0]
+        ovh = BIT(temp, 31) ^ BIT(temp, 32)
+        result_vector.append(SATURATE_SPE(ovh, BIT(temp, 31), 0x8000_0000, 0x7fff_ffff, temp & 0xffff_ffff))
+
+        temp = accVals[1] - rA[1]
+        ovl = BIT(temp, 31) ^ BIT(temp, 32)
+        result_vector.append(SATURATE_SPE(ovl, BIT(temp, 31), 0x8000_0000, 0x7fff_ffff, temp & 0xffff_ffff))
+
+        rD.setValues(op, self, result_vector)
+        accOper.setValues(op, self, result_vector)
+        self.spefscr_set_overflow(ovh, low=False)
+        self.spefscr_set_overflow(ovl, low=True)
+
+    def i_evsubfusiaaw(self, op):
+        result_vector = []
+        rA = op.opers[1].getValues(op, self)
+        rD = op.opers[0]
+        accOper = PpcSPEVRegOper(REG_ACC, rD.va, rD.elemsize, rD.signed, rD.floating)
+        accVals = accOper.getValues(op, self)
+
+        temp = accVals[0] - rA[0]
+        ovh = BIT(temp, 31)
+        result_vector.append(SATURATE_SPE(ovh, BIT(temp, 31), 0x0, 0x0, temp & 0xffff_ffff))
+
+        temp = accVals[1] - rA[1]
+        ovl = BIT(temp, 31)
+        result_vector.append(SATURATE_SPE(ovl, BIT(temp, 31), 0x0, 0x0, temp & 0xffff_ffff))
+
+        rD.setValues(op, self, result_vector)
+        accOper.setValues(op, self, result_vector)
+        self.spefscr_set_overflow(ovh, low=False)
+        self.spefscr_set_overflow(ovl, low=True)
+
+    def i_evsubfw(self, op):
+        rA = op.opers[1].getValues(op, self)
+        rB = op.opers[2].getValues(op, self)
+        op.opers[0].setValues(op, self, [(rB[0] - rA[0]) & 0xffff_ffff, (rB[1] - rA[1]) & 0xffff_ffff])
+
+    def i_evsubifw(self, op):
+        # SPE PEM says value is written to ACC, hardware docs do not. This follows hardware.
+        rB = op.opers[1].getValues(op, self)
+        uimm = self.getOperValue(op, 2)
+        op.opers[0].setValues(op, self, [(rB[0] - uimm) & 0xffff_ffff, (rB[1] - uimm) & 0xffff_ffff])
+
+    def i_evsplatfi(self, op):
+        simm = self.getOperValue(op, 1)
+        val = (simm << 27) & 0xffff_ffff
+        op.opers[0].setValues(op, self, [val, val])
+
+    def i_evsplati(self, op):
+        simm = self.getOperValue(op, 1)
+        op.opers[0].setValues(op, self, [simm, simm])
+
+    i_evstdd = _store_signed
+    i_evstddx = _store_signed
+    i_evstddepx = _store_signed
+    i_evstdh = _store_signed
+    i_evstdw = _store_signed
+    i_evstdhx = _store_signed
+    i_evstdwx = _store_signed
+
+    def evstw(self, op, offset):
+        rS = op.opers[0].getValues(op, self)
+        rA = self.getOperAddr(op, 1)
+        width = op.opers[1].getWidth(self)
+
+        for i in range(offset, len(rS), width):
+            addr = rA + i - offset
+            self.writeMemValue(addr, rS[i], width)
+
+    def evstwe(self, op):
+        self.evstw(op, 0)
+
+    i_evstwhe = evstwe
+    i_evstwhex = evstwe
+    i_evstwwe = evstwe
+    i_evstwwex = evstwe
+
+    def evstwo(self, op):
+        self.evstw(op, 1)
+
+    i_evstwho = evstwo
+    i_evstwhox = evstwo
+    i_evstwwo = evstwo
+    i_evstwwox = evstwo
+
+    def i_brinc(self, op):
+        # Note that this instruction is documented on the e200 to only operate on the
+        # lower 32 bits of the register, so we take that into account in setting rD.
+        n = 16  # Implementation-dependent value, but 16 for e200
+        rD = self.getOperValue(op, 0)
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        mask = rB & MASK(64 - n, 63)
+        a = rA & MASK(64 - n, 63)
+        d = BITREVERSE32(1 + (BITREVERSE32(a | ~mask)))
+
+        rD_32_63 = (rA & MASK(32, 63 - n)) | (d & mask)
+        val = (rD & MASK(0, 31)) | (rD_32_63 & MASK(32, 63))
+        self.setOperValue(op, 0, val)
+
 
     '''
     i_se_bclri                         rX, UI5

@@ -565,7 +565,6 @@ mnems = (
     'evmwhsmia',
     'evmwhssf',
     'evmwhssfa',
-    'evmwhssmaaw',
     'evmwhumi',
     'evmwhumia',
     'evmwlsmiaaw',

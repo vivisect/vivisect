@@ -8,8 +8,8 @@ gprs32 = [('r%s' % x, 32)  for x in range(32)]
 gprs64 = [('r%s' % x, 64)  for x in range(32)]
 floats = [('f%s' % x, 64)  for x in range(32)]
 floats.append( ('FPSCR', 64) )
-vectors = [('v%s' % x, 64)  for x in range(32)]
-vectors.append( ('VSCR', 64) )
+vectors = [('v%s' % x, 128)  for x in range(32)]
+vectors.append( ('VSCR', 32) )
 
 sysregs = (
         ('ACC', 64),
@@ -130,10 +130,9 @@ ppc_meta64 = [
         ('OV',  REG_XER, 63-33, 1),
         ('CA',  REG_XER, 63-34, 1),
 ]
-REG_SP = REG_R1
 
 
-statmetas = [   # FIXME
+statmetas = [
         ('CR0_LT', REG_CR, 63-32, 1, 'Less Than Flag'),
         ('CR0_GT', REG_CR, 63-33, 1, 'Greater Than Flag'),
         ('CR0_EQ', REG_CR, 63-34, 1, 'Equal to Flag'),
@@ -226,6 +225,34 @@ statmetas = [   # FIXME
         ('MSR_DS',       REG_MSR, 63-59, 1, 'Data Address Space'),
         ('MSR_PMM',      REG_MSR, 63-61, 1, 'Performance Monitor Mark'),
         ('MSR_RI',       REG_MSR, 63-62, 1, 'Recoverable Interrupt'),
+
+        ('SPEFSCR_SOVH',  REG_SPEFSCR, 63-32, 1, 'Summary Integer Overflow High'),
+        ('SPEFSCR_OVH',   REG_SPEFSCR, 63-33, 1, 'Integer Overflow High'),
+        ('SPEFSCR_FGH',   REG_SPEFSCR, 63-34, 1, 'Embedded Floating-Point Guard Bit High'),
+        ('SPEFSCR_FXH',   REG_SPEFSCR, 63-35, 1, 'Embedded Floating-Point Inexact Bit High'),
+        ('SPEFSCR_FINVH', REG_SPEFSCR, 63-36, 1, 'Embedded Floating-Point Invalid Operation/Input Error High'),
+        ('SPEFSCR_FDBZH', REG_SPEFSCR, 63-37, 1, 'Embedded Floating-Point Divide By Zero High'),
+        ('SPEFSCR_FUNFH', REG_SPEFSCR, 63-38, 1, 'Embedded Floating-Point Underflow High'),
+        ('SPEFSCR_FOVFH', REG_SPEFSCR, 63-39, 1, 'Embedded Floating-Point Overflow High'),
+        ('SPEFSCR_FINXS', REG_SPEFSCR, 63-42, 1, 'Embedded Floating-Point Inexact Sticky Flag'),
+        ('SPEFSCR_FINVS', REG_SPEFSCR, 63-43, 1, 'Embedded Floating-Point Invalid Operation Sticky Flag'),
+        ('SPEFSCR_FDBZS', REG_SPEFSCR, 63-44, 1, 'Embedded Floating-Point Divide By Zero Sticky Flag'),
+        ('SPEFSCR_FUNFS', REG_SPEFSCR, 63-45, 1, 'Embedded Floating-Point Underflow Sticky Flag'),
+        ('SPEFSCR_FOVFS', REG_SPEFSCR, 63-46, 1, 'Embedded Floating-Point Overflow Sticky Flag'),
+        ('SPEFSCR_SOV',   REG_SPEFSCR, 63-48, 1, 'Summary Integer Overflow High'),
+        ('SPEFSCR_OV',    REG_SPEFSCR, 63-49, 1, 'Integer Overflow High'),
+        ('SPEFSCR_FG',    REG_SPEFSCR, 63-50, 1, 'Embedded Floating-Point Guard Bit Low'),
+        ('SPEFSCR_FX',    REG_SPEFSCR, 63-51, 1, 'Embedded Floating-Point Inexact Bit Low'),
+        ('SPEFSCR_FINV',  REG_SPEFSCR, 63-52, 1, 'Embedded Floating-Point Invalid Operation/Input Error Low'),
+        ('SPEFSCR_FDBZ',  REG_SPEFSCR, 63-53, 1, 'Embedded Floating-Point Divide By Zero Low'),
+        ('SPEFSCR_FUNF',  REG_SPEFSCR, 63-54, 1, 'Embedded Floating-Point Underflow Low'),
+        ('SPEFSCR_FOVF',  REG_SPEFSCR, 63-55, 1, 'Embedded Floating-Point Overflow Low'),
+        ('SPEFSCR_FINXE', REG_SPEFSCR, 63-57, 1, 'Embedded Floating-Point Round (Inexact) Exception Enable'),
+        ('SPEFSCR_FINVS', REG_SPEFSCR, 63-58, 1, 'Embedded Floating-Point Invalid Operation Exception Enable'),
+        ('SPEFSCR_FDBZS', REG_SPEFSCR, 63-59, 1, 'Embedded Floating-Point Divide By Zero Exception Enable'),
+        ('SPEFSCR_FUNFS', REG_SPEFSCR, 63-60, 1, 'Embedded Floating-Point Underflow Exception Enable'),
+        ('SPEFSCR_FOVFS', REG_SPEFSCR, 63-61, 1, 'Embedded Floating-Point Overflow Exception Enable'),
+        ('SPEFSCR_FRMC',  REG_SPEFSCR, 63-62, 2, 'Embedded Floating-Point Rounding Mode Control'),
 ]
 
 def getCrFields(regval):

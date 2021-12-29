@@ -402,12 +402,11 @@ elemsizes = {
     OF_VEC_64: 8,
     OF_VEC_128: 16,
     OF_VEC_FLT: 4,
-    OF_VEC_DBL: 8,
 }
-OF_VEC_MASK = (OF_VEC_8 | OF_VEC_16 | OF_VEC_32 | OF_VEC_64 | OF_VEC_128 | OF_VEC_FLT | OF_VEC_DBL)
+OF_VEC_MASK = (OF_VEC_8 | OF_VEC_16 | OF_VEC_32 | OF_VEC_64 | OF_VEC_128 | OF_VEC_FLT)
 
 def oflags_elemsize(oflags):
-    return elemsizes[oflags & OF_VEC_MASK]
+    return elemsizes.get(oflags & OF_VEC_MASK, 1)   # use default to avoid dev failures
 
 def form_VX(disasm, va, ival, opcode, operands, iflags):
     opers = []
@@ -419,7 +418,7 @@ def form_VX(disasm, va, ival, opcode, operands, iflags):
         if OPERCLASSES[otype] == PpcVRegOper:
             elemsize = oflags_elemsize(oflags)
             signed = oflags & OF_SIGNED
-            floating = (oflags & OF_VEC_FLT) | (oflags & OF_VEC_DBL)
+            floating = oflags & OF_VEC_FLT
             oper = OPERCLASSES[otype](val, va, elemsize=elemsize, signed=signed, floating=floating)
         else:
             oper = OPERCLASSES[otype](val, va)
@@ -506,6 +505,8 @@ tsizes_formX = {
     INS_STVXL: 16,
     INS_STVEPX: 16,
     INS_STVEPXL: 16,
+    INS_EVLDDEPX: 8,
+    INS_EVSTDDEPX: 8,
 }
 
 def form_X(disasm, va, ival, opcode, operands, iflags):
@@ -515,7 +516,7 @@ def form_X(disasm, va, ival, opcode, operands, iflags):
     opers = []
     operands_iterator = iter([(o[1], (ival >> o[2]) & o[3], o[4]) for o in operands])
     for otype, val, oflags in operands_iterator:
-        if otype == FIELD_rA and iflags & IF_INDEXED:
+        if otype in [FIELD_rA, FIELD_sA] and iflags & IF_INDEXED:
             _, rB_val, _ = next(operands_iterator) # get rB and skip over it in next iteration
             opers.append(PpcIndexedMemOper(val, rB_val, va, tsize=tsizes_formX.get(opcode)))
         elif otype == FIELD_rA and val == 0 and (iflags & IF_MEM_EA) != 0:
@@ -545,23 +546,88 @@ def form_XL(disasm, va, ival, opcode, operands, iflags):
 
     return opcode, opers, iflags
 
+uimm_multipliers_formEVX = {
+    FIELD_UIMM1: 8,
+    FIELD_UIMM2: 2,
+    FIELD_UIMM3: 4,
+}
+
+tsizes_formEVX = {
+    INS_EVLDD: 8,
+    INS_EVLDDX: 8,
+    INS_EVLDH: 8,
+    INS_EVLDHX: 8,
+    INS_EVLDW: 8,
+    INS_EVLDWX: 8,
+    INS_EVLHHESPLAT: 2,
+    INS_EVLHHESPLATX: 2,
+    INS_EVLHHOSSPLAT: 2,
+    INS_EVLHHOSSPLATX: 2,
+    INS_EVLHHOUSPLAT: 2,
+    INS_EVLHHOUSPLATX: 2,
+    INS_EVLWHE: 4,
+    INS_EVLWHEX: 4,
+    INS_EVLWHOS: 4,
+    INS_EVLWHOSX: 4,
+    INS_EVLWHOU: 4,
+    INS_EVLWHOUX: 4,
+    INS_EVLWHSPLAT: 4,
+    INS_EVLWHSPLATX: 4,
+    INS_EVLWWSPLAT: 4,
+    INS_EVLWWSPLATX: 4,
+    INS_EVSTDD: 8,
+    INS_EVSTDDX: 8,
+    INS_EVSTDH: 8,
+    INS_EVSTDHX: 8,
+    INS_EVSTDW: 8,
+    INS_EVSTDWX: 8,
+    INS_EVSTWHE: 2,
+    INS_EVSTWHO: 2,
+    INS_EVSTWHEX: 2,
+    INS_EVSTWHOX: 2,
+    INS_EVSTWWE: 4,
+    INS_EVSTWWO: 4,
+    INS_EVSTWWEX: 4,
+    INS_EVSTWWOX: 4,
+}
+
 def form_EVX(disasm, va, ival, opcode, operands, iflags):
     opers = []
-    opcode = None
 
     # if the last operand is UIMM[123], it's a memory deref.
     if len(operands) == 3 and operands[2][1] in (FIELD_UIMM1, FIELD_UIMM2, FIELD_UIMM3):
         opvals = [((ival >> oshr) & omask) for onm, otype, oshr, omask, oflags in operands]
-        oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
-        opers.append(oper0)
 
-        oper1 = PpcMemOper(opvals[1], opvals[2], va)
+        if OPERCLASSES[operands[0][1]] == PpcSPEVRegOper:
+            elemsize = oflags_elemsize(operands[0][4])
+            signed = operands[0][4] & OF_SIGNED
+            floating = operands[0][4] & OF_VEC_FLT
+            oper0 = OPERCLASSES[operands[0][1]](opvals[0], va, elemsize=elemsize, signed=signed, floating=floating)
+        else:
+            oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
+
+        opers.append(oper0)
+        oper1 = PpcMemOper(opvals[1], opvals[2] * uimm_multipliers_formEVX[operands[2][1]], va, tsize=tsizes_formEVX.get(opcode))
         opers.append(oper1)
         return opcode, opers, iflags
 
-    for onm, otype, oshr, omask, oflags in operands:
-        val = (ival >> oshr) & omask
-        oper = OPERCLASSES[otype](val, va)
+    # If this is an IF_MEM_EA instruction with rA and rB, those combine and we use
+    # a PpcIndexedMemOper. rB is ALWAYS after rA if it's present, and part of the
+    # definition of IF_INDEXED is that rA and rB are both present.
+    operands_iterator = iter([(o[1], (ival >> o[2]) & o[3], o[4]) for o in operands])
+    for otype, val, oflags in operands_iterator:
+        if otype == FIELD_sA and iflags & IF_INDEXED:
+            _, rB_val, _ = next(operands_iterator) # get rB and skip over it in next iteration
+            opers.append(PpcIndexedMemOper(val, rB_val, va, tsize=tsizes_formEVX.get(opcode)))
+            continue
+        elif OPERCLASSES[otype] == PpcSPEVRegOper:
+            elemsize = oflags_elemsize(oflags)
+            signed = oflags & OF_SIGNED
+            floating = oflags & OF_VEC_FLT
+            oper = OPERCLASSES[otype](val, va, elemsize=elemsize, signed=signed, floating=floating)
+        else:
+            oper = OPERCLASSES[otype](val, va)
+
         # FIXME: FORM_X seems to use Signed IMM's
         opers.append(oper)
 

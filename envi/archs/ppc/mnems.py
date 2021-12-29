@@ -9,6 +9,17 @@ import envi.bits as e_bits
 
 # Corrected the following items in this string that were incorrect in the source table:
 # - Changed last bit of ISEL instruction from 0 to \
+# - Changed UIMM 2 to UIMM 1 for evldh
+# - Changed UIMM 3 to UIMM 1 for evldw
+# - Changed UIMM 2 to UIMM 3 for evlwhe
+# - Changed UIMM 2 to UIMM 3 for evlwhos
+# - Changed UIMM 2 to UIMM 3 for evlwhou
+# - Changed UIMM 2 to UIMM 3 for evlwhsplat
+# - Removed evmwhssmaaw, which is in EREF but not documented anywhere else
+# - Changed UIMM 2 to UIMM 1 for evstdh
+# - Changed UIMM 3 to UIMM 1 for evstdw
+# - Changed UIMM 2 to UIMM 3 for evstwhe
+# - Changed UIMM 2 to UIMM 3 for evstwho
 
 encodings = '''tdi 0 0 0 0 1 0
  TO
@@ -2343,7 +2354,7 @@ vminsb 0 0 0 1 0 0
 evldw 0 0 0 1 0 0
  rD
  rA
- UIMM 3
+ UIMM 1
  0 1 1 0 0
  0
  0 0 0
@@ -2405,7 +2416,7 @@ vsrab 0 0 0 1 0 0
 evldh 0 0 0 1 0 0
  rD
  rA
- UIMM 2
+ UIMM 1
  0 1 1 0 0
  0
  0 0 1
@@ -2543,7 +2554,7 @@ evlwhex 0 0 0 1 0 0
 evlwhe 0 0 0 1 0 0
  rD
  rA
- UIMM 2
+ UIMM 3
  0 1 1 0 0
  0
  1 0 0
@@ -2563,7 +2574,7 @@ evlwhoux 0 0 0 1 0 0
 evlwhou 0 0 0 1 0 0
  rD
  rA
- UIMM 2
+ UIMM 3
  0 1 1 0 0
  0
  1 0 1
@@ -2584,7 +2595,7 @@ evlwhosx 0 0 0 1 0 0
 evlwhos 0 0 0 1 0 0
  rD
  rA
- UIMM 2
+ UIMM 3
  0 1 1 0 0
  0
  1 0 1
@@ -2626,7 +2637,7 @@ evlwhsplatx 0 0 0 1 0 0
 evlwhsplat 0 0 0 1 0 0
  rD
  rA
- UIMM 2
+ UIMM 3
  0 1 1 0 0
  0
  1 1 1
@@ -2667,7 +2678,7 @@ evstdwx 0 0 0 1 0 0
 evstdw 0 0 0 1 0 0
  rS
  rA
- UIMM 3
+ UIMM 1
  0 1 1 0 0
  1
  0 0 0
@@ -2688,7 +2699,7 @@ evstdhx 0 0 0 1 0 0
 evstdh 0 0 0 1 0 0
  rS
  rA
- UIMM 2
+ UIMM 1
  0 1 1 0 0
  1
  0 0 1
@@ -2709,7 +2720,7 @@ evstwhex 0 0 0 1 0 0
 evstwhe 0 0 0 1 0 0
  rS
  rA
- UIMM 2
+ UIMM 3
  0 1 1 0 0
  1
  1 0 0
@@ -2730,7 +2741,7 @@ evstwhox 0 0 0 1 0 0
 evstwho 0 0 0 1 0 0
  rS
  rA
- UIMM 2
+ UIMM 3
  0 1 1 0 0
  1
  1 0 1
@@ -3999,16 +4010,6 @@ vavgsh 0 0 0 1 0 0
  0
  VX
  V
-evmwhssmaaw 0 0 0 1 0 0
- rD
- rA
- rB
- 1 0 1 0 1
- 0
- 0 0 1
- 0
- 1
- EVX SP
 evmwlumiaaw 0 0 0 1 0 0
  rD
  rA
@@ -10720,6 +10721,26 @@ rAnegades = [
     'tlbsrx.',
     'tlbivax',
     'dcbtls',
+    'evlddx',
+    'evlddepx',
+    'evldhx',
+    'evldwx',
+    'evlhhesplatx',
+    'evlhhossplatx',
+    'evlhhousplatx',
+    'evlwhex',
+    'evlwhosx',
+    'evlwhoux',
+    'evlwhsplatx',
+    'evlwwsplatx',
+    'evstddx',
+    'evstddepx',
+    'evstdhx',
+    'evstdwx',
+    'evstwhex',
+    'evstwhox',
+    'evstwwex',
+    'evstwwox',
 ]
 
 rAnegades_but_not_mem_access = [
@@ -10927,6 +10948,166 @@ altivec_fields = {
     'vupklsb': {'vD': 'OF_VEC_16 | OF_SIGNED', 'vB': 'OF_VEC_8 | OF_SIGNED'},
     'vupklsh': {'vD': 'OF_VEC_32 | OF_SIGNED', 'vB': 'OF_VEC_16 | OF_SIGNED'},
     'vxor': {'vD': 'OF_VEC_128', 'vA': 'OF_VEC_128', 'vB': 'OF_VEC_128'},
+}
+
+# Field flags for SPE instructions. These are indexed by mnemonic because
+# they're used before the constants are generated. Also because it doesn't make
+# a difference.
+spe_fields = {
+    'evabs': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED'},
+    'evaddiw': {'rD': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evaddsmiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED'},
+    'evaddssiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED'},
+    'evaddumiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evaddusiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evaddw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evcmpeq': {'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evcmpgts': {'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evcmpgtu': {'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evcmplts': {'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evcmpltu': {'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evcntlsw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32 | OF_SIGNED'},
+    'evcntlzw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evdivws': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evdivwu': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'eveqv': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evextsb': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evextsh': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evfsabs': {'rD': 'OF_VEC_FLT', 'rA': 'OF_VEC_FLT'},
+    'evfsadd': {'rD': 'OF_VEC_FLT', 'rA': 'OF_VEC_FLT', 'rB': 'OF_VEC_FLT'},
+    'evlhhesplat': {'rD': 'OF_VEC_16'},
+    'evlhhesplatx': {'rD': 'OF_VEC_16'},
+    'evlhhossplat': {'rD': 'OF_VEC_32 | OF_SIGNED'},
+    'evlhhossplatx': {'rD': 'OF_VEC_32 | OF_SIGNED'},
+    'evlhhousplat': {'rD': 'OF_VEC_16'},
+    'evlhhousplatx': {'rD': 'OF_VEC_16'},
+    'evlwhe': {'rD': 'OF_VEC_16'},
+    'evlwhex': {'rD': 'OF_VEC_16'},
+    'evlwhos': {'rD': 'OF_VEC_32 | OF_SIGNED'},
+    'evlwhosx': {'rD': 'OF_VEC_32 | OF_SIGNED'},
+    'evlwhou': {'rD': 'OF_VEC_32'},
+    'evlwhoux': {'rD': 'OF_VEC_32'},
+    'evlwhsplat': {'rD': 'OF_VEC_16'},
+    'evlwhsplatx': {'rD': 'OF_VEC_16'},
+    'evlwwsplat': {'rD': 'OF_VEC_32'},
+    'evlwwsplatx': {'rD': 'OF_VEC_32'},
+    'evmergehi': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmergehilo': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmergelo': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmergelohi': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmhegsmfaa': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhegsmfan': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhegsmiaa': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhegsmian': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhegumiaa': {'rD': 'OF_VEC_64', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhegumian': {'rD': 'OF_VEC_64', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhesmf': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhesmfa': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhesmfaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhesmfanw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhesmi': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhesmia': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhesmiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhesmianw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhessf': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhessfa': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhessfaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhessfanw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhessiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhessianw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmheumi': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmheumia': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmheumiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmheumianw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmheusiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmheusianw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhogsmfaa': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhogsmfan': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhogsmiaa': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhogsmian': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhogumiaa': {'rD': 'OF_VEC_64', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhogumian': {'rD': 'OF_VEC_64', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhosmf': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhosmfa': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhosmfaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhosmfanw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhosmi': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhosmia': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhosmiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhosmianw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhossf': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhossfa': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhossfaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhossfanw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhossiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhossianw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_16 | OF_SIGNED', 'rB': 'OF_VEC_16 | OF_SIGNED'},
+    'evmhoumi': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhoumia': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhoumiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhoumianw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhousiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmhousianw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_16', 'rB': 'OF_VEC_16'},
+    'evmwhsmf': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwhsmfa': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwhsmi': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwhsmia': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwhssf': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwhssfa': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwhumi': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwhumia': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwlsmiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwlsmianw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwlssiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwlssianw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwlumi': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwlumia': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwlumiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwlumianw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwlusiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwlusianw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwsmf': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwsmfa': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwsmfaa': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwsmfan': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwsmi': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwsmia': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwsmiaa': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwsmian': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwssf': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwssfa': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwssfaa': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwssfan': {'rD': 'OF_VEC_64 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evmwumi': {'rD': 'OF_VEC_64', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwumia': {'rD': 'OF_VEC_64', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwumiaa': {'rD': 'OF_VEC_64', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evmwumian': {'rD': 'OF_VEC_64', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evneg': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED'},
+    'evrlw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evrlwi': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evrndw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evsel': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evslw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evslwi': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evsplatfi': {'rD': 'OF_VEC_32'},
+    'evsplati': {'rD': 'OF_VEC_32 | OF_SIGNED'},
+    'evsrwis': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED'},
+    'evsrwiu': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evsrws': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evsrwu': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32', 'rB': 'OF_VEC_32'},
+    'evstwhe': {'rS': 'OF_VEC_16'},
+    'evstwhex': {'rS': 'OF_VEC_16'},
+    'evstwho': {'rS': 'OF_VEC_16'},
+    'evstwhox': {'rS': 'OF_VEC_16'},
+    'evstwwe': {'rS': 'OF_VEC_32'},
+    'evstwwex': {'rS': 'OF_VEC_32'},
+    'evstwwo': {'rS': 'OF_VEC_32'},
+    'evstwwox': {'rS': 'OF_VEC_32'},
+    'evsubfsmiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED'},
+    'evsubfssiaaw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED'},
+    'evsubfumiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evsubfusiaaw': {'rD': 'OF_VEC_32', 'rA': 'OF_VEC_32'},
+    'evsubfw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rA': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
+    'evsubifw': {'rD': 'OF_VEC_32 | OF_SIGNED', 'rB': 'OF_VEC_32 | OF_SIGNED'},
 }
 
 TAG_APPEND  = -1
@@ -11975,6 +12156,12 @@ for _mnem in const_gen_vle.mnems:
                 except KeyError:
                     oflags = 'OF_NONE'
 
+                if oflags == 'OF_NONE':
+                    try:
+                        oflags = spe_fields[mnem][fname]
+                    except KeyError:
+                        oflags = 'OF_NONE'
+
                 # HACK: if mtfsfi has a field type of IMM change it to UIMM
                 if mnem.startswith('mtfsfi') and fname == 'IMM':
                     fname = 'UIMM'
@@ -12039,7 +12226,7 @@ for _mnem in const_gen_vle.mnems:
             field_types = [field[1].strip() for field in fields]
             if mnem in rAnegades and mnem not in rAnegades_but_not_mem_access:
                 iflags.append('IF_MEM_EA')
-                if form == 'X' and 'rA' in field_types and 'rB' in field_types:
+                if form in ['X', 'EVX'] and 'rA' in field_types and 'rB' in field_types:
                     iflags.append('IF_INDEXED')
             elif mnem.startswith('l') or mnem.startswith('st'):
                 iflags.append('IF_MEM_EA')
@@ -12134,7 +12321,7 @@ for _mnem in const_gen_vle.mnems:
             # Add the normal GPR FIELD_rX == PpcERegOper and the SPE-compatible
             # FIELD_sX == PpcRegOper
             out3.append('    FIELD_%s : PpcERegOper,' % (nkey))
-            out3.append('    FIELD_s%s : PpcRegOper,' % (nkey[1:]))
+            out3.append('    FIELD_s%s : PpcSPEVRegOper,' % (nkey[1:]))
         elif key[0] == 'v':
             out3.append('    FIELD_%s : PpcVRegOper,' % (nkey))
         elif key[0:2] == 'fr':

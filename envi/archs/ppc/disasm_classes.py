@@ -17,7 +17,54 @@ def addrToName(mcanv, va):
     return "0x%.4x" % va
 
 
+# Branch target helpers
+IF_BRANCHCC = (IF_BRANCH | IF_COND)
 IF_CALLCC = (IF_CALL | IF_COND)
+
+BCTR_INSTR = (
+    INS_BCCTR, INS_BCCTRL,
+    INS_BCTR, INS_BCTRL,
+    INS_BEQCTR, INS_BEQCTRL,
+    INS_BGECTR, INS_BGECTRL,
+    INS_BGTCTR, INS_BGTCTRL,
+    INS_BGTCTR, INS_BGTCTRL,
+    INS_BLECTR, INS_BLECTRL,
+    INS_BLTCTR, INS_BLTCTRL,
+    INS_BNECTR, INS_BNECTRL,
+    INS_BNSCTR, INS_BNSCTRL,
+    INS_BSOCTR, INS_BSOCTRL,
+)
+
+BLR_INSTR = (
+    INS_BCLR,     INS_BCLRL,
+    INS_BDNZEQLR, INS_BDNZEQLRL,
+    INS_BDNZGELR, INS_BDNZGELRL,
+    INS_BDNZGTLR, INS_BDNZGTLRL,
+    INS_BDNZLELR, INS_BDNZLELRL,
+    INS_BDNZLR,   INS_BDNZLRL,
+    INS_BDNZLTLR, INS_BDNZLTLRL,
+    INS_BDNZNELR, INS_BDNZNELRL,
+    INS_BDNZNSLR, INS_BDNZNSLRL,
+    INS_BDNZSOLR, INS_BDNZSOLRL,
+    INS_BDZEQLR,  INS_BDZEQLRL,
+    INS_BDZGELR,  INS_BDZGELRL,
+    INS_BDZGTLR,  INS_BDZGTLRL,
+    INS_BDZLELR,  INS_BDZLELRL,
+    INS_BDZLR,    INS_BDZLRL,
+    INS_BDZLTLR,  INS_BDZLTLRL,
+    INS_BDZNELR,  INS_BDZNELRL,
+    INS_BDZNSLR,  INS_BDZNSLRL,
+    INS_BDZSOLR,  INS_BDZSOLRL,
+    INS_BEQLR,    INS_BEQLRL,
+    INS_BGELR,    INS_BGELRL,
+    INS_BGTLR,    INS_BGTLRL,
+    INS_BLELR,    INS_BLELRL,
+    INS_BLR,      INS_BLRL,
+    INS_BLTLR,    INS_BLTLRL,
+    INS_BNELR,    INS_BNELRL,
+    INS_BNSLR,    INS_BNSLRL,
+    INS_BSOLR,    INS_BSOLRL,
+)
 
 class PpcOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, size, operands, iflags=0):
@@ -32,42 +79,48 @@ class PpcOpcode(envi.Opcode):
 
         # If we are a conditional branch, even our fallthrough
         # case is conditional...
-        #if self.iflags & (IF_BRANCH | IF_COND):
-        if self.iflags & (IF_COND):
+        if (self.iflags & IF_BRANCHCC) == IF_BRANCHCC:
             flags |= envi.BR_COND
             addb = True
-
-        # If we can fall through, reflect that...
-        if not self.iflags & (envi.IF_NOFALL | envi.IF_RET | envi.IF_BRANCH) or self.iflags & envi.IF_COND:
-            ret.append((self.va + self.size, flags|envi.BR_FALL))
-
-        # In most architectures, if we have no operands, it has no
-        # further branches...
-        if len(self.opers) == 0:
-            if self.iflags & envi.IF_CALL:
-                ret.append((None, flags | envi.BR_PROC))
-            return ret
-
-        # Check for a call...
-        if self.iflags & IF_CALL:
-            flags |= envi.BR_PROC
-            addb = True
-
-        # A conditional call?  really?  what compiler did you use? ;)
-        elif (self.iflags & IF_CALLCC) == IF_CALLCC:
-            flags |= (envi.BR_PROC | envi.BR_COND)
-            addb = True
-
         elif self.iflags & IF_BRANCH:
             addb = True
 
+        # If we can fall through, reflect that...
+        if not self.iflags & envi.IF_NOFALL:
+           ret.append((self.va + self.size, flags|envi.BR_FALL))
+
+        # Check for a call...
+        if (self.iflags & IF_CALLCC) == IF_CALLCC:
+            flags |= (envi.BR_PROC | envi.BR_COND)
+            addb = True
+        elif self.iflags & IF_CALL:
+            flags |= envi.BR_PROC
+            addb = True
+
         if addb:
-            oper = self.opers[-1]
-            if oper.isDeref():
-                flags |= envi.BR_DEREF
-                tova = oper.getOperAddr(self, emu=emu)
+            # In PowerPC the CTR and LR registers can be used as branch targets,
+            # for those instructions we need an emulator to retrieve the correct
+            # branch target.
+            if self.opcode in BCTR_INSTR:
+                if emu is None:
+                    tova = None
+                else:
+                    tova = emu.getRegister(REG_CTR)
+            elif self.opcode in BLR_INSTR:
+                if emu is None:
+                    tova = None
+                else:
+                    tova = emu.getRegister(REG_LR)
             else:
-                tova = oper.getOperValue(self, emu=emu)
+                # For all other branches the last operand is the branch target
+                # The operand already handles relative vs immediate offsets and
+                # that doesn't need to be checked here.
+                oper = self.opers[-1]
+                if oper.isDeref():
+                    flags |= envi.BR_DEREF
+                    tova = oper.getOperAddr(self, emu=emu)
+                else:
+                    tova = oper.getOperValue(self, emu=emu)
 
             ret.append((tova, flags))
 
@@ -255,6 +308,54 @@ class PpcVRegOper(PpcRegOper):
         val_bytes = struct.pack(self.fmt, *vals)
         val_left, val_right = struct.unpack('>2Q', val_bytes)
         val = (val_left << 64) | (val_right & 0xffffffffffffffff)
+        emu.setRegister(self.reg, val)
+
+class PpcSPEVRegOper(PpcRegOper):
+    ''' SPE Vector register operand. '''
+    def __init__(self, reg, va=0, elemsize=1, signed=False, floating=False):
+        # reg += REG_OFFSET_VECTOR
+        self.elemsize = elemsize
+        self.elemcount = 8 // elemsize
+        self.signed = signed
+        self.floating = floating
+
+        if elemsize != 8 and not floating:
+            fmt_char = vector_fmt_chars_int[elemsize]
+            if signed:  # the equivalent signed format characters are lowercase
+                fmt_char = fmt_char.lower()
+            self.fmt = f">{self.elemcount}{fmt_char}"
+        elif floating:
+            fmt_char = vector_fmt_chars_flt[elemsize]
+            self.fmt = f">{self.elemcount}{fmt_char}"
+        else:
+            self.fmt = None
+
+        super(PpcSPEVRegOper, self).__init__(reg, va)
+
+    def getValues(self, op, emu=None):
+        if emu is None:
+            return None
+
+        if self.fmt is None:
+            return [self.getOperValue(op, emu)]
+
+        reg = emu.getRegister(self.reg)
+        reg_bytes = struct.pack('>Q', reg)
+        return struct.unpack(self.fmt, reg_bytes)
+
+    def setValues(self, op, emu=None, vals=None):
+        if emu is None:
+            return None
+
+        if self.fmt is None:
+            return self.setOperValue(op, emu, *vals)
+
+        # Ensure our values will fit before we try and pack them
+        if self.signed:
+            vals = [e_bits.signed(x, self.elemsize) for x in vals]
+
+        val_bytes = struct.pack(self.fmt, *vals)
+        val = struct.unpack('>Q', val_bytes)[0]
         emu.setRegister(self.reg, val)
 
 class PpcCRegOper(PpcRegOper):
@@ -756,15 +857,15 @@ OPERCLASSES = {
     FIELD_me0 : PpcImmOper,
     FIELD_me1_5 : PpcImmOper,
     FIELD_rA : PpcERegOper,
-    FIELD_sA : PpcRegOper,
+    FIELD_sA : PpcSPEVRegOper,
     FIELD_rB : PpcERegOper,
-    FIELD_sB : PpcRegOper,
+    FIELD_sB : PpcSPEVRegOper,
     FIELD_rC : PpcERegOper,
-    FIELD_sC : PpcRegOper,
+    FIELD_sC : PpcSPEVRegOper,
     FIELD_rD : PpcERegOper,
-    FIELD_sD : PpcRegOper,
+    FIELD_sD : PpcSPEVRegOper,
     FIELD_rS : PpcERegOper,
-    FIELD_sS : PpcRegOper,
+    FIELD_sS : PpcSPEVRegOper,
     FIELD_sh0 : PpcImmOper,
     FIELD_sh1_5 : PpcImmOper,
     FIELD_vA : PpcVRegOper,
