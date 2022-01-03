@@ -17,6 +17,16 @@ class MockVw(object):
         return self._locs.get(va, None)
 
 
+def getTestBytes(*paths):
+    testdir = os.getenv('VIVTESTFILES')
+    if not testdir:
+        raise unittest.SkipTest('VIVTESTFILES env var not found!')
+    testdir = os.path.abspath(testdir)
+    fpath = os.path.join(testdir, *paths)
+    with open(fpath, 'rb') as fd:
+        return fd.read()
+
+
 def getTestPath(*paths):
     '''
     Return the join'd path to a file in the vivtestfiles repo

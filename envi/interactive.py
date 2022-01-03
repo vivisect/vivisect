@@ -1,11 +1,32 @@
+'''
+Module to make interactive debugging and tooling easier.
+
+Most commonly used in the middle of code we're debugging:
+```
+    <foo instructions>
+
+    import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+
+    <continued code about to execute after we exit ipython>
+```
+
+Alternately, from within the Vivisect GUI, in the Interactive Python window
+you can drop to IPython shell (in the window you started vivbin from) by
+just executing the same line:
+```
+    import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+```
+'''
 STYPE_NONE = 0
 STYPE_IPYTHON = 1
 STYPE_IPYTHON_NEW = 2
 STYPE_CODE_INTERACT = 3
 
-def dbg_interact(lcls, gbls):
-    intro = "Let's interact!"
+def dbg_interact(lcls, gbls, intro=None):
     shelltype = STYPE_NONE
+
+    if intro is None:
+        intro = "Let's interact!"
 
     print(intro)
     try:

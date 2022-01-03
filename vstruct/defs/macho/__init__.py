@@ -2,28 +2,29 @@
 Structure definitions for the OSX MachO binary format.
 '''
 import struct
+import logging
+import binascii
+
 import vstruct
 import envi.bits as e_bits
-
 from vstruct.defs.macho.fat import *
 from vstruct.defs.macho.const import *
 from vstruct.defs.macho.stabs import *
 from vstruct.defs.macho.loader import *
 
+logger = logging.getLogger(__name__)
+
 class mach_o(vstruct.VStruct):
 
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self._raw_bytes = ''
+        self._raw_bytes = b''
         self._symbols = None
         self._entrypoints = None
         self._struct_info = []
 
         self.mach_header = mach_header()
         self.load_commands = vstruct.VStruct()
-
-    def getEndian(self):
-        return self.mach_header.vsGetMeta('endian')
 
     def getPointerSize(self):
         return self.mach_header.vsGetMeta('psize')
@@ -56,9 +57,9 @@ class mach_o(vstruct.VStruct):
             if vs.cmd == LC_UNIXTHREAD:
                 eoff = len(vs)
                 psize = vs.flavor
-                endian = self.getEndian()
+                bigend = self.vsGetEndian()
 
-                fmt = e_bits.getFormat(psize, endian)
+                fmt = e_bits.getFormat(psize, bigend)
 
                 for x in range(vs.count):
                     ptr, = struct.unpack_from(fmt, self._raw_bytes, eoff+offset)
@@ -95,7 +96,11 @@ class mach_o(vstruct.VStruct):
             # Slice the segment bytes from raw bytes
             fbytes = self._raw_bytes[ vs.fileoff: vs.fileoff + vs.filesize ]
             # Pad out to virtual size
-            fbytes = fbytes.ljust(vs.vmsize, b'\x00')
+            try:
+                fbytes = fbytes.ljust(vs.vmsize, b'\x00')
+            except:
+                logger.warning('Segment allocation failure')
+                continue
 
             ret.append((vs.segname, vs.vmaddr, vs.initprot, fbytes))
         return ret
@@ -133,14 +138,25 @@ class mach_o(vstruct.VStruct):
         return structs, cmdsyms
 
     def vsParse(self, bytes, offset=0):
+        '''
+        Parses entire MachO structure-set
+        '''
+        magic = struct.unpack('<I', bytes[:4])[0]
+        if magic in (MH_MAGIC_64, MH_CIGAM_64):
+            self.mach_header = mach_header_64()
+
         self._raw_bytes = bytes[offset:]
         offset = self.mach_header.vsParse(bytes, offset=offset)
+
+        # no callback is fired for mach_header, set we set it here
+        self.vsSetEndian(self.mach_header.vsGetEndian())
+        bigend = self.vsGetEndian()
+        fmt = ('<II','>II')[bigend]
+
         for i in range(self.mach_header.ncmds):
-            # should we use endian from header?
-            fmt = ('<II','>II')[self.getEndian()]
             cmdtype, cmdlen = struct.unpack(fmt, bytes[offset:offset+8])
             cmdclass = getCommandClass(cmdtype)
-            cmdobj = cmdclass()
+            cmdobj = cmdclass(bigend=bigend)
             cmdobj.vsParse(bytes, offset=offset)
             self.load_commands.vsAddField('cmd%d' % i, cmdobj)
             offset += cmdobj.cmdsize
