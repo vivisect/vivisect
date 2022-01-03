@@ -753,7 +753,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Do pointer analysis and folllow up the recomendation
         by creating locations etc...
         """
-        ltype = self.analyzePointer(va)
+        ltype, ltextra = self.analyzePointer(va)
         if ltype is None:
             return False
 
@@ -763,7 +763,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
             logger.debug('discovered new function (followPointer(0x%x))', va)
-            self.makeFunction(va)
+            self.makeFunction(va, arch=ltextra)
             return True
 
         elif ltype == LOC_STRING:
@@ -1129,7 +1129,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return False
 
         if wat.looksgood():
-            self.iscode[va] = True
+            self.iscode[va] = wat.arch
         else:
             self.iscode[va] = False
 
@@ -1186,7 +1186,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             rdest += imgbase
 
         while self.isValidPointer(rdest) and self.isProbablyCode(rdest):
-            if self.analyzePointer(ptrbase) in STOP_LOCS:
+            if self.analyzePointer(ptrbase)[0] in STOP_LOCS:
                 break
 
             yield rdest
@@ -1361,7 +1361,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 # which *removes* the deref flag...
                 # If we're an xref to something real, rip out the deref flag, but if we're
                 # an xref to a big fat 0, fuggedaboutit
-                if ptrdest and self.analyzePointer(ptrdest[0]):
+                if ptrdest and self.analyzePointer(ptrdest[0])[0]:
                     self.addXref(va, ptrdest[0], REF_CODE, bflags & ~envi.BR_DEREF)
                 else:
                     self.addXref(va, tova, REF_CODE, bflags)
@@ -1935,14 +1935,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         no idea.
         """
         if self.getLocation(va) is not None:
-            return None
+            return (None, None)
         if self.isProbablyUnicode(va):
-            return LOC_UNI
+            return (LOC_UNI, None)
         elif self.isProbablyString(va):
-            return LOC_STRING
-        elif self.isProbablyCode(va):
-            return LOC_OP
-        return None
+            return (LOC_STRING, None)
+        else:
+            arch = self.isProbablyCode(va)
+            if arch:
+                return (LOC_OP, arch)
+        return (None, None)
 
     def getMeta(self, name, default=None):
         return self.metadata.get(name, default)
