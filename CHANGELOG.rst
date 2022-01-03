@@ -15,13 +15,12 @@ Features
   (`#463 <https://github.com/vivisect/vivisect/pull/463>`_)
 - Flesh out Delete Relocation Event and add Test Helpers.
   (`#471 <https://github.com/vivisect/vivisect/pull/471>`_)
+- Update docs with developer intro info.
+  (`#475 <https://github.com/vivisect/vivisect/pull/475>`_)
 - Update IPython integration module.
   (`#487 <https://github.com/vivisect/vivisect/pull/487>`_)
 - Improve Emulation Taint Comments.
   (`#490 <https://github.com/vivisect/vivisect/pull/490>`_)
-
-- Update docs with developer intro info.
-  (`#475 <https://github.com/vivisect/vivisect/pull/475>`_)
 
 Fixes
 -----
