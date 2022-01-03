@@ -2,6 +2,48 @@
 Vivisect Changelog
 ******************
 
+V1.0.6 - 2022-01-03
+===================
+
+Features
+--------
+- Cohesive Memory Maps.
+  (`#450 <https://github.com/vivisect/vivisect/pull/450>`_)
+- Add changelog to the docs build.
+  (`#462 <https://github.com/vivisect/vivisect/pull/462>`_)
+- Add test for unknown workspace events.
+  (`#463 <https://github.com/vivisect/vivisect/pull/463>`_)
+- Flesh out Delete Relocation Event and add Test Helpers.
+  (`#471 <https://github.com/vivisect/vivisect/pull/471>`_)
+- Update docs with developer intro info.
+  (`#475 <https://github.com/vivisect/vivisect/pull/475>`_)
+- Update IPython integration module.
+  (`#487 <https://github.com/vivisect/vivisect/pull/487>`_)
+- Improve Emulation Taint Comments.
+  (`#490 <https://github.com/vivisect/vivisect/pull/490>`_)
+
+Fixes
+-----
+- Fix PE carving.
+  (`#464 <https://github.com/vivisect/vivisect/pull/464>`_)
+- Update intel emulator repetition options.
+  (`#465 <https://github.com/vivisect/vivisect/pull/465>`_)
+- Update VDB's UI class inheritance to deal with display crashes.
+  (`#466 <https://github.com/vivisect/vivisect/pull/466>`_)
+- Update the various CLIs and VAMP interfaces.
+  (`#467 <https://github.com/vivisect/vivisect/pull/467>`_)
+- Fix ARM's Vivisect/VDB bridges.
+  (`#469 <https://github.com/vivisect/vivisect/pull/469>`_)
+- A grab bag of fixes for function thunking, ELF PLT analysis, ARM emulation, and no return display.
+  (`#470 <https://github.com/vivisect/vivisect/pull/470>`_)
+- Fix special character rending in the UI.
+  (`#474 <https://github.com/vivisect/vivisect/pull/474>`_)
+- Fix the intel emulator's idiv instruction.
+  (`#476 <https://github.com/vivisect/vivisect/pull/476>`_)
+- Make MACH-O parsing work.
+  (`#486 <https://github.com/vivisect/vivisect/pull/486>`_)
+
+
 V1.0.5 - 2021-09-10
 ===================
 
