@@ -7099,7 +7099,7 @@ class A64Disasm:
     #ARCH_REVS is a file containing all masks for various versions of ARM. In const.py
     _archVersionMask = ARCH_REVS['ARMv8A']
 
-    def __init__(self, endian=ENDIAN_MSB, mask = 'ARMv8A'):
+    def __init__(self, endian=ENDIAN_MSB, mask = 'a64'):
         self.setArchMask(mask)
         self.setEndian(endian)
 

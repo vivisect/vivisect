@@ -4,13 +4,8 @@
 import unittest
 import vivisect
 
-class A64(unittest.TestCase):
-    def test_msr(self):     #FIXME: revamp for Aarch64
-        # test the MSR instruction
-        import envi.archs.aarch64 as e_aarch64
-        am = e_aarch64.A64Module()
-        op = am.archParseOpcode('d3f021e3'.decode('hex'))
-        self.assertEqual('msr CPSR_c, #0xd3', repr(op))
+from binascii import unhexlify
+
 
 instrs = [
 
@@ -4406,14 +4401,14 @@ class A64InstructionSet(unittest.TestCase):
         return
         # test the MSR instruction
         am = aarch64.A64Module()
-        op = am.archParseOpcode('d3f021e3'.decode('hex'))
+        op = am.archParseOpcode(unhexlify('d3f021e3'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
     def test_BigEndian(self):       #FIXME: revamp for Aarch64
         return
         am = aarch64.A64Module()
         am.setEndian(envi.ENDIAN_MSB)
-        op = am.archParseOpcode('e321f0d3'.decode('hex'))
+        op = am.archParseOpcode(unhexlify('e321f0d3'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
     def test_regs(self):        #FIXME: revamp for Aarch64
@@ -4428,7 +4423,7 @@ class A64InstructionSet(unittest.TestCase):
     def test_envi_aarch64_operands(self):       #FIXME: revamp for Aarch64
         return
         vw = vivisect.VivWorkspace()
-        vw.setMeta("Architecture", "aarch64")
+        vw.setMeta("Architecture", "a64")
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0xbfb00000, 7, 'firmware', '\xfe' * 16384*1024)
 
@@ -4440,7 +4435,7 @@ class A64InstructionSet(unittest.TestCase):
         emu.setMeta('forrealz', True)
         emu._forrealz = True    # cause base_reg updates on certain Operands.
 
-        emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
+        emu.writeMemory(0xbfb00010, unhexlify("abcdef98"))
 
         opstr = struct.pack('<I', 0xe59f3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
@@ -4452,7 +4447,7 @@ class A64InstructionSet(unittest.TestCase):
 
 
         # ldr r3, [r11, #0x8]!
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
         emu.setRegister(11, 0xbfb00010)
 
         opstr = struct.pack('<I', 0xe5bb3008)
@@ -4468,7 +4463,7 @@ class A64InstructionSet(unittest.TestCase):
 
         
         # ldr r3, [r11], #0x8
-        emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
+        emu.writeMemory(0xbfb00010, unhexlify("ABCDEF10"))
         emu.setRegister(11, 0xbfb00010)
         
         opstr = struct.pack('<I', 0xe4bb3008)
@@ -4484,7 +4479,7 @@ class A64InstructionSet(unittest.TestCase):
 
 
         # ldr r3, [r11], #-0x8
-        emu.writeMemory(0xbfb00010, "ABCDEF10".decode('hex'))
+        emu.writeMemory(0xbfb00010, unhexlify("ABCDEF10"))
         emu.setRegister(11, 0xbfb00010)
         
         opstr = struct.pack('<I', 0xe43b3008)
@@ -4511,7 +4506,7 @@ class A64InstructionSet(unittest.TestCase):
         
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00010, "abcdef98".decode('hex'))
+        emu.writeMemory(0xbfb00010, unhexlify("abcdef98"))
         #print(repr(op))
         #print(hex(op.getOperValue(1, emu)))
 
@@ -4524,7 +4519,7 @@ class A64InstructionSet(unittest.TestCase):
         # ldrt r2, [r10], r2 
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
+        emu.writeMemory(0xbfb00008, unhexlify("ABCDEF10"))
         
         opstr = struct.pack('<I', 0xe6ba2002)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
@@ -4540,9 +4535,9 @@ class A64InstructionSet(unittest.TestCase):
         
         
         # ldr r2, [r10, -r2 ]!
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
-        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
-        emu.writeMemory(0xbfb00008, "f000f000".decode('hex'))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, unhexlify("55555555"))
+        emu.writeMemory(0xbfb00008, unhexlify("f000f000"))
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
         
@@ -4560,8 +4555,8 @@ class A64InstructionSet(unittest.TestCase):
 
         
         # ldr r2, [r10, r2 ]!
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
-        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, unhexlify("55555555"))
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
         
@@ -4589,7 +4584,7 @@ class A64InstructionSet(unittest.TestCase):
         
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  2)
-        emu.writeMemory(0xbfb00008, "abcdef98".decode('hex'))
+        emu.writeMemory(0xbfb00008, unhexlify("abcdef98"))
         #print(repr(op))
         #print(hex(op.getOperValue(1, emu)))
 
@@ -4608,7 +4603,7 @@ class A64InstructionSet(unittest.TestCase):
         # ldr r2, [r10], r2 , lsr 2
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  2)
-        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
+        emu.writeMemory(0xbfb00008, unhexlify("ABCDEF10"))
 
         opstr = struct.pack('<I', 0xe69a3122)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
@@ -4641,8 +4636,8 @@ class A64InstructionSet(unittest.TestCase):
 
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00000, "abcdef98".decode('hex'))
-        emu.writeMemory(0xbfb00008, "12345678".decode('hex'))
+        emu.writeMemory(0xbfb00000, unhexlify("abcdef98"))
+        emu.writeMemory(0xbfb00008, unhexlify("12345678"))
         #print(repr(op))
         val = op.getOperValue(1, emu)
         #print(hex(val))
@@ -4657,7 +4652,7 @@ class A64InstructionSet(unittest.TestCase):
         # (131071, 'b2359ae0', 17760, 'ldrh r4, [r10], r2 ', 0, ())
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00008, "ABCDEF10".decode('hex'))
+        emu.writeMemory(0xbfb00008, unhexlify("ABCDEF10"))
 
         opstr = struct.pack('<I', 0xe0ba35b2)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
@@ -4674,8 +4669,8 @@ class A64InstructionSet(unittest.TestCase):
         
         # ldr r2, [r10, -r2 ]!
         # (131071, 'b2453ae1', 17760, 'ldrh r4, [r10, -r2]! ', 0, ())
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
-        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, unhexlify("55555555"))
         emu.writeMemValue(0xbfb00008, 0xf030e040, 4)
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
@@ -4695,8 +4690,8 @@ class A64InstructionSet(unittest.TestCase):
         
         # ldr r2, [r10, r2 ]!
         # (131071, 'b245bae1', 17760, 'ldrh r4, [r10, r2]! ', 0, ())
-        emu.writeMemory(0xbfb00018, "FFEEDDCC".decode('hex'))
-        emu.writeMemory(0xbfb00010, "55555555".decode('hex'))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, unhexlify("55555555"))
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
         
@@ -4718,7 +4713,7 @@ class A64InstructionSet(unittest.TestCase):
     def test_envi_aarch64_assorted_instrs(self):
         # setup initial work space for test
         vw = vivisect.VivWorkspace()
-        vw.setMeta("Architecture", "aarch64")
+        vw.setMeta("Architecture", "a64")
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
         emu = vw.getEmulator()
@@ -4730,10 +4725,6 @@ class A64InstructionSet(unittest.TestCase):
         goodemu = 0
         bademu = 0
         for bytez, va, reprOp, iflags, emutests in instrs:
-            #num, = struct.unpack("<I", bytez.decode('hex'))
-            #bs = bin(num)[2:].zfill(32)
-            #print(bytez, bs)
-            #print(reprOp)
             op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
             #print(repr(op))
             redoprepr = repr(op).replace(' ','').lower()

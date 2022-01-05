@@ -14,4 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 class A64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_aarch64.A64Emulator):
-    pass
+    def __init__(self, vw, **kwargs):
+        '''
+        Please see the base emulator class in vivisect/impemu/emulator.py for the parameters
+        that can be passed through kwargs
+        '''
+        e_aarch64.A64Emulator.__init__(self)
+        v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
+        self.setMemArchitecture(envi.ARCH_A64)
+
