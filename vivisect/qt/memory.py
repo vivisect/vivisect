@@ -42,6 +42,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('n', 'viv:setname')
         self.addHotKey('g', 'viv:getlocation')
         self.addHotKey(';', 'viv:comment')
+        self.addHotKey(':', 'viv:commentmulti')
         self.addHotKey('S', 'viv:make:struct')
         self.addHotKey('ctrl+S', 'viv:make:struct:again')
         self.addHotKey('ctrl+meta+S', 'viv:make:struct:multi')
@@ -220,6 +221,11 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     def _hotkey_comment(self):
         if self._canv_curva is not None:
             self.vw.getVivGui().setVaComment(self._canv_curva, parent=self)
+
+    @vq_hotkey.hotkey('viv:commentmulti')
+    def _hotkey_commentmulti(self):
+        if self._canv_curva is not None:
+            self.vw.getVivGui().setVaMultilineComment(self._canv_curva, parent=self)
 
     @vq_hotkey.hotkey('viv:make:struct')
     def _hotkey_make_struct(self):

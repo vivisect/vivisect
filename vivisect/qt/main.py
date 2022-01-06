@@ -157,6 +157,18 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if ok:
             self.vw.setComment(va, str(comment))
 
+    def setVaMultilineComment(self, va, parent=None):
+        if parent is None:
+            parent = self
+
+        curcomment = self.vw.getComment(va)
+        if curcomment is None:
+            curcomment = ''
+
+        comment, ok = QInputDialog.getMultiLineText(parent, 'Enter...', 'Comment', text=curcomment)
+        if ok:
+            self.vw.setComment(va, str(comment))
+
     def addVaXref(self, va, parent=None):
         if parent is None:
             parent = self
@@ -172,12 +184,18 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
                 self.vw.vprint(repr(e))
 
     def setFuncLocalName(self, fva, offset, atype, aname):
-        newname, ok = QInputDialog.getText(self, 'Enter...', 'Local Name')
+        curname = ''
+        if self.vw.getFunctionLocal(fva, offset):
+            curtype, curname = self.vw.getFunctionLocal(fva, offset)
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Local Name', text=curname)
         if ok:
             self.vw.setFunctionLocal(fva, offset, LSYM_NAME, (atype, str(newname)))
 
     def setFuncArgName(self, fva, idx, atype, aname):
-        newname, ok = QInputDialog.getText(self, 'Enter...', 'Argument Name')
+        curname = ''
+        if len(self.vw.getFunctionArgs(fva)) > idx:
+            curtype, curname = self.vw.getFunctionArgs(fva)[idx]
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Argument Name', text=curname)
         if ok:
             self.vw.setFunctionArg(fva, idx, atype, str(newname))
 
