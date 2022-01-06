@@ -356,7 +356,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         after every change.
         '''
         self._last_viewpt = self.mem_canvas.page().scrollPosition()
-        # FIXME: history should track this as well and return to the same place
+        # TODO: history should track this as well and return to the same place
         self.clearText()
         self.fva = None
         self._renderMemory()
@@ -451,9 +451,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.updateWindowTitle()
 
         self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
-        # FIXME: manage this list in a central location for the VivGui.
-        # FIXME: add "DONTFOLLOWME" to stop (and remove entries)
-        # FIXME: change what's shared to uniquely identify each channel
+        # TODO: manage this list in a central location for the VivGui.
+        # TODO: add "DONTFOLLOWME" to stop (and remove entries)
+        # TODO: change what's shared to uniquely identify each channel
 
     @idlethread
     def VTE_FOLLOWME(self, vw, event, einfo):
