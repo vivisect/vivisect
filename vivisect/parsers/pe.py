@@ -93,6 +93,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
     vw.parsedbin = pe
+    ### TODO: this doesn't work from Memory (read() needs to know how big the file is)
     byts = pe.getFileBytes()
     vw.setMeta('FileBytes', v_parsers.compressBytes(byts))
 
@@ -164,9 +165,13 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 vw.setFileMeta(fname, 'Version', vsver)
 
     # Setup some va sets used by windows analysis modules
-    vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
-    vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
-    vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
+    # these will already exist for Multi-file workspaces
+    if not 'Library Loads' in vw.getVaSetNames():
+        vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
+    if not 'pe:ordinals' in vw.getVaSetNames():
+        vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
+    if not 'DelayImports' in vw.getVaSetNames():
+        vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS)
