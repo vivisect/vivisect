@@ -166,11 +166,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     # Setup some va sets used by windows analysis modules
     # these will already exist for Multi-file workspaces
-    if not 'Library Loads' in vw.getVaSetNames():
+    vaSetNames = vw.getVaSetNames()
+    if not 'Library Loads' in vaSetNames:
         vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
-    if not 'pe:ordinals' in vw.getVaSetNames():
+    if not 'pe:ordinals' in vaSetNames:
         vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
-    if not 'DelayImports' in vw.getVaSetNames():
+    if not 'DelayImports' in vaSetNames:
         vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
 
     # SizeOfHeaders spoofable...

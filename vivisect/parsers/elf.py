@@ -550,8 +550,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             for rlva, addend in postfix[dmglname]:
                 vw.addRelocation(rlva, RTYPE_BASEPTR, sva + addend - baseoff)
 
-    vw.addVaSet("FileSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
-    vw.addVaSet("WeakSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
+    vaSetNames = vw.getVaSetNames()
+    if not 'FileSymbols' in vaSetNames:
+        vw.addVaSet("FileSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
+    if not 'WeakSymbols' in vaSetNames:
+        vw.addVaSet("WeakSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
 
     # apply symbols to workspace (if any)
     relocs = elf.getRelocs()
