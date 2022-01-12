@@ -130,21 +130,27 @@ S_ATTR_LOC_RELOC          = 0x00000100 #  section has local relocation entries
 INDIRECT_SYMBOL_LOCAL     = 0x80000000 #  section has local relocation entries 
 INDIRECT_SYMBOL_ABS       = 0x40000000 #  section has local relocation entries 
 
+CPU_ARCH_MASK = 0xff000000
+CPU_ARCH_ABI64 = 0x01000000
+CPU_ARCH_ABI64_32 = 0x02000000
+
 CPU_TYPE_ANY        = -1
 CPU_TYPE_VAX        = 1
 CPU_TYPE_MC680      = 6
 CPU_TYPE_X86        = 7
-CPU_TYPE_X86_64     = 0x01000007
+CPU_TYPE_X86_64     = CPU_TYPE_X86 | CPU_ARCH_ABI64
 CPU_TYPE_MIPS       = 8
 CPU_TYPE_MC98000    = 10
 CPU_TYPE_HPPA       = 11
 CPU_TYPE_ARM        = 12
+CPU_TYPE_ARM64      = CPU_TYPE_ARM | CPU_ARCH_ABI64
+CPU_TYPE_ARM64_32   = CPU_TYPE_ARM | CPU_ARCH_ABI64_32
 CPU_TYPE_MC88000    = 13
 CPU_TYPE_SPARC      = 14
 CPU_TYPE_I860       = 15
 CPU_TYPE_ALPHA      = 16
 CPU_TYPE_POWERPC    = 18
-#CPU_TYPE_POWERPC64  (CPU_TYPE_POWERPC | CPU_ARCH_ABI64)
+CPU_TYPE_POWERPC64  = CPU_TYPE_POWERPC | CPU_ARCH_ABI64
 
 mach_cpu_names = {
     CPU_TYPE_VAX        : 'vax',
@@ -155,11 +161,14 @@ mach_cpu_names = {
     CPU_TYPE_MC98000    : 'mc98000',
     CPU_TYPE_HPPA       : 'hppa',
     CPU_TYPE_ARM        : 'arm',
+    CPU_TYPE_ARM64      : 'arm64',
+    CPU_TYPE_ARM64_32   : 'arm64_32',
     CPU_TYPE_MC88000    : 'mc88000',
     CPU_TYPE_SPARC      : 'sparc',
     CPU_TYPE_I860       : 'i860',
     CPU_TYPE_ALPHA      : 'alpha',
     CPU_TYPE_POWERPC    : 'powerpc',
+    CPU_TYPE_POWERPC64  : 'powerpc64',
 }
 
 # Symbol types
