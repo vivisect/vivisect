@@ -169,7 +169,6 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.vwqgui = vwqgui
         self._last_viewpt = None
         self.history = collections.deque((), 100)
-        self.mwlocked = False
         self._autorefresh = None
 
         self._leading = False
@@ -269,13 +268,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.setMemWindowName(str(mwname))
 
     def getRendToolsMenu(self):
-        menu = e_mem_qt.VQMemoryWindow.getRendToolsMenu(self)
-        self._autorefresh = QAction('auto-refresh', menu, checkable=True, checked=True)
+        menu = QMenu(parent=self.rend_tools)
+        menu.addAction('set name', self.rendToolsSetName)
 
+        self._autorefresh = QAction('auto-refresh', menu, checkable=True, checked=True)
         menu.addAction(self._autorefresh)
 
         if self.vw.server:
-
             leadact = QAction('lead', menu, checkable=True)
 
             def leadToggle():
@@ -497,6 +496,15 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             return va
         except:
             self.setWindowTitle('%s: %s (0x----)' % (ename, expr))
+
+    def rendToolsSetName(self):
+        mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name')
+        if ok:
+            self.setMemWindowName(str(mwname))
+
+    def rendToolsMenu(self, event):
+        menu = self.getRendToolsMenu()
+        menu.exec_(self.mapToGlobal(self.rend_tools.pos()))
 
     # DEV: None of these methods are meant to be called directly by anybody but themselves,
     # since they're setup in a way to make renderFunctionGraph play nicely with pyqt5
