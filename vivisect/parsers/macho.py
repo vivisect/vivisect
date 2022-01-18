@@ -3,7 +3,10 @@ import logging
 import envi.common as e_common
 
 import vivisect.parsers as viv_parsers
+
 import vstruct.defs.macho as vs_macho
+import vstruct.defs.macho.fat as vsm_fat
+import vstruct.defs.macho.const as vsm_const
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +56,12 @@ def checkFatMagicAndTrunc(vw, filebytes):
     offset = 0
     fat = vs_macho.fat_header()
     offset = fat.vsParse(filebytes, offset=offset)
+    
+    if fat.magic in vsm_const.FAT_64:
+        archcon = vsm_fat.fat_arch_64
+    else:
+        archcon = vsm_fat.fat_arch
+
     for i in range(fat.nfat_arch):
         ar = vs_macho.fat_arch()
         offset = ar.vsParse(filebytes, offset=offset)
