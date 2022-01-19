@@ -30,6 +30,7 @@ class MemObjFile:
         if size is None:
             # end of map for now, but perhaps this should be end of contiguous maps
             _, size, _, _ = self.memobj.getMemoryMap(self.offset)
+            size -= self.offset
         ret = self.memobj.readMemory(self.offset, size)
         self.offset += size
         return ret
