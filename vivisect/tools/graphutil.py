@@ -827,8 +827,10 @@ class PathGenerator:
         weights = fgraph.getHierNodeWeights()
         
         pnode = vg_pathcore.newPathNode(nid=frcbva, eid=None)
+        
+        loopcount = 0
 
-        todo = [(frcbva,pnode), ]
+        todo = [(frcbva,pnode,loopcount), ]
 
         maxtime = None
         if timeout:
@@ -841,9 +843,7 @@ class PathGenerator:
             if not self.__go__:
                 raise PathForceQuitException(pathcnt)
 
-            nodeid,cpath = todo.pop()
-
-            refsfrom = fgraph.getRefsFrom((nodeid, None))
+            nodeid,cpath,loopcount = todo.pop()
 
             # This is the root node!
             if nodeid == tocbva:
@@ -856,13 +856,16 @@ class PathGenerator:
                 if maxpath and pathcnt >= maxpath:
                     return
 
+            refsfrom = fgraph.getRefsFrom((nodeid, None))
+
+            curlvl = weights.get(nodeid)
             for eid, fromid, toid, einfo in refsfrom:
-                curlvl = weights.get(fromid)
                 tgtlvl = weights.get(toid)
                 if tgtlvl <= curlvl:
-                    # if we're moving *up* in the world, check for loops
-                    loops = vg_pathcore.getPathLoopCount(cpath, 'nid', fromid)
-                    if loops > loopcnt:
+                    # if we're moving *up* in the world, increment and check loopcount
+                    #loops = vg_pathcore.getPathLoopCount(cpath, 'nid', fromid)
+                    loopcount += 1
+                    if loopcount > loopcnt:
                         vg_pathcore.trimPath(cpath)
                         #sys.stderr.write('o')
 
@@ -872,7 +875,7 @@ class PathGenerator:
                         continue
 
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=toid, eid=eid)
-                todo.append((toid,npath))
+                todo.append((toid,npath,loopcount))
 
             vg_pathcore.trimPath(cpath)
 
