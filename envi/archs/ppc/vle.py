@@ -486,7 +486,7 @@ class VleDisasm(Ppc32EmbeddedDisasm):
                 return PpcOpcode(va, opcode, mnem, size=4, operands=opers, iflags=iflags)
 
         # Didn't parse as an e_op, so fall back to PpcDisasm
-        return super(Ppc32EmbeddedDisasm, self).disasm(bytez, offset, va)
+        return super(Ppc32EmbeddedDisasm, self).disasm_booke(bytez, offset, va)
 
 
     def disasm(self, bytez: bytes, offset: int, va: int) -> PpcOpcode:
@@ -497,7 +497,7 @@ class VleDisasm(Ppc32EmbeddedDisasm):
 
         # Ensure that the target address is 2-byte aligned
         if offset & 0x1:
-            raise Exception(f'InvalidAddress(0x{offset:x}')
+            raise envi.InvalidAddress(va)
 
         if is_opcode_32bit(bytez[offset]):
             ppc_opcode = self.disasm32(bytez, offset, va)

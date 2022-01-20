@@ -94,7 +94,7 @@ e_machine_64 =  (
                 EM_X86_64,
                 EM_ARM_AARCH64,
                 )
-                
+
 ELFCLASSNONE = 0
 ELFCLASS32 = 1 # 32-bit object file
 ELFCLASS64 = 2 # 64-bit object file
@@ -611,18 +611,20 @@ sh_type = {
     SHT_HIUSER:"End of application-specific",
 }
 
-SHF_WRITE = 1
-SHF_ALLOC = 2
-SHF_EXECINSTR = 4
-SHF_MERGE = 16
-SHF_STRINGS = 32
-SHF_INFO_LINK = 64
-SHF_LINK_ORDER = 128
-SHF_OS_NONCONFORMING = 256
-SHF_GROUP = 512
-SHF_TLS = 1024
-SHF_ORDERED = 1073741824
-SHF_EXCLUDE = 2147483648
+SHF_WRITE            = 0x00000001
+SHF_ALLOC            = 0x00000002
+SHF_EXECINSTR        = 0x00000004
+SHF_MERGE            = 0x00000010
+SHF_STRINGS          = 0x00000020
+SHF_INFO_LINK        = 0x00000040
+SHF_LINK_ORDER       = 0x00000080
+SHF_OS_NONCONFORMING = 0x00000100
+SHF_GROUP            = 0x00000200
+SHF_TLS              = 0x00000400
+SHF_PPC_VLE          = 0x10000000
+SHF_ORDERED          = 0x40000000
+SHF_EXCLUDE          = 0x80000000
+
 
 sh_flags = {
     SHF_WRITE:"Writable",
@@ -635,6 +637,7 @@ sh_flags = {
     SHF_OS_NONCONFORMING:"Non-standard OS specific",
     SHF_GROUP:"Section is member of a group.",
     SHF_TLS:"Section hold thread-local data.",
+    SHF_PPC_VLE:"Section holds PowerPC VLE instructions",
     SHF_ORDERED:"Special ordering",
     SHF_EXCLUDE:"Section is excluded",
 }
@@ -742,38 +745,38 @@ DT_ENCODING = 32
 DT_PREINIT_ARRAY = 32
 DT_PREINIT_ARRAYSZ = 33
 DT_NUM      = 34
-DT_GNU_PRELINKED    = 0x6ffffdf5 
-DT_GNU_CONFLICTSZ   = 0x6ffffdf6 
-DT_GNU_LIBLISTSZ    = 0x6ffffdf7 
-DT_CHECKSUM         = 0x6ffffdf8 
-DT_PLTPADSZ         = 0x6ffffdf9 
-DT_MOVEENT          = 0x6ffffdfa 
-DT_MOVESZ           = 0x6ffffdfb 
-DT_FEATURE_1        = 0x6ffffdfc 
-DT_POSFLAG_1        = 0x6ffffdfd 
-DT_SYMINSZ          = 0x6ffffdfe 
-DT_SYMINENT         = 0x6ffffdff 
-DT_GNU_HASH         = 0x6ffffef5 
-DT_TLSDESC_PLT      = 0x6ffffef6 
-DT_TLSDESC_GOT      = 0x6ffffef7 
-DT_GNU_CONFLICT     = 0x6ffffef8 
-DT_GNU_LIBLIST      = 0x6ffffef9 
-DT_CONFIG           = 0x6ffffefa 
-DT_DEPAUDIT         = 0x6ffffefb 
-DT_AUDIT            = 0x6ffffefc 
-DT_PLTPAD           = 0x6ffffefd 
-DT_MOVETAB          = 0x6ffffefe 
-DT_SYMINFO          = 0x6ffffeff 
-DT_VERSYM           = 0x6ffffff0 
-DT_RELACOUNT        = 0x6ffffff9 
-DT_RELCOUNT         = 0x6ffffffa 
-DT_FLAGS_1          = 0x6ffffffb 
-DT_VERDEF           = 0x6ffffffc 
-DT_VERDEFNUM        = 0x6ffffffd 
-DT_VERNEED          = 0x6ffffffe 
-DT_VERNEEDNUM       = 0x6fffffff 
-DT_AUXILIARY        = 0x7ffffffd 
-DT_FILTER           = 0x7fffffff 
+DT_GNU_PRELINKED    = 0x6ffffdf5
+DT_GNU_CONFLICTSZ   = 0x6ffffdf6
+DT_GNU_LIBLISTSZ    = 0x6ffffdf7
+DT_CHECKSUM         = 0x6ffffdf8
+DT_PLTPADSZ         = 0x6ffffdf9
+DT_MOVEENT          = 0x6ffffdfa
+DT_MOVESZ           = 0x6ffffdfb
+DT_FEATURE_1        = 0x6ffffdfc
+DT_POSFLAG_1        = 0x6ffffdfd
+DT_SYMINSZ          = 0x6ffffdfe
+DT_SYMINENT         = 0x6ffffdff
+DT_GNU_HASH         = 0x6ffffef5
+DT_TLSDESC_PLT      = 0x6ffffef6
+DT_TLSDESC_GOT      = 0x6ffffef7
+DT_GNU_CONFLICT     = 0x6ffffef8
+DT_GNU_LIBLIST      = 0x6ffffef9
+DT_CONFIG           = 0x6ffffefa
+DT_DEPAUDIT         = 0x6ffffefb
+DT_AUDIT            = 0x6ffffefc
+DT_PLTPAD           = 0x6ffffefd
+DT_MOVETAB          = 0x6ffffefe
+DT_SYMINFO          = 0x6ffffeff
+DT_VERSYM           = 0x6ffffff0
+DT_RELACOUNT        = 0x6ffffff9
+DT_RELCOUNT         = 0x6ffffffa
+DT_FLAGS_1          = 0x6ffffffb
+DT_VERDEF           = 0x6ffffffc
+DT_VERDEFNUM        = 0x6ffffffd
+DT_VERNEED          = 0x6ffffffe
+DT_VERNEEDNUM       = 0x6fffffff
+DT_AUXILIARY        = 0x7ffffffd
+DT_FILTER           = 0x7fffffff
 DT_LOOS             = 0x6000000d
 DT_HIOS             = 0x6ffff000
 DT_LOPROC           = 0x70000000
@@ -831,11 +834,11 @@ dt_types = {
     #DT_PROCNUM  : "Most used by any processor ",
 }
 
-DF_ORIGIN =         0x00000001        
-DF_SYMBOLIC =       0x00000002        
-DF_TEXTREL =        0x00000004        
-DF_BIND_NOW =       0x00000008        
-DF_STATIC_TLS =     0x00000010        
+DF_ORIGIN =         0x00000001
+DF_SYMBOLIC =       0x00000002
+DF_TEXTREL =        0x00000004
+DF_BIND_NOW =       0x00000008
+DF_STATIC_TLS =     0x00000010
 
 df_names = { v:k for k,v in globals().items() if k.startswith('DF_')}
 
@@ -896,4 +899,16 @@ osnotes = {
     1:'gnu',
     2:'solaris',
     3:'freebsd',
+}
+
+PF_X       = 0x00000001
+PF_W       = 0x00000002
+PF_R       = 0x00000004
+PF_PPC_VLE = 0x10000000
+
+pf_flags = {
+    PF_X:"Executable",
+    PF_W:"Writable",
+    PF_R:"Readable",
+    PF_PPC_VLE:"PowerPC VLE",
 }

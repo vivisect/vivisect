@@ -1903,10 +1903,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def getFreeMemAddr(self, size, hint=None, align=0x10000, minaddr=0x100000):
         """
-        This returns a base memory address with at least "size" free bytes 
+        This returns a base memory address with at least "size" free bytes
         immediately following.
 
-        If "hint" is provided, address-space at or above that location will 
+        If "hint" is provided, address-space at or above that location will
         be searched first.
 
         This function is used for loader capabilities.

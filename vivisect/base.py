@@ -697,6 +697,19 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.vprint('Workspace was Saved to Server: %s' % wshost)
         self.vprint('(You must close this local copy and work from the server to stay in sync.)')
 
+    def _mcb_PpcVleMaps(self, name, maps):
+        ppc_archs = (
+            envi.ARCH_PPC_E32,
+            envi.ARCH_PPC_E64,
+            envi.ARCH_PPC_S32,
+            envi.ARCH_PPC_S64,
+            envi.ARCH_PPCVLE,
+            envi.ARCH_PPC_D,
+        )
+        for arch in ppc_archs:
+            arch_idx = arch >> 16
+            self.imem_archs[arch_idx].setVleMaps(maps)
+
     def _fmcb_Thunk(self, funcva, th, thunkname):
         # If the function being made a thunk is registered
         # in NoReturnApis, update codeflow...
@@ -717,7 +730,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     '''
     track dynamic branches
     '''
-    # FIXME: do we want to filter anything out?  
+    # FIXME: do we want to filter anything out?
     #  jmp edx
     #  jmp dword [ebx + 68]
     #  call eax
@@ -727,6 +740,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
+    logger.info("0x%x: Dynamic Branch found:  %s" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):

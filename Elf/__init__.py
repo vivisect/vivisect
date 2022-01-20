@@ -499,7 +499,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 self.dyns[dyn.d_tag] = dyn.d_value
             logger.debug('dynamic: %r: 0x%x', dt_names.get(dyn.d_tag), dyn.d_value)
 
-            # DEPRECATED: storing info in both dyns{} and dynamics[].  
+            # DEPRECATED: storing info in both dyns{} and dynamics[].
             # 2019-10-21:  dynamics will go away sometime in the future
             self.dynamics.append(dyn)
             if dyn.d_tag == DT_NULL: # Represents the end
@@ -854,7 +854,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 offset = 0
                 notebyteslen = len(notebytes)
                 while offset < notebyteslen:
-                    note = vs_elf.ElfNote()
+                    note = vs_elf.ElfNote(bigend=self.getEndian())
                     if notebyteslen - offset < len(note):
                         logger.warning("""\nNOTES section length mismatch!\n\t%s
                                        \tSection Bytes: %s\n\tStranded bytes: %s\n""",

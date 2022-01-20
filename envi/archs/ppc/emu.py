@@ -2527,7 +2527,7 @@ class PpcAbstractEmulator(envi.Emulator):
         frB = self.getOperValue(op, 1)
 
         result = frB & ~e_bits.sign_bits[op.opers[0].getWidth(self)]
-        
+
         self.setOperValue(op, 0, result)
         self.setFloatFlags(result, op.iflags, self.psize)
         if op.iflags & IF_RC: self.setFloatCr()
@@ -2667,9 +2667,9 @@ class PpcAbstractEmulator(envi.Emulator):
 
     def i_fnabs(self, op, fpsize=8):
         frB = self.getOperValue(op, 1)
-        
+
         result = frB | e_bits.sign_bits[fpsize]
-        
+
         self.setOperValue(op, 0, result)
         self.setFloatFlags(result, op.iflags, self.psize)
         if op.iflags & IF_RC: self.setFloatCr()
@@ -2678,7 +2678,7 @@ class PpcAbstractEmulator(envi.Emulator):
         frB = self.getOperValue(op, 1)
 
         result = frB ^ 0x8000000000000000
-        
+
         self.setOperValue(op, 0, result)
         self.setFloatFlags(result, op.iflags, self.psize)
         if op.iflags & IF_RC: self.setFloatCr()
@@ -3011,7 +3011,7 @@ class PpcAbstractEmulator(envi.Emulator):
 
 
     ########################## MOVE FROM/TO INSTRUCTIONS ################################
-    
+
     def i_mov(self, op):
         src = self.getOperValue(op, 1)
         self.setOperValue(op, 0, src)
@@ -3690,9 +3690,9 @@ class PpcAbstractEmulator(envi.Emulator):
         asize = op.opers[1].getWidth(self)
 
         ra = self.getOperValue(op, 1)
-        ra ^= e_bits.u_maxes[asize]  # 1's complement        
+        ra ^= e_bits.u_maxes[asize]  # 1's complement
         rb = self.getOperValue(op, 2)
-        
+
         result = ra + rb + ca
 
         self.setOperValue(op, 0, result)

@@ -3,6 +3,10 @@ import envi.archs.ppc as e_ppc
 import vivisect.impemu.emulator as v_i_emulator
 
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 class PpcWorkspaceEmulator(v_i_emulator.WorkspaceEmulator):
 
     taintregs = [x for x in range(13)] + [e_ppc.REG_LR]
@@ -14,6 +18,13 @@ class PpcWorkspaceEmulator(v_i_emulator.WorkspaceEmulator):
         '''
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
 
+        # If there is a PpcVleMaps Meta defined, update the emulator now.
+        # This has to be checked here because the workspace emulators are
+        # created after the metadata events are parsed
+        maps = vw.getMeta('PpcVleMaps')
+        if maps is not None:
+            self.setVleMaps(maps)
+
 
 class Ppc64EmbeddedWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.Ppc64EmbeddedEmulator):
     def __init__(self, vw, **kwargs):
@@ -23,16 +34,6 @@ class Ppc64EmbeddedWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.Ppc64EmbeddedEm
         '''
         e_ppc.Ppc64EmbeddedEmulator.__init__(self)
         PpcWorkspaceEmulator.__init__(self, vw, **kwargs)
-
-    def parseOpcode(self, va, arch=envi.ARCH_PPC_E64):
-        # We can make an opcode *faster* with the workspace because of
-        # getByteDef etc... use it.
-        try:
-            return self.opcache[va]
-        except KeyError:
-            op = e_ppc.Ppc64EmbeddedEmulator.parseOpcode(self, va, arch=arch)
-            self.opcache[va] = op
-            return op
 
 
 class Ppc32EmbeddedWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.Ppc32EmbeddedEmulator):
@@ -44,16 +45,6 @@ class Ppc32EmbeddedWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.Ppc32EmbeddedEm
         e_ppc.Ppc32EmbeddedEmulator.__init__(self)
         PpcWorkspaceEmulator.__init__(self, vw, **kwargs)
 
-    def parseOpcode(self, va, arch=envi.ARCH_PPC_E32):
-        # We can make an opcode *faster* with the workspace because of
-        # getByteDef etc... use it.
-        try:
-            return self.opcache[va]
-        except KeyError:
-            op = e_ppc.Ppc32EmbeddedEmulator.parseOpcode(self, va, arch=arch)
-            self.opcache[va] = op
-            return op
-
 
 class PpcVleWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.PpcVleEmulator):
     def __init__(self, vw, **kwargs):
@@ -63,16 +54,6 @@ class PpcVleWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.PpcVleEmulator):
         '''
         e_ppc.PpcVleEmulator.__init__(self)
         PpcWorkspaceEmulator.__init__(self, vw, **kwargs)
-
-    def parseOpcode(self, va, arch=envi.ARCH_PPCVLE):
-        # We can make an opcode *faster* with the workspace because of
-        # getByteDef etc... use it.
-        try:
-            return self.opcache[va]
-        except KeyError:
-            op = e_ppc.PpcVleEmulator.parseOpcode(self, va, arch=arch)
-            self.opcache[va] = op
-            return op
 
 
 class Ppc64ServerWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.Ppc64ServerEmulator):
@@ -84,16 +65,6 @@ class Ppc64ServerWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.Ppc64ServerEmulat
         e_ppc.Ppc64ServerEmulator.__init__(self)
         PpcWorkspaceEmulator.__init__(self, vw, **kwargs)
 
-    def parseOpcode(self, va, arch=envi.ARCH_PPC_S64):
-        # We can make an opcode *faster* with the workspace because of
-        # getByteDef etc... use it.
-        try:
-            return self.opcache[va]
-        except KeyError:
-            op = e_ppc.Ppc64ServerEmulator.parseOpcode(self, va, arch=arch)
-            self.opcache[va] = op
-            return op
-
 
 class Ppc32ServerWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.Ppc32ServerEmulator):
     def __init__(self, vw, **kwargs):
@@ -103,13 +74,3 @@ class Ppc32ServerWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.Ppc32ServerEmulat
         '''
         e_ppc.Ppc32ServerEmulator.__init__(self)
         PpcWorkspaceEmulator.__init__(self, vw, **kwargs)
-
-    def parseOpcode(self, va, arch=envi.ARCH_PPC_S32):
-        # We can make an opcode *faster* with the workspace because of
-        # getByteDef etc... use it.
-        try:
-            return self.opcache[va]
-        except KeyError:
-            op = e_ppc.Ppc32ServerEmulator.parseOpcode(self, va, arch=arch)
-            self.opcache[va] = op
-            return op

@@ -59,6 +59,14 @@ class PpcDisasm:
         self.fmt = ('<I', '>I')[endian]
 
     def disasm(self, bytez, offset, va):
+        # Ensure that the target address is 4-byte aligned
+        if offset & 0x3:
+            print(hex(offset), len(bytez), bytez[offset:offset+4].hex())
+            raise envi.InvalidAddress(va)
+
+        return self.disasm_booke(bytez, offset, va)
+
+    def disasm_booke(self, bytez, offset, va):
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
         This is the BOOK E PPC Disassembly routine.  Look in vle module for VLE instruction decoding
@@ -69,10 +77,6 @@ class PpcDisasm:
         operands = []
         prefixes = 0
         iflags = 0
-
-        # Ensure that the target address is 4-byte aligned
-        if offset & 0x3:
-            raise envi.InvalidAddress(offset)
 
         ival, = struct.unpack_from(self.fmt, bytez, offset)
         #print(hex(ival))
