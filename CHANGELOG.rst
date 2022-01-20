@@ -2,6 +2,21 @@
 Vivisect Changelog
 ******************
 
+V1.0.7 - 2022-01-13
+===================
+
+Features
+--------
+- More Mach-O structure definitions and parsing support.
+  (`#495 <https://github.com/vivisect/vivisect/pull/495>`_)
+
+Fixes
+-----
+- Tweak how i386 analysis detections calling conventions.
+  (`#493 <https://github.com/vivisect/vivisect/pull/493>`_)
+- Use OptionalHeader.Magic for determining PE32/PE32+.
+  (`#494 <https://github.com/vivisect/vivisect/pull/494>`_)
+
 V1.0.6 - 2022-01-03
 ===================
 
