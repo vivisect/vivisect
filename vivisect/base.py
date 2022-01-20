@@ -359,7 +359,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         va,size,funcva = cb
         self.codeblocks.remove(cb)
         self.codeblocks_by_funcva.get(cb[CB_FUNCVA]).remove(cb)
-        self.blockmap.setMapLookup(va, size, None)
+        self.blockmap.delMapLookup(va)
 
     def _handleADDXREF(self, einfo):
         fromva, tova, reftype, rflags = einfo
