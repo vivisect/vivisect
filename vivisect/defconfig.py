@@ -35,11 +35,12 @@ defconfig = {
             'pointertables':{
                 'table_min_len':4,
             },
-            'switchcase':{
+            'symswitchcase':{
                 'max_instr_count': 10,
                 'max_cases': 500,
                 'case_failure': 5000,
                 'min_func_instr_size': 10,
+                'timeout_secs': 45,
             }
         },
     },

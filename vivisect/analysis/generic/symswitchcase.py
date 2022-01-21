@@ -390,10 +390,10 @@ class SwitchCase:
 
 
         try:
-            self.max_instr_count = vw.config.viv.analysis.switchcase.max_instr_count
-            self.max_cases = vw.config.viv.analysis.switchcase.max_cases
-            self.case_failure = vw.config.viv.analysis.switchcase.case_failure
-            self.min_func_instr_size = vw.config.viv.analysis.switchcase.min_func_instr_size
+            self.max_instr_count = vw.config.viv.analysis.symswitchcase.max_instr_count
+            self.max_cases = vw.config.viv.analysis.symswitchcase.max_cases
+            self.case_failure = vw.config.viv.analysis.symswitchcase.case_failure
+            self.min_func_instr_size = vw.config.viv.analysis.symswitchcase.min_func_instr_size
 
         except AttributeError as e:
             logger.warning('configuration failure, using defaults: %r', e)
@@ -576,17 +576,17 @@ class SwitchCase:
             pathGenFactory = viv_graph.PathGenerator(self._sgraph)
             self._codepathgen = pathGenFactory.getFuncCbRoutedPaths(fva, cbva, 1, timeout=self.timeout)
 
-        self._codepath = self._codepathgen.__next__()
+        self._codepath = next(self._codepathgen)
         contextpath = self._codepath[:-1]
         analpath = self._codepath[-1:]
 
-        self.cspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[contextpath]).__next__()
-        self.aspath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[analpath]).__next__()
+        self.cspath = next(sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[contextpath]))
+        self.aspath = next(sctx.getSymbolikPaths(fva, graph=self._sgraph, args=[], paths=[analpath]))
 
         if len(self.cspath[1]) == 0:
             self.cspath = self.aspath
         
-        self.fullpath = sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[self._codepath]).__next__()
+        self.fullpath = next(sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[self._codepath]))
 
         return self.cspath, self.aspath, self.fullpath
 
@@ -1238,7 +1238,7 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
     vw.setComment(jmpva, "lower: 0x%x, upper: 0x%x" % (lower, upper))
 
 
-def analyzeFunction(vw, fva, timeout=45):
+def analyzeFunction(vw, fva, timeout=None):
     '''
     Function analysis module.
     This is inserted right after codeblock analysis
@@ -1250,6 +1250,10 @@ def analyzeFunction(vw, fva, timeout=45):
     done = vw.getMeta('analyzedDynBranches')
     if done is None:
         done = []
+
+    if not timeout:
+        timeout = vw.config.viv.analysis.symswitchcase.timeout_secs
+        
     
     # because the VaSet is often updated during analysis, we have to check to see if there are new 
     # dynamic branches to analyze.
