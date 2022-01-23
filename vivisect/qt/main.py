@@ -473,10 +473,14 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vw.vprint('%s is ready!' % fname)
 
     @vq_main.workthread
-    def _menuFileSave(self, fullsave=False):
-        self.vw.vprint('Saving workspace...')
+    def _menuFileSave(self, fullsave=False, filename=None):
+        if filename:
+            self.vw.vprint('Saving workspace... (%r)' % filename)
+        else:
+            self.vw.vprint('Saving workspace...')
+
         try:
-            self.vw.saveWorkspace(fullsave=fullsave)
+            self.vw.saveWorkspace(fullsave=fullsave, filename=filename)
         except Exception as e:
             self.vw.vprint(str(e))
         else:
@@ -486,8 +490,9 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         fname = getSaveFileName(self, 'Save As...')
         if fname is None or not len(fname):
             return
+
         self.vw.setMeta('StorageName', fname)
-        self._menuFileSave(fullsave=True)
+        self._menuFileSave(fullsave=True, filename=fname)
 
     def _menuFileSaveServer(self):
         viv_q_remote.saveToServer(self.vw, parent=self)
