@@ -1,8 +1,10 @@
 import envi.common as e_common
 
 import vivisect.parsers as viv_parsers
-import vstruct.defs.macho as vs_macho
 
+import vstruct.defs.macho as vs_macho
+import vstruct.defs.macho.fat as vsm_fat
+import vstruct.defs.macho.const as vsm_const
 
 def parseFile(vw, filename, baseaddr=None):
     with open(filename, 'rb') as f:
@@ -12,6 +14,11 @@ def parseFile(vw, filename, baseaddr=None):
 
 def parseBytes(vw, filebytes, baseaddr=None):
     return _loadMacho(vw, filebytes, baseaddr=baseaddr)
+
+
+def parseMemory(vw, memobj, baseaddr):
+    byts = memobj.read()
+    return _loadMacho(vw, byts, baseaddr=baseaddr)
 
 
 archcalls = {
@@ -45,10 +52,15 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         archlist = []
 
         offset = 0
-        fat = vs_macho.fat_header()
+        fat = vsm_fat.fat_header()
         offset = fat.vsParse(filebytes, offset=offset)
+        if fat.magic in vsm_const.FAT_64:
+            archcon = vsm_fat.fat_arch_64
+        else:
+            archcon = vsm_fat.fat_arch
+
         for i in range(fat.nfat_arch):
-            ar = vs_macho.fat_arch()
+            ar = archcon()
             offset = ar.vsParse(filebytes, offset=offset)
             archname = vs_macho.mach_cpu_names.get(ar.cputype)
             if archname == fatarch:
@@ -99,8 +111,3 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         vw.addLibraryDependancy(libname)
 
     return fname
-
-
-def parseMemory(vw, memobj, baseaddr):
-    # TODO: implement
-    pass

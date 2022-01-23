@@ -632,6 +632,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.server.vprint('%s connecting...' % uname)
         wsevents = self.server.exportWorkspace()
         self.importWorkspace(wsevents)
+        self._snapInAnalysisModules()
         self.server.vprint('%s connection complete!' % uname)
 
         thr = threading.Thread(target=self._clientThread)
@@ -3173,6 +3174,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 0, 5)
+version = (1, 0, 7)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

@@ -157,8 +157,12 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
             d = e_bits.signed(d, 8)
             if d == 0:
                 raise envi.DivideByZero(self)
-            q = val // d
-            r = val % d
+            sign = (val < 0 and d > 0) or (val > 0 and d < 0)
+            q = (abs(val) // abs(d))
+            r = (abs(val) % abs(d))
+            if sign:
+                q = -q
+                r = -r
 
             self.setRegister(REG_RAX, q)
             self.setRegister(REG_RDX, r)

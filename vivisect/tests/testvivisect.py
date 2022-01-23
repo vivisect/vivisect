@@ -1,5 +1,7 @@
 import io
+import os
 import logging
+import tempfile
 import unittest
 
 import envi
@@ -292,11 +294,17 @@ class VivisectTest(v_t_utils.VivTest):
         self.chgrp_vw.canvas.clearCanvas()
 
     def test_cli_memdump(self):
-        self.chgrp_vw.do_memdump('chgrp.plt_strncmp /tmp/memdumptest 16')
-        dumpedmem = open('/tmp/memdumptest', 'rb').read()
-        vwmem = self.chgrp_vw.readMemory(self.chgrp_vw.parseExpression('chgrp.plt_strncmp'), 16) 
-        self.assertEqual(dumpedmem, vwmem)
-        self.chgrp_vw.canvas.clearCanvas()
+        tmpf = tempfile.NamedTemporaryFile(delete=False)
+        try:
+            self.chgrp_vw.do_memdump(f'chgrp.plt_strncmp {tmpf.name} 16')
+            with open(tmpf.name, 'rb') as fd:
+                dumpedmem = fd.read()
+            vwmem = self.chgrp_vw.readMemory(self.chgrp_vw.parseExpression('chgrp.plt_strncmp'), 16)
+            self.assertEqual(dumpedmem, vwmem)
+            self.chgrp_vw.canvas.clearCanvas()
+        finally:
+            tmpf.close()
+            os.unlink(tmpf.name)
 
     def test_cli_names(self):
         self.chgrp_vw.do_names('plt_.*64')
@@ -323,11 +331,17 @@ class VivisectTest(v_t_utils.VivTest):
         self.chgrp_vw.canvas.clearCanvas()
 
     def test_cli_script(self):
-        open('/tmp/vivscript', 'wb').write(b"vw.vprint('doin the do')\nvw.vprint(repr(argv))")
-        self.chgrp_vw.do_script('/tmp/vivscript arg1 arg2 arg3') 
-        output = self.chgrp_vw.canvas.strval
-        self.assertIn("doin the do\n['/tmp/vivscript', 'arg1', 'arg2', 'arg3']", output)
-        self.chgrp_vw.canvas.clearCanvas()
+        tmpf = tempfile.NamedTemporaryFile(delete=False)
+        try:
+            tmpf.write(b"vw.vprint('doin the do')\nvw.vprint(repr(argv))")
+            tmpf.flush()
+            self.chgrp_vw.do_script(f'{tmpf.name} arg1 arg2 arg3')
+            output = self.chgrp_vw.canvas.strval
+            self.assertIn(f"doin the do\n['{tmpf.name}', 'arg1', 'arg2', 'arg3']", output)
+            self.chgrp_vw.canvas.clearCanvas()
+        finally:
+            tmpf.close()
+            os.unlink(tmpf.name)
 
     def test_cli_symboliks(self):
         self.chgrp_vw.do_symboliks('')
@@ -917,7 +931,7 @@ class VivisectTest(v_t_utils.VivTest):
         rloc = vw.addRelocation(0xdeadbeef, v_const.RTYPE_BASEOFF)
         self.assertIsNone(rloc)
 
-        rloc = vw.addRelocation(0x08054184, v_const.RTYPE_BASEPTR)
+        rloc = vw.addRelocation(0x08054184, v_const.RTYPE_BASEPTR, data=0)
         self.assertIsNotNone(rloc)
 
     def test_naughty(self):

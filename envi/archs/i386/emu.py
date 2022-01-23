@@ -1005,14 +1005,19 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         #FIXME this needs emulation testing!
         tsize = op.opers[0].tsize
         if tsize == 1:
-            ax = self.getRegister(REG_AX)
-            ax = e_bits.signed(ax, 2)
+            val = self.getRegister(REG_AX)
+            val = e_bits.signed(val, 2)
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 1)
             if d == 0:
                 raise e_exc.DivideByZero(self)
-            q = ax // d
-            r = ax % d
+            sign = (val < 0 and d > 0) or (val > 0 and d < 0)
+            q = (abs(val) // abs(d))
+            r = (abs(val) % abs(d))
+            if sign:
+                q = -q
+                r = -r
+
             res = ((r & 0xff) << 8) | (q & 0xff)
             self.setRegister(REG_AX, res)
 
@@ -1023,8 +1028,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = e_bits.signed(d, 2)
             if d == 0:
                 raise e_exc.DivideByZero(self)
-            q = val // d
-            r = val % d
+            sign = (val < 0 and d > 0) or (val > 0 and d < 0)
+            q = (abs(val) // abs(d))
+            r = (abs(val) % abs(d))
+            if sign:
+                q = -q
+                r = -r
 
             self.setRegister(REG_AX, q)
             self.setRegister(REG_DX, r)
@@ -1036,8 +1045,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = e_bits.signed(d, 4)
             if d == 0:
                 raise e_exc.DivideByZero(self)
-            q = val // d
-            r = val % d
+            sign = (val < 0 and d > 0) or (val > 0 and d < 0)
+            q = (abs(val) // abs(d))
+            r = (abs(val) % abs(d))
+            if sign:
+                q = -q
+                r = -r
 
             self.setRegister(REG_EAX, q)
             self.setRegister(REG_EDX, r)
