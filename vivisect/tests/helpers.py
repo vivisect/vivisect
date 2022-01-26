@@ -49,7 +49,7 @@ def getTestWorkspace(*paths):
     testdir = os.path.abspath(testdir)
     fpath = os.path.join(testdir, *paths)
     vw = v_cli.VivCli()
-    vw.config.analysis.symswitchcase.timeout_secs = 30
+    vw.config.viv.analysis.symswitchcase.timeout_secs = 30
     vw.loadFromFile(fpath)
     vw.analyze()
     return vw
