@@ -346,7 +346,7 @@ class ThunkReg:
 
         regobj = Const(regval, vw.psize)
         reg = rctx.getRealRegisterName(self.regname)
-        logger.debug("YAY!  thunk_reg is being called! %s\t%s\t%s\t%s", emu, symargs, reg, regobj)
+        logger.debug("thunk_%s is being called! %s\t%s\t%s", reg, emu, symargs, regobj)
         emu.setSymVariable(reg, regobj)
 
 
