@@ -822,6 +822,7 @@ class PathGenerator:
         # preroute
         preRouteGraph(fgraph, fromva, tova)
         reduceGraph(fgraph)
+        clearRouting(fgraph)
 
         # get node weights for reference later
         weights = fgraph.getHierNodeWeights()

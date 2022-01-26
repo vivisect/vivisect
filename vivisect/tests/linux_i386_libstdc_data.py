@@ -10919,7 +10919,7 @@ libstdc_data = {
         (0x2073453, 'thunk_edi_02073453'),
         (0x2073c2f, 'thunk_ecx_02073c2f'),
         (0x2074dde, 'thunk_esi_02074dde'),
-        (0x20760d5, 'thunk_ebp_020760d5'),
+        #(0x20760d5, 'thunk_ebp_020760d5'),     # lost due to limiting time per switchcase
         (0x2072750, 'libstdc___so_6_0.fini_function_0'),
         (0x20727a0, 'libstdc___so_6_0.init_function_0'),
         (0x20727b0, 'libstdc___so_6_0.std::char_traits<char>::eq(char const&, char const&)'),
