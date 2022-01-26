@@ -498,7 +498,6 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if fname is None or not len(fname):
             return
 
-        self.vw.setMeta('StorageName', fname)
         self._menuFileSave(fullsave=True, filename=fname)
 
     def _menuFileSaveServer(self):
