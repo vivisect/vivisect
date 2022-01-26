@@ -474,10 +474,17 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     @vq_main.workthread
     def _menuFileSave(self, fullsave=False, filename=None):
-        if filename:
-            self.vw.vprint('Saving workspace... (%r)' % filename)
-        else:
-            self.vw.vprint('Saving workspace...')
+        if self.vw.server and filename is None:
+            self.vw.vprint("Connected to remote workspace, not saving locally.")
+            self.vw.vprint("Use 'File->Save As' to create a local backup copy of the workspace.")
+            return
+
+        # duplicate filename, since saveWorkspace() with None as the filename
+        # forces a local save
+        fname = filename
+        if not fname:
+            fname = vw.getMeta("StorageName")
+        self.vw.vprint('Saving workspace... (%r)' % fname)
 
         try:
             self.vw.saveWorkspace(fullsave=fullsave, filename=filename)
