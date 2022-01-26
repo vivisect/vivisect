@@ -96,7 +96,7 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
         return self._trackReads
 
     def setupFunctionCall(self, fva, args=None):
-        logger.warning("setupFunctionCall: SKIPPING!")
+        logger.info("setupFunctionCall: SKIPPING!")
         pass
         
     def readSymMemory(self, symaddr, symsize, vals=None):
@@ -920,7 +920,7 @@ class SwitchCase:
         jnode, jemu, jaeffs = self.getSymbolikJmpBlock()
         jmptgt = self.getJmpSymVar()
         if not hasMul(jmptgt.update(jemu)):
-            logger.warning("Skipping: JmpSymVar doesn't have multiplication! (0x%x)", self.jmpva)
+            logger.info("Skipping: JmpSymVar doesn't have multiplication! (0x%x)", self.jmpva)
             return
 
 
@@ -1125,7 +1125,7 @@ def makeNames(vw, jmpva, cases, baseoff=0):
             ## either simply add the new outstrings to the current one or we need to keep track of what
             ## calls each and with what switchcase/index info.  VaSet?  or do we want this to only expect
             ## the same function to call each one, and all part of the same Switchcase?
-            logger.warning("%s is already labeled %s", casename, curname)
+            logger.info("%s is already labeled %s", casename, curname)
 
         vw.makeName(addr, casename)
         logger.info(casename)
