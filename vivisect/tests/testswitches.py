@@ -1690,7 +1690,7 @@ class i386_ld_SwitchTest(unittest.TestCase):
         cur_switches = [x for x, y, z in vw.getVaSetRows('SwitchCases')]
         cur_switches.sort()
         ld_switches.sort()
-        for ls_switch in ld_switches:
+        for ld_switch in ld_switches:
             self.assertIn(ld_switch, cur_switches)
 
         '''
