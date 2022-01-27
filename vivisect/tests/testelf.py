@@ -84,7 +84,7 @@ class ELFTests(unittest.TestCase):
             start = time.time()
             fn = helpers.getTestPath(*path)
             vw = viv_cli.VivCli()
-            vw.config.viv.analysis.symswitchcase.timeout_secs = 10
+            vw.config.viv.analysis.symswitchcase.timeout_secs = 30
             vw.loadFromFile(fn)
 
             do_analyze(vw)
