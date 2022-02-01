@@ -1018,7 +1018,7 @@ class SwitchCase:
 
         except PathForceQuitException as e:
             logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
-            vw.setVaSetRow('SwitchCases_TimedOut', (self.jmpva,) )
+            vw.setVaSetRow('SwitchCases_TimedOut', (self.jmpva, self.timeout) )
 
         except RuntimeError as e:
             if 'StopIteration' in repr(e):
@@ -1272,18 +1272,12 @@ def analyzeFunction(vw, fva, timeout=None):
                     #   be part of multiple functions.
                     continue
 
-                if vw.getVaSetRow('SwitchCases', jmpva) is not None:
-                    logger.info("...skipping 0x%x - SwitchCases already has it?", jmpva)
-                    continue
-
                 if jmpva in done:
                     logger.info("...skipping 0x%x - already done", jmpva)
                     continue
-                done.append(jmpva)
 
-                sc = SwitchCase(vw, jmpva, timeout)
-                sc.analyze()
-                
+                done.append(jmpva)
+                analyzeJmp(vw, jmpva, timeout)
             except:
                 logger.info('Exception processing SwitchCase in function 0x%x', fva, exc_info=1)
 
@@ -1291,6 +1285,19 @@ def analyzeFunction(vw, fva, timeout=None):
     vw.setMeta('analyzedDynBranches', done)
     # TODO: we need a better way to store changing lists/dicts, that don't show up in the UI.  VaSet would be great, but ugly
 
+def analyzeJmp(vw, jmpva, timeout=None):
+    if vw.getVaSetRow('SwitchCases', jmpva) is not None:
+        logger.info("...skipping 0x%x - SwitchCases already has it?", jmpva)
+        return
+
+    if vw.getVaSetRow('SwitchCases_TimedOut', jmpva) is not None:
+        logger.warning("Reanalyzing TimedOut SwitchCase: 0x%x (timeout=%r secs)", jmpva, timeout)
+        logger.debug("Removing 0x%x from VaSet SwitchCases_TimedOut", jmpva)
+        vw.delVaSetRow('SwitchCases_TimedOut', jmpva)
+
+    sc = SwitchCase(vw, jmpva, timeout)
+    sc.analyze()
+                
 
 def pathGenConvert(pathgen):
     '''
