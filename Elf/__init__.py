@@ -878,6 +878,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             if note.name == b'GNU\x00' and note.ntype == 1:
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0, 'unknown')
+            elif note.name == b'OpenBSD\x00' and note.ntype == 1:
+                return 'openbsd'
 
         if self.getSection('QNX_info'):
             return 'qnx'

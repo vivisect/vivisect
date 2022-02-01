@@ -61,7 +61,6 @@ class PpcDisasm:
     def disasm(self, bytez, offset, va):
         # Ensure that the target address is 4-byte aligned
         if offset & 0x3:
-            print(hex(offset), len(bytez), bytez[offset:offset+4].hex())
             raise envi.InvalidAddress(va)
 
         return self.disasm_booke(bytez, offset, va)
@@ -79,10 +78,7 @@ class PpcDisasm:
         iflags = 0
 
         ival, = struct.unpack_from(self.fmt, bytez, offset)
-        #print(hex(ival))
-
         key = ival >> 26
-        #print(hex(key))
 
         group = self._instr_dict.get(key)
         if not group:
@@ -673,7 +669,6 @@ def form_D(disasm, va, ival, opcode, operands, iflags):
     if len(operands) == 3 and operands[2][1] == FIELD_D:
         # let's figure out what *memory size* the operand uses
         tsize = tsizes_formD.get(opcode)
-        #print("DBG: 0x%x:   FORM_D: opcode: 0x%x    tsize=%r" % (va, opcode, tsize))
         oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
         oper1 = PpcMemOper(opvals[1], opvals[2], va, tsize=tsize)
         opers =(oper0, oper1)

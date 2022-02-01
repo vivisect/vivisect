@@ -108,7 +108,7 @@ class PpcInstructionSet(unittest.TestCase):
                     raise Exception( "Funkt up Setting: (%r: %r test#%d)  %s = 0x%x" % (opbytes, op, tidx, tgt, val) )
 
         op = emu.archParseOpcode(unhexlify(opbytes), 0, va=va)
-        print("0x%x:  %r" % (op.va, op))
+        logger.debug("0x%x:  %r",op.va, op)
 
         emu.executeOpcode(op)
 
@@ -259,8 +259,8 @@ class PpcInstructionSet(unittest.TestCase):
     def run_one_test(self, archname, test_bytes, test):
         vw, emu, sctx = getVivEnv(archname)
         ngoodemu, nbademu, _ = self.do_emutsts(emu, test_bytes, test)
-        print('good: %d' % ngoodemu)
-        print('bad: %d' % nbademu)
+        logger.debug('good: %d', ngoodemu)
+        logger.debug('bad: %d', nbademu)
 
     def do_envi_emu(self, archname, emu_module):
         bademu = 0
@@ -269,7 +269,6 @@ class PpcInstructionSet(unittest.TestCase):
 
         vw, emu, sctx = getVivEnv(archname)
 
-        print()
         total_tests = sum(len(t) for t in emu_module.emutests.values())
         for test_bytes, emutests in emu_module.emutests.items():
             try:
@@ -316,7 +315,7 @@ class PpcInstructionSet(unittest.TestCase):
                 emumask = eape.MASK(x, y)
 
                 symmask = vsap.MASK(vsap.Const(x, 8), vsap.Const(y, 8))
-                #print(hex(emumask), repr(symmask), symmask)
+                logger.debug('%#x, %r, %s', emumask, symmask, symmask)
 
 
                 self.assertEqual(emumask, symmask.solve(), 'MASK({}, {}): {} != {}'.format(x, y, emumask, symmask.solve()))
@@ -1605,7 +1604,7 @@ class PpcInstructionSet(unittest.TestCase):
             if sprname in spr_name_lookup:
                 dupnum = spr_name_lookup[sprname]
                 dupname = eaps.sprnames[dupnum].upper()
-                print('SPR[%d]: %s ([%d]: %s)' % (sprnum, sprname, dupnum, dupname))
+                logger.debug('SPR[%d]: %s ([%d]: %s)', sprnum, sprname, dupnum, dupname)
 
             self.assertTrue(sprname not in spr_name_lookup)
 

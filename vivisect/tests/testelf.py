@@ -21,6 +21,7 @@ from vivisect.tests import linux_i386_libstdc_data
 from vivisect.tests import linux_arm_sh_data
 from vivisect.tests import qnx_arm_ksh_data
 from vivisect.tests import openbsd_amd64_ls_data
+from vivisect.tests import raw_ppc_booke_vle_test_data
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,8 @@ class ELFTests(unittest.TestCase):
             ("linux_arm_sh", linux_arm_sh_data.sh_data, ('linux', 'arm', 'sh'),),
             ("qnx_arm_ksh", qnx_arm_ksh_data.ksh_data, ('qnx', 'arm', 'ksh'),),
             ("openbsd_amd64_ls", openbsd_amd64_ls_data.ls_amd64_data, ('openbsd', 'ls.amd64'),),
-            )
+            ("raw_ppc_booke_vle_test", raw_ppc_booke_vle_test_data.ppc_booke_vle_test_data, ('raw', 'ppc', 'test_booke_vle.elf'),),
+        )
 
     def test_files(self):
         results = []
@@ -106,7 +108,7 @@ class ELFTests(unittest.TestCase):
                     logger.error('%s:  %s: missing: %r   new: %r (%r)', fname, testname, failed_old, failed_new, fname)
 
         self.assertEqual(failed, 0, msg="ELF Tests Failed (see error log)")
-   
+
     def do_check_elfplt(self, vw):
         # Test ELFPLT entries to be uniform and all functions created
         for pltva, pltsz in vaeep.getPLTs(vw):
@@ -130,7 +132,7 @@ class ELFTests(unittest.TestCase):
             for va in curplts:
                 delta = va - last
                 last = va
-                
+
                 logger.info("PLTVA: 0x%x  va: 0x%x   delta: 0x%x", pltva, va, delta)
                 if delta == 0:
                     # it's the first entry, skip
@@ -212,6 +214,13 @@ class ELFTests(unittest.TestCase):
 
         testnames = [ntup for ntup in genNames(vw.getNames(), vw.getFiles())]
         results['names']   = self.check_vw_data('names', test_data['names'], testnames, 0)
+
+        if 'metas' in test_data:
+            testmetas = []
+            for meta_name, meta_test in test_data['metas']:
+                testmetas.append((meta_name, vw.getMeta(meta_name)))
+            results['metas'] = self.check_vw_data('metas', test_data['metas'], testmetas, 0)
+
         # pltgot needs actual assertions
         # results['pltgot'] = self.pltgot(vw, test_data)
         return results

@@ -162,6 +162,17 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
     def isVle(self, va):
         return bool(self._vle_pages.get(va & self._page_mask, False))
 
+    def archModifyFuncAddr(self, va, info):
+        if self.isVle(va):
+            return va, {'arch' : envi.ARCH_PPCVLE}
+        return va, info
+
+    def archModifyXrefAddr(self, tova, reftype, rflags):
+        # The ref type and flags do not need to change regardless of if tova is
+        # in a VLE page or not
+        return tova, reftype, rflags
+
+
 class Ppc32EmbeddedModule(Ppc64EmbeddedModule):
     def __init__(self, mode=32, archname='ppc32-embedded'):
         Ppc64EmbeddedModule.__init__(self, mode=mode, archname=archname)

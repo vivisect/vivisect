@@ -1063,7 +1063,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         if bytez[offset+count] != 0:
                             # we probably hit a case where the string at the lower va is
                             # technically the start of the full string, but the binary does
-                            # some optimizations and just ref's inside the full string to save 
+                            # some optimizations and just ref's inside the full string to save
                             # some space
                             return count + loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
@@ -1889,8 +1889,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             va = self.getFreeMemAddr(msize)
 
         self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes, align))
-        return va
-
 
         # since we don't return anything from _fireEvent(), pull the new info:
         mva, msz, mperm, mbytes = self.getMemoryMap(va)
