@@ -81,10 +81,10 @@ class StabilityTests(unittest.TestCase):
                 newonly.append(loc)
 
         if baseonly:
-            self.fail("[%s : %s] Analysis removed some locations. Here's the ones that got removed: %s" % (file, name, baseonly))
+            self.fail("[%s : %s] Analysis removed some items. Here's the ones that got removed: %s" % (file, name, baseonly))
 
         if newonly:
-            self.fail("[%s : %s] Analysis added some locations. Here's the new ones: %s" % (file, name, newonly))
+            self.fail("[%s : %s] Analysis added some items. Here's the new ones: %s" % (file, name, newonly))
 
     def _get_strtype(self, base):
         retn = []

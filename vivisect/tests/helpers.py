@@ -4,6 +4,8 @@ import functools
 
 import vivisect.cli as v_cli
 
+import gc
+gc.set_threshold(30, 10, 10)
 
 class MockVw(object):
     def __init__(self, *args, **kwargs):
