@@ -107,6 +107,10 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKeyTarget('file:open', self._menuFileOpen)
         self.addHotKey('ctrl+s', 'file:save')
         self.addHotKeyTarget('file:save', self._menuFileSave)
+        self.addHotKey('ctrl+meta+S', 'file:saveas')
+        self.addHotKeyTarget('file:saveas', self._menuFileSaveAs)
+        self.addHotKey('ctrl+meta+C', 'file:connecttoserver')
+        self.addHotKeyTarget('file:connecttoserver', self._menuShareConnectServer)
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
 
