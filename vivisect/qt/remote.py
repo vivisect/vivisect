@@ -6,6 +6,7 @@ import vqt.tree as vq_tree
 import envi.threads as e_threads
 import cobra.remoteapp as c_remoteapp
 import vivisect.remote.server as viv_server
+import vivisect.qt.funcgraph as v_q_funcgraph
 
 from vqt.basics import *
 
@@ -154,6 +155,9 @@ def selectServerWorkspace(vw, server, workspaces, parent=None):
 def loadServerWorkspace(oldvw, server, workspace):
     oldvw.vprint('Loading Workspace: %s' % workspace)
     vw = viv_server.getServerWorkspace(server, workspace)
+    # reset the FunctionGraph Counter
+    v_q_funcgraph.reset()
+
     import vivisect.qt.main as viv_q_main
     viv_q_main.runqt(vw, closeme=oldvw.getVivGui())
 

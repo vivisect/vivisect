@@ -121,7 +121,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         [%d, %d]
         ''' % (selector, selector, va, size)
         runner = functools.partial(self._renderMemoryCallback, cb)
-        logger.log(e_cmn.MIRE, "renderMemory(%r, %r) %r", va, cb, runner)
+        logger.log(MIRE, "renderMemory(%r, %r) %r", va, cb, runner)
         self.page().runJavaScript(js, runner)
 
     def contextMenuEvent(self, event):
