@@ -27,6 +27,7 @@ from vqt.main import idlethread, eatevents, workthread, vqtevent
 
 from vqt.common import *
 from vivisect.const import *
+from envi.common import MIRE
 
 class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
     paintUp = pyqtSignal()
@@ -120,6 +121,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         [%d, %d]
         ''' % (selector, selector, va, size)
         runner = functools.partial(self._renderMemoryCallback, cb)
+        logger.log(e_cmn.MIRE, "renderMemory(%r, %r) %r", va, cb, runner)
         self.page().runJavaScript(js, runner)
 
     def contextMenuEvent(self, event):
@@ -155,6 +157,8 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.page().runJavaScript(f'window.scroll({x}, {y})')
         eatevents()
 
+def reset():
+    VQVivFuncgraphView.viewidx = itertools.count()
 
 class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidget, vq_save.SaveableWidget, viv_base.VivEventCore):
     _renderDoneSignal = pyqtSignal()
