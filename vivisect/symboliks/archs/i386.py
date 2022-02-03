@@ -1350,6 +1350,26 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_sf', lt(res, zero))
         self.effSetVariable('eflags_eq', eq(res, zero))
 
+    def i_shld(self, op):
+        dsize = op.opers[0].tsize
+        v1 = self.getOperObj(op, 0)
+        v2 = self.getOperObj(op, 1)
+        v3 = self.getOperObj(op, 2)
+        zero = Const(0, self._psize)
+
+        res = (v1 << v3) | (v2 >> (Const(self._psize * 8, self._psize) - v3))
+
+        # No effect (not even flags) if shift is 0
+        if v2.isDiscrete() and v2.solve() == 0:
+            return
+
+        self.setOperObj(op, 0, res)
+
+        self.effSetVariable('eflags_gt', gt(res, zero))
+        self.effSetVariable('eflags_lt', lt(res, zero))
+        self.effSetVariable('eflags_sf', lt(res, zero))
+        self.effSetVariable('eflags_eq', eq(res, zero))
+
     def i_shr(self, op):
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
@@ -1367,6 +1387,33 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
                 self.effSetVariable('eflags_of', msb)
 
         res = v1 >> v2
+        self.setOperObj(op, 0, res)
+        self.effSetVariable('eflags_gt', gt(res, zero))
+        self.effSetVariable('eflags_lt', lt(res, zero))
+        self.effSetVariable('eflags_sf', lt(res, zero))
+        self.effSetVariable('eflags_eq', eq(res, zero))
+
+    def i_shrd(self, op):
+        dsize = op.opers[0].tsize
+        v1 = self.getOperObj(op, 0)
+        v2 = self.getOperObj(op, 1)
+        v3 = self.getOperObj(op, 2)
+        zero = Const(0, self._psize)
+
+        #res = (v1 | (v2 << Const(8*dsize, self._psize))) >> v3
+        res = (v1 >> v3) | (v2 << (Const(self._psize * 8, self._psize) - v3))
+
+        # No effect (not even flags) if shift is 0
+        if v3.isDiscrete():
+            bit = v3.solve()
+            if bit == 0:
+                return
+            elif bit == 1:
+                tsize = v1.getWidth()
+                power = o_pow(Const(2, tsize), Const(tsize - 1, self._psize), self._psize)
+                msb = o_div((v1 & power), power, v1.getWidth())
+                self.effSetVariable('eflags_of', msb)
+
         self.setOperObj(op, 0, res)
         self.effSetVariable('eflags_gt', gt(res, zero))
         self.effSetVariable('eflags_lt', lt(res, zero))
