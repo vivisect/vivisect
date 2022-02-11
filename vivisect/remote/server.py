@@ -92,7 +92,7 @@ class VivServer:
     @e_threads.maintthread(1)
     def _maintThread(self):
 
-        for chan in self.chandict.keys():
+        for chan in list(self.chandict.keys()):
             chaninfo = self.chandict.get(chan)
             # NOTE: double check because we're lock free...
             if chaninfo is None:
@@ -109,7 +109,7 @@ class VivServer:
 
     @e_threads.maintthread(30)
     def _saveWorkspaceThread(self):
-        for wsinfo in self.wsdict.values():
+        for wsinfo in list(self.wsdict.values()):
             lock, path, events, users = wsinfo
             if events:
                 with lock:
@@ -149,7 +149,7 @@ class VivServer:
     def _loadWorkspaces(self):
 
         # First, ditch any that are missing
-        for wsname in self.wsdict.keys():
+        for wsname in list(self.wsdict.keys()):
             wsinfo = self.wsdict.get(wsname)
             if not os.path.isfile(wsinfo[1]):
                 self.wsdict.pop(wsname, None)
