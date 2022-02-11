@@ -1400,7 +1400,6 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         v3 = self.getOperObj(op, 2)
         zero = Const(0, self._psize)
 
-        #res = (v1 | (v2 << Const(8*dsize, self._psize))) >> v3
         res = (v1 >> v3) | (v2 << (Const(self._psize * 8, self._psize) - v3))
 
         # No effect (not even flags) if shift is 0
