@@ -1561,7 +1561,6 @@ class VivisectTest(v_t_utils.VivTest):
             self.len(self.chown_vw.getXrefsTo(0x20028a0), 2)
 
     def test_string_naming(self):
-        with self.snap(self.chown_vw) as vw:
-            # string naming should not chop off the last character
-            self.assertEqual(vw.getName(0x0200c050), 'str_ownership of %s _0200c050')
+        # string naming should not chop off the last character
+        self.assertEqual(self.chown_vw.getName(0x0200c050), 'str_ownership of %s _0200c050')
 
