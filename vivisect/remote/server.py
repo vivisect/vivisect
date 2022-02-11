@@ -196,7 +196,7 @@ class VivServer:
             if not event & VTE_MASK:
                 pevents.append(evtup)
             # SPEED HACK
-            [q.append(evtup) for (chan, q) in users.items() if chan != skip]
+            [q.append(evtup) for (chan, q) in list(users.items()) if chan != skip]
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
