@@ -2621,13 +2621,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(VWE_SETNAME, (va,name))
         return name
 
-    def saveWorkspace(self, fullsave=True):
+    def saveWorkspace(self, fullsave=True, filename=None):
 
-        if self.server is not None:
+        if self.server is not None and not filename:
             return
 
+        # prefer our arg filename if provided
+        if not filename:
+            filename = self.getMeta("StorageName")
+
         modname = self.getMeta("StorageModule")
-        filename = self.getMeta("StorageName")
         if modname is None:
             raise Exception("StorageModule not specified!")
         if filename is None:
