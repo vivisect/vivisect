@@ -1351,10 +1351,11 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_eq', eq(res, zero))
 
     def i_shld(self, op):
+        shiftmask = (0x1f, 0x3f)[bool(op.prefixes & PREFIX_REX_W)]
         dsize = op.opers[0].tsize
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
-        v3 = self.getOperObj(op, 2)
+        v3 = self.getOperObj(op, 2) & Const(shiftmask, self._psize)
         zero = Const(0, self._psize)
 
         res = (v1 << v3) | (v2 >> (Const(self._psize * 8, self._psize) - v3))
@@ -1394,10 +1395,11 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('eflags_eq', eq(res, zero))
 
     def i_shrd(self, op):
+        shiftmask = (0x1f, 0x3f)[bool(op.prefixes & PREFIX_REX_W)]
         dsize = op.opers[0].tsize
         v1 = self.getOperObj(op, 0)
         v2 = self.getOperObj(op, 1)
-        v3 = self.getOperObj(op, 2)
+        v3 = self.getOperObj(op, 2) & Const(shiftmask, self._psize)
         zero = Const(0, self._psize)
 
         res = (v1 >> v3) | (v2 << (Const(self._psize * 8, self._psize) - v3))
