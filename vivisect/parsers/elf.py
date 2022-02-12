@@ -591,7 +591,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             except Exception as e:
                 logger.warning("%s" % str(e))
 
-        if s.st_info == Elf.STT_FUNC:
+        if s.getInfoType() == Elf.STT_FUNC:
             new_functions.append(("STT_FUNC", sva))
 
     if addbase:

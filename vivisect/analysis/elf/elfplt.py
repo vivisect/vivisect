@@ -170,22 +170,22 @@ def getPLTs(vw):
     for fname in vw.getFiles():
         fdyns = vw.getFileMeta(fname, 'ELF_DYNAMICS')
         if fdyns is not None:
-            FPLT = fdyns.get('DT_JMPREL')
-            FPLTSZ = fdyns.get('DT_PLTRELSZ')
-            if FPLT is None:
+            FGOT = fdyns.get('DT_JMPREL')
+            FGOTSZ = fdyns.get('DT_PLTRELSZ')
+            if None in (FGOT, FGOTSZ):
                 continue
 
             if vw.getFileMeta(fname, 'addbase'):
                 imgbase = vw.getFileMeta(fname, 'imagebase')
                 logger.debug('Adding Imagebase: 0x%x', imgbase)
-                FPLT += imgbase
+                FGOT += imgbase
 
             newish = True
             for pltva, pltsize in plts:
-                if FPLT == pltva:
+                if FGOT == pltva:
                     newish = False
-            if newish:
-                plts.append((FPLT, FPLTSZ))
+            if newish and FGOT and FGOTSZ:
+                plts.append((FGOT, FGOTSZ))
 
     return plts
 
