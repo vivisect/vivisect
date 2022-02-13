@@ -21,7 +21,7 @@ ARCH_AMD64       = 2 << 16
 ARCH_ARMV7       = 3 << 16
 ARCH_THUMB16     = 4 << 16
 ARCH_THUMB       = 5 << 16
-ARCH_AARCH64     = 6 << 16
+ARCH_A64         = 6 << 16
 ARCH_MSP430      = 7 << 16
 ARCH_H8          = 8 << 16
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
@@ -30,7 +30,7 @@ arch_names = {
     ARCH_DEFAULT:   'default',
     ARCH_I386:      'i386',
     ARCH_AMD64:     'amd64',
-    ARCH_AARCH64:   'a64',
+    ARCH_A64:       'a64',
     ARCH_ARMV7:     'arm',
     ARCH_THUMB16:   'thumb16',
     ARCH_THUMB:     'thumb',
@@ -42,7 +42,8 @@ arch_by_name = {
     'default':  ARCH_DEFAULT,
     'i386':     ARCH_I386,
     'amd64':    ARCH_AMD64,
-    'a64':      ARCH_AARCH64,
+    'a64':      ARCH_A64,
+    'aarch64':  ARCH_A64,
     'arm':      ARCH_ARMV7,
     'armv6l':   ARCH_ARMV7,
     'armv7l':   ARCH_ARMV7,

@@ -7014,7 +7014,7 @@ class A64ExtendOper(A64Operand):
 
 
 class A64Opcode(envi.Opcode):
-    _def_arch = envi.ARCH_AARCH64
+    _def_arch = envi.ARCH_A64
 
     def __init__(self, va, opcode, mnem, prefixes, size, operands, iflags=0, simdflags=0):
         """
@@ -7092,7 +7092,7 @@ class A64Opcode(envi.Opcode):
 
 class A64Disasm:
     #weird thing in envi/__init__. Figure out later
-    _optype = envi.ARCH_AARCH64
+    _optype = envi.ARCH_A64
     _opclass = A64Opcode
     fmt = None
     #This holds the current running Arm instruction version and mask

@@ -75,7 +75,7 @@ EM_ARC_A5 = 93
 EM_XTENSA = 94
 EM_NUM = 95
 EM_MSP430 = 105
-EM_ARM_AARCH64 = 183
+EM_ARM_A64 = 183
 EM_ALPHA = 0x9026
 
 # There are plenty more of these to
@@ -90,7 +90,7 @@ e_machine_64 =  (
                 EM_PPC64,
                 EM_SPARCV9,
                 EM_X86_64,
-                EM_ARM_AARCH64,
+                EM_ARM_A64,
                 )
                 
 ELFCLASSNONE = 0
@@ -177,7 +177,7 @@ e_machine_types = {
     EM_ARC_A5:"ARC Cores Tangent-A5",
     EM_XTENSA:"Tensilica Xtensa Architecture",
     EM_NUM:"",
-    EM_ARM_AARCH64:"ARM aarch64",
+    EM_ARM_A64:"ARM a64",
     EM_ALPHA:"",
 }
 
