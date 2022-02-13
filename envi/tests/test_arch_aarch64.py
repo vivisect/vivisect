@@ -8,7 +8,6 @@ from binascii import unhexlify
 
 
 instrs = [
-
 #Data processing immediate
 
     # PC-release addressing

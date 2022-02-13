@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # calling conventions
 
 ## NO FREAKING CLUE YET....
-class Aarch64ArchitectureProcedureCall(envi.CallingConvention):
+class A64Call(envi.CallingConvention):
     arg_def = [(CC_REG, REG_X0), (CC_REG, REG_X1), (CC_REG, REG_X2),
                 (CC_REG, REG_X3), (CC_STACK_INF, 4),]
     retaddr_def = (CC_REG, REG_X14)
@@ -33,7 +33,7 @@ class Aarch64ArchitectureProcedureCall(envi.CallingConvention):
     align = 8
     pad = 0
 
-aapcs = Aarch64ArchitectureProcedureCall()
+a64call = A64Call()
 ###
 
 
@@ -136,7 +136,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 
         A64RegisterContext.__init__(self)
 
-        self.addCallingConvention("aarch64call", aapcs)
+        self.addCallingConvention("a64call", a64call)
 
     def undefFlags(self):
         """
