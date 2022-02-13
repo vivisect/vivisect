@@ -129,7 +129,7 @@ def p_udf(opval, va):
     p_undef(opval, va)
 
 
-def p_pc_addr(opval,va):
+def p_pc_addr(opval, va):
     '''
     Get the A64Opcode parameters for a PC release address instruction
     '''
@@ -147,7 +147,7 @@ def p_pc_addr(opval,va):
         iflag = 0
     olist = (
         A64RegOper(rd, va=va, size=8),
-        A64ImmOper((immhi + immlo), va=va)
+        A64ImmOper((immhi + immlo) + va, va=va)
     )
 
 
@@ -355,7 +355,9 @@ def p_branch_uncond_imm(opval, va):
     Get the parameters for an A64Opcode for a Branch Unconditional (immediate) instruction
     '''
     op = opval >> 31
-    imm26 = opval & 0x3ffffffff
+    imm26 = opval & 0x3ffffff
+    imm26 = e_bits.bsign_extend(imm26, 26, 32)
+
     #determines mnemonic
     if op == 0:
         mnem = 'b'
@@ -365,7 +367,7 @@ def p_branch_uncond_imm(opval, va):
         opcode = INS_BL
         
     olist = (
-        A64ImmOper(imm26*0x100, va=va),
+        A64ImmOper((imm26*0b100) + va, va=va),
     )
 
     return opcode, mnem, olist, 0, 0
@@ -6897,7 +6899,7 @@ class A64RegOper(A64Operand, envi.RegisterOper):
             mcanv.addNameText(name, typename="registers")
         else:
             name = rctx.getRegisterName(self.reg)
-            rname = rctx.getRegisterName(self.reg&RMETA_NMASK)
+            rname = rctx.getRegisterName(self.reg & envi.RMETA_NMASK)
             mcanv.addNameText(name, name=rname, typename="registers")
 
 
@@ -6920,8 +6922,6 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
 
     def repr(self, op):
         ival = self.getOperValue(op)
-        if self.tsize == 6:
-            return "0x%.4x:0x%.8x" % (ival>>32, ival&0xffffffff)
         if ival > 4096:
             return "0x%.8x" % ival
         return str(ival)
@@ -6937,14 +6937,13 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
                 mcanv.addVaText(hint, value)
             else:
                 mcanv.addNameText(hint)
+
         elif mcanv.mem.isValidPointer(value):
             name = addrToName(mcanv, value)
             mcanv.addVaText(name, value)
-        else:
 
-            if self.tsize == 6:
-                mcanv.addNameText("0x%.4x:0x%.8x" % (value>>32, value&0xffffffff))
-            elif value >= 4096:
+        else:
+            if value >= 4096:
                 mcanv.addNameText('0x%.8x' % value)
             else:
                 mcanv.addNameText(str(value))
@@ -7046,6 +7045,22 @@ class A64Opcode(envi.Opcode):
             x.append(op.repr(self))
         return self.mnem + " " + ", ".join(x)
 
+    def render(self, mcanv):
+        """
+        Render this opcode to the specified memory canvas
+        """
+        mcanv.addNameText(self.mnem, typename="mnemonic")
+        mcanv.addText(" ")
+
+        # Allow each of our operands to render
+        imax = len(self.opers)
+        lasti = imax - 1
+        for i in range(imax):
+            oper = self.opers[i]
+            oper.render(mcanv, self, i)
+            if i != lasti:
+                mcanv.addText(",")
+
     def getBranches(self, emu=None):
         """
         Return a list of tuples.  Each tuple contains the target VA of the
@@ -7102,7 +7117,6 @@ class A64Disasm:
     def __init__(self, endian=ENDIAN_MSB, mask = 'a64'):
         self.setArchMask(mask)
         self.setEndian(endian)
-
 
     def setArchMask(self, key = 'ARMv8R'):
         ''' set arch version mask '''
@@ -7166,7 +7180,7 @@ class A64Disasm:
         therefore calling ienc_parsers[enc](opval, va+8) calls the corresponding function with parameters
         opval and va+8
         '''
-        opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va+8)
+        opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va)
         return opcode, mnem, olist, flags, simdflags
 
 ######## helper functions #########
