@@ -134,20 +134,26 @@ def p_pc_addr(opval, va):
     Get the A64Opcode parameters for a PC release address instruction
     '''
     op = opval >> 31
-    rd = opval & 0xf
-    immhi = opval >> 5 & 0x3ffff
+    rd = opval & 0x1f
+    immhi = opval >> 3 & 0xffffc
     immlo = opval >> 29 & 0x3
+
     #Both instructions share the mnemonic 'adr', but if op == 1
-    #then mnemonic becomes 'adrp' via iflag IF_P
-    mnem = 'adr'
-    opcode = INS_ADR
-    if op == 1:
-        iflag = IF_P
-    else:
-        iflag = 0
+    #then mnemonic becomes 'adrp'
+    mnem, opcode = (('adr', INS_ADR), ('adrp', INS_ADRP))[op]
+    iflag = 0
+
+    base = va
+    imm = (immhi + immlo)
+    if op:
+        imm <<= 12
+        base &= 0xfffff000
+
+    imm = e_bits.sign_extend(imm, 4, 8)
+
     olist = (
         A64RegOper(rd, va=va, size=8),
-        A64ImmOper((immhi + immlo) + va, va=va)
+        A64ImmOper(base + imm)
     )
 
 
@@ -682,6 +688,9 @@ def p_ls_excl(opval, va):
     rt2 = opval >> 10 & 0x1f
     rn = opval >> 5 & 0x1f
     rt = opval & 0x1f
+
+    # FIXME: sort this out to reduce string concat and clarify INS_* values
+
     #all mnemonics are some variation on 'st' or 'ld'
     #if l is 0, mnemonic is 'st' and it's possible the IF_L iflag could be assigned
     #otherwise, mnemonic is 'ld' and it's possible the IF_A iflag could be assigned
@@ -705,6 +714,7 @@ def p_ls_excl(opval, va):
         iflag |= IF_R
     else:
         iflag |= IF_P
+
     #all instructions with size equal to 0 have a B added to the mnem,
     #otherwise, all instructions with size equal to 1 have a H added to mnem
     #otherwise, nothing
@@ -1085,9 +1095,10 @@ def p_ls_reg_imm(opval, va):
     size = opval >> 30 & 0x3
     v = opval >> 26 & 0x1
     opc = opval >> 22 & 0x3
-    imm9 = opval >> 12 & 0x1ff
+    imm9 = opval >> 10 & 0x7fc
     rn = opval >> 5 & 0x1f
     rt = opval & 0x1f
+
     if v == 0b0:
         if opc == 0b00:
             mnem = 'str'
@@ -1095,40 +1106,48 @@ def p_ls_reg_imm(opval, va):
         else:
             mnem = 'ldr'
             opcode = INS_LDR
+
         if opc == 0b10 or opc == 0b11:
             iflag |= IF_S
             if size == 0b10:
                 iflag |= IF_W
+
         if size == 0b00:
             iflag |= IF_B
         elif size == 0b01:
             iflag |= IF_H
+
         if opc == 0b10 or size == 0b11:
             regsize = 8
         else:
             regsize = 4
+
     else:
-        if opc == 0b00 or opc == 0b10:
+        if opc in (0b00, 0b10):
             mnem = 'str'
             opcode = INS_STR
         else:
             mnem = 'ldr'
             opcode = INS_LDR
+
         if size == 0b00:
             if opc == 0b00 or opc == 0b01:
                 regsize = 8
             else:
                 regsize = 16
+
         elif size == 0b01:
             regsize = 16
+
         elif size == 0b10:
             regsize = 4
+
         else:
             regsize = 8
+
     olist = (
         A64RegOper(rt, va, size=regsize),
-        A64RegOper(rn, va, size=8),
-        A64ImmOper(imm9, va=va),
+        A64RegImmOffOper(rn, imm9, tsize=8, va=va), # mode?
     )
 
     return opcode, mnem, olist, iflag, 0
@@ -1229,6 +1248,7 @@ def p_ls_reg_us_imm(opval, va):
     imm12 = opval >> 10 & 0xfff
     rn = opval >> 5 & 0x1f
     rt = opval & 0x1f
+    tsize = 8
     if v == 0b0:
         if opc == 0b00:
             mnem = 'str'
@@ -1240,57 +1260,66 @@ def p_ls_reg_us_imm(opval, va):
                 olist = (
                     prfop[rt],
                     A64RegOper(rn, va, size=8),
-                    A64ImmOper(imm12*0b1000, va=va),
+                    A64ImmOper(imm12 << 3, va=va),
                 )
                 return opcode, mnem, olist, 0, 0
             else:
                 mnem = 'ldr'
                 opcode = INS_LDR
+
         if opc == 0b10 or opc == 0b11:
             iflag |= IF_S
             if size == 0b10:
                 iflag |= IF_W
+                tsize = 4
         if size == 0b00:
             iflag |= IF_B
+            tsize = 1
         elif size == 0b01:
             iflag |= IF_H
+            tsize = 2
+
         if opc == 0b10 or size == 0b11:
             regsize = 8
         else:
             regsize = 4
         olist = (
             A64RegOper(rt, va, size=regsize),
-            A64RegOper(rn, va, size=8),
-            A64ImmOper(imm12, va=va),
+            A64RegImmOffOper(rn, imm12 << size, tsize=tsize, va=va),
         )
         
     else:
-        if opc == 0b10 or opc == 0b00:
-            mnem = 'str'
-            opcode = INS_STR
-        else:
+        if opc & 1:
             mnem = 'ldr'
             opcode = INS_LDR
+        else:
+            mnem = 'str'
+            opcode = INS_STR
+
         if size == 0b00:
             if opc == 0b00 or opc == 0b01:
                 regsize = 8
                 imm = imm12
             else:
                 regsize = 16
-                imm = imm12*0b10000
+                imm = imm12 << 4
+
         elif size == 0b01:
             regsize = 16
-            imm = imm12*0b10
+            imm = imm12 << 1
+
         elif size == 0b10:
             regsize = 4
-            imm = imm12*0b100
+            imm = imm12 << 2
+
         else:
             regsize = 8
-            imm = imm12*0b1000
+            imm = imm12 << 3
+
+        print("imm=%x   imm12=%x" % (imm, imm12))
         olist = (
             A64RegOper(rt, va, size=regsize),
-            A64RegOper(rn, va, size=8),
-            A64ImmOper(imm, va=va),
+            A64RegImmOffOper(rn, imm, tsize=tsize, va=va),
         )
 
     return opcode, mnem, olist, iflag, 0
@@ -6949,7 +6978,108 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
                 mcanv.addNameText(str(value))
 
 
-class A64BarrierOptionOper(A64Operand):
+
+LDST_MODE_POSTIDX = 0
+LDST_MODE_PREIDX = 1
+LDST_MODE_UNSIGNED = 2
+
+class A64DerefOperand(A64Operand, envi.DerefOper):
+    def __init__(self, tsize=8, mode=LDST_MODE_POSTIDX, va=0):
+        A64Operand.__init__(self)
+        envi.DerefOper.__init__(self)
+        self.tsize = tsize
+        self.mode = mode
+        self.va = va
+
+    def setOperValue(self, op, emu=None, val=None):
+        if emu is None:
+            return None
+
+        addr = self.getOperAddr(op, emu)
+        return emu.writeMemValue(addr, val, self.tsize)
+
+    def getOperValue(self, op, emu=None, codeflow=False):
+        if emu is None:
+            return None
+
+        addr = self.getOperAddr(op, emu)
+        return emu.readMemValue(addr, self.tsize)
+
+class A64RegImmOffOper(A64DerefOperand):
+    '''
+    Register + Immediate Offset     [Xn, #simm]
+    '''
+    def __init__(self, basereg, simm, tsize=8, mode=LDST_MODE_POSTIDX, va=0):
+        A64DerefOperand.__init__(self, tsize, mode, va)
+        self.basereg = basereg
+        self.simm = simm
+
+    def render(self, mcanv, op, idx):
+        rname = rctx.getRegisterName(self.basereg)
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        mcanv.addText('[')
+        mcanv.addNameText(rname, typename='registers')
+        if self.simm != 0:
+            mcanv.addText(', ')
+            if hint is not None:
+                mcanv.addVaText(hint, self.shimm)
+            else:
+                mcanv.addNameText("#0x%x" % self.simm)
+
+        mcanv.addText(']')
+
+    def repr(self, op):
+        rname = rctx.getRegisterName(self.basereg)
+        out = [ '[', rname, ', ', "#0x%x" % self.simm, ']' ]
+        return "".join(out)
+
+    def getOperAddr(self, op, emu=None):
+        if not emu:
+            return None
+
+        addr = emu.getRegister(self.basereg)
+        addr += self.simm
+        addr &= 0xffffffff_ffffffff
+
+        return addr
+
+
+class A64RegRegOffOper(A64DerefOperand):
+    '''
+    Register + Offset Register     [Xn, Xm{, extend {amount}}]
+    '''
+    def __init__(self, basereg, offreg, tsize=8, mode=LDST_MODE_POSTIDX, va=0):
+        A64DerefOperand.__init__(self, tsize, mode, va)
+        self.basereg = basereg
+        self.offreg = offreg
+
+    def render(self, mcanv, op, idx):
+        brname = rctx.getRegisterName(self.basereg)
+        orname = rctx.getRegisterName(self.offreg)
+        mcanv.addText('[')
+        mcanv.addNameText(brname, typename='registers')
+        mcanv.addText(', ')
+        mcanv.addNameText(orname, typename='registers')
+        mcanv.addText(']')
+
+    def repr(self, op):
+        brname = rctx.getRegisterName(self.basereg)
+        orname = rctx.getRegisterName(self.offreg)
+        out = [ '[', brname, ', ', orname, ']' ]
+        return "".join(out)
+
+    def getOperAddr(self, op, emu=None):
+        if not emu:
+            return None
+
+        addr = emu.getRegister(self.basereg)
+        addr += emu.getRegister(self.offreg)
+        addr &= 0xffffffff_ffffffff
+
+        return addr
+
+
+class A64BarrierOptionOper(A64Operand):     # TODO: check for validity.  is this used?
     '''
     Subclass of A64Operand. 4-bit immediate or barrier option
     '''
@@ -7177,8 +7307,8 @@ class A64Disasm:
         '''
         ienc_parsers is a dictionary of encoding names mapped to corresponding functions
         i.e. ienc_parsers[IENC_UNCOND] = p_uncond
-        therefore calling ienc_parsers[enc](opval, va+8) calls the corresponding function with parameters
-        opval and va+8
+        therefore calling ienc_parsers[enc](opval, va) calls the corresponding function with parameters
+        opval and va
         '''
         opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va)
         return opcode, mnem, olist, flags, simdflags
