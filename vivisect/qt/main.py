@@ -107,6 +107,10 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKeyTarget('file:open', self._menuFileOpen)
         self.addHotKey('ctrl+s', 'file:save')
         self.addHotKeyTarget('file:save', self._menuFileSave)
+        self.addHotKey('ctrl+S', 'file:saveas')
+        self.addHotKeyTarget('file:saveas', self._menuFileSaveAs)
+        self.addHotKey('ctrl+meta+C', 'file:connecttoserver')
+        self.addHotKeyTarget('file:connecttoserver', self._menuShareConnectServer)
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
 
@@ -473,10 +477,21 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vw.vprint('%s is ready!' % fname)
 
     @vq_main.workthread
-    def _menuFileSave(self, fullsave=False):
-        self.vw.vprint('Saving workspace...')
+    def _menuFileSave(self, fullsave=False, filename=None):
+        if self.vw.server and filename is None:
+            self.vw.vprint("Connected to remote workspace, not saving locally.")
+            self.vw.vprint("Use 'File->Save As' to create a local backup copy of the workspace.")
+            return
+
+        # duplicate filename, since saveWorkspace() with None as the filename
+        # forces a local save
+        fname = filename
+        if not fname:
+            fname = vw.getMeta("StorageName")
+        self.vw.vprint('Saving workspace... (%r)' % fname)
+
         try:
-            self.vw.saveWorkspace(fullsave=fullsave)
+            self.vw.saveWorkspace(fullsave=fullsave, filename=filename)
         except Exception as e:
             self.vw.vprint(str(e))
         else:
@@ -486,8 +501,8 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         fname = getSaveFileName(self, 'Save As...')
         if fname is None or not len(fname):
             return
-        self.vw.setMeta('StorageName', fname)
-        self._menuFileSave(fullsave=True)
+
+        self._menuFileSave(fullsave=True, filename=fname)
 
     def _menuFileSaveServer(self):
         viv_q_remote.saveToServer(self.vw, parent=self)
