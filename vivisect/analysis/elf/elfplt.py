@@ -165,6 +165,11 @@ def getPLTs(vw):
             if None in (FPLT, FPLTSZ):
                 continue
 
+            if vw.getFileMeta(fname, 'addbase'):
+                imgbase = vw.getFileMeta(fname, 'imagebase')
+                logger.debug('Adding Imagebase: 0x%x', imgbase)
+                FPLT += imgbase
+
             newish = True
             for pltva, pltsize in plts:
                 if FPLT == pltva:
