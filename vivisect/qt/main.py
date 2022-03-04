@@ -487,7 +487,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         # forces a local save
         fname = filename
         if not fname:
-            fname = vw.getMeta("StorageName")
+            fname = self.vw.getMeta("StorageName")
         self.vw.vprint('Saving workspace... (%r)' % fname)
 
         try:
