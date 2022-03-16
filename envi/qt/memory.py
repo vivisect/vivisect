@@ -195,7 +195,8 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         return menu
 
     def rendToolsSetName(self):
-        mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name')
+        curname = self.getEnviNavName()
+        mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name', text=curname)
         if ok:
             self.setMemWindowName(str(mwname))
 
