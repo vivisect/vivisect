@@ -633,12 +633,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.server.vprint('%s connecting...' % uname)
         wsevents = self.server.exportWorkspace()
         self.importWorkspace(wsevents)
-        self._snapInAnalysisModules()
         self.server.vprint('%s connection complete!' % uname)
 
         thr = threading.Thread(target=self._clientThread)
         thr.setDaemon(True)
         thr.start()
+
+        self._snapInAnalysisModules()
 
     def _clientThread(self):
         """
