@@ -440,7 +440,7 @@ class MemoryObject(IMemory):
         self.addMemoryMap(baseva, perms, name, fill*size, align)
         return baseva
 
-    def findFreeMemoryBlock(self, size, suggestaddr=0x1000, MIN_MEM_ADDR = 0x1000):
+    def findFreeMemoryBlock(self, size, suggestaddr=0x1000, MIN_MEM_ADDR = 0x1000, mapalign=0x10000):
         '''
         Find a block of memory in the address-space of the correct size which 
         doesn't overlap any existing maps.  Attempts to offer the map starting
@@ -455,6 +455,9 @@ class MemoryObject(IMemory):
 
         tmpva = suggestaddr
         maxaddr = (1 << (8 * self.imem_psize)) - 1
+
+        MAP_ALIGN_NMASK = mapalign - 1
+        MAP_ALIGN_MASK = ~MAP_ALIGN_NMASK
 
         while baseva is None:
             # if we roll into illegal memory, start over at page 2.  skip 0.
@@ -478,8 +481,8 @@ class MemoryObject(IMemory):
                     # we ran into a memory map.  adjust.
                     good = False
                     tmpva = mmendva
-                    tmpva += PAGE_NMASK
-                    tmpva &= PAGE_MASK
+                    tmpva += MAP_ALIGN_NMASK
+                    tmpva &= MAP_ALIGN_MASK
                     break
 
             if good:
