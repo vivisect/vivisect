@@ -595,3 +595,18 @@ class PETests(v_t_utils.VivTest):
             self.assertEqual(loc[1], 40)
             self.assertEqual(loc[2], viv_con.LOC_STRUCT)
             self.assertEqual(loc[3], 'pe.IMAGE_SECTION_HEADER')
+
+    def test_bad_pe_sectname(self):
+        vw = helpers.getTestWorkspace('windows', 'i386', 'HelloSection-err.exe')
+        segs = vw.getSegments()
+        pesections = [
+            'ff74657874000000',
+            '.rdata\x00\x00',
+            '.data\x00\x00\x00',
+            '.rsrc\x00\x00\x00',
+            '.reloc\x00\x00',
+        ]
+        sections = [x.Name for x in vw.parsedbin.getSections()]
+        self.len(sections, 5)
+        for name in pesections:
+            self.isin(name, sections)
