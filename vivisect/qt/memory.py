@@ -408,7 +408,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
                 self._follow_menu.setEnabled(not self._leading)
                 if self._leading:
                     self._following = None
-                    self.vw.iAmLeader(self.mwname)
+                    self.vw.iAmLeader(self.uuid, self.mwname)
                 self.updateMemWindowTitle()
 
             def clearFollow():
@@ -554,5 +554,5 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
     @idlethread
     def enviNavGoto(self, expr, sizeexpr='256', rend=''):
         if self._leading:
-            self.vw.followTheLeader(str(self.mwname), str(expr))
+            self.vw.followTheLeader(str(self.uuid), str(expr))
         return e_mem_qt.VQMemoryWindow.enviNavGoto(self, expr, sizeexpr=sizeexpr, rend=rend)

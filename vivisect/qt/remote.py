@@ -129,8 +129,9 @@ def openServerAndWorkspace(vw, parent=None):
     port = viv_server.viv_port
     if ':' in host:
         host, port = host.split(':')
+        port = int(port)
 
-    connServerAndWorkspace(vw, str(host), int(port), parent=parent)
+    connServerAndWorkspace(vw, str(host), port, parent=parent)
 
 
 def connServerAndWorkspace(vw, host, port=viv_server.viv_port, parent=None):
@@ -164,17 +165,28 @@ def loadServerWorkspace(oldvw, server, workspace):
 def saveToServer(vw, parent=None):
     dia = VivSaveServerDialog(vw, parent=parent)
     wsname, wsserver = dia.getNameAndServer()
+
     vw.vprint('Saving to Workspace Server: %s (%s)' % (wsserver,wsname))
-    sendServerWorkspace(vw, wsname, wsserver)
+    if wsserver is None:
+        return
+    port = viv_server.viv_port
+    if ':' in wsserver:
+        wsserver, port = wsserver.split(':')
+        port = int(port)
+
+    sendServerWorkspace(vw, wsname, wsserver, port)
 
 @e_threads.firethread
-def sendServerWorkspace(vw, wsname, wsserver):
+def sendServerWorkspace(vw, wsname, wsserver, port=viv_server.viv_port):
     try:
         events = vw.exportWorkspace()
-        server = viv_server.connectToServer(wsserver)
+        server = viv_server.connectToServer(wsserver, port)
         server.addNewWorkspace(wsname, events)
+
     except Exception as e:
         vw.vprint('Workspace Server Error: %s' % e)
+        import traceback;
+        traceback.print_exc()
         return
 
     vw.setMeta('WorkspaceServer', wsserver)

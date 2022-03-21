@@ -1,3 +1,4 @@
+import uuid
 from collections import deque
 
 from PyQt5 import QtCore, QtGui
@@ -27,6 +28,7 @@ class EnviNavMixin:
         vqtconnect(self.enviNavGetnames, 'envi:nav:getnames')
         vqtconnect(self.enviNavExpr, 'envi:nav:expr')
         self.setAcceptDrops(True)
+        self.uuid = uuid.uuid1().hex
 
     def enviNavFini(self):
         '''

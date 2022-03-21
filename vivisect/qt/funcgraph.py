@@ -292,7 +292,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
                 self._follow_menu.setEnabled(not self._leading)
                 if self._leading:
                     self._following = None
-                    self.vw.iAmLeader(self.getEnviNavName())
+                    self.vw.iAmLeader(self.uuid, self.getEnviNavName())
                 self.updateWindowTitle()
 
             def clearFollow():
@@ -474,7 +474,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
     @idlethread
     def enviNavGoto(self, expr, sizeexpr=None):
         if self._leading:
-            self.vw.followTheLeader(str(self.getEnviNavName()), str(expr))
+            self.vw.followTheLeader(self.uuid, str(expr))
 
         self.addr_entry.setText(expr)
         self.history.append( expr )

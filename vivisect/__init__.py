@@ -3003,7 +3003,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # FIXME this should be part of a UI event model.
         self._fireEvent(VWE_CHAT, (uname, msg))
 
-    def iAmLeader(self, winname):
+    def iAmLeader(self, uuid, winname):
         '''
         Announce that your workspace is leading a window with the
         specified name.  This allows others to opt-in to following
@@ -3018,7 +3018,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         user = e_config.getusername()
         self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (user,winname))
 
-    def followTheLeader(self, winname, expr):
+    def followTheLeader(self, uuid, expr):
         '''
         Announce a new memory expression to navigate to if if a given window
         is following the specified user/winname
@@ -3029,7 +3029,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if not self.server:
             raise Exception('followTheLeader() requires being connected to a server.')
         user = e_config.getusername()
-        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (user,winname, expr))
+        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (user, uuid, expr))
 
 #################################################################
 #

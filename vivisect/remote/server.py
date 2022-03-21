@@ -255,7 +255,7 @@ def main(argv):
         logger.error('%s is not a valid directory!', vdir)
         return -1
 
-    print(f'Server starting (port: {viv_port})')
+    print(f'Server starting (port: {opts.port})')
     runMainServer(vdir, opts.port)
 
 
