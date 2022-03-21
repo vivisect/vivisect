@@ -272,18 +272,21 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ZF starts off being set. 
         Then the instruction is repeated and ECX decremented until either
         ECX reaches 0 or the ZF is cleared.
+        
+        Respects emu option "i386:repmax" limiting the number of repetitions.
         '''
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 1)
 
         repmax = emu.getEmuOpt('i386:repmax')
         if repmax:
-            ecx = min(ecx, repmax)
+            repmax = min(ecx, repmax)
 
         ret = None
-        while ecx and emu.getFlag(EFLAGS_ZF):
+        while ecx and repmap and emu.getFlag(EFLAGS_ZF):
             ret = meth(op)
             ecx -= 1
+            repmax -= 1
             emu.setRegister(REG_ECX, ecx)
         return ret
 
@@ -294,17 +297,20 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ZF starts off being cleared. 
         Then the instruction is repeated and ECX decremented until either
         ECX reaches 0 or the ZF is set.
+        
+        Respects emu option "i386:repmax" limiting the number of repetitions.
         '''
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 0)
 
         repmax = emu.getEmuOpt('i386:repmax')
         if repmax:
-            ecx = min(ecx, repmax)
+            repmax = min(ecx, repmax)
 
         ret = None
-        while ecx and not emu.getFlag(EFLAGS_ZF):
+        while ecx and repmax and not emu.getFlag(EFLAGS_ZF):
             ret = meth(op)
+            ecx -= 1
             ecx -= 1
             emu.setRegister(REG_ECX, ecx)
         return ret
