@@ -3016,7 +3016,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception('iAmLeader() requires being connected to a server.')
 
         user = e_config.getusername()
-        self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (user,winname))
+        self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (uuid, user, winname))
 
     def followTheLeader(self, uuid, expr):
         '''
@@ -3028,8 +3028,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         if not self.server:
             raise Exception('followTheLeader() requires being connected to a server.')
-        user = e_config.getusername()
-        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (user, uuid, expr))
+        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (uuid, expr))
+
+    def getChannelInfo(self, uuid):
+        if uuid in self.leaders:
+            uuid, user, fname = self.leaders.get(uuid)
+            return user, fname
+            
+        return None, None
 
 #################################################################
 #

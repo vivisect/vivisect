@@ -439,7 +439,8 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             title += ' (leading)'
 
         if self._following is not None:
-            user, window = self._following
+            uuid = self._following
+            user, window = self.vw.getChannelInfo(uuid)
             title += ' (following %s %s)' % (user, window)
 
         return title
@@ -536,18 +537,18 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     @idlethread
     def VTE_IAMLEADER(self, vw, event, einfo):
-        user, fname = einfo
+        uuid, user, fname = einfo
 
         def setFollow():
-            self._following = einfo
+            self._following = uuid
             self.updateMemWindowTitle()
 
         self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
 
     @idlethread
     def VTE_FOLLOWME(self, vw, event, einfo):
-        user, fname, expr = einfo
-        if self._following != (user, fname):
+        uuid, expr = einfo
+        if self._following != uuid:
             return
         self.enviNavGoto(expr)
 

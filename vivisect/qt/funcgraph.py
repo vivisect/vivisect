@@ -453,10 +453,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
     @idlethread
     def VTE_IAMLEADER(self, vw, event, einfo):
-        user, fname = einfo
+        uuid, user, fname = einfo
 
         def setFollow():
-            self._following = einfo
+            self._following = uuid
             self.updateWindowTitle()
 
         self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
@@ -466,8 +466,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
     @idlethread
     def VTE_FOLLOWME(self, vw, event, einfo):
-        user, fname, expr = einfo
-        if self._following != (user, fname):
+        uuid, expr = einfo
+        if self._following != uuid:
             return
         self.enviNavGoto(expr)
 

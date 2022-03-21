@@ -186,6 +186,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.vsbuilder = vs_builder.VStructBuilder()
         self.vsconsts  = vs_const.VSConstResolver()
 
+        # Follow the Leader data
+        self.leaders = {}
+
     def _snapInAnalysisModules(self):
         '''
         Snap in the analysis modules which are appropriate for the
@@ -573,10 +576,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
-
-    def _handleIAMLEADER(self, event, einfo):
-        user,follow = einfo
-        self.vprint('*%s invites everyone to follow "%s"' % (user,follow))
 
     def _handleFOLLOWME(self, event, einfo):
         # workspace has nothing to do...
