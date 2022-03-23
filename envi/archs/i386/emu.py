@@ -311,7 +311,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         while ecx and repmax and not emu.getFlag(EFLAGS_ZF):
             ret = meth(op)
             ecx -= 1
-            ecx -= 1
+            repmax -= 1
             emu.setRegister(REG_ECX, ecx)
         return ret
 
