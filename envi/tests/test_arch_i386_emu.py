@@ -220,12 +220,11 @@ class i386EmulatorTests(unittest.TestCase, IntelEmulatorTests):
         emu32.setRegisterByName('ecx', -1)
         emu32.setRegisterByName('edi', 0x40000000)
         emu32.executeOpcode(op_scasb)
-        self.assertEqual(emu32.getRegisterByName('ecx'), 0xfffffff1)
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xffffffff - len("foobarbazbane\x00"))
 
         # repz Byte scan string
         emu32.setRegisterByName('eax', 0)
         emu32.setRegisterByName('ecx', -1)
         emu32.setRegisterByName('edi', 0x4000000d)
         emu32.executeOpcode(op_zscasb)
-        self.assertEqual(emu32.getRegisterByName('ecx'), 0xfffffffb)
-
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xffffffff - len("\x00\x00\x00f"))
