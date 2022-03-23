@@ -1,7 +1,6 @@
 """
 Home for the i386 emulation code.
 """
-import sys
 import struct
 import operator
 
