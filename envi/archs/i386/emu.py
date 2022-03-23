@@ -279,9 +279,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 1)
 
-        repmax = emu.getEmuOpt('i386:repmax') or sys.maxsize
-        if repmax:
-            repmax = min(ecx, repmax)
+        repmax = emu.getEmuOpt('i386:repmax') or ecx
 
         ret = None
         while ecx and repmax and emu.getFlag(EFLAGS_ZF):
@@ -304,9 +302,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 0)
 
-        repmax = emu.getEmuOpt('i386:repmax') or sys.maxsize
-        if repmax:
-            repmax = min(ecx, repmax)
+        repmax = emu.getEmuOpt('i386:repmax') or ecx
 
         ret = None
         while ecx and repmax and not emu.getFlag(EFLAGS_ZF):
