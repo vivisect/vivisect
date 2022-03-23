@@ -2177,7 +2177,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         pva, psize, tinfo = self._getStrTinfo(va, size, subs)
 
         if self.getName(va) is None:
-            m = self.readMemory(va, size-1).replace(b'\n', b'')
+            m = self.readMemory(va, size).replace(b'\x00', b'').replace(b'\n', b'')
             self.makeName(va, "str_%s_%.8x" % (m[:16].decode('utf-8'), va))
         return self.addLocation(pva, psize, LOC_STRING, tinfo=tinfo)
 
@@ -2621,13 +2621,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(VWE_SETNAME, (va,name))
         return name
 
-    def saveWorkspace(self, fullsave=True):
+    def saveWorkspace(self, fullsave=True, filename=None):
 
-        if self.server is not None:
+        if self.server is not None and not filename:
             return
 
+        # prefer our arg filename if provided
+        if not filename:
+            filename = self.getMeta("StorageName")
+
         modname = self.getMeta("StorageModule")
-        filename = self.getMeta("StorageName")
         if modname is None:
             raise Exception("StorageModule not specified!")
         if filename is None:
