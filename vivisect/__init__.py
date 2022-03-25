@@ -2329,6 +2329,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return foff
         return (foff - offset) + 2
 
+    def getFileAndOffset(self, va):
+        '''
+        Helper function which identifies the file a given VA is a part of, then
+        splits the file base and offset
+
+        Returns:  (filename, filebase, offset)
+
+        If no file is identified, None is returned
+        '''
+        fname = self.getFileByVa(va)
+        if not fname:
+            return None
+
+        fbase = self.getFileMeta(fname, 'imagebase')
+        off = va - fbase
+        return (fname, fbase, off)
+
     def addLocation(self, va, size, ltype, tinfo=None):
         """
         Add a location tuple.
