@@ -600,13 +600,16 @@ class PETests(v_t_utils.VivTest):
         vw = helpers.getTestWorkspace('windows', 'i386', 'HelloSection-err.exe')
         segs = vw.getSegments()
         pesections = [
-            'ff74657874000000',
+            # about as blunt and direct of a name as we can get
+            "[invalid name] b'\\xfftext\\x00\\x00\\x00'",
             '.rdata\x00\x00',
             '.data\x00\x00\x00',
             '.rsrc\x00\x00\x00',
             '.reloc\x00\x00',
         ]
         sections = [x.Name for x in vw.parsedbin.getSections()]
+        valids = [x.isNameValid() for x in vw.parsedbin.getSections()]
+        self.eq(valids, [False, True, True, True, True])
         self.len(sections, 5)
         for name in pesections:
             self.isin(name, sections)

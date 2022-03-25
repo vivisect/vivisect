@@ -288,7 +288,14 @@ class v_name(v_bytes):
             name = self._vs_value.decode('utf-8')
             return name
         except UnicodeDecodeError:
-            return binascii.hexlify(self._vs_value).decode('utf-8')
+            return "[invalid name] %r" % self._vs_value
+
+    def isValid(self):
+        try:
+            self._vs_value.decode('utf-8')
+            return True
+        except UnicodeDecodeError:
+            return False
 
 class IMAGE_SECTION_HEADER(vstruct.VStruct):
 
@@ -304,6 +311,11 @@ class IMAGE_SECTION_HEADER(vstruct.VStruct):
         self.NumberOfRelocations  = v_uint16()
         self.NumberOfLineNumbers  = v_uint16()
         self.Characteristics      = v_uint32()
+
+    def isNameValid(self):
+        # we've gotta bypass
+        name = self.vsGetField('Name')
+        return name.isValid()
 
 class IMAGE_RUNTIME_FUNCTION_ENTRY(vstruct.VStruct):
     """
