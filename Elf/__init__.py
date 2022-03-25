@@ -879,9 +879,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0, 'unknown')
 
-            #if note.name == b'01.01\x00\x00\x00':
-            #    return 'freebsd'
-
         if self.getSection('.comment'):
             sec = self.getSection('.comment')
             if b'FreeBSD' in self.readAtOffset(sec.sh_offset, sec.sh_size):
