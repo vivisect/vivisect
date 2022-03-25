@@ -121,14 +121,19 @@ def emuFromTrace(trace):
         psize = trace.getPointerSize()
         # capture PEB and TIB
         peb = trace.getMeta('PEB')
-        tebs = dict(trace.win32threads)
-        # test and make sure:
-        for threadid, teb in tebs.items():
-            assert(trace.readMemoryPtr(teb + (psize * 12)) == peb)
-            assert(trace.readMemoryPtr(teb + (psize * 9)) == threadid)
+        if hasattr(trace, 'win32threads'):
+            tebs = dict(trace.win32threads)
+            # test and make sure:
+            for threadid, teb in tebs.items():
+                assert(trace.readMemoryPtr(teb + (psize * 12)) == peb)
+                assert(trace.readMemoryPtr(teb + (psize * 9)) == threadid)
+            vw.setMeta('TEBs', tebs)
+        else:
+            metatebs = trace.getMeta('TEBs')
+            if metatebs:
+                vw.setMeta('TEBs', tebs)
 
         emu.setMeta('PEB', peb)
-        emu.setMeta('TEBs', tebs)
 
         seginfo = trace.getThreads()[trace.getMeta('ThreadId')]
         if psize == 4:
@@ -224,20 +229,25 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
             if mnm == fname:
                 break
 
-        vw.addFile(fname, va, filemeta[fname])
+        vw.addFile(fname, va, filemeta[fname].hexdigest())
 
     # windows stuff
     if plat == 'windows':
         # capture PEB and TIB
         peb = trace.getMeta('PEB')
-        tebs = dict(trace.win32threads)
-        # test and make sure:
-        for threadid, teb in tebs.items():
-            assert(trace.readMemoryPtr(teb + (psize * 12)) == peb)
-            assert(trace.readMemoryPtr(teb + (psize * 9)) == threadid)
+        if hasattr(trace, 'win32threads'):
+            tebs = dict(trace.win32threads)
+            # test and make sure:
+            for threadid, teb in tebs.items():
+                assert(trace.readMemoryPtr(teb + (psize * 12)) == peb)
+                assert(trace.readMemoryPtr(teb + (psize * 9)) == threadid)
+            vw.setMeta('TEBs', tebs)
+        else:
+            metatebs = trace.getMeta('TEBs')
+            if metatebs:
+                vw.setMeta('TEBs', metatebs)
 
         vw.setMeta('PEB', peb)
-        vw.setMeta('TEBs', tebs)
 
     return vw
 
