@@ -574,7 +574,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if dohex:
             memstr = binascii.unhexlify(memstr)
         if douni:
-            memstr = ("\x00".join(memstr)) + "\x00"
+            memstr = (b"\x00".join(memstr)) + b"\x00"
 
         addr = self.parseExpression(exprstr)
         self.memobj.writeMemory(addr, memstr)
