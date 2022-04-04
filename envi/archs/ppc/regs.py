@@ -8,16 +8,16 @@ gprs32 = [('r%s' % x, 32)  for x in range(32)]
 gprs64 = [('r%s' % x, 64)  for x in range(32)]
 floats = [('f%s' % x, 64)  for x in range(32)]
 floats.append( ('FPSCR', 64) )
-vectors = [('v%s' % x, 128)  for x in range(32)]
+vectors = [('vr%s' % x, 128)  for x in range(64)]
 vectors.append( ('VSCR', 32) )
 
 sysregs = (
-        ('ACC', 64),
-        ('CR', 64),
-        ('MSR', 64),
-        ('TEN', 64),
+        ('acc', 64),
+        ('cr', 64),
+        ('msr', 64),
+        ('ten', 64),
         ('SPEFSCR', 64),
-        ('PC', 64),
+        ('pc', 64),
         )
 
 ppc_regs32 = []
@@ -26,6 +26,10 @@ ppc_regs = ppc_regs64 = []
 ppc_regs64.extend(gprs64)
 ppc_regs32.extend(gprs32)
 
+REG_OFFSET_SYSREGS = len(ppc_regs)
+ppc_regs64.extend(sysregs)
+ppc_regs32.extend(sysregs)
+
 REG_OFFSET_FLOAT = len(ppc_regs)
 ppc_regs64.extend(floats)
 ppc_regs32.extend(floats)
@@ -33,10 +37,6 @@ ppc_regs32.extend(floats)
 REG_OFFSET_VECTOR = len(ppc_regs)
 ppc_regs64.extend(vectors)
 ppc_regs32.extend(vectors)
-
-REG_OFFSET_SYSREGS = len(ppc_regs)
-ppc_regs64.extend(sysregs)
-ppc_regs32.extend(sysregs)
 
 from . import spr
 # populate spr_regs from the PPC SPR register list (in spr.py)
@@ -49,7 +49,6 @@ sprnames = {x:y.lower() for x,(y,z,b) in spr.sprs.items()}
 REG_OFFSET_SPR = len(ppc_regs)
 ppc_regs64.extend(spr_regs)
 ppc_regs32.extend(spr_regs)
-
 
 # sparse definition of TMR regs, so we fill in the gaps a bit
 tmr_regs = [("TMRREG%d" % x, 64) for x in range(192) ]
@@ -131,6 +130,15 @@ ppc_meta64 = [
         ('CA',  REG_XER, 63-34, 1),
 ]
 
+vec_meta = [('v%d' % d, REG_OFFSET_VECTOR + d, 0, 128) for d in range(32)]
+spe_meta = [('ev%d' % d, d, 0, 64) for d in range(32)]
+spe_meta.extend([('ev%dh', d, 32, 32) for d in range(32)])   # upper half
+
+ppc_meta32.extend(vec_meta)
+ppc_meta64.extend(vec_meta)
+
+ppc_meta32.extend(spe_meta)
+ppc_meta64.extend(spe_meta)
 
 statmetas = [
         ('CR0_LT', REG_CR, 63-32, 1, 'Less Than Flag'),
@@ -280,14 +288,36 @@ class Ppc64RegisterContext(e_reg.RegisterContext):
 
 
 
-general_regs = []
-general_regs.extend([reg for reg, size in gprs64])
-general_regs.extend([reg for reg, size in floats])
-general_regs.extend([reg for reg, size in vectors])
-general_regs.append('LR')
-general_regs.append('XER')
-general_regs.append('CTR')
-general_regs.extend([reg for reg, size in sysregs])
+regs_general = []
+regs_general.extend([reg for reg, size in gprs64])
+regs_general.extend([reg for reg, size in floats])
+regs_general.extend([reg for reg, size in vectors])
+regs_general.append('lr')
+regs_general.append('xer')
+regs_general.append('ctr')
+regs_general.extend([reg for reg, size in sysregs])
+
+regs_core = []
+regs_core.extend([reg for reg, size in gprs64])
+regs_core.append('pc')
+regs_core.append('msr')
+regs_core.append('cr')
+regs_core.append('lr')
+regs_core.append('ctr')
+regs_core.append('xer')
+
+regs_fpu = ['f%d' %x for x in range(32)]
+regs_fpu.append('fpscr')
+
+regs_altivec = ['vr%d' %x for x in range(64)]
+regs_altivec.append('vscr')
+regs_altivec.append('vrsave')
+
+regs_spe = ['ev%dh' %x for x in range(32)]
+regs_spe.append('acc')
+regs_spe.append('spefscr')
+
+regs_spr = [name for idx, (name, desc, bitsize) in spr.sprs.items()]
 
 
 rctx32 = Ppc32RegisterContext()

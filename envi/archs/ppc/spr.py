@@ -1,7 +1,7 @@
 sprs = {
-    1: ("XER", " Integer exception register.", 64),
-    8: ("LR", " Link register", 64),
-    9: ("CTR", " Count register", 64),
+    1: ("xer", " Integer exception register.", 64),
+    8: ("lr", " Link register", 64),
+    9: ("ctr", " Count register", 64),
     22: ("DEC", " Decrementer", 32),
     26: ("SRR0", " Save/restore register 0", 64),
     27: ("SRR1", "Save/restore register 1", 32),

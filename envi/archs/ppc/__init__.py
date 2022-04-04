@@ -90,16 +90,20 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         return Ppc64RegisterContext()
 
     def archGetBreakInstr(self):
-        return '\x7f\xe0\x00\x08'   # this is incorrect for VLE
+        return '\x4c\x00\x01\x8c'   # dnh
 
     def archGetNopInstr(self):
-        return '\x60\x00\x00\x00'   # this is incorrect for VLE
+        return '\x60\x00\x00\x00'   # ori 0,0,0
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
 
-        general = ('general', general_regs)  # from regs.py
-        groups.append(general)
+        groups['general'] = regs_general  # from regs.py
+        groups['gdb_power_core'] = regs_core  # from regs.py
+        groups['gdb_power_altivec'] = regs_altivec  # from regs.py
+        groups['gdb_power_fpu'] = regs_fpu  # from regs.py
+        groups['gdb_power_spe'] = regs_spe  # from regs.py
+        groups['gdb_power_spr'] = regs_spr  # from regs.py
 
         return groups
 
@@ -192,10 +196,10 @@ class PpcVleModule(Ppc32EmbeddedModule):
         return self._arch_dis.disasm(bytez, offset, va)
 
     def archGetBreakInstr(self):
-        return '\x7f\xe0\x00\x08'   # this is incorrect for VLE
+        return '\x7c\x00\x00\xc2'   # e_dnh instruction
 
     def archGetNopInstr(self):
-        return '\x60\x00\x00\x00'   # this is incorrect for VLE
+        return '\x18\x00\xd0\x00'   # e_ori 0,0,0 (also could be '\x44\x00' se_or 0,0)
 
     def getEmulator(self):
         return PpcVleEmulator()

@@ -193,7 +193,7 @@ class ArchitectureModule:
         '''
         regctx = self.archGetRegCtx()
         allr = [rname for rname in regctx.getRegisterNames()]
-        return [('all', allr)]
+        return {'all': allr}
 
     def archModifyFuncAddr(self, va, info):
         '''
