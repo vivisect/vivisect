@@ -286,32 +286,32 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.dynstrtabmeta = (None, None)
         self.dynstrtab = []
         self.dynsymtabct = None     # populated by _parseDynStrs()
-        logger.info('self._parsePheaders')
+        logger.debug('self._parsePheaders')
         self._parsePheaders()
-        logger.info('self._parseDynLinkInfo')
+        logger.debug('self._parseDynLinkInfo')
         self._parseDynLinkInfo()
 
-        logger.info('self._parseSections')
+        logger.debug('self._parseSections')
         self._parseSections()
-        logger.info('self._parseDynamicsFromSections')
+        logger.debug('self._parseDynamicsFromSections')
         self._parseDynamicsFromSections()
 
         # load symbols and relocs from DYNAMICS
-        logger.info('self._parseDynStrs')
+        logger.debug('self._parseDynStrs')
         self._parseDynStrs()
-        logger.info('self._parseDynSyms')
+        logger.debug('self._parseDynSyms')
         self._parseDynSyms()
-        logger.info('self._parseDynRelocs')
+        logger.debug('self._parseDynRelocs')
         self._parseDynRelocs()
 
         # load symbols and relocs from SECTIONS
-        logger.info('self._parseDynSymsFromSections')
+        logger.debug('self._parseDynSymsFromSections')
         self._parseDynSymsFromSections()
-        logger.info('self._parseSectionSymbols')
+        logger.debug('self._parseSectionSymbols')
         self._parseSectionSymbols()
-        logger.info('self._parseSectionRelocs')
+        logger.debug('self._parseSectionRelocs')
         self._parseSectionRelocs()
-        logger.info('done parsing ELF')
+        logger.debug('done parsing ELF')
 
     def __del__(self):
         try:
@@ -609,7 +609,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     if sym.st_name:
                         name = self.getStrtabString(sym.st_name, ".strtab")
                         sym.setName(name)
-                    # logger.info('SHT_SYMTAB: %r', sym)
 
                     self.addSymbol(sym)
 
@@ -698,7 +697,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     logger.debug('duplicate relocation (section): %s', reloc)
                     continue
 
-                logger.info('section reloc: %s', reloc)
+                logger.debug('section reloc: %s', reloc)
                 self.relocs.append(reloc)
                 self.relocvas.append(reloc.r_offset)
 
@@ -1027,7 +1026,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         symlen = len(self.dynamic_symbols)
         if symidx >= symlen:
             # dynamic_symbols is too small, grow
-            logger.info('getDynSymbol(%d): expanding dynamic_symbols from %d', symidx, symlen)
+            logger.debug('getDynSymbol(%d): expanding dynamic_symbols from %d', symidx, symlen)
             newspace = [self._getDynSymbol(x) for x in range(symlen, symidx + 1)]
             self.dynamic_symbols.extend(newspace)
 
@@ -1084,7 +1083,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         Returns a string starting at stroff
         '''
         if self.dynstrtabmeta == (None, None):
-            logger.info("no dyn strtabs!")
+            logger.debug("no dyn strtabs!")
             return ''
 
         dynstrtabva, strsz = self.dynstrtabmeta
