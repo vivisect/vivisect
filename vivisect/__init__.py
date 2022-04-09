@@ -602,7 +602,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         fe = self._fireEvent
         for event, einfo in wsevents:
             fe(event, einfo, local=local)
-            self._load_sema.release()
         return
 
     def exportWorkspace(self):
@@ -652,7 +651,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         while self.server is not None:
             event, einfo = self.server.waitForEvent(self.rchan)
             self._fireEvent(event, einfo, local=True)
-            self._load_sema.release()
 
     def waitForEvent(self, chanid, timeout=None):
         """
