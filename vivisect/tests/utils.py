@@ -33,6 +33,12 @@ class VivTest(unittest.TestCase):
         '''
         self.assertIsNotNone(x)
 
+    def isin(self, x, y):
+        '''
+        Assert that x is a member of the container y
+        '''
+        self.assertIn(x, y)
+
     @contextlib.contextmanager
     def snap(self, vw):
         '''
