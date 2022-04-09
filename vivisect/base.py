@@ -578,8 +578,15 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
 
     def _handleFOLLOWME(self, event, einfo):
-        # workspace has nothing to do...
-        pass
+        # workspace has nothing to do...  just here for the tracking....
+        logger.debug("_handleFOLLOWME(%r, %r)", event, einfo)
+
+    def _handleIAMLEADER(self, event, einfo):
+        uuid, user, fname = einfo
+        logger.debug("_handleIAMLEADER(%r, (%r, %r, %r))", event, user, uuid, fname)
+
+        self.vprint('*%s invites everyone to follow "%s" (%r)' % (user,fname,uuid))
+        self.leaders[uuid] = einfo
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
         '''

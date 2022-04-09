@@ -44,6 +44,7 @@ class VivServerClient:
         self.server = server
         self.eoffset = 0
         self.q = queue.Queue()  # The actual local Q we deliver to
+        self.leaders = {}
 
     @e_threads.firethread
     def _eatServerEvents(self):
@@ -76,6 +77,7 @@ class VivServer:
         self.path = os.path.abspath(dirname)
 
         self.wsdict = {}
+        self.leaders = {}
         self.chandict = {}
         self.wslock = threading.Lock()
 
