@@ -172,6 +172,9 @@ def getPLTs(vw):
         if fdyns is not None:
             FGOT = fdyns.get('DT_JMPREL')
             FGOTSZ = fdyns.get('DT_PLTRELSZ')
+            if None in (FGOT, FGOTSZ):
+                continue
+
             if vw.getFileMeta(fname, 'addbase'):
                 imgbase = vw.getFileMeta(fname, 'imagebase')
                 logger.debug('Adding Imagebase: 0x%x', imgbase)
