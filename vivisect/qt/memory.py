@@ -420,6 +420,16 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             self._follow_menu = menu.addMenu('Follow..')
             self._follow_menu.addAction('(disable)', clearFollow)
 
+            # add in the already existing sessions...
+            for einfo in self.vw.leaders.values():
+                uuid, user, fname = einfo
+
+                def setFollow():
+                    self._following = uuid
+                    self.updateWindowTitle()
+
+                self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
+
         return menu
 
     def getExprTitle(self):

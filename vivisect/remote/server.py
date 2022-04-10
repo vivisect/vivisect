@@ -73,7 +73,8 @@ class VivServerClient:
     def getLeaderSessions(self):
         try:
             return self.server.getLeaderSessions(self.wsname)
-        except CobraErrorException:
+        except CobraErrorException as e:
+            logger.warn("error in getLeaderSessions(): %r" % e)
             return {}
 
 
@@ -196,12 +197,23 @@ class VivServer:
     # used with remote workspaces, with a prepended wsname first argument
 
     def _fireEvent(self, wsname, event, einfo, local=False, skip=None):
+        #print("_fireEvent: %r %r %r %r %r" % (wsname, event, einfo, local, skip))
         lock, fpath, pevents, users, leaders = self._req_wsinfo(wsname)
         evtup = (event, einfo)
         with lock:
             # Transient events do not get saved
             if not event & VTE_MASK:
                 pevents.append(evtup)
+
+            vtevent = event ^ VTE_MASK
+            if vtevent == VTE_FOLLOWME:
+                pass
+
+            elif vtevent == VTE_IAMLEADER:
+                logger.warn("VTE_IAMLEADER: %r" % repr(evtup))
+                uuid, user, fname = einfo
+                leaders[uuid] = einfo
+
             # SPEED HACK
             [q.append(evtup) for (chan, q) in users.items() if chan != skip]
 
