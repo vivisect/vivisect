@@ -473,7 +473,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.updateWindowTitle()
 
         self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
-        # TODO: add "DONTFOLLOWME" to stop (and remove entries)
+        # TODO: add "NOTLEADER" to stop (and remove entries)
 
     @idlethread
     def VTE_FOLLOWME(self, vw, event, einfo):

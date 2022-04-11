@@ -78,7 +78,8 @@ VWE_MAX             = 43
 VTE_MASK            = 0x80000000
 VTE_IAMLEADER       = 1 # (user,followname)
 VTE_FOLLOWME        = 2 # (user,followname,expr)
-VTE_MAX             = 3
+VTE_NOTLEADER       = 3 # (
+VTE_MAX             = 4
 
 # API fields
 API_RET_TYPE    = 0

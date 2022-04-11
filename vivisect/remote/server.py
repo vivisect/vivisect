@@ -205,14 +205,15 @@ class VivServer:
             if not event & VTE_MASK:
                 pevents.append(evtup)
 
-            vtevent = event ^ VTE_MASK
-            if vtevent == VTE_FOLLOWME:
-                pass
+            else:
+                vtevent = event ^ VTE_MASK
+                if vtevent == VTE_FOLLOWME:
+                    pass
 
-            elif vtevent == VTE_IAMLEADER:
-                logger.warn("VTE_IAMLEADER: %r" % repr(evtup))
-                uuid, user, fname = einfo
-                leaders[uuid] = einfo
+                elif vtevent == VTE_IAMLEADER:
+                    logger.warn("VTE_IAMLEADER: %r" % repr(evtup))
+                    uuid, user, fname = einfo
+                    leaders[uuid] = einfo
 
             # SPEED HACK
             [q.append(evtup) for (chan, q) in users.items() if chan != skip]
