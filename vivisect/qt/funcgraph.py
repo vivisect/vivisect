@@ -587,16 +587,36 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.setEnviNavName(mwname)
         self.updateWindowTitle()
 
-    def updateWindowTitle(self, data=None):
-        ename = self.getEnviNavName()
+    def getExprTitle(self):
         expr = str(self.addr_entry.text())
+
         try:
+
             va = self.vw.parseExpression(expr)
             smartname = self.vw.getName(va, smart=True)
-            self.setWindowTitle('%s: %s (0x%x)' % (ename, smartname, va))
-            return va
-        except:
-            self.setWindowTitle('%s: %s (0x----)' % (ename, expr))
+            title = '%s (0x%x)' % (smartname, va)
+
+            name = self.vw.getName(va)
+            if name is not None:
+                title = name
+
+        except Exception:
+            title = 'expr error'
+
+        if self._leading:
+            title += ' (leading)'
+
+        if self._following is not None:
+            uuid = self._following
+            user, window = self.vw.getLeaderInfo(uuid)
+            title += ' (following %s %s)' % (user, window)
+
+        return title
+
+    def updateWindowTitle(self, data=None):
+        ename = self.getEnviNavName()
+        expr = self.getExprTitle()
+        self.setWindowTitle('%s: %s' % (ename, expr))
 
     # DEV: None of these methods are meant to be called directly by anybody but themselves,
     # since they're setup in a way to make renderFunctionGraph play nicely with pyqt5
