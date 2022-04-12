@@ -589,6 +589,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _handleKILLLEADER(self, event, einfo):
         # workspace has nothing to do...  just here for the tracking....
         logger.debug("_handleKILLLEADER(%r, %r)", event, einfo)
+        uuid = einfo
         self.leaders.pop(uuid)
 
     def _handleMODLEADER(self, event, einfo):

@@ -408,6 +408,8 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
                 if self._leading:
                     self._following = None
                     self.vw.iAmLeader(self.uuid, self.mwname)
+                else:
+                    self.vw.killLeaderSession(self.uuid)
                 self.updateMemWindowTitle()
 
             def clearFollow():

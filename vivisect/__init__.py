@@ -629,7 +629,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.rchan = remotevw.createEventChannel()
 
         self.server.vprint('%s connecting...' % uname)
+
         self.leaders.update(self.server.getLeaderSessions())
+        self.leaderloc.update(self.server.getLeaderLocations())
+
         wsevents = self.server.exportWorkspace()
         self.importWorkspace(wsevents)
         self._snapInAnalysisModules()
@@ -3036,7 +3039,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception('followTheLeader() requires being connected to a server.')
         self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (uuid, expr))
 
-    def killTheLeader(self, uuid):
+    def killLeaderSession(self, uuid):
         '''
         When we shutdown a Leader session, we need to make it go away.
 
@@ -3045,7 +3048,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         if not self.server:
             raise Exception('killTheLeader() requires being connected to a server.')
-        self.server._fireEvent(VTE_MASK | VTE_KILLLEADER, (uuid, expr))
+        self.server._fireEvent(VTE_MASK | VTE_KILLLEADER, uuid)
 
     def modifyLeaderSession(self, uuid, user, winname):
         '''
