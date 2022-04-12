@@ -169,10 +169,10 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.updateMemWindowTitle()
 
     def getExprTitle(self):
-        return str(self.addr_entry.text())
+        return str(self.addr_entry.text()), 0
 
     def updateMemWindowTitle(self):
-        expr = self.getExprTitle()
+        expr, va = self.getExprTitle()
 
         title = '%s: %s' % (self.mwname, expr)
         if self.mwlocked:

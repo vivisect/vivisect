@@ -444,6 +444,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             self.vw.modifyLeaderSession(self.uuid, user, self.mwname)
         
     def getExprTitle(self):
+        va = -1
         title = str(self.addr_entry.text())
 
         try:
@@ -464,7 +465,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             user, window = self.vw.getLeaderInfo(uuid)
             title += ' (following %s %s)' % (user, window)
 
-        return title
+        return title, va
 
     def _getRenderVaSize(self):
         '''
