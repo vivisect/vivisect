@@ -55,7 +55,7 @@ class VivServerClient:
         return self.server.vprint(msg)
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
-        return self.server._fireEvent(self.wsname, event, einfo, local=local, skip=skip)
+        return self.server._fireEvent(self.chan, event, einfo, local=local, skip=skip)
 
     def createEventChannel(self):
         self.chan = self.server.createEventChannel(self.wsname)
@@ -195,11 +195,15 @@ class VivServer:
         return chaninfo[1].get(timeout=timeo_wait)
 
     # All APIs from here down are basically mirrors of the workspace APIs
-    # used with remote workspaces, with a prepended wsname first argument
+    # used with remote workspaces, with a prepended chan first argument
 
-    def _fireEvent(self, wsname, event, einfo, local=False, skip=None):
-        #print("_fireEvent: %r %r %r %r %r" % (wsname, event, einfo, local, skip))
-        lock, fpath, pevents, users, leaders, leaderloc = self._req_wsinfo(wsname)
+    def _fireEvent(self, chan, event, einfo, local=False, skip=None):
+        #print("_fireEvent: %r %r %r %r %r" % (chan, event, einfo, local, skip))
+        if chan not in self.chandict:
+            raise Exception("BAD CHANNEL: _fireEvent: %r %r %r %r %r" % (chan, event, einfo, local, skip))
+
+        wsinfo, q = self.chandict.get(chan)
+        lock, fpath, pevents, users, leaders, leaderloc = wsinfo
         evtup = (event, einfo)
         with lock:
             # Transient events do not get saved
@@ -215,6 +219,7 @@ class VivServer:
                     logger.warning("VTE_IAMLEADER: %r" % repr(evtup))
                     uuid, user, fname = einfo
                     leaders[uuid] = einfo
+                    # TODO: store in channel config so we know how to cleanup
 
                 elif vtevent == VTE_FOLLOWME:
                     logger.warning("VTE_FOLLOWME: %r" % repr(evtup))
