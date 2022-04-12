@@ -73,14 +73,14 @@ class VivServerClient:
         try:
             return self.server.getLeaderLocations(self.wsname)
         except CobraErrorException as e:
-            logger.warn("error in getLeaderLocations(): %r" % e)
+            logger.warning("error in getLeaderLocations(): %r" % e)
             return {}
 
     def getLeaderSessions(self):
         try:
             return self.server.getLeaderSessions(self.wsname)
         except CobraErrorException as e:
-            logger.warn("error in getLeaderSessions(): %r" % e)
+            logger.warning("error in getLeaderSessions(): %r" % e)
             return {}
 
 
@@ -114,12 +114,7 @@ class VivServer:
 
             wsinfo, queue = chaninfo
             if queue.abandoned(timeo_aban):
-                # Remove from our chandict
-                self.chandict.pop(chan, None)
-                # Remove from the workspace clients
-                lock, fpath, pevents, users, leaders, leaderloc = wsinfo
-                with lock:
-                    users.pop(chan, None)
+                self.cleanupChannel(chan)
 
     @e_threads.maintthread(30)
     def _saveWorkspaceThread(self):
@@ -217,17 +212,29 @@ class VivServer:
                     pass
 
                 elif vtevent == VTE_IAMLEADER:
-                    logger.warn("VTE_IAMLEADER: %r" % repr(evtup))
+                    logger.warning("VTE_IAMLEADER: %r" % repr(evtup))
                     uuid, user, fname = einfo
                     leaders[uuid] = einfo
 
                 elif vtevent == VTE_FOLLOWME:
-                    logger.warn("VTE_FOLLOWME: %r" % repr(evtup))
+                    logger.warning("VTE_FOLLOWME: %r" % repr(evtup))
                     uuid, expr = einfo
                     leaderloc[uuid] = expr
 
+                elif vtevent == VTE_KILLLEADER:
+                    logger.warning("VTE_KILLLEADER: %r" % repr(evtup))
+                    uuid = einfo
+                    leaders.pop(uuid)
+                    leaderloc.pop(uuid)
+
+                elif vtevent == VTE_MODLEADER:
+                    logger.warning("VTE_MODLEADER: %r" % repr(evtup))
+                    uuid, user, fname = einfo
+                    leaders[uuid] = einfo
+
+
             # SPEED HACK
-            [q.append(evtup) for (chan, q) in users.items() if chan != skip]
+            [q.append(evtup) for chan, (q, leaduuids) in users.items() if chan != skip]
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
@@ -240,7 +247,7 @@ class VivServer:
             events.extend(pevents)
             # These must reference the same actual list object...
             queue = e_threads.ChunkQueue(items=events)
-            users[chan] = queue
+            users[chan] = (queue, [])
             self.chandict[chan] = [wsinfo, queue]
 
         return chan
@@ -254,6 +261,21 @@ class VivServer:
         wsinfo = self._req_wsinfo(wsname)
         lock, path, events, users, leaders, leaderloc = wsinfo
         return dict(leaders)
+
+    def cleanupChannel(self, chan):
+        # Remove from our chandict
+        self.chandict.pop(chan, None)
+
+        # Remove from the workspace clients
+        lock, fpath, pevents, users, leaders, leaderloc = wsinfo
+        with lock:
+            userinfo = users.pop(chan, None)
+            if userinfo:
+                chan, (q, leaduuids) = userinfo
+                for uuid in leaduuids:
+                    #leaders.pop(uuid)
+                    self._fireEvent(wsname, VTE_KILLLEADER | VTE_MASK, uuid)
+
 
 
 def getServerWorkspace(server, wsname):

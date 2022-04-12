@@ -5,6 +5,7 @@ import collections
 
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
+import envi.config as e_config
 import envi.qt.memory as e_mem_qt
 import envi.memcanvas as e_memcanvas
 import envi.qt.memory as e_qt_memory
@@ -336,6 +337,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         action = self._rtmGetActionByUUID(uuid)
         action.setText('%s - %s' % (user, fname))
+        if self._following == uuid:
+            self.updateWindowTitle()
 
     def _rtmGetActionByUUID(self, uuid):
         for action in self._follow_menu.actions():
@@ -348,10 +351,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         '''
         Remove Action item from RendToolsMenu (Opts/Follow)
         '''
-        action = self._rtmGetAcctionByUUID(uuid)
+        action = self._rtmGetActionByUUID(uuid)
         if action:
             self._follow_menu.removeAction(action)
             logger.info("Removing %r from Follow menu (%r)" % (action, uuid))
+            if self._following == uuid:
+                self._following = None
+                self.updateWindowTitle()
         else:
             logger.warning("Attempting to remove Menu Action that doesn't exist: %r", uuid)
             self._rtmRebuild()
@@ -540,6 +546,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         if self._following != uuid:
             return
         self.enviNavGoto(expr)
+
+    @idlethread
+    def VTE_MODLEADER(self, vw, event, einfo):
+        uuid, user, fname = einfo
+        self._rtmModLeaderSession(uuid, user, fname)
 
     @idlethread
     def enviNavGoto(self, expr, sizeexpr=None):

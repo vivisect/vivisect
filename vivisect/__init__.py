@@ -642,7 +642,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         thr.setDaemon(True)
         thr.start()
 
-        self.leaders.update(self.server.getLeaderSessions())
     def _clientThread(self):
         """
         The thread that monitors events on a server to stay

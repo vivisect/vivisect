@@ -3,6 +3,7 @@ import logging
 from PyQt5 import Qt
 from PyQt5.QtWidgets import *
 
+import envi.config as e_config
 import envi.qt.memory as e_mem_qt
 import envi.qt.memcanvas as e_mem_canvas
 
@@ -538,6 +539,8 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         
         action = self._rtmGetActionByUUID(uuid)
         action.setText('%s - %s' % (user, fname))
+        if self._following == uuid:
+            self.updateMemWindowTitle()
 
     def _rtmGetActionByUUID(self, uuid):
         for action in self._follow_menu.actions():
@@ -550,10 +553,13 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         '''
         Remove Action item from RendToolsMenu (Opts/Follow)
         '''
-        action = self._rtmGetAcctionByUUID(uuid)
+        action = self._rtmGetActionByUUID(uuid)
         if action:
             logger.info("Removing %r from Follow menu (%r)" % (action, uuid))
             self._follow_menu.removeAction(action)
+            if self._following == uuid:
+                self._following = None
+                self.updateMemWindowTitle()
         else:
             logger.warning("Attempting to remove Menu Action that doesn't exist: %r", uuid)
             self._rtmRebuild()

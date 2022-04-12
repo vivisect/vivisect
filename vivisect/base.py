@@ -581,20 +581,19 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.thand[VTE_MODLEADER] = self._handleMODLEADER
 
     def _handleFOLLOWME(self, event, einfo):
-        # workspace has nothing to do...  just here for the tracking....
         uuid, expr = einfo
         logger.debug("_handleFOLLOWME(%r, %r)", event, einfo)
         self.leaderloc[uuid] = expr
 
     def _handleKILLLEADER(self, event, einfo):
-        # workspace has nothing to do...  just here for the tracking....
         logger.debug("_handleKILLLEADER(%r, %r)", event, einfo)
         uuid = einfo
         self.leaders.pop(uuid)
 
     def _handleMODLEADER(self, event, einfo):
-        # workspace has nothing to do...  just here for the tracking....
+        uuid, user, fname = einfo
         logger.debug("_handleMODLEADER(%r, %r)", event, einfo)
+
         self.leaders[uuid] = einfo
 
     def _handleIAMLEADER(self, event, einfo):
