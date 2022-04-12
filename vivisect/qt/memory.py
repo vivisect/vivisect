@@ -3,6 +3,7 @@ import logging
 from PyQt5 import Qt
 from PyQt5.QtWidgets import *
 
+import envi.config as e_config
 import envi.qt.memory as e_mem_qt
 import envi.qt.memcanvas as e_mem_canvas
 
@@ -23,7 +24,6 @@ logger = logging.getLogger(__name__)
 qt_horizontal   = 1
 qt_vertical     = 2
 
-
 class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
     def __init__(self, *args, **kwargs):
@@ -42,6 +42,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('n', 'viv:setname')
         self.addHotKey('g', 'viv:getlocation')
         self.addHotKey(';', 'viv:comment')
+        self.addHotKey(':', 'viv:commentmulti')
         self.addHotKey('t', 'viv:make:struct')
         self.addHotKey('ctrl+t', 'viv:make:struct:again')
         self.addHotKey('ctrl+meta+t', 'viv:make:struct:multi')
@@ -407,7 +408,9 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
                 self._follow_menu.setEnabled(not self._leading)
                 if self._leading:
                     self._following = None
-                    self.vw.iAmLeader(self.mwname)
+                    self.vw.iAmLeader(self.uuid, self.mwname)
+                else:
+                    self.vw.killLeaderSession(self.uuid)
                 self.updateMemWindowTitle()
 
             def clearFollow():
@@ -419,9 +422,29 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             self._follow_menu = menu.addMenu('Follow..')
             self._follow_menu.addAction('(disable)', clearFollow)
 
+            # add in the already existing sessions...
+            for einfo in self.vw.leaders.values():
+                uuid, user, fname = einfo
+
+                def setFollow():
+                    self._following = uuid
+                    self.updateMemWindowTitle()
+                    self.navToLeader()
+
+                action = self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
+                action.setWhatsThis(uuid)
+
         return menu
 
+    def rendToolsSetName(self, user=None):
+        menu = e_mem_qt.VQMemoryWindow.rendToolsSetName(self)
+        if self.vw.server:
+            if user is None:
+                user = e_config.getusername()
+            self.vw.modifyLeaderSession(self.uuid, user, self.mwname)
+        
     def getExprTitle(self):
+        va = -1
         title = str(self.addr_entry.text())
 
         try:
@@ -438,10 +461,11 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             title += ' (leading)'
 
         if self._following is not None:
-            user, window = self._following
+            uuid = self._following
+            user, window = self.vw.getLeaderInfo(uuid)
             title += ' (following %s %s)' % (user, window)
 
-        return title
+        return title, va
 
     def _getRenderVaSize(self):
         '''
@@ -495,8 +519,76 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         for cbva, cbsize, cbfva in self.vw.getFunctionBlocks(fva):
             self.mem_canvas.renderMemoryUpdate(cbva, cbsize)
 
-    def VTE_IAMLEADER(self, vw, event, einfo):
-        user, followname = einfo
+    def _rtmAddLeaderSession(self, uuid, user, fname):
+        '''
+        Add Action to RendToolsMenu (Opts/Follow) for a given session
+        '''
+        print("_rtmAddLeaderSession(%r, %r, %r)" % (uuid, user, fname))
+
+        def setFollow():
+            self._following = uuid
+            self.updateMemWindowTitle()
+
+        action = self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
+        action.setWhatsThis(uuid)
+
+    def _rtmModLeaderSession(self, uuid, user, fname):
+        '''
+        Add Action to RendToolsMenu (Opts/Follow) for a given session
+        '''
+        print("_rtmModLeaderSession(%r, %r, %r)" % (uuid, user, fname))
+        
+        action = self._rtmGetActionByUUID(uuid)
+        action.setText('%s - %s' % (user, fname))
+        if self._following == uuid:
+            self.updateMemWindowTitle()
+
+    def _rtmGetActionByUUID(self, uuid):
+        for action in self._follow_menu.actions():
+            if action.whatsThis() == uuid:
+                return action
+
+        logger.info("Unknown UUID: %r" % uuid)
+
+    def _rtmDelLeaderSession(self, uuid):
+        '''
+        Remove Action item from RendToolsMenu (Opts/Follow)
+        '''
+        action = self._rtmGetActionByUUID(uuid)
+        if action:
+            logger.info("Removing %r from Follow menu (%r)" % (action, uuid))
+            self._follow_menu.removeAction(action)
+            if self._following == uuid:
+                self._following = None
+                self.updateMemWindowTitle()
+        else:
+            logger.warning("Attempting to remove Menu Action that doesn't exist: %r", uuid)
+            self._rtmRebuild()
+
+    def _rtmRebuild(self):
+        '''
+        Sync current menu system with vw.leaders
+        '''
+        self._follow_menu.clear()
+
+        def clearFollow():
+            self._following = None
+            self.updateWindowTitle()
+
+        self._follow_menu.addAction('(disable)', clearFollow)
+
+        # add in the already existing sessions...
+        for einfo in self.vw.leaders.values():
+            self._rtmAddLeaderSession(*einfo)
+
+    def _rtmGetUUIDs(self):
+        '''
+        Returns a list of active UUIDs for leader sessions
+        '''
+        return [action.whatsThis() for action in self._follow_menu.actions()]
+
+    #def VTE_IAMLEADER(self, vw, event, einfo):
+    #    user, followname = einfo
 
     def VWE_SYMHINT(self, vw, event, einfo):
         va, idx, hint = einfo
@@ -535,23 +627,38 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     @idlethread
     def VTE_IAMLEADER(self, vw, event, einfo):
-        user, fname = einfo
+        self._rtmAddLeaderSession(*einfo)
 
-        def setFollow():
-            self._following = einfo
-            self.updateMemWindowTitle()
+    @idlethread
+    def VTE_KILLLEADER(self, vw, event, einfo):
+        uuid = einfo
+        self._rtmDelLeaderSession(uuid)
 
-        self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
+    @idlethread
+    def VTE_MODLEADER(self, vw, event, einfo):
+        uuid, user, fname = einfo
+        self._rtmModLeaderSession(uuid, user, fname)
 
     @idlethread
     def VTE_FOLLOWME(self, vw, event, einfo):
-        user, fname, expr = einfo
-        if self._following != (user, fname):
+        uuid, expr = einfo
+        if self._following != uuid:
             return
         self.enviNavGoto(expr)
 
     @idlethread
     def enviNavGoto(self, expr, sizeexpr='256', rend=''):
         if self._leading:
-            self.vw.followTheLeader(str(self.mwname), str(expr))
+            self.vw.followTheLeader(str(self.uuid), str(expr))
         return e_mem_qt.VQMemoryWindow.enviNavGoto(self, expr, sizeexpr=sizeexpr, rend=rend)
+
+    @idlethread
+    def navToLeader(self):
+        uuid = self._following
+        print("navToLeader(%r)" % uuid)
+        if uuid:
+            expr = self.vw.getLeaderLoc(uuid)
+            if not expr:
+                return
+
+            self.enviNavGoto(expr)

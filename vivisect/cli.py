@@ -814,3 +814,49 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         import vivisect.analysis.elf.elfplt as vaee
         vaee.analyzeFunction(self, fva)
+
+    def do_leaders(self, line):
+        '''
+        Manage Leader Sessions.  This is useful if sessions are left hanging 
+        if a leader disconnects.
+        
+        Usage: leaders (list,kill,killall)
+
+            list - show leader sessions
+            kill <uuidhex> - kill a particular session
+            killall - kill all leader sessions for a given binary
+            mod <uuid> <user> <sessionname> - rename a leader session/user
+
+        Example:
+            leaders kill 197a7797ba1511ecbe41091ba860c051
+        '''
+        if not line:
+            return self.do_help("leaders")
+
+        argv = e_cli.splitargs(line)
+        try:
+            if argv[0] == 'list':
+                self.vprint("Current Leader Sessions:")
+                for uuid, user, fname in self.getLeaderSessions().values():
+                    curva = self.getLeaderLoc(uuid)
+                    self.vprint(" * %s (user: %s  uuid: %s)" % (fname, user, uuid))
+
+            elif argv[0] == 'mod':
+                uuid = argv[1]
+                user = argv[2]
+                sessionname = argv[3]
+                self.modLeaderSession(uuid, user, sessionname)
+
+            elif argv[0] == 'kill':
+                if len(argv) < 2:
+                    self.vprint('kill requires a valid <uuid> argument')
+
+                uuid = argv[1]
+                self.killLeaderSession(uuid)
+                
+            elif argv[0] == 'killall':
+                for uuid, user, fname in self.getLeaderSessions().values():
+                    self.killLeaderSession(uuid)
+
+        except Exception as e:
+            self.vprint("Error: %r" % e)
