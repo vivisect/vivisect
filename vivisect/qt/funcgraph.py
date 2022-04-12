@@ -266,12 +266,17 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         '''
         return self._autorefresh.isChecked()
 
-    def rendToolsSetName(self):
+    def rendToolsSetName(self, user=None):
         curname = self.getEnviNavName()
         mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name', text=curname)
         if ok:
             self.setMemWindowName(str(mwname))
 
+        if self.vw.server:
+            if user is None:
+                user = e_config.getusername()
+            self.vw.modifyLeaderSession(self.uuid, user, mwname)
+        
     def rendToolsMenu(self, event):
         menu = self.getRendToolsMenu()
         menu.exec_(self.mapToGlobal(self.rend_tools.pos()))
@@ -302,20 +307,71 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             leadact.toggled.connect(leadToggle)
             menu.addAction(leadact)
             self._follow_menu = menu.addMenu('Follow..')
-            self._follow_menu.addAction('(disable)', clearFollow)
+
+            self._rtmRebuild()
+            #self._follow_menu.addAction('(disable)', clearFollow)
 
             # add in the already existing sessions...
             for einfo in self.vw.leaders.values():
                 uuid, user, fname = einfo
 
-                def setFollow():
-                    self._following = uuid
-                    self.updateWindowTitle()
+        def setFollow():
+            self._following = uuid
+            self.updateWindowTitle()
+            self.navToLeader()
 
-                self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
+        action = self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
+        action.setWhatsThis(uuid)
 
+    def _rtmModLeaderSession(self, uuid, user, fname):
+        '''
+        Add Action to RendToolsMenu (Opts/Follow) for a given session
+        '''
+        print("_rtmModLeaderSession(%r, %r, %r)" % (uuid, user, fname))
 
-        return menu
+        action = self._rtmGetActionByUUID(uuid)
+        action.setText('%s - %s' % (user, fname))
+
+    def _rtmGetActionByUUID(self, uuid):
+        for action in self._follow_menu.actions():
+            if action.whatsThis() == uuid:
+                return action
+
+        logger.info("Unknown UUID: %r" % uuid)
+
+    def _rtmDelLeaderSession(self, uuid):
+        '''
+        Remove Action item from RendToolsMenu (Opts/Follow)
+        '''
+        action = self._rtmGetAcctionByUUID(uuid)
+        if action:
+            self._follow_menu.removeAction(action)
+            logger.info("Removing %r from Follow menu (%r)" % (action, uuid))
+        else:
+            logger.warning("Attempting to remove Menu Action that doesn't exist: %r", uuid)
+            self._rtmRebuild()
+
+    def _rtmRebuild(self):
+        '''
+        Sync current menu system with vw.leaders
+        '''
+        self._follow_menu.clear()
+
+        def clearFollow():
+            self._following = None
+            self.updateWindowTitle()
+
+        self._follow_menu.addAction('(disable)', clearFollow)
+
+        # add in the already existing sessions...
+        for einfo in self.vw.leaders.values():
+            self._rtmAddLeaderSession(*einfo)
+
+    def _rtmGetUUIDs(self):
+        '''
+        Returns a list of active UUIDs for leader sessions
+        '''
+        return [action.whatsThis() for action in self._follow_menu.actions()]
 
     def _nav_expr(self):
         expr = self.addr_entry.text()
@@ -471,9 +527,10 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         def setFollow():
             self._following = uuid
             self.updateWindowTitle()
+            self.navToLeader()
 
         self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
-        # TODO: add "NOTLEADER" to stop (and remove entries)
+        # TODO: add "KILLLEADER" to stop (and remove entries)
 
     @idlethread
     def VTE_FOLLOWME(self, vw, event, einfo):
@@ -491,6 +548,17 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.history.append( expr )
         self.updateWindowTitle()
         self._renderMemory()
+
+    @idlethread
+    def navToLeader(self):
+        uuid = self._following
+        print("navToLeader(%r)" % uuid)
+        if uuid:
+            expr = self.vw.getLeaderLoc(uuid)
+            if not expr:
+                return
+
+            self.enviNavGoto(expr)
 
     def vqGetSaveState(self):
         return { 'expr':str(self.addr_entry.text()), }

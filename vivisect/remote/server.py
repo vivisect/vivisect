@@ -44,7 +44,6 @@ class VivServerClient:
         self.server = server
         self.eoffset = 0
         self.q = queue.Queue()  # The actual local Q we deliver to
-        self.leaders = {}
 
     @e_threads.firethread
     def _eatServerEvents(self):
@@ -69,6 +68,13 @@ class VivServerClient:
 
     def waitForEvent(self, chan, timeout=None):
         return self.q.get(timeout=timeout)
+
+    def getLeaderLocations(self):
+        try:
+            return self.server.getLeaderLocations(self.wsname)
+        except CobraErrorException as e:
+            logger.warn("error in getLeaderLocations(): %r" % e)
+            return {}
 
     def getLeaderSessions(self):
         try:
@@ -111,14 +117,14 @@ class VivServer:
                 # Remove from our chandict
                 self.chandict.pop(chan, None)
                 # Remove from the workspace clients
-                lock, fpath, pevents, users, leaders = wsinfo
+                lock, fpath, pevents, users, leaders, leaderloc = wsinfo
                 with lock:
                     users.pop(chan, None)
 
     @e_threads.maintthread(30)
     def _saveWorkspaceThread(self):
         for wsinfo in self.wsdict.values():
-            lock, path, events, users, leaders = wsinfo
+            lock, path, events, users, leaders, leaderloc = wsinfo
             if events:
                 with lock:
                     wsinfo[2] = []  # start a new events list...
@@ -151,7 +157,7 @@ class VivServer:
             os.makedirs(wsdir, 0o750)
 
         viv_basicfile.vivEventsToFile(wspath, events)
-        wsinfo = [threading.Lock(), wspath, [], {}, {}]
+        wsinfo = [threading.Lock(), wspath, [], {}, {}, {}]
         self.wsdict[wsname] = wsinfo
 
     def _loadWorkspaces(self):
@@ -183,7 +189,7 @@ class VivServer:
                 if wsinfo is None:
                     # Initialize the workspace info tuple
                     lock = threading.Lock()
-                    wsinfo = [lock, wspath, [], {}, {}]
+                    wsinfo = [lock, wspath, [], {}, {}, {}]
                     logger.debug('loaded: %s', wsname)
                     self.wsdict[wsname] = wsinfo
 
@@ -198,7 +204,7 @@ class VivServer:
 
     def _fireEvent(self, wsname, event, einfo, local=False, skip=None):
         #print("_fireEvent: %r %r %r %r %r" % (wsname, event, einfo, local, skip))
-        lock, fpath, pevents, users, leaders = self._req_wsinfo(wsname)
+        lock, fpath, pevents, users, leaders, leaderloc = self._req_wsinfo(wsname)
         evtup = (event, einfo)
         with lock:
             # Transient events do not get saved
@@ -215,6 +221,11 @@ class VivServer:
                     uuid, user, fname = einfo
                     leaders[uuid] = einfo
 
+                elif vtevent == VTE_FOLLOWME:
+                    logger.warn("VTE_FOLLOWME: %r" % repr(evtup))
+                    uuid, expr = einfo
+                    leaderloc[uuid] = expr
+
             # SPEED HACK
             [q.append(evtup) for (chan, q) in users.items() if chan != skip]
 
@@ -222,7 +233,7 @@ class VivServer:
         wsinfo = self._req_wsinfo(wsname)
         chan = e_common.hexify(os.urandom(16))
 
-        lock, fpath, pevents, users, leaders = wsinfo
+        lock, fpath, pevents, users, leaders, leaderloc = wsinfo
         with lock:
             events = []
             events.extend(viv_basicfile.vivEventsFromFile(fpath))
@@ -234,9 +245,14 @@ class VivServer:
 
         return chan
 
+    def getLeaderLocations(self, wsname):
+        wsinfo = self._req_wsinfo(wsname)
+        lock, path, events, users, leaders, leaderloc = wsinfo
+        return dict(leaderloc)
+
     def getLeaderSessions(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
-        lock, path, events, users, leaders = wsinfo
+        lock, path, events, users, leaders, leaderloc = wsinfo
         return dict(leaders)
 
 

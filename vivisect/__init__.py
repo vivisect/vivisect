@@ -629,6 +629,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.rchan = remotevw.createEventChannel()
 
         self.server.vprint('%s connecting...' % uname)
+        self.leaders.update(self.server.getLeaderSessions())
         wsevents = self.server.exportWorkspace()
         self.importWorkspace(wsevents)
         self._snapInAnalysisModules()
@@ -3002,6 +3003,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 #
 #  Shared Workspace APIs
 #
+    # interact with the Server
     def chat(self, msg):
         uname = e_config.getusername()
         # FIXME this should be part of a UI event model.
@@ -3034,12 +3036,41 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception('followTheLeader() requires being connected to a server.')
         self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (uuid, expr))
 
-    def getChannelInfo(self, uuid):
+    def killTheLeader(self, uuid):
+        '''
+        When we shutdown a Leader session, we need to make it go away.
+
+        Example:
+            vw.killTheLeader('bf1ae9f4b94711ecbe41091ba860c051')
+        '''
+        if not self.server:
+            raise Exception('killTheLeader() requires being connected to a server.')
+        self.server._fireEvent(VTE_MASK | VTE_KILLLEADER, (uuid, expr))
+
+    def modifyLeaderSession(self, uuid, user, winname):
+        '''
+        Make changes to the username or session/window name
+
+        Example:
+            vw.killTheLeader('bf1ae9f4b94711ecbe41091ba860c051')
+        '''
+        if not self.server:
+            raise Exception('killTheLeader() requires being connected to a server.')
+        self.server._fireEvent(VTE_MASK | VTE_MODLEADER, (uuid, user, winname))
+
+    # internal data access
+    def getLeaderInfo(self, uuid):
         if uuid in self.leaders:
             uuid, user, fname = self.leaders.get(uuid)
             return user, fname
             
         return None, None
+
+    def getLeaderLoc(self, uuid):
+        '''
+        Get the current location for a Leader session
+        '''
+        return self.leaderloc.get(uuid)
 
 #################################################################
 #

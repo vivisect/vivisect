@@ -188,6 +188,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
         # Follow the Leader data
         self.leaders = {}
+        self.leaderloc = {}
 
     def _snapInAnalysisModules(self):
         '''
@@ -576,10 +577,24 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
+        self.thand[VTE_KILLLEADER] = self._handleKILLLEADER
+        self.thand[VTE_MODLEADER] = self._handleMODLEADER
 
     def _handleFOLLOWME(self, event, einfo):
         # workspace has nothing to do...  just here for the tracking....
+        uuid, expr = einfo
         logger.debug("_handleFOLLOWME(%r, %r)", event, einfo)
+        self.leaderloc[uuid] = expr
+
+    def _handleKILLLEADER(self, event, einfo):
+        # workspace has nothing to do...  just here for the tracking....
+        logger.debug("_handleKILLLEADER(%r, %r)", event, einfo)
+        self.leaders.pop(uuid)
+
+    def _handleMODLEADER(self, event, einfo):
+        # workspace has nothing to do...  just here for the tracking....
+        logger.debug("_handleMODLEADER(%r, %r)", event, einfo)
+        self.leaders[uuid] = einfo
 
     def _handleIAMLEADER(self, event, einfo):
         uuid, user, fname = einfo

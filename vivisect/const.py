@@ -76,10 +76,11 @@ VWE_MAX             = 43
 # Constants for vivisect "transient" events which flow through
 # the event subsystem but are not recorded to the workspace.
 VTE_MASK            = 0x80000000
-VTE_IAMLEADER       = 1 # (user,followname)
-VTE_FOLLOWME        = 2 # (user,followname,expr)
-VTE_NOTLEADER       = 3 # (
-VTE_MAX             = 4
+VTE_IAMLEADER       = 1 # (uuid,user,followname)
+VTE_FOLLOWME        = 2 # (uuid,expr)
+VTE_KILLLEADER      = 3 # (uuid)
+VTE_MODLEADER       = 4 # (uuid,user,followname)
+VTE_MAX             = 5
 
 # API fields
 API_RET_TYPE    = 0
