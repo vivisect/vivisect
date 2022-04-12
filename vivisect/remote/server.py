@@ -274,12 +274,14 @@ class VivServer:
             logger.warning("Attempting to clean up nonexistent channel: %r" % chan)
             return
 
+        # Remove all channels originating from this channel
+        wsinfo, queue, chanleaders = chantup
+        for uuid in chanleaders:
+            self._fireEvent(chan, VTE_KILLLEADER | VTE_MASK, uuid)
+
         # Remove from the workspace clients
-        wsinfo, queue, chanleaders = chaninfo
         lock, fpath, pevents, users, leaders, leaderloc = wsinfo
         with lock:
-            for uuid in chanleaders:
-                self._fireEvent(chan, VTE_KILLLEADER | VTE_MASK, uuid)
             userinfo = users.pop(chan, None)
 
         # Remove from our chandict
