@@ -112,7 +112,7 @@ class VivServer:
             if chaninfo is None:
                 continue
 
-            wsinfo, queue = chaninfo
+            wsinfo, queue, chanleaders = chaninfo
             if queue.abandoned(timeo_aban):
                 self.cleanupChannel(chan)
 
@@ -202,7 +202,7 @@ class VivServer:
         if chan not in self.chandict:
             raise Exception("BAD CHANNEL: _fireEvent: %r %r %r %r %r" % (chan, event, einfo, local, skip))
 
-        wsinfo, q = self.chandict.get(chan)
+        wsinfo, q, chanleaders = self.chandict.get(chan)
         lock, fpath, pevents, users, leaders, leaderloc = wsinfo
         evtup = (event, einfo)
         with lock:
@@ -219,7 +219,7 @@ class VivServer:
                     logger.warning("VTE_IAMLEADER: %r" % repr(evtup))
                     uuid, user, fname = einfo
                     leaders[uuid] = einfo
-                    # TODO: store in channel config so we know how to cleanup
+                    chanleaders.append(uuid)
 
                 elif vtevent == VTE_FOLLOWME:
                     logger.warning("VTE_FOLLOWME: %r" % repr(evtup))
@@ -239,7 +239,7 @@ class VivServer:
 
 
             # SPEED HACK
-            [q.append(evtup) for chan, (q, leaduuids) in users.items() if chan != skip]
+            [q.append(evtup) for chan, q in users.items() if chan != skip]
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
@@ -252,8 +252,9 @@ class VivServer:
             events.extend(pevents)
             # These must reference the same actual list object...
             queue = e_threads.ChunkQueue(items=events)
-            users[chan] = (queue, [])
-            self.chandict[chan] = [wsinfo, queue]
+            users[chan] = queue
+            chanleaders = []
+            self.chandict[chan] = [wsinfo, queue, chanleaders]
 
         return chan
 
@@ -268,23 +269,23 @@ class VivServer:
         return dict(leaders)
 
     def cleanupChannel(self, chan):
-        # Remove from our chandict
-        chantup = self.chandict.pop(chan, None)
+        chantup = self.chandict.get(chan, None)
         if chantup is None:
             logger.warning("Attempting to clean up nonexistent channel: %r" % chan)
             return
 
+        # Remove all channels originating from this channel
+        wsinfo, queue, chanleaders = chantup
+        for uuid in chanleaders:
+            self._fireEvent(chan, VTE_KILLLEADER | VTE_MASK, uuid)
+
         # Remove from the workspace clients
-        wsinfo, queue = chaninfo
         lock, fpath, pevents, users, leaders, leaderloc = wsinfo
         with lock:
             userinfo = users.pop(chan, None)
-            if userinfo:
-                chan, (q, leaduuids) = userinfo
-                for uuid in leaduuids:
-                    #leaders.pop(uuid)
-                    self._fireEvent(wsname, VTE_KILLLEADER | VTE_MASK, uuid)
 
+        # Remove from our chandict
+        self.chandict.pop(chan, None)
 
 
 def getServerWorkspace(server, wsname):
