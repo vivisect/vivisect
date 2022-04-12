@@ -224,8 +224,8 @@ class VivServer:
                 elif vtevent == VTE_KILLLEADER:
                     logger.warning("VTE_KILLLEADER: %r" % repr(evtup))
                     uuid = einfo
-                    leaders.pop(uuid)
-                    leaderloc.pop(uuid)
+                    leaders.pop(uuid, None)
+                    leaderloc.pop(uuid, None)
 
                 elif vtevent == VTE_MODLEADER:
                     logger.warning("VTE_MODLEADER: %r" % repr(evtup))
@@ -264,9 +264,13 @@ class VivServer:
 
     def cleanupChannel(self, chan):
         # Remove from our chandict
-        self.chandict.pop(chan, None)
+        chantup = self.chandict.pop(chan, None)
+        if chantup is None:
+            logger.warning("Attempting to clean up nonexistent channel: %r" % chan)
+            return
 
         # Remove from the workspace clients
+        wsinfo, queue = chaninfo
         lock, fpath, pevents, users, leaders, leaderloc = wsinfo
         with lock:
             userinfo = users.pop(chan, None)

@@ -589,10 +589,12 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         logger.debug("_handleKILLLEADER(%r, %r)", event, einfo)
         uuid = einfo
         self.leaders.pop(uuid)
+        self.vprint('*Ended: leader session "%s" (%r)' % (user,fname,uuid))
 
     def _handleMODLEADER(self, event, einfo):
         uuid, user, fname = einfo
         logger.debug("_handleMODLEADER(%r, %r)", event, einfo)
+        self.vprint('*%s changed leader session name to "%s" (%r)' % (user,fname,uuid))
 
         self.leaders[uuid] = einfo
 

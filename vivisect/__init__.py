@@ -3061,12 +3061,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.server._fireEvent(VTE_MASK | VTE_MODLEADER, (uuid, user, winname))
 
     # internal data access
-    def getLeaderInfo(self, uuid):
+    def getLeaderInfo(self, uuid=None):
         if uuid in self.leaders:
             uuid, user, fname = self.leaders.get(uuid)
             return user, fname
             
         return None, None
+
+    def getLeaderSessions(self):
+        return dict(self.leaders)
 
     def getLeaderLoc(self, uuid):
         '''
