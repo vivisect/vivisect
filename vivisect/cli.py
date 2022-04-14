@@ -184,7 +184,12 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         regex = re.compile(line, re.I)
         for va, name in self.getNames():
             if regex.search(name):
-                self.vprint('0x%.8x: %s' % (va, name))
+                ftup = self.getFileAndOffset(va)
+                if ftup:
+                    fname, fbase, off = ftup
+                    self.vprint('0x%.8x: %s  (%r + 0x%x)' % (va, name, fname, off))
+                else:
+                    self.vprint("WARNING: 0x%x: %r  doesn't exist in a file!" % (va, name))
 
     def do_save(self, line):
         """
