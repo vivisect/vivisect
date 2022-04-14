@@ -83,6 +83,34 @@ class VivisectRemoteTests(unittest.TestCase):
                 self.assertEqual(set(othr.getLocations()), set(good.getLocations()))
                 self.assertEqual(set(othr.getXrefs()), set(good.getXrefs()))
 
+                # test some of the follow-the-leader framework
+                testuuid = 'uuid_of_my_dearest_friend_1'
+                # first just create a leader session:
+                othr.iAmLeader(testuuid, "atlas' moving castle")
+                time.sleep(.3)
+                # only one session, so we'll run this once
+                for ldrsess in othr.getLeaderSessions().values():
+                    uuid, user, fname = ldrsess
+                    self.assertEqual(uuid, testuuid)
+                    self.assertEqual(fname, "atlas' moving castle")
+
+                # now let's move around a bit
+                othr.followTheLeader(testuuid, '0x31337')
+                time.sleep(.3)
+                self.assertEqual(othr.getLeaderLoc(testuuid), '0x31337')
+
+                # now let's rename things
+                othr.modifyLeaderSession(testuuid, 'rakuy0', "rakuy0's moving castle")
+                time.sleep(.3)
+                for ldrsess in othr.getLeaderSessions().values():
+                    uuid, user, fname = ldrsess
+                    self.assertEqual(uuid, testuuid)
+                    self.assertEqual(user, 'rakuy0')
+                    self.assertEqual(fname, "rakuy0's moving castle")
+
+                self.assertEqual(othr.getLeaderInfo(testuuid), ('rakuy0', "rakuy0's moving castle"))
+
+
                 try:
                     othr.server = None
                     q = othr.chan_lookup.get(othr.rchan)

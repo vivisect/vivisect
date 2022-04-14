@@ -626,7 +626,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         client to the given (potentially cobra remote)
         workspace object.
         """
-        uname = e_config.getusername()
+        uname = self.config.user.name
         self.server = remotevw
         self.rchan = remotevw.createEventChannel()
 
@@ -3107,7 +3107,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 #
     # interact with the Server
     def chat(self, msg):
-        uname = e_config.getusername()
+        uname = self.config.user.name
         # FIXME this should be part of a UI event model.
         self._fireEvent(VWE_CHAT, (uname, msg))
 
@@ -3123,7 +3123,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if not self.server:
             raise Exception('iAmLeader() requires being connected to a server.')
 
-        user = e_config.getusername()
+        user = self.config.user.name
         self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (uuid, user, winname))
 
     def followTheLeader(self, uuid, expr):
