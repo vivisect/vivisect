@@ -72,14 +72,14 @@ class VivServerClient:
     def getLeaderLocations(self):
         try:
             return self.server.getLeaderLocations(self.wsname)
-        except CobraErrorException as e:
+        except Exception as e:
             logger.warning("error in getLeaderLocations(): %r" % e)
             return {}
 
     def getLeaderSessions(self):
         try:
             return self.server.getLeaderSessions(self.wsname)
-        except CobraErrorException as e:
+        except Exception as e:
             logger.warning("error in getLeaderSessions(): %r" % e)
             return {}
 
