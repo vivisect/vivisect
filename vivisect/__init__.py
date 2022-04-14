@@ -87,7 +87,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._viv_gui = None    # If a gui is running, he will put a ref here...
         self._ext_ctxmenu_hooks = {}
         self._extensions = {}
-        self._load_sema = threading.Semaphore(0)    # set to zero so the first .acquire() waits
+        self._load_event = threading.Event()
 
         self.saved = False  # TODO: Have a warning when we try to close the UI if the workspace hasn't been saved
         self.rchan = None
@@ -637,7 +637,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         thr.setDaemon(True)
         thr.start()
 
-        self._load_sema.acquire(timeout=10)
+        timeout = self.config.viv.remote.wait_for_plat_arch
+        self._load_event.wait(timeout=timeout)
         self._snapInAnalysisModules()
 
     def _clientThread(self):

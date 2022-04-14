@@ -652,7 +652,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
-        self._load_sema.release()
+        self._load_event.set()
 
     def _mcb_bigend(self, name, value):
         self.setEndian(bool(value))
@@ -665,7 +665,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
-        self._load_sema.release()
+        self._load_event.set()
 
     def _mcb_FileBytes(self, name, value):
         if not self.parsedbin:
