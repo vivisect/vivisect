@@ -87,6 +87,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._viv_gui = None    # If a gui is running, he will put a ref here...
         self._ext_ctxmenu_hooks = {}
         self._extensions = {}
+        self._load_event = threading.Event()
 
         self.saved = False  # TODO: Have a warning when we try to close the UI if the workspace hasn't been saved
         self.rchan = None
@@ -630,12 +631,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.server.vprint('%s connecting...' % uname)
         wsevents = self.server.exportWorkspace()
         self.importWorkspace(wsevents)
-        self._snapInAnalysisModules()
         self.server.vprint('%s connection complete!' % uname)
 
         thr = threading.Thread(target=self._clientThread)
         thr.setDaemon(True)
         thr.start()
+
+        timeout = self.config.viv.remote.wait_for_plat_arch
+        self._load_event.wait(timeout=timeout)
+        self._snapInAnalysisModules()
 
     def _clientThread(self):
         """
@@ -2322,6 +2326,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if foff == -1:
             return foff
         return (foff - offset) + 2
+
+    def getFileAndOffset(self, va):
+        '''
+        Helper function which identifies the file a given VA is a part of, then
+        splits the file base and offset
+
+        Returns:  (filename, filebase, offset)
+
+        If no file is identified, None is returned
+        '''
+        fname = self.getFileByVa(va)
+        if not fname:
+            return None
+
+        fbase = self.getFileMeta(fname, 'imagebase')
+        off = va - fbase
+        return (fname, fbase, off)
 
     def addLocation(self, va, size, ltype, tinfo=None):
         """
