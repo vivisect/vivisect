@@ -43,6 +43,9 @@ defconfig = {
                 'timeout_secs': 45,
             }
         },
+        'remote':{
+            'wait_for_plat_arch': 10,
+        },
     },
     'cli':vdb.defconfig.get('cli'), # FIXME make our own...
     'vdb':vdb.defconfig.get('vdb'),
@@ -87,6 +90,9 @@ docconfig = {
                 'table_min_len':'How many pointers must be in a row to make a table?',
             },
         },
+        'remote':{
+            'wait_for_plat_arch':'How many secs to wait for the remote server/workspace to provide a Platform or Architecture before moving on.'
+        }
 
     },
 

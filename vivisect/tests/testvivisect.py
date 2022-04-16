@@ -310,6 +310,9 @@ class VivisectTest(v_t_utils.VivTest):
         self.chgrp_vw.do_names('plt_.*64')
         output = self.chgrp_vw.canvas.strval
         self.assertIn("0x08048e60: chgrp.plt_fseeko64", output)
+        self.chgrp_vw.do_names('__entry')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x080491e0: chgrp.__entry  ('chgrp' + 0x11e0)", output)
         self.chgrp_vw.canvas.clearCanvas()
 
     def test_cli_pathcount(self):
