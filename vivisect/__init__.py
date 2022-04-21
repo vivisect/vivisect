@@ -1121,7 +1121,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         rerun = kwargs.pop('rerun', False)
         if va in self.iscode and not rerun:
             iscode, ctx = self.iscode[va]
-            context.update(ctx)
+            if ctx:
+                context.update(ctx)
             return iscode
 
         self.iscode[va] = (True, context)
