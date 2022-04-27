@@ -319,7 +319,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         '''
         Add Action to RendToolsMenu (Opts/Follow) for a given session
         '''
-        print("_rtmAddLeaderSession(%r, %r, %r)" % (uuid, user, fname))
+        logger.info("_rtmAddLeaderSession(%r, %r, %r)", uuid, user, fname)
 
         def setFollow():
             self._following = uuid
@@ -333,7 +333,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         '''
         Add Action to RendToolsMenu (Opts/Follow) for a given session
         '''
-        print("_rtmModLeaderSession(%r, %r, %r)" % (uuid, user, fname))
+        logger.info("_rtmModLeaderSession(%r, %r, %r)", uuid, user, fname)
 
         action = self._rtmGetActionByUUID(uuid)
         action.setText('%s - %s' % (user, fname))
@@ -565,7 +565,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
     @idlethread
     def navToLeader(self):
         uuid = self._following
-        print("navToLeader(%r)" % uuid)
+        logger.debug("navToLeader(%r)", uuid)
         if uuid:
             expr = self.vw.getLeaderLoc(uuid)
             if not expr:
