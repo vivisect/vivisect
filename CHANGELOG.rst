@@ -32,7 +32,7 @@ Fixes
   (`#514 <https://github.com/vivisect/vivisect/pull/514>`_)
 - Fix an incorrect import name in vivbin.
   (`#518 <https://github.com/vivisect/vivisect/pull/518>`_)
-- Fix a logging message in the ``libc_start_main`` analysis pass.
+- Fix a debug logging message in the ``libc_start_main`` analysis pass that would cause that analysis pass to exception out.
   (`#519 <https://github.com/vivisect/vivisect/pull/519>`_)
 
 V1.0.7 - 2022-01-13
