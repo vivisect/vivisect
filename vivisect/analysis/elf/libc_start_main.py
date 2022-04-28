@@ -87,7 +87,6 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
         if op.iflags & envi.IF_CALL:
             # it's a call, get the target
             branches = [br for br in op.getBranches(emu) if not (br[1] & envi.BR_FALL)]
-            breakpoint()
             logger.warning('libc_start_main: %r\t\ttgts: %r', self.startmain, branches)
 
             # check if it matches what we believe to be __libc_start_main
