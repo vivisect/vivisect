@@ -371,4 +371,4 @@ Fixes
 
 v0.1.0rc1 - 2020-07-30
 ======================
-- Initial PyPiI Release
+- Initial PyPI Release
