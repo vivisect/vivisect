@@ -46,6 +46,7 @@ defconfig = {
             'ppc':{
                 'options':'spe'
             },
+        },
         'remote':{
             'wait_for_plat_arch': 10,
         },
