@@ -310,6 +310,9 @@ class VivisectTest(v_t_utils.VivTest):
         self.chgrp_vw.do_names('plt_.*64')
         output = self.chgrp_vw.canvas.strval
         self.assertIn("0x08048e60: chgrp.plt_fseeko64", output)
+        self.chgrp_vw.do_names('__entry')
+        output = self.chgrp_vw.canvas.strval
+        self.assertIn("0x080491e0: chgrp.__entry  ('chgrp' + 0x11e0)", output)
         self.chgrp_vw.canvas.clearCanvas()
 
     def test_cli_pathcount(self):
@@ -704,7 +707,7 @@ class VivisectTest(v_t_utils.VivTest):
                 self.fail(mesg)
 
         self.assertEqual(len(vw.getVaSetRows('CodeFragments')), 213)
-        self.assertEqual(len(vw.getVaSetRows('EntryPoints')), 230)
+        self.assertEqual(len(vw.getVaSetRows('EntryPoints')), 536)
 
     def test_basic_apis(self):
         '''
@@ -1540,3 +1543,8 @@ class VivisectTest(v_t_utils.VivTest):
             self.nn(self.chown_vw.getLocation(rva))
             self.len(self.chown_vw.getXrefsFrom(rva), 1)
             self.len(self.chown_vw.getXrefsTo(0x20028a0), 2)
+
+    def test_string_naming(self):
+        # string naming should not chop off the last character
+        self.assertEqual(self.chown_vw.getName(0x0200c050), 'str_ownership of %s _0200c050')
+

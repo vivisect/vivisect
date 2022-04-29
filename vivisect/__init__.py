@@ -87,6 +87,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._viv_gui = None    # If a gui is running, he will put a ref here...
         self._ext_ctxmenu_hooks = {}
         self._extensions = {}
+        self._load_event = threading.Event()
 
         self.saved = False  # TODO: Have a warning when we try to close the UI if the workspace hasn't been saved
         self.rchan = None
@@ -636,12 +637,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.server.vprint('%s connecting...' % uname)
         wsevents = self.server.exportWorkspace()
         self.importWorkspace(wsevents)
-        self._snapInAnalysisModules()
         self.server.vprint('%s connection complete!' % uname)
 
         thr = threading.Thread(target=self._clientThread)
         thr.setDaemon(True)
         thr.start()
+
+        timeout = self.config.viv.remote.wait_for_plat_arch
+        self._load_event.wait(timeout=timeout)
+        self._snapInAnalysisModules()
 
     def _clientThread(self):
         """
@@ -2271,7 +2275,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         pva, psize, tinfo = self._getStrTinfo(va, size, subs)
 
         if self.getName(va) is None:
-            m = self.readMemory(va, size-1).replace(b'\n', b'')
+            m = self.readMemory(va, size).replace(b'\x00', b'').replace(b'\n', b'')
             self.makeName(va, "str_%s_%.8x" % (m[:16].decode('utf-8'), va))
         return self.addLocation(pva, psize, LOC_STRING, tinfo=tinfo)
 
@@ -2416,6 +2420,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if foff == -1:
             return foff
         return (foff - offset) + 2
+
+    def getFileAndOffset(self, va):
+        '''
+        Helper function which identifies the file a given VA is a part of, then
+        splits the file base and offset
+
+        Returns:  (filename, filebase, offset)
+
+        If no file is identified, None is returned
+        '''
+        fname = self.getFileByVa(va)
+        if not fname:
+            return None
+
+        fbase = self.getFileMeta(fname, 'imagebase')
+        off = va - fbase
+        return (fname, fbase, off)
 
     def addLocation(self, va, size, ltype, tinfo=None):
         """
@@ -2715,13 +2736,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(VWE_SETNAME, (va,name))
         return name
 
-    def saveWorkspace(self, fullsave=True):
+    def saveWorkspace(self, fullsave=True, filename=None):
 
-        if self.server is not None:
+        if self.server is not None and not filename:
             return
 
+        # prefer our arg filename if provided
+        if not filename:
+            filename = self.getMeta("StorageName")
+
         modname = self.getMeta("StorageModule")
-        filename = self.getMeta("StorageName")
         if modname is None:
             raise Exception("StorageModule not specified!")
         if filename is None:
@@ -3266,6 +3290,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 0, 7)
+version = (1, 0, 8)
 verstring = '.'.join([str(x) for x in version])
 commit = ''
