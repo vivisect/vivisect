@@ -187,8 +187,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.vsconsts  = vs_const.VSConstResolver()
 
         # Follow the Leader data
-        self.leaders = {}
-        self.leaderloc = {}
+        self.leaders = {}       # existing "leader" sessions
+        self.leaderloc = {}     # last known location for each session
 
     def _snapInAnalysisModules(self):
         '''
@@ -609,7 +609,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     def _handleMODLEADER(self, event, einfo):
         uuid, user, fname = einfo
-        logger.debug("_handleMODLEADER(%r, %r)", event, einfo)
         self.vprint('*%s changed leader session name to "%s" (%r)' % (user,fname,uuid))
 
         self.leaders[uuid] = einfo

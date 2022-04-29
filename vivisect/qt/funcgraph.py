@@ -1,3 +1,5 @@
+import time
+import threading
 import functools
 import itertools
 import traceback
@@ -24,6 +26,7 @@ from PyQt5 import Qt, QtCore, QtGui, QtWebEngine, QtWidgets
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import *
 
+from envi.threads import firethread
 from vqt.main import idlethread, eatevents, workthread, vqtevent
 
 from vqt.common import *
@@ -171,10 +174,18 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.fva = None
         self.graph = None
         self.nodes = []
+        self._xref_cache = set()
+        self._xref_cache_bg = set()
+        self._xref_cache_lock = threading.Lock()
+
         self.vwqgui = vwqgui
         self._last_viewpt = None
+        self._rendering = False
+        self._renderWaiting = False
+        self._renderlock = threading.Lock()
         self.history = collections.deque((), 100)
-        self._autorefresh = None
+
+        self._autorefresh = None # created in getRendToolsMenu()
 
         self._leading = False
         self._following = None
@@ -319,7 +330,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         '''
         Add Action to RendToolsMenu (Opts/Follow) for a given session
         '''
-        print("_rtmAddLeaderSession(%r, %r, %r)" % (uuid, user, fname))
+        logger.info("_rtmAddLeaderSession(%r, %r, %r)", uuid, user, fname)
 
         def setFollow():
             self._following = uuid
@@ -333,7 +344,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         '''
         Add Action to RendToolsMenu (Opts/Follow) for a given session
         '''
-        print("_rtmModLeaderSession(%r, %r, %r)" % (uuid, user, fname))
+        logger.info("_rtmModLeaderSession(%r, %r, %r)", uuid, user, fname)
 
         action = self._rtmGetActionByUUID(uuid)
         action.setText('%s - %s' % (user, fname))
@@ -434,6 +445,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             dock = self.vwqgui.vqDockWidget(view, floating=True)
             dock.resize(800, 600)
 
+    @firethread
     def refresh(self):
         '''
         Cause the Function Graph to redraw itself.
@@ -442,6 +454,24 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         that have changed since last update, and be fast, so we can update
         after every change.
         '''
+        # debounce logic
+        if self._renderWaiting:
+            # if we are already rendering... and another thing is waiting
+            #logger.debug('(%r) someone is already waiting... returning', threading.currentThread())
+            return
+
+        while self._rendering:
+            #logger.debug('(%r) waiting for render to complete...', threading.currentThread())
+            self._renderWaiting = True
+            time.sleep(.1)
+
+        self._renderWaiting = False
+
+        with self._renderlock:
+            #logger.debug('(%r) render beginning...', threading.currentThread())
+            self._rendering = True
+
+        # actually do the refresh
         self._last_viewpt = self.mem_canvas.page().scrollPosition()
         # TODO: history should track this as well and return to the same place
         self.clearText()
@@ -452,13 +482,21 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
     def _refresh_cb(self):
         '''
         This is a hack to make sure that when _renderMemory() completes,
-        _refresh_3() gets run after all other rendering events yet to come.
+        _refresh_cb() gets run after all other rendering events yet to come.
         '''
         if self._last_viewpt is None:
             return
 
         self.mem_canvas.setScrollPosition(self._last_viewpt.x(), self._last_viewpt.y())
         self._last_viewpt = None
+
+        with self._renderlock:
+            self._rendering = False
+        #logger.debug('(%r) render finished!', threading.currentThread())
+
+        # update the "real" _xref_cache from the one we just built
+        with self._xref_cache_lock:
+            self._xref_cache = self._xref_cache_bg.copy()
 
     def _histSetupMenu(self):
         self.histmenu.clear()
@@ -482,43 +520,66 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             pass
         self.enviNavGoto(expr)
 
+    def isReferenced(self, va):
+        '''
+        During function building, we can grab any xrefs from this function and cache them
+        This is the easy way to determine if an address is referenced from this function
+        '''
+        with self._xref_cache_lock:
+            if va in self._xref_cache:
+                return True
+
+        # catch any "stragglers"
+        if va in self._xref_cache_bg:
+            return True
+
+        return False
+
+    def _refreshIfNecessary(self, va):
+        '''
+        Called from VWE event handlers with updated VA
+        '''
+        if not self._canHazAutoRefresh():
+            return 
+
+        if self.vw.getFunction(va) == self.fva:
+            self.refresh()
+
+        if self.isReferenced(va):
+            self.refresh()
+
     def VWE_SYMHINT(self, vw, event, einfo):
         va, idx, hint = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
-        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
-            self.refresh()
+        self._refreshIfNecessary(va)
 
     def VWE_ADDLOCATION(self, vw, event, einfo):
         va, size, ltype, tinfo = einfo
         self.mem_canvas.renderMemoryUpdate(va, size)
+        self._refreshIfNecessary(va)
 
     def VWE_DELLOCATION(self, vw, event, einfo):
         va, size, ltype, tinfo = einfo
         self.mem_canvas.renderMemoryUpdate(va, size)
-        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
-            self.refresh()
+        self._refreshIfNecessary(va)
 
     def VWE_ADDFUNCTION(self, vw, event, einfo):
         va, meta = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
-        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
-            self.refresh()
+        self._refreshIfNecessary(va)
 
     def VWE_SETFUNCMETA(self, vw, event, einfo):
         fva, key, val = einfo
-        if fva == self.fva and self._canHazAutoRefresh():
-            self.refresh()
+        self._refreshIfNecessary(va)
 
     def VWE_SETFUNCARGS(self, vw, event, einfo):
         fva, fargs = einfo
-        if fva == self.fva and self._canHazAutoRefresh():
-            self.refresh()
+        self._refreshIfNecessary(va)
 
     def VWE_COMMENT(self, vw, event, einfo):
         va, cmnt = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
-        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
-            self.refresh()
+        self._refreshIfNecessary(va)
 
     @idlethread
     def VWE_SETNAME(self, vw, event, einfo):
@@ -526,8 +587,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self.mem_canvas.renderMemoryUpdate(va, 1)
         for fromva, tova, rtype, rflag in self.vw.getXrefsTo(va):
             self.mem_canvas.renderMemoryUpdate(fromva, 1)
-        if vw.getFunction(va) == self.fva and self._canHazAutoRefresh():
-            self.refresh()
+        self._refreshIfNecessary(va)
 
     @idlethread
     def VTE_IAMLEADER(self, vw, event, einfo):
@@ -565,7 +625,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
     @idlethread
     def navToLeader(self):
         uuid = self._following
-        print("navToLeader(%r)" % uuid)
+        logger.debug("navToLeader(%r)", uuid)
         if uuid:
             expr = self.vw.getLeaderLoc(uuid)
             if not expr:
@@ -630,6 +690,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         addr = self.updateWindowTitle()
         if addr is not None:
             vqtevent('viv:colormap', {addr: 'orange'})
+
         self._renderDoneSignal.emit()
 
     def _edgesDone(self, data):
@@ -798,10 +859,23 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         some safety rails if the user switches functions in the middle of rendering
         '''
         if len(self.nodes):
+            # render codeblock
             node = self.nodes.pop(0)
             cbva = node[1].get('cbva')
             cbsize = node[1].get('cbsize')
             self.mem_canvas.renderMemory(cbva, cbsize, self._renderCodeBlock)
+
+            # update _xref_cache_bg (made "real" when rendering complete)
+            endva = cbva + cbsize
+            while cbva < endva:
+                for xref in self.vw.getXrefsFrom(cbva):
+                    xrfr, xrto, xrtype, xrflag = xref
+                    self._xref_cache_bg.add(xrto)
+                    #logger.debug("adding 0x%x -> 0x%x to _xref_cache", xrfr, xrto)
+
+                lva, lsz, ltp, ltinfo = self.vw.getLocation(cbva)
+                cbva += lsz
+
         else:
             self._getNodeSizes()
 
@@ -836,13 +910,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         self.graph = graph
 
-        # Go through each of the nodes and render them so we know sizes
+        # Clear _xref_cache
+        self._xref_cache_bg.clear()
+
+        # Go through each of the nodes and render them so we know sizes (and xrefs)
         self.nodes = self.graph.getNodes()
-        if len(self.nodes):
-            node = self.nodes.pop(0)
-            cbva = node[1].get('cbva')
-            cbsize = node[1].get('cbsize')
-            self.mem_canvas.renderMemory(cbva, cbsize, self._renderCodeBlock)
+        self._renderCodeBlock(None)
 
     def _renderedSameFva(self, data):
         addr = self.updateWindowTitle()

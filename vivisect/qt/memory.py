@@ -523,7 +523,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         '''
         Add Action to RendToolsMenu (Opts/Follow) for a given session
         '''
-        print("_rtmAddLeaderSession(%r, %r, %r)" % (uuid, user, fname))
+        logger.info("_rtmAddLeaderSession(%r, %r, %r)", uuid, user, fname)
 
         def setFollow():
             self._following = uuid
@@ -536,7 +536,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         '''
         Add Action to RendToolsMenu (Opts/Follow) for a given session
         '''
-        print("_rtmModLeaderSession(%r, %r, %r)" % (uuid, user, fname))
+        logger.info("_rtmModLeaderSession(%r, %r, %r)", uuid, user, fname)
         
         action = self._rtmGetActionByUUID(uuid)
         action.setText('%s - %s' % (user, fname))
@@ -655,7 +655,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
     @idlethread
     def navToLeader(self):
         uuid = self._following
-        print("navToLeader(%r)" % uuid)
+        logger.debug("navToLeader(%r)" % uuid)
         if uuid:
             expr = self.vw.getLeaderLoc(uuid)
             if not expr:

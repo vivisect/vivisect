@@ -108,7 +108,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.relocations = []
         self._dead_data = []
         self.iscode = {}
-        self.followMeChans = {}
 
         self.xrefs = []
         self.xrefs_by_to = {}
