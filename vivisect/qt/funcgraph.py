@@ -386,8 +386,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         self._follow_menu.addAction('(disable)', clearFollow)
 
         # add in the already existing sessions...
-        for einfo in self.vw.leaders.values():
-            self._rtmAddLeaderSession(*einfo)
+        for uuid, (user, fname) in self.vw.getLeaderSessions().items():
+            self._rtmAddLeaderSession(uuid, user, fname)
 
     def _rtmGetUUIDs(self):
         '''

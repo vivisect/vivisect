@@ -218,7 +218,7 @@ class VivServer:
                 elif vtevent == VTE_IAMLEADER:
                     logger.warning("VTE_IAMLEADER: %r" % repr(evtup))
                     uuid, user, fname = einfo
-                    leaders[uuid] = einfo
+                    leaders[uuid] = (user, fname)
                     chanleaders.append(uuid)
 
                 elif vtevent == VTE_FOLLOWME:
@@ -235,7 +235,7 @@ class VivServer:
                 elif vtevent == VTE_MODLEADER:
                     logger.warning("VTE_MODLEADER: %r" % repr(evtup))
                     uuid, user, fname = einfo
-                    leaders[uuid] = einfo
+                    leaders[uuid] = (user, fname)
 
 
             # SPEED HACK

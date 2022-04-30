@@ -3083,7 +3083,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     # internal data access
     def getLeaderInfo(self, uuid=None):
         if uuid in self.leaders:
-            uuid, user, fname = self.leaders.get(uuid)
+            user, fname = self.leaders.get(uuid)
             return user, fname
             
         return None, None

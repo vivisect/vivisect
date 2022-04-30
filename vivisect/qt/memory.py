@@ -423,8 +423,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             self._follow_menu.addAction('(disable)', clearFollow)
 
             # add in the already existing sessions...
-            for einfo in self.vw.leaders.values():
-                uuid, user, fname = einfo
+            for uuid, (user, fname) in self.vw.leaders.items():
 
                 def setFollow():
                     self._following = uuid
@@ -578,17 +577,14 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         self._follow_menu.addAction('(disable)', clearFollow)
 
         # add in the already existing sessions...
-        for einfo in self.vw.leaders.values():
-            self._rtmAddLeaderSession(*einfo)
+        for uuid, (user, fname) in self.vw.getLeaderSessions():
+            self._rtmAddLeaderSession(uuid, user, fname)
 
     def _rtmGetUUIDs(self):
         '''
         Returns a list of active UUIDs for leader sessions
         '''
         return [action.whatsThis() for action in self._follow_menu.actions()]
-
-    #def VTE_IAMLEADER(self, vw, event, einfo):
-    #    user, followname = einfo
 
     def VWE_SYMHINT(self, vw, event, einfo):
         va, idx, hint = einfo
