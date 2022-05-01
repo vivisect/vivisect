@@ -408,7 +408,8 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
                 self._follow_menu.setEnabled(not self._leading)
                 if self._leading:
                     self._following = None
-                    self.vw.iAmLeader(self.uuid, self.mwname)
+                    locexpr = self.addr_entry.text()
+                    self.vw.iAmLeader(self.uuid, self.getEnviNavName(), locexpr)
                 else:
                     self.vw.killLeaderSession(self.uuid)
                 self.updateMemWindowTitle()
@@ -423,7 +424,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             self._follow_menu.addAction('(disable)', clearFollow)
 
             # add in the already existing sessions...
-            for uuid, (user, fname) in self.vw.leaders.items():
+            for uuid, (user, fname) in self.vw.getLeaderSessions().items():
 
                 def setFollow():
                     self._following = uuid
@@ -527,6 +528,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         def setFollow():
             self._following = uuid
             self.updateMemWindowTitle()
+            self.navToLeader()
 
         action = self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
         action.setWhatsThis(uuid)
@@ -623,7 +625,8 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     @idlethread
     def VTE_IAMLEADER(self, vw, event, einfo):
-        self._rtmAddLeaderSession(*einfo)
+        uuid, user, fname, locexpr = einfo
+        self._rtmAddLeaderSession(uuid, user, fname)
 
     @idlethread
     def VTE_KILLLEADER(self, vw, event, einfo):

@@ -598,11 +598,12 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.leaders[uuid] = (user, fname)
 
     def _handleIAMLEADER(self, event, einfo):
-        uuid, user, fname = einfo
-        logger.debug("_handleIAMLEADER(%r, (%r, %r, %r))", event, user, uuid, fname)
+        uuid, user, fname, locexpr = einfo
+        logger.debug("_handleIAMLEADER(%r, (%r, %r, %r))", event, user, uuid, fname, locexpr)
 
         self.vprint('*%s invites everyone to follow "%s" (%r)' % (user,fname,uuid))
         self.leaders[uuid] = (user, fname)
+        self.leaderloc[uuid] = locexpr
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
         '''
