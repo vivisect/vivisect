@@ -604,21 +604,22 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _handleKILLLEADER(self, event, einfo):
         logger.debug("_handleKILLLEADER(%r, %r)", event, einfo)
         uuid = einfo
-        self.leaders.pop(uuid)
-        self.vprint('*Ended: leader session "%s" (%r)' % (user,fname,uuid))
+        user, fname = self.leaders.pop(uuid)
+        self.vprint("*Ended: %s's session '%s' (%r)" % (user,fname,uuid))
 
     def _handleMODLEADER(self, event, einfo):
         uuid, user, fname = einfo
         self.vprint('*%s changed leader session name to "%s" (%r)' % (user,fname,uuid))
 
-        self.leaders[uuid] = einfo
+        self.leaders[uuid] = (user, fname)
 
     def _handleIAMLEADER(self, event, einfo):
-        uuid, user, fname = einfo
-        logger.debug("_handleIAMLEADER(%r, (%r, %r, %r))", event, user, uuid, fname)
+        uuid, user, fname, locexpr = einfo
+        logger.debug("_handleIAMLEADER(%r, (%r, %r, %r, %r))", event, user, uuid, fname, locexpr)
 
         self.vprint('*%s invites everyone to follow "%s" (%r)' % (user,fname,uuid))
-        self.leaders[uuid] = einfo
+        self.leaders[uuid] = (user, fname)
+        self.leaderloc[uuid] = locexpr
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
         '''

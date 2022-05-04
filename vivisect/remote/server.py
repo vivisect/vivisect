@@ -106,7 +106,7 @@ class VivServer:
     @e_threads.maintthread(1)
     def _maintThread(self):
 
-        for chan in self.chandict.keys():
+        for chan in list(self.chandict.keys()):
             chaninfo = self.chandict.get(chan)
             # NOTE: double check because we're lock free...
             if chaninfo is None:
@@ -217,8 +217,9 @@ class VivServer:
 
                 elif vtevent == VTE_IAMLEADER:
                     logger.warning("VTE_IAMLEADER: %r" % repr(evtup))
-                    uuid, user, fname = einfo
-                    leaders[uuid] = einfo
+                    uuid, user, fname, locexpr = einfo
+                    leaders[uuid] = (user, fname)
+                    leaderloc[uuid] = locexpr
                     chanleaders.append(uuid)
 
                 elif vtevent == VTE_FOLLOWME:
@@ -235,7 +236,7 @@ class VivServer:
                 elif vtevent == VTE_MODLEADER:
                     logger.warning("VTE_MODLEADER: %r" % repr(evtup))
                     uuid, user, fname = einfo
-                    leaders[uuid] = einfo
+                    leaders[uuid] = (user, fname)
 
 
             # SPEED HACK

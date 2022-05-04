@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import tempfile
 import unittest
@@ -67,57 +68,89 @@ class VivisectRemoteTests(unittest.TestCase):
                 self.assertEqual(len(wslist), 1)
                 self.assertEqual(server.getServerVersion(), 20130820)
 
-                othr = v_r_server.getServerWorkspace(server, wslist[0])
+                rmtvw = v_r_server.getServerWorkspace(server, wslist[0])
+                rmtvw2 = v_r_server.getServerWorkspace(server, wslist[0])
                 # So the consumption of events from the server is *also* threaded, so I've got to do some blocking
                 # to get us to wait on things
                 retry = 0
                 while retry < 5:
-                    locs = othr.getLocations()
-                    if len(locs) != 1389:
-                        retry += 1
-                        time.sleep(0.2)
-                    else:
+                    locs = rmtvw2.getLocations()
+                    if len(locs) > 1388:
                         break
 
-                self.assertEqual(len(othr.getLocations()), 1389)
-                self.assertEqual(set(othr.getLocations()), set(good.getLocations()))
-                self.assertEqual(set(othr.getXrefs()), set(good.getXrefs()))
+                    retry += 1
+                    time.sleep(0.3)
+                    sys.stderr.write('%d' % retry)
+
+                self.assertEqual(len(rmtvw2.getLocations()), 1389)
+                self.assertEqual(set(rmtvw2.getLocations()), set(good.getLocations()))
+                self.assertEqual(set(rmtvw2.getXrefs()), set(good.getXrefs()))
 
                 # test some of the follow-the-leader framework
                 testuuid = 'uuid_of_my_dearest_friend_1'
                 # first just create a leader session:
-                othr.iAmLeader(testuuid, "atlas' moving castle")
-                time.sleep(.3)
-                # only one session, so we'll run this once
-                for ldrsess in othr.getLeaderSessions().values():
-                    uuid, user, fname = ldrsess
-                    self.assertEqual(uuid, testuuid)
-                    self.assertEqual(fname, "atlas' moving castle")
+                rmtvw.iAmLeader(testuuid, "atlas' moving castle")
+
+                retry = 0
+                while retry < 5:
+                    # only one session, so we'll run this once - local
+                    ldrsess = rmtvw2.getLeaderSessions().get(testuuid)
+                    if ldrsess is not None:
+                        break
+
+                    retry += 1
+                    time.sleep(.1)
+                    sys.stderr.write('%d' % retry)
+
+                (user, fname) = ldrsess
+                self.assertEqual(fname, "atlas' moving castle")
 
                 # now let's move around a bit
-                othr.followTheLeader(testuuid, '0x31337')
-                time.sleep(.3)
-                self.assertEqual(othr.getLeaderLoc(testuuid), '0x31337')
+                rmtvw.followTheLeader(testuuid, '0x31337')
+                retry = 0
+                while retry < 5:
+                    # only one session, so we'll run this once - local
+                    ldrloc = rmtvw2.getLeaderLoc(testuuid)
+                    if ldrloc is not None:
+                        break
+
+                    retry += 1
+                    time.sleep(.1)
+                    sys.stderr.write('%d' % retry)
+
+                self.assertEqual(ldrloc, '0x31337')
 
                 # now let's rename things
-                othr.modifyLeaderSession(testuuid, 'rakuy0', "rakuy0's moving castle")
-                time.sleep(.3)
-                for ldrsess in othr.getLeaderSessions().values():
-                    uuid, user, fname = ldrsess
-                    self.assertEqual(uuid, testuuid)
-                    self.assertEqual(user, 'rakuy0')
-                    self.assertEqual(fname, "rakuy0's moving castle")
+                rmtvw.modifyLeaderSession(testuuid, 'rakuy0', "rakuy0's moving castle")
+                retry = 0
+                while retry < 5:
+                    # only one session, so we'll run this once - local
+                    ldrsess = list(rmtvw2.getLeaderSessions().items())[0]
+                    uuid, (user, fname) = ldrsess
+                    if user == 'rakuy0':
+                        break
 
-                self.assertEqual(othr.getLeaderInfo(testuuid), ('rakuy0', "rakuy0's moving castle"))
+                    retry += 1
+                    time.sleep(.1)
+                    sys.stderr.write('%d' % retry)
+
+                self.assertEqual(uuid, testuuid)
+                self.assertEqual(user, 'rakuy0')
+                self.assertEqual(fname, "rakuy0's moving castle")
+
+                self.assertEqual(rmtvw2.getLeaderInfo(testuuid), ('rakuy0', "rakuy0's moving castle"))
 
 
                 try:
-                    othr.server = None
-                    q = othr.chan_lookup.get(othr.rchan)
+                    rmtvw.server = None
+                    rmtvw2.server = None
+
+                    q = rmtvw.chan_lookup.get(rmtvw.rchan)
                     if q:
                         # So it's not reeeealy auto analysis fini, but it's a good enough stand-in to get
                         # the server thread to shutdown cleaner
                         q.puts((v_const.VWE_AUTOANALFIN, None))
+
                     proc.terminate()
                     proc.close()
                 except:
