@@ -837,15 +837,19 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         try:
             if argv[0] == 'list':
                 self.vprint("Current Leader Sessions:")
-                for uuid, user, fname in self.getLeaderSessions().values():
+                for uuid, (user, fname) in self.getLeaderSessions().items():
                     curva = self.getLeaderLoc(uuid)
                     self.vprint(" * %s (user: %s  uuid: %s)" % (fname, user, uuid))
 
             elif argv[0] == 'mod':
                 uuid = argv[1]
                 user = argv[2]
-                sessionname = argv[3]
-                self.modLeaderSession(uuid, user, sessionname)
+                if len(argv) > 4:
+                    sessionname = ' '.join(argv[3:])
+                else:
+                    sessionname = argv[3]
+
+                self.modifyLeaderSession(uuid, user, sessionname)
 
             elif argv[0] == 'kill':
                 if len(argv) < 2:
@@ -855,7 +859,8 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                 self.killLeaderSession(uuid)
                 
             elif argv[0] == 'killall':
-                for uuid, user, fname in self.getLeaderSessions().values():
+                for uuid, (user, fname) in self.getLeaderSessions().items():
+                    self.vprint("*killing %r (%r, %r)" % (uuid, user, fname))
                     self.killLeaderSession(uuid)
 
         except Exception as e:

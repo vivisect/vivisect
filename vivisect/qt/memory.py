@@ -579,7 +579,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         self._follow_menu.addAction('(disable)', clearFollow)
 
         # add in the already existing sessions...
-        for uuid, (user, fname) in self.vw.getLeaderSessions():
+        for uuid, (user, fname) in self.vw.getLeaderSessions().items():
             self._rtmAddLeaderSession(uuid, user, fname)
 
     def _rtmGetUUIDs(self):
