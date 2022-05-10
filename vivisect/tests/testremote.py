@@ -7,10 +7,12 @@ import threading
 import multiprocessing as mp
 
 import vivisect
+import vivisect.cli as vivcli
 import vivisect.const as v_const
 import vivisect.tests.helpers as helpers
 import vivisect.remote.server as v_r_server
 
+import envi.memcanvas as e_mcanvas
 
 def runServer(name, port):
     dirn = os.path.dirname(name)
@@ -18,7 +20,7 @@ def runServer(name, port):
 
     # load the file in so we get some workspace events, but not so many to make
     # this test take forever
-    vw = vivisect.VivWorkspace()
+    vw = vivcli.VivCli()
     vw.loadFromFile(testfile)
     vw.setMeta('StorageName', name)
     vw.saveWorkspace()
@@ -33,7 +35,7 @@ class VivisectRemoteTests(unittest.TestCase):
     '''
     def test_basic(self):
         testfile = helpers.getTestPath('windows', 'amd64', 'firefox.exe')
-        good = vivisect.VivWorkspace()
+        good = vivcli.VivCli()
         good.loadFromFile(testfile)
 
         host = 'localhost'
@@ -141,6 +143,97 @@ class VivisectRemoteTests(unittest.TestCase):
                 self.assertEqual(rmtvw2.getLeaderInfo(testuuid), ('rakuy0', "rakuy0's moving castle"))
 
 
+                # test the CLI:
+                rmtvw.canvas = e_mcanvas.StringMemoryCanvas(rmtvw)
+
+                # empty leaders
+                rmtvw.do_leaders('')
+                output = rmtvw.canvas.strval
+                print("test output: %r" % output)
+                self.assertIn('Manage Leader Sessions.', output)
+                rmtvw.canvas.strval = ''
+
+                # list leaders
+                rmtvw.do_leaders('list')
+                output = rmtvw.canvas.strval
+                print("test output: %r" % output)
+                self.assertIn("rakuy0's moving castle", output)
+                rmtvw.canvas.strval = ''
+
+                # modify a leader session
+                rmtvw.do_leaders('mod %s foo foo bar baz' % testuuid)
+                retry = 0
+                while retry < 5:
+                    ldrsess = rmtvw2.getLeaderSessions().get(testuuid)
+                    if ldrsess:
+                        user, fname = ldrsess
+                        if user == 'foo':
+                            break
+
+                    retry += 1
+                    time.sleep(.1)
+                    sys.stderr.write('%d' % retry)
+
+                output = rmtvw.canvas.strval
+                print("test output: %r" % output)
+                self.assertIn("foo bar baz", output)
+                rmtvw.canvas.strval = ''
+
+                # kill leader session
+                rmtvw.do_leaders('kill %s' % testuuid)
+                retry = 0
+                while retry < 5:
+                    ldrsess = rmtvw2.getLeaderSessions().get(testuuid)
+                    if not ldrsess:
+                        break
+
+                    retry += 1
+                    time.sleep(.1)
+                    sys.stderr.write('%d' % retry)
+
+                output = rmtvw.canvas.strval
+                print("test output: %r" % output)
+                self.assertIn("*Ended: foo's session 'foo bar baz'", output)
+                rmtvw.canvas.strval = ''
+
+
+                # kill all (which means we need to add a few)
+                #   repopulate
+                rmtvw.iAmLeader(testuuid+'1', "castle 1")
+                rmtvw.iAmLeader(testuuid+'2', "castle 2")
+                rmtvw.iAmLeader(testuuid+'3', "castle 3")
+
+                retry = 0
+                while retry < 5:
+                    # only one session, so we'll run this once - local
+                    ldrsess = rmtvw2.getLeaderSessions().get(testuuid+'3')
+                    if ldrsess is not None:
+                        break
+
+                    retry += 1
+                    time.sleep(.1)
+                    sys.stderr.write('%d' % retry)
+
+                #   kill them all!
+                rmtvw.do_leaders('killall')
+                retry = 0
+                while retry < 5:
+                    ldrsessions = rmtvw2.getLeaderSessions()
+                    if not len(ldrsessions):
+                        break
+
+                    retry += 1
+                    time.sleep(.1)
+                    sys.stderr.write('%d' % retry)
+
+                output = rmtvw.canvas.strval
+                print("test output: %r" % output)
+                self.assertIn("castle 3", output)
+                self.assertEqual(len(rmtvw2.getLeaderSessions()), 0)
+                rmtvw.canvas.strval = ''
+
+
+                # close down tests
                 try:
                     rmtvw.server = None
                     rmtvw2.server = None
