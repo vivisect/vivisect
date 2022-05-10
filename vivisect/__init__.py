@@ -1555,6 +1555,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             vw.setFunctionArg(fva, 1, 'char **','argv')
         '''
         rettype,retname,callconv,callname,callargs = self.getFunctionApi(fva)
+        callargs = list(callargs)
         while len(callargs) <= idx:
             callargs.append( ('int','arg%d' % len(callargs)) )
 

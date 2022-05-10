@@ -199,11 +199,25 @@ class VivServer:
 
     def _fireEvent(self, chan, event, einfo, local=False, skip=None):
         #print("_fireEvent: %r %r %r %r %r" % (chan, event, einfo, local, skip))
-        if chan not in self.chandict:
+
+        if chan in self.chandict:
+            wsinfo, q, chanleaders = self.chandict.get(chan)
+            lock, fpath, pevents, users, leaders, leaderloc = wsinfo
+            oldclient = False
+
+        elif chan in self._req_wsinfo:
+            # DEPRECATED: this is for backwards compat.  use only the chandict code as of 5/10/2023.
+            wsinfo = self._req_wsinfo(wsname)
+            lock, fpath, pevents, users, _, _ = wsinfo
+            # cheat for older clients... they don't get all the follow-the-leader goodness until they upgrade
+            chanleaders = []
+            leaders = {}
+            leaderloc = {}
+            oldclient = True
+
+        else:
             raise Exception("BAD CHANNEL: _fireEvent: %r %r %r %r %r" % (chan, event, einfo, local, skip))
 
-        wsinfo, q, chanleaders = self.chandict.get(chan)
-        lock, fpath, pevents, users, leaders, leaderloc = wsinfo
         evtup = (event, einfo)
         with lock:
             # Transient events do not get saved
