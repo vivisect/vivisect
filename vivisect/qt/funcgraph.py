@@ -571,11 +571,11 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
     def VWE_SETFUNCMETA(self, vw, event, einfo):
         fva, key, val = einfo
-        self._refreshIfNecessary(va)
+        self._refreshIfNecessary(fva)
 
     def VWE_SETFUNCARGS(self, vw, event, einfo):
         fva, fargs = einfo
-        self._refreshIfNecessary(va)
+        self._refreshIfNecessary(fva)
 
     def VWE_COMMENT(self, vw, event, einfo):
         va, cmnt = einfo
