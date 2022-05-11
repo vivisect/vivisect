@@ -207,6 +207,7 @@ class VivServer:
 
         elif chan in self._req_wsinfo:
             # DEPRECATED: this is for backwards compat.  use only the chandict code one year from today, 5/10/2022.
+            wsname = chan
             wsinfo = self._req_wsinfo(wsname)
             lock, fpath, pevents, users, _, _ = wsinfo
             # cheat for older clients... they don't get all the follow-the-leader goodness until they upgrade
