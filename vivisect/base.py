@@ -186,6 +186,10 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.vsbuilder = vs_builder.VStructBuilder()
         self.vsconsts  = vs_const.VSConstResolver()
 
+        # Follow the Leader data
+        self.leaders = {}       # existing "leader" sessions
+        self.leaderloc = {}     # last known location for each session
+
     def _snapInAnalysisModules(self):
         '''
         Snap in the analysis modules which are appropriate for the
@@ -573,14 +577,33 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
-
-    def _handleIAMLEADER(self, event, einfo):
-        user,follow = einfo
-        self.vprint('*%s invites everyone to follow "%s"' % (user,follow))
+        self.thand[VTE_KILLLEADER] = self._handleKILLLEADER
+        self.thand[VTE_MODLEADER] = self._handleMODLEADER
 
     def _handleFOLLOWME(self, event, einfo):
-        # workspace has nothing to do...
-        pass
+        uuid, expr = einfo
+        logger.debug("_handleFOLLOWME(%r, %r)", event, einfo)
+        self.leaderloc[uuid] = expr
+
+    def _handleKILLLEADER(self, event, einfo):
+        logger.debug("_handleKILLLEADER(%r, %r)", event, einfo)
+        uuid = einfo
+        user, fname = self.leaders.pop(uuid)
+        self.vprint("*Ended: %s's session '%s' (%r)" % (user,fname,uuid))
+
+    def _handleMODLEADER(self, event, einfo):
+        uuid, user, fname = einfo
+        self.vprint('*%s changed leader session name to "%s" (%r)' % (user,fname,uuid))
+
+        self.leaders[uuid] = (user, fname)
+
+    def _handleIAMLEADER(self, event, einfo):
+        uuid, user, fname, locexpr = einfo
+        logger.debug("_handleIAMLEADER(%r, (%r, %r, %r, %r))", event, user, uuid, fname, locexpr)
+
+        self.vprint('*%s invites everyone to follow "%s" (%r)' % (user,fname,uuid))
+        self.leaders[uuid] = (user, fname)
+        self.leaderloc[uuid] = locexpr
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
         '''
