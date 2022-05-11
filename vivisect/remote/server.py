@@ -18,8 +18,6 @@ import vivisect.storage.basicfile as viv_basicfile
 from vivisect.const import *
 
 logger = logging.getLogger(__name__)
-import envi.common as ecmn
-ecmn.initLogging(logger, logging.DEBUG)
 
 viv_port = 0x4074
 
@@ -270,7 +268,7 @@ class VivServer:
             #lock, fpath, pevents, users, _, _ = wsinfo
             # cheat for older clients... they don't get all the follow-the-leader goodness until they upgrade
             chanobj = VivClientChannel(ws)
-            ws.chanleaders = []
+            chanobj.chanleaders = []
             ws.leaders = {}
             ws.leaderloc = {}
 
@@ -278,7 +276,7 @@ class VivServer:
             raise BadChannel("BAD CHANNEL: _fireEvent: %r %r %r %r %r" % (chanid, event, einfo, local, skip))
 
         evtup = (event, einfo)
-        with lock:
+        with ws.lock:
             # Transient events do not get saved
             if not event & VTE_MASK:
                 ws.events.append(evtup)
@@ -293,7 +291,7 @@ class VivServer:
                     uuid, user, fname, locexpr = einfo
                     ws.leaders[uuid] = (user, fname)
                     ws.leaderloc[uuid] = locexpr
-                    ws.chanleaders.append(uuid)
+                    chanobj.chanleaders.append(uuid)
 
                 elif vtevent == VTE_FOLLOWME:
                     logger.info("VTE_FOLLOWME: %r" % repr(evtup))
@@ -385,11 +383,19 @@ def connectToServer(hostname, port=viv_port):
     return server
 
 
-def runMainServer(dirname='', port=viv_port):
-    s = VivServer(dirname=dirname)
+def runMainServer(dirname='', port=viv_port, ipython=False):
+    vsrv = VivServer(dirname=dirname)
     daemon = cobra.CobraDaemon(port=port, msgpack=True)
     daemon.recvtimeout = timeo_sock
-    daemon.shareObject(s, 'VivServer')
+    daemon.shareObject(vsrv, 'VivServer')
+
+    if ipython:
+        # fire off ipython in a thread.  stdin/out/err used.
+        # very helpful for debugging
+        import envi.interactive as ei
+        t = threading.Thread(target=ei.dbg_interact, args=(locals(), globals()), daemon=True)
+        t.start()
+
     daemon.serve_forever()
 
 
@@ -398,6 +404,10 @@ def setup():
     ap.add_argument('dirn', help='A directory full of *.viv files to share')
     ap.add_argument('--port', '-p', type=int, default=viv_port,
                     help='The port to start server on (defaults to %d)' % viv_port)
+    ap.add_argument('-v', '--verbose', dest='verbose', default=2, action='count',
+                    help='Enable verbose mode (multiples matter: -vvvv)')
+    ap.add_argument('-I', '--ipython', default=False, action='store_true',
+                    help='Drop to an interactive python shell after loading')
     return ap
 
 
@@ -408,8 +418,13 @@ def main(argv):
         logger.error('%s is not a valid directory!', vdir)
         return -1
 
+    # setup logging
+    verbose = min(opts.verbose, len(e_common.LOG_LEVELS)-1)
+    level = e_common.LOG_LEVELS[verbose]
+    e_common.initLogging(logger, level=level)
+
     print(f'Server starting (port: {opts.port}) for path: {vdir}')
-    runMainServer(vdir, opts.port)
+    runMainServer(vdir, opts.port, opts.ipython)
 
 
 if __name__ == '__main__':
