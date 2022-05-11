@@ -283,7 +283,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         if ok:
             self.setMemWindowName(str(mwname))
 
-        if self.vw.server:
+        if self.vw.server and self._leading:
             if user is None:
                 user = self.vw.config.user.name
             self.vw.modifyLeaderSession(self.uuid, user, mwname)

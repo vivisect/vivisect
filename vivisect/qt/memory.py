@@ -437,7 +437,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     def rendToolsSetName(self, user=None):
         menu = e_mem_qt.VQMemoryWindow.rendToolsSetName(self)
-        if self.vw.server:
+        if self.vw.server and self._leading:
             if user is None:
                 user = self.vw.config.user.name
             self.vw.modifyLeaderSession(self.uuid, user, self.mwname)
