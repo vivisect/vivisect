@@ -205,7 +205,7 @@ class VivServer:
             lock, fpath, pevents, users, leaders, leaderloc = wsinfo
             oldclient = False
 
-        elif chan in self._req_wsinfo:
+        elif chan in self.wsdict:
             # DEPRECATED: this is for backwards compat.  use only the chandict code one year from today, 5/10/2022.
             wsname = chan
             wsinfo = self._req_wsinfo(wsname)
