@@ -55,7 +55,7 @@ class VivServerClient:
         return self.server.vprint(msg)
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
-        return self.server._fireEvent(self.chan, event, einfo, local=local, skip=skip)
+        return self.server._fireEvent(self.wsname, event, einfo, local=local, skip=skip)
 
     def createEventChannel(self):
         self.chan = self.server.createEventChannel(self.wsname)
@@ -68,20 +68,6 @@ class VivServerClient:
 
     def waitForEvent(self, chan, timeout=None):
         return self.q.get(timeout=timeout)
-
-    def getLeaderLocations(self):
-        try:
-            return self.server.getLeaderLocations(self.wsname)
-        except Exception as e:
-            logger.warning("error in getLeaderLocations(): %r (is server up to date?)" % e)
-            return {}
-
-    def getLeaderSessions(self):
-        try:
-            return self.server.getLeaderSessions(self.wsname)
-        except Exception as e:
-            logger.warning("error in getLeaderSessions(): %r (is server up to date?)" % e)
-            return {}
 
 
 class VivServer:
@@ -106,20 +92,25 @@ class VivServer:
     @e_threads.maintthread(1)
     def _maintThread(self):
 
-        for chan in list(self.chandict.keys()):
+        for chan in self.chandict.keys():
             chaninfo = self.chandict.get(chan)
             # NOTE: double check because we're lock free...
             if chaninfo is None:
                 continue
 
-            wsinfo, queue, chanleaders = chaninfo
+            wsinfo, queue = chaninfo
             if queue.abandoned(timeo_aban):
-                self.cleanupChannel(chan)
+                # Remove from our chandict
+                self.chandict.pop(chan, None)
+                # Remove from the workspace clients
+                lock, fpath, pevents, users = wsinfo
+                with lock:
+                    users.pop(chan, None)
 
     @e_threads.maintthread(30)
     def _saveWorkspaceThread(self):
         for wsinfo in self.wsdict.values():
-            lock, path, events, users, leaders, leaderloc = wsinfo
+            lock, path, events, users = wsinfo
             if events:
                 with lock:
                     wsinfo[2] = []  # start a new events list...
@@ -152,7 +143,7 @@ class VivServer:
             os.makedirs(wsdir, 0o750)
 
         viv_basicfile.vivEventsToFile(wspath, events)
-        wsinfo = [threading.Lock(), wspath, [], {}, {}, {}]
+        wsinfo = [threading.Lock(), wspath, [], {}]
         self.wsdict[wsname] = wsinfo
 
     def _loadWorkspaces(self):
@@ -184,7 +175,7 @@ class VivServer:
                 if wsinfo is None:
                     # Initialize the workspace info tuple
                     lock = threading.Lock()
-                    wsinfo = [lock, wspath, [], {}, {}, {}]
+                    wsinfo = [lock, wspath, [], {}]
                     logger.debug('loaded: %s', wsname)
                     self.wsdict[wsname] = wsinfo
 
@@ -195,73 +186,23 @@ class VivServer:
         return chaninfo[1].get(timeout=timeo_wait)
 
     # All APIs from here down are basically mirrors of the workspace APIs
-    # used with remote workspaces, with a prepended chan first argument
+    # used with remote workspaces, with a prepended wsname first argument
 
-    def _fireEvent(self, chan, event, einfo, local=False, skip=None):
-        #print("_fireEvent: %r %r %r %r %r" % (chan, event, einfo, local, skip))
-
-        if chan in self.chandict:
-            wsinfo, q, chanleaders = self.chandict.get(chan)
-            lock, fpath, pevents, users, leaders, leaderloc = wsinfo
-            oldclient = False
-
-        elif chan in self._req_wsinfo:
-            # DEPRECATED: this is for backwards compat.  use only the chandict code one year from today, 5/10/2022.
-            wsname = chan
-            wsinfo = self._req_wsinfo(wsname)
-            lock, fpath, pevents, users, _, _ = wsinfo
-            # cheat for older clients... they don't get all the follow-the-leader goodness until they upgrade
-            chanleaders = []
-            leaders = {}
-            leaderloc = {}
-            oldclient = True
-
-        else:
-            raise Exception("BAD CHANNEL: _fireEvent: %r %r %r %r %r" % (chan, event, einfo, local, skip))
-
+    def _fireEvent(self, wsname, event, einfo, local=False, skip=None):
+        lock, fpath, pevents, users = self._req_wsinfo(wsname)
         evtup = (event, einfo)
         with lock:
             # Transient events do not get saved
             if not event & VTE_MASK:
                 pevents.append(evtup)
-
-            else:
-                vtevent = event ^ VTE_MASK
-                if vtevent == VTE_FOLLOWME:
-                    pass
-
-                elif vtevent == VTE_IAMLEADER:
-                    logger.info("VTE_IAMLEADER: %r" % repr(evtup))
-                    uuid, user, fname, locexpr = einfo
-                    leaders[uuid] = (user, fname)
-                    leaderloc[uuid] = locexpr
-                    chanleaders.append(uuid)
-
-                elif vtevent == VTE_FOLLOWME:
-                    logger.info("VTE_FOLLOWME: %r" % repr(evtup))
-                    uuid, expr = einfo
-                    leaderloc[uuid] = expr
-
-                elif vtevent == VTE_KILLLEADER:
-                    logger.info("VTE_KILLLEADER: %r" % repr(evtup))
-                    uuid = einfo
-                    leaders.pop(uuid, None)
-                    leaderloc.pop(uuid, None)
-
-                elif vtevent == VTE_MODLEADER:
-                    logger.info("VTE_MODLEADER: %r" % repr(evtup))
-                    uuid, user, fname = einfo
-                    leaders[uuid] = (user, fname)
-
-
             # SPEED HACK
-            [q.append(evtup) for chan, q in users.items() if chan != skip]
+            [q.append(evtup) for (chan, q) in users.items() if chan != skip]
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
         chan = e_common.hexify(os.urandom(16))
 
-        lock, fpath, pevents, users, leaders, leaderloc = wsinfo
+        lock, fpath, pevents, users = wsinfo
         with lock:
             events = []
             events.extend(viv_basicfile.vivEventsFromFile(fpath))
@@ -269,39 +210,9 @@ class VivServer:
             # These must reference the same actual list object...
             queue = e_threads.ChunkQueue(items=events)
             users[chan] = queue
-            chanleaders = []
-            self.chandict[chan] = [wsinfo, queue, chanleaders]
+            self.chandict[chan] = [wsinfo, queue]
 
         return chan
-
-    def getLeaderLocations(self, wsname):
-        wsinfo = self._req_wsinfo(wsname)
-        lock, path, events, users, leaders, leaderloc = wsinfo
-        return dict(leaderloc)
-
-    def getLeaderSessions(self, wsname):
-        wsinfo = self._req_wsinfo(wsname)
-        lock, path, events, users, leaders, leaderloc = wsinfo
-        return dict(leaders)
-
-    def cleanupChannel(self, chan):
-        chantup = self.chandict.get(chan, None)
-        if chantup is None:
-            logger.warning("Attempting to clean up nonexistent channel: %r" % chan)
-            return
-
-        # Remove all channels originating from this channel
-        wsinfo, queue, chanleaders = chantup
-        for uuid in chanleaders:
-            self._fireEvent(chan, VTE_KILLLEADER | VTE_MASK, uuid)
-
-        # Remove from the workspace clients
-        lock, fpath, pevents, users, leaders, leaderloc = wsinfo
-        with lock:
-            userinfo = users.pop(chan, None)
-
-        # Remove from our chandict
-        self.chandict.pop(chan, None)
 
 
 def getServerWorkspace(server, wsname):
@@ -344,7 +255,7 @@ def main(argv):
         logger.error('%s is not a valid directory!', vdir)
         return -1
 
-    print(f'Server starting (port: {opts.port})')
+    print(f'Server starting (port: {viv_port})')
     runMainServer(vdir, opts.port)
 
 

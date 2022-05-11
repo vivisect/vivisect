@@ -6,7 +6,6 @@ import vqt.tree as vq_tree
 import envi.threads as e_threads
 import cobra.remoteapp as c_remoteapp
 import vivisect.remote.server as viv_server
-import vivisect.qt.funcgraph as v_q_funcgraph
 
 from vqt.basics import *
 
@@ -129,9 +128,8 @@ def openServerAndWorkspace(vw, parent=None):
     port = viv_server.viv_port
     if ':' in host:
         host, port = host.split(':')
-        port = int(port)
 
-    connServerAndWorkspace(vw, str(host), port, parent=parent)
+    connServerAndWorkspace(vw, str(host), int(port), parent=parent)
 
 
 def connServerAndWorkspace(vw, host, port=viv_server.viv_port, parent=None):
@@ -156,37 +154,23 @@ def selectServerWorkspace(vw, server, workspaces, parent=None):
 def loadServerWorkspace(oldvw, server, workspace):
     oldvw.vprint('Loading Workspace: %s' % workspace)
     vw = viv_server.getServerWorkspace(server, workspace)
-    # reset the FunctionGraph Counter
-    v_q_funcgraph.reset()
-
     import vivisect.qt.main as viv_q_main
     viv_q_main.runqt(vw, closeme=oldvw.getVivGui())
 
 def saveToServer(vw, parent=None):
     dia = VivSaveServerDialog(vw, parent=parent)
     wsname, wsserver = dia.getNameAndServer()
-
     vw.vprint('Saving to Workspace Server: %s (%s)' % (wsserver,wsname))
-    if wsserver is None:
-        return
-    port = viv_server.viv_port
-    if ':' in wsserver:
-        wsserver, port = wsserver.split(':')
-        port = int(port)
-
-    sendServerWorkspace(vw, wsname, wsserver, port)
+    sendServerWorkspace(vw, wsname, wsserver)
 
 @e_threads.firethread
-def sendServerWorkspace(vw, wsname, wsserver, port=viv_server.viv_port):
+def sendServerWorkspace(vw, wsname, wsserver):
     try:
         events = vw.exportWorkspace()
-        server = viv_server.connectToServer(wsserver, port)
+        server = viv_server.connectToServer(wsserver)
         server.addNewWorkspace(wsname, events)
-
     except Exception as e:
         vw.vprint('Workspace Server Error: %s' % e)
-        import traceback;
-        traceback.print_exc()
         return
 
     vw.setMeta('WorkspaceServer', wsserver)

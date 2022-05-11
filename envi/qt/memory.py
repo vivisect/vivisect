@@ -1,4 +1,3 @@
-import uuid
 from collections import deque
 
 from PyQt5 import QtCore, QtGui
@@ -28,7 +27,6 @@ class EnviNavMixin:
         vqtconnect(self.enviNavGetnames, 'envi:nav:getnames')
         vqtconnect(self.enviNavExpr, 'envi:nav:expr')
         self.setAcceptDrops(True)
-        self.uuid = uuid.uuid1().hex
 
     def enviNavFini(self):
         '''
@@ -169,10 +167,10 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.updateMemWindowTitle()
 
     def getExprTitle(self):
-        return str(self.addr_entry.text()), 0
+        return str(self.addr_entry.text())
 
     def updateMemWindowTitle(self):
-        expr, va = self.getExprTitle()
+        expr = self.getExprTitle()
 
         title = '%s: %s' % (self.mwname, expr)
         if self.mwlocked:
@@ -197,8 +195,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         return menu
 
     def rendToolsSetName(self):
-        curname = self.getEnviNavName()
-        mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name', text=curname)
+        mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name')
         if ok:
             self.setMemWindowName(str(mwname))
 
