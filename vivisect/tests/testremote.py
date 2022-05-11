@@ -149,14 +149,12 @@ class VivisectRemoteTests(unittest.TestCase):
                 # empty leaders
                 rmtvw.do_leaders('')
                 output = rmtvw.canvas.strval
-                print("test output: %r" % output)
                 self.assertIn('Manage Leader Sessions.', output)
                 rmtvw.canvas.strval = ''
 
                 # list leaders
                 rmtvw.do_leaders('list')
                 output = rmtvw.canvas.strval
-                print("test output: %r" % output)
                 self.assertIn("rakuy0's moving castle", output)
                 rmtvw.canvas.strval = ''
 
@@ -175,7 +173,6 @@ class VivisectRemoteTests(unittest.TestCase):
                     sys.stderr.write('%d' % retry)
 
                 output = rmtvw.canvas.strval
-                print("test output: %r" % output)
                 self.assertIn("foo bar baz", output)
                 rmtvw.canvas.strval = ''
 
@@ -192,7 +189,6 @@ class VivisectRemoteTests(unittest.TestCase):
                     sys.stderr.write('%d' % retry)
 
                 output = rmtvw.canvas.strval
-                print("test output: %r" % output)
                 self.assertIn("*Ended: foo's session 'foo bar baz'", output)
                 rmtvw.canvas.strval = ''
 
@@ -227,7 +223,6 @@ class VivisectRemoteTests(unittest.TestCase):
                     sys.stderr.write('%d' % retry)
 
                 output = rmtvw.canvas.strval
-                print("test output: %r" % output)
                 self.assertIn("castle 3", output)
                 self.assertEqual(len(rmtvw2.getLeaderSessions()), 0)
                 rmtvw.canvas.strval = ''

@@ -205,8 +205,9 @@ class VivServer:
             lock, fpath, pevents, users, leaders, leaderloc = wsinfo
             oldclient = False
 
-        elif chan in self._req_wsinfo:
-            # DEPRECATED: this is for backwards compat.  use only the chandict code as of 5/10/2023.
+        elif chan in self.wsdict:
+            # DEPRECATED: this is for backwards compat.  use only the chandict code one year from today, 5/10/2022.
+            wsname = chan
             wsinfo = self._req_wsinfo(wsname)
             lock, fpath, pevents, users, _, _ = wsinfo
             # cheat for older clients... they don't get all the follow-the-leader goodness until they upgrade
@@ -230,25 +231,25 @@ class VivServer:
                     pass
 
                 elif vtevent == VTE_IAMLEADER:
-                    logger.warning("VTE_IAMLEADER: %r" % repr(evtup))
+                    logger.info("VTE_IAMLEADER: %r" % repr(evtup))
                     uuid, user, fname, locexpr = einfo
                     leaders[uuid] = (user, fname)
                     leaderloc[uuid] = locexpr
                     chanleaders.append(uuid)
 
                 elif vtevent == VTE_FOLLOWME:
-                    logger.warning("VTE_FOLLOWME: %r" % repr(evtup))
+                    logger.info("VTE_FOLLOWME: %r" % repr(evtup))
                     uuid, expr = einfo
                     leaderloc[uuid] = expr
 
                 elif vtevent == VTE_KILLLEADER:
-                    logger.warning("VTE_KILLLEADER: %r" % repr(evtup))
+                    logger.info("VTE_KILLLEADER: %r" % repr(evtup))
                     uuid = einfo
                     leaders.pop(uuid, None)
                     leaderloc.pop(uuid, None)
 
                 elif vtevent == VTE_MODLEADER:
-                    logger.warning("VTE_MODLEADER: %r" % repr(evtup))
+                    logger.info("VTE_MODLEADER: %r" % repr(evtup))
                     uuid, user, fname = einfo
                     leaders[uuid] = (user, fname)
 
