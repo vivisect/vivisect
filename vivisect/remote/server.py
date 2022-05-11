@@ -122,6 +122,25 @@ class VivServerWorkspace:
         self.leaders = {}
         self.leaderloc = {}
 
+    def registerChannel(self, chanobj):
+        '''
+        Add the channel's event queue to the Workspace's "users" dict
+        '''
+        self.users[chanobj.id] = chanobj.q
+
+    def deregisterChannel(self, chanobj):
+        '''
+        Remove the channel's event queue from Workspace's "users" dict
+        '''
+        self.deregisterChannelById(chanobj.id)
+
+    def deregisterChannelById(self, chanid):
+        '''
+        Deregister by id, without a whole VivClientChannel object
+        '''
+        self.users.pop(chanid, None)
+
+
 class VivServer:
 
     def __init__(self, dirname=''):
@@ -221,7 +240,7 @@ class VivServer:
                 if ws is None:
                     # Initialize the workspace info tuple
                     lock = threading.Lock()
-                    ws = VivServerWorkspace(wsname)
+                    ws = VivServerWorkspace(wspath)
                     logger.debug('loaded: %s', wsname)
                     self.wsdict[wsname] = ws
 
@@ -309,12 +328,12 @@ class VivServer:
             events = []
             events.extend(viv_basicfile.vivEventsFromFile(ws.path))
             logger.debug('... initial event list size: %d', len(events))
-            events.extend(pevents)
+            events.extend(ws.events)
             logger.debug('... updated event list size: %d', len(events))
 
-            # These must reference the same actual list object...
+            # Channels and Workspaces are interlinked.
             chanobj = VivClientChannel(ws, events)
-            users[chanobj.id] = chanobj.q
+            ws.registerChannel(chanobj)
             self.chandict[chanobj.id] = chanobj
 
         return chanobj.id
@@ -343,7 +362,7 @@ class VivServer:
         #lock, fpath, pevents, users, leaders, leaderloc = chanobj.wsinfo
         ws = chanobj.ws
         with ws.lock:
-            userinfo = ws.users.pop(chanid, None)
+            userinfo = ws.deregisterChannelById(chanid)
 
         # Remove from our chandict
         self.chandict.pop(chanid, None)
@@ -389,7 +408,7 @@ def main(argv):
         logger.error('%s is not a valid directory!', vdir)
         return -1
 
-    print(f'Server starting (port: {opts.port})')
+    print(f'Server starting (port: {opts.port}) for path: {vdir}')
     runMainServer(vdir, opts.port)
 
 
