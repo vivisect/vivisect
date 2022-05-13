@@ -380,14 +380,40 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddDockWidgetClass(viv_q_funcgraph.VQVivFuncgraphView, args=(self.vw, self))
         self.vqAddDockWidgetClass(viv_q_symboliks.VivSymbolikFuncPane, args=(self.vw, self))
 
-    def vqRestoreGuiSettings(self, settings):
-        guid = self.vw.getVivGuid()
+    @idlethread
+    def vqRestoreGuiSettings(self, settings, guid=None):
+        '''
+        Restores GUI settings (size/layout/views) based on:
+         * GUID
+         * Filename(s)
+         * Default Layout
+
+        If workspace is connected to a server, we wait for a GUID to be present before proceeding
+        '''
+
+        if self.vw.server:
+            maxtry = self.vw.config.viv.remote.wait_for_guid * 10
+            retry = 0
+            while self.vw.server and not guid and retry < maxtry: 
+                import time
+                logger.debug("vqRestoreGuiSettings() -> guid=%r  vw.server=%r", guid, self.vw.server)
+                time.sleep(.1)
+                retry += 1
+                guid = self.vw.getVivGuid(generate=False)
+
+        elif not guid:
+            guid = self.vw.getVivGuid()
+
+        logger.debug("vqRestoreGuiSettings() -> guid=%r  vw.server=%r", guid, self.vw.server)
+
+        logger.debug("attempting to load GUI settings based on GUID")
         dwcls = settings.value('%s/DockClasses' % guid)
         state = settings.value('%s/DockState' % guid)
         geom = settings.value('%s/DockGeometry' % guid)
         stub = '%s/' % guid
 
         if compat_isNone(dwcls):
+            logger.debug("attempting to load GUI settings based on Filename(s)")
             names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
@@ -397,6 +423,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             stub = '%s/' % name
 
         if compat_isNone(dwcls):
+            logger.debug("loading default GUI settings")
             dwcls = settings.value('DockClasses')
             state = settings.value('DockState')
             geom = settings.value('DockGeometry')

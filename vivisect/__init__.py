@@ -247,7 +247,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         self._extensions.pop(name, None)
 
-    def getVivGuid(self):
+    def getVivGuid(self, generate=True):
         '''
         Return the GUID for this workspace.  Every newly created VivWorkspace
         should have a unique GUID, for identifying a particular workspace for
@@ -258,7 +258,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         based workspace used to store to the server.
         '''
         vivGuid = self.getMeta('GUID')
-        if vivGuid is None:
+        if vivGuid is None and generate:
             vivGuid = guid()
             self.setMeta('GUID', vivGuid)
 
