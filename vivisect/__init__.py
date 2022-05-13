@@ -2691,6 +2691,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if hasattr(mod, "config"):
             self.mergeConfig(mod.config)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         fd.seek(0)
         fname = mod.parseFd(self, fd, filename=None, baseaddr=baseaddr)
 
@@ -2721,6 +2724,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if hasattr(mod, "config"):
             self.mergeConfig(mod.config)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         if fmtname == 'pe':
             mod.loadPeIntoWorkspace(self, pbin)
         elif fmtname == 'elf':
@@ -2787,6 +2793,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.loadWorkspace(filename)
             return self.normFileName(filename)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         mod = viv_parsers.getParserModule(fmtname)
         fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
 
@@ -2809,6 +2818,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # TODO: Load workspace from memory?
         mod = viv_parsers.getParserModule(fmtname)
+
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
         mod.parseMemory(self, memobj, baseaddr)
 
         mapva, mapsize, mapperm, mapfname = memobj.getMemoryMap(baseaddr)

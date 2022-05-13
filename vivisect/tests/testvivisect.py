@@ -1548,3 +1548,19 @@ class VivisectTest(v_t_utils.VivTest):
         # string naming should not chop off the last character
         self.assertEqual(self.chown_vw.getName(0x0200c050), 'str_ownership of %s _0200c050')
 
+    def test_guid(self):
+        vw = vivisect.VivWorkspace()
+
+        # raw workspace should not have a GUID
+        self.assertEqual(vw.getMeta('GUID'), None)
+
+        vw.loadFromFile('/bin/chown')
+        
+        # workspace gets a GUID after one of the "vw.loadFrom*" functions is called
+        newguid = vw.getMeta('GUID')
+        self.assertNotEqual(newguid, None)
+
+        # since it's assigned, the result from "vw.getVivGuid()" should be the same
+        self.assertEqual(newguid, vw.getVivGuid())
+
+
