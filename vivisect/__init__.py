@@ -177,6 +177,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('CodeFragments', (('va', VASET_ADDRESS), ('calls_from', VASET_COMPLEX)))
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
+        self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING), \
+                ('resolved address', VASET_ADDRESS)))
 
     def vprint(self, msg):
         logger.info(msg)
@@ -760,7 +762,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Do pointer analysis and folllow up the recomendation
         by creating locations etc...
         """
-        ltype = self.analyzePointer(va)
+        ctx = {}
+        ltype = self.analyzePointer(va, ctx)
         if ltype is None:
             return False
 
@@ -770,7 +773,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
             logger.debug('discovered new function (followPointer(0x%x))', va)
-            self.makeFunction(va)
+            arch = ctx.get('arch', envi.ARCH_DEFAULT)
+            self.makeFunction(va, arch=arch)
             return True
 
         elif ltype == LOC_STRING:
@@ -1107,10 +1111,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
         return False
 
-    def isProbablyCode(self, va, **kwargs):
+    def isProbablyCode(self, va, context={}, **kwargs):
         """
         Most of the time, absolute pointers which point to code
         point to the function entry, so test it for the sig.
+
+        context is a dictionary that is filled with any extra pertinent data
         """
         if not self.isExecutable(va):
             return False
@@ -1120,9 +1126,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         rerun = kwargs.pop('rerun', False)
         if va in self.iscode and not rerun:
-            return self.iscode[va]
+            iscode, ctx = self.iscode[va]
+            if ctx:
+                context.update(ctx)
+            return iscode
 
-        self.iscode[va] = True
+        self.iscode[va] = (True, context)
         # because we're doing partial emulation, demote some of the logging
         # messages to low priority.
         kwargs['loglevel'] = e_common.EMULOG
@@ -1132,15 +1141,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         try:
             emu.runFunction(va, maxhit=1)
         except Exception as e:
-            self.iscode[va] = False
+            self.iscode[va] = (False, None)
             return False
 
         if wat.looksgood():
-            self.iscode[va] = True
-        else:
-            self.iscode[va] = False
+            context['arch'] = wat.arch
+            self.iscode[va] = (True, context)
 
-        return self.iscode[va]
+        else:
+            self.iscode[va] = (False, None)
+
+        return self.iscode[va][0]
 
     #################################################################
     #
@@ -1934,7 +1945,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("Unknown Xref: %x %x %d" % ref)
         self._fireEvent(VWE_DELXREF, ref)
 
-    def analyzePointer(self, va):
+    def analyzePointer(self, va, context={}):
         """
         Assume that a new pointer has been created.  Check if it's
         target has a defined location and if not, try to figure out
@@ -1948,8 +1959,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return LOC_UNI
         elif self.isProbablyString(va):
             return LOC_STRING
-        elif self.isProbablyCode(va):
-            return LOC_OP
+        else:
+            ctx = {}
+            if self.isProbablyCode(va, ctx):
+                context.update(ctx)
+                return LOC_OP
         return None
 
     def getMeta(self, name, default=None):
@@ -2797,9 +2811,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.initMeta('GUID', guid())
         
         mod = viv_parsers.getParserModule(fmtname)
+
+        # get baseaddr and size, then make sure we have a good baseaddr
+        baseaddr, size = mod.getMemBaseAndSize(self, filename=filename, baseaddr=baseaddr)
+        logger.debug('initial baseva: 0x%x  size: 0x%x', baseaddr, size)
+        if baseaddr == 0:
+            baseaddr = 0x300000
+
+        baseaddr = self.findFreeMemoryBlock(size, baseaddr)
+        logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
+
         fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
 
-        self.initMeta("StorageName", filename+".viv")
+        if not self.getMeta('StorageName'):
+            self.initMeta("StorageName", filename+".viv")
 
         # Snapin our analysis modules
         self._snapInAnalysisModules()
@@ -2830,6 +2855,73 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.initMeta('StorageName', mapfname+".viv")
         # Snapin our analysis modules
         self._snapInAnalysisModules()
+
+    def writeMemory(self, va, bytez):
+        '''
+        Override writeMemory to hook into the Event subsystem.
+        '''
+        fname = self.getFileByVa(va)
+        fileva = self.getFileMeta(fname, 'imagebase')
+        off = va - fileva
+        self._fireEvent(VWE_WRITEMEM, (fname, off, bytez, self._supervisor))
+
+    def connectImportsWithExports(self):
+        """
+        Look for any "imported" symbols that are satisfied by current exports.
+        Wire up the connection.
+
+        Currently this is simply a pointer write at the location of the Import.
+        If this behavior is ever insufficient, we'll want to track the special
+        nature through the Export/Import events.
+        """
+        logger.info('linking Imports with Exports')
+        # store old setting and set _supervisor mode (so we can write wherever
+        # we want, regardless of permissions)
+        oldsup = self._supervisor
+        self._supervisor = True
+
+        for iva, isz, itype, isym in self.getImports():
+            impfname, impsym = isym.split('.', 1)
+            for eva, num, esym, efname in self.getExports():
+                if impsym != esym:
+                    continue
+
+                if impfname not in (efname, '*'):
+                    continue
+
+                if self.isFunctionThunk(eva):
+                    logger.info("Skipping Exported Thunk")
+                    continue
+
+                # file and symbol name match.  apply the magic.
+                # do we ever *not* write in the full address at the import site?
+                logger.debug("connecting Import 0x%x -> Export 0x%x (%r)", iva, eva, isym)
+                self.writeMemoryPtr(iva, eva)
+
+                # remove the LOC_IMPORT and make it a Pointer instead
+                self.delLocation(iva)
+                self.makePointer(iva, follow=False) # don't follow, it'll be analyzed later?
+
+                # store the former Import in a VaSet
+                self.setVaSetRow('ResolvedImports', (iva, isym, eva))
+
+                # check if any xrefs to the import are branches and make code-xrefs for them
+                for xrfr, xrto, xrt, xrflags in self.getXrefsTo(iva):
+                    loc = self.getLocation(xrfr)
+                    if not loc:
+                        continue
+
+                    lva, lsz, ltype, ltinfo = loc
+                    if ltype != LOC_OP:
+                        logger.warning("XREF not from an Opcode: 0x%x -> 0x%x  (%r)", lva, eva, loc)
+                        continue
+
+                    op = self.parseOpcode(lva)
+                    self.addXref(lva, eva, REF_CODE)
+                    logger.debug("addXref(0x%x -> 0x%x)", lva, eva)
+
+        # restore previous supervisor mode
+        self._supervisor = oldsup
 
     def getFiles(self):
         """
@@ -3167,6 +3259,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Add a prefix to the given name paying attention to the filename prefix, and
         any VA suffix which may exist.
+
+        This is used by multiple analysis modules.
+        Uses _getNameParts.
         '''
         fpart, npart, vapart = self._getNameParts(name, va)
         if fpart is None and vapart is None:

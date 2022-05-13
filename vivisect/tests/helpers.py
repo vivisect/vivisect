@@ -42,13 +42,32 @@ def getTestPath(*paths):
 
 
 @functools.lru_cache()
-def getTestWorkspace(*paths):
+def getTestWorkspace(*paths, vw=None):
     testdir = os.getenv('VIVTESTFILES')
     if not testdir:
         raise unittest.SkipTest('VIVTESTFILES env var not found!')
+
     testdir = os.path.abspath(testdir)
     fpath = os.path.join(testdir, *paths)
-    vw = v_cli.VivCli()
+
+    if not vw:
+        vw = v_cli.VivCli()
+
+    vw.loadFromFile(fpath)
+    vw.analyze()
+    return vw
+
+def getTestWorkspace_nocache(*paths, vw=None):
+    testdir = os.getenv('VIVTESTFILES')
+    if not testdir:
+        raise unittest.SkipTest('VIVTESTFILES env var not found!')
+
+    testdir = os.path.abspath(testdir)
+    fpath = os.path.join(testdir, *paths)
+
+    if not vw:
+        vw = v_cli.VivCli()
+
     vw.loadFromFile(fpath)
     vw.analyze()
     return vw
