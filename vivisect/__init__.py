@@ -630,11 +630,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         client to the given (potentially cobra remote)
         workspace object.
         """
-        uname = e_config.getusername()
+        uname = self.config.user.name
         self.server = remotevw
         self.rchan = remotevw.createEventChannel()
 
         self.server.vprint('%s connecting...' % uname)
+
+        self.leaders.update(self.server.getLeaderSessions())
+        self.leaderloc.update(self.server.getLeaderLocations())
+
         wsevents = self.server.exportWorkspace()
         self.importWorkspace(wsevents)
         self.server.vprint('%s connection complete!' % uname)
@@ -1604,6 +1608,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             vw.setFunctionArg(fva, 1, 'char **','argv')
         '''
         rettype,retname,callconv,callname,callargs = self.getFunctionApi(fva)
+        callargs = list(callargs)
         while len(callargs) <= idx:
             callargs.append( ('int','arg%d' % len(callargs)) )
 
@@ -3115,12 +3120,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 #
 #  Shared Workspace APIs
 #
+    # interact with the Server
     def chat(self, msg):
-        uname = e_config.getusername()
+        uname = self.config.user.name
         # FIXME this should be part of a UI event model.
         self._fireEvent(VWE_CHAT, (uname, msg))
 
-    def iAmLeader(self, winname):
+    def iAmLeader(self, uuid, winname, locexpr=None):
         '''
         Announce that your workspace is leading a window with the
         specified name.  This allows others to opt-in to following
@@ -3132,10 +3138,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if not self.server:
             raise Exception('iAmLeader() requires being connected to a server.')
 
-        user = e_config.getusername()
-        self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (user,winname))
+        user = self.config.user.name
+        self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (uuid, user, winname, locexpr))
 
-    def followTheLeader(self, winname, expr):
+    def followTheLeader(self, uuid, expr):
         '''
         Announce a new memory expression to navigate to if if a given window
         is following the specified user/winname
@@ -3145,8 +3151,46 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         if not self.server:
             raise Exception('followTheLeader() requires being connected to a server.')
-        user = e_config.getusername()
-        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (user,winname, expr))
+        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (uuid, expr))
+
+    def killLeaderSession(self, uuid):
+        '''
+        When we shutdown a Leader session, we need to make it go away.
+
+        Example:
+            vw.killTheLeader('bf1ae9f4b94711ecbe41091ba860c051')
+        '''
+        if not self.server:
+            raise Exception('killTheLeader() requires being connected to a server.')
+        self.server._fireEvent(VTE_MASK | VTE_KILLLEADER, uuid)
+
+    def modifyLeaderSession(self, uuid, user, winname):
+        '''
+        Make changes to the username or session/window name
+
+        Example:
+            vw.killTheLeader('bf1ae9f4b94711ecbe41091ba860c051')
+        '''
+        if not self.server:
+            raise Exception('killTheLeader() requires being connected to a server.')
+        self.server._fireEvent(VTE_MASK | VTE_MODLEADER, (uuid, user, winname))
+
+    # internal data access
+    def getLeaderInfo(self, uuid=None):
+        if uuid in self.leaders:
+            user, fname = self.leaders.get(uuid)
+            return user, fname
+            
+        return None, None
+
+    def getLeaderSessions(self):
+        return dict(self.leaders)
+
+    def getLeaderLoc(self, uuid):
+        '''
+        Get the current location for a Leader session
+        '''
+        return self.leaderloc.get(uuid)
 
 #################################################################
 #
