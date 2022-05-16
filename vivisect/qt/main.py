@@ -406,17 +406,17 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         logger.debug("vqRestoreGuiSettings() -> guid=%r  vw.server=%r", guid, self.vw.server)
 
-        logger.debug("attempting to load GUI settings based on GUID")
+        logger.debug("attempting to load GUI settings based on GUID: %s", guid)
         dwcls = settings.value('%s/DockClasses' % guid)
         state = settings.value('%s/DockState' % guid)
         geom = settings.value('%s/DockGeometry' % guid)
         stub = '%s/' % guid
 
         if compat_isNone(dwcls):
-            logger.debug("attempting to load GUI settings based on Filename(s)")
             names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
+            logger.debug("attempting to load GUI settings based on Filename(s): %r", name)
             dwcls = settings.value('%s/DockClasses' % name)
             state = settings.value('%s/DockState' % name)
             geom = settings.value('%s/DockGeometry' % name)
