@@ -4,7 +4,6 @@
 #
 version: 2.1
 
-
 commands:
 
   do_python_setup:
@@ -15,7 +14,6 @@ commands:
           command: |
             python3 -m pip install -U wheel pip
             python3 -m pip install -r requirements.txt
-
 
   do_test_execution:
     description: "Execute unit tests via unittest"
@@ -72,6 +70,8 @@ jobs:
 
     steps:
       - test_steps_python
+    # The resource_class feature allows configuring CPU and RAM resources for each job. Different resource classes are available for different executors. https://circleci.com/docs/2.0/configuration-reference/#resourceclass
+    resource_class: large
 
 workflows:
   version: 2
