@@ -4,7 +4,6 @@ python object which implements a similar lookup mechanism
 to the i386 page table lookups...
 '''
 import collections
-import envi.exc as e_exc
 
 # FIXME move functions in here too so there is procedural "speed" way
 # and objecty pythonic way...
@@ -59,7 +58,7 @@ class MapLookup:
                 off = va - mva
                 marray[off:off+size] = [obj] * size
                 return
-        raise e_exc.MapNotFoundException(va)
+        raise Exception('Address (0x%.8x) not in maps!' % va)
 
     def getMapLookup(self, va):
         for mva, mvamax, marray in self._maps_list:

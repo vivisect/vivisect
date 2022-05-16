@@ -20,17 +20,7 @@ class MemObjFile:
     def seek(self, offset):
         self.offset = self.baseaddr + offset
 
-    def flush(self):
-        pass
-
-    def tell(self):
-        return self.offset - self.baseaddr
-
-    def read(self, size=None):
-        if size is None:
-            # end of map for now, but perhaps this should be end of contiguous maps
-            _, size, _, _ = self.memobj.getMemoryMap(self.offset)
-            size -= self.offset
+    def read(self, size):
         ret = self.memobj.readMemory(self.offset, size)
         self.offset += size
         return ret
@@ -61,10 +51,10 @@ class VStruct(vs_prims.v_base):
         bytes = vs.vsEmit()
 
     '''
-    def __init__(self, bigend=False):
+    def __init__(self):
         # A tiny bit of evil...
         object.__setattr__(self, '_vs_values', {})
-        vs_prims.v_base.__init__(self, bigend)
+        vs_prims.v_base.__init__(self)
         self._vs_name = self.__class__.__name__
         self._vs_fields = []
         self._vs_field_align = False # To toggle visual studio style packing
@@ -116,11 +106,6 @@ class VStruct(vs_prims.v_base):
         if cblist is not None:
             for callback in cblist:
                 callback(self)
-
-    def vsSetEndian(self, bigend):
-        self._vs_bigend = bigend
-        for fldname, vsfield in list(self._vs_values.items()):
-            vsfield.vsSetEndian(bigend)
 
     @classmethod
     def vsFromFd(cls, fd, fast=True):

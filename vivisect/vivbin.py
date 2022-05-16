@@ -44,8 +44,6 @@ def main():
                         help='Path to a directory to use for config data')
     parser.add_argument('-a', '--autosave', dest='autosave', default=False, action='store_true',
                         help='Autosave configuration data')
-    parser.add_argument('-o', '--outfile', default=None,
-                        help='Name of VivWorkspace file to create (useful for loading multiple binaries into one workspace)')
     parser.add_argument('file', nargs='*')
     args = parser.parse_args()
 
@@ -55,9 +53,6 @@ def main():
     vw.verbose = min(args.verbose, len(e_common.LOG_LEVELS)-1)
     level = e_common.LOG_LEVELS[vw.verbose]
     e_common.initLogging(logger, level=level)
-
-    if args.outfile:
-        vw.setMeta('StorageName', args.outfile)
 
 
     # do things

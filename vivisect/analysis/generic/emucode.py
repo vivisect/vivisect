@@ -28,7 +28,6 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         self.insn_count = 0
         self.lastop = None
         self.badcode = False
-        self.arch = None
 
         self.badops = vw.arch.archGetBadOps()
 
@@ -64,9 +63,6 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         return True
 
     def prehook(self, emu, op, eip):
-        if self.arch is None:
-            self.arch = op.iflags & envi.ARCH_MASK
-
         if op.mnem == "out":  # FIXME arch specific. see above idea.
             emu.stopEmu()
             raise v_exc.BadOutInstruction(op.va)

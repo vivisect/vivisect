@@ -12,19 +12,6 @@ A module containing memory utilities and the definition of the
 memory access API used by all vtoys trace/emulators/workspaces.
 """
 
-# Memory Map Permission Flags
-# TODO: move these into envi.const
-MM_NONE = 0x0
-MM_READ = 0x4
-MM_WRITE = 0x2
-MM_EXEC = 0x1
-MM_SHARED = 0x08
-
-MM_READ_WRITE = MM_READ | MM_WRITE
-MM_READ_EXEC = MM_READ | MM_EXEC
-MM_RWX = MM_READ | MM_WRITE | MM_EXEC
-
-pnames = ['No Access', 'Execute', 'Write', None, 'Read']
 
 logger = logging.getLogger(__name__)
 
@@ -453,7 +440,7 @@ class MemoryObject(IMemory):
         self.addMemoryMap(baseva, perms, name, fill*size, align)
         return baseva
 
-    def findFreeMemoryBlock(self, size, suggestaddr=0x1000, MIN_MEM_ADDR = 0x1000, mapalign=0x10000):
+    def findFreeMemoryBlock(self, size, suggestaddr=0x1000, MIN_MEM_ADDR = 0x1000):
         '''
         Find a block of memory in the address-space of the correct size which 
         doesn't overlap any existing maps.  Attempts to offer the map starting
@@ -468,9 +455,6 @@ class MemoryObject(IMemory):
 
         tmpva = suggestaddr
         maxaddr = (1 << (8 * self.imem_psize)) - 1
-
-        MAP_ALIGN_NMASK = mapalign - 1
-        MAP_ALIGN_MASK = ~MAP_ALIGN_NMASK
 
         while baseva is None:
             # if we roll into illegal memory, start over at page 2.  skip 0.
@@ -494,8 +478,8 @@ class MemoryObject(IMemory):
                     # we ran into a memory map.  adjust.
                     good = False
                     tmpva = mmendva
-                    tmpva += MAP_ALIGN_NMASK
-                    tmpva &= MAP_ALIGN_MASK
+                    tmpva += PAGE_NMASK
+                    tmpva &= PAGE_MASK
                     break
 
             if good:
@@ -529,28 +513,6 @@ class MemoryObject(IMemory):
                 return self._map_defs.pop(midx)
 
         raise e_exc.MapNotFoundException(mapva)
-
-    def collapseMaps(self, strict=True):
-        '''
-        Sort through all memory maps and collapse any which abutt.
-        If strict, only collapse if the permissions are the same.
-        Otherwise, collapse them and or the permissions together.
-
-        TODO: make all map bytes collapsed and make maps start at an offset?
-        '''
-        oldmaps = list(self._map_defs)
-        # if we have no maps, skip the whole process
-        if not len(oldmaps):
-            return
-
-        newmaps = collapseMemoryMaps(oldmaps, strict)
-
-        for ova, ovamax, ommap, obytez in oldmaps:
-            self.delMemoryMap(ova)
-
-        for cva, cvamax, cmmap, cbytez in newmaps:
-            cmva, cmsz, cmperms, cmfname = cmmap
-            self.addMemoryMap(cmva, cmperms, cmfname, cbytez)
 
     def getMemorySnap(self):
         '''
@@ -758,45 +720,3 @@ def memdiff(bytes1, bytes2):
             ret.append((beginoff, offset-beginoff))
         offset += 1
     return ret
-
-def collapseMemoryMaps(oldmaps, strict=True):
-    '''
-    Sort through a list of memory maps and collapse any which abutt.
-    If strict, only collapse if the permissions are the same.
-    Otherwise, collapse them and or the permissions together.
-
-    TODO: make all map bytes collapsed and make maps start at an offset?
-        or poss
-    '''
-    oldmaps.sort()
-
-    # start off with the current map as the first oldmap, and add it
-    newmaps = [oldmaps[0]]
-    curva, curvamax, curmmap, curbytez = oldmaps[0]
-
-    for omidx in range(1, len(oldmaps)):
-        ova, ovamax, ommap, obytez = oldmaps[omidx]
-        omva, omsz, omperms, omfname = ommap
-        if ova == curvamax and curmmap[3] == ommap[3] and (curmmap[2]==ommap[2] or not strict):
-            # collapse this into previous and update curvamax and curbytes if perms or not strict
-            curvamax = ovamax
-            cmva, cmsz, cmperms, cmfname = curmmap
-            if len(cmfname):
-                if len(omfname):
-                    newfname = '%s + %s' % (cmfname, omfname)
-                else:
-                    newfname = cmfname
-            else:
-                newfname = omfname
-
-            curbytez += obytez
-            curmmap = (cmva, (cmsz+omsz), (cmperms|omperms), newfname)
-            newmaps[-1] = curva, curvamax, curmmap, curbytez
-
-        else:
-            # add this map to newmaps and update cur*
-            newmaps.append(oldmaps[omidx])
-            curva, curvamax, curmmap, curbytez = oldmaps[omidx]
-
-    return newmaps
-

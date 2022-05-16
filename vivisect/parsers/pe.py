@@ -13,7 +13,6 @@ import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
 import envi.exc as e_exc
-import envi.bits as e_bits
 import envi.const as e_const
 import envi.symstore.symcache as e_symcache
 
@@ -77,8 +76,8 @@ archcalls = {
 
 # map PE relocation types to vivisect types where possible
 relmap = {
-    PE.IMAGE_REL_BASED_HIGHLOW: (vivisect.RTYPE_BASEOFF, 4),
-    PE.IMAGE_REL_BASED_DIR64: (vivisect.RTYPE_BASEOFF, 8),
+    PE.IMAGE_REL_BASED_HIGHLOW: vivisect.RTYPE_BASEOFF,
+    PE.IMAGE_REL_BASED_DIR64: vivisect.RTYPE_BASEOFF,
 }
 
 
@@ -93,7 +92,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
     vw.parsedbin = pe
-    ### TODO: this doesn't work from Memory (read() needs to know how big the file is)
     byts = pe.getFileBytes()
     vw.setMeta('FileBytes', v_parsers.compressBytes(byts))
 
@@ -107,24 +105,18 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.setMeta('Platform', platform)
 
     vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
-    logger.info("PE loader: Arch: %r\tFormat: pe\tPlatform: %r\tFilename: %r\tBaseAddr: 0x%x", \
-            arch, platform, filename, baseaddr)
 
     # Set ourselves up for extended windows binary analysis
 
-    imagebase = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
     if baseaddr is None:
-        baseaddr = imagebase
-
-    entryrva = pe.IMAGE_NT_HEADERS.OptionalHeader.AddressOfEntryPoint
-    entry = entryrva + baseaddr
+        baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+    entry = pe.IMAGE_NT_HEADERS.OptionalHeader.AddressOfEntryPoint + baseaddr
+    entryrva = entry - baseaddr
 
     codebase = pe.IMAGE_NT_HEADERS.OptionalHeader.BaseOfCode
     codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
     codervamax = codebase+codesize
 
-    logger.info("PE Imagebase: 0x%x\tentry: 0x%x\tcodebase: 0x%x\tcodesize: 0x%x", \
-            imagebase, entry, codebase, codesize)
     # grab the file bytes for hashing
     pe.fd.seek(0)
     fhash = v_parsers.md5Bytes(byts)
@@ -138,9 +130,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     if fvivname is None:
         fvivname = fhash
-
-    logger.info("PE dllname: %r\tfvivname: %r\tmd5: %r\tsha256: %r", \
-            dllname, fvivname, fhash, sha256)
 
     # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
@@ -165,14 +154,9 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 vw.setFileMeta(fname, 'Version', vsver)
 
     # Setup some va sets used by windows analysis modules
-    # these will already exist for Multi-file workspaces
-    vaSetNames = vw.getVaSetNames()
-    if not 'Library Loads' in vaSetNames:
-        vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
-    if not 'pe:ordinals' in vaSetNames:
-        vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
-    if not 'DelayImports' in vaSetNames:
-        vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
+    vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
+    vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
+    vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS)
@@ -366,18 +350,15 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     for rva, rtype in pe.getRelocations():
 
         # map PE reloc to VIV reloc ( or dont... )
-        vtypedata = relmap.get(rtype)
-        if vtypedata is None:
+        vtype = relmap.get(rtype)
+        if vtype is None:
             logger.info('Skipping PE Relocation type: %d at %d (no handler)', rtype, rva)
             continue
 
-        vtype, vtsize = vtypedata
-
         try:
-            vtfmt = e_bits.getFormat(vtsize)    # for PowerPC, will need to get Endianness
-            mapoffset = vw.readMemoryFormat(rva + baseaddr, vtfmt)[0] - imagebase
-        except Exception as e:
-            # the target address of the relocation is not accessible.
+            mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
+        except:
+            # the target adderss of the relocation is not accessible.
             # for example, it's not mapped, or split across sections, etc.
             # technically, the PE is corrupt.
             # by continuing on here, we are a bit more robust (but maybe incorrect)
@@ -385,10 +366,9 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             #
             # discussed in:
             # https://github.com/vivisect/vivisect/issues/346
-            logger.warning('Skipping invalid PE relocation: %d (%r)', rva, e)
+            logger.warning('Skipping invalid PE relocation: %d', rva)
             continue
         else:
-            logger.info('PE relocation: 0x%x -> %r+0x%x', baseaddr+rva, fname, mapoffset)
             vw.addRelocation(rva + baseaddr, vtype, mapoffset)
 
     for rva, lname, iname in pe.getImports():
@@ -555,60 +535,3 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             vw.markDeadData(rva, rva+len(pebytes))
 
     return fname
-
-def getMemBaseAndSize(vw, filename, baseaddr=None):
-    '''
-    Returns the default baseaddr and memory size required to load the file
-    '''
-    savebase = baseaddr
-
-    pe = PE.PE(open(filename, 'rb'))
-
-    if baseaddr is None:
-        baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
-
-    memmaps = [(baseaddr, e_const.MM_READ, '', 0x1000)]
-    codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
-    for idx, sec in enumerate(pe.sections):
-        secrva = sec.VirtualAddress
-        secvsize = sec.VirtualSize
-        secfsize = sec.SizeOfRawData
-        secbase = secrva + baseaddr
-        secname = sec.Name.strip("\x00")
-        secrvamax = secrva + secvsize
-
-        if sec.VirtualSize == 0 or sec.SizeOfRawData == 0:
-            if idx+1 >= len(pe.sections):
-                continue
-            # fill the gap with null bytes..
-            nsec = pe.sections[idx+1]
-            nbase = nsec.VirtualAddress + baseaddr
-
-            mlen = nbase - secbase
-            memmaps.append((secbase, 7, '', plen))
-            continue
-
-        if sec.SizeOfRawData < sec.VirtualSize:
-            if sec.SizeOfRawData > pe.filesize:
-                continue
-
-        mlen = sec.VirtualSize
-        memmaps.append((secbase, 0, '', mlen))
-
-    baseaddr = 0xffffffffffffffffffffffff
-    topmem = 0
-
-    for mapva, mperms, mname, lenbytes in memmaps:
-        if mapva < baseaddr:
-            baseaddr = mapva
-        endva = mapva + lenbytes
-        if endva > topmem:
-            topmem = endva
-
-    size = topmem - baseaddr
-    if savebase:
-        # if we provided a baseaddr, override what the file wants
-        baseaddr = savebase
-        
-    return baseaddr, size
-

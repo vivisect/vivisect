@@ -72,8 +72,6 @@ def main():
     parser.add_argument('--android', dest='doandroid', default=False, action='store_true', help='Debug Android with ADB!')
     parser.add_argument('-e', '--eventid', dest='eventid', default=None, type=int, help='Used for Windows JIT')
     parser.add_argument('-w', '--waitfor', dest='waitfor', default=None, help='Wait for process with name')
-    parser.add_argument('--LI', dest='BpLibInit', default=False, action='store_true', help='Breakpoint on Library initialization')
-    parser.add_argument('--LL', dest='BpLibLoad', default=False, action='store_true', help='Breakpoint on Library load time')
     parser.add_argument('platargs', nargs='*')
 
     args = parser.parse_args()
@@ -118,9 +116,6 @@ def main():
     db = vdb.Vdb(trace)
     db.runagain = args.dorunagain
     db.windows_jit_event = args.eventid
-
-    db.trace.setBreakOnLibraryInit(args.BpLibInit)
-    db.trace.setBreakOnLibraryLoad(args.BpLibLoad)
 
     if args.waitfor:
         while True:

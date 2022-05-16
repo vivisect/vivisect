@@ -102,6 +102,12 @@ def getGOTByFilename(vw, filename):
     if fdyns is not None:
         FGOT = fdyns.get('DT_PLTGOT')
         if FGOT is not None:
+            # be sure to add the imgbase to FGOT if required
+            if vw.getFileMeta(filename, 'addbase'):
+                imgbase = vw.getFileMeta(filename, 'imagebase')
+                logger.debug('Adding Imagebase: 0x%x', imgbase)
+                FGOT += imgbase
+
             if FGOT != gotva and None not in (FGOT, gotva):
                 logger.warning("Dynamics and Sections have different GOT entries: S:0x%x D:0x%x. using Dynamics", gotva, FGOT)
 
@@ -129,6 +135,12 @@ def getGOTs(vw):
         if fdyns is not None:
             FGOT = fdyns.get('DT_PLTGOT')
             if FGOT is not None:
+                # be sure to add the imgbase to FGOT if required
+                if vw.getFileMeta(filename, 'addbase'):
+                    imgbase = vw.getFileMeta(filename, 'imagebase')
+                    #logger.debug('Adding Imagebase: 0x%x', imgbase)
+                    FGOT += imgbase
+
                 flist = out[filename]
 
                 skip = False
@@ -158,25 +170,22 @@ def getPLTs(vw):
     for fname in vw.getFiles():
         fdyns = vw.getFileMeta(fname, 'ELF_DYNAMICS')
         if fdyns is not None:
-            FPLT = fdyns.get('DT_JMPREL')
-            FPLTSZ = fdyns.get('DT_PLTRELSZ')
-
-            # if we don't have FPLT or FPLTSZ, skip this
-            if None in (FPLT, FPLTSZ):
+            FGOT = fdyns.get('DT_JMPREL')
+            FGOTSZ = fdyns.get('DT_PLTRELSZ')
+            if None in (FGOT, FGOTSZ):
                 continue
 
             if vw.getFileMeta(fname, 'addbase'):
                 imgbase = vw.getFileMeta(fname, 'imagebase')
                 logger.debug('Adding Imagebase: 0x%x', imgbase)
-                FPLT += imgbase
+                FGOT += imgbase
 
             newish = True
             for pltva, pltsize in plts:
-                if FPLT == pltva:
+                if FGOT == pltva:
                     newish = False
-
-            if newish:
-                plts.append((FPLT, FPLTSZ))
+            if newish and FGOT and FGOTSZ:
+                plts.append((FGOT, FGOTSZ))
 
     return plts
 

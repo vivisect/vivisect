@@ -220,11 +220,6 @@ N_SECT   = 0xe # defined in section number n_sect
 N_PBUD   = 0xc # prebound undefined (defined in a dylib)
 N_INDR   = 0xa # indirect
 
-ENDIAN_LSB = 0
-ENDIAN_MSB = 1
-
-
-
 DICE_KIND_DATA              = 0x0001  # L$start$data$...  label
 DICE_KIND_JUMP_TABLE8       = 0x0002  # L$start$jt8$...   label
 DICE_KIND_JUMP_TABLE16      = 0x0003  # L$start$jt16$...  label

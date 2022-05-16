@@ -2050,11 +2050,11 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
     if len(abytez):
         with open('/tmp/armbytez', 'wb') as f:
-            f.write(b''.join(abytez))
+            f.write(''.join(abytez))
         proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/armbytez', '-b', 'binary', '-m', 'arm', endian], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         data = proc.stdout.readlines()
         data = [x.strip() for x in data]
-        data = [x.split(b'\t') for x in data]
+        data = [x.split('\t') for x in data]
 
         for parts in data:
             if len(parts) < 4:
@@ -2068,11 +2068,11 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
     if len(tbytez):
         with open('/tmp/thmbytez', 'wb') as f:
-            f.write(b''.join(tbytez))
+            f.write(''.join(tbytez))
         proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/thmbytez', '-b', 'binary', '-m', 'arm', '-M', 'force-thumb', endian], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         data = proc.stdout.readlines()
         data = [x.strip() for x in data]
-        data = [x.split(b'\t') for x in data]
+        data = [x.split('\t') for x in data]
 
         for parts in data:
             if len(parts) < 4:

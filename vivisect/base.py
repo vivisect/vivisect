@@ -432,9 +432,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.locmap.delMapLookup(mapva)
         self.blockmap.delMapLookup(mapva)
 
-        # wipe the opcode cache in case we have cached deleted locations
-        self.clearOpcache()
-
     def _handleADDEXPORT(self, einfo):
         va, etype, name, filename = einfo
         self.exports.append(einfo)
@@ -533,18 +530,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         '''
         pass
 
-    def _handleWRITEMEM(self, einfo):
-        '''
-        Handle permanent writes to a memory map after initialization
-        (fname, off, bytez, supv) where supv is supervisor mode...
-        '''
-        fname, off, bytez, supv = einfo
-        imgbase = self.getFileMeta(fname, 'imagebase')
-        savesupv = self._supervisor
-        self._supervisor = True
-        e_mem.MemoryObject.writeMemory(self, imgbase + off, bytez)
-        self._supervisor = savesupv
-
     def _initEventHandlers(self):
         self.ehand = [None for x in range(VWE_MAX)]
         self.ehand[VWE_ADDLOCATION] = self._handleADDLOCATION
@@ -588,7 +573,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_CHAT]     = self._handleCHAT
         self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
-        self.ehand[VWE_WRITEMEM] = self._handleWRITEMEM
 
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
