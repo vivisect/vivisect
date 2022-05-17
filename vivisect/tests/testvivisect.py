@@ -1554,7 +1554,8 @@ class VivisectTest(v_t_utils.VivTest):
         # raw workspace should not have a GUID
         self.assertEqual(vw.getMeta('GUID'), None)
 
-        vw.loadFromFile('/bin/chown')
+        chownpath = helpers.getTestPath('linux', 'amd64', 'chown')
+        vw.loadFromFile(chownpath)
         
         # workspace gets a GUID after one of the "vw.loadFrom*" functions is called
         newguid = vw.getMeta('GUID')
