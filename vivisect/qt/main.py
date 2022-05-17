@@ -391,17 +391,11 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         If workspace is connected to a server, we wait for a GUID to be present before proceeding
         '''
 
-        if self.vw.server:
-            maxtry = self.vw.config.viv.remote.wait_for_guid * 10
-            retry = 0
-            while self.vw.server and not guid and retry < maxtry: 
-                import time
-                logger.debug("vqRestoreGuiSettings() -> guid=%r  vw.server=%r", guid, self.vw.server)
-                time.sleep(.1)
-                retry += 1
-                guid = self.vw.getVivGuid(generate=False)
+        if self.vw.server and not guid:
+            # wait until the GUID has been loaded from the remote workspace before continuing
+            self.vw._load_guid.wait() 
 
-        elif not guid:
+        if not guid:
             guid = self.vw.getVivGuid()
 
         logger.debug("vqRestoreGuiSettings() -> guid=%r  vw.server=%r", guid, self.vw.server)
