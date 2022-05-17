@@ -1,4 +1,6 @@
 import vdb
+import getpass
+
 
 defconfig = {
     'viv':{
@@ -42,6 +44,9 @@ defconfig = {
     },
     'cli':vdb.defconfig.get('cli'), # FIXME make our own...
     'vdb':vdb.defconfig.get('vdb'),
+    'user':{
+        'name': getpass.getuser(),
+    }
 }
 
 defconfig.get('cli').update(vdb.defconfig.get('cli'))
@@ -90,4 +95,7 @@ docconfig = {
     },
 
     'vdb':vdb.docconfig.get('vdb'),
+    'user':{
+        'name': 'Username.  When not set, defaults to current system user.',
+        }
 }
