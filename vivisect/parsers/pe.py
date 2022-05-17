@@ -83,6 +83,10 @@ relmap = {
 
 
 def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
+    if baseaddr:
+        logger.info("loadPeIntoWorkspace(%r, %r, baseaddr=0x%x", pe, filename, baseaddr)
+    else:
+        logger.info("loadPeIntoWorkspace(%r, %r, baseaddr=%r", pe, filename, baseaddr)
 
     mach = pe.IMAGE_NT_HEADERS.FileHeader.Machine
 
