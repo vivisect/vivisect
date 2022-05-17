@@ -61,6 +61,9 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
     def getExpressionLocals(self):
         locs = e_cli.EnviCli.getExpressionLocals(self)
+        for fname in self.getFiles():
+            locs[fname] = self.getFileMeta(fname, 'imagebase')
+
         locs['vw'] = self
         locs['vprint'] = self.vprint
         locs['vivisect'] = vivisect

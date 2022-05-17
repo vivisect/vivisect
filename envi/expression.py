@@ -20,24 +20,8 @@ class ExpressionFail(Exception):
 def evaluate(pycode, locvars):
     try:
         val = eval(pycode, {}, locvars)
-    except Exception:
-        try:
-            # check through the keys for anything we might want to replace
-            keys = list(locvars.keys())
-
-            # sort the keys in reverse order so that longer matching strings take priority
-            keys.sort(reverse=True)
-
-            # replace the substrings with the string versions of the lookup value
-            for key in keys:
-                if key in pycode:
-                    pval = locvars[key]
-                    pycode = pycode.replace(key, str(pval))
-
-            val = eval(pycode, {}, locvars)
-
-        except Exception as e:
-            raise ExpressionFail(pycode, e)
+    except Exception as e:
+        raise ExpressionFail(pycode, e)
 
     return val
 
