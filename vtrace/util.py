@@ -9,7 +9,7 @@ import vtrace.notifiers as v_notifiers
 import vtrace.rmi as v_rmi
 
 import envi
-import envi.memory as e_memory
+import envi.const as e_const
 import envi.archs.i386 as e_i386
 import envi.archs.amd64 as e_amd64
 
@@ -104,7 +104,7 @@ def emuFromTrace(trace):
     for va, size, perms, fname in trace.getMemoryMaps():
         try:
             # So linux maps in a PROT_NONE page for efficient library sharing, so we have to take that into account
-            if (not perms & e_memory.MM_READ):
+            if (not perms & e_const.MM_READ):
                 continue
             if plat == 'linux' and fname in ['[vvar]']:
                 continue
@@ -198,7 +198,7 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         # add map to the workspace
         try:
             # So linux maps in a PROT_NONE page for efficient library sharing, so we have to take that into account
-            if (not perms & e_memory.MM_READ):
+            if (not perms & e_const.MM_READ):
                 continue
             if plat == 'linux' and stripfname in ['[vvar]']:
                 continue

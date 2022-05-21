@@ -7,3 +7,4 @@
 .idea
 coverage_html_report*
 *~
+_build

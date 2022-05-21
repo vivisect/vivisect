@@ -12,7 +12,7 @@ import traceback
 
 import envi.cli as e_cli
 import envi.bits as e_bits
-import envi.memory as e_mem
+import envi.const as e_const
 
 import vtrace
 import vtrace.exc as v_exc
@@ -665,11 +665,11 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 mlen = max-base
 
                 if "r" in permstr:
-                    perms |= e_mem.MM_READ
+                    perms |= e_const.MM_READ
                 if "w" in permstr:
-                    perms |= e_mem.MM_WRITE
+                    perms |= e_const.MM_WRITE
                 if "x" in permstr:
-                    perms |= e_mem.MM_EXEC
+                    perms |= e_const.MM_EXEC
                 #if "p" in permstr:
                     #pass
 
@@ -762,17 +762,17 @@ class Linuxi386Trace(
                 libc.perror('PT_WRITE_U failed for debug%d' % i)
 
     @v_base.threadwrap
-    def platformAllocateMemory(self, size, perms=e_mem.MM_RWX, suggestaddr=0):
+    def platformAllocateMemory(self, size, perms=e_const.MM_RWX, suggestaddr=0):
         sp = self.getStackCounter()
         pc = self.getProgramCounter()
 
         # Xlate perms (mmap is backward)
         realperm = 0
-        if perms & e_mem.MM_READ:
+        if perms & e_const.MM_READ:
             realperm |= 1
-        if perms & e_mem.MM_WRITE:
+        if perms & e_const.MM_WRITE:
             realperm |= 2
-        if perms & e_mem.MM_EXEC:
+        if perms & e_const.MM_EXEC:
             realperm |= 4
 
         #mma is struct of mmap args for linux syscall
