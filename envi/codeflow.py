@@ -128,7 +128,7 @@ class CodeFlowContext(object):
 
     def addCodeFlow(self, va, arch=envi.ARCH_DEFAULT):
         '''
-        Do code flow disassembly from the specified address.  Returnes a list
+        Do code flow disassembly from the specified address.  Returns a list
         of the procedural branch targets discovered during code flow...
 
         Set persist=True to store 'opdone' and never disassemble the same thing twice
@@ -138,6 +138,7 @@ class CodeFlowContext(object):
         if self._cf_persist is not None:
             opdone = self._cf_persist
 
+        halts = {}
         calls_from = {}
         optodo = [((0, va), arch), ]
         startva = va
@@ -160,7 +161,6 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
-                logger.log(e_cmn.MIRE, "... 0x%x: %r", va, op)
             except envi.InvalidInstruction as e:
                 logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
@@ -179,13 +179,15 @@ class CodeFlowContext(object):
             while len(branches):
 
                 bva, bflags = branches.pop()
-
                 # look for dynamic branches (ie. branches which don't have a known target).  assume at least one branch
                 if bva is None:
                     self._cb_dynamic_branch(va, op, bflags, branches)
 
                 if self._cf_noflow.get((va, bva)):
                     self._cb_noflow(va, bva)
+                    continue
+
+                if bva in halts:
                     continue
 
                 try:
@@ -231,13 +233,19 @@ class CodeFlowContext(object):
                                 # descend into functions, but make sure we don't descend into
                                 # recursive functions
                                 if bva in self._cf_blocks:
-                                    logger.debug("not recursing to function 0x%x (at 0x%x): it's already in analysis call path (ie. it called *this* func)", 
+                                    logger.debug("not recursing to function 0x%x (at 0x%x): it's already in analysis call path (ie. it called *this* func)",
                                             bva, va)
                                     logger.debug("call path: \t" + ", ".join([hex(x) for x in self._cf_blocks]))
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
                                     # until its done
+                                    if bva in halts:
+                                        # if it's already in here, we've given it a go already. So just bail.
+                                        # mark this VA as noret and just keep going
+                                        self.addNoFlow(va, nextva)
+
                                     cf_eps[bva] = bflags
+                                    halts[nextva] = startva
                                 else:
                                     logger.debug("descending into function 0x%x (from 0x%x)", bva, va)
                                     self.addEntryPoint(bva, arch=bflags)
@@ -287,8 +295,6 @@ class CodeFlowContext(object):
         self._funcs[va] = True
         calls_from = self.addCodeFlow(va, arch=arch)
         self._fcalls[va] = calls_from
-        # TODO: this ones spams. A lot.
-        # logger.debug('addEntryPoint(0x%x): calls_from: %r', va, calls_from)
 
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom': calls_from})

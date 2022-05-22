@@ -14,7 +14,7 @@ import envi.threads as e_threads
 import vivisect.cli as viv_cli
 import vivisect.parsers as viv_parsers
 
-
+sys.setrecursionlimit(5000)
 logger = logging.getLogger('vivisect')
 
 
