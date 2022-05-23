@@ -34,6 +34,15 @@ def evaluate(pycode, locvars):
                 for key in keys:
                     if key in pycode:
                         pval = locvars[key]
+                        startidx = pycode.find(key)
+                        endidx = startidx + len(key)
+
+                        # make sure this is a "token" not part of another token
+                        if not (startidx == 0 or pycode[startidx-1:startidx].isalnum()):
+                            continue
+                        if not (endidx == len(pycode) or pycode[endidx-1:startidx].isalnum()):
+                            continue
+
                         pycode = pycode.replace(key, str(pval))
 
                 val = eval(pycode, {}, locvars)
