@@ -9,6 +9,9 @@ import logging
 import platform
 import contextlib
 
+import envi.expression as e_expr
+import envi.symstore.resolver as e_resolv
+
 from envi.exc import *
 
 logger = logging.getLogger(__name__)
@@ -516,11 +519,16 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     implemented mostly for user-space emulation of
     protected mode execution.
     """
-    def __init__(self, archmod=None):
+    def __init__(self, archmod=None, symobj=None):
 
         self.metadata = {}
         e_mem.MemoryObject.__init__(self, arch=archmod._arch_id)
         e_reg.RegisterContext.__init__(self)
+
+        if not symobj:
+            symobj = e_resolv.SymbolResolver()
+
+        self.symobj = symobj
 
         self._emu_segments = [(0, 0xffffffff)]
         self._emu_call_convs = {}
@@ -657,6 +665,21 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         emulator state or properties of the particular instruction in question.
         """
         return 0
+
+    def parseExpression(self, expr):
+        return int(e_expr.evaluate(expr, self.getExpressionLocals()))
+
+    def getExpressionLocals(self):
+        """
+        Over-ride this to have things like the eval command
+        and the python command use more locals than the sybolic
+        defaults.
+        """
+        locs = e_expr.MemoryExpressionLocals(self, symobj=self.symobj)
+        locs['emu'] = self
+        locs.update(self.getRegisters())
+
+        return locs
 
     def setSegmentInfo(self, idx, base, size):
         '''
