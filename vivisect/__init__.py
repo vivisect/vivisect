@@ -312,6 +312,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         emu = eclass(self, **kwargs)
         emu.setEndian(self.getEndian())
+        emu.symobj = self.symobj
 
         return emu
 
