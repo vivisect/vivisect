@@ -7,7 +7,6 @@ import collections
 
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
-import envi.config as e_config
 import envi.qt.memory as e_mem_qt
 import envi.memcanvas as e_memcanvas
 import envi.qt.memory as e_qt_memory
@@ -284,9 +283,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         if ok:
             self.setMemWindowName(str(mwname))
 
-        if self.vw.server:
+        if self.vw.server and self._leading:
             if user is None:
-                user = e_config.getusername()
+                user = self.vw.config.user.name
             self.vw.modifyLeaderSession(self.uuid, user, mwname)
         
     def rendToolsMenu(self, event):
