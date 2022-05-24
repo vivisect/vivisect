@@ -80,14 +80,14 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
     def kernel32_LoadLibraryExW(self, emu, callconv, api, argv):
         return self.kernel32_LoadLibraryW(emu, callconv, api, argv)
 
-    @imphook('kernel32.GetModuleHandleA')
+    @imphook('kernel32.GetModuleHandleExA')
     def kernel32_GetModuleHandleExA(self, emu, callconv, api, argv):
         dwFlags,lpLibName,phModule = argv
         libname = self.readLibraryPath(lpLibName, unicode=False)
         retval = emu.setVivTaint('dynlib',libname)
         callconv.execCallReturn(emu, retval, len(argv))
 
-    @imphook('kernel32.GetModuleHandleW')
+    @imphook('kernel32.GetModuleHandleExW')
     def kernel32_GetModuleHandleExA(self, emu, callconv, api, argv):
         dwFlags,lpLibName,phModule = argv
         libname = self.readLibraryPath(lpLibName, unicode=True)
