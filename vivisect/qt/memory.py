@@ -3,7 +3,6 @@ import logging
 from PyQt5 import Qt
 from PyQt5.QtWidgets import *
 
-import envi.config as e_config
 import envi.qt.memory as e_mem_qt
 import envi.qt.memcanvas as e_mem_canvas
 
@@ -438,9 +437,9 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     def rendToolsSetName(self, user=None):
         menu = e_mem_qt.VQMemoryWindow.rendToolsSetName(self)
-        if self.vw.server:
+        if self.vw.server and self._leading:
             if user is None:
-                user = e_config.getusername()
+                user = self.vw.config.user.name
             self.vw.modifyLeaderSession(self.uuid, user, self.mwname)
         
     def getExprTitle(self):
