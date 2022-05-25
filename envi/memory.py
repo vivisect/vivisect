@@ -12,20 +12,6 @@ A module containing memory utilities and the definition of the
 memory access API used by all vtoys trace/emulators/workspaces.
 """
 
-# Memory Map Permission Flags
-# TODO: move these into envi.const
-MM_NONE = 0x0
-MM_READ = 0x4
-MM_WRITE = 0x2
-MM_EXEC = 0x1
-MM_SHARED = 0x08
-
-MM_READ_WRITE = MM_READ | MM_WRITE
-MM_READ_EXEC = MM_READ | MM_EXEC
-MM_RWX = MM_READ | MM_WRITE | MM_EXEC
-
-pnames = ['No Access', 'Execute', 'Write', None, 'Read']
-
 logger = logging.getLogger(__name__)
 
 
