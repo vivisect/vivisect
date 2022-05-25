@@ -38,9 +38,9 @@ def evaluate(pycode, locvars):
                         endidx = startidx + len(key)
 
                         # make sure this is a "token" not part of another token
-                        if not (startidx == 0 or pycode[startidx-1:startidx].isalnum()):
+                        if startidx != 0 and pycode[startidx-1:startidx].isalnum():
                             continue
-                        if not (endidx == len(pycode) or pycode[endidx-1:startidx].isalnum()):
+                        if endidx != len(pycode) and pycode[endidx:endidx+1].isalnum():
                             continue
 
                         pycode = pycode.replace(key, str(pval))
