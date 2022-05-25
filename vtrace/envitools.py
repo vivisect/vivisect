@@ -122,6 +122,10 @@ class LockStepMonitor:
 class InteractiveLSMon(LockStepMonitor):
     '''
     This is a LockStepMonitor intended for Interactive LockStep Emulation
+
+    It will prompt after certain failures, allowing the user to inspect issues
+    and fix them with context.  After Register differences, user can type "s" 
+    to resync the registers from the tdebug race.
     '''
     def __init__(self, arch):
         self.count = 0
@@ -144,17 +148,17 @@ class InteractiveLSMon(LockStepMonitor):
         return True
 
     def _cb_register_failure(self, lstep, exc):
-        inp = sys.stdin.readline()
+        inp = input('"s" to reSync registers from trace to emu'))
         if inp.startswith('s'):
             lstep.syncRegsFromTrace()
         return True
 
     def _cb_memory_failure(self, lstep, exc):
-        sys.stdin.readline()
+        inp = input('Memory Failure: "Enter" to continue'))
         return True
 
     def _cb_segv(self):
-        sys.stdin.readline()
+        inp = input('Segmentation Violation: "Enter" to continue'))
         return True
 
 
