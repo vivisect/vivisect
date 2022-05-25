@@ -119,8 +119,12 @@ def main():
     db.runagain = args.dorunagain
     db.windows_jit_event = args.eventid
 
-    db.trace.setBreakOnLibraryInit(args.BpLibInit)
+    # store setting in the Vdb Config for future traces
+    db.config.vdb.BreakOnLibraryLoad = args.BpLibLoad
+    db.config.vdb.BreakOnLibraryInit = args.BpLibInit
+    # set the trace appropriately
     db.trace.setBreakOnLibraryLoad(args.BpLibLoad)
+    db.trace.setBreakOnLibraryInit(args.BpLibInit)
 
     if args.waitfor:
         while True:

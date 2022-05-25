@@ -117,6 +117,8 @@ defconfig = {
     'vdb':{
         'BreakOnEntry':False,
         'BreakOnMain':False,
+        'BreakOnLibraryLoad':False,
+        'BreakOnLibraryInit':False,
 
         'SymbolCacheActive':True,
         'SymbolCachePath':e_config.gethomedir('.envi','symcache'),
@@ -139,6 +141,8 @@ docconfig = {
     'vdb':{
         'BreakOnMain':'Should the debugger break on main() if known?',
         'BreakOnEntry':'Should the debugger break on the entry to the main module? (only works if you exec (and not attach to) the process)',
+        'BreakOnLibraryLoad':"Should the debugger break when a new library is loaded?",
+        'BreakOnLibraryInit':"Should the debugger break on new library init routines?",
 
         'SymbolCacheActive':'Should we cache symbols for subsequent loads?',
         'SymbolCachePaths':'Path elements ( ; seperated) to search/cache symbols (filepath,cobra)',
@@ -372,8 +376,12 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         self.trace = oldtrace.buildNewTrace()
         oldtrace.release()
 
-        self.bpcmds = {}
+        self.bpcmds = {}    # TODO: make these reusable from previous sessions
         self.manageTrace(self.trace)
+
+        # must be set for each trace
+        self.setBreakOnLibraryLoad(self.config.vdb.BreakOnLibraryLoad)
+        self.setBreakOnLibraryInit(self.config.vdb.BreakOnLibraryInit)
         return self.trace
 
     def setupSignalLookups(self):
