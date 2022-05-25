@@ -15,7 +15,6 @@ import logging
 import traceback
 
 import vtrace
-from vqt.main import idlethread
 
 
 logger = logging.getLogger(__name__)
@@ -161,6 +160,5 @@ class LibraryNotifer(Notifier):
             except Exception as e:
                 logger.warning("LoadLibrary(%r): Can't add breakpoint!  %r", libnormname, e)
 
-    @idlethread
     def _doAddBreakByExp(self, trace, expr):
         trace.addBreakByExpr(expr)
