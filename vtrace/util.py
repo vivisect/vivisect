@@ -123,10 +123,6 @@ def emuFromTrace(trace):
         peb = trace.getMeta('PEB')
         if hasattr(trace, 'win32threads'):
             tebs = dict(trace.win32threads)
-            # test and make sure:
-            for threadid, teb in tebs.items():
-                assert(trace.readMemoryPtr(teb + (psize * 12)) == peb)
-                assert(trace.readMemoryPtr(teb + (psize * 9)) == threadid)
             vw.setMeta('TEBs', tebs)
         else:
             metatebs = trace.getMeta('TEBs')
@@ -237,10 +233,6 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         peb = trace.getMeta('PEB')
         if hasattr(trace, 'win32threads'):
             tebs = dict(trace.win32threads)
-            # test and make sure:
-            for threadid, teb in tebs.items():
-                assert(trace.readMemoryPtr(teb + (psize * 12)) == peb)
-                assert(trace.readMemoryPtr(teb + (psize * 9)) == threadid)
             vw.setMeta('TEBs', tebs)
         else:
             metatebs = trace.getMeta('TEBs')
