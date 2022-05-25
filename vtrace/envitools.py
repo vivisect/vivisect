@@ -220,7 +220,17 @@ class LockStepper:
         '''
         Execute/Emulate one instruction and compare memory/registers
 
-        If issues are discovered, 
+        If issues are discovered, and if a callback handler has been registered,
+        appropriate callbacks are triggered on that cbhandler.
+        
+        For example:
+        cbhandler._cb_branch_failure
+        cbhandler._cb_decode_failure
+        cbhandler._cb_opcode_pre
+        cbhandler._cb_register_failure
+        cbhandler._cb_memory_failure
+        cbhandler._cb_segv
+        cbhandler._cb_unknown_exception
         '''
         cont = True
         for i in range(count):
