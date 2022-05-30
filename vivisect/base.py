@@ -186,6 +186,10 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.vsbuilder = vs_builder.VStructBuilder()
         self.vsconsts  = vs_const.VSConstResolver()
 
+        # Follow the Leader data
+        self.leaders = {}       # existing "leader" sessions
+        self.leaderloc = {}     # last known location for each session
+
     def _snapInAnalysisModules(self):
         '''
         Snap in the analysis modules which are appropriate for the
@@ -261,6 +265,29 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self._handleADDXREF((rva, ptr, REF_PTR, 0))
             self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
 
+    def _handleDELRELOC(self, einfo):
+        fname, rva, rtyp, full = einfo
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        ptroff = rva - imgbase
+
+        self.reloc_by_va.pop(rva, None)
+        delidx = -1
+
+        for idx, (fn, off, typ, data) in enumerate(self.relocations):
+            if fn == fname and off == ptroff and typ == rtyp:
+                delidx = idx
+                break
+
+        if delidx >= 0:
+            self.relocations.pop(delidx)
+
+        if full:
+            if rtyp == RTYPE_BASEPTR:
+                ptr = imgbase + data
+                ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
+                self._handleDELXREF((rva, ptr, REF_PTR, 0))
+                self._handleDELLOCATION((rva, self.psize, LOC_POINTER, ptr))
+
     def _handleADDMODULE(self, einfo):
         logger.warning('DEPRECATED (ADDMODULE) ignored: %s', einfo)
 
@@ -280,7 +307,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
         # node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
         node = self._call_graph.getFunctionNode(va)
-        self._call_graph.setNodeProp(node,'repr', self.getName(va))
+        self._call_graph.setNodeProp(node, 'repr', self.getName(va))
 
         # Tell the codeflow subsystem about this one!
         calls_from = meta.get('CallsFrom')
@@ -510,7 +537,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_ADDSEGMENT] = self._handleADDSEGMENT
         self.ehand[VWE_DELSEGMENT] = None
         self.ehand[VWE_ADDRELOC] = self._handleADDRELOC
-        self.ehand[VWE_DELRELOC] = None
+        self.ehand[VWE_DELRELOC] = self._handleDELRELOC
         self.ehand[VWE_ADDMODULE] = self._handleADDMODULE
         self.ehand[VWE_DELMODULE] = self._handleDELMODULE
         self.ehand[VWE_ADDFMODULE] = self._handleADDFMODULE
@@ -550,14 +577,33 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
-
-    def _handleIAMLEADER(self, event, einfo):
-        user,follow = einfo
-        self.vprint('*%s invites everyone to follow "%s"' % (user,follow))
+        self.thand[VTE_KILLLEADER] = self._handleKILLLEADER
+        self.thand[VTE_MODLEADER] = self._handleMODLEADER
 
     def _handleFOLLOWME(self, event, einfo):
-        # workspace has nothing to do...
-        pass
+        uuid, expr = einfo
+        logger.debug("_handleFOLLOWME(%r, %r)", event, einfo)
+        self.leaderloc[uuid] = expr
+
+    def _handleKILLLEADER(self, event, einfo):
+        logger.debug("_handleKILLLEADER(%r, %r)", event, einfo)
+        uuid = einfo
+        user, fname = self.leaders.pop(uuid)
+        self.vprint("*Ended: %s's session '%s' (%r)" % (user,fname,uuid))
+
+    def _handleMODLEADER(self, event, einfo):
+        uuid, user, fname = einfo
+        self.vprint('*%s changed leader session name to "%s" (%r)' % (user,fname,uuid))
+
+        self.leaders[uuid] = (user, fname)
+
+    def _handleIAMLEADER(self, event, einfo):
+        uuid, user, fname, locexpr = einfo
+        logger.debug("_handleIAMLEADER(%r, (%r, %r, %r, %r))", event, user, uuid, fname, locexpr)
+
+        self.vprint('*%s invites everyone to follow "%s" (%r)' % (user,fname,uuid))
+        self.leaders[uuid] = (user, fname)
+        self.leaderloc[uuid] = locexpr
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
         '''
@@ -610,17 +656,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     #def _loadImportApi(self, apidict):
         #self._imp_api.update( apidict )
 
-    def getEndian(self):
-        return self.bigend
-
-    def setEndian(self, endian):
-        self.bigend = endian
-        for arch in self.imem_archs:
-            arch.setEndian(self.bigend)
-
-        if self.arch is not None:
-            self.arch.setEndian(self.bigend)
-
 
 #################################################################
 #
@@ -640,6 +675,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
+        self._load_event.set()
+
     def _mcb_bigend(self, name, value):
         self.setEndian(bool(value))
 
@@ -650,6 +687,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         defcall = self.arch.getPlatDefaultCall(value)
         if defcall:
             self.setMeta('DefaultCall', defcall)
+
+        self._load_event.set()
 
     def _mcb_FileBytes(self, name, value):
         if not self.parsedbin:
@@ -665,6 +704,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         sname = name.split(':')[1]
         ctor = vs_cparse.ctorFromCSource( ssrc )
         self.vsbuilder.addVStructCtor( sname, ctor )
+
+    def _mcb_GUID(self, name, guid):
+        self._load_guid.set()
 
     def _mcb_WorkspaceServer(self, name, wshost):
         self.vprint('Workspace was Saved to Server: %s' % wshost)
@@ -700,7 +742,6 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    logger.info("0x%x: Dynamic Branch found at (%s)" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):

@@ -81,7 +81,7 @@ def setupBreakOnEntry(trace):
             otb = vtrace.OneTimeBreak(None, expression=entrySymExpr)
             trace.addBreakpoint(otb)
 
-class VdbTrace:
+class VdbTrace(object):
     """
     Used to hand thing that need a persistant reference to a trace
     when using vdb to manage tracers.
@@ -995,7 +995,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         regs = self.trace.getRegisters()
-        rnames = list(regs.keys())
+        rnames = [reg for reg in regs.keys() if reg is not None]
         rnames.sort()
         final = []
         for r in rnames:
@@ -1321,14 +1321,20 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             return
 
         import vqt.main as vq_main
-        import vdb.qt.main as vdb_q_main
-        import vqt.colors as vq_colors
+        if vq_main.isGuiStarted():
+            import vivisect.vdbext as viv_vdbext
+            viv_vdbext.runVdb(self._viv_gui)
 
-        vq_main.startup(css=vq_colors.qt_matrix)
-        qgui = vdb_q_main.VdbWindow(self)
-        qgui.show()
+        else:
 
-        vq_main.main()
+            import vqt.colors as vq_colors
+            import vdb.qt.main as vdb_q_main
+
+            vq_main.startup(css=vq_colors.qt_matrix)
+            qgui = vdb_q_main.VdbWindow(self)
+            qgui.show()
+
+            vq_main.main()
 
     def do_waitlib(self, line):
         '''
@@ -2293,6 +2299,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these yourself
-version = (1, 0, 5)
+version = (1, 0, 8)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

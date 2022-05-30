@@ -24,7 +24,7 @@ def analyze(vw):
             continue
 
         for xfr, xto, xtype, xinfo in vw.getXrefsFrom(rva):
-            logger.debug('pointer(1): 0x%x -> 0x%x', xfr, xto)
+            logger.debug('pointer(xref): 0x%x -> 0x%x', xfr, xto)
             vw.analyzePointer(xto)
             done[xfr] = xto
 
@@ -32,9 +32,9 @@ def analyze(vw):
     for pva, tva, fname, pname in vw.getVaSetRows('PointersFromFile'):
         if vw.getLocation(pva) is None:
             if tva is None:
-                logger.debug('making pointer(2) 0x%x (%r)', pva, pname)
+                logger.debug('making pointer(fromFile) 0x%x (%r)', pva, pname)
             else:
-                logger.debug('making pointer(2) 0x%x -> 0x%x (%r)', pva, tva, pname)
+                logger.debug('making pointer(fromFile) 0x%x -> 0x%x (%r)', pva, tva, pname)
             vw.makePointer(pva, tva, follow=True)
             done[pva] = tva
 
@@ -51,7 +51,7 @@ def analyze(vw):
 
         logger.debug('following previously discovered pointer 0x%x -> 0x%x', lva, tva)
         try:
-            logger.debug('pointer(3): 0x%x -> 0x%x', lva, tva)
+            logger.debug('pointer: 0x%x -> 0x%x', lva, tva)
             vw.followPointer(tva)
             done[lva] = tva
         except Exception as e:
@@ -62,7 +62,7 @@ def analyze(vw):
         if vw.isDeadData(pval):
             continue
         try:
-            logger.debug('pointer(4): 0x%x -> 0x%x', addr, pval)
+            logger.debug('make pointer(found): 0x%x -> 0x%x', addr, pval)
             vw.makePointer(addr, follow=True)
             done[addr] = pval
         except Exception as e:

@@ -16,6 +16,9 @@ from . import ordlookup
 
 logger = logging.getLogger('vivisect')
 
+PE32_MAGIC = 0x10b
+PE32PLUS_MAGIC = 0x20b
+
 IMAGE_FILE_RELOCS_STRIPPED = 0x0001
 IMAGE_FILE_EXECUTABLE_IMAGE = 0x0002
 IMAGE_FILE_LINE_NUMS_STRIPPED = 0x0004
@@ -422,14 +425,16 @@ class PE(object):
         dosbytes = self.readAtOffset(0, len(self.IMAGE_DOS_HEADER))
         self.IMAGE_DOS_HEADER.vsParse(dosbytes)
 
-        nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew, "pe.IMAGE_NT_HEADERS")
-
         # Parse in a default 32 bit, and then check for 64...
-        if nt.FileHeader.Machine in [ IMAGE_FILE_MACHINE_AMD64, IMAGE_FILE_MACHINE_IA64 ]:
+        nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew, "pe.IMAGE_NT_HEADERS")
+        magic = struct.unpack("<H", nt.OptionalHeader.Magic)[0]
+        if magic == PE32PLUS_MAGIC:
             nt = self.readStructAtOffset(self.IMAGE_DOS_HEADER.e_lfanew, "pe.IMAGE_NT_HEADERS64")
             self.pe32p = True
             self.psize = 8
             self.high_bit_mask = 0x8000000000000000
+        elif magic != PE32_MAGIC:
+            logger.warning('nt.OptionalHeader magic got invalid value of %x', magic)
 
         self.IMAGE_NT_HEADERS = nt
 

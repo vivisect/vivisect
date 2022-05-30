@@ -107,6 +107,10 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKeyTarget('file:open', self._menuFileOpen)
         self.addHotKey('ctrl+s', 'file:save')
         self.addHotKeyTarget('file:save', self._menuFileSave)
+        self.addHotKey('ctrl+S', 'file:saveas')
+        self.addHotKeyTarget('file:saveas', self._menuFileSaveAs)
+        self.addHotKey('ctrl+meta+C', 'file:connecttoserver')
+        self.addHotKeyTarget('file:connecttoserver', self._menuShareConnectServer)
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
 
@@ -157,6 +161,18 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if ok:
             self.vw.setComment(va, str(comment))
 
+    def setVaMultilineComment(self, va, parent=None):
+        if parent is None:
+            parent = self
+
+        curcomment = self.vw.getComment(va)
+        if curcomment is None:
+            curcomment = ''
+
+        comment, ok = QInputDialog.getMultiLineText(parent, 'Enter...', 'Comment', text=curcomment)
+        if ok:
+            self.vw.setComment(va, str(comment))
+
     def addVaXref(self, va, parent=None):
         if parent is None:
             parent = self
@@ -172,12 +188,18 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
                 self.vw.vprint(repr(e))
 
     def setFuncLocalName(self, fva, offset, atype, aname):
-        newname, ok = QInputDialog.getText(self, 'Enter...', 'Local Name')
+        curname = ''
+        if self.vw.getFunctionLocal(fva, offset):
+            curtype, curname = self.vw.getFunctionLocal(fva, offset)
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Local Name', text=curname)
         if ok:
             self.vw.setFunctionLocal(fva, offset, LSYM_NAME, (atype, str(newname)))
 
     def setFuncArgName(self, fva, idx, atype, aname):
-        newname, ok = QInputDialog.getText(self, 'Enter...', 'Argument Name')
+        curname = ''
+        if len(self.vw.getFunctionArgs(fva)) > idx:
+            curtype, curname = self.vw.getFunctionArgs(fva)[idx]
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Argument Name', text=curname)
         if ok:
             self.vw.setFunctionArg(fva, idx, atype, str(newname))
 
@@ -358,8 +380,27 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddDockWidgetClass(viv_q_funcgraph.VQVivFuncgraphView, args=(self.vw, self))
         self.vqAddDockWidgetClass(viv_q_symboliks.VivSymbolikFuncPane, args=(self.vw, self))
 
-    def vqRestoreGuiSettings(self, settings):
-        guid = self.vw.getVivGuid()
+    @idlethread
+    def vqRestoreGuiSettings(self, settings, guid=None):
+        '''
+        Restores GUI settings (size/layout/views) based on:
+         * GUID
+         * Filename(s)
+         * Default Layout
+
+        If workspace is connected to a server, we wait for a GUID to be present before proceeding
+        '''
+
+        if self.vw.server and not guid:
+            # wait until the GUID has been loaded from the remote workspace before continuing
+            self.vw._load_guid.wait() 
+
+        if not guid:
+            guid = self.vw.getVivGuid()
+
+        logger.debug("vqRestoreGuiSettings() -> guid=%r  vw.server=%r", guid, self.vw.server)
+
+        logger.debug("attempting to load GUI settings based on GUID: %s", guid)
         dwcls = settings.value('%s/DockClasses' % guid)
         state = settings.value('%s/DockState' % guid)
         geom = settings.value('%s/DockGeometry' % guid)
@@ -369,12 +410,14 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
+            logger.debug("attempting to load GUI settings based on Filename(s): %r", name)
             dwcls = settings.value('%s/DockClasses' % name)
             state = settings.value('%s/DockState' % name)
             geom = settings.value('%s/DockGeometry' % name)
             stub = '%s/' % name
 
         if compat_isNone(dwcls):
+            logger.debug("loading default GUI settings")
             dwcls = settings.value('DockClasses')
             state = settings.value('DockState')
             geom = settings.value('DockGeometry')
@@ -473,10 +516,21 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vw.vprint('%s is ready!' % fname)
 
     @vq_main.workthread
-    def _menuFileSave(self, fullsave=False):
-        self.vw.vprint('Saving workspace...')
+    def _menuFileSave(self, fullsave=False, filename=None):
+        if self.vw.server and filename is None:
+            self.vw.vprint("Connected to remote workspace, not saving locally.")
+            self.vw.vprint("Use 'File->Save As' to create a local backup copy of the workspace.")
+            return
+
+        # duplicate filename, since saveWorkspace() with None as the filename
+        # forces a local save
+        fname = filename
+        if not fname:
+            fname = self.vw.getMeta("StorageName")
+        self.vw.vprint('Saving workspace... (%r)' % fname)
+
         try:
-            self.vw.saveWorkspace(fullsave=fullsave)
+            self.vw.saveWorkspace(fullsave=fullsave, filename=filename)
         except Exception as e:
             self.vw.vprint(str(e))
         else:
@@ -486,8 +540,8 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         fname = getSaveFileName(self, 'Save As...')
         if fname is None or not len(fname):
             return
-        self.vw.setMeta('StorageName', fname)
-        self._menuFileSave(fullsave=True)
+
+        self._menuFileSave(fullsave=True, filename=fname)
 
     def _menuFileSaveServer(self):
         viv_q_remote.saveToServer(self.vw, parent=self)

@@ -114,3 +114,13 @@ class StorageTests(unittest.TestCase):
             basicfile.close()
             os.unlink(mpfile.name)
             os.unlink(basicfile.name)
+
+    def test_bad_event(self):
+        vw = vivisect.VivWorkspace()
+        with self.assertLogs() as logcap:
+            vw.importWorkspace([(VWE_MAX + 1, (0xabad1dea, 4, 3, 'nope')),
+                                (VWE_ADDFILE, ('VivisectFile', 0x1000, '3bfdad02b9a6522c84e356cf8f69135b'))])
+        files = vw.getFiles()
+        self.assertIn("IndexError: list index out of range", ''.join(logcap.output))
+        self.assertEqual(1, len(files))
+        self.assertEqual('VivisectFile', files[0])

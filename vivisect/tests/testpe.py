@@ -7,12 +7,14 @@ import envi.memory as e_memory
 import vivisect
 import vivisect.const as viv_con
 import vivisect.parsers.pe
+
 import vivisect.tests.helpers as helpers
+import vivisect.tests.utils as v_t_utils
 
 logger = logging.getLogger(__name__)
 
 
-class PETests(unittest.TestCase):
+class PETests(v_t_utils.VivTest):
 
     @classmethod
     def setUpClass(cls):
@@ -508,7 +510,7 @@ class PETests(unittest.TestCase):
                     (4371200, 4, 9, 'gdi32.StartPage')])
 
         failed = False
-        # self.assertEqual(imps, vw.getImports())
+
         for iloc in vw.getImports():
             if iloc not in imps:
                 logger.critical(f'{iloc} was not found in the predefined imports. A new one?')
@@ -518,9 +520,35 @@ class PETests(unittest.TestCase):
         for iloc in imps:
             if iloc not in oimp:
                 logger.critical(f'The imports are missing {iloc}.')
+                failed = True
 
         if failed:
             self.fail('Please see test logs for import test failures')
+
+    def test_pe_pe32p(self):
+        '''
+        test that we use the right check for constructing the optional header
+        and that the data directories are right
+        '''
+        file_path = helpers.getTestPath('windows', 'amd64', 'a7712b7c45ae081a1576a387308077f808c666449d1ea9ba680ec410569d476f.file')
+        pe = PE.peFromFileName(file_path)
+        self.assertTrue(pe.pe32p)
+        self.eq(pe.psize, 8)
+
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfStackReserve, 0x100000)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfStackCommit, 0x1000)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfHeapReserve, 0x100000)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfHeapCommit, 0x1000)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.LoaderFlags, 0)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes, 0x10)
+
+        ddir = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+        self.eq(ddir.VirtualAddress, 0x2008)
+        self.eq(ddir.Size, 0x48)
+
+        ddir = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_RESOURCE)
+        self.eq(ddir.VirtualAddress, 0x9a2000)
+        self.eq(ddir.Size, 0x3c78)
 
     def test_hiaddr_imports(self):
         # Test if imports located at a high relative address are discovered.
@@ -567,3 +595,21 @@ class PETests(unittest.TestCase):
             self.assertEqual(loc[1], 40)
             self.assertEqual(loc[2], viv_con.LOC_STRUCT)
             self.assertEqual(loc[3], 'pe.IMAGE_SECTION_HEADER')
+
+    def test_bad_pe_sectname(self):
+        vw = helpers.getTestWorkspace('windows', 'i386', 'HelloSection-err.exe')
+        segs = vw.getSegments()
+        pesections = [
+            # about as blunt and direct of a name as we can get
+            "[invalid name] b'\\xfftext\\x00\\x00\\x00'",
+            '.rdata\x00\x00',
+            '.data\x00\x00\x00',
+            '.rsrc\x00\x00\x00',
+            '.reloc\x00\x00',
+        ]
+        sections = [x.Name for x in vw.parsedbin.getSections()]
+        valids = [x.isNameValid() for x in vw.parsedbin.getSections()]
+        self.eq(valids, [False, True, True, True, True])
+        self.len(sections, 5)
+        for name in pesections:
+            self.isin(name, sections)
