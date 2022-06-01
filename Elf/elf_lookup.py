@@ -92,7 +92,7 @@ e_machine_64 =  (
                 EM_X86_64,
                 EM_ARM_AARCH64,
                 )
-                
+
 ELFCLASSNONE = 0
 ELFCLASS32 = 1 # 32-bit object file
 ELFCLASS64 = 2 # 64-bit object file
@@ -499,7 +499,7 @@ R_X86_64_IRELATIVE   = 37
 
 r_types_amd64 = {
     R_X86_64_NONE       :'No reloc',
-    R_X86_64_64         :'Direct 64 bit ',
+    R_X86_64_64         :'Direct 64 bit',
     R_X86_64_PC32       :'PC relative 32 bit signed',
     R_X86_64_GOT32      :'32 bit GOT entry',
     R_X86_64_PLT32      :'32 bit PLT address',
@@ -588,7 +588,7 @@ sh_type = {
     SHT_FINI_ARRAY:"Array of destructors",
     SHT_PREINIT_ARRAY:"Array of pre-constructors",
     SHT_GROUP:"Section group",
-    SHT_SYMTAB_SHNDX:"Extended section indeces",
+    SHT_SYMTAB_SHNDX:"Extended section indices",
     SHT_LOOS:"Start OS-specific",
     SHT_GNU_LIBLIST:"Prelink library list",
     SHT_CHECKSUM:"Checksum for DSO content.",
@@ -700,6 +700,24 @@ st_other_visibility = {
     STV_PROTECTED:"Symbol is visible by other objects, but cannot be preempted"
 }
 
+SHN_UNDEF = 0
+SHN_LORESERVE = SHN_LOPROC = SHN_BEFORE = 0xff00
+SHN_AFTER = 0xff01
+SHN_HIPROC = 0xff1f
+SHN_ABS = 0xfff1
+SHN_COMMON = 0xfff2
+SHN_HIRESERVE = 0xffff
+
+shn_special_section_indices = {
+    SHN_UNDEF: "Undefined/Missing/Irrelevant Section Index",
+    SHN_LORESERVE: "Lower boundary of reserved values",
+    SHN_AFTER: "Marker for initial section ordering with SHF_LINK_ORDER and SHF_ORDER section flags",
+    SHN_HIPROC: "Marker for final section ordering with SHF_LINK_ORDER and SHF_ORDER section flags",
+    SHN_ABS: "Relative Symbols are absolute references",
+    SHN_COMMON: "Relative symbols are common symbols (also called tentative symbols)",
+    SHN_HIRESERVE: "Upper boundary of reserved values",
+}
+
 DT_NULL     = 0
 DT_NEEDED   = 1
 DT_PLTRELSZ = 2
@@ -735,38 +753,38 @@ DT_ENCODING = 32
 DT_PREINIT_ARRAY = 32
 DT_PREINIT_ARRAYSZ = 33
 DT_NUM      = 34
-DT_GNU_PRELINKED    = 0x6ffffdf5 
-DT_GNU_CONFLICTSZ   = 0x6ffffdf6 
-DT_GNU_LIBLISTSZ    = 0x6ffffdf7 
-DT_CHECKSUM         = 0x6ffffdf8 
-DT_PLTPADSZ         = 0x6ffffdf9 
-DT_MOVEENT          = 0x6ffffdfa 
-DT_MOVESZ           = 0x6ffffdfb 
-DT_FEATURE_1        = 0x6ffffdfc 
-DT_POSFLAG_1        = 0x6ffffdfd 
-DT_SYMINSZ          = 0x6ffffdfe 
-DT_SYMINENT         = 0x6ffffdff 
-DT_GNU_HASH         = 0x6ffffef5 
-DT_TLSDESC_PLT      = 0x6ffffef6 
-DT_TLSDESC_GOT      = 0x6ffffef7 
-DT_GNU_CONFLICT     = 0x6ffffef8 
-DT_GNU_LIBLIST      = 0x6ffffef9 
-DT_CONFIG           = 0x6ffffefa 
-DT_DEPAUDIT         = 0x6ffffefb 
-DT_AUDIT            = 0x6ffffefc 
-DT_PLTPAD           = 0x6ffffefd 
-DT_MOVETAB          = 0x6ffffefe 
-DT_SYMINFO          = 0x6ffffeff 
-DT_VERSYM           = 0x6ffffff0 
-DT_RELACOUNT        = 0x6ffffff9 
-DT_RELCOUNT         = 0x6ffffffa 
-DT_FLAGS_1          = 0x6ffffffb 
-DT_VERDEF           = 0x6ffffffc 
-DT_VERDEFNUM        = 0x6ffffffd 
-DT_VERNEED          = 0x6ffffffe 
-DT_VERNEEDNUM       = 0x6fffffff 
-DT_AUXILIARY        = 0x7ffffffd 
-DT_FILTER           = 0x7fffffff 
+DT_GNU_PRELINKED    = 0x6ffffdf5
+DT_GNU_CONFLICTSZ   = 0x6ffffdf6
+DT_GNU_LIBLISTSZ    = 0x6ffffdf7
+DT_CHECKSUM         = 0x6ffffdf8
+DT_PLTPADSZ         = 0x6ffffdf9
+DT_MOVEENT          = 0x6ffffdfa
+DT_MOVESZ           = 0x6ffffdfb
+DT_FEATURE_1        = 0x6ffffdfc
+DT_POSFLAG_1        = 0x6ffffdfd
+DT_SYMINSZ          = 0x6ffffdfe
+DT_SYMINENT         = 0x6ffffdff
+DT_GNU_HASH         = 0x6ffffef5
+DT_TLSDESC_PLT      = 0x6ffffef6
+DT_TLSDESC_GOT      = 0x6ffffef7
+DT_GNU_CONFLICT     = 0x6ffffef8
+DT_GNU_LIBLIST      = 0x6ffffef9
+DT_CONFIG           = 0x6ffffefa
+DT_DEPAUDIT         = 0x6ffffefb
+DT_AUDIT            = 0x6ffffefc
+DT_PLTPAD           = 0x6ffffefd
+DT_MOVETAB          = 0x6ffffefe
+DT_SYMINFO          = 0x6ffffeff
+DT_VERSYM           = 0x6ffffff0
+DT_RELACOUNT        = 0x6ffffff9
+DT_RELCOUNT         = 0x6ffffffa
+DT_FLAGS_1          = 0x6ffffffb
+DT_VERDEF           = 0x6ffffffc
+DT_VERDEFNUM        = 0x6ffffffd
+DT_VERNEED          = 0x6ffffffe
+DT_VERNEEDNUM       = 0x6fffffff
+DT_AUXILIARY        = 0x7ffffffd
+DT_FILTER           = 0x7fffffff
 DT_LOOS             = 0x6000000d
 DT_HIOS             = 0x6ffff000
 DT_LOPROC           = 0x70000000
@@ -824,11 +842,11 @@ dt_types = {
     #DT_PROCNUM  : "Most used by any processor ",
 }
 
-DF_ORIGIN =         0x00000001        
-DF_SYMBOLIC =       0x00000002        
-DF_TEXTREL =        0x00000004        
-DF_BIND_NOW =       0x00000008        
-DF_STATIC_TLS =     0x00000010        
+DF_ORIGIN =         0x00000001
+DF_SYMBOLIC =       0x00000002
+DF_TEXTREL =        0x00000004
+DF_BIND_NOW =       0x00000008
+DF_STATIC_TLS =     0x00000010
 
 df_names = { v:k for k,v in globals().items() if k.startswith('DF_')}
 

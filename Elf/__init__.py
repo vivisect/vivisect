@@ -28,194 +28,7 @@ import vstruct.defs.elf as vs_elf
 
 logger = logging.getLogger(__name__)
 
-
-class ElfReloc:
-    """
-    Elf relocation entries consist mostly of "fixup" address which
-    are taken care of by the loader at runtime.  Things like
-    GOT entries, PLT jmp codes etc all have an Elf relocation
-    entry.
-    """
-
-    def __init__(self):
-        self.name = ""
-
-    def __repr__(self):
-        return "reloc: @%s %d %s" % (hex(self.r_offset), self.getType(), self.getName())
-
-    def setName(self, name):
-        self.name = name
-
-    def getName(self):
-        return self.name
-
-    def getType(self):
-        return self.r_info & 0xff
-
-
-class Elf32Reloc(ElfReloc, vs_elf.Elf32Reloc):
-    def __init__(self, bigend=False):
-        vs_elf.Elf32Reloc.__init__(self, bigend=bigend)
-        ElfReloc.__init__(self)
-
-    def getSymTabIndex(self):
-        return self.r_info >> 8
-
-
-class Elf32Reloca(ElfReloc, vs_elf.Elf32Reloca):
-    def __init__(self, bigend=False):
-        vs_elf.Elf32Reloca.__init__(self, bigend=bigend)
-        ElfReloc.__init__(self)
-
-    def getSymTabIndex(self):
-        return self.r_info >> 8
-
-
-class Elf64Reloc(ElfReloc, vs_elf.Elf64Reloc):
-    def __init__(self, bigend=False):
-        vs_elf.Elf64Reloc.__init__(self, bigend=bigend)
-        ElfReloc.__init__(self)
-
-    def getSymTabIndex(self):
-        return self.r_info >> 32
-
-
-class Elf64Reloca(ElfReloc, vs_elf.Elf64Reloca):
-    def __init__(self, bigend=False):
-        vs_elf.Elf64Reloca.__init__(self, bigend=bigend)
-        ElfReloc.__init__(self)
-
-    def getSymTabIndex(self):
-        return self.r_info >> 32
-
-
-class ElfDynamic:
-    """
-    An object to represent an Elf dynamic entry.
-    (linker/loader directives)
-    """
-    has_string = [DT_NEEDED, DT_SONAME]
-
-    def __init__(self, bytes=None):
-        self.name = ""
-
-    def __repr__(self):
-        name = self.getName()
-        if not name:
-            name = hex(self.d_value)
-        return "%s %s" % (name, self.getTypeName())
-
-    def getName(self):
-        return self.name
-
-    def setName(self, name):
-        self.name = name
-
-    def getTypeName(self):
-        return dt_types.get(self.d_tag, "Unknown: %s"%hex(self.d_tag))
-
-class Elf32Dynamic(ElfDynamic, vs_elf.Elf32Dynamic):
-    def __init__(self, bigend=False):
-        vs_elf.Elf32Dynamic.__init__(self, bigend=bigend)
-        ElfDynamic.__init__(self)
-
-class Elf64Dynamic(ElfDynamic, vs_elf.Elf64Dynamic):
-    def __init__(self, bigend=False):
-        vs_elf.Elf64Dynamic.__init__(self, bigend=bigend)
-        ElfDynamic.__init__(self)
-
-class ElfSymbol:
-    def __init__(self):
-        self.name = ""
-
-    def getInfoType(self):
-        return self.st_info & 0xf
-
-    def getInfoBind(self):
-        return self.st_info >> 4
-
-    def __cmp__(self, other):
-        if self.st_value > other.st_value:
-            return 1
-        return -1
-
-    def setName(self, name):
-        self.name = name
-
-    def getName(self):
-        return self.name
-
-    def __repr__(self):
-        return "0x%.8x %d %s" % (self.st_value, self.st_size, self.name)
-
-class Elf32Symbol(ElfSymbol, vs_elf.Elf32Symbol):
-    def __init__(self, bigend=False):
-        vs_elf.Elf32Symbol.__init__(self, bigend=bigend)
-        ElfSymbol.__init__(self)
-
-class Elf64Symbol(ElfSymbol, vs_elf.Elf64Symbol):
-    def __init__(self, bigend=False):
-        vs_elf.Elf64Symbol.__init__(self, bigend=bigend)
-        ElfSymbol.__init__(self)
-
-class ElfPheader:
-    def __init__(self):
-        pass
-
-    def getTypeName(self):
-        return ph_types.get(self.p_type, "Unknown")
-
-    def __repr__(self):
-        return '[%35s] VMA: 0x%.8x  offset: %8d  memsize: %8d  align: %8d  (filesz: %8d)  flags: %x' % (
-            self.getTypeName(),
-            self.p_vaddr,
-            self.p_offset,
-            self.p_memsz,
-            self.p_align,
-            self.p_filesz,
-            self.p_flags)
-
-class Elf32Pheader(ElfPheader, vs_elf.Elf32Pheader):
-    def __init__(self, bigend=False):
-        vs_elf.Elf32Pheader.__init__(self, bigend=bigend)
-        ElfPheader.__init__(self)
-
-class Elf64Pheader(ElfPheader, vs_elf.Elf64Pheader):
-    def __init__(self, bigend=False):
-        vs_elf.Elf64Pheader.__init__(self, bigend=bigend)
-        ElfPheader.__init__(self)
-
-class ElfSection:
-    def __init__(self):
-        self.name = ''
-
-    def setName(self, name):
-        self.name = name
-
-    def getName(self):
-        return self.name
-
-    def __repr__(self):
-        flags = [name for idx, name in sh_flags.items() if idx & self.sh_flags]
-
-        return 'Elf Sec: [%20s] @0x%.8x (%8d) [ent/size: %8d/%8d] [align: %8d] [%s]' % (
-                self.name,
-                self.sh_addr,
-                self.sh_offset,
-                self.sh_entsize,
-                self.sh_size,
-                self.sh_addralign,
-                'Flags: ' + ', '.join(flags))
-
-class Elf32Section(ElfSection, vs_elf.Elf32Section):
-    def __init__(self, bigend=False):
-        vs_elf.Elf32Section.__init__(self, bigend=bigend)
-        ElfSection.__init__(self)
-
-class Elf64Section(ElfSection, vs_elf.Elf64Section):
-    def __init__(self, bigend=False):
-        vs_elf.Elf64Section.__init__(self, bigend=bigend)
-        ElfSection.__init__(self)
+HAS_STRING = [DT_NEEDED, DT_SONAME]
 
 class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def __init__(self, fd, inmem=False):
@@ -236,26 +49,27 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # if e_data == 1, then 32 bit, if e_data == 2, 64bit
         bigend = (e.e_data == ELFDATA2MSB)
 
-        #Parse 32bit header
+        # Parse 32bit header
         if e.e_class == ELFCLASS32:
             vs_elf.Elf32.__init__(self, bigend=bigend)
             self.bits = 32
             self.psize = 4
 
-            self._cls_reloc  = Elf32Reloc
-            self._cls_reloca = Elf32Reloca
-            self._cls_symbol = Elf32Symbol
-            self._cls_section = Elf32Section
-        #Parse 64bit header
+            self._cls_reloc  = vs_elf.Elf32Reloc
+            self._cls_reloca = vs_elf.Elf32Reloca
+            self._cls_symbol = vs_elf.Elf32Symbol
+            self._cls_section = vs_elf.Elf32Section
+
+        # Parse 64bit header
         elif e.e_class == ELFCLASS64:
             vs_elf.Elf64.__init__(self, bigend=bigend)
             self.bits = 64
             self.psize = 8
 
-            self._cls_reloc  = Elf64Reloc
-            self._cls_reloca = Elf64Reloca
-            self._cls_symbol = Elf64Symbol
-            self._cls_section = Elf64Section
+            self._cls_reloc  = vs_elf.Elf64Reloc
+            self._cls_reloca = vs_elf.Elf64Reloca
+            self._cls_symbol = vs_elf.Elf64Symbol
+            self._cls_section = vs_elf.Elf64Section
         else:
             raise Exception('Unrecognized e_class: %d' % e.e_class)
 
@@ -346,9 +160,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             plen = self.e_phentsize
             for i in range(self.e_phnum):
                 if self.bits == 32:
-                    pgm = Elf32Pheader(bigend=self.bigend)
+                    pgm = vs_elf.Elf32Pheader(bigend=self.bigend)
                 elif self.bits == 64:
-                    pgm = Elf64Pheader(bigend=self.bigend)
+                    pgm = vs_elf.Elf64Pheader(bigend=self.bigend)
                 else:
                     raise Exception('Platform not supported: %d' % (self.bits))
 
@@ -450,14 +264,14 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         dynbytes = self.getSectionBytes('.dynamic')
         while dynbytes:
             if self.bits == 32:
-                dyn = Elf32Dynamic(bigend=self.bigend)
+                dyn = vs_elf.Elf32Dynamic(bigend=self.bigend)
             elif self.bits == 64:
-                dyn = Elf64Dynamic(bigend=self.bigend)
+                dyn = vs_elf.Elf64Dynamic(bigend=self.bigend)
             else:
                 raise Exception('Platform not supported: %d' % (self.bits))
             dyn.vsParse(dynbytes)
 
-            if dyn.d_tag in Elf32Dynamic.has_string:
+            if dyn.d_tag in HAS_STRING:
                 name = self.getStrtabString(dyn.d_value, ".dynstr")
                 dyn.setName(name)
 
@@ -483,9 +297,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         while dynbytes:
             if self.bits == 32:
-                dyn = Elf32Dynamic(bigend=self.bigend)
+                dyn = vs_elf.Elf32Dynamic(bigend=self.bigend)
             elif self.bits == 64:
-                dyn = Elf64Dynamic(bigend=self.bigend)
+                dyn = vs_elf.Elf64Dynamic(bigend=self.bigend)
             else:
                 raise Exception('Platform not supported: %d' % (self.bits))
 
@@ -538,7 +352,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         # setup names for the dynamics table entries
         for dyn in self.dynamics:
-            if dyn.d_tag in Elf32Dynamic.has_string:
+            if dyn.d_tag in HAS_STRING:
                 name = self.getDynStrtabString(dyn.d_value)
                 dyn.setName(name)
 
@@ -575,10 +389,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             syment = self.readAtRva(symtabrva + dsoff, symsz)
             sym = self._cls_symbol(bigend=self.bigend)
             sym.vsParse(syment)
-            if sym.st_info & 0xf not in st_info_type:
+            if sym.getInfoType() not in st_info_type:
                 break
 
-            if sym.st_info >> 4 not in st_info_bind:
+            if sym.getInfoBind() not in st_info_bind:
                 break
 
             name = self.getDynStrtabString(sym.st_name)
@@ -818,6 +632,11 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def getSection(self, secname):
         return self.secnames.get(secname, None)
 
+    def getSectionByIndex(self, idx):
+        if idx >= len(self.sections):
+            return None
+        return self.sections[idx]
+
     def getSections(self):
         """
         Return the array of sections for this Elf
@@ -927,6 +746,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         Returns true if the given Elf binary is an executable file type.
         '''
         return self.e_type == ET_EXEC
+
+    def isRelocatable(self):
+        '''
+        Returns true if the given Elf binary is marked as a relocatable file.
+        '''
+        return self.e_type == ET_REL
 
     def __repr__(self, verbose=False):
         """
@@ -1109,10 +934,9 @@ def elfFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
     return Elf(fd)
 
-
+# TODO: Deprecate these. We have methods on the ElfReloc objects specifically for these two
 def getRelocType(val):
     return val & 0xff
-
 
 def getRelocSymTabIndex(val):
     return val >> 8

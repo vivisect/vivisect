@@ -4,6 +4,7 @@ import traceback
 import collections
 
 import Elf
+import Elf.elf_lookup as elf_lookup
 
 import envi.bits as e_bits
 import envi.const as e_const
@@ -240,8 +241,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
             merged.append( maps[i] )
 
-        baseaddr = 0x05000000
-        for offset,size in merged:
+        baseaddr = 0
+        for offset, size in merged:
             bytez = elf.readAtOffset(offset,size)
             vw.addMemoryMap(baseaddr + offset, 0x7, fname, bytez)
 
@@ -492,17 +493,34 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     expvas = [va for va, x, y, z in vw.getExports()]
     for s in elf.getSymbols():
         sva = s.st_value
-        dmglname = demangle(s.name)
+        shndx = s.st_shndx
+        if elf.isRelocatable():
+            if shndx == elf_lookup.SHN_ABS:
+                pass
+            elif shndx in elf_lookup.shn_special_section_indices:
+                # TODO: We should do things with SHN_ABS
+                pass
+            else:
+                section = elf.getSectionByIndex(shndx)
+                if section:
+                    sva += section.sh_addr
 
+        dmglname = demangle(s.name)
         logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r', sva,
-                                                                        Elf.st_info_type.get(s.st_info, s.st_info),
-                                                                        Elf.st_info_bind.get(s.st_other, s.st_other),
+                                                                        Elf.st_info_type.get(s.getInfoType(), s.st_info),
+                                                                        Elf.st_info_bind.get(s.getInfoBind(), s.st_other),
                                                                         s.name)
 
         if s.getInfoType() == Elf.STT_FILE:
             vw.setVaSetRow('FileSymbols', (dmglname, sva))
             continue
-
+        elif s.getInfoType() == Elf.STT_FUNC:
+            if addbase:
+                sva += baseaddr
+            symname = s.getName()
+            if symname:
+                vw.makeName(sva, symname, filelocal=True, makeuniq=True)
+            vw.addEntryPoint(sva)
         elif s.getInfoType() == Elf.STT_NOTYPE:
             # mapping symbol
             if arch in ('arm', 'thumb', 'thumb16'):
@@ -534,8 +552,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     vw.makePointer(sva, follow=False)
                 else:
                     '''
-                    Most of this is replicated in makePointer with follow=True. We specifically don't use that, since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in fun ways), but we still want these locations made first, so that other analysis modules know to not monkey with these and so I can set sizes and what not. 
-                    while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
+                    Most of this is replicated in makePointer with follow=True. We specifically don't use that,
+                    since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in
+                    fun ways), but we still want these locations made first, so that other analysis modules know
+                    to not monkey with these and so I can set sizes and what not.
+                    And while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
                     '''
                     if not valu:
                         # do a double check to make sure we can even make a pointer this large
@@ -626,9 +647,8 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
     postfix = collections.defaultdict(list)
     arch = arch_names.get(elf.e_machine)
     relocs = elf.getRelocs()
-    logger.debug("reloc len: %d", len(relocs))
     for r in relocs:
-        rtype = Elf.getRelocType(r.r_info)
+        rtype = r.getType()
         rlva = r.r_offset
         if addbase:
             rlva += baseaddr
@@ -689,7 +709,13 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             fn, symname = tgtname.split('.', 1)
                             logger.info('Reloc: making Import 0x%x (name: %s.%s) ', rlva, fn, symname)
                             vw.makeImport(rlva, fn, symname)
-
+                    elif rtype == Elf.R_X86_64_PLT32:
+                        breakpoint()
+                        vw.addRelocation(rlva, RTPE_BASEPTR)
+                        pass
+                    elif rtype == Elf.R_X86_64_32S:
+                        breakpoint()
+                        pass
                     elif rtype == Elf.R_X86_64_TPOFF64:
                         pass
                     elif rtype == Elf.R_386_TLS_DTPMOD32:
