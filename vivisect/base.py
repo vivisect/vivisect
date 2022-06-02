@@ -235,12 +235,19 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        fname, ptroff, rtype, data = einfo
+        if len(einfo) == 4:
+            fname, ptroff, rtype, data = einfo
+            size = None
+        else:
+            fname, ptroff, rtype, data, size = einfo
+
+        if size is None:
+            size = self.psize
         imgbase = self.getFileMeta(fname, 'imagebase')
         rva = imgbase + ptroff
 
         self.reloc_by_va[rva] = rtype
-        self.relocations.append(einfo)
+        self.relocations.append((fname, ptroff, rtype, data, size))
 
         # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
@@ -248,13 +255,13 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # add imgbase and offset to pointer in memory
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
-            if ptr != (ptr & e_bits.u_maxes[self.psize]):
+            if ptr != (ptr & e_bits.u_maxes[size]):
                 logger.warning('Relocations calculated a bad pointer: 0x%x (imgbase: 0x%x) (relocation: %d)', ptr, imgbase, rtype)
 
             # writes are costly, especially on larger binaries
-            if ptr != self.readMemoryPtr(rva):
+            if ptr != self.readMemValue(rva, size):
                 with self.getAdminRights():
-                    self.writeMemoryPtr(rva, ptr)
+                    self.writeMemValue(rva, ptr, size)
 
         if rtype == RTYPE_BASEPTR:
             # make it like a pointer (but one that could move with each load)
@@ -263,7 +270,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             #   don't follow.  handle it later, once "known code" is analyzed
             ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
             self._handleADDXREF((rva, ptr, REF_PTR, 0))
-            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
+            self._handleADDLOCATION((rva, size, LOC_POINTER, ptr))
 
     def _handleDELRELOC(self, einfo):
         fname, rva, rtyp, full = einfo

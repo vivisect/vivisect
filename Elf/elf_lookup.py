@@ -374,13 +374,6 @@ r_armclasses = [
             ),
         ]
 
-
-
-
-
-
-
-
 R_386_NONE = 0
 R_386_32 = 1
 R_386_PC32 = 2
@@ -622,7 +615,7 @@ sh_flags = {
     SHF_ALLOC:"Occupies memory during execution",
     SHF_EXECINSTR:"Executable",
     SHF_MERGE:"Might be merged",
-    SHF_STRINGS:"Contains nul-terminated strings",
+    SHF_STRINGS:"Contains null-terminated strings",
     SHF_INFO_LINK:"`sh_info' contains SHT index",
     SHF_LINK_ORDER:"Preserve order after combining",
     SHF_OS_NONCONFORMING:"Non-standard OS specific",
@@ -857,7 +850,6 @@ df_types = {
     DF_BIND_NOW: 'No lazy binding for this object',
     DF_STATIC_TLS: 'Module uses the static TLS model',
 }
-
 
 PT_NULL     = 0
 PT_LOAD     = 1

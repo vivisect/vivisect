@@ -488,7 +488,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.addVaSet("WeakSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
 
     # apply symbols to workspace (if any)
-    relocs = elf.getRelocs()
+    relocs = [r for idx, r in elf.getRelocs()]
     impvas = [va for va, x, y, z in vw.getImports()]
     expvas = [va for va, x, y, z in vw.getExports()]
     for s in elf.getSymbols():
@@ -646,10 +646,17 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
     '''
     postfix = collections.defaultdict(list)
     arch = arch_names.get(elf.e_machine)
-    relocs = elf.getRelocs()
-    for r in relocs:
+    othr = None
+    for secidx, r in elf.getRelocs():
         rtype = r.getType()
         rlva = r.r_offset
+        if elf.isRelocatable():
+            container = elf.getSectionByIndex(secidx)
+            if container.sh_flags & elf_lookup.SHF_INFO_LINK:
+                othr = elf.getSectionByIndex(container.sh_info)
+                if othr:
+                    rlva += othr.sh_addr
+
         if addbase:
             rlva += baseaddr
         try:
@@ -693,6 +700,17 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         logger.info('R_386_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
                         vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
 
+                    elif arch == 'amd64' and rtype == Elf.R_X86_64_32S:
+                        # the same as R_386_32 except we don't always get a name.
+                        ptr = r.r_addend
+                        symbol = elf.getSymbols()[r.getSymTabIndex()]
+                        valu = symbol.st_value
+                        if symbol.getInfoType() == elf_lookup.STT_SECTION:
+                            ref = elf.getSectionByIndex(symbol.st_shndx)
+                            if ref:
+                                valu = ref.sh_addr
+                        vw.addRelocation(rlva, RTYPE_BASEOFF, data=symbol.st_value + ptr, size=4)
+
                     elif rtype == Elf.R_X86_64_IRELATIVE:
                         # first make it a relocation that is based on the imagebase
                         ptr = r.r_addend
@@ -709,13 +727,16 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             fn, symname = tgtname.split('.', 1)
                             logger.info('Reloc: making Import 0x%x (name: %s.%s) ', rlva, fn, symname)
                             vw.makeImport(rlva, fn, symname)
-                    elif rtype == Elf.R_X86_64_PLT32:
-                        breakpoint()
-                        vw.addRelocation(rlva, RTPE_BASEPTR)
-                        pass
-                    elif rtype == Elf.R_X86_64_32S:
-                        breakpoint()
-                        pass
+                    # TODO: This isn't strictly wrong, but does induce graph building errors
+                    #elif rtype == Elf.R_X86_64_PLT32:
+                    #    # plt + addend- secoff
+                    #    addend = r.r_addend
+                    #    plt = elf.getSection('.plt')
+                    #    if plt:
+                    #        addend += plt.sh_addr
+                    #    if othr:
+                    #        addend -= othr.sh_addr
+                    #    vw.addRelocation(rlva, RTYPE_BASEPTR, data=addend, size=4)
                     elif rtype == Elf.R_X86_64_TPOFF64:
                         pass
                     elif rtype == Elf.R_386_TLS_DTPMOD32:

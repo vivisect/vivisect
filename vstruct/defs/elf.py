@@ -4,6 +4,76 @@ from vstruct.primitives import *
 EI_NIDENT = 4
 EI_PADLEN = 7
 
+SHF_WRITE = 1
+SHF_ALLOC = 2
+SHF_EXECINSTR = 4
+SHF_MERGE = 16
+SHF_STRINGS = 32
+SHF_INFO_LINK = 64
+SHF_LINK_ORDER = 128
+SHF_OS_NONCONFORMING = 256
+SHF_GROUP = 512
+SHF_TLS = 1024
+SHF_ORDERED = 1073741824
+SHF_EXCLUDE = 2147483648
+
+sh_flags = {
+    SHF_WRITE:"Writable",
+    SHF_ALLOC:"Occupies memory during execution",
+    SHF_EXECINSTR:"Executable",
+    SHF_MERGE:"Might be merged",
+    SHF_STRINGS:"Contains nul-terminated strings",
+    SHF_INFO_LINK:"`sh_info' contains SHT index",
+    SHF_LINK_ORDER:"Preserve order after combining",
+    SHF_OS_NONCONFORMING:"Non-standard OS specific",
+    SHF_GROUP:"Section is member of a group.",
+    SHF_TLS:"Section hold thread-local data.",
+    SHF_ORDERED:"Special ordering",
+    SHF_EXCLUDE:"Section is excluded",
+}
+
+PT_NULL     = 0
+PT_LOAD     = 1
+PT_DYNAMIC  = 2
+PT_INTERP   = 3
+PT_NOTE     = 4
+PT_SHLIB    = 5
+PT_PHDR     = 6
+PT_TLS      = 7
+PT_NUM      = 8
+PT_LOOS     = 0x60000000
+PT_GNU_EH_FRAME  = 0x6474e550
+PT_GNU_STACK  = 0x6474e551
+PT_GNU_RELRO  = 0x6474e552
+PT_LOSUNW   = 0x6ffffffa
+PT_SUNWBSS  = 0x6ffffffa
+PT_SUNWSTACK = 0x6ffffffb
+PT_HISUNW =  0x6fffffff
+PT_HIOS   =  0x6fffffff
+PT_LOPROC =  0x70000000
+PT_HIPROC =  0x7fffffff
+
+ph_types = {
+    PT_NULL:"Program header table entry unused",
+    PT_LOAD:"Loadable program segment",
+    PT_DYNAMIC:"Dynamic linking information",
+    PT_INTERP:"Program interpreter",
+    PT_NOTE:"Auxiliary information",
+    PT_SHLIB:"Reserved",
+    PT_PHDR:"Entry for header table itself",
+    PT_TLS:"Thread-local storage segment",
+    PT_NUM:"Number of defined types",
+    PT_LOOS:"Start of OS-specific",
+    PT_GNU_EH_FRAME:"GCC .eh_frame_hdr segment",
+    PT_GNU_STACK:"Indicates stack executability",
+    PT_GNU_RELRO:"Read-only after relocation",
+    PT_SUNWBSS:"Sun Specific segment",
+    PT_SUNWSTACK:"Stack segment",
+    PT_HIOS:"End of OS-specific",
+    PT_LOPROC:"Start of processor-specific",
+    PT_HIPROC:"End of processor-specific",
+}
+
 class Elf32(vstruct.VStruct):
     def __init__(self, bigend=False):
         vstruct.VStruct.__init__(self)
@@ -159,6 +229,9 @@ class ElfSymbol:
     def getInfoBind(self):
         return self.st_info >> 4
 
+    def getVisibility(self):
+        return self.st_other & 0x3
+
     def __cmp__(self, other):
         if self.st_value > other.st_value:
             return 1
@@ -221,7 +294,7 @@ class ElfDynamic:
         self.name = name
 
     def getTypeName(self):
-        return dt_types.get(self.d_tag, "Unknown: %s"%hex(self.d_tag))
+        return dt_types.get(self.d_tag, "Unknown: %s" % hex(self.d_tag))
 
 class Elf32Dynamic(ElfDynamic, vstruct.VStruct):
     def __init__(self, bigend=False):
@@ -287,7 +360,6 @@ class Elf64Pheader(ElfPheader, vstruct.VStruct):
         self.p_filesz = v_uint64(bigend=bigend)
         self.p_memsz  = v_uint64(bigend=bigend)
         self.p_align  = v_uint64(bigend=bigend)
-
 
 class Elf64Reloc(ElfReloc, vstruct.VStruct):
     def __init__(self, bigend=False):

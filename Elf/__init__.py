@@ -92,7 +92,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.secnames = {}
         self.symbols  = []
         self.relocs   = []
-        self.relocvas = []
+        self.relocvas = set([])
         self.symbols_by_name = {}
         self.symbols_by_addr = {}
         self.dynamics = []      # deprecated - 2019-10-21
@@ -467,8 +467,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             sym = self.getDynSymbol(index)
             if sym is not None:
                 reloc.setName( sym.getName() )
-            self.relocs.append(reloc)
-            self.relocvas.append(reloc.r_offset)
+            self.relocs.append((None, reloc))
+            self.relocvas.add((None, reloc.r_offset))
 
     def _parseSectionRelocs(self):
         """
@@ -483,7 +483,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         jmprel, pltrel, pltrelsz = self.getDynPltRelInfo()
         dynrels = (rel, rela, jmprel)
 
-        for sec in self.sections:
+        for secidx, sec in enumerate(self.sections):
             if sec.sh_type not in (SHT_REL, SHT_RELA):
                 continue
 
@@ -505,16 +505,19 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 index = reloc.getSymTabIndex()
                 if index < len(self.dynamic_symbols):
                     sym = self.dynamic_symbols[index]
-                    reloc.setName( sym.getName() )
+                    reloc.setName(sym.getName())
 
-                if reloc.r_offset in self.relocvas:
-                    # FIXME: This line is hit sever tens of thousands of times during parsing
+                # key on the symbol table index because relocatable elf files use r_offset
+                # as an actual offset and not a virtual address like executable images
+                # Ref: https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-54839.html 
+                key = (index, reloc.r_offset)
+                if key in self.relocvas:
                     logger.debug('duplicate relocation (section): %s', reloc)
                     continue
 
                 logger.info('section reloc: %s', reloc)
-                self.relocs.append(reloc)
-                self.relocvas.append(reloc.r_offset)
+                self.relocs.append((secidx, reloc))
+                self.relocvas.add(key)
 
     def getBaseAddress(self):
         """
@@ -526,7 +529,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         # If it's a shared object and *not* prelinked,
         # we need to select a base address for it
-        # FIXME find non-coliding addr in workspace
+        # FIXME find non-colliding addr in workspace
         if shrd and not plnk:
             return 0x02000000
 
@@ -546,7 +549,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 base = pgm.p_vaddr
 
         if base is None:
-            base = 0x20000000
+            if self.isRelocatable():
+                base = 0
+            else:
+                base = 0x20000000
 
         base &= 0xfffff000
         return base
@@ -793,7 +799,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             mystr+= "\n"+repr(sym)
 
         mystr+= "\n\n= Relocation table:"
-        for reloc in self.relocs:
+        for _, reloc in self.relocs:
             mystr+= "\n"+repr(reloc)
 
         mystr+= "\n\n= Dynamics table:"
@@ -841,6 +847,11 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         Returns discovered Symbols (from ELF Sections)
         '''
         return self.symbols
+
+    def getSymbol(self, symidx):
+        if symidx is None or symidx >= len(self.symbols):
+            return None
+        return self.symbols[symidx]
 
     def getDynSymbol(self, symidx):
         '''
@@ -934,7 +945,7 @@ def elfFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)
     return Elf(fd)
 
-# TODO: Deprecate these. We have methods on the ElfReloc objects specifically for these two
+# TODO: Consider deprecating these. We have methods on the ElfReloc objects specifically for these two
 def getRelocType(val):
     return val & 0xff
 
