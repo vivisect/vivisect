@@ -241,7 +241,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
             merged.append( maps[i] )
 
-        baseaddr = 0
+        baseaddr = 0x05000000
+        if elf.isRelocatable():
+            baseaddr = 0
         for offset, size in merged:
             bytez = elf.readAtOffset(offset,size)
             vw.addMemoryMap(baseaddr + offset, 0x7, fname, bytez)
@@ -514,13 +516,6 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         if s.getInfoType() == Elf.STT_FILE:
             vw.setVaSetRow('FileSymbols', (dmglname, sva))
             continue
-        elif s.getInfoType() == Elf.STT_FUNC:
-            if addbase:
-                sva += baseaddr
-            symname = s.getName()
-            if symname:
-                vw.makeName(sva, symname, filelocal=True, makeuniq=True)
-            vw.addEntryPoint(sva)
         elif s.getInfoType() == Elf.STT_NOTYPE:
             # mapping symbol
             if arch in ('arm', 'thumb', 'thumb16'):

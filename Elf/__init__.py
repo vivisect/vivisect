@@ -509,9 +509,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
                 # key on the symbol table index because relocatable elf files use r_offset
                 # as an actual offset and not a virtual address like executable images
+                # For all other binaries, let dynamics win
                 # Ref: https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-54839.html 
                 key = (index, reloc.r_offset)
-                if key in self.relocvas:
+                if key in self.relocvas or (None, reloc.r_offset) in self.relocvas:
                     logger.debug('duplicate relocation (section): %s', reloc)
                     continue
 

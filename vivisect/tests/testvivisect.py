@@ -1548,4 +1548,4 @@ class VivisectTest(v_t_utils.VivTest):
 
     def test_relocatable_elf_simple(self):
         kmod = helpers.getTestWorkspace('linux', 'amd64', 'hellokernel.ko')
-        self.eq(set(kmod.getFunction()), set([0x7c, 0x95]))
+        self.eq(set(kmod.getFunctions()), set([0x7c, 0x95]))

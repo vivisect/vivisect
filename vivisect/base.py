@@ -280,7 +280,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.reloc_by_va.pop(rva, None)
         delidx = -1
 
-        for idx, (fn, off, typ, data) in enumerate(self.relocations):
+        for idx, (fn, off, typ, data, size) in enumerate(self.relocations):
             if fn == fname and off == ptroff and typ == rtyp:
                 delidx = idx
                 break
