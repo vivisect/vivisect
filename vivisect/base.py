@@ -760,10 +760,10 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             logger.warning("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
         return ()
 
-    def _cb_function(self, fva, fmeta):
+    def _cb_function(self, fva, fmeta, rerun=False):
 
         vw = self._mem
-        if vw.isFunction(fva):
+        if vw.isFunction(fva) and not rerun:
             return
 
         # This may be possible if an export/symbol was mistaken for
@@ -780,11 +780,11 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         # Go through the function analysis modules in order
         vw.analyzeFunction(fva)
 
-        fname = vw.getName( fva )
-        if vw.getMeta('NoReturnApis').get( fname.lower() ):
-            self._cf_noret[ fva ] = True
+        fname = vw.getName(fva)
+        if vw.getMeta('NoReturnApis').get(fname.lower()):
+            self._cf_noret[fva] = True
 
-        if len( vw.getFunctionBlocks( fva )) == 1:
+        if len(vw.getFunctionBlocks(fva)) == 1:
             return
 
         fmeta = vw.getFunctionMetaDict(fva)
@@ -792,7 +792,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             va = lva[0]
             ctup = vw.getCodeBlock(va)
             if ctup and fva == ctup[2] and vw.getFunctionMeta(fva, 'BlockCount', default=0) == 1:
-                self._cf_noret[ fva ] = True
+                self._cf_noret[fva] = True
                 break
 
     def _cb_branchtable(self, tablebase, tableva, destva):

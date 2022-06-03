@@ -50,6 +50,8 @@ def analyze(vw):
             continue
 
         block = vw.getCodeBlock(fva)
+        if not block:
+            continue
         va = block[0] + block[1] - 1
 
         loc = vw.getLocation(va)

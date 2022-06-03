@@ -60,7 +60,7 @@ class CodeFlowContext(object):
         '''
         return branches
 
-    def _cb_function(self, fva, fmeta):
+    def _cb_function(self, fva, fmeta, rerun=False):
         '''
         Extend CodeFlowContext and implement this method to recieve
         a callback for every newly discovered function.  Additionally,
@@ -140,7 +140,7 @@ class CodeFlowContext(object):
         if self._cf_persist is not None:
             opdone = self._cf_persist
 
-        halts = {}
+        halts = set()
         calls_from = {}
         optodo = [((0, va), arch), ]
         startva = va
@@ -247,7 +247,10 @@ class CodeFlowContext(object):
                                         self.addNoFlow(va, nextva)
 
                                     cf_eps[bva] = bflags
-                                    halts[nextva] = startva
+                                    halts.add(nextva)
+
+                                    self._cf_blockers[bva].add(startva)
+                                    self._cf_blocked[startva].add(bva)
                                 else:
                                     logger.debug("descending into function 0x%x (from 0x%x)", bva, va)
                                     self.addEntryPoint(bva, arch=bflags)
@@ -308,13 +311,14 @@ class CodeFlowContext(object):
         self._cb_function(va, {'CallsFrom': calls_from})
 
         if va in self._cf_blockers:
-            for othr in self._cf_blockers[va]:
+            othrs = self._cf_blockers[va]
+            for othr in othrs:
                 self._cf_blocked[othr].remove(va)
                 if not self._cf_blocked[othr]:
                     self._cf_blocked.pop(othr)
                     # play it again sam
                     calls_from = self.addCodeFlow(othr, rerun=True)
-                    self._cb_function(othr, {'CallsFrom': calls_from})
+                    self._cb_function(othr, {'CallsFrom': calls_from}, rerun=True)
                     self._fcalls[othr] = calls_from
         return va
 
