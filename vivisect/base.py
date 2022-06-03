@@ -740,13 +740,13 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         vw.setVaSetRow('NoReturnCalls', (lva,))
 
     # NOTE: self._mem is the viv workspace...
-    def _cb_opcode(self, va, op, branches):
+    def _cb_opcode(self, va, op, branches, rerun=False):
         '''
         callback for each OPCODE in codeflow analysis
         must return list of branches, modified for our purposes
         '''
         loc = self._mem.getLocation(va)
-        if loc is None:
+        if loc is None or rerun:
 
             # dont code flow through import calls
             branches = [br for br in branches if not self._mem.isLocType(br[0], LOC_IMPORT)]

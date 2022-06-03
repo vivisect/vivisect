@@ -40,6 +40,8 @@ class CodeFlowContext(object):
         self._mem = mem
         self._cf_noret = {}     # noret funcs
         self._cf_noflow = {}    # va's to stop on
+        self._cf_blockers = collections.defaultdict(set) # blocking function -> functions that can't continue yet
+        self._cf_blocked = collections.defaultdict(set) # a blocked function -> blockers
 
         # A few options to the codeflow object
         self._cf_persist = None
@@ -51,7 +53,7 @@ class CodeFlowContext(object):
         self._cf_blocks = []
         self._dynamic_branch_handlers = []
 
-    def _cb_opcode(self, va, op, branches):
+    def _cb_opcode(self, va, op, branches, rerun=False):
         '''
         Extend CodeFlowContext and implement this method to recieve
         a callback for every newly discovered opcode.
@@ -126,7 +128,7 @@ class CodeFlowContext(object):
         '''
         self._fcalls[fva] = calls_from
 
-    def addCodeFlow(self, va, arch=envi.ARCH_DEFAULT):
+    def addCodeFlow(self, va, arch=envi.ARCH_DEFAULT, rerun=False):
         '''
         Do code flow disassembly from the specified address.  Returns a list
         of the procedural branch targets discovered during code flow...
@@ -170,7 +172,7 @@ class CodeFlowContext(object):
 
             branches = op.getBranches()
             # The opcode callback may filter branches...
-            branches = self._cb_opcode(va, op, branches)
+            branches = self._cb_opcode(va, op, branches, rerun)
 
             # FIXME: if IF_BRANCH: if IF_COND and len(branches)<2: _cb_dynamic_branch()
             # FIXME: if IF_BRANCH and not IF_COND and len(branches)<1: _cb_dynamic_branch()
@@ -258,6 +260,10 @@ class CodeFlowContext(object):
 
                             # We only go up to procedural branches, not across
                             continue
+
+                    if op.iflags & envi.IF_BRANCH and bva in self._cf_blocks and bva != startva:
+                        self._cf_blockers[bva].add(startva)
+                        self._cf_blocked[startva].add(bva)
                 except Exception as e:
                     logger.warning("codeflow: %r", e, exc_info=True)
 
@@ -296,8 +302,20 @@ class CodeFlowContext(object):
         calls_from = self.addCodeFlow(va, arch=arch)
         self._fcalls[va] = calls_from
 
+        if va in self._cf_blocked:
+            return va
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom': calls_from})
+
+        if va in self._cf_blockers:
+            for othr in self._cf_blockers[va]:
+                self._cf_blocked[othr].remove(va)
+                if not self._cf_blocked[othr]:
+                    self._cf_blocked.pop(othr)
+                    # play it again sam
+                    calls_from = self.addCodeFlow(othr, rerun=True)
+                    self._cb_function(othr, {'CallsFrom': calls_from})
+                    self._fcalls[othr] = calls_from
         return va
 
     def flushFunction(self, fva):
