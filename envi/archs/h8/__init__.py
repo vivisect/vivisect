@@ -7,7 +7,7 @@ MSB
 """
 
 import envi
-
+from envi.archs.h8.regs import h8_regs
 
 class H8Module(envi.ArchitectureModule):
 
@@ -41,6 +41,14 @@ class H8Module(envi.ArchitectureModule):
         """
         return self._arch_dis.disasm(bytes, offset, va)
 
+    def archGetRegisterGroups(self):
+        groups = envi.ArchitectureModule.archGetRegisterGroups(self)
+        groups['general'] = h8_regs
+
+        return groups
+
+    def archGetPointerAlignment(self):
+        return 4
     def getEmulator(self):
         import envi.archs.h8.emu as h8_emu
         return h8_emu.H8Emulator()

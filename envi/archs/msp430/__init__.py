@@ -26,8 +26,7 @@ class Msp430Module(envi.ArchitectureModule):
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
-        general= ('general', registers, )
-        groups.append(general)
+        groups['general'] = registers
         return groups
 
     def getPointerSize(self):

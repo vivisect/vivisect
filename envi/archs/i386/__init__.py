@@ -20,10 +20,10 @@ class i386Module(envi.ArchitectureModule):
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
-        general = ('general', ['eax', 'ebx', 'ecx', 'edx', 'esi', 'edi',
-                                'ebp', 'esp', 'eip', ], )
 
-        groups.append(general)
+        groups['general'] = ['eax', 'ebx', 'ecx', 'edx', 'esi', 'edi',
+                                'ebp', 'esp', 'eip', ]
+
         return groups
 
     def getPointerSize(self):

@@ -1,7 +1,7 @@
 import envi.archs.h8.const as h8_const
 import envi.registers as e_reg
 
-h8_regs = (
+h8_regs_tup = (
     ('er0', 32),
     ('er1', 32),
     ('er2', 32),
@@ -15,9 +15,10 @@ h8_regs = (
     ('exr', 8),
 )
 
+h8_regs = [r for r, sz in h8_reg_tup]
 
 l = locals()
-e_reg.addLocalEnums(l, h8_regs)
+e_reg.addLocalEnums(l, h8_regs_tup)
 
 REG_CCR_T = 7
 REG_CCR_U1 = 6
@@ -134,6 +135,6 @@ e_reg.addLocalStatusMetas(l, H8Meta, H8StatMeta, 'CCR')
 class H8RegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)
-        self.loadRegDef(h8_regs)
+        self.loadRegDef(h8_regs_tup)
         self.loadRegMetas(H8Meta, statmetas=H8StatMeta)
         self.setRegisterIndexes(REG_PC, h8_const.REG_SP, REG_CCR)
