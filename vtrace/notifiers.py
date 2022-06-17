@@ -140,11 +140,11 @@ class DistributedNotifier(Notifier):
 class LibraryNotifer(Notifier):
     def notify(self, event, trace):
         #check meta
-        if trace.getMeta('BreakOnLibraryLoad', False):
+        if trace.getMeta('BreakOnLibraryLoad'):
             # halt process?
             pass
 
-        if trace.getMeta('BreakOnLibraryInit', False):
+        if trace.getMeta('BreakOnLibraryInit'):
             # add Breakpoint for __entry
             libnormname = trace.getMeta('LatestLibraryNorm')
             entryname = "%s.__entry" % (libnormname)

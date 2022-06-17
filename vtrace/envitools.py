@@ -148,17 +148,17 @@ class InteractiveLSMon(LockStepMonitor):
         return True
 
     def _cb_register_failure(self, lstep, exc):
-        inp = input('"s" to reSync registers from trace to emu'))
+        inp = input('"s" to reSync registers from trace to emu')
         if inp.startswith('s'):
             lstep.syncRegsFromTrace()
         return True
 
     def _cb_memory_failure(self, lstep, exc):
-        inp = input('Memory Failure: "Enter" to continue'))
+        inp = input('Memory Failure: "Enter" to continue')
         return True
 
     def _cb_segv(self):
-        inp = input('Segmentation Violation: "Enter" to continue'))
+        inp = input('Segmentation Violation: "Enter" to continue')
         return True
 
 
