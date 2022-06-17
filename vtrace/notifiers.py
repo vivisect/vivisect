@@ -141,8 +141,8 @@ class LibraryNotifer(Notifier):
     def notify(self, event, trace):
         #check meta
         if trace.getMeta('BreakOnLibraryLoad'):
-            # halt process?
-            pass
+            # stop this instant!
+            trace.sendBreak()
 
         if trace.getMeta('BreakOnLibraryInit'):
             # add Breakpoint for __entry
