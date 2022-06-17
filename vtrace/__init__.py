@@ -164,6 +164,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         '''
         Cause execution to halt when a new library is loaded.
         '''
+        logger.info("setting 'BreakOnLibraryLoad' to %r", setting)
         self.setMeta('BreakOnLibraryLoad', setting) 
 
     def setBreakOnLibraryInit(self, setting=True):
@@ -171,6 +172,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         Set breakpoint on a newly loaded Library's init function 
         (aka. <Libname>.__entry)
         '''
+        logger.info("setting 'BreakOnLibraryInit' to %r", setting)
         self.setMeta('BreakOnLibraryInit', setting)
 
     def execute(self, cmdline):
@@ -1131,7 +1133,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         width = self.arch.getPointerSize()
         return e_bits.hex(value, width)
 
-    def buildNewTrace(self):
+    def buildNewTrace(self, **kwargs):
         '''
         Build a new/clean trace "like" this one.  For platforms where a
         special trace was handed in, this allows initialization of a new one.
@@ -1141,7 +1143,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             if need_another_trace:
                 newt = trace.buildNewTrace()
         '''
-        return self.__class__()
+        return self.__class__(**kwargs)
 
 class TraceGroup(Notifier, v_util.TraceManager):
     """

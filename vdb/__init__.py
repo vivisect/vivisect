@@ -366,14 +366,16 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         Generate a new trace for this vdb instance.  This fixes many of
         the new attach/exec data munging issues because tracer re-use is
         *very* sketchy...
+
+        **kwargs is handed into the new trace to handle any platform magic
         """
-        oldtrace = self.getTrace()
+        oldtrace = self.getTrace(**kwargs)
         if oldtrace.isRunning():
             oldtrace.sendBreak()
         if oldtrace.isAttached():
             oldtrace.detach()
 
-        self.trace = oldtrace.buildNewTrace()
+        self.trace = oldtrace.buildNewTrace(**kwargs)
         oldtrace.release()
 
         self.bpcmds = {}    # TODO: make these reusable from previous sessions
