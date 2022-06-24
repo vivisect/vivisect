@@ -720,6 +720,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         ctor = vs_cparse.ctorFromCSource( ssrc )
         self.vsbuilder.addVStructCtor( sname, ctor )
 
+    def _mcb_GUID(self, name, guid):
+        self._load_guid.set()
+
     def _mcb_WorkspaceServer(self, name, wshost):
         self.vprint('Workspace was Saved to Server: %s' % wshost)
         self.vprint('(You must close this local copy and work from the server to stay in sync.)')

@@ -98,7 +98,20 @@ class VivSaveServerDialog(VivServerDialog):
 
     def __init__(self, vw, parent=None):
         VivServerDialog.__init__(self, vw, parent=parent)
+
         self.wsname = QLineEdit(vw.getMeta('StorageName', ''), parent=self)
+        wslabel = QLabel("Storage Path:")
+
+        bot_box = QWidget(parent=self)
+        hbox = QHBoxLayout(bot_box)
+        hbox.setContentsMargins(2, 2, 2, 2)
+        hbox.setSpacing(4)
+        hbox.addWidget(wslabel)
+        hbox.addWidget(self.wsname)
+
+        layout = self.layout()
+        layout.insertRow(1, bot_box)
+
         self.setWindowTitle('Save to Workspace Server...')
 
     def getNameAndServer(self):
