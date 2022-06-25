@@ -2322,6 +2322,16 @@ class PpcAbstractEmulator(envi.Emulator):
         if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
 
+    def i_not(self, op):
+        '''
+        simplified form of nor
+        '''
+        src1 = self.getOperValue(op, 1)
+        result = COMPLEMENT(src1, self.psize)
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
     def i_nor(self, op):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
