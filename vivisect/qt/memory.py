@@ -175,6 +175,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         if self._canv_curva is not None:
             loctup = self.vw.getLocation(self._canv_curva)
             if loctup is not None:
+                self.vw.vprint("Failed to make code (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
                 return
 
             self.vw.makeCode(self._canv_curva)
@@ -190,6 +191,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         if self._canv_curva is not None:
             loctup = self.vw.getLocation(self._canv_curva)
             if loctup is not None:
+                self.vw.vprint("Failed to make string (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
                 return
 
             self.vw.makeString(self._canv_curva)
@@ -199,6 +201,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         if self._canv_curva is not None:
             loctup = self.vw.getLocation(self._canv_curva)
             if loctup is not None:
+                self.vw.vprint("Failed to make pointer (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
                 return
 
             self.vw.makePointer(self._canv_curva)
@@ -208,6 +211,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         if self._canv_curva is not None:
             loctup = self.vw.getLocation(self._canv_curva)
             if loctup is not None:
+                self.vw.vprint("Failed to make unicode (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
                 return
 
             self.vw.makeUnicode(self._canv_curva)
