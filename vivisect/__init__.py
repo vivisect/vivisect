@@ -88,6 +88,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._viv_gui = None    # If a gui is running, he will put a ref here...
         self._ext_ctxmenu_hooks = {}
         self._extensions = {}
+        self._load_guid = threading.Event()
         self._load_event = threading.Event()
 
         self.saved = False  # TODO: Have a warning when we try to close the UI if the workspace hasn't been saved
@@ -250,7 +251,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         self._extensions.pop(name, None)
 
-    def getVivGuid(self):
+    def getVivGuid(self, generate=True):
         '''
         Return the GUID for this workspace.  Every newly created VivWorkspace
         should have a unique GUID, for identifying a particular workspace for
@@ -261,7 +262,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         based workspace used to store to the server.
         '''
         vivGuid = self.getMeta('GUID')
-        if vivGuid is None:
+        if vivGuid is None and generate:
             vivGuid = guid()
             self.setMeta('GUID', vivGuid)
 
@@ -627,11 +628,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         client to the given (potentially cobra remote)
         workspace object.
         """
-        uname = e_config.getusername()
+        uname = self.config.user.name
         self.server = remotevw
         self.rchan = remotevw.createEventChannel()
 
         self.server.vprint('%s connecting...' % uname)
+
+        self.leaders.update(self.server.getLeaderSessions())
+        self.leaderloc.update(self.server.getLeaderLocations())
+
         wsevents = self.server.exportWorkspace()
         self.importWorkspace(wsevents)
         self.server.vprint('%s connection complete!' % uname)
@@ -1557,6 +1562,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             vw.setFunctionArg(fva, 1, 'char **','argv')
         '''
         rettype,retname,callconv,callname,callargs = self.getFunctionApi(fva)
+        callargs = list(callargs)
         while len(callargs) <= idx:
             callargs.append( ('int','arg%d' % len(callargs)) )
 
@@ -2692,6 +2698,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if hasattr(mod, "config"):
             self.mergeConfig(mod.config)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         fd.seek(0)
         fname = mod.parseFd(self, fd, filename=None, baseaddr=baseaddr)
 
@@ -2722,6 +2731,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if hasattr(mod, "config"):
             self.mergeConfig(mod.config)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         if fmtname == 'pe':
             mod.loadPeIntoWorkspace(self, pbin)
         elif fmtname == 'elf':
@@ -2788,6 +2800,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.loadWorkspace(filename)
             return self.normFileName(filename)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         mod = viv_parsers.getParserModule(fmtname)
         fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
 
@@ -2810,6 +2825,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # TODO: Load workspace from memory?
         mod = viv_parsers.getParserModule(fmtname)
+
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
         mod.parseMemory(self, memobj, baseaddr)
 
         mapva, mapsize, mapperm, mapfname = memobj.getMemoryMap(baseaddr)
@@ -3027,12 +3045,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 #
 #  Shared Workspace APIs
 #
+    # interact with the Server
     def chat(self, msg):
-        uname = e_config.getusername()
+        uname = self.config.user.name
         # FIXME this should be part of a UI event model.
         self._fireEvent(VWE_CHAT, (uname, msg))
 
-    def iAmLeader(self, winname):
+    def iAmLeader(self, uuid, winname, locexpr=None):
         '''
         Announce that your workspace is leading a window with the
         specified name.  This allows others to opt-in to following
@@ -3044,10 +3063,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if not self.server:
             raise Exception('iAmLeader() requires being connected to a server.')
 
-        user = e_config.getusername()
-        self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (user,winname))
+        user = self.config.user.name
+        self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (uuid, user, winname, locexpr))
 
-    def followTheLeader(self, winname, expr):
+    def followTheLeader(self, uuid, expr):
         '''
         Announce a new memory expression to navigate to if if a given window
         is following the specified user/winname
@@ -3057,8 +3076,46 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         if not self.server:
             raise Exception('followTheLeader() requires being connected to a server.')
-        user = e_config.getusername()
-        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (user,winname, expr))
+        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (uuid, expr))
+
+    def killLeaderSession(self, uuid):
+        '''
+        When we shutdown a Leader session, we need to make it go away.
+
+        Example:
+            vw.killTheLeader('bf1ae9f4b94711ecbe41091ba860c051')
+        '''
+        if not self.server:
+            raise Exception('killTheLeader() requires being connected to a server.')
+        self.server._fireEvent(VTE_MASK | VTE_KILLLEADER, uuid)
+
+    def modifyLeaderSession(self, uuid, user, winname):
+        '''
+        Make changes to the username or session/window name
+
+        Example:
+            vw.killTheLeader('bf1ae9f4b94711ecbe41091ba860c051')
+        '''
+        if not self.server:
+            raise Exception('killTheLeader() requires being connected to a server.')
+        self.server._fireEvent(VTE_MASK | VTE_MODLEADER, (uuid, user, winname))
+
+    # internal data access
+    def getLeaderInfo(self, uuid=None):
+        if uuid in self.leaders:
+            user, fname = self.leaders.get(uuid)
+            return user, fname
+            
+        return None, None
+
+    def getLeaderSessions(self):
+        return dict(self.leaders)
+
+    def getLeaderLoc(self, uuid):
+        '''
+        Get the current location for a Leader session
+        '''
+        return self.leaderloc.get(uuid)
 
 #################################################################
 #
@@ -3199,6 +3256,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 0, 7)
+version = (1, 0, 8)
 verstring = '.'.join([str(x) for x in version])
 commit = ''
