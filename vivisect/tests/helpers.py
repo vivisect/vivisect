@@ -18,6 +18,9 @@ class MockVw(object):
     def getLocation(self, va):
         return self._locs.get(va, None)
 
+    def getPointerSize(self):
+        return self.psize
+
 
 def getTestBytes(*paths):
     testdir = os.getenv('VIVTESTFILES')

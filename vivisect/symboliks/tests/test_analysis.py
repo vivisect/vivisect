@@ -8,13 +8,9 @@ from vivisect.tests.helpers import MockVw
 class MockVar(object):
     def __init__(self, va):
         self.va = va
-        self.psize = 4
 
     def solve(self, *args, **kwargs):
         return self.va
-
-    def getPointerSize(self):
-        return self.psize
 
 
 def nop(*args, **kwargs):
