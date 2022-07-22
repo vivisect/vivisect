@@ -31,3 +31,5 @@ be loadable in python3 vivisect.
 ## Build Status
 
 [![CircleCI](https://circleci.com/gh/vivisect/vivisect/tree/master.svg?style=svg)](https://circleci.com/gh/vivisect/vivisect/tree/master)
+
+[![Documentation Status](https://readthedocs.org/projects/vivisect/badge/?version=latest)](https://vivisect.readthedocs.io/en/latest/?badge=latest)
