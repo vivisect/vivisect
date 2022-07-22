@@ -1,6 +1,12 @@
 import vstruct
 from vstruct.primitives import *
 
+# These are all copied from Elf/elf_lookup.py. In a better world they would all live here,
+# but doing so would be an unhappy breakage of backwards compatibility, but we still need
+# them here in order to have on place where the vstruct definitions live. So for now
+# we'll keep a stripped down set here because it's less copypasta than before.
+# TODO: Clean these mess up when we have a chance to break things.
+
 EI_NIDENT = 4
 EI_PADLEN = 7
 

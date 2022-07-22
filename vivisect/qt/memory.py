@@ -3,7 +3,6 @@ import logging
 from PyQt5 import Qt
 from PyQt5.QtWidgets import *
 
-import envi.config as e_config
 import envi.qt.memory as e_mem_qt
 import envi.qt.memcanvas as e_mem_canvas
 
@@ -174,6 +173,11 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     @vq_hotkey.hotkey('viv:make:code')
     def _hotkey_make_code(self):
         if self._canv_curva is not None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                self.vw.vprint("Failed to make code (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
+                return
+
             self.vw.makeCode(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:function')
@@ -185,16 +189,31 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     @vq_hotkey.hotkey('viv:make:string')
     def _hotkey_make_string(self):
         if self._canv_curva is not None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                self.vw.vprint("Failed to make string (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
+                return
+
             self.vw.makeString(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:pointer')
     def _hotkey_make_pointer(self):
         if self._canv_curva is not None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                self.vw.vprint("Failed to make pointer (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
+                return
+
             self.vw.makePointer(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:unicode')
     def _hotkey_make_unicode(self):
         if self._canv_curva is not None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                self.vw.vprint("Failed to make unicode (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
+                return
+
             self.vw.makeUnicode(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:undefine')
@@ -438,9 +457,9 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     def rendToolsSetName(self, user=None):
         menu = e_mem_qt.VQMemoryWindow.rendToolsSetName(self)
-        if self.vw.server:
+        if self.vw.server and self._leading:
             if user is None:
-                user = e_config.getusername()
+                user = self.vw.config.user.name
             self.vw.modifyLeaderSession(self.uuid, user, self.mwname)
         
     def getExprTitle(self):

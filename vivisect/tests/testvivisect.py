@@ -1549,3 +1549,19 @@ class VivisectTest(v_t_utils.VivTest):
     def test_relocatable_elf_simple(self):
         kmod = helpers.getTestWorkspace('linux', 'amd64', 'hellokernel.ko')
         self.eq(set(kmod.getFunctions()), set([0x7c, 0x95]))
+
+    def test_guid(self):
+        vw = vivisect.VivWorkspace()
+
+        # raw workspace should not have a GUID
+        self.assertEqual(vw.getMeta('GUID'), None)
+
+        chownpath = helpers.getTestPath('linux', 'amd64', 'chown')
+        vw.loadFromFile(chownpath)
+
+        # workspace gets a GUID after one of the "vw.loadFrom*" functions is called
+        newguid = vw.getMeta('GUID')
+        self.assertNotEqual(newguid, None)
+
+        # since it's assigned, the result from "vw.getVivGuid()" should be the same
+        self.assertEqual(newguid, vw.getVivGuid())
