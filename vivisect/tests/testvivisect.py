@@ -760,7 +760,7 @@ class VivisectTest(v_t_utils.VivTest):
         '''
         vw = self.firefox_vw
         self.assertIsNotNone(vw.parsedbin)
-        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut']), set(vw.getVaSetNames()))
+        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut', 'thunk_reg']), set(vw.getVaSetNames()))
 
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60, adjacent=True))

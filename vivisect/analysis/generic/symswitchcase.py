@@ -1097,7 +1097,7 @@ def makeNames(vw, jmpva, cases, baseoff=0):
 
         curname = vw.getName(addr) 
         if curname is not None:
-            ## FIXME NOW!:   if already labeled, chances are good this is other cases in the same function.
+            ## TODO:   if already labeled, chances are good this is other cases in the same function.
             ## either simply add the new outstrings to the current one or we need to keep track of what
             ## calls each and with what switchcase/index info.  VaSet?  or do we want this to only expect
             ## the same function to call each one, and all part of the same Switchcase?
