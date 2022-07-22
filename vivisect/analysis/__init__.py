@@ -101,13 +101,9 @@ def addAnalysisModules(vw):
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
             # add va set for tracking thunk_bx function(s)
-            try:
-                vw.getVaSet('thunk_reg')
-            except:
-                vw.addVaSet('thunk_reg', ( ('fva', vivisect.VASET_ADDRESS), ('reg', vivisect.VASET_STRING), ('tgtval', vivisect.VASET_INTEGER)) )   # TODO: make ARM fall in line with this.
             vw.addFuncAnalysisModule("vivisect.analysis.i386.thunk_bx") # TODO: rename this to thunk_reg
+
         elif arch in ARM_ARCHS:
-            vw.addVaSet('thunk_reg', ( ('fva', vivisect.VASET_ADDRESS), ('reg', vivisect.VASET_INTEGER), ))
             vw.addFuncAnalysisModule('vivisect.analysis.arm.thunk_reg')
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 

@@ -179,6 +179,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('CodeFragments', (('va', VASET_ADDRESS), ('calls_from', VASET_COMPLEX)))
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
+        self.addVaSet('thunk_reg', ( ('fva', VASET_ADDRESS), ('reg', VASET_STRING), ('tgtval', VASET_INTEGER)) )
 
     def vprint(self, msg):
         logger.info(msg)
