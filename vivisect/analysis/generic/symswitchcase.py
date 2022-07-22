@@ -48,19 +48,6 @@ end, names are applied as appropriate.
 # TODO: regrange description of Symbolik Variables... normalize so "eax" and "eax+4" make sense.
 
 
-class SymIdxNotFoundException(Exception):
-    def __repr__(self):
-        return "getSymIdx cannot determine the Index register"
-
-class NoComplexSymIdxException(Exception):
-    def __init__(self, sc=None):
-        self.sc = sc
-        Exception.__init__(self)
-
-    def __repr__(self):
-        return "getComplexIdx cannot determine the Index register"
-
-
 class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
     '''
     TrackingSymbolikEmulator has two modifications from a standard SymbolikEmulator:
@@ -70,7 +57,7 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
     * If a read is from a real memory map, return that memory.
     
     These are both very useful for analyzing switchcases, to determine where in 
-    memory a 
+    memory a read occurs and the data comes from.
     '''
     def __init__(self, vw):
         vs_anal.SymbolikFunctionEmulator.__init__(self, vw)
@@ -97,7 +84,6 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
 
     def setupFunctionCall(self, fva, args=None):
         logger.info("setupFunctionCall: SKIPPING!")
-        pass
         
     def readSymMemory(self, symaddr, symsize, vals=None):
         '''
@@ -175,11 +161,11 @@ def contains(symobj, subobj):
 
     ctx = {'compare':   subobj.solve(),
            'contains':  False,
-           'path':      []
+           'path':      ()
            }
 
     symobj.walkTree(_cb_contains, ctx)
-    return ctx.get('contains'), ctx['path']
+    return ctx['contains'], ctx['path']
 
 def getUnknowns(symvar):
     '''
@@ -200,7 +186,6 @@ def getUnknowns(symvar):
             memlist = ctx.get(SYMT_MEM)
             if symobj not in memlist:
                 memlist.append(symobj)
-            #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
 
     unks = {SYMT_VAR:[], SYMT_MEM:[]}
     symvar.walkTree(_cb_grab_vars_n_mems, unks)
@@ -366,22 +351,18 @@ class SwitchCase:
         self.vw = vw
         self.jmpva = jmpva
         self.timeout = timeout
-        self.op = vw.parseOpcode(jmpva)
-        logger.info('=== 0x%x: %r ===' % (jmpva, self.op))
+        self.jmpop = vw.parseOpcode(jmpva)
+        logger.info('=== analyzing SwitchCase branch at 0x%x: %r ===' % (jmpva, self.jmpop))
 
         self.sctx = vs_anal.getSymbolikAnalysisContext(vw)
         self.xlate = self.sctx.getTranslator()
 
         # 32-bit i386 thunk_reg handling.  this should be the only oddity for this architecture
-        if 'thunk_reg' in vw.getVaSetNames():
-            try:
-                for tva, regname, tgtval in vw.getVaSetRows('thunk_reg'):
-                    fname = vw.getName(tva, True)
-                    trobj = ThunkReg(regname, tgtval)
-                    self.sctx.addSymFuncCallback(fname, trobj.thunk_reg)
-                    logger.debug( "sctx.addSymFuncCallback(%s, thunk_reg)" % fname)
-            except v_exc.InvalidVaSet:
-                pass
+        for tva, regname, tgtval in vw.getVaSetRows('thunk_reg'):
+            fname = vw.getName(tva, True)
+            trobj = ThunkReg(regname, tgtval)
+            self.sctx.addSymFuncCallback(fname, trobj.thunk_reg)
+            logger.debug( "sctx.addSymFuncCallback(%s, thunk_reg)" % fname)
 
 
         self._sgraph = None
@@ -431,6 +412,8 @@ class SwitchCase:
         '''
         self.makeSwitch()
 
+    
+    
     #### primitives for switchcase analysis ####
     def getJmpSymVar(self):
         '''
@@ -440,10 +423,8 @@ class SwitchCase:
         if self.jmpsymvar is not None:
             return self.jmpsymvar
 
-        op = self.vw.parseOpcode(self.jmpva)
-
         # TODO: this is not always the right operand for all architectures.  improve
-        self.jmpsymvar = self.xlate.getOperObj(op, 0)
+        self.jmpsymvar = self.xlate.getOperObj(self.jmpop, 0)
         return self.jmpsymvar
 
     def getSymTarget(self, short=True):
@@ -484,20 +465,9 @@ class SwitchCase:
             potentials.append((SYMT_MEM, unk))
 
         if not len(potentials):
-            raise SymIdxNotFoundException(cspath, aspath)
+            raise v_exc.SymIdxNotFoundException(cspath, aspath)
             
         return potentials[0]
-
-    def getCountOffset(self):
-        '''
-        Limited value function.
-        '''
-        lower, upper, offset = self.getBounds()
-        if None in (lower, upper): 
-            logger.info("something odd in count/offset calculation... skipping 0x%x...", self.jmpva)
-            return
-        return (upper-lower+1), offset+lower
-
 
     def getConstraints(self):
         '''
@@ -592,7 +562,11 @@ class SwitchCase:
 
     def getComplexIdx(self):
         '''
-        FILL ME
+        Complex Index is the Applied Symboliks state (of the context-path) for
+        the simple index returned by getSymIdx()
+
+        eg.  if the simple symbolik index is `Var('edx', 4)` but the
+            complex could be `Arg(2, 4)` or something similar
         '''
         symtype, smplIdx = self.getSymIdx()
 
@@ -606,6 +580,8 @@ class SwitchCase:
 
         return cplxIdx
 
+
+    
     #### mid-level functionality ####
     def getBaseSymIdx(self):
         '''
@@ -638,7 +614,7 @@ class SwitchCase:
 
         idx = self.getComplexIdx()
         if idx is None:
-            raise NoComplexSymIdxException(self)
+            raise v_exc.NoComplexSymIdxException(self)
 
         idx.reduce()
 
@@ -889,8 +865,8 @@ class SwitchCase:
         start = time.time()
 
         # only support branching switch-cases (ie, not calls)
-        if not (self.op.iflags & envi.IF_BRANCH):
-            logger.info("makeSwitch: exiting: not a branch opcode: 0x%x: %r", self.op.va, self.op)
+        if not (self.jmpop.iflags & envi.IF_BRANCH):
+            logger.info("makeSwitch: exiting: not a branch opcode: 0x%x: %r", self.jmpop.va, self.jmpop)
             return
 
         # skip any that already have xrefs away from (already been discovered?)
@@ -1010,10 +986,10 @@ class SwitchCase:
         except StopIteration as e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Couldn't Find Valid Path) 0x%x  !@#$!@#$!@#$!@#$\n%r", self.jmpva, e)
 
-        except SymIdxNotFoundException as e:
+        except v_exc.SymIdxNotFoundException as e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
 
-        except NoComplexSymIdxException as e:
+        except v_exc.NoComplexSymIdxException as e:
             logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx=%r \t ComplexIdx=None) 0x%x  !@#$!@#$!@#$!@#$ \n%r", e.sc.getSymIdx(), self.jmpva, e)
 
         except PathForceQuitException as e:

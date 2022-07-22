@@ -43,6 +43,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
 
     def __init__(self, vw):
         vsym_emulator.SymbolikEmulator.__init__(self, vw)
+        self.__width__ = vw.getPointerSize()
         self.cconvs = {}
         self.cconv = None   # This will be set by setupFunctionCall
 
