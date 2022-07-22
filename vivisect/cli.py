@@ -829,75 +829,30 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
             self.vprint("exception: %r" % e)
             return self.do_help("switch")
 
-    def do_m_switch_ptr(self, line):
+    def do_m_switch(self, line):
         '''
         Wire up a switch-case based on an array of pointers
 
-        Usage: m_switch_ptr <jmp_va> <array_va> <count> [offset]
-            where:
-                jmp_va  - the va of the  "jmp reg" instruction
-                array_va - the location of the first pointer in the array
-                count   - number of switch case indices are covered by this switch case jmp
-                offset  - first switch case index.
-            
-            eg: switch case handles i == 32 thru 47, count = 16, offset = 32
-        '''
-        if not line:
-            return self.do_help("m_switch_ptr")
-
-        argv = e_cli.splitargs(line)
-        if len(argv) < 2:
-            return self.do_help("m_switch_ptr")
-
-        offset = 0
-        try:
-            jmpva = self.parseExpression(argv[0])
-            array = self.parseExpression(argv[1])
-            count = self.parseExpression(argv[2])
-
-            if len(argv) == 4:
-                offset = self.parseExpression(argv[3])
-            else:
-                offset = 0
-
-            import vivisect.analysis.generic.symswitchcase as vagss
-            import vivisect.analysis.generic.codeblocks as vagc
-            vagss.link_up(self, jmpva, array, count, offset)
-
-            funcva = self.getFunction(jmpva)
-            if funcva is not None:
-                vagc.analyzeFunction(self, funcva)
-            else:
-                self.vprint("No function found containing 0x%x", jmpva)
-        except ValueError as e:
-            self.vprint("exception: %r" % e)
-            return self.do_help("m_switch_ptr")
-        except:
-            import traceback
-            self.vprint(traceback.format_exc())
-
-    def do_m_switch_off(self, line):
-        '''
-        Wire up a switch-case based on an array of pointers
-
-        Usage: m_switch_off <jmp_va> <array_va> <count> [baseva] [size] [offset]
+        Usage: m_switch <jmp_va> <array_va> <count> [baseva] [offset] [size]
             where:
                 jmp_va  - the va of the  "jmp reg" instruction
                 array_va - the location of the first pointer in the array
                 count   - number of switch case indices are covered by this switch case jmp
                 baseva  - add the offset to this address (eg. _GOT_)
-                size    - size (default: pointer size)
                 offset  - first switch case index.
+                [size]  - size (default: pointer size)
             
             eg: switch case handles i == 32 thru 47, count = 16, offset = 32
         '''
         if not line:
-            return self.do_help("m_switch_off")
+            return self.do_help("m_switch")
 
         argv = e_cli.splitargs(line)
-        if len(argv) < 2:
-            return self.do_help("m_switch_off")
+        if len(argv) < 3:
+            return self.do_help("m_switch")
 
+        size = 0
+        baseva = 0
         offset = 0
         try:
             jmpva = self.parseExpression(argv[0])
@@ -906,18 +861,12 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
             if len(argv) > 3:
                 baseva = self.parseExpression(argv[3])
-            else:
-                baseva = 0
 
             if len(argv) > 4:
-                size = self.parseExpression(argv[4])
-            else:
-                size = None
+                offset = self.parseExpression(argv[4])
 
             if len(argv) > 5:
-                offset = self.parseExpression(argv[5])
-            else:
-                offset = 0
+                size = self.parseExpression(argv[5])
 
             # link up the switchcase using data provided
             import vivisect.analysis.generic.symswitchcase as vagss
@@ -931,7 +880,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         except ValueError as e:
             self.vprint("exception: %r" % e)
-            return self.do_help("m_switch_off")
+            return self.do_help("m_switch")
 
     def do_plt(self, line):
         '''
