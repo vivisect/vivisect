@@ -21,8 +21,6 @@ import vtrace.archs.i386 as v_i386
 import vtrace.archs.amd64 as v_amd64
 import vtrace.platforms.base as v_base
 
-import vtrace.platforms.win_sedebug as win_sedebug
-
 import envi
 import envi.bits as e_bits
 import envi.const as e_const
@@ -36,10 +34,6 @@ from ctypes import *
 
 logger = logging.getLogger(__name__)
 platdir = os.path.dirname(__file__)
-
-# Enable SeDebugPrivilege on Windows
-win_sedebug.enable_privs()
-
 
 kernel32 = None
 dbghelp = None
@@ -1225,6 +1219,9 @@ class WindowsMixin:
     """
 
     def __init__(self):
+        # Enable SeDebugPrivilege on Windows
+        import vtrace.platforms.win_sedebug as win_sedebug
+        win_sedebug.enable_privs()
 
         self.casesens = False
 
