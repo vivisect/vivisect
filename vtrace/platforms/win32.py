@@ -21,7 +21,6 @@ import vtrace.archs.i386 as v_i386
 import vtrace.archs.amd64 as v_amd64
 import vtrace.platforms.base as v_base
 
-import vtrace.platforms.winadmin
 import vtrace.platforms.win_sedebug as win_sedebug
 
 import envi
