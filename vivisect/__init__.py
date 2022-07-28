@@ -87,6 +87,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._viv_gui = None    # If a gui is running, he will put a ref here...
         self._ext_ctxmenu_hooks = {}
         self._extensions = {}
+        self._load_guid = threading.Event()
         self._load_event = threading.Event()
 
         self.saved = False  # TODO: Have a warning when we try to close the UI if the workspace hasn't been saved
@@ -249,7 +250,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         self._extensions.pop(name, None)
 
-    def getVivGuid(self):
+    def getVivGuid(self, generate=True):
         '''
         Return the GUID for this workspace.  Every newly created VivWorkspace
         should have a unique GUID, for identifying a particular workspace for
@@ -260,7 +261,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         based workspace used to store to the server.
         '''
         vivGuid = self.getMeta('GUID')
-        if vivGuid is None:
+        if vivGuid is None and generate:
             vivGuid = guid()
             self.setMeta('GUID', vivGuid)
 
@@ -386,7 +387,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return list(self.comments.items())
 
-    def addRelocation(self, va, rtype, data=None):
+    def addRelocation(self, va, rtype, data=None, size=None):
         """
         Add a relocation entry for tracking.
         Expects data to have whatever is necessary for the reloc type. eg. addend
@@ -400,7 +401,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         imgbase = self.getFileMeta(fname, 'imagebase')
         offset = va - imgbase
 
-        self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
+        self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data, size))
         return self.getRelocation(va)
 
     def delRelocation(self, va, full=False):
@@ -2693,6 +2694,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if hasattr(mod, "config"):
             self.mergeConfig(mod.config)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         fd.seek(0)
         fname = mod.parseFd(self, fd, filename=None, baseaddr=baseaddr)
 
@@ -2723,6 +2727,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if hasattr(mod, "config"):
             self.mergeConfig(mod.config)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         if fmtname == 'pe':
             mod.loadPeIntoWorkspace(self, pbin)
         elif fmtname == 'elf':
@@ -2789,6 +2796,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.loadWorkspace(filename)
             return self.normFileName(filename)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         mod = viv_parsers.getParserModule(fmtname)
 
         # get baseaddr and size, then make sure we have a good baseaddr
@@ -2820,6 +2830,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # TODO: Load workspace from memory?
         mod = viv_parsers.getParserModule(fmtname)
+
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
         mod.parseMemory(self, memobj, baseaddr)
 
         mapva, mapsize, mapperm, mapfname = memobj.getMemoryMap(baseaddr)

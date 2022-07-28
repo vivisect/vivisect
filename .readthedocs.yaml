@@ -1,5 +1,6 @@
+version: 2
+
 python:
   version: 3.8
-  pip_install: true
-  extra_requirements:
-    - docs
+  install:
+    - requirements: requirements_doc.txt

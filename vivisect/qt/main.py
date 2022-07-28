@@ -380,8 +380,27 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddDockWidgetClass(viv_q_funcgraph.VQVivFuncgraphView, args=(self.vw, self))
         self.vqAddDockWidgetClass(viv_q_symboliks.VivSymbolikFuncPane, args=(self.vw, self))
 
-    def vqRestoreGuiSettings(self, settings):
-        guid = self.vw.getVivGuid()
+    @idlethread
+    def vqRestoreGuiSettings(self, settings, guid=None):
+        '''
+        Restores GUI settings (size/layout/views) based on:
+         * GUID
+         * Filename(s)
+         * Default Layout
+
+        If workspace is connected to a server, we wait for a GUID to be present before proceeding
+        '''
+
+        if self.vw.server and not guid:
+            # wait until the GUID has been loaded from the remote workspace before continuing
+            self.vw._load_guid.wait() 
+
+        if not guid:
+            guid = self.vw.getVivGuid()
+
+        logger.debug("vqRestoreGuiSettings() -> guid=%r  vw.server=%r", guid, self.vw.server)
+
+        logger.debug("attempting to load GUI settings based on GUID: %s", guid)
         dwcls = settings.value('%s/DockClasses' % guid)
         state = settings.value('%s/DockState' % guid)
         geom = settings.value('%s/DockGeometry' % guid)
@@ -391,12 +410,14 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
+            logger.debug("attempting to load GUI settings based on Filename(s): %r", name)
             dwcls = settings.value('%s/DockClasses' % name)
             state = settings.value('%s/DockState' % name)
             geom = settings.value('%s/DockGeometry' % name)
             stub = '%s/' % name
 
         if compat_isNone(dwcls):
+            logger.debug("loading default GUI settings")
             dwcls = settings.value('DockClasses')
             state = settings.value('DockState')
             geom = settings.value('DockGeometry')

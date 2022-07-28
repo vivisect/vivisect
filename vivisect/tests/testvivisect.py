@@ -43,7 +43,6 @@ class VivisectTest(v_t_utils.VivTest):
             vw.canvas.renderers = oldcanv.renderers
             vw.canvas.setRenderer('viv')
 
-
     def test_xrefs_types(self):
         '''
         Test that we have data consistency in xrefs
@@ -67,7 +66,7 @@ class VivisectTest(v_t_utils.VivTest):
         output = self.chgrp_vw.canvas.strval
         self.assertIn("pattern not found: 66006f006f00 (b'f\\x00o\\x00o\\x00')", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-X ffffffff253c40050868")
         output = self.chgrp_vw.canvas.strval
         self.assertIn('0x08048e5d: -r-x loc_08048e5d + 0x0\ndone ', output)
@@ -82,27 +81,26 @@ class VivisectTest(v_t_utils.VivTest):
         output = self.chgrp_vw.canvas.strval
         self.assertIn("(b'ab.*rt')\n0x0804874e:", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-r al.*rt -c")
         output = self.chgrp_vw.canvas.strval
         self.assertIn("0x8051333  61 6c 6d 6f 73 74 20 63 65 72 74 61 69 6e 6c 79   almost certainly", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-c -r qsort")
         output = self.chgrp_vw.canvas.strval
         self.assertIn("0x80488e3  71 73 6f 72 74 00 66 63 6e 74 6c 00 6d 65 6d 6d   qsort.fcntl", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x200")
         output = self.chgrp_vw.canvas.strval
         self.assertIn("searching from 0x08048000 for 512 bytes\npattern not found: 71736f7274 (b'qsort')\n", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x2000")
         output = self.chgrp_vw.canvas.strval
         self.assertIn("0x80488e3  71 73 6f 72 74 00 66 63 6e 74 6c 00 6d 65 6d 6d   qsort.fcntl.memm\n0x80488f3  6f 76 65 00 62 69 6e 64 74 65 78 74 64 6f 6d 61   ove.bindtextdoma\n\ndone (1 results).\n", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
 
     def test_cli_searchopcode(self):
         '''
@@ -1488,13 +1486,13 @@ class VivisectTest(v_t_utils.VivTest):
 
         self.assertEqual(thunks, set(impthunk))
 
-    def test_NoRet(self):
+    def test_noret(self):
 
         # test analysis stops after a few known NoRets
         # arm/sh
         self.assertIsNone(self.sh_vw.getLocation(0x0000ddaa))
         self.assertIsNone(self.sh_vw.getLocation(0x000288ce))
-       
+
         # linux/i386/vdir.llvm
         self.assertIsNone(self.vdir_vw.getLocation(0x080589ba))
         self.assertIsNone(self.vdir_vw.getLocation(0x0805875f))
@@ -1548,3 +1546,22 @@ class VivisectTest(v_t_utils.VivTest):
         # string naming should not chop off the last character
         self.assertEqual(self.chown_vw.getName(0x0200c050), 'str_ownership of %s _0200c050')
 
+    def test_relocatable_elf_simple(self):
+        kmod = helpers.getTestWorkspace('linux', 'amd64', 'hellokernel.ko')
+        self.eq(set(kmod.getFunctions()), set([0x7c, 0x95]))
+
+    def test_guid(self):
+        vw = vivisect.VivWorkspace()
+
+        # raw workspace should not have a GUID
+        self.assertEqual(vw.getMeta('GUID'), None)
+
+        chownpath = helpers.getTestPath('linux', 'amd64', 'chown')
+        vw.loadFromFile(chownpath)
+
+        # workspace gets a GUID after one of the "vw.loadFrom*" functions is called
+        newguid = vw.getMeta('GUID')
+        self.assertNotEqual(newguid, None)
+
+        # since it's assigned, the result from "vw.getVivGuid()" should be the same
+        self.assertEqual(newguid, vw.getVivGuid())

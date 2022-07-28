@@ -93,7 +93,7 @@ docconfig = {
             },
         },
         'remote':{
-            'wait_for_plat_arch':'How many secs to wait for the remote server/workspace to provide a Platform or Architecture before moving on.'
+            'wait_for_plat_arch':'How many secs to wait for the remote server/workspace to provide a Platform or Architecture before moving on.',
         }
 
     },
