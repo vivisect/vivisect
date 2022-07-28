@@ -139,12 +139,14 @@ class DistributedNotifier(Notifier):
 
 class LibraryNotifer(Notifier):
     def notify(self, event, trace):
+        print("LibraryNotifier.notify(%r, %r)" % (event, trace))
         #check meta
-        if trace.getMeta('BreakOnLibraryLoad'):
+        if trace.getMeta('BreakOnLibraryLoad') or trace.config.vdb.BreakOnLibraryLoad:
             # stop this instant!
             trace.sendBreak()
 
-        if trace.getMeta('BreakOnLibraryInit'):
+        if trace.getMeta('BreakOnLibraryInit') or trace.config.vdb.BreakOnLibraryInit:
+            print("BreakOnLibraryInit")
             # add Breakpoint for __entry
             libnormname = trace.getMeta('LatestLibraryNorm')
             entryname = "%s.__entry" % (libnormname)
@@ -161,4 +163,5 @@ class LibraryNotifer(Notifier):
                 logger.warning("LoadLibrary(%r): Can't add breakpoint!  %r", libnormname, e)
 
     def _doAddBreakByExp(self, trace, expr):
+        print("_doAddBreakByExp(%r, %r)" % (trace, expr))
         trace.addBreakByExpr(expr)
