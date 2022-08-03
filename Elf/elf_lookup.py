@@ -381,13 +381,6 @@ r_armclasses = [
             ),
         ]
 
-
-
-
-
-
-
-
 R_386_NONE = 0
 R_386_32 = 1
 R_386_PC32 = 2
@@ -506,7 +499,7 @@ R_X86_64_IRELATIVE   = 37
 
 r_types_amd64 = {
     R_X86_64_NONE       :'No reloc',
-    R_X86_64_64         :'Direct 64 bit ',
+    R_X86_64_64         :'Direct 64 bit',
     R_X86_64_PC32       :'PC relative 32 bit signed',
     R_X86_64_GOT32      :'32 bit GOT entry',
     R_X86_64_PLT32      :'32 bit PLT address',
@@ -595,7 +588,7 @@ sh_type = {
     SHT_FINI_ARRAY:"Array of destructors",
     SHT_PREINIT_ARRAY:"Array of pre-constructors",
     SHT_GROUP:"Section group",
-    SHT_SYMTAB_SHNDX:"Extended section indeces",
+    SHT_SYMTAB_SHNDX:"Extended section indices",
     SHT_LOOS:"Start OS-specific",
     SHT_GNU_LIBLIST:"Prelink library list",
     SHT_CHECKSUM:"Checksum for DSO content.",
@@ -631,7 +624,7 @@ sh_flags = {
     SHF_ALLOC:"Occupies memory during execution",
     SHF_EXECINSTR:"Executable",
     SHF_MERGE:"Might be merged",
-    SHF_STRINGS:"Contains nul-terminated strings",
+    SHF_STRINGS:"Contains null-terminated strings",
     SHF_INFO_LINK:"`sh_info' contains SHT index",
     SHF_LINK_ORDER:"Preserve order after combining",
     SHF_OS_NONCONFORMING:"Non-standard OS specific",
@@ -708,6 +701,24 @@ st_other_visibility = {
     STV_INTERNAL:"Symbol visibility is reserved",
     STV_HIDDEN:"Symbol is not visible to other objects",
     STV_PROTECTED:"Symbol is visible by other objects, but cannot be preempted"
+}
+
+SHN_UNDEF = 0
+SHN_LORESERVE = SHN_LOPROC = SHN_BEFORE = 0xff00
+SHN_AFTER = 0xff01
+SHN_HIPROC = 0xff1f
+SHN_ABS = 0xfff1
+SHN_COMMON = 0xfff2
+SHN_HIRESERVE = 0xffff
+
+shn_special_section_indices = {
+    SHN_UNDEF: "Undefined/Missing/Irrelevant Section Index",
+    SHN_LORESERVE: "Lower boundary of reserved values",
+    SHN_AFTER: "Marker for initial section ordering with SHF_LINK_ORDER and SHF_ORDER section flags",
+    SHN_HIPROC: "Marker for final section ordering with SHF_LINK_ORDER and SHF_ORDER section flags",
+    SHN_ABS: "Relative Symbols are absolute references",
+    SHN_COMMON: "Relative symbols are common symbols (also called tentative symbols)",
+    SHN_HIRESERVE: "Upper boundary of reserved values",
 }
 
 DT_NULL     = 0
@@ -849,7 +860,6 @@ df_types = {
     DF_BIND_NOW: 'No lazy binding for this object',
     DF_STATIC_TLS: 'Module uses the static TLS model',
 }
-
 
 PT_NULL     = 0
 PT_LOAD     = 1

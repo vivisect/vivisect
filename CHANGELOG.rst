@@ -6,14 +6,14 @@ V1.0.8 - 2022-04-28
 ===================
 
 Features
-========
+--------
 - Improved Save-As capabilities when connected to a remote server and better struct making from the UI. 
   (`#501 <https://github.com/vivisect/vivisect/pull/501>`_)
 - Improve output for the UI's ``names`` command.
   (`#516 <https://github.com/vivisect/vivisect/pull/516>`_)
 
 Fixes
-=====
+-----
 - Fix issue in the proxy case where we forgot to snap in the analysis modules.
   (`#498 <https://github.com/vivisect/vivisect/pull/498>`_)
 - Fix string naming.

@@ -391,7 +391,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return list(self.comments.items())
 
-    def addRelocation(self, va, rtype, data=None):
+    def addRelocation(self, va, rtype, data=None, size=None):
         """
         Add a relocation entry for tracking.
         Expects data to have whatever is necessary for the reloc type. eg. addend
@@ -405,7 +405,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         imgbase = self.getFileMeta(fname, 'imagebase')
         offset = va - imgbase
 
-        self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
+        self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data, size))
         return self.getRelocation(va)
 
     def delRelocation(self, va, full=False):
