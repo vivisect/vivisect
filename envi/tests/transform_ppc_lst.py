@@ -1511,9 +1511,9 @@ class ppc_instr(object):
         val = self._get_xfx_field2(data)
         # SPRs are capitalized, TMR and PMR names are lower case
         spr_to_str_map = {
-            1: 'XER',
-            8: 'LR',
-            9: 'CTR',
+            1: 'xer',
+            8: 'lr',
+            9: 'ctr',
             22: 'DEC',
             26: 'SRR0',
             27: 'SRR1',

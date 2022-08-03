@@ -12,18 +12,18 @@ Ways to access registers, flags or memory:
 GOOD_EMU_TESTS = 462
 
 emutests = {
-    #'e9f2': [{'setup': (('PC', 0x471450), ('LR', 0x313370)),
-    #    'tests': (('PC', 0x471434), ('LR', 0x471452))}],   # se_bl -0x1c
+    #'e9f2': [{'setup': (('PC', 0x471450), ('lr', 0x313370)),
+    #    'tests': (('PC', 0x471434), ('lr', 0x471452))}],   # se_bl -0x1c
 
-    #'e8eb': [{'setup': (('PC', 0x471450), ('LR', 0x313370 )),
-    #    'tests': (('PC', 0x471450), ('LR', 0x313370))}],   # se_b -0x2a
+    #'e8eb': [{'setup': (('PC', 0x471450), ('lr', 0x313370 )),
+    #    'tests': (('PC', 0x471450), ('lr', 0x313370))}],   # se_b -0x2a
 
     '7CDF0214': [
         {
             'setup': (
                 ('r31', 4),
                 ('r0', 16),
-                ('XER', 0),
+                ('xer', 0),
             ),
             'tests': (
                 ('r6', 20),
@@ -52,60 +52,60 @@ emutests = {
             'setup': (
                 ('r30', 4),
                 ('r3', 16),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
             'tests': (
                 ('r30', 20),
                 ('r3', 16),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
         },
         {
             'setup': (
                 ('r30', -1),
                 ('r3', 3),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
             'tests': (
                 ('r30', 2),
                 ('r3', 3),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
         },
         {
             'setup': (
                 ('r30', 0x7fffffff),
                 ('r3', 3),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
             'tests': (
                 ('r30', 0x80000002),
                 ('r3', 3),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
         },
         {
             'setup': (
                 ('r30', 0x7fffffff),
                 ('r3', 3),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
             'tests': (
                 ('r30', 0x80000003),
                 ('r3', 3),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
         },
         {
             'setup': (
                 ('r30', 0xffffffff),
                 ('r3', 3),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
             'tests': (
                 ('r30', 0x3),
                 ('r3', 3),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
         },
     ],   # 7FDE1914,"adde r30,r30,r3"
@@ -147,7 +147,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x00050056),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
             'tests': (
                 ('r0', 0x00050057),
@@ -157,7 +157,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x00050056),
-                ('XER', 0x00000000)
+                ('xer', 0x00000000)
             ),
             'tests': (
                 ('r0', 0x50056),
@@ -877,7 +877,7 @@ emutests = {
     '7C000026': [  # 7C000026,mfcr r0
         {
             'setup': (
-                ('CR', 0x11223344),
+                ('cr', 0x11223344),
                 ('r0', 0x0)
             ),
             'tests': (
@@ -1079,7 +1079,7 @@ emutests = {
             'tests': (
                 ('r0', 0x1),
                 ('cr0', 0b0100),
-                ('XER', 0x0)
+                ('xer', 0x0)
 
             ),
         },
@@ -1087,12 +1087,12 @@ emutests = {
             'setup': (
                 ('r0', 0x10001),
                 ('r3', 0x0),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
             'tests': (
                 ('r0', 0),
                 ('cr0', 0b0010),
-                ('XER', 0x0)
+                ('xer', 0x0)
 
             ),
         },
@@ -1100,12 +1100,12 @@ emutests = {
             'setup': (
                 ('r0', 0x10001),
                 ('r3', 0x10000),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
             'tests': (
                 ('r0', 0x8000),
                 ('cr0', 0b0100),
-                ('XER', 0x0)
+                ('xer', 0x0)
 
             ),
 
@@ -1114,12 +1114,12 @@ emutests = {
             'setup': (
                 ('r0', 0x10001),
                 ('r3', 0x10000),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
             'tests': (
                 ('r0', 0x8000),
                 ('cr0', 0b0100),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
         },
 
@@ -1129,12 +1129,12 @@ emutests = {
         {
             'setup': (
                 ('r11', 0x1),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
             'tests': (
                 ('r0', 0x0),
                 ('cr0', 0b0010),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
         },
         {
@@ -1159,12 +1159,12 @@ emutests = {
         {
             'setup': (
                 ('r11', 0x10000),
-                ('XER', 0x20000000)
+                ('xer', 0x20000000)
             ),
             'tests': (
                 ('r0', 0x100),
                 ('cr0', 0b0100),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
         },
 
@@ -1176,12 +1176,12 @@ emutests = {
                 ('r7', 0),
                 ('r3', 0x10000000),
                 ('r0', 0x20),
-                ('XER', 0)
+                ('xer', 0)
             ),
             'tests': (
                 ('r7', 0x0),
                 ('cr0', 0b0010),
-                ('XER', 0)
+                ('xer', 0)
             ),
         },
         {
@@ -1189,12 +1189,12 @@ emutests = {
                 ('r7', 0),
                 ('r3', 0x10000000),
                 ('r0', 0x10),
-                ('XER', 0)
+                ('xer', 0)
             ),
             'tests': (
                 ('r7', 0x1000),
                 ('cr0', 0b0100),
-                ('XER', 0)
+                ('xer', 0)
             ),
         },
         {
@@ -1202,12 +1202,12 @@ emutests = {
                 ('r7', 0),
                 ('r3', 0x10000000),
                 ('r0', 0xfffffff0),
-                ('XER', 0)
+                ('xer', 0)
             ),
             'tests': (
                 ('r7', 0),
                 ('cr0', 0b0010),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
         },
 
@@ -1462,33 +1462,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -1689,7 +1689,7 @@ emutests = {
 '0006': [  # 0006,se_bctr
         {
             'setup': (
-                ('CTR', 0x10001010),
+                ('ctr', 0x10001010),
                 ('PC', 0x40004560)
             ),
             'tests': (
@@ -1701,13 +1701,13 @@ emutests = {
 '0007': [  # 0007,se_bctrl
         {
             'setup': (
-                ('CTR', 0x10001010),
+                ('ctr', 0x10001010),
                 ('PC', 0x40004560),
-                ('LR', 0x10000010)
+                ('lr', 0x10000010)
             ),
             'tests': (
                 ('PC', 0x10001010),
-                ('LR', 0x40004562)
+                ('lr', 0x40004562)
             ),
         },
     ],  # 0007,se_bctrl
@@ -1879,7 +1879,7 @@ emutests = {
     '0004': [  # 0004,se_blr
         {
             'setup': (
-                ('LR', 0x40006540),
+                ('lr', 0x40006540),
             ),
             'tests': (
                 ('PC', 0x40006540),
@@ -1888,7 +1888,7 @@ emutests = {
         {
             'setup': (
                 ('PC', 0x400045F0),
-                ('LR',0x40004560)
+                ('lr',0x40004560)
             ),
             'tests': (
                 ('PC', 0x40004560),
@@ -1900,21 +1900,21 @@ emutests = {
         {
             'setup': (
                 ('PC', 0x400045F0),
-                ('LR',0x40004560)
+                ('lr',0x40004560)
             ),
             'tests': (
                 ('PC', 0x40004560),
-                ('LR', 0x400045f2)
+                ('lr', 0x400045f2)
             ),
         },
         {
             'setup': (
                 ('PC', 0x400046F0),
-                ('LR',0x40004560)
+                ('lr',0x40004560)
             ),
             'tests': (
                 ('PC', 0x40004560),
-                ('LR', 0x400046f2)
+                ('lr', 0x400046f2)
             ),
         },
     ],  # 0005,se_blrl
@@ -2044,7 +2044,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
             'tests': (
                 ('cr0', 0b0010),
@@ -2053,7 +2053,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0xffffffff),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0101),
@@ -2062,7 +2062,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x7fffffff),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0011),
@@ -2076,7 +2076,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
             'tests': (
                 ('cr0', 0b0010),
@@ -2085,7 +2085,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0xffffffff),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0101),
@@ -2094,7 +2094,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0xffff7fff),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0011),
@@ -2108,7 +2108,7 @@ emutests = {
             'setup': (
                 ('r0', 0),
                 ('r24', 0x12345678),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b1001),
@@ -2118,7 +2118,7 @@ emutests = {
             'setup': (
                 ('r0', 0),
                 ('r24', 0x82345678),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0101),
@@ -2128,7 +2128,7 @@ emutests = {
             'setup': (
                 ('r0', 0x82345678),
                 ('r24', 0x82345678),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0011),
@@ -2140,7 +2140,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x80000000),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b1001),
@@ -2149,7 +2149,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0011),
@@ -2158,7 +2158,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 1),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
             'tests': (
                 ('cr0', 0b0100),
@@ -2171,7 +2171,7 @@ emutests = {
             'setup': (
                 ('r0', 0x80000000),
                 ('r24', 0x80000000),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0011),
@@ -2181,7 +2181,7 @@ emutests = {
             'setup': (
                 ('r0', 0x60000000),
                 ('r24', 0x80000000),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b1001),
@@ -2191,7 +2191,7 @@ emutests = {
             'setup': (
                 ('r0', 0x90000000),
                 ('r24', 0x80000000),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b00101),
@@ -2201,7 +2201,7 @@ emutests = {
             'setup': (
                 ('r0', 0x80000000),
                 ('r24', 0x80000000),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
             'tests': (
                 ('cr0', 0b0010),
@@ -2213,7 +2213,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x80000000),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0101),
@@ -2222,7 +2222,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x60000000),
-                ('XER', 0x80000000)
+                ('xer', 0x80000000)
             ),
             'tests': (
                 ('cr0', 0b0101),
@@ -2231,7 +2231,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x0),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
             'tests': (
                 ('cr0', 0b1000),
@@ -2240,7 +2240,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x1),
-                ('XER', 0x0)
+                ('xer', 0x0)
             ),
             'tests': (
                 ('cr0', 0b0010),
@@ -2394,7 +2394,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x123456fe),
-                ('CTR', 0x77777777)
+                ('ctr', 0x77777777)
             ),
             'tests': (
                 ('r0', 0x77777777),
@@ -2406,7 +2406,7 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x123456fe),
-                ('LR', 0x77777777)
+                ('lr', 0x77777777)
             ),
             'tests': (
                 ('r0', 0x77777777),
@@ -2442,11 +2442,11 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x77777777),
-                ('CTR', 0x0)
+                ('ctr', 0x0)
 
             ),
             'tests': (
-                ('CTR', 0x77777777),
+                ('ctr', 0x77777777),
             ),
         },
     ],  # 00B0,se_mtctr r0
@@ -2455,11 +2455,11 @@ emutests = {
         {
             'setup': (
                 ('r0', 0x77777777),
-                ('LR', 0x0)
+                ('lr', 0x0)
 
             ),
             'tests': (
-                ('LR', 0x77777777),
+                ('lr', 0x77777777),
             ),
         },
     ],  # 0090,se_mtlr r0
@@ -2889,7 +2889,7 @@ emutests = {
     #         {
     #             'setup': (
     #                 ('r0', 0x0),
-    #                 ('XER', 0x20000000)
+    #                 ('xer', 0x20000000)
     #             ),
 
     #             'tests': (
@@ -2948,33 +2948,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -2984,33 +2984,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -3020,33 +3020,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -3056,33 +3056,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -3092,33 +3092,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -3128,22 +3128,22 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0000),    # no SO bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0001),    # SO bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -3153,22 +3153,22 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0000),    # no SO bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0001),    # SO bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -3178,33 +3178,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -3214,33 +3214,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -3250,33 +3250,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -3286,33 +3286,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -3322,33 +3322,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -3358,33 +3358,33 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b1000),    # LT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0100),    # GT bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0010),    # EQ bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -3394,22 +3394,22 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0000),    # no SO bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0001),    # SO bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -3419,22 +3419,22 @@ emutests = {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0000),    # no SO bit, don't branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
                 ('cr0', 0b0001),    # SO bit, branch
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -3443,23 +3443,23 @@ emutests = {
         {
             'setup': (
                 ('PC', 0x40000000),
-                ('CTR', 0x1),   # decrements to 0, don't branch
-                ('LR', 0x0),
+                ('ctr', 0x1),   # decrements to 0, don't branch
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
-                ('CTR', 0x2),   # decrements to non-zero, branch
-                ('LR', 0x0),
+                ('ctr', 0x2),   # decrements to non-zero, branch
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -3468,23 +3468,23 @@ emutests = {
         {
             'setup': (
                 ('PC', 0x40000000),
-                ('CTR', 0x1),   # decrements to 0, don't branch
-                ('LR', 0x0),
+                ('ctr', 0x1),   # decrements to 0, don't branch
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
-                ('CTR', 0x2),   # decrements to non-zero, branch
-                ('LR', 0x0),
+                ('ctr', 0x2),   # decrements to non-zero, branch
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -3493,23 +3493,23 @@ emutests = {
         {
             'setup': (
                 ('PC', 0x40000000),
-                ('CTR', 0x1),   # decrements to 0, branch
-                ('LR', 0x0),
+                ('ctr', 0x1),   # decrements to 0, branch
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
-                ('CTR', 0x2),   # decrements to non-zero, don't branch
-                ('LR', 0x0),
+                ('ctr', 0x2),   # decrements to non-zero, don't branch
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -3518,23 +3518,23 @@ emutests = {
         {
             'setup': (
                 ('PC', 0x40000000),
-                ('CTR', 0x1),   # decrements to 0, branch
-                ('LR', 0x0),
+                ('ctr', 0x1),   # decrements to 0, branch
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x3ffffe4e),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
         {
             'setup': (
                 ('PC', 0x40000000),
-                ('CTR', 0x2),   # decrements to non-zero, don't branch
-                ('LR', 0x0),
+                ('ctr', 0x2),   # decrements to non-zero, don't branch
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000004),
-                ('LR', 0x40000004),
+                ('lr', 0x40000004),
             ),
         },
     ],
@@ -4353,10 +4353,10 @@ emutests = {
         {
             'setup': (
                 ('r1', 0x10000000),
-                ('CR', 0xdfdfdfdf),
-                ('LR', 0xdfdfdfdf),
-                ('CTR', 0xdfdfdfdf),
-                ('XER', 0xdfdfdfdf),
+                ('cr', 0xdfdfdfdf),
+                ('lr', 0xdfdfdfdf),
+                ('ctr', 0xdfdfdfdf),
+                ('xer', 0xdfdfdfdf),
                 (0x10000040 + (4 * 0), bytes.fromhex('00000000')),
                 (0x10000040 + (4 * 1), bytes.fromhex('33333333')),
                 (0x10000040 + (4 * 2), bytes.fromhex('44444444')),
@@ -4364,10 +4364,10 @@ emutests = {
             ),
             'tests': (
                 ('r1', 0x10000000),
-                ('CR', 0x00000000),
-                ('LR', 0x33333333),
-                ('CTR', 0x44444444),
-                ('XER', 0x55555555),
+                ('cr', 0x00000000),
+                ('lr', 0x33333333),
+                ('ctr', 0x44444444),
+                ('xer', 0x55555555),
             )
         }
     ],
@@ -4376,10 +4376,10 @@ emutests = {
         {
             'setup': (
                 ('r1', 0x10000000),
-                ('CR', 0x00000000),
-                ('LR', 0x33333333),
-                ('CTR', 0x44444444),
-                ('XER', 0x55555555),
+                ('cr', 0x00000000),
+                ('lr', 0x33333333),
+                ('ctr', 0x44444444),
+                ('xer', 0x55555555),
                 (0x10000040 + (4 * 0), bytes.fromhex('dfdfdfdf')),
                 (0x10000040 + (4 * 1), bytes.fromhex('dfdfdfdf')),
                 (0x10000040 + (4 * 2), bytes.fromhex('dfdfdfdf')),
@@ -4957,10 +4957,10 @@ emutests = {
     '7D040020': [  # e_mcrf cr2,cr1
         {
             'setup': (
-                ('CR', 0x12345678),
+                ('cr', 0x12345678),
             ),
             'tests': (
-                ('CR', 0x12245678),
+                ('cr', 0x12245678),
             ),
         },
     ],
@@ -5841,11 +5841,11 @@ emutests = {
         {
             'setup': (
                 ('PC', 0x40000050),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000030),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
         },
     ],
@@ -5854,11 +5854,11 @@ emutests = {
         {
             'setup': (
                 ('PC', 0x40000050),
-                ('LR', 0x0),
+                ('lr', 0x0),
             ),
             'tests': (
                 ('PC', 0x40000030),
-                ('LR', 0x40000054),
+                ('lr', 0x40000054),
             ),
         },
     ],
