@@ -15,7 +15,7 @@ h8_regs_tup = (
     ('exr', 8),
 )
 
-h8_regs = [r for r, sz in h8_reg_tup]
+h8_regs = [r for r, sz in h8_regs_tup]
 
 l = locals()
 e_reg.addLocalEnums(l, h8_regs_tup)
