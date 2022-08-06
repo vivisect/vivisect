@@ -690,10 +690,38 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             logger.info('Reloc: making Import 0x%x (name: %s.%s) ', rlva, fn, symname)
                             vw.makeImport(rlva, fn, symname)
 
+                    elif rtype == Elf.R_386_COPY:  # Also covers X86_64_COPY
+                        # the linker is responsible for filling these in so we probably won't have these
+                        vw.addRelocation(rlva, RTYPE_BASERELOC, 0)
+
+                    elif rtype == Elf.R_386_32:  # Also covers X86_64_64
+                        # a direct punch in plus an addend
+                        # but things like libstc++ use this type for vtables in the rel.dyn
+                        # section without actually specifying an addend
+                        if r.vsHasField('r_addend'):
+                            # this is a RELA object, bringing its own addend field!
+                            addend = r.r_addend
+                        else:
+                            addend = vw.readMemoryPtr(rlva)
+
+                        vw.addRelocation(rlva, RTYPE_BASEPTR, addend)
+
+                    elif rtype == Elf.R_386_PC32:  # Also covers R_X86_64_PC32
+                        # a direct punch in plus an addend minus P
+                        P = r.r_offset
+                        if r.vsHasField('r_addend'):
+                            # this is a RELA object, bringing its own addend field!
+                            addend = r.r_addend - P
+                        else:
+                            addend = vw.readMemoryPtr(rlva) - P
+
+                        vw.addRelocation(rlva, RTYPE_BASEPTR, addend)
+
                     elif rtype == Elf.R_X86_64_TPOFF64:
                         pass
                     elif rtype == Elf.R_386_TLS_DTPMOD32:
                         pass
+
                     else:
                         logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                         logger.warning(r.tree())
@@ -703,9 +731,9 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                 # ARM REL entries require an addend that could be stored as a 
                 # number or an instruction!
                 import envi.archs.arm.const as eaac
-                if r.vsHasField('addend'):
+                if r.vsHasField('r_addend'):
                     # this is a RELA object, bringing its own addend field!
-                    addend = r.addend
+                    addend = r.r_addend
                 else:
                     # otherwise, we have to check the stored value for number or instruction
                     # if it's an instruction, we have to use the immediate value and then 

@@ -279,6 +279,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.symbols  = []
         self.relocs   = []
         self.relocvas = []
+        self.relocsection = []
         self.symbols_by_name = {}
         self.symbols_by_addr = {}
         self.dynamics = []      # deprecated - 2019-10-21
@@ -693,12 +694,43 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     sym = self.dynamic_symbols[index]
                     reloc.setName( sym.getName() )
 
+                # if name not found in dynamic_symbols, try symbols
+                if reloc.getName() == '' and index < len(self.symbols):
+                    sym = self.symbols[index]
+                    reloc.setName( sym.getName() )
+
                 if reloc.r_offset in self.relocvas:
                     # FIXME: This line is hit sever tens of thousands of times during parsing
                     logger.debug('duplicate relocation (section): %s', reloc)
                     continue
 
                 logger.info('section reloc: %s', reloc)
+
+                # THIS IS SECTION-RELOCS ONLY
+                if self.e_type == ET_REL:   # kernel module
+                    # figure out target section
+                    if sec.sh_type == SHT_RELA:
+                        tgtsecname = sec.getName()[5:]  # chop '.rela' off front
+                    elif sec.sh_type == SHT_REL:
+                        tgtsecname = sec.getName()[4:]  # chop '.rel' off front
+                    
+                    # search through sections and grab secbase
+                    secbase = None
+                    for tgtsec in self.sections:
+                        if tgtsec.getName() != tgtsecname:
+                            continue
+                        #logger.warning("Found Match: %r  =>  %r", sec, tgtsec)
+                        secbase = tgtsec.sh_offset
+
+                    if secbase is None:
+                        logger.warning("Elf type is ET_REL, but Reloc section %r has no target section",
+                                sec.getName())
+
+                    else:
+                        # add base
+                        reloc.r_offset += secbase
+                # END SECTION-ONLY PART
+
                 self.relocs.append(reloc)
                 self.relocvas.append(reloc.r_offset)
 
