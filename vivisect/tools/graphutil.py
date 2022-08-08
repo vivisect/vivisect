@@ -881,3 +881,18 @@ class PathGenerator:
             vg_pathcore.trimPath(cpath)
 
         self.__go__ = False
+
+def pathGenConvert(pathgen):
+    '''
+    this takes in a HierGraph path-generator and converts each path to the kind needed by Symboliks
+    '''
+    for path in pathgen:
+        newpath = []
+        prevedge = [ None ]
+        for node, nextedge in path:
+            newpath.append((node[0], prevedge[0]))
+            prevedge = nextedge
+
+        #pprint(newpath)
+        yield newpath
+
