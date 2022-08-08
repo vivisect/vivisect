@@ -423,11 +423,10 @@ class SwitchCase:
         if self.jmpsymvar is not None:
             return self.jmpsymvar
 
-        # TODO: this is not always the right operand for all architectures.  improve
         self.jmpsymvar = self.xlate.getOperObj(self.jmpop, 0)
         return self.jmpsymvar
 
-    def getSymTarget(self, short=True):
+    def getSymTarget(self):
         '''
         Returns the Symbolik state of the dynamic target of the branch/jmp
         short indicates just in the context of the last codeblock.
@@ -436,7 +435,7 @@ class SwitchCase:
         jmpsymvar = self.getJmpSymVar()
 
         cspath, aspath, fullpath = self.getSymbolikParts()
-        emu = (cspath[0], aspath[0])[short]
+        emu = aspath[0]
         tgtsym = jmpsymvar.update(emu)
         return tgtsym
 
@@ -444,30 +443,27 @@ class SwitchCase:
     def getSymIdx(self):
         '''
         returns the symbolik index register, and the type of object
+        returns first one found, first checking SYMT_VAR's and only 
+        then looking at SYMT_MEM symbolic indexes
         '''
         symtgt = self.getSymTarget()
         unks = getUnknowns(symtgt)
 
         cspath, aspath, fullpath = self.getSymbolikParts()
 
-        potentials = []
-
         for unk in unks.get(SYMT_VAR):
             unkvar = cspath[0].getSymVariable(unk)
             if unkvar.isDiscrete():
                 continue
-            potentials.append((SYMT_VAR, unk))
+            return (SYMT_VAR, unk)
 
         for unk in unks.get(SYMT_MEM):
             unkvar = cspath[0].getSymVariable(unk)
             if unkvar.isDiscrete():
                 continue
-            potentials.append((SYMT_MEM, unk))
+            return (SYMT_MEM, unk)
 
-        if not len(potentials):
-            raise v_exc.SymIdxNotFoundException(cspath, aspath)
-            
-        return potentials[0]
+        raise v_exc.SymIdxNotFoundException(cspath, aspath)
 
     def getConstraints(self):
         '''
@@ -499,7 +495,7 @@ class SwitchCase:
         fva = vw.getFunction(jmpva)
         cb = vw.getCodeBlock(jmpva)
         if cb is None:
-            raise Exception("Dynamic Branch is not currently part of a CodeBlock!")
+            raise v_exc.InvalidCodeBlock("Dynamic Branch is not currently part of a CodeBlock!")
         cbva, cbsz, cbfva = cb
 
         if self._sgraph is None:
@@ -1273,21 +1269,6 @@ def analyzeJmp(vw, jmpva, timeout=None):
     sc = SwitchCase(vw, jmpva, timeout)
     sc.analyze()
                 
-
-def pathGenConvert(pathgen):
-    '''
-    this takes in a HierGraph path-generator and converts each path to the kind needed by Symboliks
-    '''
-    for path in pathgen:
-        newpath = []
-        prevedge = [ None ]
-        for node, nextedge in path:
-            newpath.append((node[0], prevedge[0]))
-            prevedge = nextedge
-
-        pprint(newpath)
-        yield newpath
-
 
 # for use as vivisect script
 if globals().get('vw'):

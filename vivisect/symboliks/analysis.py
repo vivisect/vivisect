@@ -452,7 +452,7 @@ class SymbolikAnalysisContext:
         Differs from getSymbolikPaths() in that it stops at tova rather
         than continuing to a ret or loop path.
         '''
-        if graph == None:
+        if graph is None:
             graph = self.getSymbolikGraph(fva)
 
         tocb = self.vw.getCodeBlock(tova)
