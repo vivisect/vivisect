@@ -162,7 +162,7 @@ def getPLTs(vw):
             FPLTSZ = fdyns.get('DT_PLTRELSZ')
 
             # if we don't have FPLT or FPLTSZ, skip this
-            if None in (FPLT, FPLTSZ):
+            if FPLT is None or FPLTSZ is None:
                 continue
 
             if vw.getFileMeta(fname, 'addbase'):
