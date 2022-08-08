@@ -4,8 +4,10 @@ import envi.memory as e_mem
 
 import logging
 import envi.common as e_common
+from vivisect.parsers.elf import archcalls
+
 logger = logging.getLogger(__name__)
-#e_common.initLogging(logger, logging.INFO)
+#e_common.initLogging(logger, 7)
 
 MS_MAPS = [
     (0x880000, 1, e_mem.MM_READ, b'\x00'),
@@ -30,12 +32,13 @@ LIBC_MAPS = [\
     ]
 
 
-
-WALKER_MAPS = maps = [\
-    (0x201a5a0, 0x9b, e_mem.MM_RWX, b'UH\x89\xe5H\x83\xec0@\x88\xf0H\x89}\xf8\x88E\xf7H\x89U\xe8H\x8bU\xf8H\x89\xd7H\x83\xc7`H\x8bu\xe8H\x89U\xe0\xe8R\x1a\x00\x00\xa8\x01\x0f\x85\x05\x00\x00\x00\xe9\x05\x00\x00\x00\xe9V\x01\x00\x00H\x8bE\xe0H\x8bH8H\x83\xc18H\x8bu\xe8H\x89\xcf\xe8\x98\x1a\x00\x00H\x89\xc7\xe8\xb0\x1a\x00\x00\x83\xc0\xff\x89\xc1\x83\xe8\x0bH\x89M\xd8\x89E\xd4\x0f\x87\x1c\x01\x00\x00H\x8d\x05\xec\xc6\x05\x00H\x8bM\xd8Hc\x14\x88H\x01\xc2\xff\xe2\x8aE\xf7H\x8bU\xe8H\x8b}\xe0\x0f\xb6\xf0\xe8\x84\x1a\x00'),
-    (0x201a731, 0x1e, e_mem.MM_RWX, b'\xe9\x00\x00\x00\x00H\x83\xc40]\xc3\x0f\x1f@\x00UH\x89\xe5H\x89}\xf8H\x8b}\xf8H\x8b\x07'),
-    (0x2076d08, 0x30, e_mem.MM_READ, b'\x11:\xfa\xff!9\xfa\xff\xe19\xfa\xffi9\xfa\xff\x819\xfa\xff\x999\xfa\xff\xb19\xfa\xff99\xfa\xffQ9\xfa\xff):\xfa\xff\xc99\xfa\xff\xf99\xfa\xff'),
+WALKER_MAPS = [\
+    (0x203f150, 0xfc, e_mem.MM_RWX, b'UH\x89\xe5H\x83\xec\x10H\x89}\xf8H\x8b}\xf8\xe8{\xfe\xff\xffH\x83\xc4\x10]\xc3\x0f\x1fD\x00\x00UH\x89\xe5H\x83\xec\x10H\x89}\xf8H\x8b}\xf8\xe8[\xfe\xff\xffH\x83\xc4\x10]\xc3\x0f\x1fD\x00\x00UH\x89\xe5H\x83\xec H\x89}\xf0H\x89u\xe8H\x8b}\xf0\xe87\xfe\xff\xffH\x8b}\xe8H\x89E\xe0\xe8:\xff\xff\xff\x8a\x08H\x8bE\xe0\x88\x08H\x83\xc4 ]\xc3f.\x0f\x1f\x84\x00\x00\x00\x00\x00f\x90UH\x89\xe5H\x83\xec H\x89}\xf0H\x8b}\xf0\xe8\x0b\x00\x00\x00H\x89E\xe8H\x83\xc4 ]\xc3\x90UH\x89\xe5H\x83\xec\x10H\x89}\xf8H\x8b}\xf8\xe8\xdb\xfd\xff\xffH\x83\xc4\x10]\xc3\x0f\x1fD\x00\x00UH\x89\xe5H\x83\xec\x10H\x89}\xf8H\x89u\xf0H\x8b}\xf8H\x8bu\xf0\xe8\xc3\x00\x00\x00H\x83\xc4\x10]\xc3f.\x0f\x1f\x84\x00\x00\x00\x00\x00\x0f\x1f\x00UH\x89\xe5H\x83\xec0H\x89u\xf8'),
+    (0x203fdb0, 0x38c, e_mem.MM_RWX, b'UH\x89\xe5H\x83\xec@H\x89}\xf8H\x89u\xf0\x89U\xec\x8bU\xec\x89\xd6H\x89\xf7H\x83\xef\x03H\x89u\xd8H\x89}\xd0\x0f\x87i\x00\x00\x00H\x8d\x05\xd8p\x03\x00H\x8bM\xd8Hc\x14\x88H\x01\xc2\xff\xe2H\x8b}\xf8\xe8V\xf3\xff\xffH\x8d=O\xdb%\x00H\x898\xe9=\x00\x00\x00H\x8b}\xf0\xe8\x8e\x00\x00\x00H\x8b}\xf8H\x89E\xc8\xe8\xc1\x01\x00\x00H\x8b}\xc8H\x898\xe9\x1b\x00\x00\x00H\x8b}\xf8H\x8bu\xf0\xe8\xc8\x01\x00\x00\xe9\t\x00\x00\x00H\x8b}\xf8\xe8\xfa\x01\x00\x001\xc0\x88\xc1\x80\xe1\x01\x0f\xb6\xc1H\x83\xc4@]\xc3f.\x0f\x1f\x84\x00\x00\x00\x00\x00UH\x89\xe5H\x83\xec H\x89}\xf0H\x89u\xe8H\x8b}\xf0\xe8g\xf1\xff\xffH\x8b}\xe8H\x89E\xe0\xe8\xda\xfe\xff\xffH\x8b\x00H\x8bu\xe0H\x89\x06H\x83\xc4 ]\xc3f.\x0f\x1f\x84\x00\x00\x00\x00\x00UH\x89\xe5H\x83\xec\x10H\x89}\xf8H\x8b}\xf8\xe8\xdb\x00\x00\x00H\x89\xc7\xe8\xc3\x00\x00\x00H\x89E\xf0H\x8bE\xf0H\x83\xc4\x10]\xc3\x0f\x1fD\x00\x00UH\x89\xe5H\x83\xec0@\x88\xf0H\x89}\xf8\x88E\xf7H\x8b}\xf8\x80={\xea%\x00\x00H\x89}\xd8\x0f\x85=\x00\x00\x00H\x8d=j\xea%\x00\xe8\x1d\x90\xfc\xff\x83\xf8\x00\x0f\x84(\x00\x00\x001\xf6H\x8b}\xd8\xe8\x99\x00\x00\x00\x88E\xd7\xe9\x00\x00\x00\x00\x8aE\xd7\x88\x058\xea%\x00H\x8d=9\xea%\x00\xe8\x8c\x8a\xfc\xffH\x8bE\xd8H\x89\xc7\x0f\xbeu\xf7\xe8l\x00\x00\x00\x0f\xbe\xf0\x0f\xbe\r\x12\xea%\x009\xce\x0f\x95\xc0$\x01\x0f\xb6\xc0H\x83\xc40]\xc3\x89\xd1H\x89E\xe8\x89M\xe4H\x8d=\xfa\xe9%\x00\xe8-\x8a\xfc\xffH\x8b}\xe8\xe8d\x8f\xfc\xff\x0f\x1f@\x00UH\x89\xe5H\x89}\xf8H\x8bE\xf8]\xc3f\x90UH\x89\xe5H\x83\xec\x10H\x89}\xf8H\x8b}\xf8\xe8k\xf1\xff\xffH\x83\xc4\x10]\xc3\x0f\x1fD\x00\x00UH\x89\xe5H\x83\xec\x10@\x88\xf0H\x89}\xf8\x88E\xf7H\x8b}\xf8H\x8b?\x0f\xbeu\xf7\xe8\x1e\xfb\xff\xff\x0f\xbe\xc0H\x83\xc4\x10]\xc3\x0f\x1fD\x00\x00UH\x89\xe5H\x83\xec\x10H\x89}\xf8H\x8b}\xf8\xe8\xeb\xef\xff\xffH\x83\xc4\x10]\xc3\x0f\x1fD\x00\x00UH\x89\xe5H\x83\xec H\x89}\xf0H\x89u\xe8H\x8b}\xf0\xe8\xc7\xef\xff\xffH\x8b}\xe8H\x89E\xe0\xe8j\xff\xff\xffH\x8b\x00H\x8bu\xe0H\x89\x06H\x83\xc4 ]\xc3f.\x0f\x1f\x84\x00\x00\x00\x00\x00UH\x89\xe5H\x83\xec H\x89}\xf0H\x8b}\xf0\xe8\x0b\x00\x00\x00H\x89E\xe8H\x83\xc4 ]\xc3\x90UH\x89\xe5H\x83\xec\x10H\x89}\xf8H\x8b}\xf8\xe8k\xef\xff\xffH\x83\xc4\x10]\xc3\x0f\x1fD\x00\x00UH\x89\xe5H\x83\xec\x10H\x89}\xf8H\x89u\xf0H\x8b}\xf8H\x8bu\xf0\xe8\x93\xed\xff\xffH\x83\xc4\x10]\xc3f.\x0f\x1f\x84\x00\x00\x00\x00\x00\x0f\x1f\x00UH\x89\xe5H\x83\xec0H\x89}\xf0H\x8b}\xf0H\x89}\xd8\xe8\xb7\xab\xff\xffH\x8d}\xf8\xe8~\x00\x00\x00\x88E\xd7\xe9\x00\x00\x00\x00\x8aE\xd7\xa8\x01\x0f\x85\x05\x00\x00\x00\xe9S\x00\x00\x00H\x8d}\xf8\xe8\xbd\x00\x00\x00H\x8b}\xd8H\x89\xc6\xe8q\x00\x00\x00\xe9\x00\x00\x00\x00H\x8d\x05\xb5\x00\x00\x00H\x8bM\xd8H\x89A\x18H\x8d\x05\xe6\x00\x00\x00H\x89A\x10\xe9\x1a\x00\x00\x00\x89\xd1H\x89E\xe8\x89M\xe4H\x8bE\xd8H\x89\xc7\xe8\xa8\x8d\xff\xff\xe9\x06\x00\x00'),
+    (0x2076ebc, 0xfc, e_mem.MM_RWX, b'5\x8f\xfc\xffM\x8f\xfc\xffo\x8f\xfc\xff\x81\x8f\xfc\xffu\x93\xfc\xff\x8d\x93\xfc\xff\xaf\x93\xfc\xff\xc1\x93\xfc\xff\x95\x97\xfc\xff\xad\x97\xfc\xff\xcf\x97\xfc\xff\xe1\x97\xfc\xff\xc5\x9b\xfc\xff\xdd\x9b\xfc\xff\xff\x9b\xfc\xff\x11\x9c\xfc\xff\xf5\x9f\xfc\xff\r\xa0\xfc\xff/\xa0\xfc\xffA\xa0\xfc\xffE\xa4\xfc\xff]\xa4\xfc\xff\x7f\xa4\xfc\xff\x91\xa4\xfc\xff\x15\xa8\xfc\xff-\xa8\xfc\xffO\xa8\xfc\xffa\xa8\xfc\xff\xe5\xab\xfc\xff\xfd\xab\xfc\xff\x1f\xac\xfc\xff1\xac\xfc\xff\xb5\xaf\xfc\xff\xcd\xaf\xfc\xff\xef\xaf\xfc\xff\x01\xb0\xfc\xff\x9b\xfa\xfc\xff\\\xfa\xfc\xff\x1d\xfa\xfc\xff\xde\xf9\xfc\xff\x15\x0b\xfd\xff-\x0b\xfd\xffO\x0b\xfd\xffa\x0b\xfd\xff55\xfd\xffM5\xfd\xffo5\xfd\xff\x815\xfd\xff\x85J\xfd\xff\x9dJ\xfd\xff\xbfJ\xfd\xff\xd1J\xfd\xff\x15[\xfd\xff-[\xfd\xffO[\xfd\xffa[\xfd\xff                            '),
+    (0x229d950, 0xfc, e_mem.MM_RWX, b'\x00\x00\x00\x00\x00\x00\x00\x00 \x81\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00p\x81\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xc0\x81\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x82\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00`\x82\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xb0\x82\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00P\x83\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xa0\x83\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf0\x83\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00@\x84\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x90\x84\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe0\x84\x07\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x18\xdb)\x02\x00\x00\x00\x00\x00z\x05\x02\x00\x00\x00\x00\x80z\x05\x02\x00\x00\x00\x00\xd0\x82\x05\x02\x00\x00\x00\x00\xf0\x82\x05\x02'),
 ]
+
 
 def applyMaps(vw, maps=MS_MAPS, mapbase=0x400000, bufferpages=2):
     bufferpgsz = bufferpages * 4096
@@ -61,11 +64,12 @@ def genMsSwitchWorkspace(maps=MS_MAPS, mapbase=0x400000, bufferpages=2, arch='am
     applyMaps(vw, maps, mapbase, bufferpages)
     return vw
 
-def genLinuxSwitchWorkspace(maps=LIBC_MAPS, mapbase=0x400000, bufferpages=2):
+def genLinuxSwitchWorkspace(maps=LIBC_MAPS, mapbase=0x400000, bufferpages=2, arch='i386'):
     vw = vivisect.VivWorkspace()
-    vw.setMeta('Architecture', 'i386')
+    vw.setMeta('Architecture', arch)
     vw.setMeta('Platform', 'linux')
     vw.setMeta('Format', 'elf')
+    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
     vw._snapInAnalysisModules()
 
     applyMaps(vw, maps, mapbase, bufferpages)
@@ -108,27 +112,16 @@ cbs_libc_0 = [
     (5243070, 16, 5242880),
     (5243086, 56, 5242880)]
 
-cbs_walker_0 = [
-    (5242880, 54, 5242880),
-    (5242934, 5, 5242880),
-    (5242939, 5, 5242880),
-    (5242944, 53, 5242880),
-    (5242997, 20, 5242880),
-    (5243281, 5, 5242880),
-    (5243286, 6, 5242880),
-    (5243017, 24, 5242880),
-    (5243041, 24, 5242880),
-    (5243065, 24, 5242880),
-    (5243089, 24, 5242880),
-    (5243113, 24, 5242880),
-    (5243137, 24, 5242880),
-    (5243161, 24, 5242880),
-    (5243185, 24, 5242880),
-    (5243209, 24, 5242880),
-    (5243233, 24, 5242880),
-    (5243257, 24, 5242880),
 
-]
+cbs_walker_0 = set(
+    [(0x600000, 0x2d, 0x600000),
+     (0x60002d, 0x14, 0x600000),
+     (0x600096, 0x10, 0x600000),
+     (0x600041, 0x18, 0x600000),
+     (0x600059, 0x22, 0x600000),
+     (0x60007b, 0x12, 0x600000),
+     (0x60008d, 0x9, 0x600000)]
+    )
 
 cbs_amd64_ls_40407e = [
     (0x402755, 5, 0x404223),
@@ -1573,14 +1566,11 @@ class PosixSwitchTest(unittest.TestCase):
 
 class WalkerSwitchTest(unittest.TestCase):
     def test_walker_switch_0(self):
-        vw = genLinuxSwitchWorkspace(WALKER_MAPS, 0x600000)
-        #vw.makeFunction(0x600000)
-        #funcblocks = vw.getFunctionBlocks(0x600000)
-        #funcblocks.sort()
+        vw = genLinuxSwitchWorkspace(WALKER_MAPS, 0x5ff3a0, arch='amd64')
+        vw.makeFunction(0x600000)
+        funcblocks = set(vw.getFunctionBlocks(0x600000))
 
-        #self.assertEqual(cbs_walker_0, vw.getFunctionBlocks(0x600000))
-        # TODO: enable this when we actually identify this switchcase
-
+        self.assertEqual(cbs_walker_0, funcblocks)
 
 import vivisect.tests.helpers as helpers
 class LsSwitchTest(unittest.TestCase):
@@ -1621,12 +1611,12 @@ class LsSwitchTest(unittest.TestCase):
         .text:0x004048a4  switch_004048a4: [0 XREFS]
         .text:0x004048a4  42ff24dd601d4100 jmp qword [ptr_case_0_40495d_00411d60 + r11 * 8]    ;lower: 0x0, upper: 0x78
         '''
-        _do_test_thingy(self, vw, jmpva=0x402980, fva=0x402690, cbs=cbs_amd64_ls_402980, xrefcnt=57)
-        _do_test_thingy(self, vw, jmpva=0x4048a4, fva=0x404740, cbs=cbs_amd64_ls_4048a4, xrefcnt=14)
-        _do_test_thingy(self, vw, jmpva=0x40d57f, fva=0x40d840, cbs=cbs_amd64_ls_40d57f, xrefcnt=11)
-        _do_test_thingy(self, vw, jmpva=0x410300, fva=0x4101a0, cbs=cbs_amd64_ls_410300, xrefcnt=10)
+        _do_test(self, vw, jmpva=0x402980, fva=0x402690, cbs=cbs_amd64_ls_402980, xrefcnt=57)
+        _do_test(self, vw, jmpva=0x4048a4, fva=0x404740, cbs=cbs_amd64_ls_4048a4, xrefcnt=14)
+        _do_test(self, vw, jmpva=0x40d57f, fva=0x40d840, cbs=cbs_amd64_ls_40d57f, xrefcnt=11)
+        _do_test(self, vw, jmpva=0x410300, fva=0x4101a0, cbs=cbs_amd64_ls_410300, xrefcnt=10)
         # doesn't work correctly here:
-        #_do_test_thingy(self, vw, jmpva=0x40407e, fva=0x404223, cbs=cbs_amd64_ls_40407e, xrefcnt=0)
+        #_do_test(self, vw, jmpva=0x40407e, fva=0x404223, cbs=cbs_amd64_ls_40407e, xrefcnt=0)
 
 class ChownSwitchTest(unittest.TestCase):
     def test_chown_switch(self):
@@ -1640,7 +1630,7 @@ class ChownSwitchTest(unittest.TestCase):
         .text:0x020045c7  4801c8           add rax,rcx
         .text:0x020045ca  ffe0             jmp rax
         '''
-        _do_test_thingy(self, vw, jmpva=0x20045ca, fva=0x02004050, cbs=cbs_amd64_chown_2004050, xrefcnt=17)
+        _do_test(self, vw, jmpva=0x20045ca, fva=0x02004050, cbs=cbs_amd64_chown_2004050, xrefcnt=17)
 
 class i386_static32_SwitchTest(unittest.TestCase):
     def test_static32_switch(self):
@@ -1657,10 +1647,10 @@ class i386_static32_SwitchTest(unittest.TestCase):
         .text:0x0805eed8  switch_0805eed8: [0 XREFS]
         .text:0x0805eed8  ffe3             jmp ebx    ;lower: 0x20, upper: 0x7f
         '''
-        _do_test_thingy(self, vw, jmpva=0x805eed8, fva=0x805edc0, cbs=cbs_i386_static_805edc0, xrefcnt=96)
-        _do_test_thingy(self, vw, jmpva=0x80621da, fva=0x80621a0, cbs=cbs_i386_static_80621a0, xrefcnt=7)
-        _do_test_thingy(self, vw, jmpva=0x808db0a, fva=0x808dc28, cbs=cbs_i386_static_808dc28, xrefcnt=9)
-        _do_test_thingy(self, vw, jmpva=0x80a6954, fva=0x80a6920, cbs=cbs_i386_static_80a6920, xrefcnt=7)
+        _do_test(self, vw, jmpva=0x805eed8, fva=0x805edc0, cbs=cbs_i386_static_805edc0, xrefcnt=96)
+        _do_test(self, vw, jmpva=0x80621da, fva=0x80621a0, cbs=cbs_i386_static_80621a0, xrefcnt=7)
+        _do_test(self, vw, jmpva=0x808db0a, fva=0x808dc28, cbs=cbs_i386_static_808dc28, xrefcnt=9)
+        _do_test(self, vw, jmpva=0x80a6954, fva=0x80a6920, cbs=cbs_i386_static_80a6920, xrefcnt=7)
 
 
 ld_switches = [0x200704d,
@@ -1705,15 +1695,15 @@ class i386_ld_SwitchTest(unittest.TestCase):
         .text:0x02002160  3effe0           ds: jmp eax    ;lower: 0xc, upper: 0x2f
 
         '''
-        _do_test_thingy(self, vw, jmpva=0x2002160, fva=0x2001dd0, cbs=cbs_i386_ld_2002160, xrefcnt=6)
-        #_do_test_thingy(self, vw, jmpva=0x80621da, fva=0x80621a0, cbs=cbs_i386_static_80621a0, xrefcnt=7)
-        #_do_test_thingy(self, vw, jmpva=0x808db0a, fva=0x808dc28, cbs=cbs_i386_static_808dc28, xrefcnt=9)
-        #_do_test_thingy(self, vw, jmpva=0x80a6954, fva=0x80a6920, cbs=cbs_i386_static_80a6920, xrefcnt=7)
+        _do_test(self, vw, jmpva=0x2002160, fva=0x2001dd0, cbs=cbs_i386_ld_2002160, xrefcnt=6)
+        #_do_test(self, vw, jmpva=0x80621da, fva=0x80621a0, cbs=cbs_i386_static_80621a0, xrefcnt=7)
+        #_do_test(self, vw, jmpva=0x808db0a, fva=0x808dc28, cbs=cbs_i386_static_808dc28, xrefcnt=9)
+        #_do_test(self, vw, jmpva=0x80a6954, fva=0x80a6920, cbs=cbs_i386_static_80a6920, xrefcnt=7)
 
 
 
 
-def _do_test_thingy(self, vw, jmpva, fva, cbs, xrefcnt):
+def _do_test(self, vw, jmpva, fva, cbs, xrefcnt):
     vw.makeFunction(fva)
     funcblocks = vw.getFunctionBlocks(fva)
     funcblocks.sort()
@@ -1723,7 +1713,13 @@ def _do_test_thingy(self, vw, jmpva, fva, cbs, xrefcnt):
     self.assertEqual(cbs, funcblocks)
     self.assertEqual(xrefcnt, len(vw.getXrefsFrom(jmpva)))
 
+
+
 #=======  test generator code =======
+'''
+the code below helps us build unittests for switchcases, particularly in cases where the 
+executable cannot be included in our test-suite.
+'''
 
 import visgraph.pathcore as vg_path
 import vivisect.impemu.monitor as viv_imp_monitor
@@ -1741,6 +1737,21 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
         if starteip not in self.vas:
             self.vas.append(starteip)
 
+        for oper in op.opers:
+            ref = oper.getOperValue(op, emu=emu)
+            print("==0x%x:  0x%x" % (starteip, ref))
+            if self.vw.isValidPointer(ref):
+                for x in range(30):
+                    self.vas.append(ref + (x*emu.psize))
+
+            if oper.isDeref():
+                tsize = oper.tsize
+                ref = oper.getOperAddr(op, emu=emu)
+                print("      -- ref 0x%x" % (ref,))
+                if self.vw.isValidPointer(ref):
+                    for x in range(30):
+                        self.vas.append(ref + (x*emu.psize))
+
 def analyzeFunction(vw, fva):
     maps = getFuncMaps(vw, fva)
     return maps
@@ -1756,6 +1767,7 @@ def getFuncMaps(vw, fva):
     maps = []
     perms = 'e_mem.MM_RWX'
     lastva = startva = vas[0]
+    print (vas)
     for va in vas:
         #print hex(va), hex(lastva), hex(startva)
         if (va - lastva) > MAX_GAP:
@@ -1809,6 +1821,13 @@ def getReadsWrites(emu):
 
     return refvas
 
+def printFuncBlocks(vw, fva, fakebase=None):
+    offset=0
+    if fakebase:
+        offset = fakebase - fva
+
+    print('\t[' + '\n\t '.join(['(0x%x, %d, 0x%x),' % (x+offset,y,z+offset) for x,y,z in vw.getFunctionBlocks(fva)]) + ']')
+
 if globals().get('vw') is not None:
     va = vw.parseExpression(argv[1])
     fva = vw.getFunction(va)
@@ -1816,4 +1835,6 @@ if globals().get('vw') is not None:
     maps = getFuncMaps(vw, fva)
     print('maps = [\\')
     for startva, sz, perms, mem in maps:
-        print('(0x%x, 0x%x, %s, %r),' % (startva, sz, perms, mem))
+        print('    (0x%x, 0x%x, %s, %r),' % (startva, sz, perms, mem))
+
+    print(']')

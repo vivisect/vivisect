@@ -697,7 +697,7 @@ class SwitchCase:
                 continue
 
             if not contains(symvar, baseIdx):
-                logger.debug("Constraint not based on Index: %r" % cons)
+                logger.debug("Ignoring Constraint not based on Index: %r" % cons)
                 continue
 
             if cons.symtype == SYMT_CON_LT and symcmp.solve() == 0:
@@ -707,11 +707,10 @@ class SwitchCase:
             conthing, consoff = peelIdxOffset(symvar)
 
             if conthing != baseIdx:
-                logging.info("FAIL: %r  != %r" % (conthing, baseIdx))
-                #raw_input("FAIL: %r  != %r" % (conthing, baseIdx))
+                logger.debug("Constraint not bound-limiting for our index: %r  != %r" % (conthing, baseIdx))
                 continue
 
-            logger.debug("GOOD: %r\n\t%r\n\t%r\t%r + %r" % (cons, symvar, conthing, consoff, symcmp))
+            logger.debug("Valid bound-limiting Constraint: %r\n\t%r\n\t%r\t%r + %r" % (cons, symvar, conthing, consoff, symcmp))
             retcons.append((con, cons.symtype, consoff+symcmp.solve()))
 
         return retcons
@@ -779,7 +778,7 @@ class SwitchCase:
                     else:
                         logger.info("Unhandled comparator:  %s\n", repr(cons))
 
-                logger.info("Done.. %r %r ...\n" % (lower, upper))
+                logger.info("Determined bounds: %r %r\n" % (lower, upper))
         except StopIteration:
             pass
 
@@ -828,7 +827,7 @@ class SwitchCase:
                 symaddr = eff.symaddr.update(emu=semu)
                 if symaddr.isDiscrete():
                     solution = symaddr.solve()
-                    logger.info("0x%x->0x%x" % (eff.va, solution))
+                    logger.info("analyzing ptr: 0x%x->0x%x" % (eff.va, solution))
 
                     if not self.vw.isValidPointer(solution):
                         logger.warning(("ARRRG: Non-pointer in ReadMemory???"))
@@ -882,7 +881,7 @@ class SwitchCase:
 
         # skip when the function is the first instruction (PLT?)
         if funcva == self.jmpva:
-            logger.info("function va IS jmpva 0x%x (PLT?)", self.jmpva)
+            logger.info("skipping: function va IS jmpva 0x%x (PLT?)", self.jmpva)
             return
 
         # skip if insufficient instructions in the function to have an interesting switchcase.
@@ -896,7 +895,7 @@ class SwitchCase:
         jnode, jemu, jaeffs = self.getSymbolikJmpBlock()
         jmptgt = self.getJmpSymVar()
         if not hasMul(jmptgt.update(jemu)):
-            logger.info("Skipping: JmpSymVar doesn't have multiplication! (0x%x)", self.jmpva)
+            logger.info("skipping: JmpSymVar doesn't have multiplication! (0x%x)", self.jmpva)
             return
 
 
