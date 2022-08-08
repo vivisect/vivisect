@@ -1268,20 +1268,4 @@ def analyzeJmp(vw, jmpva, timeout=None):
 
     sc = SwitchCase(vw, jmpva, timeout)
     sc.analyze()
-                
 
-# for use as vivisect script
-if globals().get('vw'):
-    verbose = vw.verbose
-    vw.verbose = True
-
-    vw.vprint("Starting...")
-    jmpva = vw.parseExpression(argv[1])
-
-    sc = SwitchCase(vw, jmpva)
-    sc.analyze()
-
-    vw.vprint("Done")
-    
-    vw.verbose = verbose
-   
