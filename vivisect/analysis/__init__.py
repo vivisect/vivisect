@@ -57,7 +57,6 @@ def addAnalysisModules(vw):
             vw.addAnalysisModule("vivisect.analysis.amd64.golang")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.codeblocks")
-        #vw.addFuncAnalysisModule("vivisect.analysis.generic.switchcase")   # it's not that kind of analysis module.  hook dyn branches with analyzeJmp().  besides, it belongs in vivisect.analysis.ms
         vw.addFuncAnalysisModule("vivisect.analysis.generic.impapi")
         vw.addFuncAnalysisModule("vivisect.analysis.ms.hotpatch")
         vw.addFuncAnalysisModule("vivisect.analysis.ms.msvc")
@@ -100,8 +99,8 @@ def addAnalysisModules(vw):
         if arch == 'i386':
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
-            # add va set for tracking thunk_bx function(s)
-            vw.addFuncAnalysisModule("vivisect.analysis.i386.thunk_bx") # TODO: rename this to thunk_reg
+            # add va set for tracking thunk_reg function(s)
+            vw.addFuncAnalysisModule("vivisect.analysis.i386.thunk_reg")
 
         elif arch in ARM_ARCHS:
             vw.addFuncAnalysisModule('vivisect.analysis.arm.thunk_reg')
