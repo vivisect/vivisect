@@ -979,26 +979,26 @@ class SwitchCase:
             vagc.analyzeFunction(vw, funcva)
 
         except StopIteration as e:
-            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Couldn't Find Valid Path) 0x%x  !@#$!@#$!@#$!@#$\n%r", self.jmpva, e)
+            logger.info("Switchcase Analysis BOMBED OUT (Couldn't Find Valid Path) 0x%x\n%r", self.jmpva, e)
 
         except v_exc.SymIdxNotFoundException as e:
-            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
+            logger.info("Switchcase Analysis BOMBED OUT (SymIdx) 0x%x\n%r", self.jmpva, e)
 
         except v_exc.NoComplexSymIdxException as e:
-            logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (SymIdx=%r \t ComplexIdx=None) 0x%x  !@#$!@#$!@#$!@#$ \n%r", e.sc.getSymIdx(), self.jmpva, e)
+            logger.info("Switchcase Analysis BOMBED OUT (SymIdx=%r \t ComplexIdx=None) 0x%x\n%r", e.sc.getSymIdx(), self.jmpva, e)
 
         except PathForceQuitException as e:
-            logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT (Path Timeout!) 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e)
+            logger.warning("Switchcase Analysis BOMBED OUT (Path Timeout!) 0x%x\n%r", self.jmpva, e)
             vw.setVaSetRow('SwitchCases_TimedOut', (self.jmpva, self.timeout) )
 
         except RuntimeError as e:
             if 'StopIteration' in repr(e):
-                logger.info("!@#$!@#$!@#$!@#$ BOMBED OUT (Couldn't Find Valid Path) 0x%x  !@#$!@#$!@#$!@#$", self.jmpva)
+                logger.info("Switchcase Analysis BOMBED OUT (Couldn't Find Valid Path) 0x%x", self.jmpva)
             else:
-                logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e, exc_info=1)
+                logger.warning("Switchcase Analysis BOMBED OUT 0x%x\n%r", self.jmpva, e, exc_info=1)
 
         except Exception as e:
-            logger.warning("!@#$!@#$!@#$!@#$ BOMBED OUT 0x%x  !@#$!@#$!@#$!@#$ \n%r", self.jmpva, e, exc_info=1)
+            logger.warning("Switchcase Analysis BOMBED OUT 0x%x\n%r", self.jmpva, e, exc_info=1)
 
         logger.warning("--- %.3f (0x%x)", time.time() - start, self.jmpva)
 
