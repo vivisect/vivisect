@@ -41,8 +41,5 @@ class i386Module(envi.ArchitectureModule):
     def getEmulator(self):
         return IntelEmulator()
 
-    def archGetValidSwitchcaseOperand(self):
-        return (i386RegOper, i386RegMemOper)
-
 # NOTE: This one must be after the definition of i386Module
 from envi.archs.i386.emu import *
