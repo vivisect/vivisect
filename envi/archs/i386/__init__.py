@@ -27,11 +27,6 @@ class i386Module(envi.ArchitectureModule):
                                 'ebp', 'esp', 'eip', ], )
 
         groups.append(general)
-
-        # compilers use the following regs to stick the module baseaddr in for 
-        # switchcase code
-        switch_mapbase = ('switch_mapbase', [ 'edi', 'esi' ],)
-        groups.append(switch_mapbase)
         return groups
 
     def getPointerSize(self):

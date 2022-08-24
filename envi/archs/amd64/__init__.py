@@ -36,11 +36,6 @@ class Amd64Module(e_i386.i386Module):
                                 'r13', 'r14', 'r15'], )
 
         groups.append(general)
-
-        # compilers use the following regs to stick the module baseaddr in for 
-        # switchcase code
-        switch_mapbase = ('switch_mapbase', [ 'rdi','rsi', 'r8', 'r9', 'r10' ],)
-        groups.append(switch_mapbase)
         return groups
 
     def getPointerSize(self):
