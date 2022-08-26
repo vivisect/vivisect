@@ -204,6 +204,12 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
                             immmenu.addAction(name, ACT(vw.setSymHint, va, idx, name))
             menu.addAction('make code xref->', ACT(vw.getVivGui().addVaXref, va))
 
+            if vw.getVaSetRow('SwitchCases_TimedOut', va):
+                do_analyze = ACT(vw.getVivGui().reanalyzeSwitchCase, va)
+                do_analyze.setNewThread()
+                menu.addAction('Reanalyze Switchcase (timed out)', do_analyze)
+
+
         menu.addAction('bookmark (B)',   ACT(vw.getVivGui().addBookmark, va))
         menu.addAction('undefine (U)',   ACT(vw.delLocation, va))
 

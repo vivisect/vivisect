@@ -1,3 +1,6 @@
+'''
+Intel 32-bit Architecture
+'''
 import envi
 
 from envi.archs.i386.regs import *
