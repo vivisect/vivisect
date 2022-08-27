@@ -1201,13 +1201,12 @@ def ldrb_memhints_32(va, val1, val2):
                 return COND_AL, opcode, mnem, opers, flags, 0
 
             elif (val2 >> 11) & 1:
-                # LDRB (register)
+                # LDRB (register)   (immediate T3)
                 opcode, mnem, flags = ldrb_instrs[Sbit]
                 imm8 = val2 & 0xff
                 pubwl = ((val2 >> 6) & 0x18) | ((val2 >> 7) & 2)
                 opers = (ArmRegOper(rt),
-                         # ArmImmOffsetOper(rn, imm8, va, pubwl)  # FIXME: deprecated
-                         ArmImmOffsetOper(rn, imm8, va, tsize=1)
+                         ArmImmOffsetOper(rn, imm8, va, pubwl, tsize=1),  # FIXME: deprecated... and yet necessary. wtfo?
                 )
                 return COND_AL, opcode, mnem, opers, flags, 0
 
