@@ -181,6 +181,7 @@ class ArchitectureModule:
         Example:
             { 'all': ['eax', 'ebx', ...], ...}
         '''
+        return dict(self._regGrps)
 
     def archGetRegisterGroup(self, name):
         '''
