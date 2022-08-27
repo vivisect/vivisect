@@ -16,6 +16,9 @@ class MockVw(object):
     def getLocation(self, va):
         return self._locs.get(va, None)
 
+    def getPointerSize(self):
+        return self.psize
+
 
 def getTestBytes(*paths):
     testdir = os.getenv('VIVTESTFILES')
@@ -52,6 +55,8 @@ def getTestWorkspace(*paths, vw=None):
 
     if not vw:
         vw = v_cli.VivCli()
+        vw.config.viv.analysis.symswitchcase.timeout_secs = 30
+
 
     vw.loadFromFile(fpath)
     vw.analyze()
@@ -67,6 +72,8 @@ def getTestWorkspace_nocache(*paths, vw=None):
 
     if not vw:
         vw = v_cli.VivCli()
+        vw.config.viv.analysis.symswitchcase.timeout_secs = 30
+
 
     vw.loadFromFile(fpath)
     vw.analyze()

@@ -24,6 +24,7 @@ import vivisect.qt.funcgraph as viv_q_funcgraph
 import vivisect.qt.funcviews as viv_q_funcviews
 import vivisect.qt.symboliks as viv_q_symboliks
 import vivisect.remote.share as viv_share
+import vivisect.analysis.generic.symswitchcase as symswitch
 
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QInputDialog
@@ -80,6 +81,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         self.vqAddMenuField('&Tools.&Python', self._menuToolsPython)
         self.vqAddMenuField('&Tools.&Debug', self._menuToolsDebug)
+        self.vqAddMenuField('&Tools.&Analysis.&Reanalyze Switchcase', self._menuToolsReSwitchCase)
         self.vqAddMenuField('&Tools.&Structures.Add Namespace', self._menuToolsStructNames)
         self.vqAddMenuField('&Tools.&Structures.New', self._menuToolsUStructNew)
         self.vqAddDynMenu('&Tools.&Structures.&Edit', self._menuToolsUStructEdit)
@@ -184,6 +186,18 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
                     self.vw.addXref(va, val, REF_CODE)
                 else:
                     self.vw.vprint("Invalid Expression: %s   (%s)" % (xtova, val))
+            except Exception as e:
+                self.vw.vprint(repr(e))
+
+    def reanalyzeSwitchCase(self, va, parent=None):
+        if parent is None:
+            parent = self
+        timestr, ok = QInputDialog.getText(parent, 'Re-Analyze Switchcase', 'Enter Timeout (secs) for analysis (0x%x): ' % va, text="300")
+        if ok:
+            try:
+                timeout = self.vw.parseExpression(str(timestr))
+
+                symswitch.analyzeJmp(self.vw, va, timeout=timeout)
             except Exception as e:
                 self.vw.vprint(repr(e))
 
@@ -564,6 +578,24 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def _menuViewLayoutsSetDefault(self):
         vq_app.VQMainCmdWindow.vqSaveGuiSettings(self, self._vq_settings)
+
+    def _menuToolsReSwitchCase(self):
+        timeoutSwitches = self.vw.getVaSetRows('SwitchCases_TimedOut')
+
+        dynd = DynamicDialog('Reanalze Switchcase')
+        dynd.addComboBox('select', title='Select Switchcase Branch', itemlist=\
+                ['0x%x: (failed at %d secs)' % (va, tosec) for va, tosec in timeoutSwitches], \
+                dfltidx=0)
+        dynd.addIntHexField('timeout', title='Timeout (some analysis can be very long)', dflt=300)
+        results = dynd.prompt()
+        if not results:
+            return
+
+        timeout = results.get('timeout')
+        vastr, _ = results.get('select').split(':',1)
+        va = int(vastr, 16)
+        
+        symswitch.analyzeJmp(self.vw, va, timeout=timeout)
 
     def _menuToolsStructNames(self):
         nsinfo = vs_qt.selectStructNamespace()
