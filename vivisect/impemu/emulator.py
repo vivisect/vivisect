@@ -248,7 +248,10 @@ class WorkspaceEmulator:
         """
         self.emumon = emumon
 
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT, skipcache=False):
+        if skipcache:
+            return self.__archemu__.parseOpcode(self, va, arch)
+
         return self.vw.parseOpcode(va, arch=arch)
 
     def checkCall(self, starteip, endeip, op):

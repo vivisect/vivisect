@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
+    __archemu__ = e_arm.ArmEmulator
 
     taintregs = [x for x in range(13)]
 
