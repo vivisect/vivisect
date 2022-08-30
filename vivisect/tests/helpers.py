@@ -16,6 +16,9 @@ class MockVw(object):
     def getLocation(self, va):
         return self._locs.get(va, None)
 
+    def getPointerSize(self):
+        return self.psize
+
 
 def getTestBytes(*paths):
     testdir = os.getenv('VIVTESTFILES')
@@ -49,6 +52,7 @@ def getTestWorkspace(*paths):
     testdir = os.path.abspath(testdir)
     fpath = os.path.join(testdir, *paths)
     vw = v_cli.VivCli()
+    vw.config.viv.analysis.symswitchcase.timeout_secs = 30
     vw.loadFromFile(fpath)
     vw.analyze()
     return vw
