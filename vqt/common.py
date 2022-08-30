@@ -1,5 +1,7 @@
 import logging
 
+import envi.threads as e_thread
+
 # Some common GUI helpers
 from PyQt5 import QtCore 
 from PyQt5.QtGui import QRegExpValidator
@@ -17,10 +19,20 @@ class ACT:
         self.meth = meth
         self.args = args
         self.kwargs = kwargs
+        self.newthread = False
+
+    def setNewThread(self, newthread=True):
+        self.newthread = newthread
 
     def __call__(self):
+        if self.newthread:
+            meth = e_thread.firethread(self.meth)
+        else:
+            meth = self.meth
+
         try:
-            return self.meth( *self.args, **self.kwargs )
+            return meth( *self.args, **self.kwargs )
+
         except Exception as e:
             logger.warning("error in ACT(%s, %s, %s)", str(self.meth), str(self.args), str(self.kwargs))
             logger.warning(str(e))

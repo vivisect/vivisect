@@ -74,3 +74,18 @@ class CorruptFile(Exception):
 class CorruptPeFile(CorruptFile):
     def __init__(self, message):
         super(CorruptPeFile, self).__init__("PE", message)
+
+
+class SymIdxNotFoundException(Exception):
+    def __repr__(self):
+        return "getSymIdx cannot determine the Index register"
+
+class NoComplexSymIdxException(Exception):
+    def __init__(self, sc=None):
+        self.sc = sc
+        Exception.__init__(self)
+
+    def __repr__(self):
+        return "getComplexIdx cannot determine the Index register"
+
+
