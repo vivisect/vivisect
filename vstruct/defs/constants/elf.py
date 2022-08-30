@@ -1,3 +1,7 @@
+## ELF IDENT index constants
+# EI_NIDENT differs from sys/elf.h because we only use this to indicate the \x7fELF, but break out the individual
+# fields (class/data/fileversion/osabi/abiversion/padding) in the Elf Header vstruct, instead of making them just
+# part of the char array.
 EI_NIDENT = 4
 EI_PADLEN = 7
 
