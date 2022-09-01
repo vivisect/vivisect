@@ -2877,6 +2877,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if nname in self.filemeta:
             raise Exception("Duplicate File Name: %s" % nname)
         self._fireEvent(VWE_ADDFILE, (nname, imagebase, md5sum))
+        self.setFileMeta(nname, 'OrigName', filename)
         return nname
 
     def addEntryPoint(self, va):
