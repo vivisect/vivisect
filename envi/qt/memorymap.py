@@ -1,18 +1,16 @@
-try:
-    from PyQt5 import QtCore
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4 import QtCore
-    from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
+import envi.common as e_common
+import envi.memory as e_memory
 import envi.memcanvas
 import envi.qt.memdump
 import envi.qt.memsearch
 import envi.cli as e_cli
 from vqt.common import ACT
 import vqt.tree as vq_tree
-import envi.memory as e_mem
 
+# TODO: Why is this here and not jut mixed in w/ vtrace since they're the only consumers?
 class VQMemoryMapView(vq_tree.VQTreeView):
 
     def __init__(self, mem, parent=None):
@@ -42,7 +40,7 @@ class VQMemoryMapView(vq_tree.VQTreeView):
     def vqLoad(self):
         model = vq_tree.VQTreeModel(parent=self.parent, columns=self.cols)
         for mva, msize, mperm, mfile in self.mem.getMemoryMaps():
-            pstr = e_mem.reprPerms(mperm)
+            pstr = e_memory.reprPerms(mperm)
             model.append(('0x%.8x' % mva, msize, pstr, mfile))
 
         self.setModel(model)
@@ -67,7 +65,7 @@ class VQMemoryMapView(vq_tree.VQTreeView):
         bytez = self.mem.readMemory(va, size)
 
         clipboard = QApplication.clipboard()
-        clipboard.setText(bytez.encode('hex'))
+        clipboard.setText(e_common.hexify(bytez))
 
     def menuSaveBytesToFile(self, va, size):
         dlg = envi.qt.memdump.MemDumpDialog(va, size=size)

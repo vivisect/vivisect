@@ -11,9 +11,14 @@ has occured...
 
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
+import logging
+import traceback
 
 import vtrace
-import traceback
+
+
+logger = logging.getLogger(__name__)
+
 
 class Notifier(object):
     """
@@ -40,47 +45,49 @@ class Notifier(object):
         self.notify(event, trace)
 
     def notify(self, event, trace):
-        print "Got event: %d from pid %d" % (event, trace.getPid())
+        logger.info("Got event: %d from pid %d", event, trace.getPid())
+
 
 class VerboseNotifier(Notifier):
     def notify(self, event, trace):
-        print "PID %d - ThreadID (%d) got" % (trace.getPid(), trace.getMeta("ThreadId")),
+        logger.info("PID %d - ThreadID (%d) got", trace.getPid(), trace.getMeta("ThreadId"))
         if event == vtrace.NOTIFY_ALL:
-            print("WTF, how did we get a vtrace.NOTIFY_ALL event?!?!")
+            ("WTF, how did we get a vtrace.NOTIFY_ALL event?!?!")
         elif event == vtrace.NOTIFY_SIGNAL:
             signo = trace.getCurrentSignal()
-            print("vtrace.NOTIFY_SIGNAL %d (0x%08x)" % (signo, signo) )
+            ("vtrace.NOTIFY_SIGNAL %d (0x%08x)" % (signo, signo))
             if trace.getMeta("Platform") == "windows":
-                print(repr(trace.getMeta("Win32Event")))
+                logger.info(repr(trace.getMeta("Win32Event")))
         elif event == vtrace.NOTIFY_BREAK:
-            print("vtrace.NOTIFY_BREAK")
-            print("\tIP: 0x%08x" % trace.getProgramCounter() )
+            logger.info("vtrace.NOTIFY_BREAK")
+            logger.info("\tIP: 0x%08x", trace.getProgramCounter())
         elif event == vtrace.NOTIFY_SYSCALL:
-            print("vtrace.NOTIFY_SYSCALL")
+            logger.info("vtrace.NOTIFY_SYSCALL")
         elif event == vtrace.NOTIFY_CONTINUE:
-            print("vtrace.NOTIFY_CONTINUE")
+            logger.info("vtrace.NOTIFY_CONTINUE")
         elif event == vtrace.NOTIFY_EXIT:
-            print("vtrace.NOTIFY_EXIT")
-            print("\tExitCode: %d" % trace.getMeta("ExitCode"))
+            logger.info("vtrace.NOTIFY_EXIT")
+            logger.info("\tExitCode: %d", trace.getMeta("ExitCode"))
         elif event == vtrace.NOTIFY_ATTACH:
-            print("vtrace.NOTIFY_ATTACH")
+            logger.info("vtrace.NOTIFY_ATTACH")
         elif event == vtrace.NOTIFY_DETACH:
-            print("vtrace.NOTIFY_DETACH")
+            logger.info("vtrace.NOTIFY_DETACH")
         elif event == vtrace.NOTIFY_LOAD_LIBRARY:
-			print("vtrace.NOTIFY_LOAD_LIBRARY")
-			print("\tLoaded library %s" % trace.getMeta('LatestLibrary') )
+            logger.info("vtrace.NOTIFY_LOAD_LIBRARY")
+            logger.info("\tLoaded library %s", trace.getMeta('LatestLibrary'))
         elif event == vtrace.NOTIFY_UNLOAD_LIBRARY:
-            print("vtrace.NOTIFY_UNLOAD_LIBRARY")
+            logger.info("vtrace.NOTIFY_UNLOAD_LIBRARY")
         elif event == vtrace.NOTIFY_CREATE_THREAD:
-            print("vtrace.NOTIFY_CREATE_THREAD")
-            print("\tNew thread - ThreadID: %d" % trace.getMeta("ThreadId") )
+            logger.info("vtrace.NOTIFY_CREATE_THREAD")
+            logger.info("\tNew thread - ThreadID: %d", trace.getMeta("ThreadId"))
         elif event == vtrace.NOTIFY_EXIT_THREAD:
-            print("vtrace.NOTIFY_EXIT_THREAD")
-            print("Thread exited - ThreadID: %d" % trace.getMeta("ExitThread", -1) )
+            logger.info("vtrace.NOTIFY_EXIT_THREAD")
+            logger.info("Thread exited - ThreadID: %d", trace.getMeta("ExitThread", -1))
         elif event == vtrace.NOTIFY_STEP:
-            print("vtrace.NOTIFY_STEP")
+            logger.info("vtrace.NOTIFY_STEP")
         else:
-            print "vtrace.NOTIFY_WTF_HUH?"
+            logger.warning("Unhandled vtrace event type of: %d", event)
+
 
 class DistributedNotifier(Notifier):
     """
@@ -97,9 +104,6 @@ class DistributedNotifier(Notifier):
         for i in range(vtrace.NOTIFY_MAX):
             self.notifiers[i] = []
 
-    def getProxy(self, trace):
-        host,nothing = cobra.getCobraSocket(trace).getLocalName()
-
     def notify(self, event, trace):
         self.fireNotifiers(event, trace)
 
@@ -111,15 +115,15 @@ class DistributedNotifier(Notifier):
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
-            except:
-                print "ERROR - Exception in notifier:",traceback.format_exc()
+            except Exception:
+                logger.error("Exception in notifier:\n%s", traceback.format_exc())
 
         nlist = self.notifiers.get(event, [])
         for notifier in nlist:
             try:
                 notifier.handleEvent(event, trace)
-            except:
-                print "ERROR - Exception in notifier:",traceback.format_exc()
+            except Exception:
+                logger.error("Exception in notifier:\n%s", traceback.format_exc())
 
     def registerNotifier(self, event, notif):
         """
@@ -132,4 +136,3 @@ class DistributedNotifier(Notifier):
     def deregisterNotifier(self, event, notif):
         nlist = self.notifiers.get(event)
         nlist.remove(notif)
-

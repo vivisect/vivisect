@@ -1,4 +1,5 @@
-import Queue
+import queue
+import base64
 import logging
 import traceback
 import threading
@@ -17,6 +18,7 @@ import vstruct.constants as vs_const
 
 import vivisect.const as viv_const
 import vivisect.impapi as viv_impapi
+import vivisect.parsers as viv_parsers
 import vivisect.analysis as viv_analysis
 import vivisect.codegraph as viv_codegraph
 
@@ -38,8 +40,8 @@ class VivEventCore(object):
 
     def __init__(self, vw=None, **kwargs):
         self._ve_vw = vw
-        self._ve_ehand = [None for x in xrange(VWE_MAX)]
-        self._ve_thand = [None for x in xrange(VTE_MAX)]
+        self._ve_ehand = [None for x in range(VWE_MAX)]
+        self._ve_thand = [None for x in range(VTE_MAX)]
         self._ve_lock = threading.Lock()
 
         # Find and put handler functions into the list
@@ -58,18 +60,18 @@ class VivEventCore(object):
             hlist = self._ve_thand
 
         h = hlist[event]
-        if h != None:
+        if h is not None:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception, e:
-                traceback.print_exc()
+            except Exception as e:
+                logger.error(traceback.format_exc())
 
     @firethread
     def _ve_fireListener(self):
         chanid = self._ve_vw.createEventChannel()
         try:
             etup = self._ve_vw.waitForEvent(chanid)
-            while etup != None:
+            while etup is not None:
                 self._ve_lock.acquire()
                 self._ve_lock.release()
 
@@ -97,12 +99,12 @@ class VivEventDist(VivEventCore):
     to a set of sub eventcore objects (think GUI windows...)
     '''
     def __init__(self, vw=None, **kwargs):
-        if vw == None:
+        if vw is None:
             raise Exception("VivEventDist requires a vw argument")
 
         VivEventCore.__init__(self, vw)
-        self._ve_subs = [ [] for x in xrange(VWE_MAX) ]
-        self._ve_tsubs = [ [] for x in xrange(VTE_MAX) ]
+        self._ve_subs = [ [] for x in range(VWE_MAX) ]
+        self._ve_tsubs = [ [] for x in range(VTE_MAX) ]
 
         self.addEventCore(self)
 
@@ -110,25 +112,25 @@ class VivEventDist(VivEventCore):
         self._ve_fireListener()
 
     def addEventCore(self, core):
-        for i in xrange(VWE_MAX):
+        for i in range(VWE_MAX):
             h = core._ve_ehand[i]
-            if h != None:
+            if h is not None:
                 self._ve_subs[i].append(h)
 
-        for i in xrange(VTE_MAX):
+        for i in range(VTE_MAX):
             h = core._ve_thand[i]
-            if h != None:
+            if h is not None:
                 self._ve_tsubs[i].append(h)
 
     def delEventCore(self, core):
-        for i in xrange(VWE_MAX):
+        for i in range(VWE_MAX):
             h = core._ve_ehand[i]
-            if h != None:
+            if h is not None:
                 self._ve_subs[i].remove(h)
 
-        for i in xrange(VTE_MAX):
+        for i in range(VTE_MAX):
             h = core._ve_thand[i]
-            if h != None:
+            if h is not None:
                 self._ve_tsubs[i].remove(h)
 
     def _ve_fireEvent(self, event, edata):
@@ -144,23 +146,29 @@ class VivEventDist(VivEventCore):
         for h in hlist:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception, e:
-                traceback.print_exc()
+            except Exception:
+                logger.error(traceback.format_exc())
 
         VivEventCore._ve_fireEvent(self, event, edata)
+
 
 def ddict():
     return collections.defaultdict(dict)
 
-class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
+class VivWorkspaceCore(viv_impapi.ImportApi):
+    '''
+    A base class that the VivWorkspace inherits from that defines a lot of the event handlers
+    for things like the creation of the various location types.
+    '''
     def __init__(self):
         viv_impapi.ImportApi.__init__(self)
         self.loclist = []
-        self.bigend   = False
-        self.locmap   = e_page.MapLookup()
+        self.bigend = False
+        self.locmap = e_page.MapLookup()
         self.blockmap = e_page.MapLookup()
         self._mods_loaded = False
+        self.parsedbin = None
 
         # Storage for function local symbols
         self.localsyms = ddict()
@@ -178,9 +186,13 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.vsbuilder = vs_builder.VStructBuilder()
         self.vsconsts  = vs_const.VSConstResolver()
 
+        # Follow the Leader data
+        self.leaders = {}       # existing "leader" sessions
+        self.leaderloc = {}     # last known location for each session
+
     def _snapInAnalysisModules(self):
         '''
-        Snap in the analysis modules which are appropriate for the 
+        Snap in the analysis modules which are appropriate for the
         format/architecture/platform of this workspace by calling
         '''
         if self._mods_loaded:
@@ -223,58 +235,86 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        if len(einfo) == 2:     # FIXME: legacy: remove after 02/13/2020
-            rva,rtype = einfo
-            mmva, mmsz, mmperm, fname = self.getMemoryMap(rva)    # FIXME: getFileByVa does not obey file defs
-            imgbase = self.getFileMeta(fname, 'imagebase')
-            data = None
-            einfo = fname, rva-imgbase, rtype, data
-        else:
+        if len(einfo) == 4:
             fname, ptroff, rtype, data = einfo
-            imgbase = self.getFileMeta(fname, 'imagebase')
-            rva = imgbase + ptroff
+            size = None
+        else:
+            fname, ptroff, rtype, data, size = einfo
+
+        if size is None:
+            size = self.psize
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        rva = imgbase + ptroff
 
         self.reloc_by_va[rva] = rtype
-        self.relocations.append(einfo)
+        self.relocations.append((fname, ptroff, rtype, data, size))
 
         # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
-        if rtype == RTYPE_BASEOFF:
+        if rtype in REBASE_TYPES:
             # add imgbase and offset to pointer in memory
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
-            if ptr != (ptr & e_bits.u_maxes[self.psize]):
-                logger.warn('RTYPE_BASEOFF calculated a bad pointer: 0x%x (imgbase: 0x%x)', ptr, imgbase)
+            if ptr != (ptr & e_bits.u_maxes[size]):
+                logger.warning('Relocations calculated a bad pointer: 0x%x (imgbase: 0x%x) (relocation: %d)', ptr, imgbase, rtype)
 
             # writes are costly, especially on larger binaries
-            if ptr == self.readMemoryPtr(rva):
-                return
+            if ptr != self.readMemValue(rva, size):
+                with self.getAdminRights():
+                    self.writeMemValue(rva, ptr, size)
 
-            with self.getAdminRights():
-                self.writeMemoryPtr(rva, ptr)
+        if rtype == RTYPE_BASEPTR:
+            # make it like a pointer (but one that could move with each load)
+            #   self.addXref(va, tova, REF_PTR)
+            #   ploc = self.addLocation(va, psize, LOC_POINTER)
+            #   don't follow.  handle it later, once "known code" is analyzed
+            ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
+            self._handleADDXREF((rva, ptr, REF_PTR, 0))
+            self._handleADDLOCATION((rva, size, LOC_POINTER, ptr))
 
-            #logger.info('_handleADDRELOC: %x -> %x (map: 0x%x)', rva, ptr, imgbase)
+    def _handleDELRELOC(self, einfo):
+        fname, rva, rtyp, full = einfo
+        imgbase = self.getFileMeta(fname, 'imagebase')
+        ptroff = rva - imgbase
+
+        self.reloc_by_va.pop(rva, None)
+        delidx = -1
+
+        for idx, (fn, off, typ, data, size) in enumerate(self.relocations):
+            if fn == fname and off == ptroff and typ == rtyp:
+                delidx = idx
+                break
+
+        if delidx >= 0:
+            self.relocations.pop(delidx)
+
+        if full:
+            if rtyp == RTYPE_BASEPTR:
+                ptr = imgbase + data
+                ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
+                self._handleDELXREF((rva, ptr, REF_PTR, 0))
+                self._handleDELLOCATION((rva, self.psize, LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
-        print('DEPRICATED (ADDMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (ADDMODULE) ignored: %s', einfo)
 
     def _handleDELMODULE(self, einfo):
-        print('DEPRICATED (DELMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (DELMODULE) ignored: %s', einfo)
 
     def _handleADDFMODULE(self, einfo):
-        print('DEPRICATED (ADDFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (ADDFMODULE) ignored: %s', einfo)
 
     def _handleDELFMODULE(self, einfo):
-        print('DEPRICATED (DELFMODULE) ignored: %s' % einfo)
+        logger.warning('DEPRECATED (DELFMODULE) ignored: %s', einfo)
 
     def _handleADDFUNCTION(self, einfo):
         va, meta = einfo
         self._initFunction(va)
 
-        #node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
-        #node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
+        # node = self._call_graph.addNode( nid=va, repr=self.getName( va ) ) #, color='#00ff00' )
+        # node = self._call_graph.getFunctionNode(va, repr=self.getName( va ) )
         node = self._call_graph.getFunctionNode(va)
-        self._call_graph.setNodeProp(node,'repr',self.getName(va))
+        self._call_graph.setNodeProp(node, 'repr', self.getName(va))
 
         # Tell the codeflow subsystem about this one!
         calls_from = meta.get('CallsFrom')
@@ -282,16 +322,15 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
         self.funcmeta[va] = meta
 
-        for name,value in meta.items():
+        for name, value in meta.items():
             mcbname = "_fmcb_%s" % name.split(':')[0]
             mcb = getattr(self, mcbname, None)
-            if mcb != None:
+            if mcb is not None:
                 mcb(va, name, value)
 
     def _handleDELFUNCTION(self, einfo):
         # clear funcmeta, func_args, codeblocks_by_funcva, update codeblocks, blockgraph, locations, etc...
         fva = einfo
-        blocks = self.getFunctionBlocks(fva)
 
         # not every codeblock identifying as this function is stored in funcmeta
         for cb in self.getCodeBlocks():
@@ -305,7 +344,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self._call_graph.delNode(node)
         self.cfctx.flushFunction(fva)
 
-        # FIXME: do we want to now seek the function we *should* be in?  
+        # FIXME: do we want to now seek the function we *should* be in?
         # if xrefs_to, look for non-PROC code xrefs and take their function
         # if the previous instruction falls through, take its function
         # run codeblock analysis on that function to reassociate the blocks
@@ -314,11 +353,11 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def _handleSETFUNCMETA(self, einfo):
         funcva, name, value = einfo
         m = self.funcmeta.get(funcva)
-        if m != None:
+        if m is not None:
             m[name] = value
         mcbname = "_fmcb_%s" % name.split(':')[0]
         mcb = getattr(self, mcbname, None)
-        if mcb != None:
+        if mcb is not None:
             mcb(funcva, name, value)
 
     def _handleADDCODEBLOCK(self, einfo):
@@ -337,15 +376,15 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         fromva, tova, reftype, rflags = einfo
         xr_to = self.xrefs_by_to.get(tova, None)
         xr_from = self.xrefs_by_from.get(fromva, None)
-        if xr_to == None:
+        if xr_to is None:
             xr_to = []
             self.xrefs_by_to[tova] = xr_to
 
-        if xr_from == None:
+        if xr_from is None:
             xr_from = []
             self.xrefs_by_from[fromva] = xr_from
 
-        if einfo not in xr_to: # Just check one for now
+        if einfo not in xr_to:  # Just check one for now
             xr_to.append(einfo)
             xr_from.append(einfo)
             self.xrefs.append(einfo)
@@ -356,27 +395,38 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.xrefs_by_from[fromva].remove(einfo)
 
     def _handleSETNAME(self, einfo):
-        va,name = einfo
-        if name == None:
+        va, name = einfo
+        if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
+
         else:
             curname = self.name_by_va.get(va)
-            if curname != None:
+            if curname is not None:
+                logger.debug('replacing 0x%x: %r -> %r', va, curname, name)
                 self.va_by_name.pop(curname)
 
             self.va_by_name[name] = va
             self.name_by_va[va] = name
 
-        if self.isFunction( va ):
+        if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)
-            self._call_graph.setNodeProp(fnode,'repr',name)
+            if name is None:
+                self._call_graph.delNodeProp(fnode, 'repr')
+            else:
+                self._call_graph.setNodeProp(fnode, 'repr', name)
 
     def _handleADDMMAP(self, einfo):
-        va, perms, fname, mbytes = einfo
-        e_mem.MemoryObject.addMemoryMap(self, va, perms, fname, mbytes)
+        if len(einfo) == 5:
+            # new "alignment-friendly" event
+            va, perms, fname, mbytes, align = einfo
+        else:
+            # DEPRECATED (21-09-13) - old event style, to support older .viv's
+            va, perms, fname, mbytes = einfo
+            align = None
 
-        blen = len(mbytes)
+        blen = e_mem.MemoryObject.addMemoryMap(self, va, perms, fname, mbytes, align)
+
         self.locmap.initMapLookup(va, blen)
         self.blockmap.initMapLookup(va, blen)
 
@@ -384,12 +434,15 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         # transmeta items...
         self.transmeta.pop('findPointers',None)
 
+    def _handleDELMMAP(self, mapva):
+        e_mem.MemoryObject.delMemoryMap(self, mapva)
+        self.locmap.delMapLookup(mapva)
+        self.blockmap.delMapLookup(mapva)
+
     def _handleADDEXPORT(self, einfo):
         va, etype, name, filename = einfo
         self.exports.append(einfo)
         self.exports_by_va[va] = einfo
-        fullname = "%s.%s" % (filename,name)
-        self.makeName(va, fullname)
 
     def _handleSETMETA(self, einfo):
         name,value = einfo
@@ -398,14 +451,14 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         # callback name....
         mcbname = "_mcb_%s" % name.split(':')[0]
         mcb = getattr(self, mcbname, None)
-        if mcb != None:
+        if mcb is not None:
             mcb(name, value)
         self.metadata[name] = value
 
     def _handleCOMMENT(self, einfo):
         va,comment = einfo
-        if comment == None:
-            self.comments.pop(va)
+        if comment is None:
+            self.comments.pop(va, None)
         else:
             self.comments[va] = comment
 
@@ -455,7 +508,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.vasets[name].pop(va, None)
 
     def _handleADDFSIG(self, einfo):
-        print('DEPRICATED (ADDFSIG) ignored: %s' % (einfo,))
+        raise NotImplementedError("FSIG is deprecated and should not be used")
 
     def _handleFOLLOWME(self, va):
         pass
@@ -467,7 +520,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
     def _handleSYMHINT(self, msgtup):
         va, idx, hint = msgtup
-        if hint == None:
+        if hint is None:
             self.symhints.pop((va,idx), None)
         else:
             self.symhints[(va,idx)] = hint
@@ -478,20 +531,20 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
 
     def _handleAUTOANALFIN(self, einfo):
         '''
-        This event is more for the storage subsystem than anything else.  It 
+        This event is more for the storage subsystem than anything else.  It
         marks the end of autoanalysis.  Any event beyond this is due to the
         end user or analysis modules they've executed.
         '''
         pass
 
     def _initEventHandlers(self):
-        self.ehand = [None for x in xrange(VWE_MAX)]
+        self.ehand = [None for x in range(VWE_MAX)]
         self.ehand[VWE_ADDLOCATION] = self._handleADDLOCATION
         self.ehand[VWE_DELLOCATION] = self._handleDELLOCATION
         self.ehand[VWE_ADDSEGMENT] = self._handleADDSEGMENT
         self.ehand[VWE_DELSEGMENT] = None
         self.ehand[VWE_ADDRELOC] = self._handleADDRELOC
-        self.ehand[VWE_DELRELOC] = None
+        self.ehand[VWE_DELRELOC] = self._handleDELRELOC
         self.ehand[VWE_ADDMODULE] = self._handleADDMODULE
         self.ehand[VWE_DELMODULE] = self._handleDELMODULE
         self.ehand[VWE_ADDFMODULE] = self._handleADDFMODULE
@@ -506,7 +559,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.ehand[VWE_DELXREF] = self._handleDELXREF
         self.ehand[VWE_SETNAME] = self._handleSETNAME
         self.ehand[VWE_ADDMMAP] = self._handleADDMMAP
-        self.ehand[VWE_DELMMAP] = None
+        self.ehand[VWE_DELMMAP] = self._handleDELMMAP
         self.ehand[VWE_ADDEXPORT] = self._handleADDEXPORT
         self.ehand[VWE_DELEXPORT] = None
         self.ehand[VWE_SETMETA] = self._handleSETMETA
@@ -528,22 +581,41 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
 
-        self.thand = [None for x in xrange(VTE_MAX)]
+        self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
-
-    def _handleIAMLEADER(self, event, einfo):
-        user,follow = einfo
-        self.vprint('*%s invites everyone to follow "%s"' % (user,follow))
+        self.thand[VTE_KILLLEADER] = self._handleKILLLEADER
+        self.thand[VTE_MODLEADER] = self._handleMODLEADER
 
     def _handleFOLLOWME(self, event, einfo):
-        # workspace has nothing to do...
-        pass
+        uuid, expr = einfo
+        logger.debug("_handleFOLLOWME(%r, %r)", event, einfo)
+        self.leaderloc[uuid] = expr
+
+    def _handleKILLLEADER(self, event, einfo):
+        logger.debug("_handleKILLLEADER(%r, %r)", event, einfo)
+        uuid = einfo
+        user, fname = self.leaders.pop(uuid)
+        self.vprint("*Ended: %s's session '%s' (%r)" % (user,fname,uuid))
+
+    def _handleMODLEADER(self, event, einfo):
+        uuid, user, fname = einfo
+        self.vprint('*%s changed leader session name to "%s" (%r)' % (user,fname,uuid))
+
+        self.leaders[uuid] = (user, fname)
+
+    def _handleIAMLEADER(self, event, einfo):
+        uuid, user, fname, locexpr = einfo
+        logger.debug("_handleIAMLEADER(%r, (%r, %r, %r, %r))", event, user, uuid, fname, locexpr)
+
+        self.vprint('*%s invites everyone to follow "%s" (%r)' % (user,fname,uuid))
+        self.leaders[uuid] = (user, fname)
+        self.leaderloc[uuid] = locexpr
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
         '''
         Fire an event down the hole.  "local" specifies that this is
-        being called on a client (self.server != None) but we got it
+        being called on a client (self.server is not None) but we got it
         from the server in the first place so no need to send it back.
 
         skip is used to tell the server to bypass our channelid when
@@ -558,23 +630,23 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             self.ehand[event](einfo)
 
             # If we're supposed to call a server, do that.
-            if self.server != None and local == False:
+            if self.server is not None and local == False:
                 self.server._fireEvent(event, einfo, skip=self.rchan)
 
             # FIXME perhaps we should only process events *via* our server
             # if we have one? Just to confirm it works before we apply it...
             self._event_list.append((event, einfo))
 
-            for id,q in self.chan_lookup.items():
+            for id, q in self.chan_lookup.items():
                 if id == skip:
                     continue
                 try:
                     q.put_nowait((event, einfo))
-                except Queue.Full, e:
-                    print "FULL QUEUE DO SOMETHING"
+                except queue.Full as e:
+                    logger.warning('Queue is full!')
 
-        except Exception, e:
-            traceback.print_exc()
+        except Exception as e:
+            logger.error(traceback.format_exc())
 
     def _fireTransEvent(self, event, einfo):
         for q in self.chan_lookup.values():
@@ -584,23 +656,12 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def _initFunction(self, funcva):
         # Internal function to initialize all datastructures necessary for
         # a function, but only if they haven't been done already.
-        if self.funcmeta.get(funcva) == None:
+        if self.funcmeta.get(funcva) is None:
             self.funcmeta[funcva] = {} # His metadata
             self.codeblocks_by_funcva[funcva] = [] # Init code block list
 
     #def _loadImportApi(self, apidict):
         #self._imp_api.update( apidict )
-
-    def getEndian(self):
-        return self.bigend
-
-    def setEndian(self, endian):
-        self.bigend = endian
-        for arch in self.imem_archs:
-            arch.setEndian(self.bigend)
-
-        if self.arch != None:
-            self.arch.setEndian(self.bigend)
 
 
 #################################################################
@@ -621,6 +682,8 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
+        self._load_event.set()
+
     def _mcb_bigend(self, name, value):
         self.setEndian(bool(value))
 
@@ -632,12 +695,25 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
+        self._load_event.set()
+
+    def _mcb_FileBytes(self, name, value):
+        if not self.parsedbin:
+            byts = viv_parsers.uncompressBytes(value)
+            fmt = viv_parsers.guessFormat(byts)
+            parser = viv_parsers.getBytesParser(fmt)
+            if parser:
+                self.parsedbin = parser(byts)
+
     def _mcb_ustruct(self, name, ssrc):
         # All meta values in the "ustruct" namespace are user defined
         # structure defintions in C.
         sname = name.split(':')[1]
         ctor = vs_cparse.ctorFromCSource( ssrc )
         self.vsbuilder.addVStructCtor( sname, ctor )
+
+    def _mcb_GUID(self, name, guid):
+        self._load_guid.set()
 
     def _mcb_WorkspaceServer(self, name, wshost):
         self.vprint('Workspace was Saved to Server: %s' % wshost)
@@ -652,7 +728,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     def _fmcb_CallsFrom(self, funcva, th, callsfrom):
         for va in callsfrom:
             f2va = self.getFunction( va )
-            if f2va != None:
+            if f2va is not None:
                 self._call_graph.getCallEdge( funcva, f2va )
 
     def _fmcb_LocalSymbol(self, fva, mname, locsym):
@@ -673,7 +749,6 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
-    if vw.verbose: print "Dynamic Branch found at 0x%x    %s" % (op.va, op)
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
@@ -684,7 +759,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
     def _cb_noflow(self, srcva, dstva):
         vw = self._mem
         loc = vw.getLocation( srcva )
-        if loc == None:
+        if loc is None:
             return
 
         lva,lsize,ltype,linfo = loc
@@ -699,16 +774,23 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
     # NOTE: self._mem is the viv workspace...
     def _cb_opcode(self, va, op, branches):
-
+        '''
+        callback for each OPCODE in codeflow analysis
+        must return list of branches, modified for our purposes
+        '''
         loc = self._mem.getLocation(va)
-        if loc  == None: 
+        if loc is None:
 
             # dont code flow through import calls
-            branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
+            branches = [br for br in branches if not self._mem.isLocType(br[0], LOC_IMPORT)]
 
             self._mem.makeOpcode(op.va, op=op)
+            # TODO: future home of makeOpcode branch/xref analysis
             return branches
 
+        elif loc[L_LTYPE] != LOC_OP:
+            locrepr = self._mem.reprLocation(loc)
+            logger.warning("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
         return ()
 
     def _cb_function(self, fva, fmeta):
@@ -723,21 +805,13 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return
 
         # If the function doesn't have a name, make one
-        if vw.getName(fva) == None:
+        if vw.getName(fva) is None:
             vw.makeName(fva, "sub_%.8x" % fva)
 
         vw._fireEvent(VWE_ADDFUNCTION, (fva,fmeta))
 
         # Go through the function analysis modules in order
-        for fmname in vw.fmodlist:
-            fmod = vw.fmods.get(fmname)
-            try:
-                fmod.analyzeFunction(vw, fva)
-            except Exception, e:
-                if vw.verbose:
-                    traceback.print_exc()
-                vw.verbprint("Function Analysis Exception for 0x%x   %s: %s" % (fva, fmod.__name__, e))
-                vw.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
+        vw.analyzeFunction(fva)
 
         fname = vw.getName( fva )
         if vw.getMeta('NoReturnApis').get( fname.lower() ):
@@ -747,7 +821,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return
 
         fmeta = vw.getFunctionMetaDict(fva)
-        for lva in vw.getVaSetRows('NoReturnCalls'): 
+        for lva in vw.getVaSetRows('NoReturnCalls'):
             va = lva[0]
             ctup = vw.getCodeBlock(va)
             if ctup and fva == ctup[2] and vw.getFunctionMeta(fva, 'BlockCount', default=0) == 1:
@@ -759,8 +833,8 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         if tablebase != tableva and self._mem.getXrefsTo(tableva):
             return False
 
-        if self._mem.getLocation(tableva) == None:
+        if self._mem.getLocation(tableva) is None:
             self._mem.makePointer(tableva, tova=destva, follow=False)
-    
+
         return True
 

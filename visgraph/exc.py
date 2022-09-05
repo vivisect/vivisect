@@ -11,7 +11,7 @@ class NodeNonExistant(VisGraphException):
     def __init__(self, nodeid):
         self.nodeid = nodeid
         Exception.__init__(self, 'Node %d does not exist!' % nodeid)
-        
+
 class EdgeNonExistant(VisGraphException):
     def __init__(self, edgeid):
         self.edgeid = edgeid

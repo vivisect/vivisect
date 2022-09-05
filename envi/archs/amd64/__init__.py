@@ -4,9 +4,8 @@ The envi architecture module for the AMD 64 platform.
 import struct
 
 import envi
+import envi.exc as e_exc
 from envi.const import *
-import envi.bits as e_bits
-import envi.registers as e_reg
 import envi.archs.i386 as e_i386
 
 from envi.archs.amd64.regs import *
@@ -93,7 +92,6 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
     accumreg = { 1:REG_AL, 2:REG_AX, 4:REG_EAX, 8:REG_RAX }
 
     def __init__(self):
-
         archmod = Amd64Module()
         e_i386.IntelEmulator.__init__(self, archmod=archmod)
         # The above sets up the intel reg context, so we smash over it
@@ -105,31 +103,64 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         self.addCallingConvention("sysvamd64systemcall", sysvamd64systemcall)
         self.addCallingConvention("msx64call", msx64call)
 
-    def doPush(self, val):
+    def doPush(self, val, size=8):
         rsp = self.getRegister(REG_RSP)
-        rsp -= 8
-        self.writeMemValue(rsp, val, 8)
+        rsp -= size
+        self.writeMemValue(rsp, val, size)
         self.setRegister(REG_RSP, rsp)
 
-    def doPop(self):
+    def doPop(self, size=8):
         rsp = self.getRegister(REG_RSP)
-        val = self.readMemValue(rsp, 8)
-        self.setRegister(REG_RSP, rsp+8)
+        val = self.readMemValue(rsp, size)
+        self.setRegister(REG_RSP, rsp+size)
         return val
 
-    def i_movsxd(self, op):
-        val = self.getOperValue(op, 1)
-        val = e_bits.sign_extend(val, 4, 8)
-        self.setOperValue(op, 0, val)
+    def i_aam(self, op):
+        raise e_exc.UnsupportedInstruction(self, op)
 
-    # these are movs, some deal with caching, which we don't currently care about
-    i_movaps = e_i386.IntelEmulator.i_mov
-    i_movapd = e_i386.IntelEmulator.i_mov
-    i_movups = e_i386.IntelEmulator.i_mov
-    i_movupd = e_i386.IntelEmulator.i_mov
-    i_movnti = e_i386.IntelEmulator.i_mov
-    i_movntpd = e_i386.IntelEmulator.i_mov
-    i_movntps = e_i386.IntelEmulator.i_mov
-    i_movntdq = e_i386.IntelEmulator.i_mov
-    i_movntdqa = e_i386.IntelEmulator.i_mov
+    i_aas = i_aam
+
+    def i_pinsrq(self, op):
+        self.i_pinsrb(op, width=8)
+
+    def i_stosd(self, op):
+        # TODO: Once we fix the postfix handling, come back and mop this up
+        if op.prefixes & PREFIX_REX_W:
+            rax = self.getRegister(REG_RAX)
+            rdi = self.getRegister(REG_RDI)
+            self.writeMemory(rdi, struct.pack("<Q", rax))
+            if self.getFlag(EFLAGS_DF):
+                rdi -= 8
+            else:
+                rdi += 8
+            self.setRegister(REG_RDI, rdi)
+        else:
+            e_i386.IntelEmulator.i_stosd(self, op)
+
+    def i_pextrd_q(self, op):
+        if op.prefixes & PREFIX_REX_W:
+            self.i_pextrb(op, width=8)
+        else:
+            self.i_pextrb(op, width=4)
+
+    def i_idiv(self, op):
+        tsize = op.opers[0].tsize
+        if tsize == 8:
+            val = self.twoRegCompound(REG_RDX, REG_RAX, 8)
+            val = e_bits.signed(val, 16)
+            d = self.getOperValue(op, 0)
+            d = e_bits.signed(d, 8)
+            if d == 0:
+                raise envi.DivideByZero(self)
+            sign = (val < 0 and d > 0) or (val > 0 and d < 0)
+            q = (abs(val) // abs(d))
+            r = (abs(val) % abs(d))
+            if sign:
+                q = -q
+                r = -r
+
+            self.setRegister(REG_RAX, q)
+            self.setRegister(REG_RDX, r)
+        else:
+            e_i386.IntelEmulator.i_idiv(self, op)
 

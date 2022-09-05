@@ -12,6 +12,91 @@ s2paths = [
     ('a','b','c'),
 ]
 
+misc_graph_state1_nodes = [
+    ('a', {'rootnode': True}),
+    ('b', {'bar': [1, 2, 3, 4], 'baz': {1: 'blah'}, 'foo': 1234}),
+    ('c', {}),
+    ('d', {}),
+    ('e', {}),
+    ('f', {}),
+    ('test1', {'bar': [1, 2, 3, 4], 'baz': {1: 'blah'}, 'foo': 1234})
+]
+
+misc_graph_state1_edges = [
+    ('801b27a16048ab6a117aa8181a70da45', 'a', 'b', {}),
+    ('f67a14a063e19e667295479881f74655', 'a', 'c', {}),
+    ('3da9da188034739bd13c3c5ebc741028', 'c', 'f', {}),
+    ('1cf9d6655169edb8d9eef8bd102a537b', 'b', 'd', {}),
+    ('e76d0c84bc8233f6b7e38bafae46495f', 'b', 'e', {}),
+    ('2bba716151cdd42e91dcfdaf45c8539a', 'd', 'f', {}),
+    ('239039cc7bfa4de28f816519e70ded53', 'e', 'f', {}),
+    ('90a3ba421614e4c7f0a6ddde5bbc8e2c',
+      'b',
+      'test1',
+      {'bar': [1, 2, 3, 4],
+       'baz': {1: 'blah'},
+       'blad': 1234,
+       'bled': {1: 'blah'},
+       'blod': [1, 2, 3, 4],
+       'foo': 1234}),
+    ('f75197278c15a24132cf35cc92540b3d',
+      'test1',
+      'c',
+      {'bar': [1, 2, 3, 4], 'baz': {1: 'blah'}, 'foo': 1234})
+]
+
+
+misc_graph_state2_nodes = [
+    ('a', {'rootnode': True}),
+    ('b', {'baz': {1: 'blah'}}),
+    ('c', {}),
+    ('d', {}),
+    ('e', {}),
+    ('f', {}),
+    ('test1', {'bar': [1, 2, 3, 4], 'baz': {1: 'blah'}, 'foo': 1234})
+]
+
+misc_graph_state2_edges = [
+    ('801b27a16048ab6a117aa8181a70da45', 'a', 'b', {}),
+    ('f67a14a063e19e667295479881f74655', 'a', 'c', {}),
+    ('3da9da188034739bd13c3c5ebc741028', 'c', 'f', {}),
+    ('1cf9d6655169edb8d9eef8bd102a537b', 'b', 'd', {}),
+    ('e76d0c84bc8233f6b7e38bafae46495f', 'b', 'e', {}),
+    ('2bba716151cdd42e91dcfdaf45c8539a', 'd', 'f', {}),
+    ('239039cc7bfa4de28f816519e70ded53', 'e', 'f', {}),
+    ('90a3ba421614e4c7f0a6ddde5bbc8e2c',
+      'b',
+      'test1',
+      {'bar': [1, 2, 3, 4],
+       'baz': {1: 'blah'},
+       'blad': 1234,
+       'bled': {1: 'blah'},
+       'blod': [1, 2, 3, 4],
+       'foo': 1234}),
+    ('f75197278c15a24132cf35cc92540b3d', 'test1', 'c', {'bar': [1, 2, 3, 4]})
+]
+
+
+misc_graph_state3_nodes = [
+    ('a', {'rootnode': True}),
+    ('b', {'baz': {1: 'blah'}}),
+    ('c', {}),
+    ('d', {}),
+    ('e', {}),
+    ('f', {})
+]
+
+misc_graph_state3_edges = [
+    ('801b27a16048ab6a117aa8181a70da45', 'a', 'b', {}),
+    ('f67a14a063e19e667295479881f74655', 'a', 'c', {}),
+    ('3da9da188034739bd13c3c5ebc741028', 'c', 'f', {}),
+    ('1cf9d6655169edb8d9eef8bd102a537b', 'b', 'd', {}),
+    ('e76d0c84bc8233f6b7e38bafae46495f', 'b', 'e', {}),
+    ('2bba716151cdd42e91dcfdaf45c8539a', 'd', 'f', {}),
+    ('239039cc7bfa4de28f816519e70ded53', 'e', 'f', {})
+]
+
+
 class GraphCoreTest(unittest.TestCase):
 
     def getSampleGraph1(self):
@@ -217,4 +302,68 @@ class GraphCoreTest(unittest.TestCase):
         self.assertEqual( n1[1].get('lul'), 2)
         self.assertEqual( n3[1].get('foo'), 'bar')
         self.assertNotEqual( n1[0], n2[0])
+
+    def test_visgraph_add_del_misc_properties(self):
+        g = self.getSampleGraph1()
+        na = g.getNode('a')
+        nb = g.getNode('b')
+
+        # Test Adding Node with good and bad properties
+        ntest1 = g.addNode('test1', foo=1234, bar=[1, 2, 3, 4], baz={1: 'blah'})
+
+        # Test Adding good and bad properties to an existing node
+        g.setNodeProp(nb, 'foo', 1234)
+        g.setNodeProp(nb, 'bar', [1, 2, 3, 4])
+        g.setNodeProp(nb, 'baz', {1: 'blah'})
+
+        ## test reverse lookups.  lists and dicts aren't stored because 
+        ##      they don't store well as dictionary keys
+        self.assertEqual(list(g.nodeprops['foo'].keys()), [1234])
+        self.assertEqual(list(g.nodeprops['bar'].keys()), [])
+        self.assertEqual(list(g.nodeprops['baz'].keys()), [])
+
+        # Test Adding Edge with good and bad properties
+        etest1 = g.addEdge(nb, ntest1, foo=1234, bar=[1, 2, 3, 4], baz={1: 'blah'})
+        etest2 = g.addEdgeByNids('test1', 'c', foo=1234, bar=[1, 2, 3, 4], baz={1: 'blah'})
+
+        # Test Adding good and bad properties to an existing edge
+        g.setEdgeProp(etest1, 'blad', 1234)
+        g.setEdgeProp(etest1, 'blod', [1, 2, 3, 4])
+        g.setEdgeProp(etest1, 'bled', {1: 'blah'})
+
+        ## test reverse lookups.  lists and dicts aren't stored because 
+        ##      they don't store well as dictionary keys
+        self.assertEqual(list(g.edgeprops['blad'].keys()), [1234])
+        self.assertEqual(list(g.edgeprops['blod'].keys()), [])
+        self.assertEqual(list(g.edgeprops['bled'].keys()), [])
+
+        ## Validate State of Graph
+        self.assertEqual(g.getNodes(), misc_graph_state1_nodes)
+        test_edges = [(nid1, nid2, eprops) for eid, nid1, nid2, eprops in g.getEdges()]
+        ctrl_edges = [(nid1, nid2, eprops) for eid, nid1, nid2, eprops in misc_graph_state1_edges]
+        self.assertEqual(test_edges, ctrl_edges)
+
+        # Test Deleting good and bad properties from Node and Edge
+        g.delNodeProp(nb, 'foo')
+        g.delNodeProp(nb, 'bar')
+        g.delEdgeProp(etest2, 'foo')
+        g.delEdgeProp(etest2, 'baz')
+
+        ## Validate State of Graph
+        self.assertEqual(g.getNodes(), misc_graph_state2_nodes)
+        test_edges = [(nid1, nid2, eprops) for eid, nid1, nid2, eprops in g.getEdges()]
+        ctrl_edges = [(nid1, nid2, eprops) for eid, nid1, nid2, eprops in misc_graph_state2_edges]
+        self.assertEqual(test_edges, ctrl_edges)
+
+
+
+        # Test Deleting nodes and edges
+        g.delEdge(etest2)
+        g.delNode(ntest1)
+
+        ## Validate State of Graph
+        self.assertEqual(g.getNodes(), misc_graph_state3_nodes)
+        test_edges = [(nid1, nid2, eprops) for eid, nid1, nid2, eprops in g.getEdges()]
+        ctrl_edges = [(nid1, nid2, eprops) for eid, nid1, nid2, eprops in misc_graph_state3_edges]
+        self.assertEqual(test_edges, ctrl_edges)
 

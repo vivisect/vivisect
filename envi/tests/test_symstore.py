@@ -28,8 +28,16 @@ class SymResolverTests(unittest.TestCase):
         fres = e_sym_resolv.FileSymbol(fname, base, size, width)
 
         self.symres.addSymbol(fres)
-        assert(fname in self.symres.symobjsbyname)
-        assert(isinstance(self.symres.symobjsbyname[fname], e_sym_resolv.SymbolResolver))
+        self.assertIn(fname, self.symres.symobjsbyname)
+        self.assertIsInstance(self.symres.symobjsbyname[fname], e_sym_resolv.SymbolResolver)
+
+        fnsym = e_sym_resolv.FunctionSymbol('TestFooFuncSym', 0x123456, size=4, fname=fname)
+        self.symres.addSymbol(fnsym)
+        secsym = e_sym_resolv.SectionSymbol('TestFooSectionSym', 0x123456, size=400, fname=fname)
+        self.symres.addSymbol(secsym)
+
+        self.symres.delSymbol(fnsym)
+        self.assertNotIn(fnsym, self.symres.symobjsbyname)
 
     def test_getSymByAddr_exact_false(self):
         '''
@@ -48,7 +56,7 @@ class SymResolverTests(unittest.TestCase):
         # this causes the symobjsbyname to smash in a Symbol instead of a
         # SymbolResolver (symobjsbyname['foo'] = Symbol)
         sym = self.symres.getSymByAddr(0x10, exact=False)
-        assert(sym != None)
+        assert(sym is not None)
 
         # now symobjsbyname['foo'] = Symbol
 
@@ -57,4 +65,6 @@ class SymResolverTests(unittest.TestCase):
         # to cache since it should be a resolver since we have an fname.
         # boom.
         sym = self.symres.getSymByAddr(0x16010, exact=False)
-        assert(sym != None)
+        assert(sym is not None)
+
+    #def test_import

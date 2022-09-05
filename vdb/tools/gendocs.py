@@ -25,13 +25,9 @@ import os
 import sys
 import datetime
 
-try:
-    #TODO: remove depending if we decide on a contrib dir.
-    import contrib
-except:
-    print('no contrib dir, trying local python')
 import epydoc
 import epydoc.cli
+
 
 def vdbEpydoc():
     '''
@@ -44,13 +40,11 @@ def vdbEpydoc():
 
     toolsdirname = os.path.dirname(os.path.abspath(__file__))
 
-    outputdir = os.path.join(toolsdirname,
-        os.path.join('..', os.path.join('..', 'apidocs')))
+    outputdir = os.path.join(toolsdirname, os.path.join('..', os.path.join('..', 'apidocs')))
     configfile = os.path.join(toolsdirname, 'vdb.epydoc')
     cssfile = os.path.join(toolsdirname, 'vdb.epydoc.css')
 
-    newargv = ['epydoc', '--config', configfile, '--output', outputdir, '--css',
-        cssfile]
+    newargv = ['epydoc', '--config', configfile, '--output', outputdir, '--css', cssfile]
 
     if sys.argv > 1:
         newargv += sys.argv[1:]
@@ -77,6 +71,7 @@ def vdbEpydoc():
             os.rename(options.target, targetdirname)
 
     epydoc.cli.main(options, names)
+
 
 if __name__ == '__main__':
     vdbEpydoc()

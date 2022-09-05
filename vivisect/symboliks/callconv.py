@@ -16,7 +16,7 @@ class SymbolikCallingConvention(object):
 
     def _dealloc(self, delta, argc):
         # Special method to allow symbolik cconv to hook...
-        return delta + ( self.align * Const(argc, self._width) )
+        return delta + (self.align * Const(argc, self._width))
 
     def getSymbolikArgs(self, emu, argv, update=False):
         '''
@@ -25,7 +25,7 @@ class SymbolikCallingConvention(object):
         fofx effects...
         '''
         args = self.getPreCallArgs(self.argdefemu, len(argv))
-        if update == True:
+        if update:
             args = [arg.update(emu) for arg in args]
 
         return args
@@ -65,7 +65,7 @@ class SymbolikCallingConvention(object):
         state introduced by our callee.
 
         Example:
-            cconv.setSymbolikReturn(emu, Var('foo', self._psize), 
+            cconv.setSymbolikReturn(emu, Var('foo', self._psize))
         '''
         # TODO: consider renaming func name (see new envi cc stuff)
         # we could get more re-use here if we plumb/snap in methods that map
@@ -91,4 +91,3 @@ class SymbolikCallingConvention(object):
 
         rname = self.argdefemu.xlator._reg_ctx.getRegisterName(aval)
         return emu.getSymVariable(rname)
-

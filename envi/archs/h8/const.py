@@ -6,9 +6,9 @@ REG_FLAGS = 9
 
 
 # opcode flags
-IF_B    = 0x100
-IF_W    = 0x200
-IF_L    = 0x400
+IF_B = 0x100
+IF_W = 0x200
+IF_L = 0x400
 
 OSZ_FLAGS = (
         None,
@@ -19,5 +19,5 @@ OSZ_FLAGS = (
         )
 
 # operand flags
-OF_PREDEC   = 1
-OF_POSTINC  = 2
+OF_PREDEC = 1
+OF_POSTINC = 2

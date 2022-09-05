@@ -4,6 +4,7 @@ import vtrace
 import vtrace.notifiers as v_notifiers
 import vtrace.rmi as v_rmi
 
+
 class TraceManager:
     """
     A trace-manager is a utility class to extend from when you may be dealing
@@ -14,8 +15,8 @@ class TraceManager:
     def __init__(self, trace=None):
         self.trace = trace
         self.dnotif = v_notifiers.DistributedNotifier()
-        self.modes = {} # See docs for trace modes
-        self.metadata = {} # Like traces, but persistant
+        self.modes = {}  # See docs for trace modes
+        self.metadata = {}  # Like traces, but persistant
 
     def manageTrace(self, trace):
         """
@@ -28,10 +29,10 @@ class TraceManager:
         else:
             trace.registerNotifier(vtrace.NOTIFY_ALL, self.dnotif)
 
-        for name,val in self.modes.items():
+        for name, val in self.modes.items():
             trace.setMode(name, val)
 
-        for name,val in self.metadata.items():
+        for name, val in self.metadata.items():
             trace.setMeta(name, val)
 
     def unManageTrace(self, trace):
@@ -44,22 +45,22 @@ class TraceManager:
             trace.deregisterNotifier(vtrace.NOTIFY_ALL, self.dnotif)
 
     def setMode(self, name, value):
-        if self.trace != None:
+        if self.trace is not None:
             self.trace.setMode(name, value)
         self.modes[name] = value
 
     def getMode(self, name, default=False):
-        if self.trace != None:
+        if self.trace is not None:
             return self.trace.getMode(name, default)
         return self.modes.get(name, default)
 
     def setMeta(self, name, value):
-        if self.trace != None:
+        if self.trace is not None:
             self.trace.setMeta(name, value)
         self.metadata[name] = value
 
     def getMeta(self, name, default=None):
-        if self.trace != None:
+        if self.trace is not None:
             return self.trace.getMeta(name, default)
         return self.metadata.get(name, default)
 
@@ -75,4 +76,3 @@ class TraceManager:
         the traces. (used to locally bump notifiers)
         """
         self.dnotif.notify(event, trace)
-
