@@ -21,10 +21,10 @@ def detect_cc(trace):
 	the current architecture and platform
 	'''
     cc_dict = {('i386' ,'windows') : 'stdcall',
-	    	   ('i386' ,'linux')   : 'stdcall',
-		       ('amd64','windows') : 'msx64call',
+               ('i386' ,'linux')   : 'stdcall',
+               ('amd64','windows') : 'msx64call',
                ('amd64','linux')   : 'sysvamd64call', 
-	          }
+              }
 		   
     arch_plat = (trace.getMeta("Architecture"), trace.getMeta("Platform"))
 	
@@ -58,11 +58,11 @@ class SniperArgValueBreak(vt_breakpoints.Breakpoint):
     value.
     '''
     def __init__(self, symname, argidx, argval):
-		vt_breakpoints.Breakpoint.__init__(self, None, expression=symname)
-		self.fastbreak = True
-		self._argval = argval
-		self._argidx = argidx
-		self._symname = symname
+        vt_breakpoints.Breakpoint.__init__(self, None, expression=symname)
+        self.fastbreak = True
+        self._argval = argval
+        self._argidx = argidx
+        self._symname = symname
 		
     def notify(self, event, trace):
         arg = getArg(trace, self._argidx)
