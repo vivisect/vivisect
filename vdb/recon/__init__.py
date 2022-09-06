@@ -7,9 +7,10 @@ conventions...
 
 Recon Format Chars:
     A - A NULL terminated ascii string
-    W - A NULL terminated utf-16le string
+    U - A NULL terminated utf-16le string
     P - A platform width pointer
     I - An integer (32 bits for now...)
+    C - A byte 
 '''
 
 import vtrace.breakpoints as vt_breakpoints
@@ -17,7 +18,7 @@ import vtrace.breakpoints as vt_breakpoints
 def reprargs(trace, fmt, args):
 
     r = []
-    for i in xrange(len(fmt)):
+    for i in range(len(fmt)):
         fchr = fmt[i]
         arg  = args[i]
 
@@ -44,7 +45,7 @@ def reprargs(trace, fmt, args):
                 ubuf = buf.decode('utf-16le','ignore')
                 rstr = repr(ubuf.split('\x00')[0])
                 
-        elif fchr == 'S':
+        elif fchr == 'A':
 
             if arg == 0:
                 rstr = 'NULL'
@@ -120,7 +121,7 @@ class ReconBreak(vt_breakpoints.Breakpoint):
 
         if not trace.getMeta('recon_quiet'):
             argstr = '(%s)' % ', '.join(argrep)
-            print 'RECON: %.4d 0x%.8x %s%s' % (thid, savedeip, self._symname, argstr)
+            print('RECON: %.4d 0x%.8x %s%s' % (thid, savedeip, self._symname, argstr))
 
 def addReconBreak(trace, symname, reconfmt):
     if trace.getMeta('recon_hits') == None:
