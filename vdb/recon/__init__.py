@@ -10,15 +10,20 @@ Recon Format Chars:
     U - A NULL terminated utf-16le string
     P - A platform width pointer
     I - An integer (32 bits for now...)
-    C - A byte 
+    C - A byte
 '''
 
 import logging
-
 import vtrace.breakpoints as vt_breakpoints
 
 logger = logging.getLogger(__name__)
 
+
+CC_DICT = {('i386' ,'windows') : 'stdcall',
+           ('i386' ,'linux')   : 'cdecl',
+           ('amd64','windows') : 'msx64call',
+           ('amd64','linux')   : 'sysvamd64call',
+          }
 
 def reprargs(trace, fmt, args):
     r = []
@@ -72,20 +77,17 @@ def reprargs(trace, fmt, args):
         r.append(rstr)
     return r
 
-def detect_cc(trace):
+def detect_cc(trace, autodetect=True, cc=()):
     '''
     Autodetect the calling convention based on
-    the current architecture and platform
+    the current architecture and platform. Otherwise
+    get the calling convention from the input parameter
+    tuple. Otherwise default to stdcall
     '''
-    cc_dict = {('i386' ,'windows') : 'stdcall',
-               ('i386' ,'linux')   : 'stdcall',
-               ('amd64','windows') : 'msx64call',
-               ('amd64','linux')   : 'sysvamd64call',
-              }
-
-    arch_plat = (trace.getMeta("Architecture"), trace.getMeta("Platform"))
-
-    return trace.getEmulator().getCallingConvention(cc_dict[arch_plat])
+    if autodetect:
+        arch_plat = (trace.getMeta("Architecture"), trace.getMeta("Platform"))
+        return trace.getEmulator().getCallingConvention(CC_DICT[arch_plat])
+    else return CC_DICT[cc] if len(cc) else 'stdcall'
 
 def getArgs(trace, args):
     '''
