@@ -87,7 +87,8 @@ def detect_cc(trace, autodetect=True, cc=()):
     if autodetect:
         arch_plat = (trace.getMeta("Architecture"), trace.getMeta("Platform"))
         return trace.getEmulator().getCallingConvention(CC_DICT[arch_plat])
-    else return CC_DICT[cc] if len(cc) else 'stdcall'
+
+    return trace.getEmulator().getCallingConvetion(CC_DICT[cc]) if len(cc)>0 else trace.getEmulator().getCallingConvention('stdcall')
 
 def getArgs(trace, args):
     '''
