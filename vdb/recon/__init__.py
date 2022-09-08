@@ -7,9 +7,10 @@ conventions...
 
 Recon Format Chars:
     A - A NULL terminated ascii string
-    W - A NULL terminated utf-16le string
+    U - A NULL terminated utf-16le string
     P - A platform width pointer
     I - An integer (32 bits for now...)
+    C - A byte 
 '''
 
 import logging
@@ -48,8 +49,7 @@ def reprargs(trace, fmt, args):
                 ubuf = buf.decode('utf-16le', 'ignore')
                 rstr = repr(ubuf.split('\x00')[0])
 
-        elif fchr == 'S':
-
+        elif fchr == 'A':
             if arg == 0:
                 rstr = 'NULL'
 
@@ -72,22 +72,21 @@ def reprargs(trace, fmt, args):
         r.append(rstr)
     return r
 
-<<<<<<< HEAD
 def detect_cc(trace):
     '''
-	Autodetect the calling convention based on
-	the current architecture and platform
-	'''
+    Autodetect the calling convention based on
+    the current architecture and platform
+    '''
     cc_dict = {('i386' ,'windows') : 'stdcall',
-	    	   ('i386' ,'linux')   : 'stdcall',
-		       ('amd64','windows') : 'msx64call',
-               ('amd64','linux')   : 'sysvamd64call', 
-	          }
-		   
+               ('i386' ,'linux')   : 'stdcall',
+               ('amd64','windows') : 'msx64call',
+               ('amd64','linux')   : 'sysvamd64call',
+              }
+
     arch_plat = (trace.getMeta("Architecture"), trace.getMeta("Platform"))
-	
+
     return trace.getEmulator().getCallingConvention(cc_dict[arch_plat])
-	
+
 def getArgs(trace, args):
     '''
     Assuming we are at the instruction after
@@ -97,8 +96,6 @@ def getArgs(trace, args):
     cc = detect_cc(trace)
     args = cc.getCallArgs(trace, args)
     return args
-=======
->>>>>>> 9665c88a60e9e6026674b052d7a95c2e28c6bf05
 
 class ReconBreak(vt_breakpoints.Breakpoint):
     '''
@@ -128,7 +125,6 @@ class ReconBreak(vt_breakpoints.Breakpoint):
         if not trace.getMeta('recon_quiet'):
             argstr = '(%s)' % ', '.join(argrep)
             logger.info('RECON: %.4d 0x%.8x %s%s', thid, savedeip, self._symname, argstr)
-
 
 def addReconBreak(trace, symname, reconfmt):
     if trace.getMeta('recon_hits') is None:
