@@ -1,7 +1,9 @@
 import cmd
+import logging
 import collections
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
 import envi.cli
 import vtrace.qt
@@ -16,7 +18,6 @@ import vqt.cli
 import vqt.main
 import vqt.colors
 import vqt.qpython
-import vqt.shortcut
 import vqt.hotkeys as vq_hotkeys
 import vqt.application as vq_app
 
@@ -24,6 +25,10 @@ from vqt.main import *
 from vqt.basics import *
 from vqt.common import *
 from vtrace.const import *
+
+
+logger = logging.getLogger(__name__)
+
 
 class VdbCmdWidget(vqt.cli.VQCli, vtrace.qt.VQTraceNotifier):
 
@@ -53,7 +58,7 @@ class VdbCmdWidget(vqt.cli.VQCli, vtrace.qt.VQTraceNotifier):
             self.notify(NOTIFY_CONTINUE, None)
 
     def getCliLayout(self):
-        self.status = QtGui.QLabel(self)
+        self.status = QLabel(self)
         self.status.setMinimumWidth(75)
         self.status.setMaximumWidth(75)
         self.status.setFrameStyle(1)
@@ -151,7 +156,7 @@ class VdbToolBar(vtrace.qt.VQTraceToolBar):
 
     def actAttach(self, *args, **kwargs):
         pid = vtrace.qt.getProcessPid(trace=self.trace)
-        if pid != None:
+        if pid is not None:
             workthread(self.trace.attach)(pid)
 
     @workthread
@@ -214,6 +219,9 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         self.addHotKey('f8','debug:stepover')
         self.addHotKey('ctrl+b','debug:break')
         self.addHotKey('ctrl+p','vdb:view:python')
+
+        self.addHotKey('ctrl+w', 'file:quit')
+        self.addHotKeyTarget('file:quit', self.close)
 
         # Get hotkey overrides
         self.loadHotKeys(self._vq_settings)
@@ -319,11 +327,11 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         platform = trace.getMeta('Platform').lower()
 
         pconfig = config.getSubConfig( platform, add=False )
-        if pconfig != None:
+        if pconfig is not None:
             configs.append(('vdb:%s' % platform, pconfig))
 
         aconfig = config.getSubConfig( arch, add=False )
-        if aconfig != None:
+        if aconfig is not None:
             configs.append(('vdb:%s' % arch, aconfig))
 
         self._cfg_widget = envi.qt.config.EnviConfigTabs( configs )
@@ -358,28 +366,28 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         self.vqBuildDockWidget('VdbRegistersWindow', area=QtCore.Qt.RightDockWidgetArea)
 
     def menuViewLayoutsLoad(self):
-        fname = QtGui.QFileDialog.getOpenFileName(self, 'Load Layout')
-        if fname == None:
+        fname = getOpenFileName(self, 'Load Layout')
+        if fname is None:
             return
 
         self.vqClearDockWidgets()
 
-        settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
+        settings = QtCore.QSettings(str(fname), QtCore.QSettings.IniFormat)
         self.vqRestoreGuiSettings(settings)
 
     def menuViewLayoutsSave(self):
-        fname = QtGui.QFileDialog.getSaveFileName(self, 'Save Layout')
-        if fname == None:
+        fname = getSaveFileName(self, 'Save Layout')
+        if fname is None:
             return
 
-        settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
+        settings = QtCore.QSettings(str(fname), QtCore.QSettings.IniFormat)
         self.vqSaveGuiSettings(settings)
 
     def menuViewLayoutsClear(self):
         self.vqClearDockWidgets()
 
     def menuFileOpen(self, *args, **kwargs):
-        fname = str(QtGui.QFileDialog.getOpenFileName(parent=self, caption='File to execute and attach to'))
+        fname = str(getOpenFileName(parent=self, caption='File to execute and attach to'))
         if fname != '':
             self._vq_cli.onecmd('exec "%s"' % fname)
 
@@ -401,7 +409,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
                 else:
                     t.detach()
 
-        except Exception, e:
-            print('Error Detaching: %s' % e)
+        except Exception as e:
+            logger.warning('Error Detaching: %s', e)
 
         return vq_app.VQMainCmdWindow.closeEvent(self, event)

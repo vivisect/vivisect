@@ -5930,6 +5930,7 @@ api = {
     'msvcrt.putwc':( 'int', None, 'cdecl', 'msvcrt.putwc', (('int', None), ('int', None)) ),
     'msvcrt.putwchar':( 'int', None, 'cdecl', 'msvcrt.putwchar', (('int', None),) ),
     'msvcrt.qsort':( 'int', None, 'stdcall', 'msvcrt.qsort', ( ('void *', 'funcptr'), ('int', None), ('int', None), ('void *', 'funcptr'), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None), ('int', None)) ),
+    'msvcrt.quick_exit':( 'int', None, 'cdecl', 'msvcrt.quick_exit', (('int', None),) ),
     'msvcrt.raise':( 'int', None, 'cdecl', 'msvcrt.raise', (('int', None),) ),
     'msvcrt.rand':( 'int', None, 'cdecl', 'msvcrt.rand', () ),
     'msvcrt.realloc':( 'int', None, 'cdecl', 'msvcrt.realloc', (('void *', 'ptr'), ('DWORD', None)) ),
@@ -6940,9 +6941,9 @@ api = {
     'ws2_32.wscwriteproviderorder':( 'int', None, 'stdcall', 'ws2_32.WSCWriteProviderOrder', (('int', None), ('int', None)) ),
     'ws2_32.__wsafdisset':( 'int', None, 'stdcall', 'ws2_32.__WSAFDIsSet', (('int', None), ('int', None)) ),
     'ws2_32.accept':( 'int', None, 'stdcall', 'ws2_32.accept', ( ('void *', 'obj'), ('int', None), ('int', None)) ),
-    'ws2_32.bind':( 'int', None, 'stdcall', 'ws2_32.bind', ( ('int', None), ('int', None)) ),
-    'ws2_32.closesocket':( 'int', None, 'stdcall', 'ws2_32.closesocket', () ),
-    'ws2_32.connect':( 'int', None, 'stdcall', 'ws2_32.connect', ( ('int', None), ('int', None)) ),
+    'ws2_32.bind':( 'int', None, 'stdcall', 'ws2_32.bind', ( ('int', None), ('int', None), ('int', None)) ),
+    'ws2_32.closesocket':( 'int', None, 'stdcall', 'ws2_32.closesocket', ( ('int', None), ) ),
+    'ws2_32.connect':( 'int', None, 'stdcall', 'ws2_32.connect', ( ('int', None), ('int', None), ('int', None)) ),
     'ws2_32.freeaddrinfo':( 'int', None, 'stdcall', 'ws2_32.freeaddrinfo', (('void *', 'ptr'),) ),
     'ws2_32.getaddrinfo':( 'int', None, 'stdcall', 'ws2_32.getaddrinfo', (('int', None), ('int', None), ('int', None), ('int', None)) ),
     'ws2_32.gethostbyaddr':( 'int', None, 'stdcall', 'ws2_32.gethostbyaddr', ( ('int', None), ('int', None), ('int', None)) ),
@@ -6967,7 +6968,7 @@ api = {
     'ws2_32.recv':( 'int', None, 'stdcall', 'ws2_32.recv', ( ('int', None), ('int', None), ('int', None)) ),
     'ws2_32.recvfrom':( 'int', None, 'stdcall', 'ws2_32.recvfrom', ( ('int', None), ('int', None), ('int', None), ('int', None), ('int', None)) ),
     'ws2_32.select':( 'int', None, 'stdcall', 'ws2_32.select', (('int', None), ('int', None), ('int', None), ('int', None), ('int', None)) ),
-    'ws2_32.send':( 'int', None, 'stdcall', 'ws2_32.send', ( ('int', None), ('int', None), ('int', None)) ),
+    'ws2_32.send':( 'int', None, 'stdcall', 'ws2_32.send', ( ('int', None), ('int', None), ('int', None), ('int', None)) ),
     'ws2_32.sendto':( 'int', None, 'stdcall', 'ws2_32.sendto', ( ('int', None), ('int', None), ('int', None), ('int', None), ('int', None)) ),
     'ws2_32.setsockopt':( 'int', None, 'stdcall', 'ws2_32.setsockopt', ( ('int', None), ('int', None), ('int', None), ('int', None)) ),
     'ws2_32.shutdown':( 'int', None, 'stdcall', 'ws2_32.shutdown', ( ('int', None),) ),
@@ -7321,4 +7322,9 @@ api = {
     'wininet.urlzonesdetach':( 'int', None, 'cdecl', 'wininet.UrlZonesDetach', () ),
     'wininet._getfileextensionfromurl':( 'int', None, 'stdcall', 'wininet._GetFileExtensionFromUrl', (('int', None), ('int', None), ('void *', 'ptr'), ('int', None)) ),
 
+    'mfc42.?afxbeginthread@@ygpavcwinthread@@p6aipax@z0hikpau_security_attributes@@@z':( 'int', None, 'cdecl', 'mfc42.?AfxBeginThread@@YGPAVCWinThread@@P6AIPAX@Z0HIKPAU_SECURITY_ATTRIBUTES@@@Z', (('void *','funcptr'), ('void *','ptr'), ('int',None), ('int',None), ('int',None), ('void *','ptr')) ),
+
 } # END
+
+msvcr100 = {'msvcr100.' + name.split('.', 1)[1] : data for name, data in api.items() if name.startswith('msvcrt.')}
+

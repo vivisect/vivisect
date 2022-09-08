@@ -2,9 +2,8 @@ import unittest
 
 import vivisect.symboliks.analysis as vsym_analysis
 
-class MockVw(object):
-    def __init__(self, *args, **kwargs):
-        self.psize = 4
+from vivisect.tests.helpers import MockVw
+
 
 class MockVar(object):
     def __init__(self, va):
@@ -13,8 +12,10 @@ class MockVar(object):
     def solve(self, *args, **kwargs):
         return self.va
 
+
 def nop(*args, **kwargs):
     pass
+
 
 class AnalysisTests(unittest.TestCase):
     def setUp(self):
@@ -30,8 +31,7 @@ class AnalysisTests(unittest.TestCase):
     def test_getStackOffset_inside(self, addr=0xbfbff000, size=16384):
         self.sfe.setStackBase(addr, size)
         offset = self.sfe.getStackOffset(MockVar(addr-1))
-
-        self.assertIs(int(offset), -1)
+        self.assertEqual(int(offset), -1)
 
     def test_getStackOffset_below(self, addr=0xbfbff000, size=16384):
         self.sfe.setStackBase(addr, size)

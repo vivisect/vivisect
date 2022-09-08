@@ -12,18 +12,22 @@ Recon Format Chars:
     I - An integer (32 bits for now...)
 '''
 
+import logging
+
 import vtrace.breakpoints as vt_breakpoints
 
-def reprargs(trace, fmt, args):
+logger = logging.getLogger(__name__)
 
+
+def reprargs(trace, fmt, args):
     r = []
-    for i in xrange(len(fmt)):
+    for i in range(len(fmt)):
+        arg = args[i]
         fchr = fmt[i]
-        arg  = args[i]
 
         if fchr == 'P':
             sym = trace.getSymByAddr(arg)
-            if sym != None:
+            if sym is not None:
                 rstr = repr(sym)
             else:
                 rstr = '0x%.8x'
@@ -41,9 +45,9 @@ def reprargs(trace, fmt, args):
 
             else:
                 buf = trace.readMemory(arg, 260*2)
-                ubuf = buf.decode('utf-16le','ignore')
+                ubuf = buf.decode('utf-16le', 'ignore')
                 rstr = repr(ubuf.split('\x00')[0])
-                
+
         elif fchr == 'S':
 
             if arg == 0:
@@ -57,7 +61,7 @@ def reprargs(trace, fmt, args):
                 rstr = repr(buf.split('\x00')[0])
 
         elif fchr == 'C':
-            rstr = repr(chr( arg & 0xff ))
+            rstr = repr(chr(arg & 0xff))
 
         elif fchr == 'X':
             rstr = '0x%.8x' % arg
@@ -68,6 +72,7 @@ def reprargs(trace, fmt, args):
         r.append(rstr)
     return r
 
+<<<<<<< HEAD
 def detect_cc(trace):
     '''
 	Autodetect the calling convention based on
@@ -92,13 +97,15 @@ def getArgs(trace, args):
     cc = detect_cc(trace)
     args = cc.getCallArgs(trace, args)
     return args
+=======
+>>>>>>> 9665c88a60e9e6026674b052d7a95c2e28c6bf05
 
 class ReconBreak(vt_breakpoints.Breakpoint):
     '''
     '''
     def __init__(self, symname, reconfmt):
         vt_breakpoints.Breakpoint.__init__(self, None, expression=symname)
-        self.fastbreak = True # We are a fast-break, don't notify the trace
+        self.fastbreak = True  # We are a fast-break, don't notify the trace
         self._symname = symname
         self._reconfmt = reconfmt
 
@@ -120,20 +127,23 @@ class ReconBreak(vt_breakpoints.Breakpoint):
 
         if not trace.getMeta('recon_quiet'):
             argstr = '(%s)' % ', '.join(argrep)
-            print 'RECON: %.4d 0x%.8x %s%s' % (thid, savedeip, self._symname, argstr)
+            logger.info('RECON: %.4d 0x%.8x %s%s', thid, savedeip, self._symname, argstr)
+
 
 def addReconBreak(trace, symname, reconfmt):
-    if trace.getMeta('recon_hits') == None:
+    if trace.getMeta('recon_hits') is None:
         trace.setMeta('recon_hits', [])
     bp = ReconBreak(symname, reconfmt)
     bpid = trace.addBreakpoint(bp)
     return bpid
+
 
 def clearReconHits(trace):
     '''
     Clear the current list of recon hits.
     '''
     trace.setMeta('recon_hits', [])
+
 
 def getReconHits(trace):
     '''

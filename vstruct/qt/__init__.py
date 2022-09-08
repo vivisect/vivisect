@@ -3,8 +3,9 @@ Some utils for QT code which uses vstruct...
 '''
 import vqt.tree as vq_tree
 
-from PyQt4 import QtCore, QtGui
-from vqt.main import idlethread, idlethreadsync
+from PyQt5.QtWidgets import *
+
+from vqt.main import idlethreadsync
 
 class VQStructNamespacesView(vq_tree.VQTreeView):
 
@@ -32,23 +33,23 @@ class VQStructSelectView(vq_tree.VQTreeView):
 
         self.setModel(model)
 
-class VQStructSelectDialog(QtGui.QDialog):
+class VQStructSelectDialog(QDialog):
 
     def __init__(self, vsbuilder, parent=None):
-        QtGui.QDialog.__init__(self, parent=parent)
+        QDialog.__init__(self, parent=parent)
         self.structname = None
 
         self.setWindowTitle('Select a structure...')
 
-        vlyt = QtGui.QVBoxLayout()
-        hlyt = QtGui.QHBoxLayout()
+        vlyt = QVBoxLayout()
+        hlyt = QHBoxLayout()
 
         self.structtree = VQStructSelectView(vsbuilder, parent=self)
 
-        hbox = QtGui.QWidget(parent=self)
+        hbox = QWidget(parent=self)
 
-        ok = QtGui.QPushButton("Ok", parent=hbox)
-        cancel = QtGui.QPushButton("Cancel", parent=hbox)
+        ok = QPushButton("Ok", parent=hbox)
+        cancel = QPushButton("Cancel", parent=hbox)
 
         self.structtree.doubleClicked.connect( self.dialog_activated )
 
@@ -115,23 +116,23 @@ class VQStructNamespacesView(vq_tree.VQTreeView):
 
         self.setModel(model)
 
-class VQStructNamespaceDialog(QtGui.QDialog):
+class VQStructNamespaceDialog(QDialog):
 
     def __init__(self, parent=None):
-        QtGui.QDialog.__init__(self, parent=parent)
+        QDialog.__init__(self, parent=parent)
         self.modinfo = None
 
         self.setWindowTitle('Select a module...')
 
-        vlyt = QtGui.QVBoxLayout()
-        hlyt = QtGui.QHBoxLayout()
+        vlyt = QVBoxLayout()
+        hlyt = QHBoxLayout()
 
         self.structtree = VQStructNamespacesView(parent=self)
 
-        hbox = QtGui.QWidget(parent=self)
+        hbox = QWidget(parent=self)
 
-        ok = QtGui.QPushButton("Ok", parent=hbox)
-        cancel = QtGui.QPushButton("Cancel", parent=hbox)
+        ok = QPushButton("Ok", parent=hbox)
+        cancel = QPushButton("Cancel", parent=hbox)
 
         self.structtree.doubleClicked.connect( self.dialog_activated )
 

@@ -2,6 +2,8 @@
 Watchpoint Objects
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
+import envi.const as e_const
+
 from vtrace import *
 from vtrace.breakpoints import *
 
@@ -30,7 +32,7 @@ class Watchpoint(Breakpoint):
     def activate(self, trace):
         trace.requireAttached()
         if not self.active:
-            if self.address != None:
+            if self.address is not None:
                 trace.archAddWatchpoint(self.address, size=self.wpsize, perms=self.wpperms)
                 self.active = True
         return self.active
@@ -55,9 +57,9 @@ class PageWatchpoint(Watchpoint):
     def __init__(self, addr, expression=None, size=4, watchread=False):
         Watchpoint.__init__(self, addr, expression=expression, size=size, perms='rw')
         self._orig_perms = None
-        self._new_perms = e_mem.MM_READ
+        self._new_perms = e_const.MM_READ
         if watchread:
-            self._new_perms = e_mem.MM_NONE
+            self._new_perms = e_const.MM_NONE
 
     def resolvedaddr(self, trace, addr):
         self._orig_perms = trace.getMemoryMap(addr)[2]
@@ -87,4 +89,3 @@ class PageWatchpoint(Watchpoint):
             trace.protectMemory(self.address, self.wpsize, self._orig_perms)
             self.active = False
         return self.active
-

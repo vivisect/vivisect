@@ -11,20 +11,22 @@ import vtrace.platforms.base as v_base
 #
 ############################################
 
+
 def auditTracer(trace):
     """
-    Print out a list of platform requirements and weather
+    Print out a list of platform requirements and whether
     a particular tracer meets them.  This is mostly a
-    development tool to determin what's left to do on a 
+    development tool to determine what's left to do on a
     tracer implementation.
     """
     for mname in dir(v_base.BasePlatformMixin):
         if "__" in mname:
             continue
         if getattr(trace.__class__, mname) == getattr(v_base.BasePlatformMixin, mname):
-            print "LACKS:",mname
+            print("LACKS: %s" % mname)
         else:
-            print "HAS:",mname
+            print("HAS: %s" % mname)
+
 
 if __name__ == "__main__":
     trace = vtrace.getTrace()

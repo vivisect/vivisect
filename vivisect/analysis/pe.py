@@ -9,14 +9,14 @@ def analyze(vw):
     """
     """
     # Go through the relocations and create locations for them
-    for segva,segsize,segname,segfname in vw.getSegments():
-
-        # FIXME should we do this by something other than name?
-        if segname != ".reloc":
+    for segva, segsize, segname, segfname in vw.getSegments():
+        reloc_va = vw.getFileMeta(segfname, "reloc_va")
+        # Found binaries with multiple sections named .reloc where one was iat another
+        # was actual reloc
+        if reloc_va != segva:
             continue
 
         offset, bytes = vw.getByteDef(segva)
-
         while offset < segsize:
             # error cehck to make sure we are providing four bytes
             # to the parse routine
@@ -30,6 +30,8 @@ def analyze(vw):
             vw.makeName(vaoff, "reloc_chunk_%.8x" % vaoff)
 
             recsize = e_bits.parsebytes(bytes, offset+4, 4)
+            if offset + recsize > segsize:
+                break
             vw.makeNumber(segva+offset+4, 4)
 
             ioff = offset + 8

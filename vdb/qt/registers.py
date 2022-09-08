@@ -1,4 +1,4 @@
-from PyQt4 import QtCore, QtGui
+from PyQt5.QtWidgets import QVBoxLayout
 
 import vtrace.qt
 import vdb.qt.base
@@ -11,7 +11,7 @@ class VdbRegistersWindow(vdb.qt.base.VdbWidgetWindow):
 
         self.regsWidget = vtrace.qt.RegistersView(trace=dbt, parent=parent)
 
-        vbox = QtGui.QVBoxLayout()
+        vbox = QVBoxLayout()
         vbox.addWidget(self.regsWidget)
         self.setLayout(vbox)
 
@@ -25,4 +25,3 @@ class VdbRegistersWindow(vdb.qt.base.VdbWidgetWindow):
         the widgets in RegistersView already register for notifications.
         '''
         self.regsWidget.reglist.vqLoad()
-

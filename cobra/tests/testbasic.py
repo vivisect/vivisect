@@ -1,4 +1,3 @@
-import os
 import unittest
 
 import cobra
@@ -32,7 +31,7 @@ class CobraBasicTest(unittest.TestCase):
 
         try:
             import msgpack
-        except ImportError, e:
+        except ImportError:
             self.skipTest('No msgpack installed!')
 
         testobj = c_tests.TestObject()
@@ -59,14 +58,14 @@ class CobraBasicTest(unittest.TestCase):
         try:
             p = cobra.CobraProxy('cobra://localhost:60601/%s' % objname)
             raise Exception('Allowed un-authd connection!')
-        except cobra.CobraAuthException, e:
+        except cobra.CobraAuthException as e:
             pass
 
         # Now fail with wrong auth
         try:
             p = cobra.CobraProxy('cobra://localhost:60601/%s' % objname, authinfo={})
             raise Exception('Allowed bad-auth connection!')
-        except cobra.CobraAuthException, e:
+        except cobra.CobraAuthException as e:
             pass
 
         # Now lets succeed
@@ -91,7 +90,7 @@ class CobraBasicTest(unittest.TestCase):
         # Now lets succeed
         authinfo = { 'user':'invisigoth', 'passwd':'secret' }
         t = cobra.CobraProxy('cobra://localhost:60602/%s' % objname, authinfo=authinfo)
-        c_tests.accessTestObject( t )
+        c_tests.accessTestObject(t)
         self.assertEqual( t.getUser(), 'invisigoth')
         daemon.stopServer()
 

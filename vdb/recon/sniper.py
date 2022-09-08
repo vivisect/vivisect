@@ -2,10 +2,20 @@
 Specialized breakpoints which identify dangerous calling
 mechanisms and tag them.
 '''
+import logging
+
 import envi.memory as e_mem
 import vtrace.breakpoints as vt_breakpoints
 
+<<<<<<< HEAD
 def getArg(trace, argidx):
+=======
+
+logger = logging.getLogger(__name__)
+
+
+def getStackArg(trace, argidx):
+>>>>>>> 9665c88a60e9e6026674b052d7a95c2e28c6bf05
     '''
     Assuming we are at the instruction after
     a call, grab the argument at the specified
@@ -15,6 +25,7 @@ def getArg(trace, argidx):
     args = cc.getCallArgs(trace, argidx)
     return args[-1]
 
+<<<<<<< HEAD
 def detect_cc(trace):
     '''
 	Autodetect the calling convention based on
@@ -29,6 +40,8 @@ def detect_cc(trace):
     arch_plat = (trace.getMeta("Architecture"), trace.getMeta("Platform"))
 	
     return trace.getEmulator().getCallingConvention(cc_dict[arch_plat])
+=======
+>>>>>>> 9665c88a60e9e6026674b052d7a95c2e28c6bf05
 
 class SniperDynArgBreak(vt_breakpoints.Breakpoint):
     '''
@@ -49,8 +62,13 @@ class SniperDynArgBreak(vt_breakpoints.Breakpoint):
         arg = getArg(trace, self._argidx)
         self.fastbreak = True
         if trace.probeMemory(arg, 1, e_mem.MM_WRITE):
+<<<<<<< HEAD
             print("SNIPER: %s TOOK DYNAMIC ARG IDX %d (0x%.8x)" % (self._symname, self._argidx, arg))
+=======
+            logger.info('SNIPER: %s TOOK DYNAMIC ARG IDX %d (0x%.8x)', self._symname, self._argidx, arg)
+>>>>>>> 9665c88a60e9e6026674b052d7a95c2e28c6bf05
             self.fastbreak = False
+
 
 class SniperArgValueBreak(vt_breakpoints.Breakpoint):
     '''
@@ -71,6 +89,7 @@ class SniperArgValueBreak(vt_breakpoints.Breakpoint):
             print("SNIPER: %s TOOK VALUE (0x%.8x) FOR ARG IDX %d" % (self._symname, arg, self._argidx))
             self.fastbreak = False
 
+
 def snipeDynArg(trace, symname, argidx):
     '''
     Construct a SnyperDynArgBreak and snap it in.
@@ -78,6 +97,7 @@ def snipeDynArg(trace, symname, argidx):
     bp = SniperDynArgBreak(symname, argidx)
     bpid = trace.addBreakpoint(bp)
     return bpid
+<<<<<<< HEAD
 	
 def snipeArgValue(trace, symname, argidx, argval):
     '''
@@ -86,3 +106,5 @@ def snipeArgValue(trace, symname, argidx, argval):
     bp = SniperArgValueBreak(symname, argidx, argval)
     bpid = trace.addBreakpoint(bp)
     return bpid
+=======
+>>>>>>> 9665c88a60e9e6026674b052d7a95c2e28c6bf05

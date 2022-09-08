@@ -7,11 +7,15 @@ Particularly useful for clustering and workunit stuff.
 
 """
 import os
-import sys
 import imp
+import sys
+import logging
+import importlib
+
 import cobra
 
-verbose = False
+logger = logging.getLogger(__name__)
+
 
 class DcodeServer:
 
@@ -20,14 +24,14 @@ class DcodeServer:
         # Some serialization causes this to be a tuple
         # and find_module is SUPER SERIOUS about it being
         # a *list*... ;)
-        if path != None:
+        if path is not None:
             path = list(path)
 
         fullname = fullname.split(".")[-1]
 
         try:
             fobj, filename, typeinfo = imp.find_module(fullname, path)
-        except ImportError, e:
+        except ImportError:
             return None
 
         if os.path.isdir(filename):
@@ -41,22 +45,15 @@ class DcodeServer:
             return None
 
         path = os.path.dirname(filename)
-        fbytes = file(filename, "rU").read()
-        return (fbytes,filename,path)
+        with open(filename, 'rU') as f:
+            fbytes = f.read()
+        return (fbytes, filename, path)
 
-        #return DcodeLoader(fbytes, filename, path)
-
-def toutf8(s):
-    if type(s) == unicode:
-        s = s.encode('utf8')
-    return s
 
 class DcodeLoader(object):
-
     """
     This object gets returned by the DcodeFinder
     """
-
     def __init__(self, fbytes, filename, path):
         object.__init__(self)
         self.fbytes = fbytes
@@ -68,17 +65,19 @@ class DcodeLoader(object):
 
     def load_module(self, fullname):
         mod = sys.modules.get(fullname)
-        if mod == None:
-            mod = imp.new_module(fullname)
+        if mod is None:
+            # TODO: Kinda janky. Does this work?
+            spec = importlib.util.spec_from_loader(fullname, loader=None)
+            module = importlib.util.module_from_spec(spec)
             sys.modules[fullname] = mod
-            mod.__file__ = self.filename
-            mod.__loader__ = self
-            if self.path != None:
+            exec(self.fbytes, module.__dict__)
+            module.__file__ = self.filename
+            module.__loader__ = self
+            if self.path is not None:
                 mod.__path__ = [self.path]
 
-            exec toutf8(self.fbytes) in mod.__dict__
-
         return mod
+
 
 class DcodeFinder(object):
     """
@@ -95,24 +94,25 @@ class DcodeFinder(object):
         name, ext = os.path.splitext(localname)
 
         try:
-
-            fobj, filename, typeinfo = imp.find_module(name,path) 
-
+            fobj, filename, typeinfo = imp.find_module(name, path)
         except ImportError:
 
-            if verbose: print('Dcode Searching: %s (%s)' % (name,path))
-            pymod = self.proxy.getPythonModule(fullname,path)
+            logger.info('Dcode Searching: %s (%s)', name, path)
+            pymod = self.proxy.getPythonModule(fullname, path)
             if pymod:
-                if verbose: print('Dcode Loaded: %s' % fullname)
+                logger.info('Dcode Loaded: %s', fullname)
                 return DcodeLoader(*pymod)
+
 
 def addDcodeProxy(proxy):
     finder = DcodeFinder(proxy)
     sys.meta_path.append(finder)
 
+
 def addDcodeUri(uri):
     proxy = cobra.CobraProxy(uri, timeout=120, retrymax=3)
     addDcodeProxy(proxy)
+
 
 def addDcodeServer(server, port=cobra.COBRA_PORT, ssl=False):
     scheme = "cobra"
@@ -122,10 +122,10 @@ def addDcodeServer(server, port=cobra.COBRA_PORT, ssl=False):
     uri = "%s://%s:%d/DcodeServer" % (scheme, server, port)
     addDcodeUri(uri)
 
+
 def enableDcodeServer(daemon=None):
     server = DcodeServer()
     if daemon:
         daemon.shareObject(server, 'DcodeServer')
         return
     cobra.shareObject(server, 'DcodeServer')
-

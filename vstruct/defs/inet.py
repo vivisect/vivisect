@@ -9,6 +9,7 @@ import vstruct
 from vstruct.primitives import *
 
 ETH_P_IP    = 0x0800
+ETH_P_ARP   = 0x0806
 ETH_P_IPv6  = 0x86dd
 ETH_P_VLAN  = 0x8100
 
@@ -16,6 +17,8 @@ IPPROTO_ICMP    = 1
 IPPROTO_TCP     = 6
 IPPROTO_UDP     = 17
 IPPROTO_IPV6    = 41
+IPPROTO_GRE     = 47
+IPPROTO_ICMP6   = 58
 
 TCP_F_FIN  = 0x01
 TCP_F_SYN  = 0x02
@@ -43,6 +46,9 @@ ICMP_INFO_REPLY       = 16
 ICMP_ADDRESS          = 17
 ICMP_ADDRESSREPLY     = 18
 
+
+GREPROTO_PPTP = 0x880b
+
 def reprIPv4Addr(addr):
     bytes = struct.pack('>I', addr)
     return socket.inet_ntoa(bytes)
@@ -50,6 +56,9 @@ def reprIPv4Addr(addr):
 def decIPv4Addr(addrstr):
     bytes = socket.inet_aton(addrstr)
     return struct.unpack('>I', bytes)[0]
+
+def reprIPv6Addr(addr):
+    return socket.inet_ntop(socket.AF_INET6, addr)
 
 class IPv4Address(v_uint32):
 
@@ -115,6 +124,8 @@ class IPv4(vstruct.VStruct):
 
     # Make our len over-ride
     def __len__(self):
+        if self.veriphl == 0:
+            return vstruct.VStruct.__len__(self)
         return (self.veriphl & 0x0f) * 4
 
 class IPv6(vstruct.VStruct):
@@ -126,10 +137,6 @@ class IPv6(vstruct.VStruct):
         self.hoplimit   = v_uint8()
         self.srcaddr    = IPv6Address()
         self.dstaddr    = IPv6Address()
-
-    # Make our len over-ride
-    def __len__(self):
-        return (self.veriphl & 0x0f) * 4
 
 class TCP(vstruct.VStruct):
 
@@ -146,6 +153,8 @@ class TCP(vstruct.VStruct):
         self.urgent     = v_uint16(bigend=True)
 
     def __len__(self):
+        if self.doff == 0:
+            return vstruct.VStruct.__len__(self)
         return self.doff >> 2
 
 class UDP(vstruct.VStruct):
@@ -163,12 +172,3 @@ class ICMP(vstruct.VStruct):
         self.code       = v_uint8()
         self.checksum   = v_uint16(bigend=True)
         #union field starting at offset 4 not included here
-
-if __name__ == '__main__':
-    eII = ETHERII()
-    eII.vsParse('AAAAAABBBBBB\x08\x00')
-    print eII.tree()
-    eII = ETHERII()
-    eII.vsParse('AAAAAABBBBBB\x81\x00\x02\x02\x08\x00')
-    print eII.tree()
-

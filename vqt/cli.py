@@ -1,23 +1,21 @@
 import os
-from PyQt4 import QtCore, QtGui
+
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import *
 
 import envi.cli as e_cli
-import envi.qt.memory as e_q_memory
 import envi.qt.memcanvas as e_q_memcanvas
-
-#from envi.threads import firethread
 
 import vqt.colors as vq_colors
 import vqt.hotkeys as vq_hotkeys
-#import vqt.shortcut as vq_shortcut
 
 from vqt.basics import *
 from vqt.main import idlethread,workthread
 
-class VQInput(vq_hotkeys.HotKeyMixin, QtGui.QLineEdit):
+class VQInput(vq_hotkeys.HotKeyMixin, QLineEdit):
 
     def __init__(self, parent=None):
-        QtGui.QLineEdit.__init__(self, parent=parent)
+        QLineEdit.__init__(self, parent=parent)
         vq_hotkeys.HotKeyMixin.__init__(self)
 
         self.history = []
@@ -55,16 +53,18 @@ class VQInput(vq_hotkeys.HotKeyMixin, QtGui.QLineEdit):
 
     def loadHistory(self, filename):
         if os.path.isfile(filename):
-            hist = file(filename, 'r').readlines()[-1000:]
+            with open(filename, 'r') as f:
+                hist = f.readlines()[-1000:]
             self.history = [ x.strip() for x in hist ]
             self.histidx = len(self.history)
 
     def saveHistory(self, filename):
         histbuf = '\n'.join( self.history[-1000:] )
-        file(filename, 'w').write( histbuf )
+        with open(filename, 'w') as f:
+            f.write(histbuf)
 
 
-class VQCli(QtGui.QWidget):
+class VQCli(QWidget):
     '''
     A Qt class to wrap and emulate a Cmd object.
     '''
@@ -72,13 +72,13 @@ class VQCli(QtGui.QWidget):
     sigCliQuit = QtCore.pyqtSignal()
 
     def __init__(self, cli, parent=None):
-        QtGui.QWidget.__init__(self, parent=parent)
+        QWidget.__init__(self, parent=parent)
         self.cli = cli
 
         self.input = VQInput(self)
 
         # Create our output window...
-        self.output = QtGui.QTextEdit(self)
+        self.output = QTextEdit(self)
         # If it's an EnviCli, let's over-ride the canvas right away.
         if isinstance(cli, e_cli.EnviCli):
             self.output.close()
@@ -86,16 +86,11 @@ class VQCli(QtGui.QWidget):
             self.output.setScrolledCanvas(True)
             cli.setCanvas(self.output)
 
-        self.setStyleSheet( vq_colors.getDefaultColors() )
+        self.setStyleSheet(vq_colors.getDefaultColors())
 
-        self.setLayout( self.getCliLayout() )
+        self.setLayout(self.getCliLayout())
 
-        self.connect(self.input,  QtCore.SIGNAL('returnPressed()'), self.returnPressedSlot)
-
-        #FIXME: these events should probably be made to work better with the new Qt Event model
-        # perhaps this should inherit from HotKeyMixin as well?
-        #vq_shortcut.addShortCut(self.input, QtCore.Qt.Key_Up, self.keyCodeUp)
-        #vq_shortcut.addShortCut(self.input, QtCore.Qt.Key_Down, self.keyCodeDown)
+        self.input.returnPressed.connect(self.returnPressedSlot)
 
         self.resize(250, 150)
 
@@ -103,7 +98,7 @@ class VQCli(QtGui.QWidget):
         return e_q_memcanvas.VQMemoryCanvas(memobj, syms=syms, parent=self)
 
     def getCliLayout(self):
-        return VBox( self.output, self.input )
+        return VBox(self.output, self.input)
 
     def returnPressedSlot(self):
         cmd = str(self.input.text())
@@ -113,7 +108,7 @@ class VQCli(QtGui.QWidget):
         workthread(self.onecmd)(cmd)
 
     def onecmd(self, cmdline):
-        if self.cli.onecmd( cmdline ):
+        if self.cli.onecmd(cmdline):
             self._emit_quit()
 
     @idlethread
@@ -121,4 +116,3 @@ class VQCli(QtGui.QWidget):
         # A way to emit the "quit" signal from threads other than the
         # qt main thread.
         self.sigCliQuit.emit()
-
