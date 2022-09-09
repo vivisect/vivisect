@@ -75,11 +75,7 @@ class ArmModule(envi.ArchitectureModule):
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
 
-        groups['general'] = arm_regs
-
-        # compilers use the following regs to stick the module baseaddr in for 
-        # switchcase code
-        groups['switch_mapbase'] = [ 'r0', 'r1', 'r2', 'r3',]   # FIXME: limited sampleset.  this list could be longer
+        groups.append(('general', arm_regs))
         return groups
 
     def archGetPointerAlignment(self):

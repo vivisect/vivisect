@@ -43,6 +43,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
 
     def __init__(self, vw):
         vsym_emulator.SymbolikEmulator.__init__(self, vw)
+        self.__width__ = vw.getPointerSize()
         self.cconvs = {}
         self.cconv = None   # This will be set by setupFunctionCall
 
@@ -444,14 +445,16 @@ class SymbolikAnalysisContext:
         '''
         self.funccb[name] = callback
 
-    def getSymbolikPathsTo(self, fva, tova, args=None, maxpath=1000):
+    def getSymbolikPathsTo(self, fva, tova, args=None, maxpath=1000, graph=None):
         '''
         For each path from the function start to tova, run all symbolik
         effects in an emulator instance and yield emu, effects tuples.
         Differs from getSymbolikPaths() in that it stops at tova rather
         than continuing to a ret or loop path.
         '''
-        graph = self.getSymbolikGraph(fva)
+        if graph is None:
+            graph = self.getSymbolikGraph(fva)
+
         tocb = self.vw.getCodeBlock(tova)
         if tocb is None:
             raise Exception("No codeblock for 'tova': 0x%x" % tova)
