@@ -21,7 +21,9 @@ EM_VPP500 = 17
 EM_SPARC32PLUS = 18
 EM_960 = 19
 EM_PPC = 20
+EM_PPCE = 20 + 0x10000
 EM_PPC64 = 21
+EM_PPC64E = 21 + 0x10000
 EM_S390 = 22
 EM_V800 = 36
 EM_FR20 = 37
@@ -221,6 +223,11 @@ e_versions = {
     EV_CURRENT:"Current version",
     EV_NUM:"",
 }
+
+# eflags
+EF_PPC_EMB = 0x80000000
+e_flags = {v: k for k, v in globals().items() if k.startswith("EF_")}
+
 
 R_68K_NONE = 0
 R_68K_32 = 1
@@ -604,18 +611,20 @@ sh_type = {
     SHT_HIUSER:"End of application-specific",
 }
 
-SHF_WRITE = 1
-SHF_ALLOC = 2
-SHF_EXECINSTR = 4
-SHF_MERGE = 16
-SHF_STRINGS = 32
-SHF_INFO_LINK = 64
-SHF_LINK_ORDER = 128
-SHF_OS_NONCONFORMING = 256
-SHF_GROUP = 512
-SHF_TLS = 1024
-SHF_ORDERED = 1073741824
-SHF_EXCLUDE = 2147483648
+SHF_WRITE            = 0x00000001
+SHF_ALLOC            = 0x00000002
+SHF_EXECINSTR        = 0x00000004
+SHF_MERGE            = 0x00000010
+SHF_STRINGS          = 0x00000020
+SHF_INFO_LINK        = 0x00000040
+SHF_LINK_ORDER       = 0x00000080
+SHF_OS_NONCONFORMING = 0x00000100
+SHF_GROUP            = 0x00000200
+SHF_TLS              = 0x00000400
+SHF_PPC_VLE          = 0x10000000
+SHF_ORDERED          = 0x40000000
+SHF_EXCLUDE          = 0x80000000
+
 
 sh_flags = {
     SHF_WRITE:"Writable",
@@ -628,6 +637,7 @@ sh_flags = {
     SHF_OS_NONCONFORMING:"Non-standard OS specific",
     SHF_GROUP:"Section is member of a group.",
     SHF_TLS:"Section hold thread-local data.",
+    SHF_PPC_VLE:"Section holds PowerPC VLE instructions",
     SHF_ORDERED:"Special ordering",
     SHF_EXCLUDE:"Section is excluded",
 }
@@ -906,4 +916,16 @@ osnotes = {
     1:'gnu',
     2:'solaris',
     3:'freebsd',
+}
+
+PF_X       = 0x00000001
+PF_W       = 0x00000002
+PF_R       = 0x00000004
+PF_PPC_VLE = 0x10000000
+
+pf_flags = {
+    PF_X:"Executable",
+    PF_W:"Writable",
+    PF_R:"Readable",
+    PF_PPC_VLE:"PowerPC VLE",
 }
