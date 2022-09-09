@@ -333,7 +333,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             if sec.SizeOfRawData > pe.filesize:
                 continue
 
-        plen = sec.VirtualSize - sec.SizeOfRawData
+        #plen = sec.VirtualSize - sec.SizeOfRawData
 
         try:
             # According to http://code.google.com/p/corkami/wiki/PE#section_table if SizeOfRawData is larger than VirtualSize, VS is used..
@@ -589,7 +589,7 @@ def getMemBaseAndSize(vw, filename, baseaddr=None):
             nbase = nsec.VirtualAddress + baseaddr
 
             mlen = nbase - secbase
-            memmaps.append((secbase, 7, '', plen))
+            memmaps.append((secbase, 7, '', mlen))
             continue
 
         if sec.SizeOfRawData < sec.VirtualSize:
