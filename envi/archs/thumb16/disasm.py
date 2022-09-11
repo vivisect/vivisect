@@ -219,10 +219,8 @@ def branch_misc(va, val, val2):  # bl and misc control
             S = (val >> 10) & 1
             j1 = (val2 >> 13) & 1
             j2 = (val2 >> 11) & 1
-            i1 = ~ (j1 ^ S) & 0x1
-            i2 = ~ (j2 ^ S) & 0x1
 
-            imm = (S << 24) | (i1 << 23) | (i2 << 22) | (
+            imm = (S << 24) | (j2 << 23) | (j1 << 22) | (
                 (val & 0x3ff) << 12) | ((val2 & 0x7ff) << 1)
 
             # sign extend a 23-bit number
