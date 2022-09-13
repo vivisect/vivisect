@@ -25,8 +25,8 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5954
-GOOD_EMU_TESTS = 1184
+GOOD_TESTS = 5959
+GOOD_EMU_TESTS = 1189
 '''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -592,7 +592,12 @@ instrs = [
         (REV_ALL_ARM, 'ff4cc3e3', 0x4560, 'bic  r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, '001000eb', 0x4560, 'bl  0x00008568', 0, ()),
         (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00008569', 0, ()),
-        (REV_ALL_ARM, '00f0c380', 0x2faed, 'beq 0x0002fc76', 0, ()),
+        (REV_ALL_ARM, '00f0c380', 0x4561, 'beq 0x000046ea', 0, ()),     # T3 +
+        (REV_ALL_ARM, '40f0fe81', 0x4561, 'bne 0x00004960', 0, ()),     # T3 +
+        (REV_ALL_ARM, '40f0fe91', 0x4561, 'b.w 0x00c44960', 0, ()),     # T4 +
+        (REV_ALL_ARM, '40f0feb9', 0x4561, 'b.w 0x00044960', 0, ()),     # T4 +
+        (REV_ALL_ARM, '3ff4c3af', 0x4561, 'beq 0x000044ea', 0, ()),     # T3 -
+        (REV_ALL_ARM, 'fff7febf', 0x4561, 'b.w 0x00004560', 0, ()),     # T4 -
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, cr3, cr4, cr7, 1', 0, ()),
         (REV_ALL_ARM, '473b34ee', 0x4560, 'vsub.f64 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
