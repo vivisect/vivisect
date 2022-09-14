@@ -44,14 +44,11 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('FIXME implement parseMemory for elf!')
 
-def getMemBaseAndSize(vw, filename, baseaddr=None):
+def getMemBaseAndSize(vw, elf, baseaddr=None):
     '''
     Returns the default baseaddr and memory size required to load the file
     '''
     savebase = baseaddr
-
-    fd = open(filename, 'rb')
-    elf = Elf.Elf(fd)
 
     memmaps = getMemoryMapInfo(elf)
     baseaddr = 0xffffffffffffffffffffffff
@@ -259,6 +256,15 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     data_ptrs = []
     new_pointers = []
     new_functions = []
+
+    # get baseaddr and size, then make sure we have a good baseaddr
+    filebaseaddr, size = getMemBaseAndSize(vw, elf, baseaddr=baseaddr)
+    if baseaddr is None:
+        baseaddr = filebaseaddr
+
+    logger.debug('initial file baseva: 0x%x  size: 0x%x', baseaddr, size)
+    baseaddr = vw.findFreeMemoryBlock(size, baseaddr)
+    logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
 
     arch = arch_names.get(elf.e_machine)
     if arch is None:

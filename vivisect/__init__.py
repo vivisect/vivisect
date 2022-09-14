@@ -2807,13 +2807,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         
         mod = viv_parsers.getParserModule(fmtname)
 
-        # get baseaddr and size, then make sure we have a good baseaddr
-        baseaddr, size = mod.getMemBaseAndSize(self, filename=filename, baseaddr=baseaddr)
-        logger.debug('initial baseva: 0x%x  size: 0x%x', baseaddr, size)
-
-        baseaddr = self.findFreeMemoryBlock(size, baseaddr)
-        logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
-
         fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
 
         if not self.getMeta('StorageName'):
