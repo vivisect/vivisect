@@ -151,7 +151,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
             logger.debug("Applying struct %r at 0x%x", sname, va+offset)
             vw.makeStructure(va + offset, sname)
         except Exception as e:
-            print("Error: %r" % e)
+            logger.warning("Error: %r", e)
 
     for va, cmdname in cmdinfo:
         vw.makeName(va, "macho_" + cmdname)
