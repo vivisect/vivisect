@@ -775,7 +775,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
             logger.debug('discovered new function (followPointer(0x%x))', va)
-            arch = self.iscode_arch.get(va)
+            arch = self.iscode_arch.get(va, envi.ARCH_DEFAULT)
             self.makeFunction(va, arch=arch)
             return True
 
