@@ -629,6 +629,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r', sva,
                                                                         sym_type,
                                                                         sym_bind,
+                                                                        s.name)
         
         if s.getInfoType() == Elf.STT_FILE:
             vw.setVaSetRow('FileSymbols', (dmglname, sva))
