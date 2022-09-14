@@ -1114,8 +1114,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Most of the time, absolute pointers which point to code
         point to the function entry, so test it for the sig.
-
-        context is a dictionary that is filled with any extra pertinent data
         """
         if not self.isExecutable(va):
             return False
@@ -1956,10 +1954,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return LOC_UNI
         elif self.isProbablyString(va):
             return LOC_STRING
-        else:
-            ctx = {}
-            if self.isProbablyCode(va):
-                return LOC_OP
+        elif self.isProbablyCode(va):
+            return LOC_OP
         return None
 
     def getMeta(self, name, default=None):
