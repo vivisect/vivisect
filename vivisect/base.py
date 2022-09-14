@@ -210,9 +210,20 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     @contextlib.contextmanager
     def getAdminRights(self):
+        '''
+        Support function for ContextManager to support usage like:
+            "with vw.getAdminWrites():"
+
+        Sets _supervisor privileges (allowing writes to all workspace maps),
+        yields to perform the user's write-action, then sets _supervisor back
+        to the original value.
+        '''
+        oldrights = self._supervisor
         self._supervisor = True
-        yield
-        self._supervisor = False
+        try:
+            yield
+        finally:
+            self._supervisor = oldrights
 
     def _handleADDLOCATION(self, loc):
         lva, lsize, ltype, linfo = loc
@@ -544,10 +555,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         '''
         fname, off, bytez, supv = einfo
         imgbase = self.getFileMeta(fname, 'imagebase')
-        savesupv = self._supervisor
-        self._supervisor = True
-        e_mem.MemoryObject.writeMemory(self, imgbase + off, bytez)
-        self._supervisor = savesupv
+        with self.getAdminRights():
+            e_mem.MemoryObject.writeMemory(self, imgbase + off, bytez)
 
     def _initEventHandlers(self):
         self.ehand = [None for x in range(VWE_MAX)]

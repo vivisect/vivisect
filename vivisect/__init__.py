@@ -2858,64 +2858,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         off = va - fileva
         self._fireEvent(VWE_WRITEMEM, (fname, off, bytez, self._supervisor))
 
-    def connectImportsWithExports(self):
-        """
-        Look for any "imported" symbols that are satisfied by current exports.
-        Wire up the connection.
-
-        Currently this is simply a pointer write at the location of the Import.
-        If this behavior is ever insufficient, we'll want to track the special
-        nature through the Export/Import events.
-        """
-        logger.info('linking Imports with Exports')
-        # store old setting and set _supervisor mode (so we can write wherever
-        # we want, regardless of permissions)
-        oldsup = self._supervisor
-        self._supervisor = True
-
-        for iva, isz, itype, isym in self.getImports():
-            impfname, impsym = isym.split('.', 1)
-            for eva, num, esym, efname in self.getExports():
-                if impsym != esym:
-                    continue
-
-                if impfname not in (efname, '*'):
-                    continue
-
-                if self.isFunctionThunk(eva):
-                    logger.info("Skipping Exported Thunk")
-                    continue
-
-                # file and symbol name match.  apply the magic.
-                # do we ever *not* write in the full address at the import site?
-                logger.debug("connecting Import 0x%x -> Export 0x%x (%r)", iva, eva, isym)
-                self.writeMemoryPtr(iva, eva)
-
-                # remove the LOC_IMPORT and make it a Pointer instead
-                self.delLocation(iva)
-                self.makePointer(iva, follow=False) # don't follow, it'll be analyzed later?
-
-                # store the former Import in a VaSet
-                self.setVaSetRow('ResolvedImports', (iva, isym, eva))
-
-                # check if any xrefs to the import are branches and make code-xrefs for them
-                for xrfr, xrto, xrt, xrflags in self.getXrefsTo(iva):
-                    loc = self.getLocation(xrfr)
-                    if not loc:
-                        continue
-
-                    lva, lsz, ltype, ltinfo = loc
-                    if ltype != LOC_OP:
-                        logger.warning("XREF not from an Opcode: 0x%x -> 0x%x  (%r)", lva, eva, loc)
-                        continue
-
-                    op = self.parseOpcode(lva)
-                    self.addXref(lva, eva, REF_CODE)
-                    logger.debug("addXref(0x%x -> 0x%x)", lva, eva)
-
-        # restore previous supervisor mode
-        self._supervisor = oldsup
-
     def getFiles(self):
         """
         Return the current list of file objects in this
