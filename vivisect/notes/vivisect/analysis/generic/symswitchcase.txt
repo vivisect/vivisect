@@ -1,0 +1,114 @@
+
+
+
+'''  SCRATCH NOTES for determining characteristics of the switch case '''
+#  basically, trace into the symobj of fullcons[-1] grabbing stuff before first memory access.
+#  or rather, identify what wraps our index symobj... index symobj is the most complete symobj following a o_mul that appears in the last constraint (hack?)
+
+#[str(x) for x in ctx]
+
+#['arg0',
+#'mem[(arg0 + 1544):8]',
+#'mem[(mem[(arg0 + 1544):8] + 66):2]',
+#'mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4]',
+#'mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1]',
+#'mem[((0x00010000 + (mem[((0x00010000 + (((mem[((((mem[(mem[(arg0 + 1544):8] + 66):2] & 0xffffffff) << 3) + (mem[(arg0 + 1544):8] * 1)) + 64):4] & 0xffffffff) - 1) * 1)) + 0x00010a0c):1] * 4)) + 0x000109fc):4]']
+#
+## wax Consts
+#
+## take leftovers, assign unknowns as variable names
+#
+## find least common denominator for unknowns...  
+#
+##  ACTUALLY... we only are looking for the index (Constraints on the kid of a o_mul) and subtractions to the index :)
+#
+###  inner most o_mul, if it matters...
+
+'''
+    In [97]: [eff for eff in aeffs if eff.efftype == EFFTYPE_CONSTRAIN]
+    Out[97]: 
+        [ConstrainPath( 0x000134a9, Const(0x000134af,8), ne(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),o_add(Arg(0,width=8),Const(0x00000608,8),8)) ),
+         ConstrainPath( 0x00013581, Const(0x000134bd,8), ne(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),o_add(Arg(0,width=8),Const(0x00000608,8),8)) ),
+         ConstrainPath( 0x000134d0, Const(0x000134d6,8), ne(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x0000000b,8)) ),
+         ConstrainPath( 0x000134d9, Const(0x0001393d,8), ne(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000006,8)) ),
+         ConstrainPath( 0x00013940, Const(0x00013946,8), ne(o_and(o_sub(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000006,8),4),Const(0xffffffff,4),4),Const(0x00000001,8)) ),
+         ConstrainPath( 0x00013949, Const(0x000134df,8), eq(o_and(o_sub(o_and(o_sub(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000040,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000006,8),4),Const(0xffffffff,4),4),Const(0x00000001,8),4),Const(0xffffffff,4),4),o_and(Const(0x00000002,8),Const(0xffffffff,4),4)) ),
+         ConstrainPath( 0x000134e6, Const(0x000134ec,8), eq(o_and(Mem(o_add(Arg(0,width=8),Const(0x00000260,8),8), Const(0x00000001,8)),Const(0x00000080,8),1),Const(0x00000000,8)) ),
+         ConstrainPath( 0x0001350c, Const(0x00013512,8), eq(Mem(o_add(Arg(0,width=8),Const(0x00000108,8),8), Const(0x00000008,8)),Const(0x00013440,8)) ),
+         ConstrainPath( 0x00013515, Const(0x0001351b,8), le(Const(0x0000001c,8),o_and(o_sub(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000028,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),o_and(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),Const(0xffffffff,4),4),4),Const(0xffffffff,4),4)) ),
+         ConstrainPath( 0x00013520, Const(0x00013526,8), le(Const(0x0000006b,8),o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4)) ),
+         ConstrainPath( 0x00013529, Const(0x00020767,8), ge(o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),Const(0x0000006f,8)) ),
+         ConstrainPath( 0x0002076c, Const(0x00020772,8), le(o_and(o_sub(o_and(Mem(o_add(o_add(o_lshift(o_and(Mem(o_add(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000042,8),8), Const(0x00000002,8)),Const(0xffffffff,4),4),Const(0x00000003,8),4),o_mul(Mem(o_add(Arg(0,width=8),Const(0x00000608,8),8), Const(0x00000008,8)),Const(0x00000001,8),8),8),Const(0x00000040,8),8), Const(0x00000004,8)),Const(0xffffffff,4),4),Const(0x00000001,8),4),Const(0xffffffff,4),4),Const(0x00000078,8)) )]
+
+'''
+'''
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), Const(0x7ff38880000,8)]
+SYMOBJ: Const(0x7ff38880000,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4), Var("rdx", width=8)]
+SYMOBJ: Var("rdx", width=8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4), Const(0xffffffff,4)]
+SYMOBJ: Const(0xffffffff,4)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), o_and(Var("rdx", width=8),Const(0xffffffff,4),4)]
+SYMOBJ: o_and(Var("rdx", width=8),Const(0xffffffff,4),4)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)), Const(0x00000004,8)]
+SYMOBJ: Const(0x00000004,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8))]
+SYMOBJ: o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8))
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8), Const(0x00000004,8)]
+SYMOBJ: Const(0x00000004,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8), o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8)]
+SYMOBJ: o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8)]
+SYMOBJ: o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x0003027c,8)]
+SYMOBJ: Const(0x0003027c,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8)]
+SYMOBJ: o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)), Const(0x00000004,8)]
+SYMOBJ: Const(0x00000004,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8))]
+SYMOBJ: Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8))
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8), Const(0x7ff38880000,8)]
+SYMOBJ: Const(0x7ff38880000,8)
+CTX: {}
+PATH: [o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)]
+SYMOBJ: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)
+CTX: {}
+Out[14]: o_add(Mem(o_add(o_add(Const(0x7ff38880000,8),o_mul(o_sextend(o_and(Var("rdx", width=8),Const(0xffffffff,4),4),Const(0x00000004,8)),Const(0x00000004,8),8),8),Const(0x0003027c,8),8), Const(0x00000004,8)),Const(0x7ff38880000,8),8)
+
+'''
+
+
+
+'''
+# libc-2.13.so
+
+
+
+path=[0x205ac40, 0x205ac41, 0x205ac43, 0x205ac44, 0x205ac45, 0x205ac46, 0x205ac49, 0x205ac4c, 0x205ac4f, 0x205ac54, 0x205ac5a, 0x205ac5d, 0x205ac60, 0x205ac64, 0x205ac6b, 0x205ac72, 0x205ac75, 0x205ac78, 0x205ac7b, 0x205ac7f, 0x205ac82, 0x205ac85, 0x205ac88, 0x205ac8b, 0x205ac8d, 0x205ac90, 0x205ac93, 0x205ac96, 0x205ac98, 0x205ac9b, 0x205ac9e, 0x205aca1, 0x205aca4, 0x205aca7, 0x205acaa, 0x205acac, 0x205acaf, 0x205acb0, 0x205acb3, 0x205acb6, 0x205acb9, 0x205acbb, 0x205acbe, 0x205acc1, 0x205acc3, 0x205acc6, 0x205acc9, 0x205accb, 0x205accd, 0x205acd1, 0x205acd7, 0x205acda, 0x205acdd, 0x205acdf, 0x205ace2, 0x205ace5, 0x205aceb, 0x205acee, 0x205acf2, 0x205acf4, 0x205acfb, 0x205ad02, 0x205ad09, 0x205ad0b, 0x205ad0e, 0x205b178, 0x205b17b, 0x205b17d, 0x205b180, 0x205b183, 0x205b186, 0x205b188, 0x205b18b, 0x205b18e, 0x205b191, 0x205b194, 0x205b197, 0x205b19a, 0x205b19c, 0x205b19f, 0x205b1a0, 0x205b1a3, 0x205b1a6, 0x205b1a9, 0x205b1ab, 0x205b1ae, 0x205b1b1, 0x205b1b3, 0x205b1b6, 0x205b1b9, 0x205b1bb, 0x205b1bd, 0x205b1c1, 0x205b41c, 0x205b41f, 0x205b422, 0x205b425, 0x205b427, 0x205b429, 0x205b42c, 0x205b42f, 0x205b432, 0x205b434, 0x205b437, 0x205b43a, 0x205b43c, 0x205b1c8, 0x205b1cb, 0x205b1ce, 0x205b1d5, 0x205b1d8, 0x205b1db, 0x205b1de, 0x205ad5b, 0x205ad62, 0x205ad68, 0x205ad6b, 0x205b1e8, 0x205b1eb, 0x205b1ed, 0x205b1f0, 0x205b1f3, 0x205b360, 0x205b363, 0x205b365, 0x205b368, 0x205b36b, 0x205b36e, 0x205b374, 0x205b377, 0x205b37a, 0x205b37d, 0x205b380, 0x205b383, 0x205b386, 0x205b388, 0x205b38b, 0x205b38e, 0x205b390, 0x205b393, 0x205b395, 0x205b398, 0x205b39b, 0x205b39e, 0x205b3a1, 0x205b3a3, 0x205b3a6, 0x205b3a9, 0x205b3ab, 0x205b3ad, 0x205b3b0, 0x205b3b2, 0x205b3b5, 0x205b3b8, 0x205b3bb, 0x205b3bd, 0x205b3bf, 0x205b3c2, 0x205b3c4, 0x205b3c7, 0x205b3ca, 0x205b3cd, 0x205b3cf, 0x205b3d2, 0x205b3f8, 0x205b3fb, 0x205b3ff, 0x205b402, 0x205b405, 0x205b408, 0x205b40b, 0x205ad71, 0x205ad75, 0x205ad79, 0x205ad7f, 0x205ad85, 0x205ad87, 0x205b450, 0x205b452, 0x205b456, 0x205b45c, 0x205b45f, 0x205b463, 0x205b466, 0x205b46b, 0x205b46d, 0x205ae81, 0x205ae84, 0x205ae86, 0x205ae89, 0x205ae90, 0x205ae96, 0x205ae99, 0x205ae9c, 0x205aea3, 0x205aea5, 0x205b4a0, 0x205b4a6, 0x205b4ac, 0x205b4b2, 0x205b4b5, 0x205b4b7, 0x205aeab, 0x205aeae, 0x205aeb1, 0x205aeb8, 0x205b040, 0x205b042, 0x205b049 ]
+#print '\n'.join([x for x in dir(vw) if 'olor' in x])
+
+from vqt.main       import vqtevent
+vqtevent('viv:colormap', {x:'green' for x in path})
+
+#vw.addColorMap('thispath',{x:'green' for x in path})
+#vw._viv_gui.setColorMap()
+
+
+
+print ("DONE")
+'''
+

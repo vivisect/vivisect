@@ -51,7 +51,6 @@ def cmpnames(x, y):
     return nmset[0] == nmset[1]
 
 
-
 comparators = {
     'names': cmpnames,
     'imports': lambda x, y: x[:3] == y[:3],
@@ -68,7 +67,7 @@ class ELFTests(unittest.TestCase):
             # ("linux_amd64_libstdc", linux_amd64_libstdc_data.libstdc_data, ('linux', 'amd64', 'libstdc++.so.6.0.25'),),
             # ("linux_amd64_static", linux_amd64_static_data.static64_data, ('linux', 'amd64', 'static64.llvm.elf'),),
 
-            # while i386 libc is a good test, it takes likel 3 minutes to analyze, which is instane
+            # while i386 libc is a good test, it takes likel 3 minutes to analyze, which is insane
             # ("linux_i386_libc", linux_i386_libc_2_13_data.libc_data, ('linux', 'i386', 'libc-2.13.so'),),
             ("linux_i386_libstdc", linux_i386_libstdc_data.libstdc_data, ('linux', 'i386', 'libstdc++.so.6.0.25'),),
             # ("linux_i386_static", linux_i386_static_data.static32_data, ('linux', 'i386', 'static32.llvm.elf'),),
@@ -84,6 +83,7 @@ class ELFTests(unittest.TestCase):
             start = time.time()
             fn = helpers.getTestPath(*path)
             vw = viv_cli.VivCli()
+            vw.config.viv.analysis.symswitchcase.timeout_secs = 30
             vw.loadFromFile(fn)
 
             do_analyze(vw)
@@ -106,21 +106,21 @@ class ELFTests(unittest.TestCase):
                     logger.error('%s:  %s: missing: %r   new: %r (%r)', fname, testname, failed_old, failed_new, fname)
 
         self.assertEqual(failed, 0, msg="ELF Tests Failed (see error log)")
-   
+
     def do_check_elfplt(self, vw):
         # Test ELFPLT entries to be uniform and all functions created
         for pltva, pltsz in vaeep.getPLTs(vw):
             # first get all the known functions that are in this PLT section
             curplts = []
             for fva in vw.getFunctions():
-                if pltva <= fva < (pltva+pltsz) and fva not in curplts:
+                if pltva <= fva < (pltva + pltsz) and fva not in curplts:
                     logger.info("PLT Function: 0x%x", fva)
                     curplts.append(fva)
             logger.info("%r", curplts)
 
             logger.info("curplts length: %d", len(curplts))
             if not len(curplts):
-                logger.warning('skipping...')
+                logger.info('skipping...')
                 continue
 
             # accumulate the distances between PLT functions
@@ -130,7 +130,7 @@ class ELFTests(unittest.TestCase):
             for va in curplts:
                 delta = va - last
                 last = va
-                
+
                 logger.info("PLTVA: 0x%x  va: 0x%x   delta: 0x%x", pltva, va, delta)
                 if delta == 0:
                     # it's the first entry, skip
