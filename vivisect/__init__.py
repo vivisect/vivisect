@@ -109,6 +109,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.relocations = []
         self._dead_data = []
         self.iscode = {}
+        self.iscode_arch = {}
 
         self.xrefs = []
         self.xrefs_by_to = {}
@@ -761,8 +762,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Do pointer analysis and folllow up the recomendation
         by creating locations etc...
         """
-        ctx = {}
-        ltype = self.analyzePointer(va, ctx)
+        ltype = self.analyzePointer(va)
         if ltype is None:
             return False
 
@@ -772,7 +772,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
             logger.debug('discovered new function (followPointer(0x%x))', va)
-            arch = ctx.get('arch', envi.ARCH_DEFAULT)
+            arch = self.iscode_arch.get(va)
             self.makeFunction(va, arch=arch)
             return True
 
@@ -1110,7 +1110,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
         return False
 
-    def isProbablyCode(self, va, context={}, **kwargs):
+    def isProbablyCode(self, va, **kwargs):
         """
         Most of the time, absolute pointers which point to code
         point to the function entry, so test it for the sig.
@@ -1125,12 +1125,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         rerun = kwargs.pop('rerun', False)
         if va in self.iscode and not rerun:
-            iscode, ctx = self.iscode[va]
-            if ctx:
-                context.update(ctx)
-            return iscode
+            return self.iscode[va]
 
-        self.iscode[va] = (True, context)
+        self.iscode[va] = True
+
         # because we're doing partial emulation, demote some of the logging
         # messages to low priority.
         kwargs['loglevel'] = e_common.EMULOG
@@ -1140,17 +1138,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         try:
             emu.runFunction(va, maxhit=1)
         except Exception as e:
-            self.iscode[va] = (False, None)
+            self.iscode[va] = False
             return False
 
         if wat.looksgood():
-            context['arch'] = wat.arch
-            self.iscode[va] = (True, context)
+            self.iscode[va] = True
+            self.iscode_arch[va] = wat.arch
 
         else:
-            self.iscode[va] = (False, None)
+            self.iscode[va] = False
 
-        return self.iscode[va][0]
+        return self.iscode[va]
 
     #################################################################
     #
@@ -1944,7 +1942,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("Unknown Xref: %x %x %d" % ref)
         self._fireEvent(VWE_DELXREF, ref)
 
-    def analyzePointer(self, va, context={}):
+    def analyzePointer(self, va):
         """
         Assume that a new pointer has been created.  Check if it's
         target has a defined location and if not, try to figure out
@@ -1960,8 +1958,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return LOC_STRING
         else:
             ctx = {}
-            if self.isProbablyCode(va, ctx):
-                context.update(ctx)
+            if self.isProbablyCode(va):
                 return LOC_OP
         return None
 
