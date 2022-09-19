@@ -83,10 +83,14 @@ relmap = {
 
 
 def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
-    if baseaddr:
-        logger.info("loadPeIntoWorkspace(%r, %r, baseaddr=0x%x", pe, filename, baseaddr)
-    else:
-        logger.info("loadPeIntoWorkspace(%r, %r, baseaddr=%r", pe, filename, baseaddr)
+    # get baseaddr and size, then make sure we have a good baseaddr
+    filebaseaddr, size = getMemBaseAndSize(vw, pe, baseaddr=baseaddr)
+    if baseaddr is None:
+        baseaddr = filebaseaddr
+
+    logger.debug('initial file baseva: 0x%x  size: 0x%x', baseaddr, size)
+    baseaddr = vw.findFreeMemoryBlock(size, baseaddr)
+    logger.info("loadPeIntoWorkspace:  loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
 
     mach = pe.IMAGE_NT_HEADERS.FileHeader.Machine
 
@@ -560,13 +564,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     return fname
 
-def getMemBaseAndSize(vw, filename, baseaddr=None):
+def getMemBaseAndSize(vw, pe, baseaddr=None):
     '''
     Returns the default baseaddr and memory size required to load the file
     '''
     savebase = baseaddr
-
-    pe = PE.PE(open(filename, 'rb'))
 
     if baseaddr is None:
         baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase

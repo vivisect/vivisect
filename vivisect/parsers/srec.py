@@ -65,22 +65,11 @@ def parseFile(vw, filename, baseaddr=None):
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('srec loader cannot parse memory!')
 
-def getMemBaseAndSize(vw, filename, baseaddr=None):
+def getMemBaseAndSize(vw, srec, baseaddr=None):
     '''
     Returns the default baseaddr and memory size required to load the file
     '''
     savebase = baseaddr
-
-    # figure out of there's an offset into the file we need to skip
-    offset = vw.config.viv.parsers.srec.offset
-    if not offset:
-        offset = 0
-    srec = v_srec.SRecFile()
-    with open(filename, 'rb') as f:
-        shdr = f.read(offset)
-        sbytes = f.read()
-
-    srec.vsParse(sbytes)
 
     memmaps = srec.getMemoryMaps()
     baseaddr = 0xffffffffffffffffffffffff

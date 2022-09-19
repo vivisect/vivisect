@@ -84,22 +84,6 @@ def checkFatMagicAndTrunc(vw, filebytes):
 
 def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
-    # We fake them to *much* higher than norm so pointer tests do better...
-    if baseaddr is None:
-        baseaddr = vw.config.viv.parsers.macho.baseaddr
-
-    if filename is None:
-        filename = 'macho_%.8x' % baseaddr  # FIXME more than one!
-
-    # find the lowest loadable address, then get an offset so we can apply it later
-    fakebase, size = getMemBaseAndSize(vw, filename)
-    offset = baseaddr - fakebase
-    logger.debug("address offset: 0x%x" % offset)
-
-    # grab md5 and sha256 hashes before we modify the bytes
-    fhash = viv_parsers.md5Bytes(filebytes)
-    sha256 = viv_parsers.sha256Bytes(filebytes)
-
     hdr = e_common.hexify(filebytes[:4])
 
     # Check for the FAT binary magic...
@@ -109,6 +93,32 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     # Instantiate the parser wrapper and parse bytes
     macho = vs_macho.mach_o()
     macho.vsParse(filebytes)
+    # find the lowest loadable address, then get an offset so we can apply it later
+    fakebase, size = getMemBaseAndSize(vw, macho, baseaddr=baseaddr))
+    offset = baseaddr - fakebase
+    logger.debug('initial file baseva: 0x%x  size: 0x%x (address offset: 0x%x)', fakebase, size, offset)
+
+    # Determine base address to load into
+    # We fake them to *much* higher than norm so pointer tests do better...
+    # 1) baseaddr arg
+    # 2) vw.config.viv.parsers.macho.baseaddr if non-zero
+    # 3) vw.findFreeMemoryBlock()  if baseaddr is zero/None or already exists in another map (collision)
+
+    if baseaddr is None:
+        baseaddr = vw.config.viv.parsers.macho.baseaddr
+
+    if vw.isValidPointer(baseaddr):
+        logger.info("baseaddr (0x%x) is in use.  Finding appropriate address base.", baseaddr)
+        baseaddr = vw.findFreeMemoryBlock(size, fakebase)
+        logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
+
+    if filename is None:
+        filename = 'macho_%.8x' % baseaddr  # FIXME more than one!
+
+    # grab md5 and sha256 hashes before we modify the bytes
+    fhash = viv_parsers.md5Bytes(filebytes)
+    sha256 = viv_parsers.sha256Bytes(filebytes)
+
 
     arch = vs_macho.mach_cpu_names.get(macho.mach_header.cputype)
     if arch is None:
@@ -168,18 +178,12 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
 
     return fname
 
-def getMemBaseAndSize(vw, filename, baseaddr=None):
+def getMemBaseAndSize(vw, macho, baseaddr=None):
     '''
     Returns the default baseaddr and memory size required to load the file
     '''
     if baseaddr is None:
         baseaddr = vw.config.viv.parsers.macho.baseaddr
-
-    with open(filename, 'rb') as f:
-        filebytes = f.read()
-
-    macho = vs_macho.mach_o()
-    macho.vsParse(filebytes)
 
     memmaps = macho.getSegments()
     baseaddr = 0xffffffffffffffffffffffff
