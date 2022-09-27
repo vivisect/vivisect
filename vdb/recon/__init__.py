@@ -12,12 +12,10 @@ Recon Format Chars:
     I - An integer (32 bits for now...)
     C - A byte
 '''
-
 import logging
 import vtrace.breakpoints as vt_breakpoints
 
 logger = logging.getLogger(__name__)
-
 
 CC_DICT = {('i386' ,'windows') : 'stdcall',
            ('i386' ,'linux')   : 'cdecl',
@@ -36,7 +34,7 @@ def reprargs(trace, fmt, args):
             if sym is not None:
                 rstr = repr(sym)
             else:
-                rstr = '0x%.8x'
+                rstr = '0x%.8x' % arg
 
         elif fchr == 'I':
             rstr = repr(arg)
@@ -127,7 +125,8 @@ class ReconBreak(vt_breakpoints.Breakpoint):
 
         if not trace.getMeta('recon_quiet'):
             argstr = '(%s)' % ', '.join(argrep)
-            logger.info('RECON: %.4d 0x%.8x %s%s', thid, savedeip, self._symname, argstr)
+            print('RECON: %.4d 0x%.8x %s %s' % (thid, savedeip, self._symname, argstr))
+
 
 def addReconBreak(trace, symname, reconfmt):
     if trace.getMeta('recon_hits') is None:
@@ -136,13 +135,11 @@ def addReconBreak(trace, symname, reconfmt):
     bpid = trace.addBreakpoint(bp)
     return bpid
 
-
 def clearReconHits(trace):
     '''
     Clear the current list of recon hits.
     '''
     trace.setMeta('recon_hits', [])
-
 
 def getReconHits(trace):
     '''
