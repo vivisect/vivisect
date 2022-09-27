@@ -7,10 +7,7 @@ import logging
 import envi.memory as e_mem
 import vtrace.breakpoints as vt_breakpoints
 
-def getArg(trace, argidx):
-
 logger = logging.getLogger(__name__)
-
 
 def getStackArg(trace, argidx):
     '''
