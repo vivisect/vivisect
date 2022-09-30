@@ -992,8 +992,6 @@ sh_data = {
         (0x17d44, 'sh.ptr_stdin_00017d44'),
         (0x18100, 'sh.ptr_stdout_00018100'),
         (0x184b8, 'sh.ptr_stdout_000184b8'),
-        (0x18818, 'sh.ptr_tolower_00018818'),
-        (0x1881c, 'sh.ptr_toupper_0001881c'),
         (0x193b4, 'sh.ptr_stdin_000193b4'),
         (0x193bc, 'sh.ptr_stdout_000193bc'),
         (0x193c4, 'sh.ptr_stderr_000193c4'),
