@@ -182,7 +182,7 @@ class ArchitectureModule:
         Example:
             { 'all': ['eax', 'ebx', ...], ...}
         '''
-        return dict(self._regGrps)
+        return copy.deepcopy(self._regGrps)
 
     def archGetRegisterGroup(self, name):
         '''
