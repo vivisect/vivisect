@@ -81,7 +81,7 @@ class VivisectMultiFileTest(v_t_utils.VivTest):
         self.assertEqual(chgrp_main-chgrp, 5712)
 
         # test Relocs
-        self.assertIn(('ld_2_31', 179948, 2, 135749), vw.getRelocations())
+        self.assertIn(('ld_2_31', 179948, 2, 135749, 4), vw.getRelocations())
         rel0 = vw.parseExpression('ld_2_31 + 179948')
         ptr0 = vw.parseExpression('ld_2_31 + 135749')
         self.assertIn((rel0, ptr0, 3, 0), vw.getXrefsFrom(rel0))

@@ -103,7 +103,7 @@ class StorageTests(unittest.TestCase):
             bvw._event_list = []
             bvw.loadWorkspace(basicfile.name)
             bevt = list(bvw.exportWorkspace())
-            self.assertEqual(len(bevt), 39)
+            self.assertEqual(len(bevt), 40)
 
             # the last three events are specific to the different storage modules
             for idx in range(len(mevt) - 3):

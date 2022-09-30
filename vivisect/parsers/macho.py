@@ -94,7 +94,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     macho = vs_macho.mach_o()
     macho.vsParse(filebytes)
     # find the lowest loadable address, then get an offset so we can apply it later
-    fakebase, size = getMemBaseAndSize(vw, macho, baseaddr=baseaddr))
+    fakebase, size = getMemBaseAndSize(vw, macho, baseaddr=baseaddr)
     offset = baseaddr - fakebase
     logger.debug('initial file baseva: 0x%x  size: 0x%x (address offset: 0x%x)', fakebase, size, offset)
 
