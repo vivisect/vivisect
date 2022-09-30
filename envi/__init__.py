@@ -189,7 +189,7 @@ class ArchitectureModule:
         Returns a tuple of registers for a named register group.  Returns
         None if requested name does not exist
         '''
-        return self._regGrps.get(name)
+        return copy.deepcopy(self._regGrps.get(name))
 
     def archModifyFuncAddr(self, va, info):
         '''
