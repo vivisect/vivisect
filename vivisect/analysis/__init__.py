@@ -93,7 +93,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.elf")
 
-        if arch in ('i386', 'amd64', 'arm'):
+        if arch in ('i386', 'amd64', 'arm', 'riscv'):
             vw.addImpApi('posix', arch)
 
         if arch == 'i386':
