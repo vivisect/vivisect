@@ -101,6 +101,16 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
 
             else:
                 # otherwise, let's use some heuristics to guess.
+                #
+                # basically, the heuristic is made up of:
+                # * does the current location decode as ARM or THUMB?
+                # * if both, check the mnemonic against common opcodes 
+                #       for start of functions
+                #
+                # armthumb is a tracker/counter.  
+                #   positive numbers prefer ARM
+                #   negative numbers prefer THUMB
+
                 armthumb = 0
                 armop  = None
                 thumbop = None
@@ -110,6 +120,8 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if thumbop.mnem == 'push':
                         armthumb -= 5
                     elif thumbop.mnem == 'ldr':
+                        armthumb -= 2
+                    elif thumbop.mnem == 'b':
                         armthumb -= 2
 
                 except InvalidInstruction as e:
@@ -124,6 +136,9 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     elif armop.mnem == 'ldr':
                         armthumb += 2
 
+                    if armop.prefixes: # highly unlikely for a function to start with a conditional
+                        armthumb -= 3
+
                 except InvalidInstruction as e:
                     logger.debug("  heuristics: decoding THUMB: %r", e)
 
@@ -134,8 +149,9 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     raise Exception("Neither architecture parsed the first opcode")
 
                 elif armthumb < 0:
-                        self.setFlag(PSR_T_bit, 1)
-                        logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x", funcva)
+                    self.setFlag(PSR_T_bit, 1)
+                    logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x", funcva)
+                    
                 else:
                     self.setFlag(PSR_T_bit, 0)
                     logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is ARM:  0x%x", funcva)

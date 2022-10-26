@@ -24,6 +24,10 @@ class ArmModule(envi.ArchitectureModule):
         self.badoplist = [self.archParseOpcode(badop, 0, 0) for badop in self._arch_badopbytes]
         self.badoplist.extend([self.archParseOpcode(badop, 0, 1) for badop in self._arch_badopbytes])
 
+    def initRegGroups(self):
+        envi.ArchitectureModule.initRegGroups(self)
+        self._regGrps.update({'general': arm_regs})
+
     def archGetRegCtx(self):
         return ArmRegisterContext()
 
@@ -72,12 +76,6 @@ class ArmModule(envi.ArchitectureModule):
             return tova & -2, reftype, rflags
         return tova, reftype, rflags
 
-    def archGetRegisterGroups(self):
-        groups = envi.ArchitectureModule.archGetRegisterGroups(self)
-
-        groups.append(('general', arm_regs))
-        return groups
-
     def archGetPointerAlignment(self):
         return 4
 
@@ -99,6 +97,10 @@ class ThumbModule(envi.ArchitectureModule):
         # pre-generating bad-ops list
         self.badoplist = [ self.archParseOpcode(badop,0,0) for badop in self._arch_badopbytes ]
         self.badoplist.extend([ self.archParseOpcode(badop,0,1) for badop in self._arch_badopbytes ])
+
+    def initRegGroups(self):
+        envi.ArchitectureModule.initRegGroups(self)
+        self._regGrps.update({'general': arm_regs})
 
     def archGetRegCtx(self):
         return ArmRegisterContext()
