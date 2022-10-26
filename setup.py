@@ -41,8 +41,8 @@ setup(
             'sphinx-rtd-theme>=0.4.2,<1.0.0',
         ],
         'gui': [
-            'pyqt5==5.15.1',
-            'pyqtwebengine==5.15.1',
+            'pyqt5==5.15.7',
+            'pyqtwebengine==5.15.6',
         ]
     },
     classifiers=[
