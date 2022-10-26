@@ -664,7 +664,7 @@ class ThumbITOper(ArmOperand):
         fcond = cond_codes.get(cond)
         mcanv.addText("%s" % (fcond))
 
-    def getOperValue(self, idx, emu=None):
+    def getOperValue(self, idx, emu=None, codeflow=False):
         return None
 
 
