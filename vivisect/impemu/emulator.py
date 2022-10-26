@@ -113,11 +113,18 @@ class WorkspaceEmulator:
                     WARNING: While this value is configurable, changing this value without knowing what you're
                     doing can result in undesirable effects (such as infinite recursion when trying to repr
                     taint values), so change this value with care.
+        * opcache
+            - Type: Boolean
+            - Default: True
+            - Desc: By default, WorkspaceEmulators share the opcode cache storing parsed opcodes for locations 
+                    in the Vivisect Workspace.
+                    This setting disables use of the VivWorkspace's opcode cache.
         '''
         self.vw = vw
         # Set down below in runFunction
         self.funcva = None
         self.emustop = False
+        self.usecache = kwargs.get('opcache', True)
 
         self.hooks = {}
         self.taints = {}
@@ -248,7 +255,10 @@ class WorkspaceEmulator:
         """
         self.emumon = emumon
 
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT, skipcache=False):
+        if not self.usecache or skipcache:
+            return self.__archemu__.parseOpcode(self, va, arch)
+
         return self.vw.parseOpcode(va, arch=arch)
 
     def checkCall(self, starteip, endeip, op):
