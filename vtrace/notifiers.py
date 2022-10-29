@@ -177,5 +177,5 @@ class LibraryNotifier(Notifier):
                 logger.warning("LoadLibrary(%r): Can't add breakpoint!  %r", libnormname, e)
 
     def _doAddBreakByExp(self, trace, expr):
-        print("_doAddBreakByExp(%r, %r)" % (trace, expr))
+        logger.debug("_doAddBreakByExp(%r, %r)", trace, expr)
         trace.addBreakByExpr(expr)
