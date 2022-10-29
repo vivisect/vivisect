@@ -31,6 +31,9 @@ class Breakpoint:
         self.active = False
         self.fastbreak = False      # no NOTIFY_BREAK, autocont, no NOTIFY_CONTINUE
         self.stealthbreak = False   # no NOTIFY_BREAK
+        self.silent = False
+        self.untouchable = False    # system breakpoint.  can't remove it or see it.
+        self._complained = False
 
         self.id = -1
         self.vte = None
@@ -96,9 +99,13 @@ class Breakpoint:
         if self.address is None and self.vte:
             try:
                 self.address = trace.parseExpression(self.vte)
+
             except Exception as e:
-                logger.warning('Failed to resolve breakpoint address for expression: %s', self.vte)
-                logger.warning('Error:', exc_info=1)
+                # this will happen with unresolved breakpoints.  
+                # depending on when resolution happens, the library may not have loaded yet.
+                if not self._complained:
+                    logger.warning('Failed to resolve breakpoint address for expression: %s (delayed resolution?)', self.vte)
+                    self._complained = True
                 self.address = None
 
         # If we resolved, lets get our saved code...
@@ -404,3 +411,17 @@ class PostHookBreakpoint(NiceBreakpoint):
         ret_addr, args = tup
 
         self.runPostHookCallbacks(event, trace, ret_addr, args)
+
+class PosixLibLoadHookBreakpoint(Breakpoint):
+    '''
+    POSIX systems need to hook DL to identfy when libraries are loaded.
+    '''
+    def __init__(self, expression):
+        Breakpoint.__init__(self, None, expression=expression)
+        self.untouchable = True
+        self.silent = True
+
+    def notify(self, event, trace):
+        logger.debug("PosixLibLoadHookBreakpoint: reanalyze maps and resolve symbols")
+        trace._findLibraryMaps(b'\x7fELF', always=True)
+        # handle unresolved expression bp's 

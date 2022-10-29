@@ -537,6 +537,7 @@ class TracerBase(vtrace.Notifier):
         about a LOAD_LIBRARY. (This means *not* from inside another
         notifer)
         """
+        logger.info("addLibraryBase(%r, 0x%x, %r)", libname, address, always)
 
         self.setMeta("LatestLibrary", None)
         self.setMeta("LatestLibraryNorm", None)
@@ -878,7 +879,7 @@ class TracerBase(vtrace.Notifier):
 
 def threadwrap(func):
     def trfunc(self, *args, **kwargs):
-        if threading.currentThread().__class__ == TracerThread:
+        if threading.current_thread().__class__ == TracerThread:
             return func(self, *args, **kwargs)
         # Proxy the call through a single thread
         q = queue.Queue()
@@ -904,9 +905,8 @@ class TracerThread(threading.Thread):
     to make particular calls and on what platforms...  YAY!
     """
     def __init__(self):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, daemon=True)
         self.queue = queue.Queue()
-        self.setDaemon(True)
         self.start()
 
     def run(self):
