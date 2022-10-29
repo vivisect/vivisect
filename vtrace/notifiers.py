@@ -145,15 +145,25 @@ class LibraryNotifier(Notifier):
         trace._updateBreakAddresses()
 
         # check meta
-        if trace.getMeta('BreakOnLibraryLoad') or trace.db.config.vdb.BreakOnLibraryLoad:
+        if hasattr(trace, 'db'):
+            cfgBreakLibLoad = trace.db.config.vdb.BreakOnLibraryLoad
+            cfgBreakLibInit = trace.db.config.vdb.BreakOnLibraryInit
+        else:
+            cfgBreakLibLoad = False
+            cfgBreakLibInit = False
+
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        breakLibLoad = trace.getMeta('BreakOnLibraryLoad')
+        if breakLibLoad or cfgBreakLibLoad:
             # stop this instant!
             trace.sendBreak()
 
-        if trace.getMeta('BreakOnLibraryInit') or trace.db.config.vdb.BreakOnLibraryInit:
-            print("BreakOnLibraryInit")
+        breakLibInit = trace.getMeta('BreakOnLibraryInit')
+        if breakLibInit or cfgBreakLibInit:
             # add Breakpoint for __entry
             libnormname = trace.getMeta('LatestLibraryNorm')
             entryname = "%s.__entry" % (libnormname)
+            logger.debug("BreakOnLibraryInit: %r\t\thooking %s", libnormname, entryname)
 
             # WARNING: this expects all libraries (and binaries) to have a 
             # __entry.  every library *does*, we just need to make sure Viv/
