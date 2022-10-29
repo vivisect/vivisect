@@ -739,7 +739,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
                 self.breakpoints[bp.address] = bp
                 self.deferred.remove(bp)
                 bp.activate(self)
-                logger.debug("resolved bp address: %r", bp)
+                logger.warning("Resolved bp address: %r", bp)
 
     def getCurrentBreakpoint(self):
         """
