@@ -502,7 +502,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             trace.setMeta('PendingBreak', False)
             bp = trace.getCurrentBreakpoint()
             if bp:
-                self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
+                if not bp.silent:
+                    self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
                 cmdstr = self.bpcmds.get(bp.id, None)
                 if cmdstr is not None:
                     self.onecmd(cmdstr)
@@ -1871,6 +1872,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         self.vprint(" [ Breakpoints ]")
         for bp in self.trace.getBreakpoints():
+            if bp.untouchable:  # don't list untouchable bp's
+                continue
             self._print_bp(bp)
 
     def _print_bp(self, bp):

@@ -137,15 +137,19 @@ class DistributedNotifier(Notifier):
         nlist = self.notifiers.get(event)
         nlist.remove(notif)
 
-class LibraryNotifer(Notifier):
+class LibraryNotifier(Notifier):
     def notify(self, event, trace):
-        print("LibraryNotifier.notify(%r, %r)" % (event, trace))
-        #check meta
-        if trace.getMeta('BreakOnLibraryLoad') or trace.config.vdb.BreakOnLibraryLoad:
+        logger.info("LibraryNotifier.notify(%r, %r)", event, trace)
+
+        # update unresolved breakpoints:
+        trace._updateBreakAddresses()
+
+        # check meta
+        if trace.getMeta('BreakOnLibraryLoad') or trace.db.config.vdb.BreakOnLibraryLoad:
             # stop this instant!
             trace.sendBreak()
 
-        if trace.getMeta('BreakOnLibraryInit') or trace.config.vdb.BreakOnLibraryInit:
+        if trace.getMeta('BreakOnLibraryInit') or trace.db.config.vdb.BreakOnLibraryInit:
             print("BreakOnLibraryInit")
             # add Breakpoint for __entry
             libnormname = trace.getMeta('LatestLibraryNorm')

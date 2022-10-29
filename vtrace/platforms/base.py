@@ -537,6 +537,7 @@ class TracerBase(vtrace.Notifier):
         about a LOAD_LIBRARY. (This means *not* from inside another
         notifer)
         """
+        logger.info("addLibraryBase(%r, 0x%x, %r)", libname, address, always)
 
         self.setMeta("LatestLibrary", None)
         self.setMeta("LatestLibraryNorm", None)

@@ -412,6 +412,13 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             raise Exception("PT_ATTACH failed!")
         self.setMeta("ExeName", self._findExe(pid))
 
+    def _LibraryLoadHack(self):
+        # drop special breakpoint at ld._dl_catch_exception
+        import vtrace.breakpoints as v_bp
+        bp = v_bp.PosixLibLoadHookBreakpoint('ld._dl_catch_exception')
+        # FIXME: make this bp hidden and immutable (like, can't delete it!!)
+        self.addBreakpoint(bp)
+
     def platformPs(self):
         pslist = []
         for dname in self.platformListDir('/proc'):
