@@ -54,7 +54,7 @@ class mach_o(vstruct.VStruct):
         self._entrypoints = []
         offset = len(self.mach_header)
         for fname, vs in self.load_commands:
-            if vs.cmd == LC_UNIXTHREAD:
+            if vs.cmd in (LC_MAIN, LC_UNIXTHREAD):
                 eoff = len(vs)
                 psize = vs.flavor
                 bigend = self.vsGetEndian()
