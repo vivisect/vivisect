@@ -36,7 +36,7 @@ class VdbReconTests(v_t_utils.VivTest):
         v_rec.addReconBreak(trace, sym, 'PPXPP')   
         trace.run()
 
-        assert len(v_rec.getReconHits(trace)) >= 1
+        self.assertGreater(len(v_rec.getReconHits(trace)), 0)
 		
     def test_vdb_recon_amd64(self):    
         trace = vtrace.getTrace()
