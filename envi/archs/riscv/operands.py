@@ -64,7 +64,7 @@ class RiscVOpcode(envi.Opcode):
             flags |= envi.BR_PROC
             addb = True
 
-        elif (self.iflags & envi.IF_CALLCC) == envi.IF_CALLCC:
+        elif (self.iflags & IF_CALLCC) == IF_CALLCC:
             flags |= (envi.BR_PROC | envi.BR_COND)
             addb = True
 
