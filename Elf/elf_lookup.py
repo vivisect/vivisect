@@ -179,6 +179,7 @@ e_machine_types = {
     EM_XTENSA:"Tensilica Xtensa Architecture",
     EM_NUM:"",
     EM_ARM_AARCH64:"ARM aarch64",
+    EM_RISCV:"RISC-V",
     EM_ALPHA:"",
 }
 
