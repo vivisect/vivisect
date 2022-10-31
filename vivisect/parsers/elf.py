@@ -98,6 +98,12 @@ def makeRelocTable(vw, va, maxva, addbase, baseaddr, addend=False):
 def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0, addbase=False):
     logger.debug('makeFunctionTable(tbladdr=0x%x, size=0x%x, tblname=%r,  baseaddr=0x%x)', tbladdr, size, tblname, baseaddr)
     psize = vw.getPointerSize()
+
+    # If the provided buffer is shorter than the standard pointer size, use the
+    # buffer length
+    if size < psize:
+        psize = size
+
     fmtgrps = e_bits.fmt_chars[vw.getEndian()]
     pfmt = fmtgrps[psize]
     secbytes = elf.readAtRva(tbladdr, size)
@@ -312,7 +318,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     f_preinita = elf.dyns.get(Elf.DT_PREINIT_ARRAY)
     if f_preinita is not None:
-        f_preinitasz = elf.dyns.get(Elf.DT_PREINIT_ARRAY)
+        f_preinitasz = elf.dyns.get(Elf.DT_PREINIT_ARRAYSZ)
         makeFunctionTable(elf, vw, f_preinita, f_preinitasz, 'preinit_array', new_functions, new_pointers, baseaddr, addbase)
 
     # dynamic table
