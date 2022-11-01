@@ -7,8 +7,6 @@ __all__ = [
     # Defined in this file
     'RISCV_CAT',
     'RM_NAMES',
-    'CSR_REGISTER_METAS',
-    'CSR_REGISTER_NAMES',
 
     # Defined in const_gen
     'RISCV_FORM',
@@ -39,22 +37,40 @@ class RISCV_CAT(enum.IntFlag):
       I           integer (base)
       M           multiply & divide instructions
       A           atomic memory & inter-processor sync instructions
-      E           reduced number of gprs
+      S           supervisor instructions
 
       F           single-precision floating-point
       D           double-precision floating-point
       Q           quad-precision floating-point
 
+      C           compressed (VLE/16-bit instructions)
+      H           hypervisor
+
       Zicsr       control and status register instructions
       Zifencei    instruction-fetch fence
       Zihintpause PAUSE encoding of FENCE and specific meanings
+      Zihintntl   non-temporal locality hints
+      Zfh         half-precision floating point
+      Zfhmin      half-precision floating point
+      Zfinx       floating point in integer registers
+      Zdinx       floating point in integer registers
+      Zhinx       floating point in integer registers
+      Zhinxmin    floating point in integer registers
+      Zfa         aditional floating-point instructions
+      Zmmul       multiplication subset of M extension
+
+      Zicntr      base counters and timers
+      Zihpm       hardware performance counters
 
       G           IMAFD,Zicsr,Zifencei
 
-      C           compressed (VLE/16-bit instructions)
-      E           embedded, only 16 "x" register
+      Svnapot     NAPOT translation contiguity
+      Svpbmt      page-based memory types
+      Svinval     fine-grained address translation cache invalidation
 
     Placeholder categories
+      E           embedded, only 16 "x" register
+
       L           decimal floating-point
       B           bit manipulation
       J           dynamically translated languages
@@ -63,13 +79,9 @@ class RISCV_CAT(enum.IntFlag):
       V           vector
 
       Zam         misaligned atomics
-      Zfh         half-precision floating point
-      Zfhmin      half-precision floating point
-      Zfinx       floating point in integer registers
-      Zdinx       floating point in integer registers
-      Zhinx       floating point in integer registers
-      Zhinxmin    floating point in integer registers
       Ztso        total store ordering
+
+      Smrnmi      resumable non-maskable interrupts
 
     All instruction categories that are just placeholders and do not represent
     valid instructions that can be disassembled and emulated by this envi
@@ -79,6 +91,7 @@ class RISCV_CAT(enum.IntFlag):
     I           = 1 << 0
     M           = 1 << 1
     A           = 1 << 2
+    S           = 1 << 3
 
     # Floating point
     F           = 1 << 8
@@ -88,25 +101,36 @@ class RISCV_CAT(enum.IntFlag):
 
     # "other" (mostly placeholders)
     C           = 1 << 16
-    E           = 1 << 17  # draft
-    B           = 1 << 18  # draft
-    J           = 1 << 19  # draft
-    T           = 1 << 20  # draft
-    P           = 1 << 21  # draft
-    V           = 1 << 22  # draft
+    H           = 1 << 17
+    E           = 1 << 18  # draft
+    B           = 1 << 19  # draft
+    J           = 1 << 20  # draft
+    T           = 1 << 21  # draft
+    P           = 1 << 22  # draft
+    V           = 1 << 23  # draft
 
     # "Z" categories
     Zicsr       = 1 << 32
     Zifencei    = 1 << 33
     Zihintpause = 1 << 34
-    Zam         = 1 << 34  # draft
-    Zfh         = 1 << 36  # draft
-    Zfhmin      = 1 << 37  # frozen
-    Zfinx       = 1 << 38  # frozen
-    Zdinx       = 1 << 39  # frozen
-    Zhinx       = 1 << 40  # frozen
-    Zhinxmin    = 1 << 41  # frozen
-    Ztso        = 1 << 42  # frozen
+    Zihintntl   = 1 << 35  # draft
+    Zam         = 1 << 36  # draft
+    Zfh         = 1 << 38
+    Zfhmin      = 1 << 39
+    Zfinx       = 1 << 40
+    Zdinx       = 1 << 41
+    Zhinx       = 1 << 42
+    Zhinxmin    = 1 << 43
+    Zfa         = 1 << 44  # draft
+    Ztso        = 1 << 45  # frozen
+    Zicntr      = 1 << 46  # draft
+    Zihpm       = 1 << 47  # draft
+
+    # Supervisor extensions
+    Svnapot     = 1 << 48
+    Svpbmt      = 1 << 49
+    Svinval     = 1 << 50
+    Smrnmi      = 1 << 51  # draft
 
     # Convenience Names
     G        = I | M | A | F | D | Zicsr | Zifencei
@@ -123,29 +147,4 @@ RM_NAMES = {
     0b011: 'rup',
     0b100: 'rmm',
     0b111: 'dyn',
-}
-
-# A mapping of CSR register values to the corresponding meta register
-CSR_REGISTER_METAS = {
-    0x001: None,
-    0x002: None,
-    0x003: None,
-    0xC00: None,
-    0xC01: None,
-    0xC02: None,
-    0xC80: None,
-    0xC81: None,
-    0xC82: None,
-}
-
-CSR_REGISTER_NAMES = {
-    0x001: 'fflags',
-    0x002: 'frm',
-    0x003: 'fcsr',
-    0xC00: 'cycle',
-    0xC01: 'time',
-    0xC02: 'instret',
-    0xC80: 'cycleh',
-    0xC81: 'timeh',
-    0xC82: 'instreth',
 }

@@ -2,6 +2,7 @@ import envi.registers as e_reg
 
 from envi.archs.riscv.const import *
 from envi.archs.riscv.info import *
+from envi.archs.riscv.regs_gen import csr_regs as _csr_regs
 
 
 general_registers = (
@@ -49,6 +50,8 @@ internal_registers = (
     'pc',
 )
 
+system_registers = tuple(reg.name for reg in _csr_regs.values())
+
 float_registers = (
     # f0 - f7 temporaries
     'ft0', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', 'ft6', 'ft7',
@@ -75,6 +78,7 @@ float_registers = (
 registers_info = tuple(
     [[reg, 32] for reg in general_registers] +
     [[reg, 32] for reg in internal_registers] +
+    [[reg, 32] for reg in system_registers] +
     [[reg, 32] for reg in float_registers]
 )
 
@@ -104,27 +108,43 @@ class RiscVRegisterContext(e_reg.RegisterContext):
         if description is None:
             description = DEFAULT_RISCV_DESCR
 
-        xlen = getRiscVXLEN(description)
-        flen = getRiscVFLEN(description)
+        self.xlen = getRiscVXLEN(description)
+        self.flen = getRiscVFLEN(description)
 
         # Populate the info with the correct info now
-        if flen is not None:
-            info = tuple(
-                [[reg, xlen] for reg in general_registers] +
-                [[reg, xlen] for reg in internal_registers] +
-                [[reg, flen] for reg in float_registers]
-            )
+        # The system register sizes can vary but for now use XLEN
+        if self.flen is not None:
+            info = [(reg, self.xlen) for reg in general_registers] + \
+                    [(reg, self.xlen) for reg in internal_registers] + \
+                    [(reg, self.xlen) for reg in system_registers] + \
+                    [(reg, self.flen) for reg in float_registers]
         else:
-            info = tuple(
-                [[reg, xlen] for reg in general_registers] +
-                [[reg, xlen] for reg in internal_registers]
-            )
+            info = [(reg, self.xlen) for reg in general_registers] + \
+                    [(reg, self.xlen) for reg in internal_registers] + \
+                    [(reg, self.xlen) for reg in system_registers]
         self.loadRegDef(info)
 
         # But don't change the metas
         self.loadRegMetas(metas, statmetas=[])
 
         self.setRegisterIndexes(REG_PC, REG_SP)
+
+    def addRegister(self, name, width=None, defval=0):
+        """
+        Support adding new system registers dynamically.
+        This is necessary to allow non-standard CSR registers to get added on
+        the fly if disassembly indicates something non-standard.
+        """
+        if width is None:
+            width = self.xlen
+
+        new_id = len(self._rctx_ids)
+        self._rctx_regdef.append((name, width))
+        self._rctx_names[name] = new_id
+        self._rctx_ids.append(name)
+        self._rctx_widths.append(width)
+        self._rctx_masks.append((2**width)-1)
+        self._rctx_vals.append(defval)
 
 
 # Create a default RiscV register context

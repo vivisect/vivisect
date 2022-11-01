@@ -29,6 +29,7 @@ class RISCV_FORM(enum.IntEnum):
 class RISCV_FIELD(enum.IntEnum):
     REG = enum.auto()
     C_REG = enum.auto()
+    F_REG = enum.auto()
     CSR_REG = enum.auto()
     MEM = enum.auto()
     MEM_SP = enum.auto()
@@ -253,8 +254,7 @@ class RISCV_INS(enum.IntEnum):
     JALR = enum.auto()
     JR = enum.auto()
     LOAD = enum.auto()
-    LR_D = enum.auto()
-    LR_W = enum.auto()
+    LOAD_RESERVED = enum.auto()
     LUI = enum.auto()
     MNRET = enum.auto()
     MRET = enum.auto()
@@ -270,8 +270,6 @@ class RISCV_INS(enum.IntEnum):
     REMU = enum.auto()
     REMUW = enum.auto()
     REMW = enum.auto()
-    SC_D = enum.auto()
-    SC_W = enum.auto()
     SFENCE_INVAL_IR = enum.auto()
     SFENCE_VMA = enum.auto()
     SFENCE_W_INVAL = enum.auto()
@@ -294,6 +292,7 @@ class RISCV_INS(enum.IntEnum):
     SRLIW = enum.auto()
     SRLW = enum.auto()
     STORE = enum.auto()
+    STORE_CONDITIONAL = enum.auto()
     SUB = enum.auto()
     SUBW = enum.auto()
     WFI = enum.auto()
@@ -311,6 +310,10 @@ class RISCV_IF(enum.IntFlag):
     # as the base register
     LOAD_SP     = 1 << 10
     STORE_SP    = 1 << 11
+
+    # acquire or release spinlock flags
+    AQ          = 1 << 12
+    RL          = 1 << 13
 
 
 # RiscV operand flags

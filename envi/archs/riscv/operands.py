@@ -1,7 +1,8 @@
 import envi
 import envi.bits as e_bits
 from envi.archs.riscv.regs import riscv_regs, REG_PC, REG_SP
-from envi.archs.riscv.const import RISCV_OF, CSR_REGISTER_METAS, CSR_REGISTER_NAMES
+from envi.archs.riscv.regs_gen import csr_regs
+from envi.archs.riscv.const import RISCV_OF
 
 
 __all__ = [
@@ -163,16 +164,37 @@ class RiscVCRegOper(RiscVRegOper):
         self.reg += 8
 
 
+class RiscVFRegOper(RiscVRegOper):
+    def __init__(self, ival, bits, args, va=0, oflags=0):
+        super().__init__(ival, bits, args, oflags)
+        # Offset the value by the first floating point register
+        self.reg += REG_F0
+
+
 class RiscVCSRRegOper(RiscVRegOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
         super().__init__(ival, bits, args, va, oflags)
+
         # The register number in the instruction is a CSR meta regsiter
         self.csr_reg = self.reg
-        # Get the real Meta register value
-        self.reg = CSR_REGISTER_METAS.get(self.csr_reg)
+
+        # Get the internal envi register constant
+        name = csr_regs.get(self.csr_reg)
+
+        # This may be invalid
+        self.reg = riscv_regs.getRegisterIndex(name)
+
+    def addSystemRegister(self, emu):
+        """
+        Because the CSR registers are scraped from the documentation it's
+        possible that disassembly may reference new or non-standard CSR numbers
+        This function supports adding a non-standard CSR register to an
+        emulator instance.
+        """
+        emu.addRegister(hex(self.csr_reg))
 
     def repr(self, op):
-        return CSR_REGISTER_NAMES.get(self.csr_reg, 'invalid')
+        return csr_regs.get(self.csr_reg, hex(self.csr_reg))
 
 
 class RiscVMemOper(envi.DerefOper):

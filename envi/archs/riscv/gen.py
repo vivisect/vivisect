@@ -390,7 +390,7 @@ def find_form(fields, forms):
         raise Exception('no form match found for %s' % str(fields))
 
 
-def add_instr(instrs, name, cat_list, form, fields, notes, priv=False):
+def add_instr(instrs, name, cat_list, form, fields, notes, priv=False, flags=None):
     # the opcode is the last field, ensure it is a constant
     assert fields[-1].type == OpcodeType.CONST
 
@@ -400,6 +400,9 @@ def add_instr(instrs, name, cat_list, form, fields, notes, priv=False):
     if 'HINT' in notes:
         print('Skipping HINT-ONLY instruction %s' % name)
         return
+
+    if flags is None:
+        flags = []
 
     # Special cases:
     # 1. For FENCE instructions the FM field should generate normal
@@ -432,10 +435,24 @@ def add_instr(instrs, name, cat_list, form, fields, notes, priv=False):
         rl_fields = [f if f.value not in ('aq', 'rl') else aq_zero_field if f.value == 'aq' else rl_one_field for f in fields]
         both_fields = [f if f.value not in ('aq', 'rl') else aq_one_field if f.value == 'aq' else rl_one_field for f in fields]
 
-        # Create the .aq, .rl, and .aq.rl instructions
-        add_instr(instrs, name+'.AQ', cat_list, form, aq_fields, notes, priv)
-        add_instr(instrs, name+'.RL', cat_list, form, rl_fields, notes, priv)
-        add_instr(instrs, name+'.AQ.RL', cat_list, form, both_fields, notes, priv)
+        # Create the .aq, and .rl instructions
+        if name.startswith('LR.') or name.startswith('SC.'):
+            # If this is an LR.? or SC.? instruction don't modify the
+            # instruction name
+            add_instr(instrs, name, cat_list, form, aq_fields, notes, priv,
+                      flags=flags+['RISCV_IF.AQ'])
+            add_instr(instrs, name, cat_list, form, rl_fields, notes, priv,
+                      flags=flags+['RISCV_IF.RL'])
+            add_instr(instrs, name, cat_list, form, both_fields, notes, priv,
+                      flags=flags+['RISCV_IF.AQ', 'RISCV_IF.RL'])
+
+        else:
+            add_instr(instrs, name+'.AQ', cat_list, form, aq_fields, notes, priv,
+                      flags=flags+['RISCV_IF.AQ'])
+            add_instr(instrs, name+'.RL', cat_list, form, rl_fields, notes, priv,
+                      flags=flags+['RISCV_IF.RL'])
+            add_instr(instrs, name+'.AQ.RL', cat_list, form, both_fields, notes, priv,
+                      flags=flags+['RISCV_IF.AQ', 'RISCV_IF.RL'])
 
         # Now create the non-acquire or release instruction
         fields = [f if f.value not in ('aq', 'rl') else aq_zero_field if f.value == 'aq' else rl_zero_field for f in fields]
@@ -445,7 +462,7 @@ def add_instr(instrs, name, cat_list, form, fields, notes, priv=False):
     op_mask, op_value = get_instr_mask(fields)
 
     # And generate the flags for this instruction
-    op_flags = get_instr_flags(name, fields, priv)
+    op_flags = get_instr_flags(name, fields, priv) + flags
 
     if not cat_list:
         raise Exception('ERROR: no categories defined for: %s, %s, %s, %s, priv=%s' % (name, form, fields, notes, priv))
@@ -453,10 +470,12 @@ def add_instr(instrs, name, cat_list, form, fields, notes, priv=False):
     for cat in cat_list:
         if cat not in instrs:
             instrs[cat] = {}
-        assert name not in instrs[cat]
+        if name not in instrs[cat]:
+            # Allow for multiple instruction encodings with the same name
+            instrs[cat][name] = []
 
         op = Op(name, cat, form, op_mask, op_value, fields, op_flags, notes)
-        instrs[cat][name] = op
+        instrs[cat][name].append(op)
         extra_info_str = '%s-type' % op.form
         if notes:
             extra_info_str += '; ' + '; '.join(n for n in notes)
@@ -488,26 +507,45 @@ _info_parts = [
 ]
 _info_pat = _makepat(_info_parts, re.MULTILINE)
 
+# CSR register matching pattern
+_csr_table_parts = [
+    r'\\tt\s*(0x[A-F0-9]{3})\s*&\s*([A-Z][RWO]{2})\s*&\s*\\tt\s*([a-z0-9]+)\s*&\s*(.*)\s*\\\\',
+    r'&\s&\s\\multicolumn\{1\}\{c\|\}\{\\(vdots)\}\s&\s\\\s\\\\',
+]
+_csr_pat = _makepat(_csr_table_parts)
 
 def cats_from_str(catname):
     #print(catname)
-    if catname[:2] != 'RV':
-        return []
 
-    # Check how many RV?? archs are listed in the first word
-    arch, extra = catname.split(' ', maxsplit=1)
     cat_list = []
-    for part in arch.split('/'):
-        if part[:2] != 'RV':
-            cat_list.append('RV' + part)
-        else:
-            cat_list.append(part)
 
-    # See if this is an extension
-    match = _cat_extension_pat.search(extra)
-    if match:
-        for i in range(len(cat_list)):
-            cat_list[i] += match.group(1)
+    arch, extra = catname.split(' ', maxsplit=1)
+    if arch[:2] == 'RV':
+        # Check how many RV?? archs are listed in the first word
+        cat_list = []
+        for part in arch.split('/'):
+            if part[:2] != 'RV':
+                cat_list.append('RV' + part)
+            else:
+                cat_list.append(part)
+
+        # See if this is an extension
+        match = _cat_extension_pat.search(extra)
+        if match:
+            for i in range(len(cat_list)):
+                cat_list[i] += match.group(1)
+
+    elif arch in ('Trap-Return', 'Interrupt-Management', 'Supervisor'):
+        cat_list.append('RV32S')
+
+    elif arch == 'Hypervisor':
+        if catname.endswith('RV64 only'):
+            cat_list.append('RV64S')
+        else:
+            cat_list.append('RV32S')
+
+    elif arch == 'Svinval':
+        cat_list.append('RV32Svinval')
 
     return cat_list
 
@@ -633,9 +671,11 @@ def scrape_rvc_forms(text):
 
 def copy_carried_over_instrs(instrs, from_instrs, to_instrs):
     for name in instrs[from_instrs]:
+        if to_instrs not in instrs:
+            instrs[to_instrs] = {}
         if name not in instrs[to_instrs]:
-            instr = instrs[from_instrs][name]
-            add_instr(instrs, name, [to_instrs], instr.form, instr.fields, instr.notes, priv=False)
+            for instr in instrs[from_instrs][name]:
+                add_instr(instrs, name, [to_instrs], instr.form, instr.fields, instr.notes, priv=False)
 
 
 def scrape_instrs(git_repo):
@@ -654,23 +694,23 @@ def scrape_instrs(git_repo):
     uncond_jmps = [j.replace('AL', '') for j in jmps]
 
     print('Creating special case instructions not in the RISCV tables: %s' % uncond_jmps)
+
     for cat in unpriv_instrs.keys():
         # turn JAL into J and JALR into JR
         for old, new in zip(jmps, uncond_jmps):
             if old in unpriv_instrs[cat]:
-                old_instr = unpriv_instrs[cat][old]
+                for old_instr in unpriv_instrs[cat][old]:
+                    new_fields = []
+                    for field in old_instr.fields:
+                        if field.value == 'rd':
+                            new_field = Field(0, OpcodeType.CONST, field.columns,
+                                    field.bits, field.mask, field.shift)
+                            new_fields.append(new_field)
+                        else:
+                            # copy from JAL field
+                            new_fields.append(field)
 
-                new_fields = []
-                for field in old_instr.fields:
-                    if field.value == 'rd':
-                        new_field = Field(0, OpcodeType.CONST, field.columns,
-                                field.bits, field.mask, field.shift)
-                        new_fields.append(new_field)
-                    else:
-                        # copy from JAL field
-                        new_fields.append(field)
-
-                add_instr(unpriv_instrs, new, [cat], old_instr.form, new_fields, old_instr.notes, priv=False)
+                    add_instr(unpriv_instrs, new, [cat], old_instr.form, new_fields, old_instr.notes, priv=False)
 
     # TODO: automate this?
     # Some instructions should be in multiple categories
@@ -690,9 +730,16 @@ def scrape_instrs(git_repo):
 
     with open(git_repo + '/src/priv-instr-table.tex', 'r') as f:
         instr_table = f.read()
-    # the privileged instructions should default to the base RV32I category
-    priv_forms, priv_instrs = scrape_instr_table(instr_table, 'RV32I', priv=True)
+
+    # the privileged instructions should default to the base RV32S (supervisor)
+    # category
+    priv_forms, priv_instrs = scrape_instr_table(instr_table, default_cat='RV32S', priv=True)
     forms.update(priv_forms)
+
+    # TODO: automate this?
+    # Some instructions should be in multiple categories
+    copy_carried_over_instrs(priv_instrs, 'RV32S', 'RV64S')
+
     for cat, data in priv_instrs.items():
         if cat not in instrs:
             instrs[cat] = data
@@ -710,6 +757,7 @@ def scrape_instrs(git_repo):
     with open(git_repo + '/src/rvc-instr-table.tex', 'r') as f:
         instr_table = f.read()
     _, rvc_instrs = scrape_instr_table(instr_table, default_cat='RV32C', forms=rvc_forms)
+
     for cat, data in rvc_instrs.items():
         if cat not in instrs:
             instrs[cat] = data
@@ -829,13 +877,19 @@ OP_MEM_SIZES = (
     ('RISCV_OF.HALFWORD',   ('LH', 'LHU', 'FLH', 'SH', 'FSH')),
     ('RISCV_OF.WORD',       ('LW', 'LWU', 'C.LW', 'C.LWSP', 'FLW', 'C.FLW',
                              'C.FLWSP', 'SW', 'C.SW', 'FSW', 'C.FSW',
-                             'C.FSWSP', 'C.LWSP', 'C.SWSP')),
+                             'C.FSWSP', 'C.LWSP', 'C.SWSP',
+                             'LR.W', 'SC.W')),
     ('RISCV_OF.DOUBLEWORD', ('LD', 'LDU', 'C.LD', 'C.LDSP', 'FLD', 'C.FLD',
                              'C.FLDSP', 'SD', 'C.SD', 'FSD', 'C.FSD',
-                             'C.FSDSP', 'C.LDSP', 'C.SDSP')),
+                             'C.FSDSP', 'C.LDSP', 'C.SDSP',
+                             'LR.D', 'SC.D')),
     ('RISCV_OF.QUADWORD',   ('LQ', 'C.LQ', 'C.LQSP', 'FLQ', 'SQ', 'C.SQ',
                              'C.SQSP', 'FSQ')),
 )
+
+RS1_MEM_REF_INSTRS = tuple(list(LOAD_INSTRS) + list(STORE_INSTRS) + [
+    'LR.W', 'LR.D', 'SC.W', 'SC.D',
+])
 
 
 def get_instr_flags(name, fields, priv=False):
@@ -874,12 +928,12 @@ def get_instr_final_flags(instr):
     """
     flags = instr.flags
 
-    if instr.name in LOAD_INSTRS:
+    if instr.name in LOAD_INSTRS or instr.name.startswith('LR.'):
         if instr.name.endswith('SP'):
             flags.append('RISCV_IF.LOAD_SP')
         else:
             flags.append('RISCV_IF.LOAD')
-    elif instr.name in STORE_INSTRS:
+    elif instr.name in STORE_INSTRS or instr.name.startswith('SC.'):
         if instr.name.endswith('SP'):
             flags.append('RISCV_IF.STORE_SP')
         else:
@@ -910,6 +964,16 @@ def get_instr_name(name):
         return 'LOAD'
     elif name in STORE_INSTRS:
         return 'STORE'
+
+    # The LR and SC instructions are essentially load and store
+    # instructions but have slightly different functionality so
+    # change the instruction name to LOAD_RESERVED and
+    # STORE_CONDITIONAL
+    elif name.startswith('LR.'):
+        return 'LOAD_RESERVED'
+    elif name.startswith('SC.'):
+        return 'STORE_CONDITIONAL'
+
     else:
         # Remove any trailing '.AQ' or '.RL' parts
         # change all .'s to _'s
@@ -1041,7 +1105,7 @@ def export_instrs(forms, instrs, git_info):
 
         # Write out the field types
         out.write('class RISCV_FIELD(enum.IntEnum):\n')
-        for field_type in ('REG', 'C_REG', 'CSR_REG', 'MEM', 'MEM_SP', 'IMM', 'RM'):
+        for field_type in ('REG', 'C_REG', 'F_REG', 'CSR_REG', 'MEM', 'MEM_SP', 'IMM', 'RM'):
             out.write('    %s = enum.auto()\n' % field_type)
         out.write('\n\n')
 
@@ -1064,6 +1128,10 @@ class RISCV_IF(enum.IntFlag):
     # as the base register
     LOAD_SP     = 1 << 10
     STORE_SP    = 1 << 11
+
+    # acquire or release spinlock flags
+    AQ          = 1 << 12
+    RL          = 1 << 13
 
 
 # RiscV operand flags
@@ -1117,6 +1185,7 @@ RiscVMemSPField = namedtuple('RiscVMemSPField', ['name', 'type', 'bits', 'args',
 RiscVFieldArgs = namedtuple('RiscVFieldArgs', ['mask', 'shift'])
 ''')
 
+    cur_dir = os.path.dirname(__file__)
     with open(os.path.join(cur_dir, 'instr_table.py'), 'w') as out:
         # First log the git information
         out.write('# Generated from:\n')
@@ -1146,105 +1215,186 @@ __all__ = ['instructions']
         out.write('instructions = (\n')
         try:
             for name, (instr_name, cats) in instr_to_cat_map.items():
-                instr = instrs[cats[0]][name]
-                all_fields = [(get_field_name(op), op) for op in instr.fields if op.type in EXPORT_FIELDS]
+                for instr in instrs[cats[0]][name]:
+                    all_fields = [(get_field_name(op), op) for op in instr.fields if op.type in EXPORT_FIELDS]
 
-                imm_fields = [(fn, op) for fn, op in all_fields if \
-                        op.type == OpcodeType.IMM and ('imm' in fn or 'shamt' in fn)]
+                    imm_fields = [(fn, op) for fn, op in all_fields if \
+                            op.type == OpcodeType.IMM and ('imm' in fn or 'shamt' in fn)]
 
-                non_imm_fields = [(fn, op) for fn, op in all_fields if not
-                        (op.type == OpcodeType.IMM and ('imm' in fn or 'shamt' in fn))]
+                    non_imm_fields = [(fn, op) for fn, op in all_fields if not
+                            (op.type == OpcodeType.IMM and ('imm' in fn or 'shamt' in fn))]
 
-                if name in LOAD_INSTRS or name in STORE_INSTRS:
-                    fields = [op for fn, op in non_imm_fields if 'rs1' not in fn]
-                    imm_args = create_imm_mask_and_shifts(imm_fields)
+                    if name in RS1_MEM_REF_INSTRS:
+                        fields = [op for fn, op in non_imm_fields if 'rs1' not in fn]
+                        imm_args = create_imm_mask_and_shifts(imm_fields)
 
-                    rs1_op = [op for fn, op in all_fields if 'rs1' in fn]
-                    if rs1_op:
-                        assert len(rs1_op) == 1
-                        rs1_args = (rs1_op[0].mask << rs1_op[0].shift, rs1_op[0].shift)
-                        # Bit width of this field is the width of the IMM arg
-                        last_field = make_field_str(name, imm_fields[0][1], \
+                        rs1_op = [op for fn, op in all_fields if 'rs1' in fn]
+                        if rs1_op:
+                            assert len(rs1_op) == 1
+
+                            # for the LR and SC instructions instead create a
+                            # "constant" 0 offset field argument that will consume
+                            # no bits but ensure the load/store operand has a valid
+                            # offset
+                            if not imm_fields:
+                                imm_fields = [('zero', Field('zero', type=OpcodeType.IMM, columns=0, bits=0, mask=0, shift=0))]
+                                imm_args = ((0, 0),)
+
+                            rs1_args = (rs1_op[0].mask << rs1_op[0].shift, rs1_op[0].shift)
+                            # Bit width of this field is the width of the IMM arg,
+                            last_field = make_field_str(name, imm_fields[0][1], \
+                                    bits=sum(op.bits for _, op in imm_fields), \
+                                    args=(rs1_args, imm_args), field_type=OpcodeType.MEM)
+                        else:
+                            # This should only be true for "compressed" load
+                            # instructions
+                            assert name.startswith('C.')
+                            last_field = make_field_str(name, imm_fields[0][1],
+                                    bits=sum(op.bits for _, op in imm_fields), \
+                                    args=imm_args, field_type=OpcodeType.MEM_SP)
+
+                    elif imm_fields:
+                        # Build a list of only the non-imm fields to be turned into
+                        # operands
+                        fields = [op for _, op in non_imm_fields]
+                        imm_args = create_imm_mask_and_shifts(imm_fields)
+
+                        # Extract the non-bits portion of the first field name to
+                        # identify what this one should be called.
+                        imm_field_name = imm_fields[0][1].value.split('[', 1)[0]
+
+                        last_field = make_field_str(name, imm_fields[0][1], args=imm_args, \
                                 bits=sum(op.bits for _, op in imm_fields), \
-                                args=(rs1_args, imm_args), field_type=OpcodeType.MEM)
+                                field_type=OpcodeType.IMM, field_name=imm_field_name)
+
+                    elif any(op.type == OpcodeType.RM for op in instr.fields):
+                        # If there is a rounding mode operand in this instruction move
+                        # it to the end of the operand list
+                        fields = [op for _, op in all_fields if op.type != OpcodeType.RM]
+                        rm_op = next(op for _, op in all_fields if op.type == OpcodeType.RM)
+                        last_field = make_field_str(name, rm_op, rm_op.bits)
+
                     else:
-                        # This should only be true for "compressed" load
-                        # instructions
-                        assert name.startswith('C.')
-                        last_field = make_field_str(name, imm_fields[0][1],
-                                bits=sum(op.bits for _, op in imm_fields), \
-                                args=imm_args, field_type=OpcodeType.MEM_SP)
+                        fields = [op for _, op in all_fields]
+                        last_field = None
 
-                elif imm_fields:
-                    # Build a list of only the non-imm fields to be turned into
-                    # operands
-                    fields = [op for _, op in non_imm_fields]
-                    imm_args = create_imm_mask_and_shifts(imm_fields)
+                    operand_list = []
+                    # In general regsiter operands should be displayed in reverse order
+                    # than they are encoded in the instruction so reverse the operand
+                    # fields now.
+                    for op in reversed(fields):
+                        if op.type in (OpcodeType.REG, OpcodeType.C_REG, OpcodeType.CSR_REG):
+                            operand_list.append(make_field_str(name, op, op.bits))
+                        elif op.type == OpcodeType.IMM and op.value in ('pred', 'succ'):
+                            # The 'pred' and 'succ' fields should be normal IMM, but
+                            # they are not moved to the end of the param list so
+                            # they should be processed in place here.
 
-                    # Extract the non-bits portion of the first field name to
-                    # identify what this one should be called.
-                    imm_field_name = imm_fields[0][1].value.split('[', 1)[0]
+                            # Convert the normal shift/mask values into IMM
+                            # mask/shift values
+                            imm_args = ((op.mask << op.shift, op.shift),)
+                            operand_list.append(make_field_str(name, op, op.bits, args=imm_args))
+                        else:
+                            print('%s missing %s field' % (name, str(op)))
 
-                    last_field = make_field_str(name, imm_fields[0][1], args=imm_args, \
-                            bits=sum(op.bits for _, op in imm_fields), \
-                            field_type=OpcodeType.IMM, field_name=imm_field_name)
+                    if last_field is not None:
+                        operand_list.append(last_field)
 
-                elif any(op.type == OpcodeType.RM for op in instr.fields):
-                    # If there is a rounding mode operand in this instruction move
-                    # it to the end of the operand list
-                    fields = [op for _, op in all_fields if op.type != OpcodeType.RM]
-                    rm_op = next(op for _, op in all_fields if op.type == OpcodeType.RM)
-                    last_field = make_field_str(name, rm_op, rm_op.bits)
+                    # Turn the categories from strings into RiscVInsCat values
+                    cat_list = []
+                    cat_parts_pat = re.compile(r'^RV([0-9]+)([^ ]*)$')
+                    for cat in cats:
+                        match = cat_parts_pat.search(cat)
+                        assert match
+                        cat_list.append('RiscVInsCat(%s, RISCV_CAT.%s)' % (match.group(1), match.group(2)))
 
-                else:
-                    fields = [op for _, op in all_fields]
-                    last_field = None
-
-                operand_list = []
-                # In general regsiter operands should be displayed in reverse order
-                # than they are encoded in the instruction so reverse the operand
-                # fields now.
-                for op in reversed(fields):
-                    if op.type in (OpcodeType.REG, OpcodeType.C_REG, OpcodeType.CSR_REG):
-                        operand_list.append(make_field_str(name, op, op.bits))
-                    elif op.type == OpcodeType.IMM and op.value in ('pred', 'succ'):
-                        # The 'pred' and 'succ' fields should be normal IMM, but
-                        # they are not moved to the end of the param list so
-                        # they should be processed in place here.
-
-                        # Convert the normal shift/mask values into IMM
-                        # mask/shift values
-                        imm_args = ((op.mask << op.shift, op.shift),)
-                        operand_list.append(make_field_str(name, op, op.bits, args=imm_args))
+                    # we need to have a trailing comma on the category and fields
+                    # lists so a single-element list will be correctly created as a
+                    # tuple
+                    cats_str = '(' + ', '.join(cat_list) + ',)'
+                    if operand_list:
+                        operand_str = '(' + ', '.join(operand_list) + ',)'
                     else:
-                        print('%s missing %s field' % (name, str(op)))
+                        operand_str = '()'
 
-                if last_field is not None:
-                    operand_list.append(last_field)
-
-                # Turn the categories from strings into RiscVInsCat values
-                cat_list = []
-                cat_parts_pat = re.compile(r'^RV([0-9]+)([^ ]*)$')
-                for cat in cats:
-                    match = cat_parts_pat.search(cat)
-                    assert match
-                    cat_list.append('RiscVInsCat(%s, RISCV_CAT.%s)' % (match.group(1), match.group(2)))
-
-                # we need to have a trailing comma on the category and fields
-                # lists so a single-element list will be correctly created as a
-                # tuple
-                cats_str = '(' + ', '.join(cat_list) + ',)'
-                if operand_list:
-                    operand_str = '(' + ', '.join(operand_list) + ',)'
-                else:
-                    operand_str = '()'
-                instr_str = "RiscVIns('%s', RISCV_INS.%s, RISCV_FORM.%s, %s, 0x%x, 0x%x, %s, %s)" % \
-                        (get_instr_mnem(name), instr_name, instr.form, cats_str, \
-                        instr.mask, instr.value, operand_str, \
-                        get_instr_final_flags(instr))
-                out.write("    %s,\n" % instr_str)
+                    instr_str = "RiscVIns('%s', RISCV_INS.%s, RISCV_FORM.%s, %s, 0x%x, 0x%x, %s, %s)" % \
+                            (get_instr_mnem(name), instr_name, instr.form, cats_str, \
+                            instr.mask, instr.value, operand_str, \
+                            get_instr_final_flags(instr))
+                    out.write("    %s,\n" % instr_str)
         finally:
             out.write(')\n')
+
+
+def scrape_csr_regs(git_repo):
+    regs = []
+    with open(git_repo + '/src/priv-csrs.tex', 'r') as f:
+        csr_table = []
+        for line in f:
+            m = _csr_pat.match(line)
+            if m:
+                csr_table.append(m.groups())
+
+    regname_parts_pat = re.compile(r'([a-z]+)([0-9]+)([a-z]*)')
+
+    for i in range(len(csr_table)):
+        num, perm, name, descr, vdots = csr_table[i]
+        if not vdots:
+            regs.append((num, perm, name, descr))
+        else:
+            # Get the start and end register names/numbers
+            prev_reg_num_str, prev_perm, prev_name_str, _, _ = csr_table[i - 1]
+            next_reg_num_str, next_perm, next_name_str, _, _ = csr_table[i + 1]
+
+            prev_reg_num = int(prev_reg_num_str, 16)
+            m = regname_parts_pat.match(prev_name_str)
+            assert m
+            prev_name_prefix, prev_name_num_str, prev_name_postfix = m.groups()
+            prev_name_num = int(prev_name_num_str, 10)
+
+            next_reg_num = int(next_reg_num_str, 16)
+            m = regname_parts_pat.match(next_name_str)
+            assert m
+            next_name_prefix, next_name_num_str, next_name_postfix = m.groups()
+            next_name_num = int(next_name_num_str, 10)
+
+            # Sanity check, the previous and next pre/post name strings should
+            # match
+            assert prev_perm == next_perm
+            assert prev_name_prefix == next_name_prefix
+            assert prev_name_postfix == next_name_postfix
+
+            # Add the CSRs
+            reg_num_range = range(prev_reg_num + 1, next_reg_num)
+            name_num_range = range(prev_name_num + 1, next_name_num)
+            for reg_num, name_num in zip(reg_num_range, name_num_range):
+                name = '%s%d%s' % (prev_name_prefix, name_num, prev_name_postfix)
+                regs.append((hex(reg_num), prev_perm, name, ''))
+    return regs
+
+
+def export_csr_regs(regs, git_info):
+    cur_dir = os.path.dirname(__file__)
+    with open(os.path.join(cur_dir, 'regs_gen.py'), 'w') as out:
+        # First log the git information
+        out.write('# Generated from:\n')
+        for info in git_info:
+            out.write('#   %s\n' % info)
+
+        out.write('''
+from collections import namedtuple
+
+
+# Standard types used in the generated instruction list
+RiscVCSRReg = namedtuple('RiscVCSRReg', ['num', 'perm', 'name', 'description'])
+
+
+csr_regs = {
+''')
+        # Dump the types used to encode the instructions
+        for num, perm, name, descr in regs:
+            out.write("    %s: RiscVCSRReg(%s, '%s', '%s', '%s'),\n" % (num, num, perm, name, descr))
+        out.write('}\n')
 
 
 def main(git_repo):
@@ -1263,6 +1413,9 @@ def main(git_repo):
 
     forms, instrs = scrape_instrs(git_repo)
     export_instrs(forms, instrs, (git_url, git_tag, git_hash))
+
+    csr_regs = scrape_csr_regs(git_repo)
+    export_csr_regs(csr_regs, (git_url, git_tag, git_hash))
 
 
 if __name__ == '__main__':
