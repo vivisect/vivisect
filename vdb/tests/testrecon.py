@@ -30,8 +30,7 @@ class VdbReconTests(v_t_utils.VivTest):
         plat = trace.getMeta('Platform')
         sym = sym_name.get(plat)
 		
-        trace.execute(helpers.getTestPath('windows', 'i386',
-                                                     'helloworld.exe'))
+        trace.execute(helpers.getTestPath('linux', 'i386', 'chgrp.llvm'))
         trace.setMode('RunForever', True)
         v_rec.addReconBreak(trace, sym, 'PPXPP')   
         trace.run()
