@@ -20,10 +20,10 @@ class VdbReconTests(v_t_utils.VivTest):
 
     @classmethod
     def setUpClass(cls):
-        cls.hello_i386_vw = helpers.getTestWorkspace('windows', 'i386',
-                                                     'helloworld.exe')
-        cls.hello_amd64_vw = helpers.getTestWorkspace('windows', 'amd64',
-                                                      'helloworld.exe')
+        cls.hello_i386_vw = helpers.getTestWorkspace('linux', 'i386',
+                                                     'chgrp.llvm')
+        cls.hello_amd64_vw = helpers.getTestWorkspace('linux', 'amd64',
+                                                      'ls')
 
     def test_vdb_recon_i386(self):    
         trace = vtrace.getTrace()
