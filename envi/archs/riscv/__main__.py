@@ -2,11 +2,17 @@ import sys
 import struct
 import argparse
 
-import vivisect
 import envi
+import vivisect
 
 import logging
-logger = logging.getLogger()
+
+
+# Force the asnycio and parso modules to not use the standard logging level
+logging.getLogger('parso').setLevel(logging.WARNING)
+logging.getLogger('asyncio').setLevel(logging.WARNING)
+
+logger = logging.getLogger(__name__)
 
 
 def parseBytes(value, size=4):
@@ -21,7 +27,6 @@ def parseBytes(value, size=4):
 
 
 def start(_archname=None, _verbose=0):
-    global vw, emu
     vw = vivisect.VivWorkspace()
 
     if vw is None:
@@ -57,7 +62,7 @@ def main():
 
     args = parser.parse_args()
 
-    start(args.arch, args.verbose)
+    start(args.arch, int(args.verbose))
 
 
 main()

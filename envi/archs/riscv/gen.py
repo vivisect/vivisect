@@ -114,6 +114,8 @@ class OpcodeType(enum.Enum):
     MEM_SP = enum.auto()
     C_OPCODE = enum.auto()
     C_REG = enum.auto()
+    F_REG = enum.auto()
+    FC_REG = enum.auto()
     CSR_REG = enum.auto()
 
 
@@ -166,7 +168,163 @@ def get_instr_mask(fields):
     return (int(mask, 2), int(value, 2))
 
 
-def get_field_type(field):
+FLOAT_REG_INSTRS = {
+    # Floating point load instructions
+    'FLH':      {'rd': OpcodeType.F_REG},
+
+    'FLW':      {'rd': OpcodeType.F_REG},
+    'C.FLW':    {'\rdprime': OpcodeType.FC_REG},
+    'C.FLWSP':  {'rd': OpcodeType.F_REG},
+
+    'FLD':      {'rd': OpcodeType.F_REG},
+    'C.FLD':    {'\rdprime': OpcodeType.FC_REG},
+    'C.FLDSP':  {'rd': OpcodeType.F_REG},
+
+    'FLQ':      {'rd': OpcodeType.F_REG},
+
+    # Floating point store instructions
+    'FSH':      {'rs2': OpcodeType.F_REG},
+
+    'FSW':      {'rs2': OpcodeType.F_REG},
+    'C.FSW':    {'\rstwoprime': OpcodeType.FC_REG},
+    'C.FSWSP':  {'rs2': OpcodeType.F_REG},
+
+    'FSD':      {'rs2': OpcodeType.F_REG},
+    'C.FSD':    {'\rstwoprime': OpcodeType.FC_REG},
+    'C.FSDSP':  {'rs2': OpcodeType.F_REG},
+
+    'FSQ':      {'rs2': OpcodeType.F_REG},
+
+    # Arithmetic
+    'FADD.S':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FMADD.S':  {'rs3': OpcodeType.F_REG, 'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FNMADD.S': {'rs3': OpcodeType.F_REG, 'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSUB.S':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FMSUB.S':  {'rs3': OpcodeType.F_REG, 'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FNMSUB.S': {'rs3': OpcodeType.F_REG, 'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FMUL.S':   {'rs3': OpcodeType.F_REG, 'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FDIV.S':   {'rs3': OpcodeType.F_REG, 'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSQRT.S':  {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FMIN.S':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FMAX.S':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+
+    # Conversion
+    # RV32F
+    'FCVT.W.S': {'rs1': OpcodeType.F_REG},
+    'FCVT.WU.S':{'rs1': OpcodeType.F_REG},
+    'FCVT.S.W': {'rd': OpcodeType.F_REG},
+    'FCVT.S.WU':{'rd': OpcodeType.F_REG},
+
+    # RV32D
+    'FCVT.S.D': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.D.S': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.W.D': {'rs1': OpcodeType.F_REG},
+    'FCVT.WU.D':{'rs1': OpcodeType.F_REG},
+    'FCVT.D.W': {'rd': OpcodeType.F_REG},
+    'FCVT.D.WU':{'rd': OpcodeType.F_REG},
+
+    # RV32Q
+    'FCVT.S.Q': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.Q.S': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.D.Q': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.Q.D': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.W.Q': {'rs1': OpcodeType.F_REG},
+    'FCVT.WU.Q':{'rs1': OpcodeType.F_REG},
+    'FCVT.Q.W': {'rd': OpcodeType.F_REG},
+    'FCVT.Q.WU':{'rd': OpcodeType.F_REG},
+
+    # RV32Zfh
+    'FCVT.S.H': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.H.S': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.D.H': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.H.D': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.Q.H': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.H.Q': {'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FCVT.W.H': {'rs1': OpcodeType.F_REG},
+    'FCVT.WU.H':{'rs1': OpcodeType.F_REG},
+    'FCVT.H.W': {'rd': OpcodeType.F_REG},
+    'FCVT.H.WU':{'rd': OpcodeType.F_REG},
+
+    # RV64F
+    'FCVT.L.S': {'rs1': OpcodeType.F_REG},
+    'FCVT.LU.S':{'rs1': OpcodeType.F_REG},
+    'FCVT.S.L': {'rd': OpcodeType.F_REG},
+    'FCVT.S.LU':{'rd': OpcodeType.F_REG},
+
+    # RV64D
+    'FCVT.L.D': {'rs1': OpcodeType.F_REG},
+    'FCVT.LU.D':{'rs1': OpcodeType.F_REG},
+    'FCVT.D.L': {'rd': OpcodeType.F_REG},
+    'FCVT.D.LU':{'rd': OpcodeType.F_REG},
+
+    # RV64Q
+    'FCVT.L.Q': {'rs1': OpcodeType.F_REG},
+    'FCVT.LU.Q':{'rs1': OpcodeType.F_REG},
+    'FCVT.Q.L': {'rd': OpcodeType.F_REG},
+    'FCVT.Q.LU':{'rd': OpcodeType.F_REG},
+
+    # RV64Zfh
+    'FCVT.L.H': {'rs1': OpcodeType.F_REG},
+    'FCVT.LU.H':{'rs1': OpcodeType.F_REG},
+    'FCVT.H.L': {'rd': OpcodeType.F_REG},
+    'FCVT.H.LU':{'rd': OpcodeType.F_REG},
+
+    'FSGNJ.H':  {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSGNJN.H': {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSGNJX.H': {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+
+    'FSGNJ.S':  {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSGNJN.S': {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSGNJX.S': {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+
+    'FSGNJ.D':  {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSGNJN.D': {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSGNJX.D': {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+
+    'FSGNJ.Q':  {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSGNJN.Q': {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+    'FSGNJX.Q': {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG, 'rd': OpcodeType.F_REG},
+
+    # Move
+    'FMV.X.H':  {'rs1': OpcodeType.F_REG},
+    'FMV.H.X':  {'rd': OpcodeType.F_REG},
+
+    'FMV.X.W':  {'rs1': OpcodeType.F_REG},
+    'FMV.W.X':  {'rd': OpcodeType.F_REG},
+
+    'FMV.X.D':  {'rs1': OpcodeType.F_REG},
+    'FMV.D.X':  {'rd': OpcodeType.F_REG},
+
+    # Comparison
+    'FEQ.H':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+    'FLT.H':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+    'FLE.H':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+
+    'FEQ.S':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+    'FLT.S':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+    'FLE.S':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+
+    'FEQ.D':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+    'FLT.D':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+    'FLE.D':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+
+    'FEQ.Q':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+    'FLT.Q':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+    'FLE.Q':   {'rs2': OpcodeType.F_REG, 'rs1': OpcodeType.F_REG},
+
+    # Classification
+    'FCLASS.H': {'rs1': OpcodeType.F_REG},
+
+    'FCLASS.S': {'rs1': OpcodeType.F_REG},
+
+    'FCLASS.D': {'rs1': OpcodeType.F_REG},
+
+    'FCLASS.Q': {'rs1': OpcodeType.F_REG},
+
+}
+
+
+def get_field_type(instr_name, field):
     if _immvaluepat.match(field):
         # The CSR instructions place the CSR register field in the I-Type IMM
         # field
@@ -175,6 +333,13 @@ def get_field_type(field):
         else:
             return OpcodeType.IMM
     elif _regvaluepat.match(field):
+        # Some instructions should use floating point registers instead
+        operand_types = FLOAT_REG_INSTRS.get(instr_name)
+        if operand_types is not None:
+            field_type = operand_types.get(field)
+            if field_type is not None:
+                return field_type
+
         if 'prime' in field:
             return OpcodeType.C_REG
         else:
@@ -188,13 +353,11 @@ def get_field_type(field):
             return OpcodeType.RM
         else:
             return OpcodeType.CONST
-    #elif _decvaluepat.match(field):
-    #    return OpcodeType.CONST
     else:
         raise Exception('Unknown field type: %s' % str(field))
 
 
-def get_field_info(instr_fields, columns):
+def get_field_info(instr_name, instr_fields, columns):
     # Determine the field bit widths and field types
     col = 0
     fields = []
@@ -226,7 +389,7 @@ def get_field_info(instr_fields, columns):
         field_shift = end + 1
 
         # Determine the type of this field by pattern
-        field_type = get_field_type(value)
+        field_type = get_field_type(instr_name, value)
 
         # Generate the mask and shift that could be used to extract this field
         # from an instruction
@@ -397,12 +560,12 @@ def add_instr(instrs, name, cat_list, form, fields, notes, priv=False, flags=Non
     # If there is a note that is just 'HINT' that indicates this is a weird
     # instruction like C.SLLI64 that is only a hint but not defined as a real
     # instruction?  If so, just skip it.
-    if 'HINT' in notes:
-        print('Skipping HINT-ONLY instruction %s' % name)
-        return
+    #if 'HINT' in notes:
+    #    print('Skipping HINT-ONLY instruction %s' % name)
+    #    return
 
     if flags is None:
-        flags = []
+        flags = set()
 
     # Special cases:
     # 1. For FENCE instructions the FM field should generate normal
@@ -440,19 +603,19 @@ def add_instr(instrs, name, cat_list, form, fields, notes, priv=False, flags=Non
             # If this is an LR.? or SC.? instruction don't modify the
             # instruction name
             add_instr(instrs, name, cat_list, form, aq_fields, notes, priv,
-                      flags=flags+['RISCV_IF.AQ'])
+                      flags=flags | set(['RISCV_IF.AQ']))
             add_instr(instrs, name, cat_list, form, rl_fields, notes, priv,
-                      flags=flags+['RISCV_IF.RL'])
+                      flags=flags | set(['RISCV_IF.RL']))
             add_instr(instrs, name, cat_list, form, both_fields, notes, priv,
-                      flags=flags+['RISCV_IF.AQ', 'RISCV_IF.RL'])
+                      flags=flags | set(['RISCV_IF.AQ', 'RISCV_IF.RL']))
 
         else:
             add_instr(instrs, name+'.AQ', cat_list, form, aq_fields, notes, priv,
-                      flags=flags+['RISCV_IF.AQ'])
+                      flags=flags | set(['RISCV_IF.AQ']))
             add_instr(instrs, name+'.RL', cat_list, form, rl_fields, notes, priv,
-                      flags=flags+['RISCV_IF.RL'])
+                      flags=flags | set(['RISCV_IF.RL']))
             add_instr(instrs, name+'.AQ.RL', cat_list, form, both_fields, notes, priv,
-                      flags=flags+['RISCV_IF.AQ', 'RISCV_IF.RL'])
+                      flags=flags | set(['RISCV_IF.AQ', 'RISCV_IF.RL']))
 
         # Now create the non-acquire or release instruction
         fields = [f if f.value not in ('aq', 'rl') else aq_zero_field if f.value == 'aq' else rl_zero_field for f in fields]
@@ -462,7 +625,7 @@ def add_instr(instrs, name, cat_list, form, fields, notes, priv=False, flags=Non
     op_mask, op_value = get_instr_mask(fields)
 
     # And generate the flags for this instruction
-    op_flags = get_instr_flags(name, fields, priv) + flags
+    op_flags = get_instr_flags(name, fields, priv) | flags
 
     if not cat_list:
         raise Exception('ERROR: no categories defined for: %s, %s, %s, %s, priv=%s' % (name, form, fields, notes, priv))
@@ -574,7 +737,7 @@ def scrape_instr_table(text, default_cat=None, forms=None, priv=False):
             instr_name = instr_fields[-1]
             if instr_name.endswith('-type'):
                 form_name = instr_fields[-1].upper().replace('-', '_')
-                fields = get_field_info(instr_fields[:-1], columns)
+                fields = get_field_info(instr_name, instr_fields[:-1], columns)
                 print('Adding form %s (%s)' % (form_name, fields))
                 forms[form_name] = Form(form_name, fields)
             else:
@@ -625,7 +788,7 @@ def scrape_instr_table(text, default_cat=None, forms=None, priv=False):
                 form_name, _ = find_form(descr, forms)
 
                 # Now find the bit width of the fields
-                op_fields = get_field_info(descr, columns)
+                op_fields = get_field_info(instr_name, descr, columns)
                 add_instr(instructions, instr_name, cat_list, form_name, op_fields, tuple(notes), priv=priv)
         else:
             # If there are any category names found, add them to the instruction
@@ -662,7 +825,7 @@ def scrape_rvc_forms(text):
         if bit_total != 16:
             raise Exception('missing bits! %d != 16' % bit_total)
 
-        fields = get_field_info(form_fields, rvc_columns)
+        fields = get_field_info(None, form_fields, rvc_columns)
         print('Adding form %s: %s' % (form_name, fields))
         forms[form_name] = Form(form_name, fields)
 
@@ -795,29 +958,279 @@ def fix_mnem(mnem):
         return mnem.lower()
 
 
-def get_field_flags(name, field):
-    flags = []
-    if field.type in (OpcodeType.REG, OpcodeType.C_REG):
-        if name.startswith('rs'):
-            flags.append('RISCV_OF.SRC')
-        elif name.startswith('rd'):
-            flags.append('RISCV_OF.DEST')
-        else:
-            raise Exception('unexpected register name %f' % field)
+# Some instructions that aren't load/store instructions have size and sign
+# information that should be in the flags
+FIELD_SIZE_FLAGS = {
+    # Conversion
+    # RV32F
+    'FCVT.W.S': {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'FCVT.WU.S':{'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'FCVT.S.W': {'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'FCVT.S.WU':{'rs1': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+
+    # RV32D
+    'FCVT.W.D': {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'FCVT.WU.D':{'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'FCVT.D.W': {'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'FCVT.D.WU':{'rs1': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+
+    # RV32Q
+    'FCVT.W.Q': {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'FCVT.WU.Q':{'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'FCVT.Q.W': {'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'FCVT.Q.WU':{'rs1': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+
+    # RV32Zfh
+    'FCVT.W.H': {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'FCVT.WU.H':{'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'FCVT.H.W': {'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'FCVT.H.WU':{'rs1': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+
+    # RV64F
+    'FCVT.L.S': {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'FCVT.LU.S':{'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'FCVT.S.L': {'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'FCVT.S.LU':{'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+
+    # RV64D
+    'FCVT.L.D': {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'FCVT.LU.D':{'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'FCVT.D.L': {'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'FCVT.D.LU':{'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+
+    # RV64Q
+    'FCVT.L.Q': {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'FCVT.LU.Q':{'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'FCVT.Q.L': {'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'FCVT.Q.LU':{'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+
+    # RV64Zfh
+    'FCVT.L.H': {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'FCVT.LU.H':{'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'FCVT.H.L': {'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'FCVT.H.LU':{'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+
+    # load/store
+    'LB':       {'rd': ['RISCV_OF.BYTE', 'RISCV_OF.SIGNED']},
+    'LBU':      {'rd': ['RISCV_OF.BYTE', 'RISCV_OF.UNSIGNED']},
+    'HLV.B':    {'rd': ['RISCV_OF.BYTE', 'RISCV_OF.SIGNED']},
+    'HLV.BU':   {'rd': ['RISCV_OF.BYTE', 'RISCV_OF.UNSIGNED']},
+    'LH':       {'rd': ['RISCV_OF.HALFWORD', 'RISCV_OF.SIGNED']},
+    'LHU':      {'rd': ['RISCV_OF.HALFWORD', 'RISCV_OF.UNSIGNED']},
+    'HLV.H':    {'rd': ['RISCV_OF.HALFWORD', 'RISCV_OF.SIGNED']},
+    'HLV.HU':   {'rd': ['RISCV_OF.HALFWORD', 'RISCV_OF.UNSIGNED']},
+    'HLVX.HU':   {'rd': ['RISCV_OF.HALFWORD', 'RISCV_OF.UNSIGNED']},
+    'LW':       {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'LWU':      {'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'HLV.W':    {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'HLV.WU':   {'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'HLVX.WU':   {'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'LD':       {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'LDU':      {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'HLV.D':    {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'HLV.DU':   {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'LQ':       {'rd': ['RISCV_OF.QUADWORD', 'RISCV_OF.SIGNED']},
+    'HLV.Q':    {'rd': ['RISCV_OF.QUADWORD', 'RISCV_OF.SIGNED']},
+    'C.LW':     {'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'C.LWSP':   {'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'C.LD':     {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'C.LDSP':   {'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'C.LQ':     {'rd': ['RISCV_OF.QUADWORD', 'RISCV_OF.UNSIGNED']},
+    'C.LQSP':   {'rd': ['RISCV_OF.QUADWORD', 'RISCV_OF.UNSIGNED']},
+
+    'SB':       {'rs2': ['RISCV_OF.BYTE', 'RISCV_OF.UNSIGNED']},
+    'HSV.B':    {'rs2': ['RISCV_OF.BYTE', 'RISCV_OF.UNSIGNED']},
+    'SH':       {'rs2': ['RISCV_OF.HALFWORD', 'RISCV_OF.UNSIGNED']},
+    'HSV.H':    {'rs2': ['RISCV_OF.HALFWORD', 'RISCV_OF.UNSIGNED']},
+    'SW':       {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'HSV.W':    {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'SD':       {'rs2': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'HSV.D':    {'rs2': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'SQ':       {'rs2': ['RISCV_OF.QUADWORD', 'RISCV_OF.UNSIGNED']},
+    'HSV.Q':    {'rs2': ['RISCV_OF.QUADWORD', 'RISCV_OF.UNSIGNED']},
+    'C.SW':     {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'C.SWSP':   {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'C.SD':     {'rs2': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'C.SDSP':   {'rs2': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.UNSIGNED']},
+    'C.SQ':     {'rs2': ['RISCV_OF.QUADWORD', 'RISCV_OF.UNSIGNED']},
+    'C.SQSP':   {'rs2': ['RISCV_OF.QUADWORD', 'RISCV_OF.UNSIGNED']},
+
+    # Other
+    'ADDW':     {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'ADDIW':    {'imm': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+
+    'SLT':      {'rs2': ['RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.UNSIGNED']},
+    'SLTU':     {'rs2': ['RISCV_OF.UNSIGNED'],
+                 'rs1': ['RISCV_OF.UNSIGNED'],
+                 'rd': ['RISCV_OF.UNSIGNED']},
+    'SLTI':     {'imm': ['RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.UNSIGNED']},
+    'SLTIU':    {'imm': ['RISCV_OF.UNSIGNED'],
+                 'rs1': ['RISCV_OF.UNSIGNED'],
+                 'rd': ['RISCV_OF.UNSIGNED']},
+
+    'SUBW':     {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+
+    'SRA':      {'rs1': ['RISCV_OF.SIGNED'], 'rd': ['RISCV_OF.SIGNED']},
+    'SRAI':     {'rs1': ['RISCV_OF.SIGNED'], 'rd': ['RISCV_OF.SIGNED']},
+
+    'SLLW':     {'rs1': ['RISCV_OF.WORD'], 'rd': ['RISCV_OF.WORD']},
+    'SLLWI':    {'rs1': ['RISCV_OF.WORD'], 'rd': ['RISCV_OF.WORD']},
+    'SRLW':     {'rs1': ['RISCV_OF.WORD'], 'rd': ['RISCV_OF.WORD']},
+    'SRLWI':    {'rs1': ['RISCV_OF.WORD'], 'rd': ['RISCV_OF.WORD']},
+    'SRAW':     {'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'SRAWI':    {'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+
+    'MUL':      {'rs2': ['RISCV_OF.UNSIGNED'],
+                 'rs1': ['RISCV_OF.UNSIGNED'],
+                 'rd': ['RISCV_OF.UNSIGNED']},
+    'MULH':     {'rs2': ['RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.SIGNED']},
+    'MULHU':    {'rs2': ['RISCV_OF.UNSIGNED'],
+                 'rs1': ['RISCV_OF.UNSIGNED'],
+                 'rd': ['RISCV_OF.UNSIGNED']},
+    'MULHSU':   {'rs2': ['RISCV_OF.UNSIGNED'],
+                 'rs1': ['RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.SIGNED']},
+    'MULW':     {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'DIV':      {'rs2': ['RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.SIGNED']},
+    'DIVU':     {'rs2': ['RISCV_OF.UNSIGNED'],
+                 'rs1': ['RISCV_OF.UNSIGNED'],
+                 'rd': ['RISCV_OF.UNSIGNED']},
+    'REM':      {'rs2': ['RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.SIGNED']},
+    'REMU':     {'rs2': ['RISCV_OF.UNSIGNED'],
+                 'rs1': ['RISCV_OF.UNSIGNED'],
+                 'rd': ['RISCV_OF.UNSIGNED']},
+    'DIVW':     {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'DIVUW':    {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED'],
+                 'rs1': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+    'REMW':     {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'REMUW':    {'rs2': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED'],
+                 'rs1': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
+
+    'BGE':      {'rs1': ['RISCV_OF.SIGNED'], 'rs2': ['RISCV_OF.SIGNED']},
+    'BGEU':     {'rs1': ['RISCV_OF.UNSIGNED'], 'rs2': ['RISCV_OF.UNSIGNED']},
+    'BLT':      {'rs1': ['RISCV_OF.SIGNED'], 'rs2': ['RISCV_OF.SIGNED']},
+    'BLTU':     {'rs1': ['RISCV_OF.UNSIGNED'], 'rs2': ['RISCV_OF.UNSIGNED']},
+
+    'C.ADDW':   {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'C.ADDIW':  {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'C.SUBW':   {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'C.SRAI':   {'rs1`/rd`': ['RISCV_OF.SIGNED']},
+
+    # Atomic operations
+    'LR.W':     {'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'LR.D':     {'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'SC.W':     {'rs1': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'SC.D':     {'rs1': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'AMOSWAP.W': {'rs1': ['RISCV_OF.WORD'],
+                  'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'AMOSWAP.D': {'rs1': ['RISCV_OF.DOUBLEWORD'],
+                  'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'AMOADD.W': {'rs1': ['RISCV_OF.WORD'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'AMOADD.D': {'rs1': ['RISCV_OF.DOUBLEWORD'],
+                 'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'AMOAND.W': {'rs1': ['RISCV_OF.WORD'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'AMOAND.D': {'rs1': ['RISCV_OF.DOUBLEWORD'],
+                 'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'AMOOR.W':  {'rs1': ['RISCV_OF.WORD'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'AMOOR.D':  {'rs1': ['RISCV_OF.DOUBLEWORD'],
+                 'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'AMOXOR.W': {'rs1': ['RISCV_OF.WORD'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'AMOXOR.D': {'rs1': ['RISCV_OF.DOUBLEWORD'],
+                 'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'AMOMIN.W': {'rs1': ['RISCV_OF.WORD'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'AMOMIN.D': {'rs1': ['RISCV_OF.DOUBLEWORD'],
+                 'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'AMOMINU.W': {'rs1': ['RISCV_OF.WORD'],
+                  'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'AMOMINU.D': {'rs1': ['RISCV_OF.DOUBLEWORD'],
+                  'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'AMOMAX.W': {'rs1': ['RISCV_OF.WORD'],
+                 'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'AMOMAX.D': {'rs1': ['RISCV_OF.DOUBLEWORD'],
+                 'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+    'AMOMAXU.W': {'rs1': ['RISCV_OF.WORD'],
+                  'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
+    'AMOMAXU.D': {'rs1': ['RISCV_OF.DOUBLEWORD'],
+                  'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+}
+
+
+def get_field_flags(instr_name, notes, name, field):
+    flags = set()
+    if field.type in (OpcodeType.REG, OpcodeType.C_REG, OpcodeType.F_REG, OpcodeType.FC_REG):
+        if 'rs' in name:
+            flags.add('RISCV_OF.SRC')
+        if 'rd' in name:
+            flags.add('RISCV_OF.DEST')
+
+        if field.type in (OpcodeType.C_REG, OpcodeType.FC_REG):
+            flags.add('RISCV_OF.CREG')
     elif field.type == OpcodeType.CSR_REG:
         # CSR registers/fields are always both source and destinations
-        flags.append('RISCV_OF.SRC')
-        flags.append('RISCV_OF.DEST')
+        flags.add('RISCV_OF.SRC')
+        flags.add('RISCV_OF.DEST')
     elif name.startswith('imm'):
-        flags.append('RISCV_OF.SIGNED')
+        flags.add('RISCV_OF.SIGNED')
     elif name.startswith('uimm'):
-        flags.append('RISCV_OF.UNSIGNED')
+        flags.add('RISCV_OF.UNSIGNED')
     elif name.startswith('nzimm'):
-        flags.append('RISCV_OF.SIGNED')
-        flags.append('RISCV_OF.NON_ZERO')
+        flags.add('RISCV_OF.SIGNED')
+        flags.add('RISCV_OF.NOT_ZERO')
     elif name.startswith('nzuimm'):
-        flags.append('RISCV_OF.UNSIGNED')
-        flags.append('RISCV_OF.NON_ZERO')
+        flags.add('RISCV_OF.UNSIGNED')
+        flags.add('RISCV_OF.NOT_ZERO')
+
+    # First check if there is a hint form of this instruction
+    if 'rd' in name and 'HINT, rd=0' in notes:
+        flags.add('RISCV_OF.HINT_ZERO')
+
+    # Then look for specific field names that indicate restrictions on valid
+    # values
+    if '!=0' in name and 'RISCV_OF.HINT_ZERO' not in flags:
+        flags.add('RISCV_OF.NOT_ZERO')
+    elif '!={0,2}' in name:
+        if 'RISCV_OF.HINT_ZERO' in flags:
+            flags.add('RISCV_OF.NOT_TWO')
+        else:
+            flags.add('RISCV_OF.NOT_ZERO')
+            flags.add('RISCV_OF.NOT_TWO')
+
+    # Check for extra flags
+    extra_flags = FIELD_SIZE_FLAGS.get(instr_name)
+    if extra_flags is not None:
+        flags.update(extra_flags.get(name, []))
+
     return flags
 
 
@@ -860,6 +1273,8 @@ def create_imm_mask_and_shifts(names_and_fields_list):
 
 LOAD_INSTRS = (
     'LB', 'LH', 'LW', 'LD', 'LQ', 'LBU', 'LHU', 'LWU', 'LDU',
+    'HLV.B', 'HLV.H', 'HLV.W', 'HLV.D', 'HLV.Q', 'HLV.BU', 'HLV.HU', 'HLV.WU', 'HLV.DU',
+    'HLVX.HU', 'HLVX.WU',
     'C.LW', 'C.LD', 'C.LQ', 'C.LWSP', 'C.LDSP', 'C.LQSP',
     'FLH', 'FLW', 'FLD', 'FLQ',
     'C.FLW', 'C.FLD', 'C.FLWSP', 'C.FLDSP',
@@ -867,28 +1282,76 @@ LOAD_INSTRS = (
 
 STORE_INSTRS = (
     'SB', 'SH', 'SW', 'SD', 'SQ',
+    'HSV.B', 'HSV.H', 'HSV.W', 'HSV.D', 'HSV.Q',
     'C.SW', 'C.SD', 'C.SQ', 'C.SWSP', 'C.SDSP', 'C.SQSP',
     'FSH', 'FSW', 'FSD', 'FSQ',
     'C.FSW', 'C.FSD', 'C.FSWSP', 'C.FSDSP',
 )
 
 OP_MEM_SIZES = (
-    ('RISCV_OF.BYTE',       ('LB', 'LBU', 'SB')),
-    ('RISCV_OF.HALFWORD',   ('LH', 'LHU', 'FLH', 'SH', 'FSH')),
+    ('RISCV_OF.BYTE',       ('LB', 'LBU', 'SB', 'HLV.B', 'HLV.BU', 'HSV.B')),
+
+    ('RISCV_OF.HALFWORD',   ('LH', 'LHU', 'FLH', 'SH', 'FSH',
+                             'HLV.H', 'HLV.HU', 'HLVX.HU', 'FLH', 'HSV.H', 'FSH')),
+
     ('RISCV_OF.WORD',       ('LW', 'LWU', 'C.LW', 'C.LWSP', 'FLW', 'C.FLW',
                              'C.FLWSP', 'SW', 'C.SW', 'FSW', 'C.FSW',
                              'C.FSWSP', 'C.LWSP', 'C.SWSP',
-                             'LR.W', 'SC.W')),
+                             'LR.W', 'SC.W',
+                             'AMOSWAP.W', 'AMOSWAP.W.AQ', 'AMOSWAP.W.RL', 'AMOSWAP.W.AQ.RL',
+                             'AMOADD.W',  'AMOADD.W.AQ',  'AMOADD.W.RL',  'AMOADD.W.AQ.RL',
+                             'AMOAND.W',  'AMOAND.W.AQ',  'AMOAND.W.RL',  'AMOAND.W.AQ.RL',
+                             'AMOOR.W',   'AMOOR.W.AQ',   'AMOOR.W.RL',   'AMOOR.W.AQ.RL',
+                             'AMOXOR.W',  'AMOXOR.W.AQ',  'AMOXOR.W.RL',  'AMOXOR.W.AQ.RL',
+                             'AMOMIN.W',  'AMOMIN.W.AQ',  'AMOMIN.W.RL',  'AMOMIN.W.AQ.RL',
+                             'AMOMINU.W', 'AMOMINU.W.AQ', 'AMOMINU.W.RL', 'AMOMINU.W.AQ.RL',
+                             'AMOMAX.W',  'AMOMAX.W.AQ',  'AMOMAX.W.RL',  'AMOMAX.W.AQ.RL',
+                             'AMOMAXU.W', 'AMOMAXU.W.AQ', 'AMOMAXU.W.RL', 'AMOMAXU.W.AQ.RL',
+                             'HLV.W', 'HLV.WU', 'HLVX.WU', 'HSV.W')),
+
     ('RISCV_OF.DOUBLEWORD', ('LD', 'LDU', 'C.LD', 'C.LDSP', 'FLD', 'C.FLD',
                              'C.FLDSP', 'SD', 'C.SD', 'FSD', 'C.FSD',
                              'C.FSDSP', 'C.LDSP', 'C.SDSP',
-                             'LR.D', 'SC.D')),
+                             'LR.D', 'SC.D',
+                             'AMOSWAP.D', 'AMOSWAP.D.AQ', 'AMOSWAP.D.RL', 'AMOSWAP.D.AQ.RL',
+                             'AMOADD.D',  'AMOADD.D.AQ',  'AMOADD.D.RL',  'AMOADD.D.AQ.RL',
+                             'AMOAND.D',  'AMOAND.D.AQ',  'AMOAND.D.RL',  'AMOAND.D.AQ.RL',
+                             'AMOOR.D',   'AMOOR.D.AQ',   'AMOOR.D.RL',   'AMOOR.D.AQ.RL',
+                             'AMOXOR.D',  'AMOXOR.D.AQ',  'AMOXOR.D.RL',  'AMOXOR.D.AQ.RL',
+                             'AMOMIN.D',  'AMOMIN.D.AQ',  'AMOMIN.D.RL',  'AMOMIN.D.AQ.RL',
+                             'AMOMINU.D', 'AMOMINU.D.AQ', 'AMOMINU.D.RL', 'AMOMINU.D.AQ.RL',
+                             'AMOMAX.D',  'AMOMAX.D.AQ',  'AMOMAX.D.RL',  'AMOMAX.D.AQ.RL',
+                             'AMOMAXU.D', 'AMOMAXU.D.AQ', 'AMOMAXU.D.RL', 'AMOMAXU.D.AQ.RL',
+                             'HLV.D', 'HLV.DU', 'HSV.D')),
+
     ('RISCV_OF.QUADWORD',   ('LQ', 'C.LQ', 'C.LQSP', 'FLQ', 'SQ', 'C.SQ',
-                             'C.SQSP', 'FSQ')),
+                             'C.SQSP', 'FSQ',
+                             'HLV.Q', 'HSV.Q')),
 )
 
-RS1_MEM_REF_INSTRS = tuple(list(LOAD_INSTRS) + list(STORE_INSTRS) + [
-    'LR.W', 'LR.D', 'SC.W', 'SC.D',
+MEM_REF_INSTRS = tuple(list(LOAD_INSTRS) + list(STORE_INSTRS) + [
+    'LR.W', 'SC.W',
+    'LR.D', 'SC.D',
+
+    'AMOSWAP.W', 'AMOSWAP.W.AQ', 'AMOSWAP.W.RL', 'AMOSWAP.W.AQ.RL',
+    'AMOADD.W',  'AMOADD.W.AQ',  'AMOADD.W.RL',  'AMOADD.W.AQ.RL',
+    'AMOAND.W',  'AMOAND.W.AQ',  'AMOAND.W.RL',  'AMOAND.W.AQ.RL',
+    'AMOOR.W',   'AMOOR.W.AQ',   'AMOOR.W.RL',   'AMOOR.W.AQ.RL',
+    'AMOXOR.W',  'AMOXOR.W.AQ',  'AMOXOR.W.RL',  'AMOXOR.W.AQ.RL',
+    'AMOMIN.W',  'AMOMIN.W.AQ',  'AMOMIN.W.RL',  'AMOMIN.W.AQ.RL',
+    'AMOMINU.W', 'AMOMINU.W.AQ', 'AMOMINU.W.RL', 'AMOMINU.W.AQ.RL',
+    'AMOMAX.W',  'AMOMAX.W.AQ',  'AMOMAX.W.RL',  'AMOMAX.W.AQ.RL',
+    'AMOMAXU.W', 'AMOMAXU.W.AQ', 'AMOMAXU.W.RL', 'AMOMAXU.W.AQ.RL',
+
+    'AMOSWAP.D', 'AMOSWAP.D.AQ', 'AMOSWAP.D.RL', 'AMOSWAP.D.AQ.RL',
+    'AMOADD.D',  'AMOADD.D.AQ',  'AMOADD.D.RL',  'AMOADD.D.AQ.RL',
+    'AMOAND.D',  'AMOAND.D.AQ',  'AMOAND.D.RL',  'AMOAND.D.AQ.RL',
+    'AMOOR.D',   'AMOOR.D.AQ',   'AMOOR.D.RL',   'AMOOR.D.AQ.RL',
+    'AMOXOR.D',  'AMOXOR.D.AQ',  'AMOXOR.D.RL',  'AMOXOR.D.AQ.RL',
+    'AMOMIN.D',  'AMOMIN.D.AQ',  'AMOMIN.D.RL',  'AMOMIN.D.AQ.RL',
+    'AMOMINU.D', 'AMOMINU.D.AQ', 'AMOMINU.D.RL', 'AMOMINU.D.AQ.RL',
+    'AMOMAX.D',  'AMOMAX.D.AQ',  'AMOMAX.D.RL',  'AMOMAX.D.AQ.RL',
+    'AMOMAXU.D', 'AMOMAXU.D.AQ', 'AMOMAXU.D.RL', 'AMOMAXU.D.AQ.RL',
 ])
 
 
@@ -905,18 +1368,18 @@ def get_instr_flags(name, fields, priv=False):
       envi.IF_BRANCH_COND
     """
 
-    flags = []
+    flags = set()
     if name in ('J', 'JR', 'C.JR', 'C.J'):
-        flags.append('envi.IF_CALL')
-        flags.append('envi.IF_NOFALL')
+        flags.add('envi.IF_CALL')
+        flags.add('envi.IF_NOFALL')
     elif name in ('JAL', 'JALR', 'C.JAL', 'C.JALR'):
-        flags.append('envi.IF_CALL')
+        flags.add('envi.IF_CALL')
     elif name in ('BEQ', 'BNE', 'BLT', 'BGE', 'BLTU', 'BGEU', 'C.BNEZ', 'C.BEQZ'):
-        flags.append('envi.IF_COND')
-        flags.append('envi.IF_BRANCH')
+        flags.add('envi.IF_COND')
+        flags.add('envi.IF_BRANCH')
 
     if priv:
-        flags.append('envi.IF_PRIV')
+        flags.add('envi.IF_PRIV')
 
     return flags
 
@@ -930,14 +1393,14 @@ def get_instr_final_flags(instr):
 
     if instr.name in LOAD_INSTRS or instr.name.startswith('LR.'):
         if instr.name.endswith('SP'):
-            flags.append('RISCV_IF.LOAD_SP')
+            flags.add('RISCV_IF.LOAD_SP')
         else:
-            flags.append('RISCV_IF.LOAD')
+            flags.add('RISCV_IF.LOAD')
     elif instr.name in STORE_INSTRS or instr.name.startswith('SC.'):
         if instr.name.endswith('SP'):
-            flags.append('RISCV_IF.STORE_SP')
+            flags.add('RISCV_IF.STORE_SP')
         else:
-            flags.append('RISCV_IF.STORE')
+            flags.add('RISCV_IF.STORE')
 
     if flags:
         return ' | '.join(flags)
@@ -956,10 +1419,6 @@ def get_instr_mnem(mnem):
 
 
 def get_instr_name(name):
-    """
-    Replace all load/store instructions with a single LOAD/STORE instruction.
-    Otherwise just change any '.'s to '_'s
-    """
     if name in LOAD_INSTRS:
         return 'LOAD'
     elif name in STORE_INSTRS:
@@ -970,9 +1429,123 @@ def get_instr_name(name):
     # change the instruction name to LOAD_RESERVED and
     # STORE_CONDITIONAL
     elif name.startswith('LR.'):
-        return 'LOAD_RESERVED'
+        return 'LR'
     elif name.startswith('SC.'):
-        return 'STORE_CONDITIONAL'
+        return 'SC'
+
+    # floating point
+    elif name.startswith('FADD.'):
+        return 'FADD'
+    elif name.startswith('FSUB.'):
+        return 'FSUB'
+    elif name.startswith('FMUL.'):
+        return 'FMUL'
+    elif name.startswith('FDIV.'):
+        return 'FDIV'
+    elif name.startswith('FSQRT.'):
+        return 'FSQRT'
+    elif name.startswith('FMIN.'):
+        return 'FMIN'
+    elif name.startswith('FMAX.'):
+        return 'FMAX'
+    elif name.startswith('FMADD.'):
+        return 'FMADD'
+    elif name.startswith('FNMADD.'):
+        return 'FNMADD'
+    elif name.startswith('FMSUB.'):
+        return 'FMSUB'
+    elif name.startswith('FNMSUB.'):
+        return 'FNMSUB'
+    elif name.startswith('FCVT.'):
+        return 'FCVT'
+    elif name.startswith('FSGNJ.'):
+        return 'FSGNJ'
+    elif name.startswith('FSGNJN.'):
+        return 'FSGNJN'
+    elif name.startswith('FSGNJX.'):
+        return 'FSGNJX'
+    elif name.startswith('FMV.'):
+        return 'FMV'
+    elif name.startswith('FCMP.'):
+        return 'FCMP'
+    elif name.startswith('FCLASS.'):
+        return 'FCLASS'
+    elif name.startswith('FEQ.'):
+        return 'FEQ'
+    elif name.startswith('FLE.'):
+        return 'FLE'
+    elif name.startswith('FLT.'):
+        return 'FLT'
+
+    # arithmetic/logic
+    elif name.startswith('ADD'):
+        return 'ADD'
+    elif name.startswith('SLT'):
+        return 'SLT'
+    elif name.startswith('SUB'):
+        return 'SUB'
+    elif name.startswith('AND'):
+        return 'AND'
+    elif name.startswith('OR'):
+        return 'OR'
+    elif name.startswith('XOR'):
+        return 'XOR'
+    elif name.startswith('SLL'):
+        return 'SL'
+    elif name.startswith('SRA') or name.startswith('SRL'):
+        return 'SR'
+    elif name.startswith('MULH'):
+        return 'MULH'
+    elif name.startswith('MUL'):
+        return 'MUL'
+    elif name.startswith('DIV'):
+        return 'DIV'
+    elif name.startswith('REM'):
+        return 'REM'
+    elif name.startswith('BGE'):
+        return 'BGE'
+    elif name.startswith('BLT'):
+        return 'BLT'
+    elif name.startswith('CSRRC'):
+        return 'CSRRC'
+    elif name.startswith('CSRRS'):
+        return 'CSRRS'
+    elif name.startswith('CSRRW'):
+        return 'CSRRW'
+
+    elif name == 'C.NOP':
+        return 'NOP'
+
+    # "compressed"
+    elif name in ('C.ADD', 'C.ADDI', 'C.ADDW', 'C.ADDIW'):
+        # The ADDI16SP and ADDI4SPN forms have different numbers of arguments
+        return 'C_ADD'
+    elif name.startswith('C.SUB'):
+        return 'C_SUB'
+    elif name.startswith('C.AND'):
+        return 'C_AND'
+    elif name.startswith('C.SLL'):
+        return 'C_SL'
+    elif name.startswith('C.SR'):
+        return 'C_SR'
+
+    # atomic operations
+    elif name.startswith('AMOADD'):
+        return 'AMOADD'
+    elif name.startswith('AMOSUB'):
+        return 'AMOSUB'
+    elif name.startswith('AMOAND'):
+        return 'AMOAND'
+    elif name.startswith('AMOMAX'):
+        return 'AMOMAX'
+    elif name.startswith('AMOMIN'):
+        return 'AMOMIN'
+    elif name.startswith('AMOOR'):
+        return 'AMOOR'
+    elif name.startswith('AMOSWAP'):
+        return 'AMOSWAP'
+    elif name.startswith('AMOXOR'):
+        return 'AMOXOR'
 
     else:
         # Remove any trailing '.AQ' or '.RL' parts
@@ -987,7 +1560,7 @@ def make_field_args_str(mask, shift, flags=None):
 # Mapping of RiscV*Field type used by the make_field_str() function
 FIELD_TYPE_MAP = {
     OpcodeType.REG: 'RiscVField',
-    OpcodeType.C_REG: 'RiscVField',
+    OpcodeType.F_REG: 'RiscVField',
     OpcodeType.CSR_REG: 'RiscVField',
     OpcodeType.RM: 'RiscVField',
     OpcodeType.IMM: 'RiscVImmField',
@@ -996,18 +1569,30 @@ FIELD_TYPE_MAP = {
 }
 
 
-def make_field_str(instr_name, op, bits, args=None, field_type=None, field_name=None):
+def make_field_str(instr_name, op, bits, args=None, field_type=None,
+                   field_name=None, notes=None):
+    if notes is None:
+        notes = []
+
     if field_type is None:
         field_type = op.type
-    named_type = FIELD_TYPE_MAP[field_type]
 
     if field_name is None:
         field_name = get_field_name(op)
-    flags = get_field_flags(field_name, op)
+    flags = get_field_flags(instr_name, notes, field_name, op)
+
+    # If the field type is a "compressed" register change it now
+    if field_type == OpcodeType.C_REG:
+        field_type = OpcodeType.REG
+    elif field_type == OpcodeType.FC_REG:
+        field_type = OpcodeType.F_REG
+
+    named_type = FIELD_TYPE_MAP[field_type]
+
     # Add in instruction-specific flags
     for flag, instr_list in OP_MEM_SIZES:
         if instr_name in instr_list:
-            flags.append(flag)
+            flags.add(flag)
     if flags:
         flags_str = ' | '.join(flags)
     else:
@@ -1046,8 +1631,10 @@ def make_field_str(instr_name, op, bits, args=None, field_type=None, field_name=
 
 
 # Only some "opcode" fields are exported
-EXPORT_FIELDS = (OpcodeType.REG, OpcodeType.C_REG, OpcodeType.CSR_REG,
-        OpcodeType.IMM, OpcodeType.RM)
+EXPORT_FIELDS = (
+    OpcodeType.REG, OpcodeType.C_REG, OpcodeType.F_REG, OpcodeType.CSR_REG,
+    OpcodeType.IMM, OpcodeType.RM,
+)
 
 
 def export_instrs(forms, instrs, git_info):
@@ -1092,28 +1679,22 @@ def export_instrs(forms, instrs, git_info):
 
         # Now save the scraped FORM, CAT, and OP (instruction) values
         out.write('class RISCV_FORM(enum.IntEnum):\n')
-        for form in form_list:
-            out.write('    %s = enum.auto()\n' % form.upper())
+        for i, form in enumerate(form_list):
+            out.write('    %s = %d\n' % (form.upper(), i))
         out.write('\n\n')
-
-        # TODO: The category name strings don't yet match between the
-        # instruction encodings and the table entries
-        #out.write('class RISCV_CAT(enum.IntEnum):\n')
-        #for cat in cat_list:
-        #    out.write('    %s = enum.auto()\n' % cat.upper())
-        #out.write('\n\n')
 
         # Write out the field types
         out.write('class RISCV_FIELD(enum.IntEnum):\n')
-        for field_type in ('REG', 'C_REG', 'F_REG', 'CSR_REG', 'MEM', 'MEM_SP', 'IMM', 'RM'):
-            out.write('    %s = enum.auto()\n' % field_type)
+        fields = ('REG', 'C_REG', 'F_REG', 'CSR_REG', 'MEM', 'MEM_SP', 'IMM', 'RM')
+        for i, field_type in enumerate(fields):
+            out.write('    %s = %d\n' % (field_type, i))
         out.write('\n\n')
 
         # Get a list of all of the instructions
         instr_consts = sorted(set(n for n, _ in instr_to_cat_map.values()))
         out.write('class RISCV_INS(enum.IntEnum):\n')
-        for instr in instr_consts:
-            out.write('    %s = enum.auto()\n' % instr.upper())
+        for i, instr in enumerate(instr_consts):
+            out.write('    %s = %d\n' % (instr.upper(), i))
         out.write('\n')
 
         # Write out the RiscV instruction and operand flags
@@ -1133,22 +1714,33 @@ class RISCV_IF(enum.IntFlag):
     AQ          = 1 << 12
     RL          = 1 << 13
 
+    # This instruction is a hint form
+    HINT        = 1 << 14
+
 
 # RiscV operand flags
 class RISCV_OF(enum.IntFlag):
+    # Restriction flags
     SRC         = 1 << 1
     DEST        = 1 << 2
-    NON_ZERO    = 1 << 3
-    SIGNED      = 1 << 4
-    UNSIGNED    = 1 << 5
+    NOT_ZERO    = 1 << 3
+    NOT_TWO     = 1 << 4
+    HINT_ZERO   = 1 << 5  # Indicates that if this operand has a value of zero,
+                          # this instruction is a HINT and not an actual
+                          # instruction to execute
+    SIGNED      = 1 << 6
+    UNSIGNED    = 1 << 7
+
+    # Register is "compressed"
+    CREG        = 1 << 8
 
     # Flags used to indicate size these definitions match those used in the
     # RiscV manual
-    BYTE        = 1 << 6   # 1 byte
-    HALFWORD    = 1 << 7   # 2 bytes
-    WORD        = 1 << 8   # 4 bytes
-    DOUBLEWORD  = 1 << 9   # 8 bytes
-    QUADWORD    = 1 << 10  # 16 bytes
+    BYTE        = 1 << 9   # 1 byte
+    HALFWORD    = 1 << 10  # 2 bytes
+    WORD        = 1 << 11  # 4 bytes
+    DOUBLEWORD  = 1 << 12  # 8 bytes
+    QUADWORD    = 1 << 13  # 16 bytes
 ''')
 
         # Now write the namedtuple types used in construction of the instruction
@@ -1224,7 +1816,7 @@ __all__ = ['instructions']
                     non_imm_fields = [(fn, op) for fn, op in all_fields if not
                             (op.type == OpcodeType.IMM and ('imm' in fn or 'shamt' in fn))]
 
-                    if name in RS1_MEM_REF_INSTRS:
+                    if name in MEM_REF_INSTRS:
                         fields = [op for fn, op in non_imm_fields if 'rs1' not in fn]
                         imm_args = create_imm_mask_and_shifts(imm_fields)
 
@@ -1244,14 +1836,16 @@ __all__ = ['instructions']
                             # Bit width of this field is the width of the IMM arg,
                             last_field = make_field_str(name, imm_fields[0][1], \
                                     bits=sum(op.bits for _, op in imm_fields), \
-                                    args=(rs1_args, imm_args), field_type=OpcodeType.MEM)
+                                    args=(rs1_args, imm_args), \
+                                    field_type=OpcodeType.MEM, notes=instr.notes)
                         else:
                             # This should only be true for "compressed" load
                             # instructions
                             assert name.startswith('C.')
                             last_field = make_field_str(name, imm_fields[0][1],
                                     bits=sum(op.bits for _, op in imm_fields), \
-                                    args=imm_args, field_type=OpcodeType.MEM_SP)
+                                    args=imm_args, field_type=OpcodeType.MEM_SP, \
+                                    notes=instr.notes)
 
                     elif imm_fields:
                         # Build a list of only the non-imm fields to be turned into
@@ -1265,14 +1859,15 @@ __all__ = ['instructions']
 
                         last_field = make_field_str(name, imm_fields[0][1], args=imm_args, \
                                 bits=sum(op.bits for _, op in imm_fields), \
-                                field_type=OpcodeType.IMM, field_name=imm_field_name)
+                                field_type=OpcodeType.IMM, field_name=imm_field_name, \
+                                notes=instr.notes)
 
                     elif any(op.type == OpcodeType.RM for op in instr.fields):
                         # If there is a rounding mode operand in this instruction move
                         # it to the end of the operand list
                         fields = [op for _, op in all_fields if op.type != OpcodeType.RM]
                         rm_op = next(op for _, op in all_fields if op.type == OpcodeType.RM)
-                        last_field = make_field_str(name, rm_op, rm_op.bits)
+                        last_field = make_field_str(name, rm_op, rm_op.bits, notes=instr.notes)
 
                     else:
                         fields = [op for _, op in all_fields]
@@ -1283,8 +1878,8 @@ __all__ = ['instructions']
                     # than they are encoded in the instruction so reverse the operand
                     # fields now.
                     for op in reversed(fields):
-                        if op.type in (OpcodeType.REG, OpcodeType.C_REG, OpcodeType.CSR_REG):
-                            operand_list.append(make_field_str(name, op, op.bits))
+                        if op.type in (OpcodeType.REG, OpcodeType.C_REG, OpcodeType.F_REG, OpcodeType.CSR_REG):
+                            operand_list.append(make_field_str(name, op, op.bits, notes=instr.notes))
                         elif op.type == OpcodeType.IMM and op.value in ('pred', 'succ'):
                             # The 'pred' and 'succ' fields should be normal IMM, but
                             # they are not moved to the end of the param list so
@@ -1293,7 +1888,8 @@ __all__ = ['instructions']
                             # Convert the normal shift/mask values into IMM
                             # mask/shift values
                             imm_args = ((op.mask << op.shift, op.shift),)
-                            operand_list.append(make_field_str(name, op, op.bits, args=imm_args))
+                            operand_list.append(make_field_str(name, op, op.bits, \
+                                    args=imm_args, notes=instr.notes))
                         else:
                             print('%s missing %s field' % (name, str(op)))
 

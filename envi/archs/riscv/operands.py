@@ -2,13 +2,14 @@ import envi
 import envi.bits as e_bits
 from envi.archs.riscv.regs import riscv_regs, REG_PC, REG_SP
 from envi.archs.riscv.regs_gen import csr_regs
-from envi.archs.riscv.const import RISCV_OF
+from envi.archs.riscv.const import RISCV_OF, FLOAT_CONSTS, SIZE_FLAGS, \
+        SIZE_CONSTS
 
 
 __all__ = [
     'RiscVOpcode',
     'RiscVRegOper',
-    'RiscVCRegOper',
+    'RiscVFRegOper',
     'RiscVCSRRegOper',
     'RiscVMemOper',
     'RiscVMemSPOper',
@@ -27,16 +28,108 @@ def _operand_shift(value, shift):
         return value << abs(shift)
 
 
-def _operand_value(value, bits, oflags):
-    if oflags & RISCV_OF.UNSIGNED:
-            return value
-    elif oflags & RISCV_OF.SIGNED:
-            if value & e_bits.bsign_bits[bits]:
-                return -((~value + 1) & e_bits.b_masks[bits])
-            else:
-                return value
+def int_to_float(value, oflags):
+    flags = oflags & SIZE_FLAGS
+    info = FLOAT_CONSTS[flags]
+
+    if value in info.inf:
+        result = float('inf')
+    elif value in info.snan or value in info.qnan:
+        result = float('nan')
     else:
-        raise envi.InvalidInstruction(mesg='Invalid instruction flags: 0x%x' % oflags)
+        exp = (value & info.emask) >> info.fbits
+        frac = value & info.fmask
+        result = (2**(exp-info.eoff)) * (1+(frac/info.fdiv))
+
+    if value & info.sign:
+        return -result
+    else:
+        return result
+
+
+def _float_to_int_slow(value, info):
+    # This will probably be horribly inefficient but is necessary for formats
+    # not supported by the struct package
+    int_part = int(value)
+
+    # Drop the leading one from the integer component
+    if int_part != 0:
+        int_bits = format(value, 2)[1:]
+        exp = len(int_bits)
+    else:
+        exp = None
+
+    dec_part = value - int_part
+    dec_bits = ''
+
+    i = 0
+    while dec_part:
+        if exp is not None and i >= info.fbits - exp:
+            break
+        dec_part *= 2
+        if dec_part >= 1:
+            dec_bits += '1'
+            dec_part -= 1.0
+            if exp is None:
+                exp = -i
+        else:
+            dec_bits += '0'
+        i += 1
+
+    if int_part == 0:
+        # Remove any leading 0's
+        bits = dec_bits[-exp:]
+
+    # Pad the integer and decimal part out to the specified fractional bit width
+    bits += '0' * (rem_bits - len(bits))
+
+    if value < 0.0:
+        return info.sign | ((info.eoff + exp) << info.fbits) | int(bits, 2)
+    else:
+        return ((info.eoff + exp) << info.fbits) | int(bits, 2)
+
+
+def float_to_int(value, oflags):
+    flags = oflags & SIZE_FLAGS
+    info = FLOAT_CONSTS[flags]
+
+    if value == 0.0:
+        return 0
+    elif value == float('inf'):
+        return inf[0]
+    elif value == -float('inf'):
+        return inf[1]
+    elif value == float('nan'):
+        # Use the quiet NaN values
+        return qnan[0]
+    elif value == -float('nan'):
+        # Use the quiet NaN values
+        return qnan[1]
+
+    # half, single, and double precision can be handled using the info returned
+    # by the python float.hex() function
+    if flags == RISCV_OF.QUADWORD:
+        return _float_to_int_slow(value, info)
+
+    # Drop the leading 0x1 and split the returned value on the 'p'
+    frac_str, exp_str = abs(value).hex()[3:].split('p')
+    frac = int(frac_str, 16)
+
+    if flags == RISCV_OF.DOUBLEWORD:
+        # The values returned by the hex() function can be used directly, just
+        # shift the exponent value
+        exp = int(exp_str, 10) << info.fbits
+    else:
+        # The bits must be truncated
+        exp_value = int(exp_str, 10) - FLOAT_CONSTS[RISCV_OF.DOUBLEWORD].eoff
+        exp = (exp_value + info.eoff) << info.fbits
+        bits = format(int(frac_str, 16), 'b')[:info.fbits]
+        frac = format(bits, 2)
+
+    if value < 0.0:
+        return info.sign | exp | frac
+    else:
+        return exp | frac
 
 
 class RiscVOpcode(envi.Opcode):
@@ -112,9 +205,30 @@ class RiscVOpcode(envi.Opcode):
 
 class RiscVRegOper(envi.RegisterOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
+        value = _operand_shift(ival & args.mask, args.shift)
+
+        # Double check if there are any restrictions on this value
+        if (oflags & RISC_OF.NOT_ZERO and value == 0) or \
+                (oflags & RISC_OF.NOT_TWO and value == 2):
+            raise envi.InvalidOperand(value)
+        elif (oflags & RISC_OF.HINT_ZERO and value == 0):
+            self.hint = True
+        else:
+            self.hint = False
+
         self.va = va
-        self.reg = _operand_shift(ival & args.mask, args.shift)
+        self.reg = value
+
+        if oflags & RISCV_OF.CREG:
+            self.reg += 8
+
         self.oflags = oflags
+        self._set_tsize()
+
+    def _set_tsize(self):
+        # Because some instructions read less than the register size bytes from
+        # the register
+        self.tsize = SIZE_CONSTS.get(self.oflags & SIZE_FLAGS)
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -131,7 +245,7 @@ class RiscVRegOper(envi.RegisterOper):
     def getWidth(self, emu):
         return emu.getRegisterWidth(self.reg) // 8
 
-    def getOperValue(self, op, emu=None):
+    def getOperRawValue(self, op, emu=None):
         if self.reg == REG_PC:
             return self.va
 
@@ -139,10 +253,28 @@ class RiscVRegOper(envi.RegisterOper):
             return None
         return emu.getRegister(self.reg)
 
-    def setOperValue(self, op, emu=None, val=None):
+    def setOperRawValue(self, op, emu=None, val=None):
         if emu is None:
             return
         emu.setRegister(self.reg, val)
+
+    def getOperValue(self, op, emu=None):
+        value = e_bits.unsigned(self.getOperRawValue(op, emu))
+        if self.oflags & RISCV_OF.SIGNED:
+            # tsize _must_ be set
+            return e_bits.signed(value, self.tsize)
+        elif self.tsize is not None:
+            return e_bits.unsigned(value, self.tsize)
+        else:
+            return value
+
+    def setOperValue(self, op, emu=None, val=None):
+        if self.oflags & RISCV_OF.SIGNED:
+            # tsize _must_ be set
+            value = e_bits.signed(value, self.tsize)
+        elif self.tsize is not None:
+            value = e_bits.unsigned(value, self.tsize)
+        emu.setOperRawValue(op, emu, value)
 
     def getOperAddr(self, op, emu=None):
         return None
@@ -157,18 +289,37 @@ class RiscVRegOper(envi.RegisterOper):
         mcanv.addNameText(rname, typename='registers')
 
 
-class RiscVCRegOper(RiscVRegOper):
-    def __init__(self, ival, bits, args, va=0, oflags=0):
-        super().__init__(ival, bits, args, oflags)
-        # To convert the compressed register values to real registers add 8
-        self.reg += 8
-
-
 class RiscVFRegOper(RiscVRegOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
         super().__init__(ival, bits, args, oflags)
         # Offset the value by the first floating point register
         self.reg += REG_F0
+
+    def isInf(self, op, emu=None):
+        flags = oflags & SIZE_FLAGS
+        return self.getOperValue(self, op, emu) in FLOAT_CONSTS[flags].inf
+
+    def isSNaN(self, op, emu=None):
+        flags = oflags & SIZE_FLAGS
+        return self.getOperValue(self, op, emu) in FLOAT_CONSTS[flags].snan
+
+    def isQNaN(self, op, emu=None):
+        flags = oflags & SIZE_FLAGS
+        return self.getOperValue(self, op, emu) in FLOAT_CONSTS[flags].qnan
+
+    def getOperValue(self, op, emu=None):
+        """
+        Utility function to get the floating point representation of the value
+        in this operand's register.
+        """
+        return int_to_float(self.getOperRawValue(self, op, emu), self.oflags)
+
+    def setOperValue(self, op, emu=None, val=None):
+        """
+        Utility function to set the value of this operand's register from a
+        floating point value.
+        """
+        self.setOperRawValue(self, op, emu, int_to_float(val, self.oflags))
 
 
 class RiscVCSRRegOper(RiscVRegOper):
@@ -205,26 +356,18 @@ class RiscVMemOper(envi.DerefOper):
         self.base_reg = _operand_shift(ival & base_reg_args.mask, base_reg_args.shift)
 
         value = sum(_operand_shift(ival & a.mask, a.shift) for a in imm_args)
-        self.offset = _operand_value(value, bits, oflags)
+        if oflags & RISCV_OF.UNSIGNED:
+            self.offset = e_bits.bsigned(value, bits)
+        else:
+            self.offset = value
 
         self.va = va
         self.oflags = oflags
+
         self._set_tsize()
 
     def _set_tsize(self):
-        # TODO: we can probably speed this up
-        if self.oflags & RISCV_OF.BYTE:
-            self.tsize = 1
-        elif self.oflags & RISCV_OF.HALFWORD:
-            self.tsize = 2
-        elif self.oflags & RISCV_OF.WORD:
-            self.tsize = 4
-        elif self.oflags & RISCV_OF.DOUBLEWORD:
-            self.tsize = 8
-        elif self.oflags & RISCV_OF.QUADWORD:
-            self.tsize = 16
-        else:
-            raise envi.InvalidInstruction(mesg='Invalid instruction flags for memory access: 0x%x' % self.oflags)
+        self.tsize = SIZE_CONSTS.get(self.oflags & SIZE_FLAGS)
 
     def __eq__(self, oper):
         return isinstance(oper, self.__class__) \
@@ -323,7 +466,10 @@ class RiscVMemSPOper(RiscVMemOper):
         self.base_reg = REG_SP
 
         value = sum(_operand_shift(ival & a.mask, a.shift) for a in args)
-        self.offset = _operand_value(value, bits, oflags)
+        if oflags & RISCV_OF.UNSIGNED:
+            self.offset = e_bits.bsigned(value, bits)
+        else:
+            self.offset = value
 
         self.va = va
         self.oflags = oflags
@@ -335,7 +481,16 @@ class RiscVImmOper(envi.ImmedOper):
         # RiscV immediate values can be split up in many weird ways, so the args
         # are a list of RiscVFieldArgs values
         value = sum(_operand_shift(ival & a.mask, a.shift) for a in args)
-        self.val = _operand_value(value, bits, oflags)
+
+        # Double check if there are any restrictions on this value
+        if (oflags & RISC_OF.NOT_ZERO and value == 0) or \
+                (oflags & RISC_OF.NOT_TWO and value == 2):
+            raise envi.InvalidOperand(value)
+
+        if oflags & RISCV_OF.UNSIGNED:
+            self.val = e_bits.bsigned(value, bits)
+        else:
+            self.val = value
         self.va = va
         self.oflags = oflags
 
@@ -348,8 +503,11 @@ class RiscVImmOper(envi.ImmedOper):
             return False
         return True
 
-    def getOperValue(self, op, emu=None):
+    def getOperRawValue(self, op, emu=None):
         return self.val
+
+    def setOperRawValue(self):
+        pass
 
     #Rework to calculate #of BYTES, not bits
     def getWidth(self, emu):
@@ -384,9 +542,6 @@ class RiscVImmOper(envi.ImmedOper):
 
     def getOperAddr(self):
         return None
-
-    def setOperValue(self):
-        pass
 
 
 class RiscVRMOper(RiscVImmOper):

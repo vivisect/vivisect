@@ -540,6 +540,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self._emu_opts = {}
         self._emu_optdocs = {}
 
+    def populateOpMethods(self):
         # Automagically setup an instruction mnemonic handler dict
         # by finding all methods starting with i_ and assume they
         # implement an instruction by mnemonic
@@ -826,7 +827,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Do the core of integer addition but only *return* the
         resulting value rather than assigning it.
 
-        Architectures shouldn't have to override this as operand order 
+        Architectures shouldn't have to override this as operand order
         doesn't matter
         """
         src = self.getOperValue(op, 0)

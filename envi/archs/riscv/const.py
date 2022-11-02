@@ -1,4 +1,5 @@
 import enum
+from collections import namedtuple
 
 from envi.archs.riscv.const_gen import *
 
@@ -7,6 +8,9 @@ __all__ = [
     # Defined in this file
     'RISCV_CAT',
     'RM_NAMES',
+    'FLOAT_CONSTS',
+    'SIZE_FLAGS',
+    'SIZE_CONSTS',
 
     # Defined in const_gen
     'RISCV_FORM',
@@ -147,4 +151,92 @@ RM_NAMES = {
     0b011: 'rup',
     0b100: 'rmm',
     0b111: 'dyn',
+}
+
+
+FloatConsts = namedtuple('FloatConsts', [
+    'sign', 'emask', 'eoff', 'ebits', 'fmask', 'fdiv', 'fbits',
+    'inf', 'snan', 'qnan'])
+
+# Table of conversion constants to go to and from floating point:
+#   - SIGN mask
+#   - EXPONENT mask
+#   - EXPONENT offset
+#   - EXPONENT bits
+#   - FRACTIONAL mask
+#   - FRACTIONAL divisor
+#   - FRACTIONAL bits
+#   - Infinity
+#   - SNaN
+#   - QNaN
+FLOAT_CONSTS = {
+    # IEEE754 half precision (5 bit exp)
+    RISCV_OF.HALFWORD: FloatConsts(
+        0x8000,
+        0x7C00,
+        -14,
+        5,
+        0x03FF,
+        2**10,
+        10,
+        (0x7C00, 0xFC00),
+        (0x7E01, 0xFE01),
+        (0x7C01, 0xFC01),
+    ),
+
+    # IEEE754 single precision (8 bit exp)
+    RISCV_OF.WORD: FloatConsts(
+        0x8000_0000,
+        0x7F80_0000,
+        127,
+        8,
+        0x007F_FFFF,
+        2**23,
+        23,
+        (0x7F80_0000, 0xFF80_0000),
+        (0x7FC0_0001, 0xFFC0_0001),
+        (0x7F80_0001, 0xFF80_0001),
+    ),
+
+    # IEEE754 double precision (11 bit exp)
+    RISCV_OF.DOUBLEWORD: FloatConsts(
+        0x8000_0000_0000_0000,
+        0x7FF0_0000_0000_0000,
+        1023,
+        11,
+        0x000F_FFFF_FFFF_FFFF,
+        2**52,
+        52,
+        (0x7FF0_0000_0000_0000, 0xFFF0_0000_0000_0000),
+        (0x7FF8_0000_0000_0001, 0xFFF8_0000_0000_0001),
+        (0x7FF0_0000_0000_0001, 0xFFF0_0000_0000_0001),
+    ),
+
+    # IEEE754 quad precision (15 bit exp)
+    RISCV_OF.QUADWORD: FloatConsts(
+        0x8000_0000_0000_0000_0000_0000_0000_0000,
+        0x7FFF_0000_0000_0000_0000_0000_0000_0000,
+        16382,
+        15,
+        0x0000_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF,
+        2**112,
+        112,
+        (0x7FFF_0000_0000_0000_0000_0000_0000_0000,
+         0xFFFF_0000_0000_0000_0000_0000_0000_0000),
+        (0x7FFF_8000_0000_0000_0000_0000_0000_0001,
+         0xFFFF_8000_0000_0000_0000_0000_0000_0001),
+        (0x7FFF_0000_0000_0000_0000_0000_0000_0001,
+         0xFFFF_0000_0000_0000_0000_0000_0000_0001),
+    ),
+}
+
+SIZE_FLAGS = RISCV_OF.BYTE | RISCV_OF.HALFWORD | RISCV_OF.WORD | RISCV_OF.DOUBLEWORD | RISCV_OF.QUADWORD
+
+# size flag to bytes lookup table
+SIZE_CONSTS = {
+    RISCV_OF.BYTE:       1,
+    RISCV_OF.HALFWORD:   2,
+    RISCV_OF.WORD:       4,
+    RISCV_OF.DOUBLEWORD: 8,
+    RISCV_OF.QUADWORD:   16,
 }

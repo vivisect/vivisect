@@ -62,15 +62,30 @@ class RiscVDisasm:
             masked_value = ival & mask
             found = self.instrs[opcode_size][mask].get(masked_value)
             if found is not None:
-                opers = tuple(OPERCLASSES[f.type](ival=ival, bits=f.bits, args=f.args, va=va, oflags=f.flags) for f in found.fields)
-                return RiscVOpcode(va, found.opcode, found.name, opcode_bytes, opers, found.flags)
+                try:
+                    opers = tuple(OPERCLASSES[f.type](ival=ival, bits=f.bits, args=f.args, va=va, oflags=f.flags) for f in found.fields)
+
+                    flags = found.flags
+                    # If any of the operands indicate this instruction is a hint
+                    # set the flag now, this lets the instructions decode
+                    # properly but helps prevent accidentally executing an
+                    # invalid instruction
+                    if any(o.hint for o in opers):
+                        flags |= RISCV_IF.HINT
+
+                    return RiscVOpcode(va, found.opcode, found.name, opcode_bytes, opers, flags)
+
+                except envi.InvalidOperand:
+                    # One of the operands has a restricted value so the
+                    # instruction doesn't decode properly, try a different one
+                    pass
         else:
             raise envi.InvalidInstruction(data[offset:offset+opcode_bytes], 'No Instruction Matched: %x' % ival, va)
 
 
 OPERCLASSES = {
     RISCV_FIELD.REG: RiscVRegOper,
-    RISCV_FIELD.C_REG: RiscVCRegOper,
+    RISCV_FIELD.F_REG: RiscVFRegOper,
     RISCV_FIELD.CSR_REG: RiscVCSRRegOper,
     RISCV_FIELD.MEM: RiscVMemOper,
     RISCV_FIELD.MEM_SP: RiscVMemSPOper,
