@@ -51,7 +51,8 @@ opertests = [
 
     ('ldc.i4', '200C020000', 'ldc.i4 524', 'ldc.i4 524'),
     ('ldc.i8', '210000000000000000', 'ldc.i8 0', 'ldc.i8 0'),
-    # UGH. Need to resurrect the float parser
+
+    # TODO: Need to resurrect the float parser
     #('ldc.r4', '220000803F', 'ldc.r4 1', 'ldc.r4 1'),
     #('ldc.r8', '230000000000000040', 'ldc.r8 2', 'ldc.r8 2'),
 
@@ -77,9 +78,9 @@ opertests = [
     ('BLE (SHORT, UN)', '36', 'ble.un.s', 'ble.un.s'),
     ('BLT (SHORT, UN)', '37', 'blt.un.s', 'blt.un.s'),
 
-    ('BR', '38', 'br ', ''),
-    ('BRFALSE', '', '', ''),
-    ('BRTRUE', '', '', ''),
+    ('BR', '38', 'br ', 'br '),
+    ('BRFALSE', '39', 'brfalse ', 'brfalse '),
+    ('BRTRUE', '3A', 'brtrue ', 'brtrue '),
 
     ('CALLVIRT', '6F57190006', 'callvirt ', 'callvirt '),  # Terraria.GameContent.ShopHelper::LikeBiome
 ]
@@ -96,6 +97,8 @@ class DotnetInstructionTests(unittest.TestCase):
                 op = self._arch.archParseOpcode(binascii.unhexlify(byts), 0, 0x40)
             except envi.InvalidInstruction:
                 self.fail("Failed to parse opcode bytes: %s (case: %s, expected: %s)" % (byts, name, reprOp))
+            msg = '%s failed length check. Got %d, expected %d' % (name, len(op), int(len(byts)/2))
+            self.assertEqual(len(op), len(byts)/2, msg=msg)
             try:
                 self.assertEqual(repr(op), reprOp)
             except AssertionError:

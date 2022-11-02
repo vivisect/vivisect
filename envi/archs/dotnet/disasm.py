@@ -1,4 +1,4 @@
-import struct
+import logging
 
 import envi
 import envi.exc as e_exc
@@ -6,6 +6,8 @@ import envi.bits as e_bits
 import envi.archs.dotnet.opcodes as e_opcodes
 
 from envi.archs.dotnet.opconst import *
+
+logger = logging.getLogger(__name__)
 
 # TODO: Faster as a list, dictionary for dev ease during POC
 _imm_valus = {
@@ -54,18 +56,11 @@ class DotNetOperand(envi.Operand):
     def __init__(self, typ, byts, bigend, md):
         pass
 
-class DotNetStackOperand(envi.Operand):
-    def __init__(self, typ, byts, bigend, md):
-        pass
-
 class DotNetOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, prefixes, size, operands, push, pop, iflags=0):
         super().__init__(va, opcode, mnem, prefixes, size, operands, iflags)
         self.push = push
         self.pop = pop
-
-    def __repr__(self):
-        pass
 
     def render(self, mcanv):
         pass
@@ -95,7 +90,7 @@ _oper_ctors = {
 }
 
 class DotNetDisasm:
-    def __init__(self, psize=4, bigend=False, metadata={}):
+    def __init__(self, psize=4, bigend=False, metadata=None):
         self.bigend = bigend
         self.psize = psize
         self.metadata = metadata
@@ -106,11 +101,17 @@ class DotNetDisasm:
         obyt = byts[offset]
         offset += 1
 
-        # TODO: This is actually prefixes
-        if obyt == 0xFE:
+        prefixes = []
+        while obyt == 0xFE:
             obyt = byts[offset]
             offset += 1
-            tabl = e_opcodes.EXT_OPCODES
+
+            pref = e_opcodes.EXT_OPCODES.get(obyt)
+            if not pref:
+                continue
+            ins, _, _, _, _ = pref
+
+            prefixes.append(ins ^ INS_PREFIX)
 
         odef = tabl.get(obyt)
         if not odef:
@@ -124,7 +125,18 @@ class DotNetDisasm:
                 continue
             args.append(ctor(param, byts[offset:], self.bigend, self.metadata))
 
-        poppers = [DotNetStackOperand(oper) for oper in pops]
-        pushers = [DotNetStackOperand(oper) for oper in pushes]
+        poppers = []
+        for pop in pops:
+            ctor = _oper_ctors.get(pop)
+            if not ctor:
+                continue
+            poppers.append(ctor(pop, byts[offset:], self.bigend, self.metadata))
 
-        return DotNetOpcode(va, ins, name, 0, 1, args, pushers, poppers, iflags=0)
+        pushers = []
+        for push in pushes:
+            ctor = _oper_ctors.get(push)
+            if not ctor:
+                continue
+            pushers.append(ctor(push, byts[offset:], self.bigend, self.metadata))
+
+        return DotNetOpcode(va, ins, name, prefixes, 5, args, pushers, poppers, iflags=0)

@@ -1,7 +1,7 @@
 from envi.archs.dotnet.opconst import *
 
 # TODO: This would be faster as a list, with some gaps for the opcodes that aren't
-# defined
+# defined, but for my own sanity, this will be a flat dictionary for now
 MAIN_OPCODES = {
     # General format is (type, args, pops, pushes, name)
     # More specific Format is (type, (args,), (pop_mask,), (push_mask,), name)
@@ -260,16 +260,16 @@ EXT_OPCODES = {
 
     0x0F: (INS_LOCALLOC, (), (TYPE_INT32,), (TYPE_POINTER,), 'localloc'),
     0x11: (INS_ENDFILTER, (), (TYPE_INT32,), (), 'endfilter'),
-    0x12: (INS_UNALIGNED, (TYPE_INT8,), (), (), 'unaligned'),
-    0x13: (INS_VOLATILE, (), (), (), 'volatile'),
-    0x14: (INS_TAIL, (), (), (), 'tail'),
+    0x12: (INS_PREFIX | INS_UNALIGNED, (TYPE_INT8,), (), (), 'unaligned'),
+    0x13: (INS_PREFIX | INS_VOLATILE, (), (), (), 'volatile'),
+    0x14: (INS_PREFIX | INS_TAIL, (), (), (), 'tail'),
     0x15: (INS_INITOBJ, (TYPE_TYPE,), (TYPE_POINTER,), (), 'initobj'),
-    0x16: (INS_CONSTRAINED, (TYPE_TYPE,), (), (), 'constrained'),
+    0x16: (INS_PREFIX | INS_CONSTRAINED, (TYPE_TYPE,), (), (), 'constrained'),
 
     0x17: (INS_CPBLK, (), (TYPE_INT32, TYPE_POINTER, TYPE_POINTER), (), 'cpblk'),
     0x18: (INS_INITBLK, (), (TYPE_INT32, TYPE_INT32, TYPE_POINTER), (), 'initblk'),
     0x1A: (INS_RETHROW, (), (), (), 'rethrow'),
     0x1C: (INS_SIZEOF, (TYPE_TYPE,), (), (TYPE_INT32,), 'sizeof'),
     0x1D: (INS_REFANY, (), (TYPE_ANY,), (TYPE_POINTER,), 'refanytype'),
-    0x1E: (INS_READONLY, (), (), (), 'readonly'),
+    0x1E: (INS_PREFIX | INS_READONLY, (), (), (), 'readonly'),
 }

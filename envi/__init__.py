@@ -255,7 +255,7 @@ class ArchitectureModule:
 
         Current consumer is mostly the .NET module to propagate tables/names down
         into the architecture/disassembler modules so that we can cross reference
-        things properly.
+        classes/methods/properties/etc. properly.
         '''
         self.extrainfo[key] = valu
 
