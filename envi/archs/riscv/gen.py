@@ -1480,6 +1480,10 @@ def get_instr_name(name):
     # arithmetic/logic
     elif name.startswith('ADD'):
         return 'ADD'
+    elif name in ('LUI', 'C.LI', 'C.LUI'):
+        return 'LI'
+    elif name in ('EBREAK', 'C.EBREAK'):
+        return 'EBREAK'
     elif name.startswith('SLT'):
         return 'SLT'
     elif name.startswith('SUB'):
