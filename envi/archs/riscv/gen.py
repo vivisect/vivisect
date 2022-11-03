@@ -53,9 +53,6 @@ _binfields = _regfields + _immfields
 _immvalues = _immfields + [
     r'shamt\[[^]]+\]',
     r'shamt',
-    # Special IMM names used by the FENCE instruction
-    r'pred',
-    r'succ',
     r'uimm',
     r'uimm\[[^]]+\]',
     r'nzimm\[[^]]+\]',
@@ -74,9 +71,10 @@ _regvalues = _regfields + [
     r'rs[0-9]?/rd\$\\n?eq\$\$\\{[0-9,]+\\}\$',
 ]
 
-# the required bin field may also have a value of 'rm' (rounding mode)
+# the required bin field may also have a value of 'rm' (rounding mode), or the
+# 'pred' and 'succ' fields used by the FENCE and PAUSE instructions.
 _reqbinvalues = _reqbinfields + _binvalues + _decvalues + [
-    r'rm',
+    r'rm', r'pred', r'succ',
 ]
 
 
@@ -110,6 +108,7 @@ class OpcodeType(enum.Enum):
     CONST = enum.auto()
     IMM = enum.auto()
     RM = enum.auto()
+    ORDER = enum.auto()
     MEM = enum.auto()
     MEM_SP = enum.auto()
     C_OPCODE = enum.auto()
@@ -117,6 +116,8 @@ class OpcodeType(enum.Enum):
     F_REG = enum.auto()
     FC_REG = enum.auto()
     CSR_REG = enum.auto()
+    REL_JMP = enum.auto()
+    JMP = enum.auto()
 
 
 Form = namedtuple('Form', [
@@ -146,29 +147,49 @@ Op = namedtuple('Op', [
 
 
 def get_instr_mask(fields):
-    mask = '0b'
-    value = '0b'
+    mask = ''
+    value = ''
     for field in fields:
         if field.type in (OpcodeType.CONST, OpcodeType.OPCODE, OpcodeType.C_OPCODE):
             mask += '1' * field.bits
             if isinstance(field.value, int):
-                value += bin(field.value)[2:]
-            elif isinstance(field.value, str) and _binvaluepat.match(field.value):
+                value += format(field.value, '0%db' % field.bits)
+            elif isinstance(field.value, str) and _binvaluepat.match(field.value) and \
+                    len(field.value) == field.bits:
                 value += field.value
             elif isinstance(field.value, str) and _decvaluepat.match(field.value):
                 # Convert the decimal value string to an integer first
-                value += bin(int(field.value))[2:]
+                value += format(int(field.value), '0%db' % field.bits)
             else:
                 raise Exception('Cannot create mask with non-integer field: %s' % str(field))
 
         else:
-            mask += '0' * field.bits
-            value += '0' * field.bits
+            mask += ('0' * field.bits)
+            value += ('0' * field.bits)
+        assert len(mask) == len(value)
+
+    # All masks and values should either be 32 or 16 bits
+    assert len(mask) in (32, 16)
+    assert len(value) in (32, 16)
 
     return (int(mask, 2), int(value, 2))
 
 
-FLOAT_REG_INSTRS = {
+SPECIAL_INSTR_OPERANDS = {
+    # PC relative jump instructions, this is used before pseudoinstructions are
+    # created so we only need to handle the standard instructions
+    'JAL':      {'imm[20$\\vert$10:1$\\vert$11$\\vert$19:12]': OpcodeType.REL_JMP},
+    'C.J':      {'imm[11$\\vert$4$\\vert$9:8$\\vert$10$\\vert$6$\\vert$7$\\vert$3:1$\\vert$5]': OpcodeType.REL_JMP},
+    'C.JAL':    {'imm[11$\\vert$4$\\vert$9:8$\\vert$10$\\vert$6$\\vert$7$\\vert$3:1$\\vert$5]': OpcodeType.REL_JMP},
+    'BEQ':      {'imm[20$\\vert$10:5]': OpcodeType.REL_JMP, 'imm[4:1$\\vert$11]': OpcodeType.REL_JMP},
+    'BNE':      {'imm[20$\\vert$10:5]': OpcodeType.REL_JMP, 'imm[4:1$\\vert$11]': OpcodeType.REL_JMP},
+    'BGE':      {'imm[20$\\vert$10:5]': OpcodeType.REL_JMP, 'imm[4:1$\\vert$11]': OpcodeType.REL_JMP},
+    'BGEU':     {'imm[20$\\vert$10:5]': OpcodeType.REL_JMP, 'imm[4:1$\\vert$11]': OpcodeType.REL_JMP},
+    'BLT':      {'imm[20$\\vert$10:5]': OpcodeType.REL_JMP, 'imm[4:1$\\vert$11]': OpcodeType.REL_JMP},
+    'BLTU':     {'imm[20$\\vert$10:5]': OpcodeType.REL_JMP, 'imm[4:1$\\vert$11]': OpcodeType.REL_JMP},
+    'C.BNEZ':   {'imm[8$\\vert$4:3]': OpcodeType.REL_JMP, 'imm[7:6$\\vert$2:1$\\vert$5]': OpcodeType.REL_JMP},
+    'C.BEQZ':   {'imm[8$\\vert$4:3]': OpcodeType.REL_JMP, 'imm[7:6$\\vert$2:1$\\vert$5]': OpcodeType.REL_JMP},
+
     # Floating point load instructions
     'FLH':      {'rd': OpcodeType.F_REG},
 
@@ -325,6 +346,14 @@ FLOAT_REG_INSTRS = {
 
 
 def get_field_type(instr_name, field):
+    # Before doing the generic matching, first look for any instruction operands
+    # that can't be set by generic pattern matching
+    if instr_name in SPECIAL_INSTR_OPERANDS:
+        field_type = SPECIAL_INSTR_OPERANDS[instr_name].get(field)
+        if field_type is not None:
+            return field_type
+
+    # Now do standard pattern matching
     if _immvaluepat.match(field):
         # The CSR instructions place the CSR register field in the I-Type IMM
         # field
@@ -333,13 +362,6 @@ def get_field_type(instr_name, field):
         else:
             return OpcodeType.IMM
     elif _regvaluepat.match(field):
-        # Some instructions should use floating point registers instead
-        operand_types = FLOAT_REG_INSTRS.get(instr_name)
-        if operand_types is not None:
-            field_type = operand_types.get(field)
-            if field_type is not None:
-                return field_type
-
         if 'prime' in field:
             return OpcodeType.C_REG
         else:
@@ -351,6 +373,8 @@ def get_field_type(instr_name, field):
             return OpcodeType.C_OPCODE
         elif 'rm' == field:
             return OpcodeType.RM
+        elif field in ('pred', 'succ'):
+            return OpcodeType.ORDER
         else:
             return OpcodeType.CONST
     else:
@@ -361,6 +385,27 @@ def get_field_info(instr_name, instr_fields, columns):
     # Determine the field bit widths and field types
     col = 0
     fields = []
+
+    # The FENCE, FENCE.TSO, and PAUSE instructions all split the initial field
+    # of the I-TYPE form evenly into 4-bit fields, but it's impossible to detect
+    # from the manual so just encode those manually.
+    if instr_name in ('FENCE', 'FENCE.TSO', 'PAUSE'):
+        fm, pred, succ = instr_fields[:3]
+
+        # The normal FENCE has the 'fm' field left undefined, but it is
+        # currently only valid if fm == 0, so hard code the field to be 0.
+        if instr_name == 'FENCE':
+            fields.append(Field('0000', get_field_type(instr_name, fm[1]), fm[0], 4, 0xF, 28))
+        else:
+            fields.append(Field(fm[1], get_field_type(instr_name, fm[1]), fm[0], 4, 0xF, 28))
+        fields.append(Field(pred[1], get_field_type(instr_name, pred[1]), pred[0], 4, 0xF, 24))
+        fields.append(Field(succ[1], get_field_type(instr_name, succ[1]), succ[0], 4, 0xF, 20))
+
+        # do the rest of the fields automatically, position the column index
+        # correctly
+        col = 6
+        instr_fields = instr_fields[3:]
+
     for size, value in instr_fields:
         if isinstance(columns[col], tuple):
             start = columns[col][0]
@@ -575,17 +620,8 @@ def add_instr(instrs, name, cat_list, form, fields, notes, priv=False, flags=Non
     #    INSTR.aq (aq = 1, rl = 0)
     #    INSTR.rl (aq = 0, rl = 1)
     #    INSTR.aq.rl (aq = 1, rl = 1) (
-    if any(f.value == 'fm' for f in fields):
-        # For some reason there already is a FENCE.TSO instruction in the
-        # scraped tables, so just modify FM to be fixed as 0 for the normal
-        # FENCE instruction
-        fm_field = next(f for f in fields if f.value == 'fm')
-        fm_zero_field = Field(0, fm_field.type, fm_field.columns, fm_field.bits, fm_field.bits, fm_field.shift)
 
-        # Now let the rest of this function run for FENCE
-        fields = [f if f.value != 'fm' else fm_zero_field for f in fields]
-
-    elif any(f.value == 'aq' for f in fields):
+    if any(f.value == 'aq' for f in fields):
         aq_field = next(f for f in fields if f.value == 'aq')
         aq_zero_field = Field(0, aq_field.type, aq_field.columns, aq_field.bits, aq_field.bits, aq_field.shift)
         aq_one_field = Field(1, aq_field.type, aq_field.columns, aq_field.bits, aq_field.bits, aq_field.shift)
@@ -1132,11 +1168,6 @@ FIELD_SIZE_FLAGS = {
                  'rs1': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED'],
                  'rd': ['RISCV_OF.WORD', 'RISCV_OF.UNSIGNED']},
 
-    'BGE':      {'rs1': ['RISCV_OF.SIGNED'], 'rs2': ['RISCV_OF.SIGNED']},
-    'BGEU':     {'rs1': ['RISCV_OF.UNSIGNED'], 'rs2': ['RISCV_OF.UNSIGNED']},
-    'BLT':      {'rs1': ['RISCV_OF.SIGNED'], 'rs2': ['RISCV_OF.SIGNED']},
-    'BLTU':     {'rs1': ['RISCV_OF.UNSIGNED'], 'rs2': ['RISCV_OF.UNSIGNED']},
-
     'C.ADDW':   {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
     'C.ADDIW':  {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
     'C.SUBW':   {'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
@@ -1183,6 +1214,12 @@ FIELD_SIZE_FLAGS = {
                   'rd': ['RISCV_OF.WORD', 'RISCV_OF.SIGNED']},
     'AMOMAXU.D': {'rs1': ['RISCV_OF.DOUBLEWORD'],
                   'rd': ['RISCV_OF.DOUBLEWORD', 'RISCV_OF.SIGNED']},
+
+    # Branches
+    'BGE':      {'rs1': ['RISCV_OF.SIGNED'], 'rs2': ['RISCV_OF.SIGNED']},
+    'BGEU':     {'rs1': ['RISCV_OF.UNSIGNED'], 'rs2': ['RISCV_OF.UNSIGNED']},
+    'BLT':      {'rs1': ['RISCV_OF.SIGNED'], 'rs2': ['RISCV_OF.SIGNED']},
+    'BLTU':     {'rs1': ['RISCV_OF.UNSIGNED'], 'rs2': ['RISCV_OF.UNSIGNED']},
 }
 
 
@@ -1352,6 +1389,11 @@ MEM_REF_INSTRS = tuple(list(LOAD_INSTRS) + list(STORE_INSTRS) + [
     'AMOMINU.D', 'AMOMINU.D.AQ', 'AMOMINU.D.RL', 'AMOMINU.D.AQ.RL',
     'AMOMAX.D',  'AMOMAX.D.AQ',  'AMOMAX.D.RL',  'AMOMAX.D.AQ.RL',
     'AMOMAXU.D', 'AMOMAXU.D.AQ', 'AMOMAXU.D.RL', 'AMOMAXU.D.AQ.RL',
+
+    # The jump instructions use memory dereference-style syntax, but only to
+    # calculate an absolute jump address so these don't use standard memory
+    # field types
+    'JR', 'JALR', 'C.JR', 'C.JALR',
 ])
 
 
@@ -1563,13 +1605,16 @@ def make_field_args_str(mask, shift, flags=None):
 
 # Mapping of RiscV*Field type used by the make_field_str() function
 FIELD_TYPE_MAP = {
-    OpcodeType.REG: 'RiscVField',
-    OpcodeType.F_REG: 'RiscVField',
+    OpcodeType.REG:     'RiscVField',
+    OpcodeType.F_REG:   'RiscVField',
     OpcodeType.CSR_REG: 'RiscVField',
-    OpcodeType.RM: 'RiscVField',
-    OpcodeType.IMM: 'RiscVImmField',
-    OpcodeType.MEM: 'RiscVMemField',
-    OpcodeType.MEM_SP: 'RiscVMemSPField',
+    OpcodeType.RM:      'RiscVField',
+    OpcodeType.ORDER:   'RiscVField',
+    OpcodeType.IMM:     'RiscVImmField',
+    OpcodeType.JMP:     'RiscVImmField',
+    OpcodeType.MEM:     'RiscVMemField',
+    OpcodeType.MEM_SP:  'RiscVMemField',
+    OpcodeType.REL_JMP: 'RiscVMemField',
 }
 
 
@@ -1634,13 +1679,6 @@ def make_field_str(instr_name, op, bits, args=None, field_type=None,
     return operand_str
 
 
-# Only some "opcode" fields are exported
-EXPORT_FIELDS = (
-    OpcodeType.REG, OpcodeType.C_REG, OpcodeType.F_REG, OpcodeType.CSR_REG,
-    OpcodeType.IMM, OpcodeType.RM,
-)
-
-
 def export_instrs(forms, instrs, git_info):
     # Export all the forms
     form_list = list(forms.keys())
@@ -1689,7 +1727,8 @@ def export_instrs(forms, instrs, git_info):
 
         # Write out the field types
         out.write('class RISCV_FIELD(enum.IntEnum):\n')
-        fields = ('REG', 'C_REG', 'F_REG', 'CSR_REG', 'MEM', 'MEM_SP', 'IMM', 'RM')
+        fields = ('REG', 'F_REG', 'CSR_REG', 'MEM', 'MEM_SP', 'JMP', 'IMM',
+                  'REL_JMP', 'RM', 'ORDER')
         for i, field_type in enumerate(fields):
             out.write('    %s = %d\n' % (field_type, i))
         out.write('\n\n')
@@ -1772,11 +1811,6 @@ RiscVImmField = namedtuple('RiscVImmField', ['name', 'type', 'bits', 'args', 'fl
 #   LWU  imm[11:0] | rs1 | rd
 RiscVMemField = namedtuple('RiscVMemField', ['name', 'type', 'bits', 'args', 'flags'])
 
-# RiscV compressed load/store instructions are like normal load/store
-# instructions but they always use the x2 (the stack pointer) register as the
-# base register
-RiscVMemSPField = namedtuple('RiscVMemSPField', ['name', 'type', 'bits', 'args', 'flags'])
-
 # A field type to hold mask/shift arguments for IMM and MEM fields
 RiscVFieldArgs = namedtuple('RiscVFieldArgs', ['mask', 'shift'])
 ''')
@@ -1812,43 +1846,53 @@ __all__ = ['instructions']
         try:
             for name, (instr_name, cats) in instr_to_cat_map.items():
                 for instr in instrs[cats[0]][name]:
-                    all_fields = [(get_field_name(op), op) for op in instr.fields if op.type in EXPORT_FIELDS]
-
+                    # The constant fields have already been incorporated and can
+                    # be ignored
+                    all_fields = [(get_field_name(op), op) for op in instr.fields if op.type != OpcodeType.CONST]
                     imm_fields = [(fn, op) for fn, op in all_fields if \
-                            op.type == OpcodeType.IMM and ('imm' in fn or 'shamt' in fn)]
-
-                    non_imm_fields = [(fn, op) for fn, op in all_fields if not
-                            (op.type == OpcodeType.IMM and ('imm' in fn or 'shamt' in fn))]
+                            op.type in (OpcodeType.IMM, OpcodeType.REL_JMP) and ('imm' in fn or 'shamt' in fn)]
+                    non_imm_fields = [(fn, op) for fn, op in all_fields if not \
+                            (op.type in (OpcodeType.IMM, OpcodeType.REL_JMP) and ('imm' in fn or 'shamt' in fn))]
 
                     if name in MEM_REF_INSTRS:
                         fields = [op for fn, op in non_imm_fields if 'rs1' not in fn]
-                        imm_args = create_imm_mask_and_shifts(imm_fields)
+
+                        if len(imm_fields) == 0:
+                            # for the LR and SC instructions instead create a
+                            # "constant" 0 offset field argument that will consume
+                            # no bits but ensure the load/store operand has a valid
+                            # offset
+                            imm_fields = [('zero', Field('zero', type=OpcodeType.IMM, columns=0, bits=0, mask=0, shift=0))]
+                            imm_args = ((0, 0),)
+                        else:
+                            imm_args = create_imm_mask_and_shifts(imm_fields)
 
                         rs1_op = [op for fn, op in all_fields if 'rs1' in fn]
                         if rs1_op:
                             assert len(rs1_op) == 1
 
-                            # for the LR and SC instructions instead create a
-                            # "constant" 0 offset field argument that will consume
-                            # no bits but ensure the load/store operand has a valid
-                            # offset
-                            if not imm_fields:
-                                imm_fields = [('zero', Field('zero', type=OpcodeType.IMM, columns=0, bits=0, mask=0, shift=0))]
-                                imm_args = ((0, 0),)
+                            if name in ('JR', 'JALR', 'C.JR', 'C.JALR'):
+                                field_type = OpcodeType.JMP
+                            else:
+                                field_type = OpcodeType.MEM
 
                             rs1_args = (rs1_op[0].mask << rs1_op[0].shift, rs1_op[0].shift)
                             # Bit width of this field is the width of the IMM arg,
                             last_field = make_field_str(name, imm_fields[0][1], \
                                     bits=sum(op.bits for _, op in imm_fields), \
                                     args=(rs1_args, imm_args), \
-                                    field_type=OpcodeType.MEM, notes=instr.notes)
+                                    field_type=field_type, \
+                                    field_name=imm_fields[0][1].value.split('[', 1)[0],
+                                    notes=instr.notes)
                         else:
                             # This should only be true for "compressed" load
                             # instructions
                             assert name.startswith('C.')
+
                             last_field = make_field_str(name, imm_fields[0][1],
                                     bits=sum(op.bits for _, op in imm_fields), \
                                     args=imm_args, field_type=OpcodeType.MEM_SP, \
+                                    field_name=imm_fields[0][1].value.split('[', 1)[0],
                                     notes=instr.notes)
 
                     elif imm_fields:
@@ -1857,43 +1901,31 @@ __all__ = ['instructions']
                         fields = [op for _, op in non_imm_fields]
                         imm_args = create_imm_mask_and_shifts(imm_fields)
 
-                        # Extract the non-bits portion of the first field name to
-                        # identify what this one should be called.
-                        imm_field_name = imm_fields[0][1].value.split('[', 1)[0]
-
                         last_field = make_field_str(name, imm_fields[0][1], args=imm_args, \
                                 bits=sum(op.bits for _, op in imm_fields), \
-                                field_type=OpcodeType.IMM, field_name=imm_field_name, \
+                                field_name=imm_fields[0][1].value.split('[', 1)[0],
                                 notes=instr.notes)
-
-                    elif any(op.type == OpcodeType.RM for op in instr.fields):
-                        # If there is a rounding mode operand in this instruction move
-                        # it to the end of the operand list
-                        fields = [op for _, op in all_fields if op.type != OpcodeType.RM]
-                        rm_op = next(op for _, op in all_fields if op.type == OpcodeType.RM)
-                        last_field = make_field_str(name, rm_op, rm_op.bits, notes=instr.notes)
 
                     else:
                         fields = [op for _, op in all_fields]
                         last_field = None
 
+                    # If there is a rounding mode operand in this instruction
+                    # move it to the end of the operand list
+                    if any(op.type == OpcodeType.RM for op in instr.fields):
+                        fields = [op for _, op in all_fields if op.type != OpcodeType.RM]
+                        rm_op = next(op for _, op in all_fields if op.type == OpcodeType.RM)
+                        last_field = make_field_str(name, rm_op, rm_op.bits, notes=instr.notes)
+
                     operand_list = []
-                    # In general regsiter operands should be displayed in reverse order
+                    # In general register operands should be displayed in reverse order
                     # than they are encoded in the instruction so reverse the operand
                     # fields now.
                     for op in reversed(fields):
-                        if op.type in (OpcodeType.REG, OpcodeType.C_REG, OpcodeType.F_REG, OpcodeType.CSR_REG):
+                        if op.type in (OpcodeType.REG, OpcodeType.C_REG,
+                                       OpcodeType.F_REG, OpcodeType.CSR_REG,
+                                       OpcodeType.ORDER):
                             operand_list.append(make_field_str(name, op, op.bits, notes=instr.notes))
-                        elif op.type == OpcodeType.IMM and op.value in ('pred', 'succ'):
-                            # The 'pred' and 'succ' fields should be normal IMM, but
-                            # they are not moved to the end of the param list so
-                            # they should be processed in place here.
-
-                            # Convert the normal shift/mask values into IMM
-                            # mask/shift values
-                            imm_args = ((op.mask << op.shift, op.shift),)
-                            operand_list.append(make_field_str(name, op, op.bits, \
-                                    args=imm_args, notes=instr.notes))
                         else:
                             print('%s missing %s field' % (name, str(op)))
 

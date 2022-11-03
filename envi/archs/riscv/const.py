@@ -23,7 +23,6 @@ __all__ = [
     'RiscVField',
     'RiscVImmField',
     'RiscVMemField',
-    'RiscVMemSPField',
     'RiscVFieldArgs',
 ]
 
@@ -151,6 +150,26 @@ RM_NAMES = {
     0b011: 'rup',
     0b100: 'rmm',
     0b111: 'dyn',
+}
+
+# A mapping of ordering values to strings for printing
+ORDER_NAMES = {
+    # 0b0000 invalid
+    0b0001: 'W',
+    0b0010: 'R',
+    0b0011: 'RW',
+    0b0100: 'O',
+    0b0101: 'OW',
+    0b0110: 'OR',
+    0b0111: 'ORW',
+    0b1000: 'I',
+    0b1001: 'IW',
+    0b1010: 'IR',
+    0b1011: 'IRW',
+    0b1100: 'IO',
+    0b1101: 'IOW',
+    0b1110: 'IOR',
+    0b1111: 'IORW',
 }
 
 

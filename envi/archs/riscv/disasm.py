@@ -89,6 +89,9 @@ OPERCLASSES = {
     RISCV_FIELD.CSR_REG: RiscVCSRRegOper,
     RISCV_FIELD.MEM: RiscVMemOper,
     RISCV_FIELD.MEM_SP: RiscVMemSPOper,
+    RISCV_FIELD.JMP: RiscVJmpOper,
     RISCV_FIELD.IMM: RiscVImmOper,
+    RISCV_FIELD.REL_JMP: RiscVRelJmpOper,
     RISCV_FIELD.RM: RiscVRMOper,
+    RISCV_FIELD.ORDER: RiscVOrderOper,
 }

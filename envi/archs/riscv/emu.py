@@ -21,7 +21,15 @@ __all__ = [
 
 class TrapException(envi.EnviException):
     def __init__(self, op):
-        EnviException.__init__(self, 'Trap: %s' % op)
+        self.op = op
+        super().__init__('Trap: %s' % op)
+
+
+class AddressMisaligned(envi.InvalidAddress):
+    def __init__(self, va):
+        self.va = va
+        super.__init__('Address Misaligned: 0x%x' % va)
+
 
 
 class RiscVCall(envi.CallingConvention):
@@ -55,6 +63,7 @@ class RiscVAbstractEmulator(envi.Emulator):
         else:
             self.description = description
         self.xlen = getRiscVXLEN(self.description)
+        self.ialign = getRiscVIALIGN(self.description)
         self.psize = self.xlen // 8
         super().__init__(archmod=archmod)
         self.setEndian(endian)
@@ -307,25 +316,112 @@ class RiscVAbstractEmulator(envi.Emulator):
             else:
                 self.setOperValue(op, 0, 6)
 
-    #def i_j(self, op):
-    #def i_jal(self, op):
-    #def i_jalr(self, op):
-    #def i_jr(self, op):
-    #def i_c_j(self, op):
-    #def i_c_jal(self, op):
-    #def i_c_jalr(self, op):
-    #def i_c_jr(self, op):
+    def i_feq(self, op):
+        self.setOperValue(op, 0, bool(self.getOperValue(op, 1) == self.getOperValue(op, 2)))
 
-    #def i_beq(self, op):
-    #def i_bge(self, op):
-    #def i_blt(self, op):
-    #def i_bne(self, op):
-    #def i_c_beqz(self, op):
-    #def i_c_bnez(self, op):
+    def i_fle(self, op):
+        self.setOperValue(op, 0, bool(self.getOperValue(op, 1) <= self.getOperValue(op, 2)))
 
-    #def i_feq(self, op):
-    #def i_fle(self, op):
-    #def i_flt(self, op):
+    def i_flt(self, op):
+        self.setOperValue(op, 0, bool(self.getOperValue(op, 1) < self.getOperValue(op, 2)))
+
+    def i_j(self, op):
+        addr = self.getOperValue(op, 0)
+        if addr % self.ialign != 0:
+            raise AddressMisaligned(addr)
+        return addr
+
+    def i_jr(self, op):
+        addr = self.getOperValue(op, 0)
+        if addr % self.ialign != 0:
+            raise AddressMisaligned(addr)
+        return addr
+
+    def i_jal(self, op):
+        self.setOperValue(op, 1, self.getProgramCounter() + op.size)
+
+        addr = self.getOperValue(op, 0)
+        if addr % self.ialign != 0:
+            raise AddressMisaligned(addr)
+        return addr
+
+    def i_jalr(self, op):
+        self.setOperValue(op, 1, self.getProgramCounter() + op.size)
+
+        addr = self.getOperValue(op, 0)
+        if addr % self.ialign != 0:
+            raise AddressMisaligned(addr)
+        return addr
+
+    def i_c_j(self, op):
+        addr = self.getOperValue(op, 0)
+        if addr % self.ialign != 0:
+            raise AddressMisaligned(addr)
+        return addr
+
+    def i_c_jr(self, op):
+        addr = self.getOperValue(op, 0)
+        if addr % self.ialign != 0:
+            raise AddressMisaligned(addr)
+        return addr
+
+    def i_c_jal(self, op):
+        self.setRegister(REG_RA, self.getProgramCounter() + op.size)
+
+        addr = self.getOperValue(op, 0)
+        if addr % self.ialign != 0:
+            raise AddressMisaligned(addr)
+        return addr
+
+    def i_c_jalr(self, op):
+        self.setRegister(REG_RA, self.getProgramCounter() + op.size)
+
+        addr = self.getOperValue(op, 0)
+        if addr % self.ialign != 0:
+            raise AddressMisaligned(addr)
+        return addr
+
+    def i_beq(self, op):
+        if self.getOperValue(op, 0) == self.getOperValue(op, 1):
+            addr = self.getOperValue(op, 2)
+            if addr % self.ialign != 0:
+                raise AddressMisaligned(addr)
+            return addr
+
+    def i_bne(self, op):
+        if self.getOperValue(op, 0) != self.getOperValue(op, 1):
+            addr = self.getOperValue(op, 2)
+            if addr % self.ialign != 0:
+                raise AddressMisaligned(addr)
+            return addr
+
+    def i_bge(self, op):
+        if self.getOperValue(op, 0) >= self.getOperValue(op, 1):
+            addr = self.getOperValue(op, 2)
+            if addr % self.ialign != 0:
+                raise AddressMisaligned(addr)
+            return addr
+
+    def i_blt(self, op):
+        if self.getOperValue(op, 0) < self.getOperValue(op, 1):
+            addr = self.getOperValue(op, 2)
+            if addr % self.ialign != 0:
+                raise AddressMisaligned(addr)
+            return addr
+
+    def i_c_beqz(self, op):
+        if self.getOperValue(op, 0) == 0:
+            addr = self.getOperValue(op, 1)
+            if addr % self.ialign != 0:
+                raise AddressMisaligned(addr)
+            return addr
+
+    def i_c_bnez(self, op):
+        if self.getOperValue(op, 0) != 0:
+            addr = self.getOperValue(op, 1)
+            if addr % self.ialign != 0:
+                raise AddressMisaligned(addr)
+            return addr
 
     def i_fence(self, op):
         pass

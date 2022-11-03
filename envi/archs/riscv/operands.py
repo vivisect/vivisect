@@ -2,8 +2,7 @@ import envi
 import envi.bits as e_bits
 from envi.archs.riscv.regs import riscv_regs, REG_SP, REG_ZERO
 from envi.archs.riscv.regs_gen import csr_regs
-from envi.archs.riscv.const import RISCV_OF, FLOAT_CONSTS, SIZE_FLAGS, \
-        SIZE_CONSTS
+from envi.archs.riscv.const import RISCV_OF, FLOAT_CONSTS, SIZE_FLAGS, SIZE_CONSTS
 
 
 __all__ = [
@@ -13,8 +12,11 @@ __all__ = [
     'RiscVCSRRegOper',
     'RiscVMemOper',
     'RiscVMemSPOper',
+    'RiscVJmpOper',
     'RiscVImmOper',
+    'RiscVRelJmpOper',
     'RiscVRMOper',
+    'RiscVOrderOper',
 ]
 
 
@@ -208,10 +210,10 @@ class RiscVRegOper(envi.RegisterOper):
         value = _operand_shift(ival & args.mask, args.shift)
 
         # Double check if there are any restrictions on this value
-        if (oflags & RISC_OF.NOT_ZERO and value == 0) or \
-                (oflags & RISC_OF.NOT_TWO and value == 2):
+        if (oflags & RISCV_OF.NOT_ZERO and value == 0) or \
+                (oflags & RISCV_OF.NOT_TWO and value == 2):
             raise envi.InvalidOperand(value)
-        elif (oflags & RISC_OF.HINT_ZERO and value == 0):
+        elif (oflags & RISCV_OF.HINT_ZERO and value == 0):
             self.hint = True
         else:
             self.hint = False
@@ -246,26 +248,34 @@ class RiscVRegOper(envi.RegisterOper):
     def getWidth(self, emu):
         return emu.getRegisterWidth(self.reg) // 8
 
-    def getOperRawValue(self, op, emu=None):
+    def getRaw(self, op, emu=None):
         if self.reg == REG_ZERO:
             return 0
         elif emu is None:
             return None
-        return emu.getRegister(self.reg)
 
-    def setOperRawValue(self, op, emu=None, value=None):
+        value = emu.getRegister(self.reg)
+        if self.tsize is not None:
+            return e_bits.unsigned(value, self.tsize)
+        else:
+            return value
+
+    def setRaw(self, op, emu=None, value=None):
         # Register X0 can't be written to
         if self.reg == REG_ZERO or emu is None:
             return
+        if self.tsize is not None:
+            value = e_bits.unsigned(value, self.tsize)
         emu.setRegister(self.reg, value)
 
     def getOperValue(self, op, emu=None):
-        value = e_bits.unsigned(self.getOperRawValue(op, emu))
+        value = self.getRaw(op, emu)
+        if value is None:
+            return None
+
         if self.oflags & RISCV_OF.SIGNED:
             # tsize _must_ be set
             return e_bits.signed(value, self.tsize)
-        elif self.tsize is not None:
-            return e_bits.unsigned(value, self.tsize)
         else:
             return value
 
@@ -273,18 +283,7 @@ class RiscVRegOper(envi.RegisterOper):
         if self.oflags & RISCV_OF.SIGNED:
             # tsize _must_ be set
             value = e_bits.signed(value, self.tsize)
-        elif self.tsize is not None:
-            value = e_bits.unsigned(value, self.tsize)
-        emu.setOperRawValue(op, emu, value)
-
-    def getOperUnsignedValue(self, op, emu=None):
-        return e_bits.unsigned(self.getOperRawValue(self, op, emu), self.tsize)
-
-    def setOperUnsignedValue(self, op, emu=None, value=None):
-        self.setOperRawValue(self, op, emu, e_bits.unsigned(value, self.tsize))
-        if self.tsize is not None:
-            value = e_bits.unsigned(value, self.tsize)
-        emu.setOperRawValue(op, emu, value)
+        emu.setRaw(op, emu, value)
 
     def getOperAddr(self, op, emu=None):
         return None
@@ -307,49 +306,49 @@ class RiscVFRegOper(RiscVRegOper):
 
     def isZero(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return self.getOperRawValue(self, op, emu) == 0
+        return self.getRaw(self, op, emu) == 0
 
     def isNormal(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return bool(self.getOperRawValue(self, op, emu) & FLOAT_CONSTS[flags].emask)
+        return bool(self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].emask)
 
     def isSubnormal(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return not bool(self.getOperRawValue(self, op, emu) & FLOAT_CONSTS[flags].emask)
+        return not bool(self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].emask)
 
     def isNeg(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return bool(self.getOperRawValue(self, op, emu) & FLOAT_CONSTS[flags].sign)
+        return bool(self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].sign)
 
     def isPos(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return not bool(self.getOperRawValue(self, op, emu) & FLOAT_CONSTS[flags].sign)
+        return not bool(self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].sign)
 
     def isInf(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return self.getOperRawValue(self, op, emu) in FLOAT_CONSTS[flags].inf
+        return self.getRaw(self, op, emu) in FLOAT_CONSTS[flags].inf
 
     def isSNaN(sele, op, emu):
         flags = oflags & SIZE_FLAGS
-        return self.getOperRawValue(self, op, emu) in FLOAT_CONSTS[flags].snan
+        return self.getRaw(self, op, emu) in FLOAT_CONSTS[flags].snan
 
     def isQNaN(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return self.getOperRawValue(self, op, emu) in FLOAT_CONSTS[flags].qnan
+        return self.getRaw(self, op, emu) in FLOAT_CONSTS[flags].qnan
 
     def getSign(self, op, emu):
         """
         return only the sign bit
         """
         flags = oflags & SIZE_FLAGS
-        return self.getOperRawValue(self, op, emu) & FLOAT_CONSTS[flags].sign
+        return self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].sign
 
     def getNegSign(self, op, emu):
         """
         return the negated sign bit
         """
         flags = oflags & SIZE_FLAGS
-        neg_sign = self.getOperRawValue(self, op, emu) ^ FLOAT_CONSTS[flags].sign
+        neg_sign = self.getRaw(self, op, emu) ^ FLOAT_CONSTS[flags].sign
         return neg_sign & FLOAT_CONSTS[flags].sign
 
     def getAbs(self, op, emu):
@@ -357,33 +356,21 @@ class RiscVFRegOper(RiscVRegOper):
         return the number without the sign bit
         """
         flags = oflags & SIZE_FLAGS
-        return self.getOperRawValue(self, op, emu) & ~FLOAT_CONSTS[flags].sign
-
-    def getRaw(self, op, emu=None):
-        """
-        Returns the un-converted (but size-masked) value from the current register
-        """
-        return e_bits.unsigned(self.getOperRawValue(self, op, emu), self.tsize)
-
-    def setRaw(self, op, emu=None, value=None):
-        """
-        Sets the un-converted (but size-masked) value into the current register
-        """
-        self.setOperRawValue(self, op, emu, e_bits.unsigned(value, self.tsize))
+        return self.getRaw(self, op, emu) & ~FLOAT_CONSTS[flags].sign
 
     def getOperValue(self, op, emu=None):
         """
         Utility function to get the floating point representation of the value
         in this operand's register.
         """
-        return int_to_float(self.getOperRawValue(self, op, emu), self.oflags)
+        return int_to_float(self.getRaw(self, op, emu), self.oflags)
 
     def setOperValue(self, op, emu=None, val=None):
         """
         Utility function to set the value of this operand's register from a
         floating point value.
         """
-        self.setOperRawValue(self, op, emu, int_to_float(val, self.oflags))
+        self.setRaw(self, op, emu, int_to_float(val, self.oflags))
 
 
 class RiscVCSRRegOper(RiscVRegOper):
@@ -429,6 +416,9 @@ class RiscVMemOper(envi.DerefOper):
         self.oflags = oflags
 
         self._set_tsize()
+
+        # memory operands can't indicate hints
+        self.hint = False
 
     def _set_tsize(self):
         self.tsize = SIZE_CONSTS.get(self.oflags & SIZE_FLAGS)
@@ -540,6 +530,27 @@ class RiscVMemSPOper(RiscVMemOper):
         self._set_tsize()
 
 
+class RiscVJmpOper(RiscVMemOper):
+    def __init__(self, ival, bits, args, va=0, oflags=0):
+        super().__init__(ival, bits, args, va, oflags)
+
+    def setRaw(self, op, emu=None, value=None):
+        # The address can't be changed during runtime
+        pass
+
+    def setOperValue(self, op, emu=None, val=None):
+        # The address can't be changed during runtime
+        pass
+
+    def getRaw(self, op, emu=None):
+        # Return the calculated memory address
+        return self.getOperAddr(op, emu)
+
+    def getOperValue(self, op, emu=None):
+        # Return the calculated memory address
+        return self.getOperAddr(op, emu)
+
+
 class RiscVImmOper(envi.ImmedOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
         # RiscV immediate values can be split up in many weird ways, so the args
@@ -547,8 +558,8 @@ class RiscVImmOper(envi.ImmedOper):
         value = sum(_operand_shift(ival & a.mask, a.shift) for a in args)
 
         # Double check if there are any restrictions on this value
-        if (oflags & RISC_OF.NOT_ZERO and value == 0) or \
-                (oflags & RISC_OF.NOT_TWO and value == 2):
+        if (oflags & RISCV_OF.NOT_ZERO and value == 0) or \
+                (oflags & RISCV_OF.NOT_TWO and value == 2):
             raise envi.InvalidOperand(value)
 
         if oflags & RISCV_OF.UNSIGNED:
@@ -557,6 +568,9 @@ class RiscVImmOper(envi.ImmedOper):
             self.value = value
         self.va = va
         self.oflags = oflags
+
+        # immediate operands can't indicate hints
+        self.hint = False
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -567,10 +581,18 @@ class RiscVImmOper(envi.ImmedOper):
             return False
         return True
 
-    def getOperRawValue(self, op, emu=None):
+    def getRaw(self, op, emu=None):
         return self.value
 
-    def setOperRawValue(self):
+    def setRaw(self, op, emu=None, value=None):
+        # Can't modify immediate operands
+        pass
+
+    def getOperValue(self, op, emu=None):
+        return self.value
+
+    def setOperValue(self, op, emu=None, value=None):
+        # Can't modify immediate operands
         pass
 
     #Rework to calculate #of BYTES, not bits
@@ -604,8 +626,19 @@ class RiscVImmOper(envi.ImmedOper):
     def involvesPC(self):
         return False
 
-    def getOperAddr(self):
+    def getOperAddr(self, op, emu=None):
         return None
+
+
+class RiscVRelJmpOper(RiscVImmOper):
+    def __init__(self, ival, bits, args, va=0, oflags=0):
+        super().__init__(ival, bits, args, va, oflags)
+
+        # Update the value to be PC relative
+        self.value += va
+
+    def involvesPC(self):
+        return True
 
 
 class RiscVRMOper(RiscVImmOper):
@@ -614,5 +647,13 @@ class RiscVRMOper(RiscVImmOper):
         self.value = _operand_shift(ival & args.mask, args.shift)
         self.oflags = oflags
 
+        # immediate operands can't indicate hints
+        self.hint = False
+
     def repr(self, op):
         return RM_NAMES.get(self.value, 'inv')
+
+
+class RiscVOrderOper(RiscVRMOper):
+    def repr(self, op):
+        return ORDER_NAMES.get(self.value, 'inv')
