@@ -103,7 +103,7 @@ e_reg.addLocalMetas(_l, metas)
 
 class RiscVRegisterContext(e_reg.RegisterContext):
     def __init__(self, description=None):
-        super().__init__()
+        e_reg.RegisterContext.__init__(self)
 
         if description is None:
             description = DEFAULT_RISCV_DESCR

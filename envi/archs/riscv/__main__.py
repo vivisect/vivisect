@@ -55,8 +55,8 @@ def start(_archname=None, _verbose=0):
 def main():
     parser = argparse.ArgumentParser()
 
-    ppc_arch_list = [n for n in envi.arch_names.values()]
-    parser.add_argument('-a', '--arch', default='riscv', choices=ppc_arch_list)
+    arch_list = [n for n in envi.arch_names.values()]
+    parser.add_argument('-a', '--arch', default='rv32', choices=arch_list)
     parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='count',
                         help='Enable verbose mode (multiples matter: -vvvv)')
 

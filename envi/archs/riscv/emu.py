@@ -14,22 +14,16 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     'RiscVCall',
-    'RiscVAbstractEmulator',
     'RiscVEmulator',
+    'RiscV32Emulator',
+    'RiscV64Emulator',
 ]
 
 
 class TrapException(envi.EnviException):
     def __init__(self, op):
         self.op = op
-        super().__init__('Trap: %s' % op)
-
-
-class AddressMisaligned(envi.InvalidAddress):
-    def __init__(self, va):
-        self.va = va
-        super.__init__('Address Misaligned: 0x%x' % va)
-
+        envi.EnviException__init__(self, 'Trap: %s' % op)
 
 
 class RiscVCall(envi.CallingConvention):
@@ -62,10 +56,12 @@ class RiscVAbstractEmulator(envi.Emulator):
             self.description = DEFAULT_RISCV_DESCR
         else:
             self.description = description
+
         self.xlen = getRiscVXLEN(self.description)
-        self.ialign = getRiscVIALIGN(self.description)
         self.psize = self.xlen // 8
-        super().__init__(archmod=archmod)
+
+        envi.Emulator.__init__(self, archmod=archmod)
+
         self.setEndian(endian)
         self.addCallingConvention("riscvcall", RiscVCall)
 
@@ -85,13 +81,14 @@ class RiscVAbstractEmulator(envi.Emulator):
         self.op_methods = tuple(methods)
 
     def executeOpcode(self, op):
-        if not op.iflags & RISCV_IF.HINT:
+        if op.iflags & RISCV_IF.HINT:
             # If this op is a hint, don't execute it just move to the next
             # instruction
-            logger.info('skipping HINT instruction %s', op)
+            chunk = self.readMemory(op.va, op.size)
+            logger.info('skipping HINT instruction: %s %s', chunk.hex(), op)
             x = None
         else:
-            meth = self.op_methods.get(op.opcode)
+            meth = self.op_methods[op.opcode]
             if meth == None:
                 raise envi.UnsupportedInstruction(self, op)
             x = meth(op)
@@ -326,102 +323,72 @@ class RiscVAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, bool(self.getOperValue(op, 1) < self.getOperValue(op, 2)))
 
     def i_j(self, op):
-        addr = self.getOperValue(op, 0)
-        if addr % self.ialign != 0:
-            raise AddressMisaligned(addr)
-        return addr
+        return self.getOperValue(op, 0)
 
     def i_jr(self, op):
-        addr = self.getOperValue(op, 0)
-        if addr % self.ialign != 0:
-            raise AddressMisaligned(addr)
-        return addr
+        return self.getOperValue(op, 0)
 
     def i_jal(self, op):
-        self.setOperValue(op, 1, self.getProgramCounter() + op.size)
+        self.setOperValue(op, 0, self.getProgramCounter() + op.size)
 
-        addr = self.getOperValue(op, 0)
-        if addr % self.ialign != 0:
-            raise AddressMisaligned(addr)
-        return addr
+        return self.getOperValue(op, 1)
 
     def i_jalr(self, op):
-        self.setOperValue(op, 1, self.getProgramCounter() + op.size)
+        self.setOperValue(op, 0, self.getProgramCounter() + op.size)
 
-        addr = self.getOperValue(op, 0)
-        if addr % self.ialign != 0:
-            raise AddressMisaligned(addr)
-        return addr
+        return self.getOperValue(op, 1)
 
     def i_c_j(self, op):
-        addr = self.getOperValue(op, 0)
-        if addr % self.ialign != 0:
-            raise AddressMisaligned(addr)
-        return addr
+        return self.getOperValue(op, 0)
 
     def i_c_jr(self, op):
-        addr = self.getOperValue(op, 0)
-        if addr % self.ialign != 0:
-            raise AddressMisaligned(addr)
-        return addr
+        return self.getOperValue(op, 0)
 
     def i_c_jal(self, op):
         self.setRegister(REG_RA, self.getProgramCounter() + op.size)
 
-        addr = self.getOperValue(op, 0)
-        if addr % self.ialign != 0:
-            raise AddressMisaligned(addr)
-        return addr
+        return self.getOperValue(op, 0)
 
     def i_c_jalr(self, op):
         self.setRegister(REG_RA, self.getProgramCounter() + op.size)
 
-        addr = self.getOperValue(op, 0)
-        if addr % self.ialign != 0:
-            raise AddressMisaligned(addr)
-        return addr
+        return self.getOperValue(op, 0)
 
     def i_beq(self, op):
         if self.getOperValue(op, 0) == self.getOperValue(op, 1):
-            addr = self.getOperValue(op, 2)
-            if addr % self.ialign != 0:
-                raise AddressMisaligned(addr)
-            return addr
+            return self.getOperValue(op, 2)
+        else:
+            return None
 
     def i_bne(self, op):
         if self.getOperValue(op, 0) != self.getOperValue(op, 1):
-            addr = self.getOperValue(op, 2)
-            if addr % self.ialign != 0:
-                raise AddressMisaligned(addr)
-            return addr
+            return self.getOperValue(op, 2)
+        else:
+            return None
 
     def i_bge(self, op):
         if self.getOperValue(op, 0) >= self.getOperValue(op, 1):
-            addr = self.getOperValue(op, 2)
-            if addr % self.ialign != 0:
-                raise AddressMisaligned(addr)
-            return addr
+            return self.getOperValue(op, 2)
+        else:
+            return None
 
     def i_blt(self, op):
         if self.getOperValue(op, 0) < self.getOperValue(op, 1):
-            addr = self.getOperValue(op, 2)
-            if addr % self.ialign != 0:
-                raise AddressMisaligned(addr)
-            return addr
+            return self.getOperValue(op, 2)
+        else:
+            return None
 
     def i_c_beqz(self, op):
         if self.getOperValue(op, 0) == 0:
-            addr = self.getOperValue(op, 1)
-            if addr % self.ialign != 0:
-                raise AddressMisaligned(addr)
-            return addr
+            return self.getOperValue(op, 1)
+        else:
+            return None
 
     def i_c_bnez(self, op):
         if self.getOperValue(op, 0) != 0:
-            addr = self.getOperValue(op, 1)
-            if addr % self.ialign != 0:
-                raise AddressMisaligned(addr)
-            return addr
+            return self.getOperValue(op, 1)
+        else:
+            return Non
 
     def i_fence(self, op):
         pass
@@ -536,7 +503,17 @@ class RiscVAbstractEmulator(envi.Emulator):
 
 
 class RiscVEmulator(RiscVRegisterContext, RiscVModule, RiscVAbstractEmulator):
-    def __init__(self, archmod=None, endian=ENDIAN_LSB, description=None):
-        RiscVModule.__init__(self, endian=endian, description=description)
+    def __init__(self, archname, description, archmod=None, endian=ENDIAN_LSB):
+        RiscVModule.__init__(self, archname=archname, description=description, endian=endian)
         RiscVAbstractEmulator.__init__(self, archmod=self, endian=endian, description=description)
         RiscVRegisterContext.__init__(self, description)
+
+
+class RiscV32Emulator(RiscVEmulator):
+    def __init__(self, archmod=None, endian=ENDIAN_LSB):
+        RiscVEmulator.__init__(self, 'rv32', 'RV32GC', archmod=archmod, endian=endian)
+
+
+class RiscV64Emulator(RiscVEmulator):
+    def __init__(self, archmod=None, endian=ENDIAN_LSB):
+        RiscVEmulator.__init__(self, 'rv64', 'RV64GC', archmod=archmod, endian=endian)

@@ -151,15 +151,41 @@ def immToStr(val):
 
 class RiscVOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, size, opers, iflags=0):
-        super().__init__(va, opcode, mnem, 0, size, opers, iflags)
+        envi.Opcode.__init__(self, va, opcode, mnem, 0, size, opers, iflags)
 
-        # There is no "return" instruction in RISC-V, instead a "jr ra"
-        # (or "jr t0" - using the alternate return register)
-        # instruction is a return
-        if self.opcode in (RISCV_INS.JR, RISCV_INS.C_JR) and \
-                len(self.opers) == 1 and \
-                self.opers[0].base_reg in (REG_RA, REG_T0):
-            self.iflags |= envi.IF_RET
+        # There is no "return" instruction in RISC-V, instead a jump that
+        # doesn't save the return address and uses a jump target of the return
+        # address register (or alternate return address register) indicates a
+        # RETURN instruction:
+        #   jr ra
+        #   jr t0
+        #
+        # There is also no inherent "call" instruction in RISC-V, instead a jump
+        # that saves the return address to the return address register (or
+        # alternate return address register) indicates a CALL instruction:
+        #   jalr ra, ??
+        #   jalr t0, ??
+        #
+        # Detect either of these options now and update the instruction flags
+        # accordingly.
+        if self.opcode in (RISCV_INS.JR, RISCV_INS.C_JR):
+            if self.opers[0].base_reg in (REG_RA, REG_T0):
+                # Remove the IF_BRANCH flag and instead add IF_RET
+                self.iflags = (self.iflags & ~envi.IF_BRANCH) | envi.IF_RET
+
+        elif self.opcode in (RISCV_INS.JAL, RISCV_INS.JALR):
+            # The C.JAL, and C.JALR instructions always writes the return
+            # address to the link register/return address register, so it is
+            # automatically always set as an IF_CALL instruction.
+            if self.opers[0].reg in (REG_RA, REG_T0):
+                # Remove the IF_BRANCH flag and instead add IF_CALL
+                self.iflags = (self.iflags & ~envi.IF_BRANCH) | envi.IF_CALL
+
+        # If any of the operands indicate this instruction is a hint set the
+        # flag now, this lets the instructions decode properly but helps prevent
+        # accidentally executing an invalid instruction
+        if any(o.hint for o in self.opers):
+            self.iflags |= RISCV_IF.HINT
 
     def getBranches(self, emu=None):
         ret = []
@@ -306,7 +332,7 @@ class RiscVRegOper(envi.RegisterOper):
         if self.oflags & RISCV_OF.SIGNED:
             # tsize _must_ be set
             value = e_bits.signed(value, self.tsize)
-        emu.setRaw(op, emu, value)
+        self.setRaw(op, emu, value)
 
     def getOperAddr(self, op, emu=None):
         return None
@@ -323,7 +349,7 @@ class RiscVRegOper(envi.RegisterOper):
 
 class RiscVFRegOper(RiscVRegOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
-        super().__init__(ival, bits, args, oflags)
+        RiscVRegOper.__init__(self, ival, bits, args, oflags)
         # Offset the value by the first floating point register
         self.reg += REG_F0
 
@@ -398,7 +424,7 @@ class RiscVFRegOper(RiscVRegOper):
 
 class RiscVCSRRegOper(RiscVRegOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
-        super().__init__(ival, bits, args, va, oflags)
+        RiscVRegOper.__init__(self, ival, bits, args, va, oflags)
 
         # The register number in the instruction is a CSR meta regsiter
         self.csr_reg = self.reg
@@ -424,6 +450,9 @@ class RiscVCSRRegOper(RiscVRegOper):
 
 class RiscVMemOper(envi.DerefOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
+        # memory operands can't indicate hints
+        self.hint = False
+
         # The args for MemOper is a tuple of: base register args and a list of
         # imm args
         base_reg_args, imm_args = args
@@ -439,9 +468,6 @@ class RiscVMemOper(envi.DerefOper):
         self.oflags = oflags
 
         self._set_tsize()
-
-        # memory operands can't indicate hints
-        self.hint = False
 
     def _set_tsize(self):
         self.tsize = SIZE_CONSTS.get(self.oflags & SIZE_FLAGS)
@@ -468,7 +494,7 @@ class RiscVMemOper(envi.DerefOper):
 
         addr = self.getOperAddr(op, emu)
 
-        fmt = e_bits.fmt_chars[emu.getEndian()].get(self.tsize)
+        fmt = e_bits.fmt_chars[emu.getEndian()][self.tsize]
         if fmt is not None:
             val &= e_bits.u_maxes[self.tsize]
             emu.writeMemoryFormat(addr, fmt, val)
@@ -488,7 +514,7 @@ class RiscVMemOper(envi.DerefOper):
 
         addr = self.getOperAddr(op, emu)
 
-        fmt = e_bits.fmt_chars[emu.getEndian()].get(self.tsize)
+        fmt = e_bits.fmt_chars[emu.getEndian()][self.tsize]
         if fmt is not None:
             ret, = emu.readMemoryFormat(addr, fmt)
         elif self.tsize == 16:
@@ -537,6 +563,9 @@ class RiscVMemOper(envi.DerefOper):
 
 class RiscVMemSPOper(RiscVMemOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
+        # memory operands can't indicate hints
+        self.hint = False
+
         # The SP memory operands always use the X2 (SP) register as the base reg
         self.base_reg = REG_SP
 
@@ -553,7 +582,7 @@ class RiscVMemSPOper(RiscVMemOper):
 
 class RiscVJmpOper(RiscVMemOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
-        super().__init__(ival, bits, args, va, oflags)
+        RiscVMemOper.__init__(self, ival, bits, args, va, oflags)
 
     def setRaw(self, op, emu=None, value=None):
         # The address can't be changed during runtime
@@ -574,6 +603,9 @@ class RiscVJmpOper(RiscVMemOper):
 
 class RiscVImmOper(envi.ImmedOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
+        # immediate operands can't indicate hints
+        self.hint = False
+
         # RiscV immediate values can be split up in many weird ways, so the args
         # are a list of RiscVFieldArgs values
         value = sum(_operand_shift(ival & a.mask, a.shift) for a in args)
@@ -589,9 +621,6 @@ class RiscVImmOper(envi.ImmedOper):
             self.value = value
         self.va = va
         self.oflags = oflags
-
-        # immediate operands can't indicate hints
-        self.hint = False
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -622,7 +651,7 @@ class RiscVImmOper(envi.ImmedOper):
 
     #returns content intended to be printed to screen
     def repr(self, op):
-        return immToStr(self.getOperValue())
+        return immToStr(self.getOperValue(op))
 
     #displays the values on the canvas
     def render(self, mcanv, op, idx):
@@ -649,7 +678,7 @@ class RiscVImmOper(envi.ImmedOper):
 
 class RiscVRelJmpOper(RiscVImmOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
-        super().__init__(ival, bits, args, va, oflags)
+        RiscVImmOper.__init__(self, ival, bits, args, va, oflags)
 
         # Update the value to be PC relative
         self.value += va
@@ -668,12 +697,12 @@ class RiscVRelJmpOper(RiscVImmOper):
 
 class RiscVRMOper(RiscVImmOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
+        # customized immediate operands (RM, Order) can't indicate hints
+        self.hint = False
+
         self.va = va
         self.value = _operand_shift(ival & args.mask, args.shift)
         self.oflags = oflags
-
-        # immediate operands can't indicate hints
-        self.hint = False
 
     def repr(self, op):
         return RM_NAMES.get(self.value, 'inv')

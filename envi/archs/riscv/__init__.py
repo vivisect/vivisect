@@ -11,21 +11,22 @@ from envi.archs.riscv.info import *
 
 __all__ = [
     'RiscVModule',
+    'RiscV32Module',
+    'RiscV64Module',
 
     # Also export the objects exported from envi.archs.riscv.emu
     'RiscVCall',
-    'RiscVAbstractEmulator',
     'RiscVEmulator',
+    'RiscV32Emulator',
+    'RiscV64Emulator',
 ]
 
-class RiscVModule(envi.ArchitectureModule):
-    def __init__(self, endian=envi.ENDIAN_LSB, description=None):
-        super().__init__("riscv", endian=endian)
 
-        if description is None:
-            self.description = DEFAULT_RISCV_DESCR
-        else:
-            self.description = description
+class RiscVModule(envi.ArchitectureModule):
+    def __init__(self, archname, description, endian=envi.ENDIAN_LSB):
+        envi.ArchitectureModule.__init__(self, archname, endian=endian)
+
+        self.description = description
         self.xlen = getRiscVXLEN(self.description)
         self.psize = self.xlen // 8
 
@@ -33,15 +34,14 @@ class RiscVModule(envi.ArchitectureModule):
 
     def archGetRegCtx(self, description=None):
         if description is None:
-            return RiscVRegisterContext(description)
-        else:
-            return RiscVRegisterContext(description)
+            description = self.description
+        return RiscVRegisterContext(description)
 
     def archGetNopInstr(self):
         return b'\x00\x00\x00\x13' # NOP is emulated with addi x0, x0, 0
 
     def archGetRegisterGroups(self):
-        groups = super().archGetRegisterGroups(self)
+        groups = envi.ArchitectureModule.archGetRegisterGroups(self)
 
         # Add in the different register groups from regs.py
         groups['general'] = earr.general_registers
@@ -68,7 +68,17 @@ class RiscVModule(envi.ArchitectureModule):
             endian = self.endian
         if description is None:
             description = self.description
-        return RiscVEmulator(self, endian, description)
+        return RiscVEmulator(self, archname=self.getArchName(), description=description, endian=endian)
+
+
+class RiscV32Module(RiscVModule):
+    def __init__(self, endian=envi.ENDIAN_LSB):
+        RiscVModule.__init__(self, archname='rv32', description='RV32GC', endian=endian)
+
+
+class RiscV64Module(RiscVModule):
+    def __init__(self, endian=envi.ENDIAN_LSB):
+        RiscVModule.__init__(self, archname='rv64', description='RV64GC', endian=endian)
 
 
 # NOTE: This one must be after the definition of RiscvModule

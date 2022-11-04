@@ -1425,11 +1425,32 @@ def get_instr_flags(name, fields, priv=False):
     """
 
     flags = set()
-    if name in ('J', 'JR', 'C.JR', 'C.J'):
-        flags.add('envi.IF_CALL')
+    # Jump instructions can be used as CALL or unconditional branch
+    # instructions.  When instructions are decoded the IF_CALL or IF_RET flags
+    # will be added if necessary.
+
+    # Could be an unconditional branch, or return instruction, default to branch
+    if name in ('JR', 'C.JR'):
+        #flags.add('envi.IF_RET')
+        flags.add('envi.IF_BRANCH')
         flags.add('envi.IF_NOFALL')
-    elif name in ('JAL', 'JALR', 'C.JAL', 'C.JALR'):
+
+    # Could be an unconditional branch, or call instruction, default to branch
+    elif name in ('JAL', 'JALR'):
+        #flags.add('envi.IF_CALL')
+        flags.add('envi.IF_BRANCH')
+
+    # Always writes return address back to the return address register, is
+    # always a CALL instruction
+    elif name in ('C.JAL', 'C.JALR'):
         flags.add('envi.IF_CALL')
+
+    # Always an unconditional branch instruction
+    elif name in ('J', 'C.J'):
+        flags.add('envi.IF_BRANCH')
+        flags.add('envi.IF_NOFALL')
+
+    # Always a conditional branch instruction
     elif name in ('BEQ', 'BNE', 'BLT', 'BGE', 'BLTU', 'BGEU', 'C.BNEZ', 'C.BEQZ'):
         flags.add('envi.IF_COND')
         flags.add('envi.IF_BRANCH')

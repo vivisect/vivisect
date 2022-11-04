@@ -15,6 +15,14 @@ from envi.archs.riscv.info import *
 OPCODE_SIZE = (2, 4)
 
 
+def count_ones(value):
+    try:
+        # Only works in python 3.10+
+        return value.bit_count()
+    except AttributeError:
+        return format(value, 'b').count('1')
+
+
 class RiscVDisasm:
     def __init__(self, endian=envi.ENDIAN_LSB, description=None):
         if description is None:
@@ -32,15 +40,25 @@ class RiscVDisasm:
 
         # True = 32 bit
         # False = 16 bit
-        self.instrs = {True: {}, False: {}}
+        instrs = {True: {}, False: {}}
         for entry in instructions:
             if any(c.xlen == self.xlen and c.cat & self.categories for c in entry.cat):
-                instr_size = entry.cat[0].cat != RISCV_CAT.C
-                if entry.mask not in self.instrs[instr_size]:
-                    self.instrs[instr_size][entry.mask] = {}
-                if entry.value in self.instrs[instr_size][entry.mask]:
-                    raise Exception('ERROR: duplicate mask/value combination in RiscV instruction table %d/%x/%x: %s, %s' % (instr_size, entry.mask, entry.value, self.instrs[instr_size][entry.mask][entry.value].name, entry.name))
-                self.instrs[instr_size][entry.mask][entry.value] = entry
+                encoding = entry.cat[0].cat != RISCV_CAT.C
+                if entry.mask not in instrs[encoding]:
+                    instrs[encoding][entry.mask] = {}
+                if entry.value in instrs[encoding][entry.mask]:
+                    raise Exception('ERROR: duplicate mask/value combination in RiscV instruction table %d/%x/%x: %s, %s' % \
+                            (encoding, entry.mask, entry.value, instrs[encoding][entry.mask][entry.value].name, entry.name))
+                instrs[encoding][entry.mask][entry.value] = entry
+
+        # Reorganize the masks to have the entries with the most bits set first,
+        # this will help any simplified mnemonics or specializations to be
+        # decoded first, and the more generic instruction last.
+        self.instrs = {}
+        for encoding in instrs:
+            self.instrs[encoding] = {}
+            for mask in reversed(sorted(instrs[encoding], key=count_ones)):
+                self.instrs[encoding][mask] = instrs[encoding][mask]
 
     def setEndian(self, endian):
         self.endian = endian
@@ -64,16 +82,7 @@ class RiscVDisasm:
             if found is not None:
                 try:
                     opers = tuple(OPERCLASSES[f.type](ival=ival, bits=f.bits, args=f.args, va=va, oflags=f.flags) for f in found.fields)
-
-                    flags = found.flags
-                    # If any of the operands indicate this instruction is a hint
-                    # set the flag now, this lets the instructions decode
-                    # properly but helps prevent accidentally executing an
-                    # invalid instruction
-                    if any(o.hint for o in opers):
-                        flags |= RISCV_IF.HINT
-
-                    return RiscVOpcode(va, found.opcode, found.name, opcode_size, opers, flags)
+                    return RiscVOpcode(va, found.opcode, found.name, opcode_size, opers, found.flags)
 
                 except envi.InvalidOperand:
                     # One of the operands has a restricted value so the
