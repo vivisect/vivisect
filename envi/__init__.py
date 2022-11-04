@@ -23,7 +23,8 @@ ARCH_THUMB16     = 4 << 16
 ARCH_THUMB       = 5 << 16
 ARCH_MSP430      = 6 << 16
 ARCH_H8          = 7 << 16
-ARCH_RISCV       = 8 << 16
+ARCH_RISCV32     = 8 << 16
+ARCH_RISCV64     = 9 << 16
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
 arch_names = {
@@ -35,7 +36,8 @@ arch_names = {
     ARCH_THUMB:     'thumb',
     ARCH_MSP430:    'msp430',
     ARCH_H8:        'h8',
-    ARCH_RISCV:     'riscv',
+    ARCH_RISCV32:   'rv32',
+    ARCH_RISCV64:   'rv64',
 }
 
 arch_by_name = {
@@ -50,7 +52,8 @@ arch_by_name = {
     'thumb2':   ARCH_THUMB,
     'msp430':   ARCH_MSP430,
     'h8':       ARCH_H8,
-    'riscv':    ARCH_RISCV,
+    'rv32':     ARCH_RISCV32,
+    'rv64':     ARCH_RISCV64,
 }
 
 # Instruction flags (The first 8 bits are reserved for arch independant use)
@@ -539,6 +542,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self._emu_call_convs = {}
         self._emu_opts = {}
         self._emu_optdocs = {}
+
+        self.populateOpMethods()
 
     def populateOpMethods(self):
         # Automagically setup an instruction mnemonic handler dict
@@ -1319,9 +1324,14 @@ def getArchModule(name=None):
         import envi.archs.h8 as e_h8
         return e_h8.H8Module()
 
-    elif name in ('riscv',):
+    elif name in ('riscv', 'riscv32', 'rv32', 'RV32'):
         import envi.archs.riscv as e_riscv
-        return e_riscv.RiscVModule()
+        return e_riscv.RiscV32Module()
+
+    elif name in ('riscv64', 'rv64', 'RV64'):
+        import envi.archs.riscv as e_riscv
+        return e_riscv.RiscV64Module()
+
     else:
         raise ArchNotImplemented(name)
 
@@ -1348,7 +1358,8 @@ def getArchModules(default=ARCH_DEFAULT):
     archs.append(e_thumb16.ThumbModule())
     archs.append(e_msp430.Msp430Module())
     archs.append(e_h8.H8Module())
-    archs.append(e_riscv.RiscVModule())
+    archs.append(e_riscv.RiscV32Module())
+    archs.append(e_riscv.RiscV64Module())
 
     # Set the default module ( or None )
     archs[ARCH_DEFAULT] = archs[default >> 16]
