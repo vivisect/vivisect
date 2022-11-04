@@ -53,14 +53,14 @@ class RiscVDisasm:
 
     def disasm(self, data, offset, va):
         # TODO: If RiscV ever supports Big Endian this may change
-        opcode_size = data[offset] & 0x3 == 0x3
-        opcode_bytes = OPCODE_SIZE[opcode_size]
+        opcode_encoding = data[offset] & 0x3 == 0x3
+        opcode_size = OPCODE_SIZE[opcode_encoding]
 
-        ival = struct.unpack_from(self.fmt[opcode_size], data, offset)[0]
+        ival = struct.unpack_from(self.fmt[opcode_encoding], data, offset)[0]
 
-        for mask in self.instrs[opcode_size]:
+        for mask in self.instrs[opcode_encoding]:
             masked_value = ival & mask
-            found = self.instrs[opcode_size][mask].get(masked_value)
+            found = self.instrs[opcode_encoding][mask].get(masked_value)
             if found is not None:
                 try:
                     opers = tuple(OPERCLASSES[f.type](ival=ival, bits=f.bits, args=f.args, va=va, oflags=f.flags) for f in found.fields)
@@ -73,14 +73,14 @@ class RiscVDisasm:
                     if any(o.hint for o in opers):
                         flags |= RISCV_IF.HINT
 
-                    return RiscVOpcode(va, found.opcode, found.name, opcode_bytes, opers, flags)
+                    return RiscVOpcode(va, found.opcode, found.name, opcode_size, opers, flags)
 
                 except envi.InvalidOperand:
                     # One of the operands has a restricted value so the
                     # instruction doesn't decode properly, try a different one
                     pass
         else:
-            raise envi.InvalidInstruction(data[offset:offset+opcode_bytes], 'No Instruction Matched: %x' % ival, va)
+            raise envi.InvalidInstruction(data[offset:offset+opcode_size], 'No Instruction Matched: %x' % ival, va)
 
 
 OPERCLASSES = {

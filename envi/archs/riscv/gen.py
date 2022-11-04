@@ -874,7 +874,18 @@ def copy_carried_over_instrs(instrs, from_instrs, to_instrs):
             instrs[to_instrs] = {}
         if name not in instrs[to_instrs]:
             for instr in instrs[from_instrs][name]:
-                add_instr(instrs, name, [to_instrs], instr.form, instr.fields, instr.notes, priv=False)
+                # First confirm that there is not already an instruction in the
+                # new category with a duplicate mask/value
+                dup = False
+                for new_name in instrs[to_instrs]:
+                    for new_instr in instrs[to_instrs][new_name]:
+                        if new_instr.mask == instr.mask and new_instr.value == instr.value:
+                            dup = True
+                            print('Not copying %s from %s to %s' % (name, from_instrs, to_instrs))
+                            break
+
+                if not dup:
+                    add_instr(instrs, name, [to_instrs], instr.form, instr.fields, instr.notes, priv=False)
 
 
 def scrape_instrs(git_repo):
@@ -956,6 +967,9 @@ def scrape_instrs(git_repo):
     with open(git_repo + '/src/rvc-instr-table.tex', 'r') as f:
         instr_table = f.read()
     _, rvc_instrs = scrape_instr_table(instr_table, default_cat='RV32C', forms=rvc_forms)
+
+    copy_carried_over_instrs(rvc_instrs, 'RV32C', 'RV64C')
+    copy_carried_over_instrs(rvc_instrs, 'RV64C', 'RV128C')
 
     for cat, data in rvc_instrs.items():
         if cat not in instrs:
@@ -1862,7 +1876,7 @@ __all__ = ['instructions']
                             # "constant" 0 offset field argument that will consume
                             # no bits but ensure the load/store operand has a valid
                             # offset
-                            imm_fields = [('zero', Field('zero', type=OpcodeType.IMM, columns=0, bits=0, mask=0, shift=0))]
+                            imm_fields = [('0', Field('0', type=OpcodeType.IMM, columns=0, bits=0, mask=0, shift=0))]
                             imm_args = ((0, 0),)
                         else:
                             imm_args = create_imm_mask_and_shifts(imm_fields)

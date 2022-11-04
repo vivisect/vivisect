@@ -1,8 +1,9 @@
 import envi
 import envi.bits as e_bits
-from envi.archs.riscv.regs import riscv_regs, REG_SP, REG_ZERO
+from envi.archs.riscv.regs import riscv_regs, REG_SP, REG_ZERO, REG_RA, REG_T0
 from envi.archs.riscv.regs_gen import csr_regs
-from envi.archs.riscv.const import RISCV_OF, FLOAT_CONSTS, SIZE_FLAGS, SIZE_CONSTS
+from envi.archs.riscv.const import RISCV_OF, RISCV_INS, FLOAT_CONSTS, \
+        SIZE_FLAGS, SIZE_CONSTS
 
 
 __all__ = [
@@ -134,9 +135,31 @@ def float_to_int(value, oflags):
         return exp | frac
 
 
+def addrToName(mcanv, va):
+    sym = mcanv.syms.getSymByAddr(va)
+    if sym is not None:
+        return repr(sym)
+    return "0x%.4x" % va
+
+
+def immToStr(val):
+    if abs(val) >= 1024:
+        return hex(val)
+    else:
+        return str(val)
+
+
 class RiscVOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, size, opers, iflags=0):
         super().__init__(va, opcode, mnem, 0, size, opers, iflags)
+
+        # There is no "return" instruction in RISC-V, instead a "jr ra"
+        # (or "jr t0" - using the alternate return register)
+        # instruction is a return
+        if self.opcode in (RISCV_INS.JR, RISCV_INS.C_JR) and \
+                len(self.opers) == 1 and \
+                self.opers[0].base_reg in (REG_RA, REG_T0):
+            self.iflags |= envi.IF_RET
 
     def getBranches(self, emu=None):
         ret = []
@@ -497,18 +520,16 @@ class RiscVMemOper(envi.DerefOper):
         emu.setRegObj(self.base_reg, rval)
 
     def render(self, mcanv, op, idx):
-        mcanv.addNameText(hex(self._get_offset()))
+        mcanv.addNameText(immToStr(self._get_offset()))
         mcanv.addText('(')
-        if self.base_reg == 0:
-            mcanv.addNameText('0x0')
-        else:
-            base = riscv_regs.getRegisterName(self.base_reg)
-            mcanv.addNameText(base, typename='registers')
+        base = riscv_regs.getRegisterName(self.base_reg)
+        mcanv.addNameText(base, typename='registers')
         mcanv.addText(')')
 
     def repr(self, op):
+        offset = immToStr(self._get_offset())
         base = riscv_regs.getRegisterName(self.base_reg)
-        return f'{hex(self._get_offset())}({base})'
+        return '%s(%s)' % (offset, base)
 
     def getWidth(self, emu):
         return self.tsize
@@ -601,11 +622,11 @@ class RiscVImmOper(envi.ImmedOper):
 
     #returns content intended to be printed to screen
     def repr(self, op):
-        return hex(self.value)
+        return immToStr(self.getOperValue())
 
     #displays the values on the canvas
     def render(self, mcanv, op, idx):
-        value = self.value
+        value = self.getOperValue(op)
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint != None:
             if mcanv.mem.isValidPointer(value):
@@ -616,11 +637,7 @@ class RiscVImmOper(envi.ImmedOper):
             name = addrToName(mcanv, value)
             mcanv.addVaText(name, value)
         else:
-
-            if abs(self.value) >= 4096:
-                mcanv.addNameText(hex(value))
-            else:
-                mcanv.addNameText(str(value))
+            mcanv.addNameText(immToStr(value))
 
     #no def involvesPC needed correct?
     def involvesPC(self):
@@ -639,6 +656,14 @@ class RiscVRelJmpOper(RiscVImmOper):
 
     def involvesPC(self):
         return True
+
+    def render(self, mcanv, op, idx):
+        value = self.getOperValue(op)
+        if mcanv.mem.isValidPointer(value):
+            name = addrToName(mcanv, value)
+            mcanv.addVaText(name, value)
+        else:
+            mcanv.addVaText('0x%.8x' % value, value)
 
 
 class RiscVRMOper(RiscVImmOper):
