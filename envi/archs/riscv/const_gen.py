@@ -136,45 +136,48 @@ class RISCV_INS(enum.IntEnum):
 # Additional RiscV-specific instruction flags
 class RISCV_IF(enum.IntFlag):
     # Indicate normal load/store instructions
-    LOAD        = 1 << 8
-    STORE       = 1 << 9
+    LOAD         = 1 << 8
+    STORE        = 1 << 9
 
     # Indicate this is a compressed load/store instruction that uses the SP (x2)
     # as the base register
-    LOAD_SP     = 1 << 10
-    STORE_SP    = 1 << 11
+    LOAD_SP      = 1 << 10
+    STORE_SP     = 1 << 11
 
     # acquire or release spinlock flags
-    AQ          = 1 << 12
-    RL          = 1 << 13
+    AQ           = 1 << 12
+    RL           = 1 << 13
 
     # This instruction is a hint form
-    HINT        = 1 << 14
+    HINT         = 1 << 14
 
 
 # RiscV operand flags
 class RISCV_OF(enum.IntFlag):
     # Restriction flags
-    SRC         = 1 << 1
-    DEST        = 1 << 2
-    NOT_ZERO    = 1 << 3
-    NOT_TWO     = 1 << 4
-    HINT_ZERO   = 1 << 5  # Indicates that if this operand has a value of zero,
-                          # this instruction is a HINT and not an actual
-                          # instruction to execute
-    SIGNED      = 1 << 6
-    UNSIGNED    = 1 << 7
+    SRC           = 1 << 1
+    DEST          = 1 << 2
+    NOT_ZERO      = 1 << 3
+    NOT_TWO       = 1 << 4
+    HINT_ZERO     = 1 << 5  # Indicates that if this operand has a value of
+                            # zero, this instruction is a HINT and not an
+                            # actual instruction to execute
+    HINT_NOT_ZERO = 1 << 6  # Indicates that if this operand has a value of
+                            # zero, this instruction is a HINT and not an
+                            # actual instruction to execute
+    SIGNED        = 1 << 7
+    UNSIGNED      = 1 << 8
 
     # Register is "compressed"
-    CREG        = 1 << 8
+    CREG          = 1 << 9
 
     # Flags used to indicate size these definitions match those used in the
     # RiscV manual
-    BYTE        = 1 << 9   # 1 byte
-    HALFWORD    = 1 << 10  # 2 bytes
-    WORD        = 1 << 11  # 4 bytes
-    DOUBLEWORD  = 1 << 12  # 8 bytes
-    QUADWORD    = 1 << 13  # 16 bytes
+    BYTE          = 1 << 10   # 1 byte
+    HALFWORD      = 1 << 11  # 2 bytes
+    WORD          = 1 << 12  # 4 bytes
+    DOUBLEWORD    = 1 << 13  # 8 bytes
+    QUADWORD      = 1 << 14  # 16 bytes
 
 # Standard types used in the generated instruction list
 RiscVInsCat = namedtuple('RiscVInsCat', ['xlen', 'cat'])

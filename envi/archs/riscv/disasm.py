@@ -77,8 +77,7 @@ class RiscVDisasm:
         ival = struct.unpack_from(self.fmt[opcode_encoding], data, offset)[0]
 
         for mask in self.instrs[opcode_encoding]:
-            masked_value = ival & mask
-            found = self.instrs[opcode_encoding][mask].get(masked_value)
+            found = self.instrs[opcode_encoding][mask].get(ival & mask)
             if found is not None:
                 try:
                     opers = tuple(OPERCLASSES[f.type](ival=ival, bits=f.bits, args=f.args, va=va, oflags=f.flags) for f in found.fields)

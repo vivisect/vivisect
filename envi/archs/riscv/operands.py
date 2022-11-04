@@ -1,6 +1,7 @@
 import envi
 import envi.bits as e_bits
-from envi.archs.riscv.regs import riscv_regs, REG_SP, REG_ZERO, REG_RA, REG_T0
+from envi.archs.riscv.regs import riscv_regs, REG_SP, REG_ZERO, REG_RA, \
+        REG_T0, REG_FT0
 from envi.archs.riscv.regs_gen import csr_regs
 from envi.archs.riscv.const import RISCV_OF, RISCV_INS, FLOAT_CONSTS, \
         SIZE_FLAGS, SIZE_CONSTS
@@ -262,7 +263,8 @@ class RiscVRegOper(envi.RegisterOper):
         if (oflags & RISCV_OF.NOT_ZERO and value == 0) or \
                 (oflags & RISCV_OF.NOT_TWO and value == 2):
             raise envi.InvalidOperand(value)
-        elif (oflags & RISCV_OF.HINT_ZERO and value == 0):
+        elif (oflags & RISCV_OF.HINT_ZERO and value == 0) or \
+                (oflags & RISCV_OF.HINT_NOT_ZERO and value != 0):
             self.hint = True
         else:
             self.hint = False
@@ -351,53 +353,53 @@ class RiscVFRegOper(RiscVRegOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
         RiscVRegOper.__init__(self, ival, bits, args, oflags)
         # Offset the value by the first floating point register
-        self.reg += REG_F0
+        self.reg += REG_FT0
 
     def isZero(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return self.getRaw(self, op, emu) == 0
+        return self.getRaw(op, emu) == 0
 
     def isNormal(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return bool(self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].emask)
+        return bool(self.getRaw(op, emu) & FLOAT_CONSTS[flags].emask)
 
     def isSubnormal(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return not bool(self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].emask)
+        return not bool(self.getRaw(op, emu) & FLOAT_CONSTS[flags].emask)
 
     def isNeg(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return bool(self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].sign)
+        return bool(self.getRaw(op, emu) & FLOAT_CONSTS[flags].sign)
 
     def isPos(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return not bool(self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].sign)
+        return not bool(self.getRaw(op, emu) & FLOAT_CONSTS[flags].sign)
 
     def isInf(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return self.getRaw(self, op, emu) in FLOAT_CONSTS[flags].inf
+        return self.getRaw(op, emu) in FLOAT_CONSTS[flags].inf
 
     def isSNaN(sele, op, emu):
         flags = oflags & SIZE_FLAGS
-        return self.getRaw(self, op, emu) in FLOAT_CONSTS[flags].snan
+        return self.getRaw(op, emu) in FLOAT_CONSTS[flags].snan
 
     def isQNaN(self, op, emu):
         flags = oflags & SIZE_FLAGS
-        return self.getRaw(self, op, emu) in FLOAT_CONSTS[flags].qnan
+        return self.getRaw(op, emu) in FLOAT_CONSTS[flags].qnan
 
     def getSign(self, op, emu):
         """
         return only the sign bit
         """
         flags = oflags & SIZE_FLAGS
-        return self.getRaw(self, op, emu) & FLOAT_CONSTS[flags].sign
+        return self.getRaw(op, emu) & FLOAT_CONSTS[flags].sign
 
     def getNegSign(self, op, emu):
         """
         return the negated sign bit
         """
         flags = oflags & SIZE_FLAGS
-        neg_sign = self.getRaw(self, op, emu) ^ FLOAT_CONSTS[flags].sign
+        neg_sign = self.getRaw(op, emu) ^ FLOAT_CONSTS[flags].sign
         return neg_sign & FLOAT_CONSTS[flags].sign
 
     def getAbs(self, op, emu):
@@ -405,14 +407,14 @@ class RiscVFRegOper(RiscVRegOper):
         return the number without the sign bit
         """
         flags = oflags & SIZE_FLAGS
-        return self.getRaw(self, op, emu) & ~FLOAT_CONSTS[flags].sign
+        return self.getRaw(op, emu) & ~FLOAT_CONSTS[flags].sign
 
     def getOperValue(self, op, emu=None):
         """
         Utility function to get the floating point representation of the value
         in this operand's register.
         """
-        return int_to_float(self.getRaw(self, op, emu), self.oflags)
+        return int_to_float(self.getRaw(op, emu), self.oflags)
 
     def setOperValue(self, op, emu=None, val=None):
         """

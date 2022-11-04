@@ -808,9 +808,10 @@ def scrape_instr_table(text, default_cat=None, forms=None, priv=False):
 
                         # If there was an extra note add it to the notes list
                         if extra is not None:
-                            notes.append(extra)
+                            notes.append(extra.replace('(', '').replace(')', ''))
                     elif note:
-                        notes.append(note)
+                        # Remove any parenthesis from the note
+                        notes.append(note.replace('(', '').replace(')', ''))
 
                 # If the category list is still empty, use the default category
                 if not cat_list:
@@ -825,7 +826,7 @@ def scrape_instr_table(text, default_cat=None, forms=None, priv=False):
 
                 # Now find the bit width of the fields
                 op_fields = get_field_info(instr_name, descr, columns)
-                add_instr(instructions, instr_name, cat_list, form_name, op_fields, tuple(notes), priv=priv)
+                add_instr(instructions, instr_name, cat_list, form_name, op_fields, notes, priv=priv)
         else:
             # If there are any category names found, add them to the instruction
             # table
@@ -967,6 +968,37 @@ def scrape_instrs(git_repo):
     with open(git_repo + '/src/rvc-instr-table.tex', 'r') as f:
         instr_table = f.read()
     _, rvc_instrs = scrape_instr_table(instr_table, default_cat='RV32C', forms=rvc_forms)
+
+    print('Fixing C.NOP')
+    # C.NOP in the RVC tables incorrectly (or used to) has an "nzimm" param,
+    # where it should be "imm", also fix the note to be imm!=0
+
+    for cat in rvc_instrs.keys():
+        if 'C.NOP' in rvc_instrs[cat]:
+            new_instrs = []
+            for instr in rvc_instrs[cat]['C.NOP']:
+                new_fields = []
+                for field in instr.fields:
+                    if 'nzimm' in field.value:
+                        field_name = 'imm%s' % field.value[5:]
+                        new_field = Field(field_name, field.type, field.columns,
+                                field.bits, field.mask, field.shift)
+                        new_fields.append(new_field)
+                    else:
+                        new_fields.append(field)
+
+                new_notes = []
+                for note in instr.notes:
+                    if note == 'HINT, nzimm$\\neq$0':
+                        new_notes.append('HINT, imm$\\neq$0')
+                    else:
+                        new_notes.append(note)
+
+                new_instr = Op(instr.name, instr.cat, instr.form, instr.mask,
+                               instr.value, new_fields, instr.flags, new_notes)
+                new_instrs.append(new_instr)
+
+            rvc_instrs[cat]['C.NOP'] = new_instrs
 
     copy_carried_over_instrs(rvc_instrs, 'RV32C', 'RV64C')
     copy_carried_over_instrs(rvc_instrs, 'RV64C', 'RV128C')
@@ -1265,6 +1297,10 @@ def get_field_flags(instr_name, notes, name, field):
     # First check if there is a hint form of this instruction
     if 'rd' in name and 'HINT, rd=0' in notes:
         flags.add('RISCV_OF.HINT_ZERO')
+    elif 'nzimm' in name and 'HINT, nzimm=0' in notes:
+        flags.add('RISCV_OF.HINT_ZERO')
+    elif 'imm' in name and 'HINT, imm$\\neq$0' in notes:
+        flags.add('RISCV_OF.HINT_NOT_ZERO')
 
     # Then look for specific field names that indicate restrictions on valid
     # values
@@ -1780,45 +1816,48 @@ def export_instrs(forms, instrs, git_info):
 # Additional RiscV-specific instruction flags
 class RISCV_IF(enum.IntFlag):
     # Indicate normal load/store instructions
-    LOAD        = 1 << 8
-    STORE       = 1 << 9
+    LOAD         = 1 << 8
+    STORE        = 1 << 9
 
     # Indicate this is a compressed load/store instruction that uses the SP (x2)
     # as the base register
-    LOAD_SP     = 1 << 10
-    STORE_SP    = 1 << 11
+    LOAD_SP      = 1 << 10
+    STORE_SP     = 1 << 11
 
     # acquire or release spinlock flags
-    AQ          = 1 << 12
-    RL          = 1 << 13
+    AQ           = 1 << 12
+    RL           = 1 << 13
 
     # This instruction is a hint form
-    HINT        = 1 << 14
+    HINT         = 1 << 14
 
 
 # RiscV operand flags
 class RISCV_OF(enum.IntFlag):
     # Restriction flags
-    SRC         = 1 << 1
-    DEST        = 1 << 2
-    NOT_ZERO    = 1 << 3
-    NOT_TWO     = 1 << 4
-    HINT_ZERO   = 1 << 5  # Indicates that if this operand has a value of zero,
-                          # this instruction is a HINT and not an actual
-                          # instruction to execute
-    SIGNED      = 1 << 6
-    UNSIGNED    = 1 << 7
+    SRC           = 1 << 1
+    DEST          = 1 << 2
+    NOT_ZERO      = 1 << 3
+    NOT_TWO       = 1 << 4
+    HINT_ZERO     = 1 << 5  # Indicates that if this operand has a value of
+                            # zero, this instruction is a HINT and not an
+                            # actual instruction to execute
+    HINT_NOT_ZERO = 1 << 6  # Indicates that if this operand has a value of
+                            # zero, this instruction is a HINT and not an
+                            # actual instruction to execute
+    SIGNED        = 1 << 7
+    UNSIGNED      = 1 << 8
 
     # Register is "compressed"
-    CREG        = 1 << 8
+    CREG          = 1 << 9
 
     # Flags used to indicate size these definitions match those used in the
     # RiscV manual
-    BYTE        = 1 << 9   # 1 byte
-    HALFWORD    = 1 << 10  # 2 bytes
-    WORD        = 1 << 11  # 4 bytes
-    DOUBLEWORD  = 1 << 12  # 8 bytes
-    QUADWORD    = 1 << 13  # 16 bytes
+    BYTE          = 1 << 10   # 1 byte
+    HALFWORD      = 1 << 11  # 2 bytes
+    WORD          = 1 << 12  # 4 bytes
+    DOUBLEWORD    = 1 << 13  # 8 bytes
+    QUADWORD      = 1 << 14  # 16 bytes
 ''')
 
         # Now write the namedtuple types used in construction of the instruction

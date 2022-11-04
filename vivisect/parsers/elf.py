@@ -130,7 +130,7 @@ arch_names = {
     Elf.EM_386: 'i386',
     Elf.EM_X86_64: 'amd64',
     Elf.EM_MSP430: 'msp430',
-    Elf.EM_RISCV: 'riscv',
+    Elf.EM_RISCV: {32: 'rv32', 64: 'rv64'},
 }
 
 archcalls = {
@@ -139,7 +139,8 @@ archcalls = {
     'arm': 'armcall',
     'thumb': 'armcall',
     'thumb16': 'armcall',
-    'riscv': 'riscvcall',
+    'rv32': 'riscvcall',
+    'rv64': 'riscvcall',
 }
 
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
@@ -149,8 +150,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     new_functions = []
 
     arch = arch_names.get(elf.e_machine)
+    if isinstance(arch, dict):
+        arch = arch.get(elf.bits)
     if arch is None:
-       raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
+        raise Exception("Unsupported Architecture: %d (%d bits)\n" % (elf.e_machine, elf.bits))
 
     platform = elf.getPlatform()
 
@@ -632,6 +635,12 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     # mark all the entry points for analysis later
     for cmnt, fva in new_functions:
+        # If the address of the potential new function is the ELF base address
+        # (therefore something that had an offset of 0, and points to the ELF
+        # header itself), skip it
+        if fva == baseaddr:
+            continue
+
         logger.info('adding function from ELF metadata: 0x%x (%s)', fva, cmnt)
         vw.addEntryPoint(fva)   # addEntryPoint queue's code analysis for later in the analysis pass
 
