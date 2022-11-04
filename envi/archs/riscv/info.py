@@ -75,7 +75,7 @@ _valid_xlen = [
 ]
 
 _xlen_pat = r'((?:' + r')|(?:'.join(_valid_xlen) + r'))'
-_cat_pat = r'(?:(' + r')|('.join(c.name for c in RISCV_CAT) + r'))+'
+_cat_pat = r'(?:_?(' + r')|_?('.join(c.name for c in RISCV_CAT) + r'))+'
 _arch_pat = re.compile(r'^RV%s%s$' % (_xlen_pat, _cat_pat))
 
 
