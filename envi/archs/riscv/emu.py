@@ -50,6 +50,22 @@ class RiscVCall(envi.CallingConvention):
     pad = 0
 
 
+RISCV_ABI_NAME = {
+    32: {
+        None:   'ilp32',
+        32:     'ilp32f',
+        64:     'ilp32d',
+        128:    'ilp32q',  # ABI not defined?
+    },
+    64: {
+        None:   'lp64',
+        32:     'lp64f',
+        64:     'lp64d',
+        128:    'lp64q',
+    },
+}
+
+
 class RiscVAbstractEmulator(envi.Emulator):
     def __init__(self, archmod=None, endian=ENDIAN_LSB, description=None):
         if description is None:
@@ -58,12 +74,31 @@ class RiscVAbstractEmulator(envi.Emulator):
             self.description = description
 
         self.xlen = getRiscVXLEN(self.description)
+        self.flen = getRiscVFLEN(self.description)
         self.psize = self.xlen // 8
 
         envi.Emulator.__init__(self, archmod=archmod)
 
         self.setEndian(endian)
-        self.addCallingConvention("riscvcall", RiscVCall)
+
+        # Technically these are the standard names for the RISC-V calling
+        # conventions:
+        #   ilp32  (not used)
+        #   ilp32f
+        #   ilp32d default for RV32
+        #   ilp32e (not used)
+        #   lp64   (not used)
+        #   lp64f
+        #   lp64d  default for RV64
+        #   lp64q
+        #
+        # But the differences between those ABIs only specifies the size of
+        # floating point values that can be passed as parameters, but because
+        # the FLEN changes when the F/D/Q features are used, all of those
+        # calling conventions are effectively the same. For the purposes of
+        # showing correct information we will use the correct calling convention
+        # name here.
+        self.addCallingConvention(RISCV_ABI_NAME[self.xlen][self.flen], RiscVCall)
 
     def populateOpMethods(self):
         # The instruction list is a sequential integer enumeration so the list

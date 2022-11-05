@@ -139,8 +139,11 @@ archcalls = {
     'arm': 'armcall',
     'thumb': 'armcall',
     'thumb16': 'armcall',
-    'rv32': 'riscvcall',
-    'rv64': 'riscvcall',
+
+    # Assume the default calling convention names for the standard RISC-V 32 and
+    # 64-bit architectures
+    'rv32': 'ilp32d',
+    'rv64': 'lp64d',
 }
 
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
