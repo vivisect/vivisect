@@ -210,7 +210,7 @@ def branch_misc(va, val, val2):  # bl and misc control
     imm8 = val2 & 0b1111
 
     if (op1 & 0b101 == 0):
-        if not (op & 0b0111000) == 0b0111000:  # T3 encoding - conditional
+        if not (op & 0b0111000) == 0b0111000:  # Bcc  - T3 encoding - conditional
             cond = (val >> 6) & 0xf
             opcode, mnem, nflags, cond = bcc_ops.get(cond)
             flags = envi.IF_BRANCH | nflags
@@ -219,15 +219,13 @@ def branch_misc(va, val, val2):  # bl and misc control
             S = (val >> 10) & 1
             j1 = (val2 >> 13) & 1
             j2 = (val2 >> 11) & 1
-            i1 = ~ (j1 ^ S) & 0x1
-            i2 = ~ (j2 ^ S) & 0x1
 
-            imm = (S << 24) | (i1 << 23) | (i2 << 22) | (
-                (val & 0x3ff) << 12) | ((val2 & 0x7ff) << 1)
+            imm = (S << 20) | (j2 << 19) | (j1 << 18) | (
+                (val & 0x3f) << 12) | ((val2 & 0x7ff) << 1)
 
-            # sign extend a 23-bit number
+            # sign extend a 21-bit number
             if S:
-                imm |= 0xff100000
+                imm |= 0xffe00000
 
             oper0 = ArmPcOffsetOper(e_bits.signed(imm, 4), va=va)
             return cond, opcode, 'b', (oper0, ), flags, 0
@@ -404,7 +402,7 @@ def branch_misc(va, val, val2):  # bl and misc control
                                  bytez=struct.pack("<H", val)+struct.pack("<H", val2),
                                  va=va-4)
 
-    elif op1 & 0b101 == 1:  # T4 encoding
+    elif op1 & 0b101 == 1:  # Bcc  - T4 encoding
         opcode = INS_B
         flags = envi.IF_BRANCH | IF_THUMB32 | envi.IF_NOFALL
 
@@ -415,12 +413,12 @@ def branch_misc(va, val, val2):  # bl and misc control
         i1 = not (j1 ^ S)
         i2 = not (j2 ^ S)
 
-        imm = (S << 20) | (i1 << 18) | (i2 << 19) | (
-            (val & 0x3f) << 12) | ((val2 & 0x7ff) << 1)
+        imm = (S << 24) | (i2 << 23) | (i1 << 22) | (
+            (val & 0x3ff) << 12) | ((val2 & 0x7ff) << 1)
 
-        # sign extend a 20-bit number
+        # sign extend a 25-bit number
         if S:
-            imm |= 0xfff00000
+            imm |= 0xfe000000
 
         oper0 = ArmPcOffsetOper(e_bits.signed(imm, 4), va=va)
         return COND_AL, opcode, 'b', (oper0, ), flags, 0
@@ -666,7 +664,7 @@ class ThumbITOper(ArmOperand):
         fcond = cond_codes.get(cond)
         mcanv.addText("%s" % (fcond))
 
-    def getOperValue(self, idx, emu=None):
+    def getOperValue(self, idx, emu=None, codeflow=False):
         return None
 
 
@@ -1201,13 +1199,12 @@ def ldrb_memhints_32(va, val1, val2):
                 return COND_AL, opcode, mnem, opers, flags, 0
 
             elif (val2 >> 11) & 1:
-                # LDRB (register)
+                # LDRB (register)   (immediate T3)
                 opcode, mnem, flags = ldrb_instrs[Sbit]
                 imm8 = val2 & 0xff
                 pubwl = ((val2 >> 6) & 0x18) | ((val2 >> 7) & 2)
                 opers = (ArmRegOper(rt),
-                         # ArmImmOffsetOper(rn, imm8, va, pubwl)  # FIXME: deprecated
-                         ArmImmOffsetOper(rn, imm8, va, tsize=1)
+                         ArmImmOffsetOper(rn, imm8, va, pubwl, tsize=1),  # FIXME: deprecated... and yet necessary. wtfo?
                 )
                 return COND_AL, opcode, mnem, opers, flags, 0
 

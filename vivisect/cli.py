@@ -184,7 +184,12 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         regex = re.compile(line, re.I)
         for va, name in self.getNames():
             if regex.search(name):
-                self.vprint('0x%.8x: %s' % (va, name))
+                ftup = self.getFileAndOffset(va)
+                if ftup:
+                    fname, fbase, off = ftup
+                    self.vprint('0x%.8x: %s  (%r + 0x%x)' % (va, name, fname, off))
+                else:
+                    self.vprint("WARNING: 0x%x: %r  doesn't exist in a file!" % (va, name))
 
     def do_save(self, line):
         """
@@ -777,6 +782,106 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         import vivisect.vdbext as viv_vdbext
         viv_vdbext.runVdb(self._viv_gui)
 
+    def do_switch(self, line):
+        '''
+        Wire up a switch case.  
+
+        Usage: switch <jmp_va> <count> [offset]
+            where:
+                jmp_va  - the va of the  "jmp reg" instruction
+                count   - number of switch case indices are covered by this switch case jmp
+                offset  - first switch case index.
+            
+            eg: switch case handles i == 32 thru 47, count = 16, offset = 32
+        '''
+        if not line:
+            return self.do_help("switch")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) < 2:
+            return self.do_help("switch")
+
+        offset = 0
+        try:
+            if argv[0].startswith("0x"):
+                jmpva = int(argv[0], 16)
+            else:
+                jmpva = int(argv[0])
+
+            if argv[1].startswith("0x"):
+                count = int(argv[1], 16)
+            else:
+                count = int(argv[1])
+
+            if len(argv) == 3:
+                if argv[2].startswith("0x"):
+                    offset = int(argv[2], 16)
+                else:
+                    offset = int(argv[2])
+
+            import vivisect.analysis.generic.symswitchcase as vagss
+            import vivisect.analysis.generic.codeblocks as vagc
+            sc = vagss.SwitchCase(self, jmpva)
+            sc.makeSwitch(count, offset)
+            funcva = self.getFunction(jmpva)
+            vagc.analyzeFunction(self, funcva)
+        except ValueError as e:
+            self.vprint("exception: %r" % e)
+            return self.do_help("switch")
+
+    def do_m_switch(self, line):
+        '''
+        Wire up a switch-case based on an array of pointers
+
+        Usage: m_switch <jmp_va> <array_va> <count> [baseva] [offset] [size]
+            where:
+                jmp_va  - the va of the  "jmp reg" instruction
+                array_va - the location of the first pointer in the array
+                count   - number of switch case indices are covered by this switch case jmp
+                baseva  - add the offset to this address (eg. _GOT_)
+                offset  - first switch case index.
+                [size]  - size (default: pointer size)
+            
+            eg: switch case handles i == 32 thru 47, count = 16, offset = 32
+        '''
+        if not line:
+            return self.do_help("m_switch")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) < 3:
+            return self.do_help("m_switch")
+
+        size = 0
+        baseva = 0
+        offset = 0
+        try:
+            jmpva = self.parseExpression(argv[0])
+            array = self.parseExpression(argv[1])
+            count = self.parseExpression(argv[2])
+
+            if len(argv) > 3:
+                baseva = self.parseExpression(argv[3])
+
+            if len(argv) > 4:
+                offset = self.parseExpression(argv[4])
+
+            if len(argv) > 5:
+                size = self.parseExpression(argv[5])
+
+            # link up the switchcase using data provided
+            import vivisect.analysis.generic.symswitchcase as vagss
+            import vivisect.analysis.generic.codeblocks as vagc
+            vagss.link_up(self, jmpva, array, count, offset, baseva, size)
+
+            # reanalyze codeblocks for the function (since it should have changed)
+            funcva = self.getFunction(jmpva)
+            if funcva is not None:
+                vagc.analyzeFunction(self, funcva)
+
+        except ValueError as e:
+            self.vprint("exception: %r" % e)
+            return self.do_help("m_switch")
+
     def do_plt(self, line):
         '''
         Parse an entire PLT Section
@@ -809,3 +914,54 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         import vivisect.analysis.elf.elfplt as vaee
         vaee.analyzeFunction(self, fva)
+
+    def do_leaders(self, line):
+        '''
+        Manage Leader Sessions.  This is useful if sessions are left hanging 
+        if a leader disconnects.
+        
+        Usage: leaders (list,kill,killall)
+
+            list - show leader sessions
+            kill <uuidhex> - kill a particular session
+            killall - kill all leader sessions for a given binary
+            mod <uuid> <user> <sessionname> - rename a leader session/user
+
+        Example:
+            leaders kill 197a7797ba1511ecbe41091ba860c051
+        '''
+        if not line:
+            return self.do_help("leaders")
+
+        argv = e_cli.splitargs(line)
+        try:
+            if argv[0] == 'list':
+                self.vprint("Current Leader Sessions:")
+                for uuid, (user, fname) in self.getLeaderSessions().items():
+                    curva = self.getLeaderLoc(uuid)
+                    self.vprint(" * %s (user: %s  uuid: %s)" % (fname, user, uuid))
+
+            elif argv[0] == 'mod':
+                uuid = argv[1]
+                user = argv[2]
+                if len(argv) > 4:
+                    sessionname = ' '.join(argv[3:])
+                else:
+                    sessionname = argv[3]
+
+                self.modifyLeaderSession(uuid, user, sessionname)
+
+            elif argv[0] == 'kill':
+                if len(argv) < 2:
+                    self.vprint('kill requires a valid <uuid> argument')
+
+                uuid = argv[1]
+                self.killLeaderSession(uuid)
+                
+            elif argv[0] == 'killall':
+                for uuid, (user, fname) in self.getLeaderSessions().items():
+                    self.vprint("*killing %r (%r, %r)" % (uuid, user, fname))
+                    self.killLeaderSession(uuid)
+
+        except Exception as e:
+            self.vprint("Error: %r" % e)

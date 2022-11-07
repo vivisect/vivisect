@@ -4,6 +4,7 @@ import traceback
 import collections
 
 import Elf
+import Elf.elf_lookup as elf_lookup
 
 import envi.bits as e_bits
 import envi.const as e_const
@@ -241,7 +242,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             merged.append( maps[i] )
 
         baseaddr = 0x05000000
-        for offset,size in merged:
+        if elf.isRelocatable():
+            baseaddr = 0
+        for offset, size in merged:
             bytez = elf.readAtOffset(offset,size)
             vw.addMemoryMap(baseaddr + offset, 0x7, fname, bytez)
 
@@ -487,22 +490,32 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.addVaSet("WeakSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
 
     # apply symbols to workspace (if any)
-    relocs = elf.getRelocs()
+    relocs = [r for idx, r in elf.getRelocs()]
     impvas = [va for va, x, y, z in vw.getImports()]
     expvas = [va for va, x, y, z in vw.getExports()]
     for s in elf.getSymbols():
         sva = s.st_value
-        dmglname = demangle(s.name)
+        shndx = s.st_shndx
+        if elf.isRelocatable():
+            if shndx == elf_lookup.SHN_ABS:
+                pass
+            elif shndx in elf_lookup.shn_special_section_indices:
+                # TODO: We should do things with SHN_ABS
+                pass
+            else:
+                section = elf.getSectionByIndex(shndx)
+                if section:
+                    sva += section.sh_addr
 
+        dmglname = demangle(s.name)
         logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r', sva,
-                                                                        Elf.st_info_type.get(s.st_info, s.st_info),
-                                                                        Elf.st_info_bind.get(s.st_other, s.st_other),
+                                                                        Elf.st_info_type.get(s.getInfoType(), s.st_info),
+                                                                        Elf.st_info_bind.get(s.getInfoBind(), s.st_other),
                                                                         s.name)
 
         if s.getInfoType() == Elf.STT_FILE:
             vw.setVaSetRow('FileSymbols', (dmglname, sva))
             continue
-
         elif s.getInfoType() == Elf.STT_NOTYPE:
             # mapping symbol
             if arch in ('arm', 'thumb', 'thumb16'):
@@ -534,8 +547,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     vw.makePointer(sva, follow=False)
                 else:
                     '''
-                    Most of this is replicated in makePointer with follow=True. We specifically don't use that, since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in fun ways), but we still want these locations made first, so that other analysis modules know to not monkey with these and so I can set sizes and what not. 
-                    while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
+                    Most of this is replicated in makePointer with follow=True. We specifically don't use that,
+                    since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in
+                    fun ways), but we still want these locations made first, so that other analysis modules know
+                    to not monkey with these and so I can set sizes and what not.
+                    And while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
                     '''
                     if not valu:
                         # do a double check to make sure we can even make a pointer this large
@@ -590,7 +606,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             except Exception as e:
                 logger.warning("%s" % str(e))
 
-        if s.st_info == Elf.STT_FUNC:
+        if s.getInfoType() == Elf.STT_FUNC:
             new_functions.append(("STT_FUNC", sva))
 
     if addbase:
@@ -625,11 +641,17 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
     '''
     postfix = collections.defaultdict(list)
     arch = arch_names.get(elf.e_machine)
-    relocs = elf.getRelocs()
-    logger.debug("reloc len: %d", len(relocs))
-    for r in relocs:
-        rtype = Elf.getRelocType(r.r_info)
+    othr = None
+    for secidx, r in elf.getRelocs():
+        rtype = r.getType()
         rlva = r.r_offset
+        if elf.isRelocatable():
+            container = elf.getSectionByIndex(secidx)
+            if container.sh_flags & elf_lookup.SHF_INFO_LINK:
+                othr = elf.getSectionByIndex(container.sh_info)
+                if othr:
+                    rlva += othr.sh_addr
+
         if addbase:
             rlva += baseaddr
         try:
@@ -672,6 +694,17 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         ptr = vw.readMemoryPtr(rlva)
                         logger.info('R_386_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
                         vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
+
+                    elif arch == 'amd64' and rtype == Elf.R_X86_64_32S:
+                        # the same as R_386_32 except we don't always get a name.
+                        ptr = r.r_addend
+                        symbol = elf.getSymbols()[r.getSymTabIndex()]
+                        valu = symbol.st_value
+                        if symbol.getInfoType() == elf_lookup.STT_SECTION:
+                            ref = elf.getSectionByIndex(symbol.st_shndx)
+                            if ref:
+                                valu = ref.sh_addr
+                        vw.addRelocation(rlva, RTYPE_BASEOFF, data=symbol.st_value + ptr, size=4)
 
                     elif rtype == Elf.R_X86_64_IRELATIVE:
                         # first make it a relocation that is based on the imagebase
@@ -716,6 +749,17 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             addend = vw.readMemoryPtr(rlva) - P
 
                         vw.addRelocation(rlva, RTYPE_BASEPTR, addend)
+
+                    # TODO: This isn't strictly wrong, but does induce graph building errors
+                    #elif rtype == Elf.R_X86_64_PLT32:
+                    #    # plt + addend- secoff
+                    #    addend = r.r_addend
+                    #    plt = elf.getSection('.plt')
+                    #    if plt:
+                    #        addend += plt.sh_addr
+                    #    if othr:
+                    #        addend -= othr.sh_addr
+                    #    vw.addRelocation(rlva, RTYPE_BASEPTR, data=addend, size=4)
 
                     elif rtype == Elf.R_X86_64_TPOFF64:
                         pass

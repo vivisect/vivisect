@@ -24,6 +24,7 @@ import vivisect.qt.funcgraph as viv_q_funcgraph
 import vivisect.qt.funcviews as viv_q_funcviews
 import vivisect.qt.symboliks as viv_q_symboliks
 import vivisect.remote.share as viv_share
+import vivisect.analysis.generic.symswitchcase as symswitch
 
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QInputDialog
@@ -80,6 +81,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         self.vqAddMenuField('&Tools.&Python', self._menuToolsPython)
         self.vqAddMenuField('&Tools.&Debug', self._menuToolsDebug)
+        self.vqAddMenuField('&Tools.&Analysis.&Reanalyze Switchcase', self._menuToolsReSwitchCase)
         self.vqAddMenuField('&Tools.&Structures.Add Namespace', self._menuToolsStructNames)
         self.vqAddMenuField('&Tools.&Structures.New', self._menuToolsUStructNew)
         self.vqAddDynMenu('&Tools.&Structures.&Edit', self._menuToolsUStructEdit)
@@ -107,6 +109,10 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKeyTarget('file:open', self._menuFileOpen)
         self.addHotKey('ctrl+s', 'file:save')
         self.addHotKeyTarget('file:save', self._menuFileSave)
+        self.addHotKey('ctrl+S', 'file:saveas')
+        self.addHotKeyTarget('file:saveas', self._menuFileSaveAs)
+        self.addHotKey('ctrl+meta+C', 'file:connecttoserver')
+        self.addHotKeyTarget('file:connecttoserver', self._menuShareConnectServer)
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
 
@@ -157,6 +163,18 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if ok:
             self.vw.setComment(va, str(comment))
 
+    def setVaMultilineComment(self, va, parent=None):
+        if parent is None:
+            parent = self
+
+        curcomment = self.vw.getComment(va)
+        if curcomment is None:
+            curcomment = ''
+
+        comment, ok = QInputDialog.getMultiLineText(parent, 'Enter...', 'Comment', text=curcomment)
+        if ok:
+            self.vw.setComment(va, str(comment))
+
     def addVaXref(self, va, parent=None):
         if parent is None:
             parent = self
@@ -171,13 +189,31 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             except Exception as e:
                 self.vw.vprint(repr(e))
 
+    def reanalyzeSwitchCase(self, va, parent=None):
+        if parent is None:
+            parent = self
+        timestr, ok = QInputDialog.getText(parent, 'Re-Analyze Switchcase', 'Enter Timeout (secs) for analysis (0x%x): ' % va, text="300")
+        if ok:
+            try:
+                timeout = self.vw.parseExpression(str(timestr))
+
+                symswitch.analyzeJmp(self.vw, va, timeout=timeout)
+            except Exception as e:
+                self.vw.vprint(repr(e))
+
     def setFuncLocalName(self, fva, offset, atype, aname):
-        newname, ok = QInputDialog.getText(self, 'Enter...', 'Local Name')
+        curname = ''
+        if self.vw.getFunctionLocal(fva, offset):
+            curtype, curname = self.vw.getFunctionLocal(fva, offset)
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Local Name', text=curname)
         if ok:
             self.vw.setFunctionLocal(fva, offset, LSYM_NAME, (atype, str(newname)))
 
     def setFuncArgName(self, fva, idx, atype, aname):
-        newname, ok = QInputDialog.getText(self, 'Enter...', 'Argument Name')
+        curname = ''
+        if len(self.vw.getFunctionArgs(fva)) > idx:
+            curtype, curname = self.vw.getFunctionArgs(fva)[idx]
+        newname, ok = QInputDialog.getText(self, 'Enter...', 'Argument Name', text=curname)
         if ok:
             self.vw.setFunctionArg(fva, idx, atype, str(newname))
 
@@ -358,8 +394,27 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddDockWidgetClass(viv_q_funcgraph.VQVivFuncgraphView, args=(self.vw, self))
         self.vqAddDockWidgetClass(viv_q_symboliks.VivSymbolikFuncPane, args=(self.vw, self))
 
-    def vqRestoreGuiSettings(self, settings):
-        guid = self.vw.getVivGuid()
+    @idlethread
+    def vqRestoreGuiSettings(self, settings, guid=None):
+        '''
+        Restores GUI settings (size/layout/views) based on:
+         * GUID
+         * Filename(s)
+         * Default Layout
+
+        If workspace is connected to a server, we wait for a GUID to be present before proceeding
+        '''
+
+        if self.vw.server and not guid:
+            # wait until the GUID has been loaded from the remote workspace before continuing
+            self.vw._load_guid.wait() 
+
+        if not guid:
+            guid = self.vw.getVivGuid()
+
+        logger.debug("vqRestoreGuiSettings() -> guid=%r  vw.server=%r", guid, self.vw.server)
+
+        logger.debug("attempting to load GUI settings based on GUID: %s", guid)
         dwcls = settings.value('%s/DockClasses' % guid)
         state = settings.value('%s/DockState' % guid)
         geom = settings.value('%s/DockGeometry' % guid)
@@ -369,12 +424,14 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             names = list(self.vw.filemeta.keys())
             names.sort()
             name = '+'.join(names)
+            logger.debug("attempting to load GUI settings based on Filename(s): %r", name)
             dwcls = settings.value('%s/DockClasses' % name)
             state = settings.value('%s/DockState' % name)
             geom = settings.value('%s/DockGeometry' % name)
             stub = '%s/' % name
 
         if compat_isNone(dwcls):
+            logger.debug("loading default GUI settings")
             dwcls = settings.value('DockClasses')
             state = settings.value('DockState')
             geom = settings.value('DockGeometry')
@@ -473,10 +530,21 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vw.vprint('%s is ready!' % fname)
 
     @vq_main.workthread
-    def _menuFileSave(self, fullsave=False):
-        self.vw.vprint('Saving workspace...')
+    def _menuFileSave(self, fullsave=False, filename=None):
+        if self.vw.server and filename is None:
+            self.vw.vprint("Connected to remote workspace, not saving locally.")
+            self.vw.vprint("Use 'File->Save As' to create a local backup copy of the workspace.")
+            return
+
+        # duplicate filename, since saveWorkspace() with None as the filename
+        # forces a local save
+        fname = filename
+        if not fname:
+            fname = self.vw.getMeta("StorageName")
+        self.vw.vprint('Saving workspace... (%r)' % fname)
+
         try:
-            self.vw.saveWorkspace(fullsave=fullsave)
+            self.vw.saveWorkspace(fullsave=fullsave, filename=filename)
         except Exception as e:
             self.vw.vprint(str(e))
         else:
@@ -486,8 +554,8 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         fname = getSaveFileName(self, 'Save As...')
         if fname is None or not len(fname):
             return
-        self.vw.setMeta('StorageName', fname)
-        self._menuFileSave(fullsave=True)
+
+        self._menuFileSave(fullsave=True, filename=fname)
 
     def _menuFileSaveServer(self):
         viv_q_remote.saveToServer(self.vw, parent=self)
@@ -510,6 +578,24 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     def _menuViewLayoutsSetDefault(self):
         vq_app.VQMainCmdWindow.vqSaveGuiSettings(self, self._vq_settings)
+
+    def _menuToolsReSwitchCase(self):
+        timeoutSwitches = self.vw.getVaSetRows('SwitchCases_TimedOut')
+
+        dynd = DynamicDialog('Reanalze Switchcase')
+        dynd.addComboBox('select', title='Select Switchcase Branch', itemlist=\
+                ['0x%x: (failed at %d secs)' % (va, tosec) for va, tosec in timeoutSwitches], \
+                dfltidx=0)
+        dynd.addIntHexField('timeout', title='Timeout (some analysis can be very long)', dflt=300)
+        results = dynd.prompt()
+        if not results:
+            return
+
+        timeout = results.get('timeout')
+        vastr, _ = results.get('select').split(':',1)
+        va = int(vastr, 16)
+        
+        symswitch.analyzeJmp(self.vw, va, timeout=timeout)
 
     def _menuToolsStructNames(self):
         nsinfo = vs_qt.selectStructNamespace()
