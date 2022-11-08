@@ -186,6 +186,10 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.vsbuilder = vs_builder.VStructBuilder()
         self.vsconsts  = vs_const.VSConstResolver()
 
+        # Follow the Leader data
+        self.leaders = {}       # existing "leader" sessions
+        self.leaderloc = {}     # last known location for each session
+
     def _snapInAnalysisModules(self):
         '''
         Snap in the analysis modules which are appropriate for the
@@ -231,12 +235,19 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        fname, ptroff, rtype, data = einfo
+        if len(einfo) == 4:
+            fname, ptroff, rtype, data = einfo
+            size = None
+        else:
+            fname, ptroff, rtype, data, size = einfo
+
+        if size is None:
+            size = self.psize
         imgbase = self.getFileMeta(fname, 'imagebase')
         rva = imgbase + ptroff
 
         self.reloc_by_va[rva] = rtype
-        self.relocations.append(einfo)
+        self.relocations.append((fname, ptroff, rtype, data, size))
 
         # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
@@ -244,13 +255,13 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # add imgbase and offset to pointer in memory
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
-            if ptr != (ptr & e_bits.u_maxes[self.psize]):
+            if ptr != (ptr & e_bits.u_maxes[size]):
                 logger.warning('Relocations calculated a bad pointer: 0x%x (imgbase: 0x%x) (relocation: %d)', ptr, imgbase, rtype)
 
             # writes are costly, especially on larger binaries
-            if ptr != self.readMemoryPtr(rva):
+            if ptr != self.readMemValue(rva, size):
                 with self.getAdminRights():
-                    self.writeMemoryPtr(rva, ptr)
+                    self.writeMemValue(rva, ptr, size)
 
         if rtype == RTYPE_BASEPTR:
             # make it like a pointer (but one that could move with each load)
@@ -259,7 +270,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             #   don't follow.  handle it later, once "known code" is analyzed
             ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
             self._handleADDXREF((rva, ptr, REF_PTR, 0))
-            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
+            self._handleADDLOCATION((rva, size, LOC_POINTER, ptr))
 
     def _handleDELRELOC(self, einfo):
         fname, rva, rtyp, full = einfo
@@ -269,7 +280,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.reloc_by_va.pop(rva, None)
         delidx = -1
 
-        for idx, (fn, off, typ, data) in enumerate(self.relocations):
+        for idx, (fn, off, typ, data, size) in enumerate(self.relocations):
             if fn == fname and off == ptroff and typ == rtyp:
                 delidx = idx
                 break
@@ -573,14 +584,33 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
-
-    def _handleIAMLEADER(self, event, einfo):
-        user,follow = einfo
-        self.vprint('*%s invites everyone to follow "%s"' % (user,follow))
+        self.thand[VTE_KILLLEADER] = self._handleKILLLEADER
+        self.thand[VTE_MODLEADER] = self._handleMODLEADER
 
     def _handleFOLLOWME(self, event, einfo):
-        # workspace has nothing to do...
-        pass
+        uuid, expr = einfo
+        logger.debug("_handleFOLLOWME(%r, %r)", event, einfo)
+        self.leaderloc[uuid] = expr
+
+    def _handleKILLLEADER(self, event, einfo):
+        logger.debug("_handleKILLLEADER(%r, %r)", event, einfo)
+        uuid = einfo
+        user, fname = self.leaders.pop(uuid)
+        self.vprint("*Ended: %s's session '%s' (%r)" % (user,fname,uuid))
+
+    def _handleMODLEADER(self, event, einfo):
+        uuid, user, fname = einfo
+        self.vprint('*%s changed leader session name to "%s" (%r)' % (user,fname,uuid))
+
+        self.leaders[uuid] = (user, fname)
+
+    def _handleIAMLEADER(self, event, einfo):
+        uuid, user, fname, locexpr = einfo
+        logger.debug("_handleIAMLEADER(%r, (%r, %r, %r, %r))", event, user, uuid, fname, locexpr)
+
+        self.vprint('*%s invites everyone to follow "%s" (%r)' % (user,fname,uuid))
+        self.leaders[uuid] = (user, fname)
+        self.leaderloc[uuid] = locexpr
 
     def _fireEvent(self, event, einfo, local=False, skip=None):
         '''
@@ -652,6 +682,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
+        self._load_event.set()
+
     def _mcb_bigend(self, name, value):
         self.setEndian(bool(value))
 
@@ -662,6 +694,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         defcall = self.arch.getPlatDefaultCall(value)
         if defcall:
             self.setMeta('DefaultCall', defcall)
+
+        self._load_event.set()
 
     def _mcb_FileBytes(self, name, value):
         if not self.parsedbin:
@@ -677,6 +711,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         sname = name.split(':')[1]
         ctor = vs_cparse.ctorFromCSource( ssrc )
         self.vsbuilder.addVStructCtor( sname, ctor )
+
+    def _mcb_GUID(self, name, guid):
+        self._load_guid.set()
 
     def _mcb_WorkspaceServer(self, name, wshost):
         self.vprint('Workspace was Saved to Server: %s' % wshost)

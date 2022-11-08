@@ -1,4 +1,6 @@
 import vdb
+import getpass
+
 
 defconfig = {
     'viv':{
@@ -35,10 +37,23 @@ defconfig = {
             'pointertables':{
                 'table_min_len':4,
             },
+            'symswitchcase':{
+                'max_instr_count': 10,
+                'max_cases': 500,
+                'case_failure': 5000,
+                'min_func_instr_size': 10,
+                'timeout_secs': 45,
+            }
+        },
+        'remote':{
+            'wait_for_plat_arch': 10,
         },
     },
     'cli':vdb.defconfig.get('cli'), # FIXME make our own...
     'vdb':vdb.defconfig.get('vdb'),
+    'user':{
+        'name': getpass.getuser(),
+    }
 }
 
 defconfig.get('cli').update(vdb.defconfig.get('cli'))
@@ -80,8 +95,14 @@ docconfig = {
                 'table_min_len':'How many pointers must be in a row to make a table?',
             },
         },
+        'remote':{
+            'wait_for_plat_arch':'How many secs to wait for the remote server/workspace to provide a Platform or Architecture before moving on.',
+        }
 
     },
 
     'vdb':vdb.docconfig.get('vdb'),
+    'user':{
+        'name': 'Username.  When not set, defaults to current system user.',
+        }
 }

@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 from os import path
 
-VERSION = '1.0.6'
+VERSION = '1.0.8'
 
 dirn = path.abspath(path.dirname(__file__))
 with open(path.join(dirn, 'README.md'), 'r') as fd:
@@ -41,8 +41,8 @@ setup(
             'sphinx-rtd-theme>=0.4.2,<1.0.0',
         ],
         'gui': [
-            'pyqt5==5.15.1',
-            'pyqtwebengine==5.15.1',
+            'pyqt5==5.15.7',
+            'pyqtwebengine==5.15.6',
         ]
     },
     classifiers=[

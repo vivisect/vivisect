@@ -7,8 +7,8 @@ import argparse
 import cProfile
 import importlib.util
 
+import envi.exc as e_exc
 import envi.common as e_common
-import envi.config as e_config
 import envi.threads as e_threads
 
 import vivisect.cli as viv_cli
@@ -64,7 +64,7 @@ def main():
 
             try:
                 vw.config.parseConfigOption(option)
-            except e_config.ConfigNoAssignment as e:
+            except e_exc.ConfigNoAssignment as e:
                 logger.critical(vw.config.reprConfigPaths() + "\n")
                 logger.critical(e)
                 logger.critical("syntax: \t-O <secname>.<optname>=<optval> (optval must be json syntax)")

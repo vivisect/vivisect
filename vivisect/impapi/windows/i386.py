@@ -7325,3 +7325,6 @@ api = {
     'mfc42.?afxbeginthread@@ygpavcwinthread@@p6aipax@z0hikpau_security_attributes@@@z':( 'int', None, 'cdecl', 'mfc42.?AfxBeginThread@@YGPAVCWinThread@@P6AIPAX@Z0HIKPAU_SECURITY_ATTRIBUTES@@@Z', (('void *','funcptr'), ('void *','ptr'), ('int',None), ('int',None), ('int',None), ('void *','ptr')) ),
 
 } # END
+
+msvcr100 = {'msvcr100.' + name.split('.', 1)[1] : data for name, data in api.items() if name.startswith('msvcrt.')}
+
