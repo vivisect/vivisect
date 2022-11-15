@@ -389,6 +389,39 @@ tsizes = {
     INS_ADD: 4, # not used but needs to be present since it's E_D
 }
 
+
+# Simplified mnemonic transformation functions
+def simpleE_ORI(ival, mnem, opcode, opers, iflags):
+    if len(opers) == 3 and \
+            opers[0].isReg() and opers[0].reg == 0 and \
+            opers[1].isReg() and opers[1].reg == 0 and \
+            opers[2].isImmed() and opers[2].val == 0 and \
+            iflags == IFLAGS_NONE:
+        return 'e_nop', INS_NOP, tuple(), iflags
+    elif len(opers) == 3 and \
+            opers[0].isReg() and opers[1].isReg() and \
+            opers[0].reg == opers[1].reg and \
+            opers[2].isImmed() and opers[2].val == 0 and \
+            iflags == IFLAGS_NONE:
+        return 'e_mr', INS_MR, opers[:2], iflags
+    else:
+        return mnem, INS_ORI, opers, iflags
+
+
+# this generates the handler table for any function starting with simple*
+DISASM32_SIMPLIFIEDS = {}
+for k, v in list(globals().items()):
+    if k.startswith('simpleE'):
+        capmnem = k[6:]
+        DISASM32_SIMPLIFIEDS[eval('INS_' + capmnem)] = v
+
+DISASM16_SIMPLIFIEDS = {}
+for k, v in list(globals().items()):
+    if k.startswith('simpleSE'):
+        capmnem = k[6:]
+        DISASM16_SIMPLIFIEDS[eval('INS_' + capmnem)] = v
+
+
 def is_opcode_32bit(first_short: int) -> bool:
     # From "VLE 16-bit and 32-bit Instruction Length Decode Algorithm" pg.5
     # Modified to check just the first byte of the Big Endian VLE opcode
@@ -457,6 +490,10 @@ class VleDisasm(Ppc32EmbeddedDisasm):
 
                     k += 1
 
+                simpleMnemFunc = DISASM16_SIMPLIFIEDS.get(opcode)
+                if simpleMnemFunc is not None:
+                    mnem, opcode, opers, iflags = simpleMnemFunc(inst_data, mnem, opcode, opers, iflags)
+
                 iflags |= envi.ARCH_PPCVLE
                 return PpcOpcode(va, opcode, mnem, size=2, operands=opers, iflags=iflags)
 
@@ -481,6 +518,10 @@ class VleDisasm(Ppc32EmbeddedDisasm):
                     opers = handler(types, inst_data, va, tsize=tsizes[opcode])
                 else:
                     opers = handler(types, inst_data, va)
+
+                simpleMnemFunc = DISASM32_SIMPLIFIEDS.get(opcode)
+                if simpleMnemFunc is not None:
+                    mnem, opcode, opers, iflags = simpleMnemFunc(inst_data, mnem, opcode, opers, iflags)
 
                 iflags |= envi.ARCH_PPCVLE
                 return PpcOpcode(va, opcode, mnem, size=4, operands=opers, iflags=iflags)

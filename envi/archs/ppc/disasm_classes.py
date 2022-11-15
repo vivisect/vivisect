@@ -17,6 +17,13 @@ def addrToName(mcanv, va):
     return "0x%.4x" % va
 
 
+def immToStr(val):
+    if abs(val) >= 1024:
+        return hex(val)
+    else:
+        return str(val)
+
+
 # Branch target helpers
 IF_BRANCHCC = (IF_BRANCH | IF_COND)
 IF_CALLCC = (IF_CALL | IF_COND)
@@ -86,7 +93,7 @@ class PpcOpcode(envi.Opcode):
             addb = True
 
         # If we can fall through, reflect that...
-        if not self.iflags & envi.IF_NOFALL:
+        if not self.iflags & envi.IF_NOFALL and not self.iflags & envi.IF_CALL:
            ret.append((self.va + self.size, flags|envi.BR_FALL))
 
         # Check for a call...
@@ -176,7 +183,7 @@ class PpcRegOper(envi.RegisterOper):
         return True
 
     def involvesPC(self):
-        return self.reg == 15
+        return False
 
     def isDeref(self):
         return False
@@ -185,9 +192,6 @@ class PpcRegOper(envi.RegisterOper):
         return None
 
     def getOperValue(self, op, emu=None):
-        if self.reg == REG_PC:
-            return self.va  # FIXME: is this modified?  or do we need to att # to this?
-
         if emu == None:
             return None
 
@@ -540,7 +544,7 @@ class PpcImmOper(envi.ImmedOper):
         return None
 
     def render(self, mcanv, op, idx):
-        value = self.val
+        value = self.getOperValue(op)
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint != None:
             if mcanv.mem.isValidPointer(value):
@@ -551,15 +555,10 @@ class PpcImmOper(envi.ImmedOper):
             name = addrToName(mcanv, value)
             mcanv.addVaText(name, value)
         else:
-
-            if abs(self.val) >= 4096:
-                mcanv.addNameText(hex(value))
-            else:
-                mcanv.addNameText(str(value))
+            mcanv.addNameText(immToStr(value))
 
     def repr(self, op):
-        val = self.getOperValue(op)
-        return '%#x' % (val)
+        return immToStr(self.getOperValue(op))
 
     def getWidth(self, emu):
         return emu.psize
@@ -697,17 +696,19 @@ class PpcMemOper(envi.DerefOper):
         emu.setRegObj(self.base_reg, rval)
 
     def render(self, mcanv, op, idx):
-        mcanv.addNameText(hex(self._get_offset()))
-        mcanv.addText('(')
-        if self.base_reg == 0:
-            mcanv.addNameText('0x0')
-        else:
+        mcanv.addNameText(immToStr(self._get_offset()))
+        if self.base_reg != 0:
+            mcanv.addText('(')
             mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
-        mcanv.addText(')')
+            mcanv.addText(')')
 
     def repr(self, op):
-        base = '0x0' if self.base_reg == 0 else ppc_regs[self.base_reg][0]
-        return f'{hex(self._get_offset())}({base})'
+        off_str = immToStr(self._get_offset())
+
+        if self.base_reg == 0:
+            return off_str
+        else:
+            return '%s(%s)' % (off_str, ppc_regs[self.base_reg][0])
 
     def getWidth(self, emu):
         return self.tsize
@@ -731,13 +732,21 @@ class PpcSEMemOper(PpcMemOper):
         emu.setRegObj(self.base_reg, rval)
 
     def render(self, mcanv, op, idx):
-        mcanv.addNameText(hex(self._get_offset()))
+        '''
+        On the SE load/store instructions, a base address value of 0 does not
+        represent a constant 0
+        '''
+        mcanv.addNameText(immToStr(self._get_offset()))
         mcanv.addText('(')
         mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
         mcanv.addText(')')
 
     def repr(self, op):
-        return f'{hex(self._get_offset())}({ppc_regs[self.base_reg][0]})'
+        '''
+        On the SE load/store instructions, a base address value of 0 does not
+        represent a constant 0
+        '''
+        return '%s(%s)' % (immToStr(self._get_offset()), ppc_regs[self.base_reg][0])
 
 class PpcIndexedMemOper(PpcMemOper):
     '''
@@ -765,7 +774,7 @@ class PpcIndexedMemOper(PpcMemOper):
 
     def render(self, mcanv, op, idx):
         if self.base_reg == 0:
-            mcanv.addNameText('0x0')
+            mcanv.addNameText('0')
         else:
             mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
 
@@ -773,7 +782,7 @@ class PpcIndexedMemOper(PpcMemOper):
         mcanv.addNameText(ppc_regs[self.offset][0], typename='registers')
 
     def repr(self, op):
-        base = '0x0' if self.base_reg == 0 else ppc_regs[self.base_reg][0]
+        base = '0' if self.base_reg == 0 else ppc_regs[self.base_reg][0]
         return f'{base},{ppc_regs[self.offset][0]}'
 
 class PpcJmpRelOper(PpcImmOper):

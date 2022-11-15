@@ -28,7 +28,7 @@ FSNI = FP_SINGLE_NEG_INF
 FSPI = FP_SINGLE_POS_INF
 FDNZ = FP_DOUBLE_NEG_ZERO
 FDPZ = FP_DOUBLE_POS_ZERO
-FSNZ = FP_SINGLE_NEG_ZERO 
+FSNZ = FP_SINGLE_NEG_ZERO
 FSPZ = FP_SINGLE_POS_ZERO
 
 _1p1 = 0x3FF199999999999A # 1.1
@@ -121,7 +121,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', 0), 
+                ('f1', 0),
                 ('f2', 0x400199999999999A), # 2.2
                 ('f3', 0x3FF0000000000000), # 1
                 ('cr1',0b0000),
@@ -136,7 +136,7 @@ emutests = {
        # {  Can't confirm NAN stuff
        #     'setup': (
        #          ('f0', 0),
-       #          ('f1', FP_DOUBLE_NEG_PYNAN), # 
+       #          ('f1', FP_DOUBLE_NEG_PYNAN), #
        #          ('f2', 0x400199999999999A), # 2.2
        #          ('f3', 0x3FF0000000000000), # 1
        #          ('cr1',0b0000),
@@ -148,7 +148,7 @@ emutests = {
        #         ('fpscr',0x40000)
        #     ),
        # },
-       
+
     ],  # fmadd. f0,f1,f2,f3
 
     'ec0110fb': [ # fmadds. f0,f1,f3,f2
@@ -170,7 +170,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', 0), 
+                ('f1', 0),
                 ('f2', 0x400199999999999A), # 2.2
                 ('f3', 0x3FF0000000000000), # 1
                 ('cr1',0b0000),
@@ -185,7 +185,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', pi), 
+                ('f1', pi),
                 ('f2', 0x400199999999999A), # 2.2
                 ('f3', 0x400199999999999A), # 2.2
                 ('cr1',0b0000),
@@ -201,7 +201,7 @@ emutests = {
        # {  Can't confirm NAN stuff
        #     'setup': (
        #          ('f0', 0),
-       #          ('f1', FP_DOUBLE_NEG_PYNAN), # 
+       #          ('f1', FP_DOUBLE_NEG_PYNAN), #
        #          ('f2', 0x400199999999999A), # 2.2
        #          ('f3', 0x3FF0000000000000), # 1
        #          ('cr1',0b0000),
@@ -213,7 +213,7 @@ emutests = {
        #         ('fpscr',0x40000)
        #     ),
        # },
-       
+
     ],  # fmadds. f0,f1,f2,f3
 
     'fc0118b9': [ # fmsub. f0,f1,f2,f3
@@ -235,7 +235,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', 0), 
+                ('f1', 0),
                 ('f2', 0x400199999999999A), # 2.2
                 ('f3', 0x3FF0000000000000), # 1
                 ('cr1',0b0000),
@@ -247,7 +247,7 @@ emutests = {
                ('fpscr',0x80000)
            ),
        },
-       
+
     ],  # fmsub. f0,f1,f2,f3
 
     'ec0118b9': [ # fmsubs. f0,f1,f2,f3
@@ -269,7 +269,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', 0), 
+                ('f1', 0),
                 ('f2', 0x400199999999999A), # 2.2
                 ('f3', 0x3FF0000000000000), # 1
                 ('cr1',0b0000),
@@ -284,7 +284,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', pi), 
+                ('f1', pi),
                 ('f2', 0x400199999999999A), # 2.2
                 ('f3', 0x3FF0000000000000), # 1
                 ('cr1',0b0000),
@@ -317,7 +317,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', 0), 
+                ('f1', 0),
                 ('f2', 0x400199999999999A), # 2.2
                 ('cr1',0b0000),
                 ('fpscr',0x0)
@@ -331,7 +331,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', 0x3FF0000000000000), 
+                ('f1', 0x3FF0000000000000),
                 ('f2', 0xC00199999999999A), # -2.2
                 ('cr1',0b0000),
                 ('fpscr',0x0)
@@ -356,7 +356,7 @@ emutests = {
                ('fpscr',0x80000)
            ),
        },
-       
+
     ],  # fmul. f0,f1,f2,f3
 
     'ec0100b3': [ # fmuls. f0,f1,f2
@@ -377,7 +377,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', 0), 
+                ('f1', 0),
                 ('f2', 0x400199999999999A), # 2.2
                 ('cr1',0b0000),
                 ('fpscr',0x0)
@@ -391,7 +391,7 @@ emutests = {
        {
            'setup': (
                 ('f0', 0),
-                ('f1', 0x3FF0000000000000), 
+                ('f1', 0x3FF0000000000000),
                 ('f2', 0xC00199999999999A), # -2.2
                 ('cr1',0b0000),
                 ('fpscr',0x0)
@@ -416,7 +416,7 @@ emutests = {
                ('fpscr',0x80000)
            ),
        },
-       
+
     ],  # fmuls. f0,f1,f2,f3
 
     'fc000891': [ # fmr. f0,f1
@@ -443,7 +443,7 @@ emutests = {
                 ('cr1', 0b1000),
             ),
         },
-    ],  # 
+    ],  #
 
     'fc000911': [ # fnabs. f0,f1
         {
@@ -472,7 +472,7 @@ emutests = {
                 ('fpscr', 0x80000)
             ),
         },
-    ],  # 
+    ],  #
 
     'fc000851': [ # fneg. f0,f1
         {
@@ -646,7 +646,7 @@ emutests = {
                 ('r4', 31337),
             ),
         }
-    ],  # 'add r0,r0,r4' 
+    ],  # 'add r0,r0,r4'
 
     '7C005214': [
         {
@@ -2051,7 +2051,7 @@ emutests = {
                 ('r10', 0x0),
                 ('cr0', 0b0010)
             ),
-        },        
+        },
     ],  #  ('7D4A0735', 'extsh. r10,r10')
 
     '7c01ffb5': [  # ('7D4A0735', 'extsw. r1,r0')
@@ -2094,7 +2094,7 @@ emutests = {
                 ('cr0', 0b0010)
             ),
         },
-        
+
     ],  #  ('7c01ffb5', 'extsw. r10,r10')
 
 
@@ -2377,12 +2377,12 @@ emutests = {
                 ('r31', 0x100),
                 (0x10010100 + 0x100, bytes.fromhex('11223344'))
                     ),
-    
+
             'tests':(
                 ('r0',0x11),
                 ('r10',0x10010200),
                 ('r31', 0x100)
-    
+
             ),
         }
     ],  # ('7C0AF8EE', 'lbzux r0,r10,r31')
@@ -2888,19 +2888,17 @@ emutests = {
     '7c011511': [  # 7c011511:  subfeo. r0,r1,r2
         {
             'setup': (
-                ('r0',0x7000), 
+                ('r0',0x7000),
                 ('r1',0x7000),
                 ('r2',0x2),
                 ('cr0', 0b0000),
                 ('xer', 0x0)
-    
             ),
-    
+
             'tests': (
                 ('r0', 0xffffffffffff9001),
                 ('cr0', 0b1000),
                 ('xer', 0)
-    
             ),
         },
         {
@@ -2910,13 +2908,12 @@ emutests = {
                  ('r2', 600),
                  ('cr0', 0b0000),
                  ('xer', 0x80000000)
-    
              ),
              'tests': (
                  ('r0', 0x12b),
                  ('xer', 0xa0000000),
                  ('cr0', 0b0101)
-    
+
              ),
         },
         {
@@ -2926,13 +2923,12 @@ emutests = {
                  ('r2', 600),
                  ('cr0', 0b0000),
                  ('xer', 0x80000000)
-    
              ),
              'tests': (
                  ('r0', 0x383),
                  ('xer', 0x80000000),
                  ('cr0', 0b0101)
-    
+
              ),
         },
     ],  # 7c011511:  subfeo. r0,r1,r2
@@ -4943,7 +4939,7 @@ emutests = {
         },
     ], # bla 0xffffffffffffd000 (unconditional branch absolute -0x3000)
 
-    ###### Unconditional Branch to CTR ######
+    ###### Unconditional Branch to ctr ######
 
     '4E800420': [
         {
@@ -4970,7 +4966,7 @@ emutests = {
                 ('lr', 0x12345678 ),
             ),
         },
-    ], # bctr (unconditional branch to CTR)
+    ], # bctr (unconditional branch to ctr)
 
     '4E800421': [
         {
@@ -4997,7 +4993,7 @@ emutests = {
                 ('lr', 0x40004564 ),
             ),
         },
-    ], # bctrl (unconditional branch to CTR)
+    ], # bctrl (unconditional branch to ctr)
 
     ###### Unconditional Branch to LR ######
 
@@ -5052,7 +5048,7 @@ emutests = {
     ], # blrl (unconditional branch to LR)
 
     #####################################################
-    ###### Branch Decrement and branch if CTR != 0 ######
+    ###### Branch Decrement and branch if ctr != 0 ######
     #####################################################
 
     '42000060': [
@@ -5224,10 +5220,10 @@ emutests = {
     ], # bdnzla
 
     #######################################################################
-    ###### Branch Decrement and branch if CTR != 0 OR CONDITION TRUE ######
+    ###### Branch Decrement and branch if ctr != 0 OR CONDITION TRUE ######
     #######################################################################
 
-    ###### Branch Decrement and branch if CTR != 0 OR LT ######
+    ###### Branch Decrement and branch if ctr != 0 OR LT ######
 
     '41000060': [
         {
@@ -5282,7 +5278,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzlt (branch LR if --CTR != 0 OR 4*cr0+lt == 1)
+    ], # bdnzlt (branch LR if --ctr != 0 OR 4*cr0+lt == 1)
 
     '41000061': [
         {
@@ -5337,7 +5333,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzltl (branch LR if --CTR != 0 OR 4*cr0+lt == 1)
+    ], # bdnzltl (branch LR if --ctr != 0 OR 4*cr0+lt == 1)
 
     '41000062': [
         {
@@ -5392,7 +5388,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzlta 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+lt == 1)
+    ], # bdnzlta 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+lt == 1)
 
     '41000063': [
         {
@@ -5447,9 +5443,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzltla 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+lt == 1)
+    ], # bdnzltla 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+lt == 1)
 
-    ###### Branch Decrement and branch if CTR != 0 OR GT ######
+    ###### Branch Decrement and branch if ctr != 0 OR GT ######
 
     '41010060': [
         {
@@ -5504,7 +5500,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzgt (branch LR if --CTR != 0 OR 4*cr0+gt == 1)
+    ], # bdnzgt (branch LR if --ctr != 0 OR 4*cr0+gt == 1)
 
     '41010061': [
         {
@@ -5559,7 +5555,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzgtl (branch LR if --CTR != 0 OR 4*cr0+gt == 1)
+    ], # bdnzgtl (branch LR if --ctr != 0 OR 4*cr0+gt == 1)
 
     '41010062': [
         {
@@ -5614,7 +5610,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzgta 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+gt == 1)
+    ], # bdnzgta 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+gt == 1)
 
     '41010063': [
         {
@@ -5669,9 +5665,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzgtla 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+gt == 1)
+    ], # bdnzgtla 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+gt == 1)
 
-    ###### Branch Decrement and branch if CTR != 0 OR EQ ######
+    ###### Branch Decrement and branch if ctr != 0 OR EQ ######
 
     '41020060': [
         {
@@ -5726,7 +5722,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzeq (branch LR if --CTR != 0 OR 4*cr0+eq == 1)
+    ], # bdnzeq (branch LR if --ctr != 0 OR 4*cr0+eq == 1)
 
     '41020061': [
         {
@@ -5781,7 +5777,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzeql (branch LR if --CTR != 0 OR 4*cr0+eq == 1)
+    ], # bdnzeql (branch LR if --ctr != 0 OR 4*cr0+eq == 1)
 
     '41020062': [
         {
@@ -5836,7 +5832,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzeqa 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+eq == 1)
+    ], # bdnzeqa 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+eq == 1)
 
     '41020063': [
         {
@@ -5891,9 +5887,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzeqla 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+eq == 1)
+    ], # bdnzeqla 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+eq == 1)
 
-    ###### Branch Decrement and branch if CTR != 0 OR SO ######
+    ###### Branch Decrement and branch if ctr != 0 OR SO ######
 
     '41030060': [
         {
@@ -5948,7 +5944,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzso (branch LR if --CTR != 0 OR 4*cr0+so == 1)
+    ], # bdnzso (branch LR if --ctr != 0 OR 4*cr0+so == 1)
 
     '41030061': [
         {
@@ -6003,7 +5999,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzsol (branch LR if --CTR != 0 OR 4*cr0+so == 1)
+    ], # bdnzsol (branch LR if --ctr != 0 OR 4*cr0+so == 1)
 
     '41030062': [
         {
@@ -6058,7 +6054,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzsoa 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+so == 1)
+    ], # bdnzsoa 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+so == 1)
 
     '41030063': [
         {
@@ -6113,13 +6109,13 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzsola 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+so == 1)
+    ], # bdnzsola 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+so == 1)
 
     ########################################################################
-    ###### Branch Decrement and branch if CTR != 0 OR CONDITION FALSE ######
+    ###### Branch Decrement and branch if ctr != 0 OR CONDITION FALSE ######
     ########################################################################
 
-    ###### Branch Decrement and branch if CTR != 0 OR GE ######
+    ###### Branch Decrement and branch if ctr != 0 OR GE ######
 
     '40000060': [
         {
@@ -6174,7 +6170,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzge (branch LR if --CTR != 0 OR 4*cr0+lt == 0)
+    ], # bdnzge (branch LR if --ctr != 0 OR 4*cr0+lt == 0)
 
     '40000061': [
         {
@@ -6229,7 +6225,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzgel (branch LR if --CTR != 0 OR 4*cr0+lt == 0)
+    ], # bdnzgel (branch LR if --ctr != 0 OR 4*cr0+lt == 0)
 
     '40000062': [
         {
@@ -6284,7 +6280,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzgea 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+lt == 0)
+    ], # bdnzgea 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+lt == 0)
 
     '40000063': [
         {
@@ -6339,9 +6335,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzgela 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+lt == 0)
+    ], # bdnzgela 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+lt == 0)
 
-    ###### Branch Decrement and branch if CTR != 0 OR LE ######
+    ###### Branch Decrement and branch if ctr != 0 OR LE ######
 
     '40010060': [
         {
@@ -6396,7 +6392,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzle (branch LR if --CTR != 0 OR 4*cr0+gt == 0)
+    ], # bdnzle (branch LR if --ctr != 0 OR 4*cr0+gt == 0)
 
     '40010061': [
         {
@@ -6451,7 +6447,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzlel (branch LR if --CTR != 0 OR 4*cr0+gt == 0)
+    ], # bdnzlel (branch LR if --ctr != 0 OR 4*cr0+gt == 0)
 
     '40010062': [
         {
@@ -6506,7 +6502,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzlea 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+gt == 0)
+    ], # bdnzlea 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+gt == 0)
 
     '40010063': [
         {
@@ -6561,9 +6557,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzlela 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+gt == 0)
+    ], # bdnzlela 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+gt == 0)
 
-    ###### Branch Decrement and branch if CTR != 0 OR NE ######
+    ###### Branch Decrement and branch if ctr != 0 OR NE ######
 
     '40020060': [
         {
@@ -6618,7 +6614,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzne (branch LR if --CTR != 0 OR 4*cr0+eq == 0)
+    ], # bdnzne (branch LR if --ctr != 0 OR 4*cr0+eq == 0)
 
     '40020061': [
         {
@@ -6673,7 +6669,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnznel (branch LR if --CTR != 0 OR 4*cr0+eq == 0)
+    ], # bdnznel (branch LR if --ctr != 0 OR 4*cr0+eq == 0)
 
     '40020062': [
         {
@@ -6728,7 +6724,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnznea 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+eq == 0)
+    ], # bdnznea 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+eq == 0)
 
     '40020063': [
         {
@@ -6783,9 +6779,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnznela 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+eq == 0)
+    ], # bdnznela 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+eq == 0)
 
-    ###### Branch Decrement and branch if CTR != 0 OR NS ######
+    ###### Branch Decrement and branch if ctr != 0 OR NS ######
 
     '40030060': [
         {
@@ -6840,7 +6836,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzns (branch LR if --CTR != 0 OR 4*cr0+so == 0)
+    ], # bdnzns (branch LR if --ctr != 0 OR 4*cr0+so == 0)
 
     '40030061': [
         {
@@ -6895,7 +6891,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnznsl (branch LR if --CTR != 0 OR 4*cr0+so == 0)
+    ], # bdnznsl (branch LR if --ctr != 0 OR 4*cr0+so == 0)
 
     '40030062': [
         {
@@ -6950,7 +6946,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnznsa 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+so == 0)
+    ], # bdnznsa 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+so == 0)
 
     '40030063': [
         {
@@ -7005,10 +7001,10 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnznsla 0x60 (branch 0x60 if --CTR != 0 OR 4*cr0+so == 0)
+    ], # bdnznsla 0x60 (branch 0x60 if --ctr != 0 OR 4*cr0+so == 0)
 
     #####################################################
-    ###### Branch Decrement and branch if CTR == 0 ######
+    ###### Branch Decrement and branch if ctr == 0 ######
     #####################################################
 
     '42400060': [
@@ -7180,10 +7176,10 @@ emutests = {
     ], # bdzla
 
     #######################################################################
-    ###### Branch Decrement and branch if CTR == 0 OR CONDITION TRUE ######
+    ###### Branch Decrement and branch if ctr == 0 OR CONDITION TRUE ######
     #######################################################################
 
-    ###### Branch Decrement and branch if CTR == 0 OR LT ######
+    ###### Branch Decrement and branch if ctr == 0 OR LT ######
 
     '41400060': [
         {
@@ -7238,7 +7234,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzlt (branch LR if --CTR == 0 OR 4*cr0+lt == 1)
+    ], # bdzlt (branch LR if --ctr == 0 OR 4*cr0+lt == 1)
 
     '41400061': [
         {
@@ -7293,7 +7289,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzltl (branch LR if --CTR == 0 OR 4*cr0+lt == 1)
+    ], # bdzltl (branch LR if --ctr == 0 OR 4*cr0+lt == 1)
 
     '41400062': [
         {
@@ -7348,7 +7344,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzlta 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+lt == 1)
+    ], # bdzlta 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+lt == 1)
 
     '41400063': [
         {
@@ -7403,9 +7399,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzltla 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+lt == 1)
+    ], # bdzltla 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+lt == 1)
 
-    ###### Branch Decrement and branch if CTR == 0 OR GT ######
+    ###### Branch Decrement and branch if ctr == 0 OR GT ######
 
     '41410060': [
         {
@@ -7460,7 +7456,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzgt (branch LR if --CTR == 0 OR 4*cr0+gt == 1)
+    ], # bdzgt (branch LR if --ctr == 0 OR 4*cr0+gt == 1)
 
     '41410061': [
         {
@@ -7515,7 +7511,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzgtl (branch LR if --CTR == 0 OR 4*cr0+gt == 1)
+    ], # bdzgtl (branch LR if --ctr == 0 OR 4*cr0+gt == 1)
 
     '41410062': [
         {
@@ -7570,7 +7566,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzgta 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+gt == 1)
+    ], # bdzgta 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+gt == 1)
 
     '41410063': [
         {
@@ -7625,9 +7621,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzgtla 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+gt == 1)
+    ], # bdzgtla 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+gt == 1)
 
-    ###### Branch Decrement and branch if CTR == 0 OR EQ ######
+    ###### Branch Decrement and branch if ctr == 0 OR EQ ######
 
     '41420060': [
         {
@@ -7682,7 +7678,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzeq (branch LR if --CTR == 0 OR 4*cr0+eq == 1)
+    ], # bdzeq (branch LR if --ctr == 0 OR 4*cr0+eq == 1)
 
     '41420061': [
         {
@@ -7737,7 +7733,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzeql (branch LR if --CTR == 0 OR 4*cr0+eq == 1)
+    ], # bdzeql (branch LR if --ctr == 0 OR 4*cr0+eq == 1)
 
     '41420062': [
         {
@@ -7792,7 +7788,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzeqa 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+eq == 1)
+    ], # bdzeqa 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+eq == 1)
 
     '41420063': [
         {
@@ -7847,9 +7843,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzeqla 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+eq == 1)
+    ], # bdzeqla 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+eq == 1)
 
-    ###### Branch Decrement and branch if CTR == 0 OR SO ######
+    ###### Branch Decrement and branch if ctr == 0 OR SO ######
 
     '41430060': [
         {
@@ -7904,7 +7900,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzso (branch LR if --CTR == 0 OR 4*cr0+so == 1)
+    ], # bdzso (branch LR if --ctr == 0 OR 4*cr0+so == 1)
 
     '41430061': [
         {
@@ -7959,7 +7955,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzsol (branch LR if --CTR == 0 OR 4*cr0+so == 1)
+    ], # bdzsol (branch LR if --ctr == 0 OR 4*cr0+so == 1)
 
     '41430062': [
         {
@@ -8014,7 +8010,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzsoa 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+so == 1)
+    ], # bdzsoa 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+so == 1)
 
     '41430063': [
         {
@@ -8069,13 +8065,13 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzsola 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+so == 1)
+    ], # bdzsola 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+so == 1)
 
     ########################################################################
-    ###### Branch Decrement and branch if CTR == 0 OR CONDITION FALSE ######
+    ###### Branch Decrement and branch if ctr == 0 OR CONDITION FALSE ######
     ########################################################################
 
-    ###### Branch Decrement and branch if CTR == 0 OR GE ######
+    ###### Branch Decrement and branch if ctr == 0 OR GE ######
 
     '40400060': [
         {
@@ -8130,7 +8126,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzge (branch LR if --CTR == 0 OR 4*cr0+lt == 0)
+    ], # bdzge (branch LR if --ctr == 0 OR 4*cr0+lt == 0)
 
     '40400061': [
         {
@@ -8185,7 +8181,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzgel (branch LR if --CTR == 0 OR 4*cr0+lt == 0)
+    ], # bdzgel (branch LR if --ctr == 0 OR 4*cr0+lt == 0)
 
     '40400062': [
         {
@@ -8240,7 +8236,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzgea 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+lt == 0)
+    ], # bdzgea 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+lt == 0)
 
     '40400063': [
         {
@@ -8295,9 +8291,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzgela 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+lt == 0)
+    ], # bdzgela 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+lt == 0)
 
-    ###### Branch Decrement and branch if CTR == 0 OR LE ######
+    ###### Branch Decrement and branch if ctr == 0 OR LE ######
 
     '40410060': [
         {
@@ -8352,7 +8348,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzle (branch LR if --CTR == 0 OR 4*cr0+gt == 0)
+    ], # bdzle (branch LR if --ctr == 0 OR 4*cr0+gt == 0)
 
     '40410061': [
         {
@@ -8407,7 +8403,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzlel (branch LR if --CTR == 0 OR 4*cr0+gt == 0)
+    ], # bdzlel (branch LR if --ctr == 0 OR 4*cr0+gt == 0)
 
     '40410062': [
         {
@@ -8462,7 +8458,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzlea 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+gt == 0)
+    ], # bdzlea 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+gt == 0)
 
     '40410063': [
         {
@@ -8517,9 +8513,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzlela 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+gt == 0)
+    ], # bdzlela 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+gt == 0)
 
-    ###### Branch Decrement and branch if CTR == 0 OR NE ######
+    ###### Branch Decrement and branch if ctr == 0 OR NE ######
 
     '40420060': [
         {
@@ -8574,7 +8570,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzne (branch LR if --CTR == 0 OR 4*cr0+eq == 0)
+    ], # bdzne (branch LR if --ctr == 0 OR 4*cr0+eq == 0)
 
     '40420061': [
         {
@@ -8629,7 +8625,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdznel (branch LR if --CTR == 0 OR 4*cr0+eq == 0)
+    ], # bdznel (branch LR if --ctr == 0 OR 4*cr0+eq == 0)
 
     '40420062': [
         {
@@ -8684,7 +8680,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdznea 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+eq == 0)
+    ], # bdznea 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+eq == 0)
 
     '40420063': [
         {
@@ -8739,9 +8735,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdznela 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+eq == 0)
+    ], # bdznela 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+eq == 0)
 
-    ###### Branch Decrement and branch if CTR == 0 OR NS ######
+    ###### Branch Decrement and branch if ctr == 0 OR NS ######
 
     '40430060': [
         {
@@ -8796,7 +8792,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzns (branch LR if --CTR == 0 OR 4*cr0+so == 0)
+    ], # bdzns (branch LR if --ctr == 0 OR 4*cr0+so == 0)
 
     '40430061': [
         {
@@ -8851,7 +8847,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdznsl (branch LR if --CTR == 0 OR 4*cr0+so == 0)
+    ], # bdznsl (branch LR if --ctr == 0 OR 4*cr0+so == 0)
 
     '40430062': [
         {
@@ -8906,7 +8902,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdznsa 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+so == 0)
+    ], # bdznsa 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+so == 0)
 
     '40430063': [
         {
@@ -8961,10 +8957,10 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdznsla 0x60 (branch 0x60 if --CTR == 0 OR 4*cr0+so == 0)
+    ], # bdznsla 0x60 (branch 0x60 if --ctr == 0 OR 4*cr0+so == 0)
 
     ###########################################################
-    ###### Branch Decrement and branch to LR if CTR != 0 ######
+    ###### Branch Decrement and branch to LR if ctr != 0 ######
     ###########################################################
 
     '4E000020': [
@@ -9052,10 +9048,10 @@ emutests = {
     ], # bdnzlrl
 
     #######################################################################
-    ###### Branch Decrement and branch to LR if CTR != 0 OR CONDITION TRUE ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR CONDITION TRUE ######
     #######################################################################
 
-    ###### Branch Decrement and branch to LR if CTR != 0 OR LT ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR LT ######
 
     '4D000020': [
         {
@@ -9110,7 +9106,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzltlr (branch LR if --CTR != 0 OR 4*cr0+lt == 1)
+    ], # bdnzltlr (branch LR if --ctr != 0 OR 4*cr0+lt == 1)
 
     '4D000021': [
         {
@@ -9165,9 +9161,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzltlrl (branch LR if --CTR != 0 OR 4*cr0+lt == 1)
+    ], # bdnzltlrl (branch LR if --ctr != 0 OR 4*cr0+lt == 1)
 
-    ###### Branch Decrement and branch to LR if CTR != 0 OR GT ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR GT ######
 
     '4D010020': [
         {
@@ -9222,7 +9218,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzgtlr (branch LR if --CTR != 0 OR 4*cr0+gt == 1)
+    ], # bdnzgtlr (branch LR if --ctr != 0 OR 4*cr0+gt == 1)
 
     '4D010021': [
         {
@@ -9277,9 +9273,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzgtlrl (branch LR if --CTR != 0 OR 4*cr0+gt == 1)
+    ], # bdnzgtlrl (branch LR if --ctr != 0 OR 4*cr0+gt == 1)
 
-    ###### Branch Decrement and branch to LR if CTR != 0 OR EQ ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR EQ ######
 
     '4D020020': [
         {
@@ -9334,7 +9330,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzeqlr (branch LR if --CTR != 0 OR 4*cr0+eq == 1)
+    ], # bdnzeqlr (branch LR if --ctr != 0 OR 4*cr0+eq == 1)
 
     '4D020021': [
         {
@@ -9389,9 +9385,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzeqlrl (branch LR if --CTR != 0 OR 4*cr0+eq == 1)
+    ], # bdnzeqlrl (branch LR if --ctr != 0 OR 4*cr0+eq == 1)
 
-    ###### Branch Decrement and branch to LR if CTR != 0 OR SO ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR SO ######
 
     '4D030020': [
         {
@@ -9446,7 +9442,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzsolr (branch LR if --CTR != 0 OR 4*cr0+so == 1)
+    ], # bdnzsolr (branch LR if --ctr != 0 OR 4*cr0+so == 1)
 
     '4D030021': [
         {
@@ -9501,13 +9497,13 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzsolrl (branch LR if --CTR != 0 OR 4*cr0+so == 1)
+    ], # bdnzsolrl (branch LR if --ctr != 0 OR 4*cr0+so == 1)
 
     ########################################################################
-    ###### Branch Decrement and branch to LR if CTR != 0 OR CONDITION FALSE ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR CONDITION FALSE ######
     ########################################################################
 
-    ###### Branch Decrement and branch to LR if CTR != 0 OR GE ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR GE ######
 
     '4C000020': [
         {
@@ -9562,7 +9558,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzgelr (branch LR if --CTR != 0 OR 4*cr0+lt == 0)
+    ], # bdnzgelr (branch LR if --ctr != 0 OR 4*cr0+lt == 0)
 
     '4C000021': [
         {
@@ -9617,9 +9613,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzgelrl (branch LR if --CTR != 0 OR 4*cr0+lt == 0)
+    ], # bdnzgelrl (branch LR if --ctr != 0 OR 4*cr0+lt == 0)
 
-    ###### Branch Decrement and branch to LR if CTR != 0 OR LE ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR LE ######
 
     '4C010020': [
         {
@@ -9674,7 +9670,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnzlelr (branch LR if --CTR != 0 OR 4*cr0+gt == 0)
+    ], # bdnzlelr (branch LR if --ctr != 0 OR 4*cr0+gt == 0)
 
     '4C010021': [
         {
@@ -9729,9 +9725,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnzlelrl (branch LR if --CTR != 0 OR 4*cr0+gt == 0)
+    ], # bdnzlelrl (branch LR if --ctr != 0 OR 4*cr0+gt == 0)
 
-    ###### Branch Decrement and branch to LR if CTR != 0 OR NE ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR NE ######
 
     '4C020020': [
         {
@@ -9786,7 +9782,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnznelr (branch LR if --CTR != 0 OR 4*cr0+eq == 0)
+    ], # bdnznelr (branch LR if --ctr != 0 OR 4*cr0+eq == 0)
 
     '4C020021': [
         {
@@ -9841,9 +9837,9 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnznelrl (branch LR if --CTR != 0 OR 4*cr0+eq == 0)
+    ], # bdnznelrl (branch LR if --ctr != 0 OR 4*cr0+eq == 0)
 
-    ###### Branch Decrement and branch to LR if CTR != 0 OR NS ######
+    ###### Branch Decrement and branch to LR if ctr != 0 OR NS ######
 
     '4C030020': [
         {
@@ -9898,7 +9894,7 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         }
-    ], # bdnznslr (branch LR if --CTR != 0 OR 4*cr0+so == 0)
+    ], # bdnznslr (branch LR if --ctr != 0 OR 4*cr0+so == 0)
 
     '4C030021': [
         {
@@ -9953,10 +9949,10 @@ emutests = {
                 ('ctr', 0x00000000 ),
             ),
         },
-    ], # bdnznslrl (branch LR if --CTR != 0 OR 4*cr0+so == 0)
+    ], # bdnznslrl (branch LR if --ctr != 0 OR 4*cr0+so == 0)
 
     #####################################################
-    ###### Branch Decrement and branch to LR if CTR == 0 ######
+    ###### Branch Decrement and branch to LR if ctr == 0 ######
     #####################################################
 
     '4E400020': [
@@ -10044,10 +10040,10 @@ emutests = {
     ], # bdzlrl
 
     #######################################################################
-    ###### Branch Decrement and branch to LR if CTR == 0 OR CONDITION TRUE ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR CONDITION TRUE ######
     #######################################################################
 
-    ###### Branch Decrement and branch to LR if CTR == 0 OR LT ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR LT ######
     '4D400020': [
         {
             'setup': (
@@ -10101,7 +10097,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzltlr (branch LR if --CTR == 0 OR 4*cr0+lt == 1)
+    ], # bdzltlr (branch LR if --ctr == 0 OR 4*cr0+lt == 1)
 
     '4D400021': [
         {
@@ -10156,9 +10152,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzltlrl (branch LR if --CTR == 0 OR 4*cr0+lt == 1)
+    ], # bdzltlrl (branch LR if --ctr == 0 OR 4*cr0+lt == 1)
 
-    ###### Branch Decrement and branch to LR if CTR == 0 OR GT ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR GT ######
 
     '4D410020': [
         {
@@ -10213,7 +10209,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzgtlr (branch LR if --CTR == 0 OR 4*cr0+gt == 1)
+    ], # bdzgtlr (branch LR if --ctr == 0 OR 4*cr0+gt == 1)
 
     '4D410021': [
         {
@@ -10268,9 +10264,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzgtlrl (branch LR if --CTR == 0 OR 4*cr0+gt == 1)
+    ], # bdzgtlrl (branch LR if --ctr == 0 OR 4*cr0+gt == 1)
 
-    ###### Branch Decrement and branch to LR if CTR == 0 OR EQ ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR EQ ######
 
     '4D420020': [
         {
@@ -10325,7 +10321,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzeqlr (branch LR if --CTR == 0 OR 4*cr0+eq == 1)
+    ], # bdzeqlr (branch LR if --ctr == 0 OR 4*cr0+eq == 1)
 
     '4D420021': [
         {
@@ -10380,9 +10376,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzeqlrl (branch LR if --CTR == 0 OR 4*cr0+eq == 1)
+    ], # bdzeqlrl (branch LR if --ctr == 0 OR 4*cr0+eq == 1)
 
-    ###### Branch Decrement and branch to LR if CTR == 0 OR SO ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR SO ######
 
     '4D430020': [
         {
@@ -10437,7 +10433,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzsolr (branch LR if --CTR == 0 OR 4*cr0+so == 1)
+    ], # bdzsolr (branch LR if --ctr == 0 OR 4*cr0+so == 1)
 
     '4D430021': [
         {
@@ -10492,13 +10488,13 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzsolrl (branch LR if --CTR == 0 OR 4*cr0+so == 1)
+    ], # bdzsolrl (branch LR if --ctr == 0 OR 4*cr0+so == 1)
 
     ########################################################################
-    ###### Branch Decrement and branch to LR if CTR == 0 OR CONDITION FALSE ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR CONDITION FALSE ######
     ########################################################################
 
-    ###### Branch Decrement and branch to LR if CTR == 0 OR GE ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR GE ######
 
     '4C400020': [
         {
@@ -10553,7 +10549,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzgelr (branch LR if --CTR == 0 OR 4*cr0+lt == 0)
+    ], # bdzgelr (branch LR if --ctr == 0 OR 4*cr0+lt == 0)
 
     '4C400021': [
         {
@@ -10608,9 +10604,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzgelrl (branch LR if --CTR == 0 OR 4*cr0+lt == 0)
+    ], # bdzgelrl (branch LR if --ctr == 0 OR 4*cr0+lt == 0)
 
-    ###### Branch Decrement and branch to LR if CTR == 0 OR LE ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR LE ######
 
     '4C410020': [
         {
@@ -10665,7 +10661,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdzlelr (branch LR if --CTR == 0 OR 4*cr0+gt == 0)
+    ], # bdzlelr (branch LR if --ctr == 0 OR 4*cr0+gt == 0)
 
     '4C410021': [
         {
@@ -10720,9 +10716,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdzlelrl (branch LR if --CTR == 0 OR 4*cr0+gt == 0)
+    ], # bdzlelrl (branch LR if --ctr == 0 OR 4*cr0+gt == 0)
 
-    ###### Branch Decrement and branch to LR if CTR == 0 OR NE ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR NE ######
 
     '4C420020': [
         {
@@ -10777,7 +10773,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdznelr (branch LR if --CTR == 0 OR 4*cr0+eq == 0)
+    ], # bdznelr (branch LR if --ctr == 0 OR 4*cr0+eq == 0)
 
     '4C420021': [
         {
@@ -10832,9 +10828,9 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdznelrl (branch LR if --CTR == 0 OR 4*cr0+eq == 0)
+    ], # bdznelrl (branch LR if --ctr == 0 OR 4*cr0+eq == 0)
 
-    ###### Branch Decrement and branch to LR if CTR == 0 OR NS ######
+    ###### Branch Decrement and branch to LR if ctr == 0 OR NS ######
 
     '4C430020': [
         {
@@ -10889,7 +10885,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bdznslr (branch LR if --CTR == 0 OR 4*cr0+so == 0)
+    ], # bdznslr (branch LR if --ctr == 0 OR 4*cr0+so == 0)
 
     '4C430021': [
         {
@@ -10944,7 +10940,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bdznslrl LR (branch LR if --CTR == 0 OR 4*cr0+so == 0)
+    ], # bdznslrl LR (branch LR if --ctr == 0 OR 4*cr0+so == 0)
 
     ######################################################################
     ###### Branch Conditional (unsimplified, non-standard BO hints) ######
@@ -11875,7 +11871,7 @@ emutests = {
     ], # bnsla 0x000000060 (branch 0x60 if 4*cr0+so == 0)
 
     #############################################################################
-    ###### Branch Conditional to CTR (unsimplified, non-standard BO hints) ######
+    ###### Branch Conditional to ctr (unsimplified, non-standard BO hints) ######
     #############################################################################
 
     '4DA00420': [
@@ -11905,7 +11901,7 @@ emutests = {
                 ('ctr', 0xAAAAAAAA ),
             ),
         },
-    ], # bcctr 0xD,lt,0x0 (branch CTR if 4*cr0+lt == 1)
+    ], # bcctr 0xD,lt,0x0 (branch ctr if 4*cr0+lt == 1)
 
     '4DA00421': [
         {
@@ -11934,13 +11930,13 @@ emutests = {
                 ('ctr', 0xAAAAAAAA ),
             ),
         },
-    ], # bcctrl 0xD,lt,0x0 (branch CTR if 4*cr0+lt == 1)
+    ], # bcctrl 0xD,lt,0x0 (branch ctr if 4*cr0+lt == 1)
 
     ###################################################################
-    ###### Branch Conditional (simplified) to CTR CONDITION TRUE ######
+    ###### Branch Conditional (simplified) to ctr CONDITION TRUE ######
     ###################################################################
 
-    ###### Branch CTR if LT ######
+    ###### Branch ctr if LT ######
 
     '4D800420': [
         {
@@ -11967,7 +11963,7 @@ emutests = {
                 ('lr', 0x12345678 ),
             ),
         }
-    ], # bltctr (branch CTR if 4*cr0+lt == 1)
+    ], # bltctr (branch ctr if 4*cr0+lt == 1)
 
     '4D800421': [
         {
@@ -11994,9 +11990,9 @@ emutests = {
                 ('lr', 0x40004564 ),
             ),
         }
-    ], # bltctrl (branch CTR if 4*cr0+lt == 1)
+    ], # bltctrl (branch ctr if 4*cr0+lt == 1)
 
-    ###### Branch CTR if GT ######
+    ###### Branch ctr if GT ######
 
     '4D810420': [
         {
@@ -12023,7 +12019,7 @@ emutests = {
                 ('lr', 0x12345678 ),
             ),
         }
-    ], # bgtctr (branch CTR if 4*cr0+lt == 1)
+    ], # bgtctr (branch ctr if 4*cr0+lt == 1)
 
     '4D810421': [
         {
@@ -12050,9 +12046,9 @@ emutests = {
                 ('lr', 0x40004564 ),
             ),
         }
-    ], # bgtctrl (branch CTR if 4*cr0+lt == 1)
+    ], # bgtctrl (branch ctr if 4*cr0+lt == 1)
 
-    ###### Branch CTR if EQ ######
+    ###### Branch ctr if EQ ######
 
     '4D820420': [
         {
@@ -12079,7 +12075,7 @@ emutests = {
                 ('lr', 0x12345678 ),
             ),
         }
-    ], # beqctr (branch CTR if 4*cr0+eq == 1)
+    ], # beqctr (branch ctr if 4*cr0+eq == 1)
 
     '4D820421': [
         {
@@ -12106,9 +12102,9 @@ emutests = {
                 ('lr', 0x40004564 ),
             ),
         }
-    ], # beqctrl (branch CTR if 4*cr0+eq == 1)
+    ], # beqctrl (branch ctr if 4*cr0+eq == 1)
 
-    ###### Branch CTR if SO ######
+    ###### Branch ctr if SO ######
 
     '4D830420': [
         {
@@ -12135,7 +12131,7 @@ emutests = {
                 ('lr', 0x12345678 ),
             ),
         }
-    ], # bsoctr (branch CTR if 4*cr0+so == 1)
+    ], # bsoctr (branch ctr if 4*cr0+so == 1)
 
     '4D830421': [
         {
@@ -12162,13 +12158,13 @@ emutests = {
                 ('lr', 0x40004564 ),
             ),
         }
-    ], # bsoctrl (branch CTR if 4*cr0+so == 1)
+    ], # bsoctrl (branch ctr if 4*cr0+so == 1)
 
     ####################################################################
-    ###### Branch Conditional (simplified) to CTR CONDITION FALSE ######
+    ###### Branch Conditional (simplified) to ctr CONDITION FALSE ######
     ####################################################################
 
-    ###### Branch CTR if GE ######
+    ###### Branch ctr if GE ######
 
     '4C800420': [
         {
@@ -12195,7 +12191,7 @@ emutests = {
                 ('lr', 0x12345678 ),
             ),
         }
-    ], # bgectr (branch CTR if 4*cr0+lt == 0)
+    ], # bgectr (branch ctr if 4*cr0+lt == 0)
 
     '4C800421': [
         {
@@ -12222,9 +12218,9 @@ emutests = {
                 ('lr', 0x40004564 ),
             ),
         }
-    ], # bgectrl (branch CTR if 4*cr0+lt == 0)
+    ], # bgectrl (branch ctr if 4*cr0+lt == 0)
 
-    ###### Branch CTR if GT ######
+    ###### Branch ctr if GT ######
 
     '4C810420': [
         {
@@ -12251,7 +12247,7 @@ emutests = {
                 ('lr', 0x12345678 ),
             ),
         }
-    ], # blectr (branch CTR if 4*cr0+gt == 0)
+    ], # blectr (branch ctr if 4*cr0+gt == 0)
 
     '4C810421': [
         {
@@ -12278,9 +12274,9 @@ emutests = {
                 ('lr', 0x40004564 ),
             ),
         }
-    ], # blectrl (branch CTR if 4*cr0+gt == 0)
+    ], # blectrl (branch ctr if 4*cr0+gt == 0)
 
-    ###### Branch CTR if NE ######
+    ###### Branch ctr if NE ######
 
     '4C820420': [
         {
@@ -12307,7 +12303,7 @@ emutests = {
                 ('lr', 0x12345678 ),
             ),
         }
-    ], # bnectr (branch CTR if 4*cr0+eq == 0)
+    ], # bnectr (branch ctr if 4*cr0+eq == 0)
 
     '4C820421': [
         {
@@ -12334,9 +12330,9 @@ emutests = {
                 ('lr', 0x40004564 ),
             ),
         }
-    ], # bnectrl (branch CTR if 4*cr0+eq == 0)
+    ], # bnectrl (branch ctr if 4*cr0+eq == 0)
 
-    ###### Branch CTR if NS ######
+    ###### Branch ctr if NS ######
 
     '4C830420': [
         {
@@ -12363,7 +12359,7 @@ emutests = {
                 ('lr', 0x12345678 ),
             ),
         }
-    ], # bnsctr (branch CTR if 4*cr0+so == 0)
+    ], # bnsctr (branch ctr if 4*cr0+so == 0)
 
     '4C830421': [
         {
@@ -12390,7 +12386,7 @@ emutests = {
                 ('lr', 0x40004564 ),
             ),
         }
-    ], # bnsctrl (branch CTR if 4*cr0+so == 0)
+    ], # bnsctrl (branch ctr if 4*cr0+so == 0)
 
     ############################################################################
     ###### Branch Conditional to LR (unsimplified, non-standard BO hints) ######
@@ -12449,7 +12445,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         }
-    ], # bclr 0xB,lt,0x0 (branch LR if --CTR == 0 OR 4*cr0+lt == 1)
+    ], # bclr 0xB,lt,0x0 (branch LR if --ctr == 0 OR 4*cr0+lt == 1)
 
     '4D600021': [
         {
@@ -12504,7 +12500,7 @@ emutests = {
                 ('ctr', 0x00000001 ),
             ),
         },
-    ], # bclrl 0xB,lt,0x0 (branch LR if --CTR == 0 OR 4*cr0+lt == 1)
+    ], # bclrl 0xB,lt,0x0 (branch LR if --ctr == 0 OR 4*cr0+lt == 1)
 
     ##################################################################
     ###### Branch Conditional (simplified) to LR CONDITION TRUE ######
@@ -13576,8 +13572,8 @@ emutests = {
     #     },
     #     {
     #         'setup': (
-    #             ('f30', 0x3FF199999999999A), 
-    #             ('f31', 0x400199999999999A), # 
+    #             ('f30', 0x3FF199999999999A),
+    #             ('f31', 0x400199999999999A), #
     #             ('f0', 0x0),
     #             ('fpscr',0)
     #         ),
@@ -13588,8 +13584,8 @@ emutests = {
     #     },
     #     {
     #         'setup': (
-    #             ('f30', 0xBFF199999999999A), 
-    #             ('f31', 0x400199999999999A), # 
+    #             ('f30', 0xBFF199999999999A),
+    #             ('f31', 0x400199999999999A), #
     #             ('f0', 0x0),
     #             ('fpscr',0x0)
     #         ),
@@ -13600,8 +13596,8 @@ emutests = {
     #     },
     #     {
     #         'setup': (
-    #             ('f30', 0xC00A666666666666), 
-    #             ('f31', 0xC01199999999999A), # 
+    #             ('f30', 0xC00A666666666666),
+    #             ('f31', 0xC01199999999999A), #
     #             ('f0', 0x0),
     #             ('fpscr',0)
     #         ),
@@ -13612,8 +13608,8 @@ emutests = {
     #     },
     #     {
     #         'setup': (
-    #             ('f30', 0), 
-    #             ('f31', 0xC01199999999999A), # 
+    #             ('f30', 0),
+    #             ('f31', 0xC01199999999999A), #
     #             ('f0', 0x0),
     #             ('fpscr',0)
     #         ),
@@ -13624,8 +13620,8 @@ emutests = {
     #     },
     #     {
     #         'setup': (
-    #             ('f30', 0), 
-    #             ('f31', 0), # 
+    #             ('f30', 0),
+    #             ('f31', 0), #
     #             ('f0', 0x0),
     #             ('fpscr',0)
     #         ),
@@ -13636,8 +13632,8 @@ emutests = {
     #     },
     #     {
     #         'setup': (
-    #             ('f30', FDNP), 
-    #             ('f31', 0x3FF199999999999A), # 
+    #             ('f30', FDNP),
+    #             ('f31', 0x3FF199999999999A), #
     #             ('f0', 0x0),
     #             ('fpscr',0)
     #         ),
@@ -13651,8 +13647,8 @@ emutests = {
     'fc000800': [ # ('fc000800', 'fcmpu cr0,f0,f1')
         {
             'setup': (
-                ('f0', 0x3FF199999999999A), # 
-                ('f1', 0x3FF199999999999A), # 
+                ('f0', 0x3FF199999999999A), #
+                ('f1', 0x3FF199999999999A), #
                 ('cr0', 0x0),
                 ('fpscr',0),
                 ('VXSANN', 0)
@@ -13667,8 +13663,8 @@ emutests = {
         },
         {
             'setup': (
-                ('f0', 0x7FF8000000000001), # 
-                ('f1', 0x3FF199999999999A), # 
+                ('f0', 0x7FF8000000000001), #
+                ('f1', 0x3FF199999999999A), #
                 ('cr0', 0x0),
                 ('fpscr',0),
                 ('VXSANN', 0)
@@ -13683,8 +13679,8 @@ emutests = {
         },
         {
             'setup': (
-                ('f0', FP_DOUBLE_NEG_QNAN), # 
-                ('f1', 0x3FF199999999999A), # 
+                ('f0', FP_DOUBLE_NEG_QNAN), #
+                ('f1', 0x3FF199999999999A), #
                 ('cr0', 0x0),
                 ('fpscr',0),
                 ('VXSANN', 0)
@@ -13702,8 +13698,8 @@ emutests = {
     'fc000840': [ # ('fc000840', 'fcmpo cr0,f0,f1')
         {
             'setup': (
-                ('f0', 0x3FF199999999999A), # 
-                ('f1', 0x3FF199999999999A), # 
+                ('f0', 0x3FF199999999999A), #
+                ('f1', 0x3FF199999999999A), #
                 ('cr0', 0x0),
                 ('fpscr',0),
                 ('VXSANN', 0)
@@ -13718,8 +13714,8 @@ emutests = {
         },
         {
             'setup': (
-                ('f0', 0x7FF8000000000001), # 
-                ('f1', 0x3FF199999999999A), # 
+                ('f0', 0x7FF8000000000001), #
+                ('f1', 0x3FF199999999999A), #
                 ('cr0', 0x0),
                 ('fpscr',0),
                 ('VXSANN', 0)
@@ -13734,8 +13730,8 @@ emutests = {
         },
         {
             'setup': (
-                ('f0', FP_DOUBLE_NEG_QNAN), # 
-                ('f1', 0x3FF199999999999A), # 
+                ('f0', FP_DOUBLE_NEG_QNAN), #
+                ('f1', 0x3FF199999999999A), #
                 ('cr0', 0x0),
                 ('fpscr',0),
                 ('VXSANN', 0),
@@ -13752,8 +13748,8 @@ emutests = {
         },
         {
             'setup': (
-                ('f0', FP_DOUBLE_NEG_SNAN), # 
-                ('f1', 0x3FF199999999999A), # 
+                ('f0', FP_DOUBLE_NEG_SNAN), #
+                ('f1', 0x3FF199999999999A), #
                 ('cr0', 0x0),
                 ('fpscr',0),
                 ('VXSANN', 0),
@@ -13771,8 +13767,8 @@ emutests = {
         },
         {
             'setup': (
-                ('f0', FP_DOUBLE_NEG_SNAN), # 
-                ('f1', 0x3FF199999999999A), # 
+                ('f0', FP_DOUBLE_NEG_SNAN), #
+                ('f1', 0x3FF199999999999A), #
                 ('cr0', 0x0),
                 ('fpscr',0),
                 ('VXSANN', 0),
@@ -13834,7 +13830,7 @@ emutests = {
         #         ('fpscr', 0x0)
         #     ),
         #     'tests': (
-        #         ('f0', 0x0), # 
+        #         ('f0', 0x0), #
         #         ('f1', 0x7FFC000000000000),
         #         ('fpscr', 0x110000)
         #     )
@@ -13844,8 +13840,8 @@ emutests = {
 # 'fc1f265d': [ # (fc1f265d:  fctid. f0,f2)  Cannot confirm behavior on hardware.
 #         {
 #             'setup': (
-#                 ('f0', _1p1), # 
-#                 ('f2', _2p2), # 
+#                 ('f0', _1p1), #
+#                 ('f2', _2p2), #
 #                 ('cr0', 0x0),
 #                 ('fpscr',0),
 #                 ('VXSANN', 0)
@@ -13860,8 +13856,8 @@ emutests = {
 #         },
 #         {
 #             'setup': (
-#                 ('f0', 0x7FF8000000000001), # 
-#                 ('f2', 0x3Ff299999999999A), # 
+#                 ('f0', 0x7FF8000000000001), #
+#                 ('f2', 0x3Ff299999999999A), #
 #                 ('cr0', 0x0),
 #                 ('fpscr',0),
 #                 ('VXSANN', 0)
@@ -13876,8 +13872,8 @@ emutests = {
 #         },
 #         {
 #             'setup': (
-#                 ('f0', FP_DOUBLE_NEG_QNAN), # 
-#                 ('f2', 0x3Ff299999999999A), # 
+#                 ('f0', FP_DOUBLE_NEG_QNAN), #
+#                 ('f2', 0x3Ff299999999999A), #
 #                 ('cr0', 0x0),
 #                 ('fpscr',0),
 #                 ('VXSANN', 0),
@@ -13894,8 +13890,8 @@ emutests = {
 #         },
 #         {
 #             'setup': (
-#                 ('f0', FP_DOUBLE_NEG_SNAN), # 
-#                 ('f2', 0x3Ff299999999999A), # 
+#                 ('f0', FP_DOUBLE_NEG_SNAN), #
+#                 ('f2', 0x3Ff299999999999A), #
 #                 ('cr0', 0x0),
 #                 ('fpscr',0),
 #                 ('VXSANN', 0),
@@ -14101,12 +14097,12 @@ emutests = {
                 (0x10000000, bytes.fromhex('3Ff299999999999A'))
             ),
             'tests': (
-                ('f0', 0x3Ff299999999999A), 
+                ('f0', 0x3Ff299999999999A),
                 ('r1', 0x10000000),
             )
         },
     ],
-    
+
     'c8010001': [ #  lfd f0,0x1(r1)
         {
             'setup': (
@@ -14115,7 +14111,7 @@ emutests = {
                 (0x10000000 + 1, bytes.fromhex('3Ff299999999999A'))
             ),
             'tests': (
-                ('f0', 0x3Ff299999999999A), 
+                ('f0', 0x3Ff299999999999A),
                 ('r1', 0x10000000),
             )
         },
@@ -14129,7 +14125,7 @@ emutests = {
                 (0x10000000, bytes.fromhex('3Ff299999999999A'))
             ),
             'tests': (
-                ('f0', 0x3ffe533320000000), 
+                ('f0', 0x3ffe533320000000),
                 ('r1', 0x10000000),
             )
         },
@@ -14144,7 +14140,7 @@ emutests = {
     #             (0x10000000, bytes.fromhex('3Ff299999999999A'))
     #         ),
     #         'tests': (
-    #             ('f0', 0x3Ff299999999999A), 
+    #             ('f0', 0x3Ff299999999999A),
     #             ('r1', 0x10000000),
     #         )
     #     },

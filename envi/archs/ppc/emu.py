@@ -5,10 +5,12 @@ import sys
 import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
+import envi.common as e_common
 
 import math
 import operator
 import struct
+import math
 
 from envi import *
 from .regs import *
@@ -16,6 +18,7 @@ from .const import *
 from .disasm import *
 from .bits import *
 from envi.archs.ppc import *
+
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +42,74 @@ class PpcCall(envi.CallingConvention):
     '''
     PowerPC Calling Convention.
     '''
+
+    # From the PPC ELF64ABI version 1.9 chapter 3.2.1:
+    #
+    # The 64-bit PowerPC Architecture provides 32 general purpose registers,
+    # each 64 bits wide. In addition, the architecture provides 32
+    # floating-point registers, each 64 bits wide, and several special purpose
+    # registers. All of the integer, special purpose, and floating-point
+    # registers are global to all functions in a running program. The
+    # following table shows how the registers are used.
+    #
+    #   r0          Volatile register used in function prologs
+    #   r1          Stack frame pointer
+    #   r2          TOC pointer
+    #   r3          Volatile parameter and return value register
+    #   r4-r10      Volatile registers used for function parameters
+    #   r11         Volatile register used in calls by pointer and as an
+    #               environment pointer for languages which require one
+    #   r12         Volatile register used for exception handling and glink code
+    #   r13         Reserved for use as system thread ID
+    #   r14-r31     Nonvolatile registers used for local variables
+    #
+    #   f0          Volatile scratch register
+    #   f1-f4       Volatile floating point parameter and return value registers
+    #   f5-f13      Volatile floating point parameter registers
+    #   f14-f31     Nonvolatile registers
+    #   LR          Link register (volatile)
+    #   CTR         Loop counter register (volatile)
+    #   XER         Fixed point exception register (volatile)
+    #   FPSCR       Floating point status and control register (volatile)
+    #
+    #   CR0-CR1     Volatile condition code register fields
+    #   CR2-CR4     Nonvolatile condition code register fields
+    #   CR5-CR7     Volatile condition code register fields
+    #
+    # On processors with the VMX feature.
+    #
+    #   v0-v1       Volatile scratch registers
+    #   v2-v13      Volatile vector parameters registers
+    #   v14-v19     Volatile scratch registers
+    #   v20-v31     Non-volatile registers
+    #   vrsave      Non-volatile 32-bit register
+
     arg_def = [(CC_REG, REG_R3 + x) for x in range(8)]
     arg_def.append((CC_STACK_INF, 8))
-    retaddr_def = (CC_STACK, 0)
+    retaddr_def = (CC_REG, REG_LR)
     retval_def = (CC_REG, REG_R3)
     flags = CC_CALLEE_CLEANUP
-    align = 4
+
+    # Stack layout from the PPC ELF64ABI version 1.9 chapter 3.5.13.
+    #
+    #   High address
+    #           +-> Back chain
+    #           | Floating point register save area
+    #           | General register save area
+    #           | VRSAVE save word (32-bits)
+    #           | Alignment padding (4 or 12 bytes)
+    #           | Vector register save area (quadword aligned)
+    #           | Local variable space
+    #           | Parameter save area         (SP + 48)
+    #           | TOC save area               (SP + 40) --+
+    #           | link editor doubleword      (SP + 32)   |
+    #           | compiler doubleword         (SP + 24)   |--stack frame header
+    #           | LR save area                (SP + 16)   |
+    #           | CR save area                (SP + 8)    |
+    #   SP ---> +-- Back chain                (SP + 0)  --+
+    #   Low address
+
+    align = 16
     pad = 0
 
 ppccall = PpcCall()
@@ -258,7 +323,6 @@ def getCarryBitAtX(bit, add0, add1):
     a0b = (add0 & e_bits.b_masks[bit])
     a1b = (add1 & e_bits.b_masks[bit])
     results = (a0b + a1b) >> (bit)
-    #print("getCarryBitAtX (%d): 0x%x  0x%x  (%d)" % (bit, a0b, a1b, results))
     return results
 
 def CLZ(x, psize=8):
@@ -512,13 +576,13 @@ class PpcAbstractEmulator(envi.Emulator):
         pass
 
     def _trap(self, op):
-        print('TRAP 0x%08x: %r' % (op.va, op))
+        logger.log(e_common.EMULOG, 'TRAP 0x%08x: %r', op.va, op)
 
     def _sc(self, op):
-        print('SC 0x%08x: %r' % (op.va, op))
+        logger.log(e_common.EMULOG, 'SC 0x%08x: %r', op.va, op)
 
     def _ehpriv(self, op):
-        print('EHPRIV 0x%08x: %r' % (op.va, op))
+        logger.log(e_common.EMULOG, 'EHPRIV 0x%08x: %r', op.va, op)
 
     def _wait(self, op):
         pass
@@ -640,18 +704,15 @@ class PpcAbstractEmulator(envi.Emulator):
             cm = getCarryBitAtX((size*8), add0, add1)
             cm1 = getCarryBitAtX((size*8)-1, add0, add1)
             ov = cm != cm1
-            #print("setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov))
 
         elif mode == OEMODE_ADDSUBNEG:
             cm = getCarryBitAtX((size*8), add0, add1)
             cm1 = getCarryBitAtX((size*8)-1, add0, add1)
             ov = cm != cm1
-            #print("setOEflags( 0x%x, 0x%x, 0x%x, 0x%x):  cm= 0x%x, cm1= 0x%x, ov= 0x%x" % (result, size, add0, add1, cm, cm1, ov))
 
         else:
             # for mul/div, ov is set if the result cannot be contained in 64bits
             ov = bool(result >> 64)
-
 
         self.setOverflow(ov)
 
@@ -790,6 +851,37 @@ class PpcAbstractEmulator(envi.Emulator):
         make python do that though.
         '''
 
+    def is_denorm16(self, value):
+        exp = value & 0x7c00
+        fract = value & 0x3ff
+
+        if not exp and fract:
+            denorm = True
+        else:
+            denorm = False
+        return denorm
+
+    def is_denorm32(self, value):
+        exp = value & 0x7f800000
+        fract = value & 0x7fffff
+
+        if not exp and fract:
+            denorm = True
+        else:
+            denorm = False
+        return denorm
+
+    def is_denorm64(self, value):
+        exp = value & 0x7ff0000000000000
+        fract = value & 0xfffffffffffff
+
+        if not exp and fract:
+            denorm = True
+        else:
+            denorm = False
+        return denorm
+
+
     # Beginning of Instruction methods
 
     ########################### NOP #############################
@@ -803,11 +895,11 @@ class PpcAbstractEmulator(envi.Emulator):
         # The 4th operand is which bit to check in the CR register, but using
         # the MSB as bit 0 because PPC. (use psize of 4 because the CR register
         # is always only 32 bits.
-        cr_mask = BITMASK(op.opers[3].bit, psize=4)
+        mask = BITMASK(op.opers[3].bit, psize=4)
 
         # Doesn't matter what the actual bit or CR is because the if the cr bit
         # is set in the CR then the use rA, otherwise use rB
-        if self.getRegister(REG_CR) & cr_mask:
+        if self.getRegister(REG_CR) & mask:
             self.setOperValue(op, 0, self.getOperValue(op, 1))
         else:
             self.setOperValue(op, 0, self.getOperValue(op, 2))
@@ -2340,6 +2432,13 @@ class PpcAbstractEmulator(envi.Emulator):
         if op.iflags & IF_RC: self.setFlags(result)
         self.setOperValue(op, 0, result)
 
+    def i_not(self, op):
+        src = self.getOperValue(op, 1)
+        result = COMPLEMENT(src, self.psize)
+
+        if op.iflags & IF_RC: self.setFlags(result)
+        self.setOperValue(op, 0, result)
+
     def i_or(self, op):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
@@ -2454,19 +2553,10 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, quotient)
 
     def i_divduo(self, op):
-        self.divd(op, oe=True)
-
-    def i_divw(self, op):
-        self.divd(op, opsize=4)
+        self.i_divd(op, oe=True)
 
     def i_divwo(self, op):
-        self.divd(op, opsize=4, oe=True)
-
-    def i_divwu(self, op):
-        self.divdu(op, opsize=4)
-
-    def i_divwuo(self, op):
-        self.divdu(op, opsize=4, oe=True)
+        self.i_divd(op, opsize=4, oe=True)
 
     def i_divwe(self, op, oe=False):
         # This one gets weird
@@ -2533,6 +2623,58 @@ class PpcAbstractEmulator(envi.Emulator):
     # TODO: In theory MSR[FP] == 0 should cause a floating-point unavailable
     # interrupt, but when finding valid source we don't want that to happen.
 
+    # Float Helper functions:
+
+    def denorm(value):
+        is_denorm = False
+        if value & 0x7f000000 == False:
+            if value & 0xffffff:
+                is_denorm = True
+        return is_denorm
+
+    def CnvtI32ToFP32(v, signed, fractional):  # upper_lower will only ever be "low" with embedded
+        result = 0
+        if v == 0:
+            result = 0
+            self.setRegister(REG_SPEFSCR_FG, 0)
+            self.setRegister(REG_SPEFSCR_FX, 0)
+            return
+
+        else:
+            if signed == True:
+                v_sign = v & 0x80000000
+            if fractional == True:
+                max_exp = 127
+                if signed == False:
+                    max_exp = 126
+            else:
+                max_exp = 0x9E
+
+            sc = 0
+
+            while (v & 0x80000000) == 0:
+                v = v << 1
+                sc = sc + 1
+            v = v >> sc
+            v = v & ~(v_sign)
+            result = result | (max_exp - sc) << 23
+            guard = (v & 800000) >> 23
+            if v & 0x7f000000:
+                sticky = 1
+            else:
+                sticky = 0
+            self.setRegister(REG_SPEFSCR_FG, guard)
+            self.setRegister(REG_SPEFSCR_FX, sticky)
+            if guard | sticky:
+                self.setRegister(REG_SPEFSCR_FINXS, 1)
+
+            result = (v & 0x007FFFFF) | v_sign
+            return result #rounding still needs tobe taken care of
+
+
+
+
+
     def i_fabs(self, op, fpsize=8):
         frB = self.getOperValue(op, 1)
 
@@ -2587,8 +2729,6 @@ class PpcAbstractEmulator(envi.Emulator):
 
     def i_fadds(self, op):
         self.i_fadd(op, fpsize=4)
-
-    i_efsadd = i_fadds
 
     def i_fsub(self, op, fpsize=8):
         frA = self.getOperValue(op, 1)
@@ -2744,6 +2884,9 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, self.getRegister(REG_FPSCR))
         if op.iflags & IF_RC: self.setFloatCr()
 
+    def i_mtfs(self, op, fpsize=8):
+        self.setOperValue(op, 0, self.getRegister(REG_FPSCR))
+        if op.iflags & IF_RC: self.setFloatCr()
 
     def i_fcmpu(self, op):
         frA = self.getOperValue(op, 1)
@@ -2794,7 +2937,11 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setRegister(REG_FPCC, c)
         self.setOperValue(op, 0, c)
 
-    def i_fctid(self, op, fpsize=8, round=0): # "round" placholder object for when we determine how to do rounding
+    def i_fctid(self, op, fpsize=8, rn=None):
+        # TODO how to do rounding? issue #87 (FPSCR[RN])
+        if rn is None:
+            rn = self.getRegister(REG_FPSCR_RN)
+
         frD = self.getOperValue(op, 0)
         frB = self.getOperValue(op, 1)
 
@@ -2804,7 +2951,7 @@ class PpcAbstractEmulator(envi.Emulator):
             if frB in FNAN_SNAN_TUP:
                 self.setRegister(REG_FPSCR_VXSAN, 1)
         else:
-            result = int(self.decimal2float(frB)) # TODO how to do rounding? issue #87 (FPSCR[RN])
+            result = int(self.decimal2float(frB))
             if result > (2**63-1):
                 result = 0x7FFF_FFFF_FFFF_FFFF
                 self.setRegister(FPSCR_VXCVI, 1)
@@ -2814,7 +2961,13 @@ class PpcAbstractEmulator(envi.Emulator):
         if op.iflags & IF_RC: self.setFloatCr()
 
     def i_fctidz(self, op):
-        self.i_fctid(op, round=1)
+        self.i_fctid(op, rn=1)
+
+    def i_fctiw(self, op):
+        self.i_fctid(op, fpsize=4, rn=None)
+
+    def i_fctiwz(self, op):
+        self.i_fctiw(op, fpsize=4, rn=1)
 
     def i_fres(self, op, fpsize=8): # Math is wrong on this one.  Python does 64 bit math.
         frD = self.getOperValue(op, 0)
@@ -2911,15 +3064,11 @@ class PpcAbstractEmulator(envi.Emulator):
     i_lfdu = _load_unsigned_update
 
     i_lfd = _load_signed
-    i_lfs = _load_signed
     i_lfddx = _load_signed
     i_lfdx = _load_signed
 
     i_lfdu = _load_signed_update
     i_lfdux = _load_signed_update
-
-
-
 
     i_lfs = _single_f_load
     i_lfsu = _single_f_load_update
@@ -2987,6 +3136,19 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_stfiwx(self, op):
         self.setOperValue(op, 1, (self.getOperValue(op, 0) & 0xffffffff))
 
+    def i_stfs(self, op):
+        # Convert the value to be stored to a "PPC single precision float"
+        frS = self.float2decimal(self.getOperValue(op, 0), fpsize=4)
+
+        # Now convert this floating point value to an actual 32-bit single
+        # precision value for storing into memory.
+        value = e_bits.floattodecimel(frS, size=4, endian=self.getEndian())
+        self.setOperValue(op, 1, value)
+
+    def i_stfsu(self, op):
+        self.i_stfs(op)
+        op.opers[1].updateReg(op, self)
+
     i_stb = _store_signed
     i_sth = _store_signed
     i_stw = _store_signed
@@ -3014,11 +3176,6 @@ class PpcAbstractEmulator(envi.Emulator):
 
     i_stfddx = i_stfdx
     i_stfdepx = i_stfdx
-
-
-
-
-
 
     ########################## MOVE FROM/TO INSTRUCTIONS ################################
 
@@ -3070,29 +3227,126 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, src)
 
     ########################## Special case MT/F instructions ################################
-#'INS_MCRXR' emulation method missing
-#
-#'INS_MFFS' emulation method missing
-#'INS_MFOCRF' emulation method missing
-#'INS_MFPMR' emulation method missing
-#'INS_MFTB' emulation method missing
-#'INS_MFTMR' emulation method missing
-#'INS_MFVSCR' emulation method missing
-#
-#'INS_MTCR' emulation method missing
-#'INS_MTCRF' emulation method missing
-#'INS_MTDCR' emulation method missing
-#'INS_MTFSB0' emulation method missing
-#'INS_MTFSB1' emulation method missing
-#'INS_MTFSF' emulation method missing
-#'INS_MTFSFI' emulation method missing
-#'INS_MTOCRF' emulation method missing
-#'INS_MTPMR' emulation method missing
-#'INS_MTTMR' emulation method missing
-#'INS_MTVSCR' emulation method missing
+
+    # The PMR, TMR, DCR, and TB read/write instructions just duplicate
+    # what the mtspr/mfspr functions do
+
+    i_mtpmr = i_mtspr
+    i_mttmr = i_mtspr
+    i_mtdcr = i_mtspr
+
+    i_mftbu = i_mfspr
+    i_mfpmr = i_mfspr
+    i_mftmr = i_mfspr
+    i_mfdcr = i_mfspr
+
+    def i_mcrf(self, op):
+        # Move one CR field to another
+        crS = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, crS)
+
+    def i_mtcrf(self, op):
+        # Operand 1 is an 8-bit value where each bit indicates if a cr field is
+        # moved from rS to the CR
+        rS = self.getOperValue(op, 1)
+        crm = self.getOperValue(op, 0)
+        cr = self.getRegister(REG_CR)
+
+        mask = sum(cr_mask[i] for i in range(8) if crm & envi.bits.b_masks[i])
+        value = (cr & ~mask) | (rS & mask)
+
+        self.setRegister(REG_CR, value)
+
+    def i_mfcr(self, op):
+        cr = self.getRegister(REG_CR)
+        self.setOperValue(op, cr)
+
+    def i_mtocrf(self, op):
+        # The operand order is reversed from mtcrf, but otherwise it's the same.
+        # In theory mtocrf/mfocrf are supposed to have only 1 CR field
+        # specified, and the result is undefined if more than one field is
+        # specified, but we can just support all of them.
+        rS = self.getOperValue(op, 0)
+        crm = self.getOperValue(op, 1)
+        cr = self.getRegister(REG_CR)
+
+        mask = sum(cr_mask[i] for i in range(8) if crm & envi.bits.b_masks[i])
+        value = (cr & ~mask) | (rS & mask)
+
+        self.setRegister(REG_CR, value)
+
+    def i_mfocrf(self, op):
+        rD = self.getOperValue(op, 0)
+        crm = self.getOperValue(op, 1)
+        cr = self.getRegister(REG_CR)
+
+        mask = sum(cr_mask[i] for i in range(8) if crm & envi.bits.b_masks[i])
+        value = (rD & ~mask) | (cr & mask)
+
+        self.setOperValue(op, 0, value)
+
+    def i_mcrxr(self, op):
+        # Move XER[32-35] to crfD, and clear XER
+        xer_flags = self.getXERflags()
+        self.setOperValue(op, 0, xer_flags)
+        self.setXERflags(0)
+
+    def i_mtfsb0(self, op):
+        crb = self.getOperValue(op, 0)
+        # this only masks the lower 4 bytes of FPSCR
+        mask = BITMASK(crb, psize=4)
+        fpscr = self.getRegister(REG_FPSCR)
+        value = fpscr & ~mask
+        self.setRegister(REG_FPSCR, value)
+
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_mtfsb1(self, op):
+        crb = self.getOperValue(op, 0)
+        # this only masks the lower 4 bytes of FPSCR
+        mask = BITMASK(crb, psize=4)
+        fpscr = self.getRegister(REG_FPSCR)
+        value = fpscr | mask
+        self.setRegister(REG_FPSCR, value)
+
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_mtfsf(self, op):
+        # Like mtcrf
+        frB = self.getOperValue(op, 1)
+        fm = self.getOperValue(op, 0)
+        fpscr = self.getRegister(REG_FPSCR)
+
+        mask = sum(cr_mask[i] for i in range(8) if fm & envi.bits.b_masks[i])
+        value = (fpscr & ~mask) | (frB & mask)
+
+        self.setRegister(REG_FPSCR, value)
+
+        if op.iflags & IF_RC: self.setFloatCr()
+
+    def i_mtfsfi(self, op):
+        crfD = op.opers[0].field
+        uimm = op.getOperValue(op, 2)
+        fpscr = self.getRegister(REG_FPSCR)
+
+        mask = cr_mask[crfD]
+        value = (fpscr & ~mask) | ((uimm << ((7-crfD) * 4)) & mask)
+
+        self.setRegister(REG_FPSCR, value)
+
+        if op.iflags & IF_RC: self.setFloatCr()
 
     i_li = i_mov
     i_mr = i_mov
+
+    ######################## TLB/MMU instructions ##########################
+
+    i_tlbilx = i_nop
+    i_tlbsync = i_nop
+    i_tlbivax = i_nop
+    i_tlbsx = i_nop
+    i_tlbre = i_nop
+    i_tlbwe = i_nop
 
     ######################## utility instructions ##########################
 
@@ -3357,7 +3611,8 @@ class PpcAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, result)
 
     def i_se_srawi(self, op):
-        n = self.getOperValue(op, 1)
+        # Only use the lower 5 bits of the shift amount
+        n = self.getOperValue(op, 1) & 0x1F
         rs = self.getOperValue(op, 0)
         r = ROTL32(e_bits.unsigned(rs, 4), 32-n)
         k = MASK(n+32, 63)
@@ -3372,6 +3627,8 @@ class PpcAbstractEmulator(envi.Emulator):
 
         self.setRegister(REG_CA, ca)
         self.setOperValue(op, 0, result)
+
+    i_se_sraw = i_se_srawi
 
     def i_srd(self, op):
         rb = self.getOperValue(op, 2)
@@ -3472,6 +3729,32 @@ class PpcAbstractEmulator(envi.Emulator):
 
         self.setOperValue(op, 0, result)
 
+    def i_se_mullw(self, op):
+        ra = self.getOperValue(op, 0) & 0xFFFFFFFF
+        rb = self.getOperValue(op, 1) & 0xFFFFFFFF
+        prod = ra * rb
+        self.setOperValue(op, 0, prod & 0xFFFFFFFF)
+
+    def i_mulhw(self, op, size=4):
+        ra = e_bits.signed(self.getOperValue(op, 1) & e_bits.u_maxes[size], size)
+        rb = e_bits.signed(self.getOperValue(op, 2) & e_bits.u_maxes[size], size)
+        prod = ra * rb
+
+        if op.iflags & IF_RC: self.setFlags(prod)
+
+        # Store the upper half of the product into the destination register
+        self.setOperValue(op, 0, prod >> (size*8))
+
+    def i_mulhwu(self, op, size=4):
+        ra = self.getOperValue(op, 1) & e_bits.u_maxes[size]
+        rb = self.getOperValue(op, 2) & e_bits.u_maxes[size]
+        prod = ra * rb
+
+        if op.iflags & IF_RC: self.setFlags(prod)
+
+        # Store the upper half of the product into the destination register
+        self.setOperValue(op, 0, prod >> (size*8))
+
     def i_divw(self, op, oe=False):
         dividend = e_bits.signed(self.getOperValue(op, 1), 4)
         divisor = e_bits.signed(self.getOperValue(op, 2), 4)
@@ -3501,7 +3784,7 @@ class PpcAbstractEmulator(envi.Emulator):
             if self.psize == 8:
                 self.setRegister(REG_CR0, so)
             else:
-                self.setFlags(result, so)
+                self.setFlags(quotient, so)
 
         self.setOperValue(op, 0, quotient)
 
@@ -3528,7 +3811,7 @@ class PpcAbstractEmulator(envi.Emulator):
             if self.psize == 8:
                 self.setRegister(REG_CR0, so)
             else:
-                self.setFlags(result, so)
+                self.setFlags(quotient, so)
 
         self.setOperValue(op, 0, quotient)
 
@@ -3800,6 +4083,452 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_subfzeo(self, op):
         self.i_subfze(op, oe=True)
 
+    ##################### Embedded FP instructions #######################
+
+
+    def i_efsdiv(self, op):
+        a = self.getOperValue(op, 1)
+        b = self.getOperValue(op, 2)
+        rA = e_bits.decimeltofloat(self.getOperValue(op, 1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        rB = e_bits.decimeltofloat(self.getOperValue(op, 2) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+
+        # result is pmax based on whearher b is a pos or neg 0
+        # defaults to a's sign if a is a nan
+        result = None
+        if b == 0 or b == 0x80000000:
+            if a == 0x80000000 or (a in FNAN_NEG_TUP):
+                result = FP_SINGLE_NEG_MAX
+            elif a == 0 or (a in FNAN_POS_TUP):
+                result = FP_SINGLE_POS_MAX
+            elif b == 0:
+                result = FP_SINGLE_POS_MAX
+            elif b == 0x80000000:
+                result = FP_SINGLE_NEG_MAX
+
+        #had to specify that rB wasn't a 0 or else python would freak out
+        elif (b != 0 or 0x80000000) and rB != 0:
+            if a in FNAN_POS_TUP:
+                result = FP_SINGLE_POS_MAX
+            elif a in FNAN_NEG_TUP:
+                result = FP_SINGLE_NEG_MAX
+            elif (b  in FNAN_NEG_TUP) and a not in FNAN_NEG_TUP:
+                result = FP_SINGLE_NEG_MAX
+            elif (b in FNAN_POS_TUP) and a not in  FNAN_POS_TUP:
+                result = FP_SINGLE_POS_MAX
+
+        if result is None:
+            try:
+                result = e_bits.floattodecimel(rA / rB, size=4, endian=self.getEndian())
+            except OverflowError:
+                result = FP_SINGLE_POS_MAX
+                self.setRegister(REG_SPEFSCR_FOVF, 1)
+            except ZeroDivisionError:
+                result = FP_SINGLE_POS_MAX
+                #self.setRegister(REG_SPEFSCR_FINV, 1)
+                self.setRegister(REG_SPEFSCR_FDBZ, 1)
+
+        self.setOperValue(op,0, result)
+
+    def i_efsabs(self,op):
+            a = self.getOperValue(op, 1)
+
+            result = a & ~e_bits.sign_bits[op.opers[0].getWidth(self)]
+
+            #can't test in 32 bit mode presently as the unit tests are run
+            # in 64 bit mode.
+
+            if a in FNAN_ALL_TUP:
+                result = a
+                #there will have to be SPEFSCR Flag stuff that happens
+
+            self.setOperValue(op,0,result)
+
+    def i_efsadd(self, op):
+        rA = self.getOperValue(op, 1)
+        rB = self.getOperValue(op, 2)
+
+        # TODO: The e200z759C reference manual is contradictory, it says that
+        # zero, NaN, Inf, or denormalized numbers result in no value being set
+        # in the destination right after it specifies the following checks:
+        if rA in FNAN_SINGLE_POS_TUP or rB in FNAN_SINGLE_POS_TUP:
+            # Result is max positive
+            self.setOperValue(op, 0, FP_SINGLE_POS_MAX)
+
+        elif rA in FNAN_SINGLE_NEG_TUP or rB in FNAN_SINGLE_NEG_TUP:
+            # Result is max negative
+            self.setOperValue(op, 0, FP_SINGLE_NEG_MAX)
+
+        else:
+            float_A = e_bits.decimeltofloat(rA, size=4, endian=self.getEndian())
+            float_B = e_bits.decimeltofloat(rB, size=4, endian=self.getEndian())
+
+            try:
+                result = e_bits.floattodecimel(float_A + float_B, size=4, endian=self.getEndian())
+            except OverflowError:
+                result = FP_SINGLE_POS_MAX
+                self.setRegister(REG_SPEFSCR_FOVF, 1)
+
+            self.setOperValue(op,0, result)
+
+    def i_efscfh(self, op):
+        # Convert from half precision to single
+        f = self.getOperValue(op, 1) & 0xffff
+        f_sign = (f & 0x8000) << 16
+        f_exp = (f & 0x7c00) >> 10
+        f_fract = f & 0x3ff
+
+        if (f_exp == 0) and (f_fract == 0):
+            result = f_sign
+            self.setOperValue(op, 0, result)
+            return
+        elif f in FNAN_HALF_TUP and self.getRegister(REG_SPEFSCR_FINVE) == 0:
+            self.setRegister(REG_SPEFSCR_FINV, 1)
+            if f & 0x8000:
+                result = FP_SINGLE_NEG_MAX
+            else:
+                result = FP_SINGLE_POS_MAX
+            self.setOperValue(op, 0, result)
+            return
+
+        elif f in FNAN_HALF_TUP and self.getRegister(REG_SPEFSCR_FINVE) == 1:
+            self.setRegister(REG_SPEFSCR_FGH, 0)
+            self.setRegister(REG_SPEFSCR_FXH, 0)
+            self.setRegister(REG_SPEFSCR_FG, 0)
+            self.setRegister(REG_SPEFSCR_FX, 0)
+            return
+
+        elif self.is_denorm16(f):
+            result = f_sign & 0x80000000
+        else:
+            sing_exp = ((f_exp - 15 + 127) << 23)
+            result = f_sign | sing_exp | (f_fract << 13)
+
+        self.setOperValue(op, 0, result)
+
+    def i_efssub(self, op):
+        a = self.getOperValue(op, 1)
+        b = self.getOperValue(op, 2)
+        rA = e_bits.decimeltofloat(self.getOperValue(op, 1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        rB = e_bits.decimeltofloat(self.getOperValue(op, 2) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+
+        try:
+            result = e_bits.floattodecimel(rA - rB, size=4, endian=self.getEndian())
+            if (a in FNAN_SINGLE_TUP) or (b in FNAN_SINGLE_TUP) or self.is_denorm32(a) or self.is_denorm32(b):
+                self.setRegister(REG_SPEFSCR_FINV, 1)
+                if a in FNAN_SINGLE_NEG_TUP or b in FNAN_SINGLE_NEG_TUP:
+                    result = FP_SINGLE_NEG_MAX
+                else:
+                    # Must be positive
+                    result = FP_SINGLE_POS_MAX
+        except OverflowError:
+            result = FP_SINGLE_POS_MAX
+            self.setRegister(REG_SPEFSCR_FOVF, 1)
+
+        self.setOperValue(op, 0, result)
+
+    def i_efscfsf(self, op):
+        bl = e_bits.decimeltofloat(self.getOperValue(op, 1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        fraction = bl % 1
+        result = e_bits.floattodecimel(fraction, size=4, endian=self.getEndian())
+
+        self.setOperValue(op, 0, result)
+
+    def i_efscfsi(self, op):
+        bl = self.getOperValue(op, 1)
+        fraction = bl % 1
+        result = e_bits.floattodecimel(fraction, size=4, endian=self.getEndian())
+
+        self.setOperValue(op, 0, result)
+
+    def i_efscfuf(self, op):
+        bl = e_bits.decimeltofloat(self.getOperValue(op, 1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        fraction = bl % 1
+        result = e_bits.floattodecimel(fraction, size=4, endian=self.getEndian())
+
+        if result & 0x80000000:
+            result = result & 0x7fffffff
+
+        self.setOperValue(op, 0, result)
+
+    def i_efscfui(self, op):
+        bl = self.getOperValue(op, 1)
+        fraction = bl % 1
+        result = e_bits.floattodecimel(fraction, size=4, endian=self.getEndian())
+
+        if result & 0x80000000:
+            result = result & 0x7fffffff
+
+        self.setOperValue(op, 0, result)
+
+    def i_efscmpgt(self, op):
+        crnum = op.opers[0].field
+        al = e_bits.decimeltofloat(self.getOperValue(op, 1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        bl = e_bits.decimeltofloat(self.getOperValue(op, 2) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+
+        if al > bl:
+            self.setOperValue(op, 0, 0b0100)
+        else:
+            self.setOperValue(op, 0, 0b0000)
+
+    def i_efscmpeq(self, op):
+        self.getOperValue(op, 1)
+        al = e_bits.decimeltofloat(self.getOperValue(op, 1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        bl = e_bits.decimeltofloat(self.getOperValue(op, 2) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+
+        if al == bl:
+            self.setOperValue(op, 0, 0b0010)
+        else:
+            self.setOperValue(op, 0, 0b0000)
+
+    def i_efscmplt(self, op):
+        al = e_bits.decimeltofloat(self.getOperValue(op, 1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        bl = e_bits.decimeltofloat(self.getOperValue(op, 2) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+
+        if al < bl:
+            self.setOperValue(op, 0, 0b1000)
+        else:
+            self.setOperValue(op, 0, 0b0000)
+
+    i_efststgt = i_efscmpgt
+    i_efststeq = i_efscmpeq
+    i_efststlt = i_efscmplt
+
+    def i_efscth(self, op):
+        f = self.getOperValue(op,1)
+
+        f_sign = (f & 0x80000000)
+        f_exp = (f & 0x7f800000) >> 23
+        f_fract = f & 0x7FFFFF
+
+        if (f_exp == 0) and (f_fract == 0):
+            result = f_sign >> 16
+            self.setOperValue(op, 0, result)
+            return
+
+        elif f in FNAN_SINGLE_TUP and self.getRegister(REG_SPEFSCR_FINVE) == 0:
+                self.setRegister(REG_SPEFSCR_FINV, 1)
+
+                result = f_sign >> 16
+
+                self.setOperValue(op, 0, result)
+                return
+
+        elif f in FNAN_SINGLE_TUP and self.getRegister(REG_SPEFSCR_FINVE) == 1:
+            self.setRegister(REG_SPEFSCR_FGH, 0)
+            self.setRegister(REG_SPEFSCR_FXH, 0)
+            self.setRegister(REG_SPEFSCR_FG, 0)
+            self.setRegister(REG_SPEFSCR_FX, 0)
+            result = self.getOperValue(op, 0)
+            self.setOperValue(op, 0, result)
+
+        elif self.is_denorm32(f):
+            self.setRegister(REG_SPEFSCR_FINV, 1)
+            result = f_sign >> 16
+
+        else:
+            unbias = f_exp - 127
+            if unbias > 15:
+                result = (f_sign >> 16) & 0xfbff # signed max 16 bit value
+            elif unbias < -14:
+                result = f_sign >> 16
+                self.setRegister(REG_SPEFSCR_FUNF, 1)
+            else:
+                guard = f_fract & 0x200
+                if f_fract & 0x3FFC00: #bits 11-22:
+                    sticky = 1
+                else:
+                    sticky = 0
+                result = (f_sign >> 16) | (f_exp << 10) | (f_fract & 0x1ff)
+                self.setRegister(REG_SPEFSCR_FG, guard)
+                self.setRegister(REG_SPEFSCR_FX, sticky)
+                if guard or sticky:
+                    self.setRegister(REG_SPEFSCR_FINXS, 1)
+
+        self.setOperValue(op, 0, result)
+
+    def i_efsctsf(self, op):
+        f = self.getOperValue(op, 1)
+        bl = e_bits.decimeltofloat(self.getOperValue(op, 1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        fraction = bl % 1
+        f_sign = (f & 0x80000000)
+        f_exp = (f & 0x7f800000) >> 23
+        f_fract = f & 0x7FFFFF
+
+        if is_denorm32(bl):
+            if self.getRegister(REG_SPEFSCR_FINVE) == 1:
+                return
+            else:
+                result = 0
+                self.setRegister(REG_SPEFSCR_FINV, 1)
+                self.setRegister(REG_SPEFSCR_FGH, 0)
+                self.setRegister(REG_SPEFSCR_FXH, 0)
+                self.setRegister(REG_SPEFSCR_FG, 0)
+                self.setRegister(REG_SPEFSCR_FX, 0)
+                self.setOperValue(op, 0, result)
+                return
+        elif f == 0 or f == 0x80000000:
+            result = 0
+            self.setOperValue(op, 0, result)
+            return
+        elif f_exp < 127:
+            result = e_bits.floattodecimel(fraction, size=4, endian=self.getEndian())
+            if f_sign:
+                result = result | f_sign
+            self.setOperValue(op, 0, result)
+            return
+        elif (f_exp == 127) and f_sign and f_fract == 0:
+            result = 0x80000000
+            self.setOperValue(op, 0, result)
+            return
+        elif f in FNAN_SINGLE_TUP:
+            if self.getRegister(REG_SPEFSCR_FINVE) == 1:
+                return
+            else:
+                result = 0
+                self.setRegister(REG_SPEFSCR_FINV, 1)
+                self.setRegister(REG_SPEFSCR_FGH, 0)
+                self.setRegister(REG_SPEFSCR_FXH, 0)
+                self.setRegister(REG_SPEFSCR_FG, 0)
+                self.setRegister(REG_SPEFSCR_FX, 0)
+                self.setOperValue(op, 0, result)
+                return
+        else:
+            if f_sign:
+                result = 0x80000000
+            else:
+                result = 0x7fffffff
+        self.setOpervalue(op, 0, result)
+
+    def i_efsctuiz(self, op):
+        rB = self.getOperValue(op, 1) & 0xFFFFFFFF
+        # Only lower 32 bits of destination are modified
+        rD = self.getOperValue(op, 0) & 0xFFFFFFFF00000000
+        if rB in (FP_SINGLE_NEG_PYNAN, FP_SINGLE_POS_PYNAN):
+            result = rD
+        else:
+            value = e_bits.decimeltofloat(rB, size=4, endian=self.getEndian())
+            if value < 0:
+                result = rD
+            else:
+                result = (int(rB) & 0xFFFFFFFF) | rD
+        self.setOperValue(op, 0, result)
+
+    def i_efsctsiz(self, op):
+        rB = self.getOperValue(op, 1) & 0xFFFFFFFF
+        # Only lower 32 bits of destination are modified
+        rD = self.getOperValue(op, 0) & 0xFFFFFFFF00000000
+
+        if rB in (FP_SINGLE_NEG_PYNAN, FP_SINGLE_POS_PYNAN):
+            result = rD
+        else:
+            value = e_bits.decimeltofloat(rB, size=4, endian=self.getEndian())
+            result = (int(rB) & 0xFFFFFFFF) | rD
+
+        self.setOperValue(op, 0, result)
+
+    def i_efsneg(self, op):
+        # Only the low element of rA is negated
+        rA = self.getOperValue(op, 1) & 0xFFFFFFFF
+        if rA & 0x00000000800000000:
+            value = rA & 0x000000007FFFFFFF
+        else:
+            value = (rA & 0x00000000FFFFFFFF) | 0x00000000800000000
+        # Only lower 32 bits of destination are modified
+        rD = self.getOperValue(op, 0) & 0xFFFFFFFF00000000
+        result = value | rD
+        self.setOperValue(op, 0, result)
+
+    def i_efsmadd(self, op): # incomplete.  doesn't match hardware 100%
+        rA = self.getOperValue(op,1)
+        rB = self.getOperValue(op,2)
+        rD = self.getOperValue(op,0)
+        RA = e_bits.decimeltofloat(self.getOperValue(op,1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        RB = e_bits.decimeltofloat(self.getOperValue(op,2) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        RD = e_bits.decimeltofloat(self.getOperValue(op,0) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+
+        result = e_bits.floattodecimel(((RA * RB) + RD), size=4, endian=self.getEndian())
+
+        if rA in (0, 0x80000000) or rB in (0, 0x80000000) or ((self.is_denorm32(rA) or self.is_denorm32(rB))):
+
+            if self.is_denorm32(rA) or self.is_denorm32(rB) or self.is_denorm32(rD) or (rB in FNAN_SINGLE_TUP) or (rA in FNAN_SINGLE_TUP):
+                self.setRegister(REG_SPEFSCR_FINV, 1)
+                if self.is_denorm32(rA) or self.is_denorm32(rB) or self.is_denorm32(rD):
+                    result = 0
+            else:
+                result = rD
+
+            self.setOperValue(op, 0, result)
+        else:
+            self.setOperValue(op, 0, result)
+
+    def i_efsmsub(self, op): # incomplete.  doesn't match hardware 100%
+        rA = self.getOperValue(op,1)
+        rB = self.getOperValue(op,2)
+        rD = self.getOperValue(op,0)
+        RA = e_bits.decimeltofloat(self.getOperValue(op,1) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        RB = e_bits.decimeltofloat(self.getOperValue(op,2) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+        RD = e_bits.decimeltofloat(self.getOperValue(op,0) & 0xFFFFFFFF, size=4, endian=self.getEndian())
+
+        result = e_bits.floattodecimel(((RA * RB) - RD), size=4, endian=self.getEndian())
+
+        if rA in (0, 0x80000000) or rB in (0, 0x80000000) or ((self.is_denorm32(rA) or self.is_denorm32(rB))):
+
+            if self.is_denorm32(rA) or self.is_denorm32(rB) or self.is_denorm32(rD) or (rB in FNAN_SINGLE_TUP) or (rA in FNAN_SINGLE_TUP):
+                self.setRegister(REG_SPEFSCR_FINV, 1)
+                if self.is_denorm32(rA) or self.is_denorm32(rB) or self.is_denorm32(rD):
+                    result = 0
+            else:
+                result = rD
+
+            self.setOperValue(op, 0, result)
+        else:
+            self.setOperValue(op, 0, result)
+
+    def i_efsmul(self, op): # incomplete.  doesn't match hardware 100%
+        rA = self.getOperValue(op,1)
+        rB = self.getOperValue(op,2)
+
+        # TODO: The e200z759C reference manual is contradictory, it says that
+        # zero, NaN, Inf, or denormalized numbers result in no value being set
+        # in the destination right after it specifies the following checks:
+        if self.is_denorm32(rA) or self.is_denorm32(rB) or \
+                rA in F_SINGLE_ZERO_TUP or rB in F_SINGLE_ZERO_TUP:
+            # Correct the sign on zero
+            self.setOperValue(op, 0, FP_SINGLE_POS_ZERO)
+
+        elif rA in FNAN_SINGLE_POS_TUP or rB in FNAN_SINGLE_POS_TUP:
+            # Result is max positive
+            self.setOperValue(op, 0, FP_SINGLE_POS_MAX)
+
+        elif rA in FNAN_SINGLE_NEG_TUP or rB in FNAN_SINGLE_NEG_TUP:
+            # Result is max negative
+            self.setOperValue(op, 0, FP_SINGLE_NEG_MAX)
+
+        else:
+            float_A = e_bits.decimeltofloat(rA, size=4, endian=self.getEndian())
+            float_B = e_bits.decimeltofloat(rB, size=4, endian=self.getEndian())
+
+            try:
+                result = e_bits.floattodecimel((float_A * float_B), size=4, endian=self.getEndian())
+            except OverflowError:
+                result = FP_SINGLE_POS_MAX
+                self.setRegister(REG_SPEFSCR_FOVF, 1)
+
+            self.setOperValue(op, 0, result)
+
+    def i_efsnabs(self, op):
+        rA = self.getOperValue(op, 1)
+
+        result = rA | 0x80000000
+
+        if rA in FNAN_SINGLE_TUP or self.is_denorm32(rA):
+            self.setRegister(REG_SPEFSCR_FINV, 1)
+            self.setRegister(REG_SPEFSCR_FGH, 0)
+            self.setRegister(REG_SPEFSCR_FXH, 0)
+            self.setRegister(REG_SPEFSCR_FG, 0)
+            self.setRegister(REG_SPEFSCR_FX, 0)
+        self.setOperValue(op, 0, result)
+
     ######################## cache instructions ##########################
 
     # these instructions don't have any effect on the emulation
@@ -3830,6 +4559,7 @@ class PpcAbstractEmulator(envi.Emulator):
     i_isync = i_nop
     i_msync = i_nop
     i_esync = i_nop
+    i_mbar = i_nop
 
     ######################## debug instructions ##########################
 
@@ -4190,6 +4920,7 @@ class PpcAbstractEmulator(envi.Emulator):
     def i_sc(self, op):
         # Do core-specific system call handling
         self._sc(op)
+    i_se_sc = i_sc
 
     def i_ehpriv(self, op):
         # Do core-specific embedded hypervisor privilege handling
@@ -4276,6 +5007,7 @@ class PpcAbstractEmulator(envi.Emulator):
         ra = self.getOperValue(op, 1)
         result = ~ra + 1
 
+        so = None
         if oe:
             if self.psize == 4 and ra & 0xffffffff == 0x80000000:
                 ov = 1
@@ -4288,9 +5020,6 @@ class PpcAbstractEmulator(envi.Emulator):
                 so = ov
                 self.setRegister(REG_OV, ov)
                 self.setRegister(REG_SO, so)
-            else:
-                ov = 0
-                so = self.getRegister(REG_SO)
 
         if op.iflags & IF_RC: self.setFlags(result, so)
         self.setOperValue(op, 0, result)
@@ -4328,6 +5057,9 @@ class PpcAbstractEmulator(envi.Emulator):
 
     def i_extsh(self, op):
         self.i_extsb(op, opsize=2)
+
+    def i_se_extsh(self, op):
+        self.i_se_extsb(op, opsize=2)
 
     def i_extsw(self, op):
         self.i_extsb(op, opsize=4)
@@ -6213,8 +6945,8 @@ class PpcAbstractEmulator(envi.Emulator):
 
     def i_evsubifw(self, op):
         # SPE PEM says value is written to ACC, hardware docs do not. This follows hardware.
-        rB = op.opers[1].getValues(op, self)
-        uimm = self.getOperValue(op, 2)
+        uimm = self.getOperValue(op, 1)
+        rB = op.opers[2].getValues(op, self)
         op.opers[0].setValues(op, self, [(rB[0] - uimm) & 0xffff_ffff, (rB[1] - uimm) & 0xffff_ffff])
 
     def i_evsplatfi(self, op):

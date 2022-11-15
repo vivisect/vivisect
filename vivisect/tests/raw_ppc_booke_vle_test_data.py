@@ -551,7 +551,11 @@ ppc_booke_vle_test_data = {
 
     # Allows testing specific metas (instead of _all_ metas)
     'metas': [
-        ('PpcVleMaps', [(0x40000000, 0x10000)]),
+        ('PpcMemoryMaps', {
+            0: (0x40000000, 0x10000, 1),
+            1: (0x40040000, 0x10000, 0),
+        })
+
     ],
 
 }

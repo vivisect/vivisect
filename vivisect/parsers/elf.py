@@ -6,6 +6,7 @@ import collections
 import Elf
 import Elf.elf_lookup as elf_lookup
 
+import envi
 import envi.bits as e_bits
 import envi.const as e_const
 
@@ -359,9 +360,62 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     secs = elf.getSections()
 
-    for mmapva, mmperms, mfname, mbytez, malign in getMemoryMapInfo(elf, fname, baseaddr):
-        logger.debug("vw.addMemoryMap(0x%x, 0x%x, %r, 0x%x, 0x%x)", mmapva, mmperms, mfname, len(mbytez), malign)
-        vw.addMemoryMap(mmapva, mmperms, mfname, mbytez, malign)
+    for pgm in pgms:
+        if pgm.p_type == Elf.PT_LOAD:
+            if pgm.p_memsz == 0:
+                continue
+            if pgm.p_offset == 0:
+                elfHdrAtOffset0 = True
+            logger.info('Loading: %s', pgm)
+            bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
+            bytez += b'\x00' * (pgm.p_memsz - pgm.p_filesz)
+            pva = pgm.p_vaddr
+            if addbase:
+                pva += baseaddr
+
+            # For files being loaded with an OS loader use the pre-determined
+            # envi PAGE_SIZE, for unknown/raw firmwares stored in ELF files,
+            # assume that the pgm.align value is correct.
+            if platform == 'unknown':
+                vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez, align=pgm.p_align)
+                logger.debug('creating memory map @ %#x-%#x', pva, pva+len(bytez))
+            else:
+                vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez, align=e_const.PAGE_SIZE)
+                logger.debug('creating memory map @ %#x-%#x', pva, pva+len(bytez))
+        else:
+            logger.info('Skipping: %s', pgm)
+
+    if len(pgms) == 0:
+        # fall back to loading sections as best we can...
+        vw.vprint('elf: no program headers found!')
+
+        maps = [ [s.sh_offset,s.sh_size] for s in secs if s.sh_offset and s.sh_size ]
+        maps.sort()
+
+        merged = []
+        for i in range(len(maps)):
+
+            if merged and maps[i][0] == (merged[-1][0] + merged[-1][1]):
+                merged[-1][1] += maps[i][1]
+                continue
+
+            merged.append( maps[i] )
+
+        baseaddr = 0x05000000
+
+        if elf.isRelocatable():
+            baseaddr = 0
+
+        for offset, size in merged:
+            if offset == 0:
+                elfHdrAtOffset0 = True
+            bytez = elf.readAtOffset(offset,size)
+            vw.addMemoryMap(baseaddr + offset, 0x7, fname, bytez)
+            logger.debug('creating memory map @ %#x-%#x', baseaddr+offset, baseaddr+offset+len(bytez))
+
+        for sec in secs:
+            if sec.sh_offset and sec.sh_size:
+                sec.sh_addr = baseaddr + sec.sh_offset
 
     # First add all section definitions so we have them
     for sec in secs:
@@ -451,6 +505,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         sva = sec.sh_addr
         sva += baseoff
 
+        logger.debug('Processing section %#x: %s [%#x]', sva, sname, size)
+
         # if we've already defined a location at this address, skip it. (eg. DYNAMICS)
         if vw.getLocation(sva) == sva:
             continue
@@ -480,9 +536,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             makeDynamicTable(vw, sva, sva+size, baseoff)
 
         elif sname == ".dynstr":  # String table for dynamics
+            logger.debug('creating dynamic string table @ %#x-%#x', sva, sva+size)
             makeStringTable(vw, sva, sva+size)
 
         elif sname == ".dynsym":
+            logger.debug('creating dynamic symbol table @ %#x-%#x', sva, sva+size)
             [s for s in makeSymbolTable(vw, sva, sva+size)]
 
         elif sname in (".bss",):
@@ -491,7 +549,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 align = sec.sh_addralign
                 sdasz += align-1
                 sdasz = (sdasz // align) * align
-                sdabase = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
+
+                # AddMemoryMap returns the size of the new memory map
+                sdasz = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
+
+                # It will be the last memory map added
+                sdabase = next(reversed(vw.getMemoryMaps()))[0]
+                logger.debug('creating bss_temp memory @ %#x-%#x', sdabase, sdabase+sdasz)
+
                 vw.addSegment(sdabase, sdasz, '.bss_temp', fname)
                 vw.makeName(sdabase, fname + ".bss_temp")
 
@@ -501,7 +566,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 align = sec.sh_addralign
                 sdasz += align-1
                 sdasz = (sdasz // align) * align
-                sdabase = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
+
+                # AddMemoryMap returns the size of the new memory map
+                sdasz = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
+
+                # It will be the last memory map added
+                sdabase = next(reversed(vw.getMemoryMaps()))[0]
+                logger.debug('creating sda_base memory @ %#x-%#x', sdabase, sdabase+sdasz)
+
                 vw.addSegment(sdabase, sdasz, '.sda_base', fname)
                 vw.makeName(sdabase, "_SDA_BASE_")
 
@@ -511,7 +583,14 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 align = sec.sh_addralign
                 sda2sz += align-1
                 sda2sz = (sda2sz // align) * align
-                sda2base = vw.addMemoryMap(None, 7, fname, b'\0' * sda2sz)
+
+                # AddMemoryMap returns the size of the new memory map
+                sdasz = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
+
+                # It will be the last memory map added
+                sdabase = next(reversed(vw.getMemoryMaps()))[0]
+                logger.debug('creating sda2_base memory @ %#x-%#x', sdabase, sdabase+sdasz)
+
                 vw.addSegment(sdabase, sdasz, '.sda2_base', fname)
                 vw.makeName(sda2base, "_SDA2_BASE_")
 
@@ -534,7 +613,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # Now that the program and section headers have been parsed, if this is a
     # PowerPC 32-bit ELF we need to check for VLE flags
     if arch in ppc_arch_names:
-        maps = vw.getMeta('PpcVleMaps')
+        maps = vw.getMeta('PpcMemoryMaps')
         if maps is None:
             maps = []
 
@@ -547,16 +626,16 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             # Find any loadable and executable sections and keep track if they
             # are VLE or not.
             if phdr.p_type == Elf.PT_LOAD and phdr.p_flags & Elf.PF_X:
-                vle = phdr.p_flags & Elf.PF_PPC_VLE
+                vle = int(bool(phdr.p_flags & Elf.PF_PPC_VLE))
                 vle_flags.append(vle)
 
-                # If this is a VLE page add it to the maps
-                if vle:
-                    maps.append((phdr.p_vaddr, phdr.p_align))
+                maps.append((phdr.p_vaddr, phdr.p_align, vle))
 
         # Update the VLE maps
         logger.info("Adding PowerPC VLE maps %s" % maps)
-        vw.setMeta('PpcVleMaps', maps)
+
+        # Turn the list into a dict before writing it
+        vw.setMeta('PpcMemoryMaps', dict((i, m) for i, m in enumerate(maps)))
 
         # If all of the loaded and executable sections are VLE, then change this
         # to be ppc-vle, if only some are ensure it is ppc32-embedded, otherwise
@@ -687,7 +766,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         sym_type = Elf.st_info_type.get(s.getInfoType(), s.st_info)
         sym_bind = Elf.st_info_bind.get(s.getInfoBind(), s.st_other)
-        
+
         dmglname = demangle(s.name)
         logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r', sva,
                                                                         sym_type,
@@ -722,37 +801,40 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             symname = s.getName()
             sva += baseoff
             if symname:
-                vw.makeName(sva, symname, filelocal=True, makeuniq=True)
-                valu = vw.readMemoryPtr(sva)
-                if not vw.isValidPointer(valu) and s.st_size == vw.psize:
-                    vw.makePointer(sva, follow=False)
-                else:
-                    '''
-                    Most of this is replicated in makePointer with follow=True. We specifically don't use that,
-                    since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in
-                    fun ways), but we still want these locations made first, so that other analysis modules know
-                    to not monkey with these and so I can set sizes and what not.
-                    And while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
-                    '''
-                    if not valu:
-                        # do a double check to make sure we can even make a pointer this large
-                        # because some relocations like __FRAME_END__ might end up short
-                        psize = vw.getPointerSize()
-                        byts = vw.readMemory(sva, psize)
-                        if len(byts) == psize:
-                            new_pointers.append((sva, valu, symname))
-                    elif vw.isProbablyUnicode(sva):
-                        vw.makeUnicode(sva, size=s.st_size)
-                    elif vw.isProbablyString(sva):
-                        vw.makeString(sva, size=s.st_size)
-                    elif s.st_size % vw.getPointerSize() == 0 and s.st_size >= vw.getPointerSize():
-                        # so it could be something silly like an array
-                        for addr in range(sva, sva+s.st_size, vw.psize):
-                            valu = vw.readMemoryPtr(addr)
-                            if vw.isValidPointer(valu):
-                                new_pointers.append((addr, valu, symname))
+                try:
+                    valu = vw.readMemoryPtr(sva)
+                    vw.makeName(sva, symname, filelocal=True, makeuniq=True)
+                    if not vw.isValidPointer(valu) and s.st_size == vw.psize:
+                        vw.makePointer(sva, follow=False)
                     else:
-                        vw.makeNumber(sva, size=s.st_size)
+                        '''
+                        Most of this is replicated in makePointer with follow=True. We specifically don't use that,
+                        since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in
+                        fun ways), but we still want these locations made first, so that other analysis modules know
+                        to not monkey with these and so I can set sizes and what not.
+                        And while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
+                        '''
+                        if not valu:
+                            # do a double check to make sure we can even make a pointer this large
+                            # because some relocations like __FRAME_END__ might end up short
+                            psize = vw.getPointerSize()
+                            byts = vw.readMemory(sva, psize)
+                            if len(byts) == psize:
+                                new_pointers.append((sva, valu, symname))
+                        elif vw.isProbablyUnicode(sva):
+                            vw.makeUnicode(sva, size=s.st_size)
+                        elif vw.isProbablyString(sva):
+                            vw.makeString(sva, size=s.st_size)
+                        elif s.st_size % vw.getPointerSize() == 0 and s.st_size >= vw.getPointerSize():
+                            # so it could be something silly like an array
+                            for addr in range(sva, sva+s.st_size, vw.psize):
+                                valu = vw.readMemoryPtr(addr)
+                                if vw.isValidPointer(valu):
+                                    new_pointers.append((addr, valu, symname))
+                        else:
+                            vw.makeNumber(sva, size=s.st_size)
+                except envi.SegmentationViolation as e:
+                    logger.exception('Unable to add %s object from file %s', symname, fname)
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
         sname = demangle(s.name)

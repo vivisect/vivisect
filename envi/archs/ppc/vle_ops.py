@@ -83,12 +83,8 @@ e_ops: Dict[int, Dict[int, tuple]]= {
         0x1800B800: ( "e_subfic."  ,  E_SCI8 ,   INS_SUBFIC, (TYPE_REG, TYPE_REG, TYPE_IMM, TYPE_IMM, TYPE_IMM), IF_RC),
         0x1800C000: ( "e_andi"     ,  E_SCI8I,   INS_ANDI, (TYPE_REG, TYPE_REG, TYPE_IMM, TYPE_IMM, TYPE_IMM), IFLAGS_NONE),
         0x1800C800: ( "e_andi."    ,  E_SCI8I,   INS_ANDI, (TYPE_REG, TYPE_REG, TYPE_IMM, TYPE_IMM, TYPE_IMM), IF_RC),
-        0x1800D000: ( "e_ori"      ,  E_SCI8I,    INS_ORI, (TYPE_REG, TYPE_REG, TYPE_IMM, TYPE_IMM, TYPE_IMM), IFLAGS_NONE),
-        # TODO: Decide how to handle simplification passes and whether the
-        #       the two "simplified" tuples below are helpful
-        # ( "e_nop"      ,  E_NONE,  INS_NOP, (TYPE_NONE,), IFLAGS_NONE),
-        # ( "e_mr"       ,  E_SCI8,  INS_MOV, (TYPE_REG, TYPE_REG), IFLAGS_NONE),
-        0x1800D800: ( "e_ori."     ,  E_SCI8I,    INS_ORI, (TYPE_REG, TYPE_REG, TYPE_IMM, TYPE_IMM, TYPE_IMM), IF_RC),
+        0x1800D000: ( "e_ori"      ,  E_SCI8I,   INS_E_ORI, (TYPE_REG, TYPE_REG, TYPE_IMM, TYPE_IMM, TYPE_IMM), IFLAGS_NONE),
+        0x1800D800: ( "e_ori."     ,  E_SCI8I,   INS_E_ORI, (TYPE_REG, TYPE_REG, TYPE_IMM, TYPE_IMM, TYPE_IMM), IF_RC),
         0x1800E000: ( "e_xori"     ,  E_SCI8I,   INS_XORI, (TYPE_REG, TYPE_REG, TYPE_IMM, TYPE_IMM, TYPE_IMM), IFLAGS_NONE),
         0x1800E800: ( "e_xori."    ,  E_SCI8I,   INS_XORI, (TYPE_REG, TYPE_REG, TYPE_IMM, TYPE_IMM, TYPE_IMM), IF_RC),
         # The rest of these have forms already in this mask
@@ -162,17 +158,17 @@ e_ops: Dict[int, Dict[int, tuple]]= {
 # ]
 se_ops: Dict[int, Dict[int, tuple]] = {
     0xffff: {
-        0x0000: ( "se_illegal", 0,   INS_ILL, (), IF_NOFALL),
+        #0x0000: ( "se_illegal", 0,   INS_ILL, (), IF_NOFALL),
         0x0001: ( "se_isync"  , 0,  INS_SYNC, (), IFLAGS_NONE),
-        0x0002: ( "se_sc"     , 0,   INS_SWI, (), IFLAGS_NONE),
+        0x0002: ( "se_sc"     , 0,   INS_SE_SC, (), IFLAGS_NONE),
         0x0004: ( "se_blr"    , 0,   INS_BLR, (), IF_RET | IF_NOFALL),
         0x0005: ( "se_blrl"   , 0,   INS_BLRL, (), IF_RET | IF_NOFALL),
         0x0006: ( "se_bctr"   , 0,  INS_BCTR, (), IF_BRANCH | IF_NOFALL),
         0x0007: ( "se_bctrl"  , 0, INS_BCTRL, (), IF_CALL),
-        0x0008: ( "se_rfi"    , 0,  INS_TRAP, (), IF_RET | IF_NOFALL | IF_PRIV),
-        0x0009: ( "se_rfci"   , 0,  INS_TRAP, (), IF_RET | IF_NOFALL | IF_PRIV),
-        0x000a: ( "se_rfdi"   , 0,  INS_TRAP, (), IF_RET | IF_NOFALL | IF_PRIV),
-        0x000b: ( "se_rfmci"  , 0,  INS_TRAP, (), IF_RET | IF_NOFALL | IF_PRIV),
+        0x0008: ( "se_rfi"    , 0,  INS_TRAP, (), IF_RET | IF_NOFALL | IF_PRIV | IF_RFI),
+        0x0009: ( "se_rfci"   , 0,  INS_TRAP, (), IF_RET | IF_NOFALL | IF_PRIV | IF_RFI),
+        0x000a: ( "se_rfdi"   , 0,  INS_TRAP, (), IF_RET | IF_NOFALL | IF_PRIV | IF_RFI),
+        0x000b: ( "se_rfmci"  , 0,  INS_TRAP, (), IF_RET | IF_NOFALL | IF_PRIV | IF_RFI),
         0x4400: ( "se_nop"    , 0,    INS_NOP, (), IF_NOFALL),
     },
     0xfff0: {
@@ -192,7 +188,7 @@ se_ops: Dict[int, Dict[int, tuple]] = {
         0x0200: ( "se_mtar"   , 2,   INS_MOV, ((0x00F0,  4,  0,  0, 1, TYPE_REG_SE), (0x000F,  0,  0,  8,  0, TYPE_REG),), IFLAGS_NONE),
         0x0300: ( "se_mfar"   , 2,   INS_MOV, ((0x00F0,  4,  0,  8, 1, TYPE_REG), (0x000F,  0,  0,  0,  0, TYPE_REG_SE),), IFLAGS_NONE),
         0x0400: ( "se_add"    , 2,   INS_SE_ADD, ((0x00F0,  4,  0,  0, 1, TYPE_REG_SE), (0x000F,  0,  0,  0,  0, TYPE_REG_SE),), IFLAGS_NONE),
-        0x0500: ( "se_mullw"  , 2,   INS_MUL, ((0x00F0,  4,  0,  0, 1, TYPE_REG_SE), (0x000F,  0,  0,  0,  0, TYPE_REG_SE),), IFLAGS_NONE),
+        0x0500: ( "se_mullw"  , 2,   INS_SE_MULLW, ((0x00F0,  4,  0,  0, 1, TYPE_REG_SE), (0x000F,  0,  0,  0,  0, TYPE_REG_SE),), IFLAGS_NONE),
         0x0600: ( "se_sub"    , 2,   INS_SE_SUB, ((0x00F0,  4,  0,  0, 1, TYPE_REG_SE), (0x000F,  0,  0,  0,  0, TYPE_REG_SE),), IFLAGS_NONE),
         0x0700: ( "se_subf"   , 2,   INS_SE_SUB, ((0x00F0,  4,  0,  0, 1, TYPE_REG_SE), (0x000F,  0,  0,  0,  0, TYPE_REG_SE),), IFLAGS_NONE),
         0x0c00: ( "se_cmp"    , 2,   INS_CMP, ((0x00F0,  4,  0,  0, 1, TYPE_REG_SE), (0x000F,  0,  0,  0,  0, TYPE_REG_SE),), IFLAGS_NONE),

@@ -188,6 +188,10 @@ def addAnalysisModules(vw):
 
     elif fmt == 'blob': # BLOB ######################################################
         if arch in PPC_ARCHS:
+            # Initial memory maps must be managed manually for bare
+            # metal/embedded PowerPC targets
+            vw.addAnalysisModule("vivisect.analysis.ppc.memorymaps")
+
             # potentially tags a new EntryPoint, so must preceed entrypoints
             vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
@@ -211,6 +215,10 @@ def addAnalysisModules(vw):
 
     elif fmt in ('ihex', 'srec'): # Intel HEX  or SRECORD (similar) #################
         if arch in PPC_ARCHS:
+            # Initial memory maps must be managed manually for bare
+            # metal/embedded PowerPC targets
+            vw.addAnalysisModule("vivisect.analysis.ppc.memorymaps")
+
             # potentially tags a new EntryPoint, so must preceed entrypoints
             vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
@@ -235,6 +243,10 @@ def addAnalysisModules(vw):
 
     elif fmt == 'vbf': # VBF ######################################################
         if arch in PPC_ARCHS:
+            # Initial memory maps must be managed manually for bare
+            # metal/embedded PowerPC targets
+            vw.addAnalysisModule("vivisect.analysis.ppc.memorymaps")
+
             # potentially tags a new EntryPoint, so must preceed entrypoints
             vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 

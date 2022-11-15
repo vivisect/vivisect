@@ -89,7 +89,7 @@ cpsr           0x800e0010       -2146566128
 r3             0x17341  95041
 cpsr           0x200e0010       537788432
 
-in this case, since r3 was greater than 0xff00, the 
+in this case, since r3 was greater than 0xff00, the
 
 
 
@@ -100,7 +100,7 @@ in another bin, chosen for it's deps on libstdc++:
 (gdb) set $r3=0
 (gdb) x/8i $pc
 => 0x54aab8cc <_Z10InitLocalev@plt>:    cmp     r1, r3
-   0x54aab8d0 <_Z10InitLocalev@plt+4>:  movcc   r4, r3 
+   0x54aab8d0 <_Z10InitLocalev@plt+4>:  movcc   r4, r3
 (gdb) si
 0x54aab8d0 in InitLocale()@plt ()
 1: x/i $pc
@@ -537,9 +537,9 @@ instrs = [
         (REV_ALL_ARM, '5746d3e0', 0x4560, 'sbcs r4, r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '5746e3e0', 0x4560, 'rsc r4, r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '5746f3e0', 0x4560, 'rscs r4, r3, r7, asr r6', 0, ()),
-        (REV_ALL_ARM, '574613e1', 0x4560, 'tst r3, r7, asr r6', 0, ()),  
-        (REV_ALL_ARM, '574633e1', 0x4560, 'teq r3, r7, asr r6', 0, ()),  
-        (REV_ALL_ARM, '574653e1', 0x4560, 'cmp r3, r7, asr r6', 0, ()),  
+        (REV_ALL_ARM, '574613e1', 0x4560, 'tst r3, r7, asr r6', 0, ()),
+        (REV_ALL_ARM, '574633e1', 0x4560, 'teq r3, r7, asr r6', 0, ()),
+        (REV_ALL_ARM, '574653e1', 0x4560, 'cmp r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '574673e1', 0x4560, 'cmn r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '574683e1', 0x4560, 'orr r4, r3, r7, asr r6', 0, ()),
         (REV_ALL_ARM, '574693e1', 0x4560, 'orrs r4, r3, r7, asr r6', 0, ()),
@@ -928,7 +928,7 @@ instrs = [
         (REV_ALL_ARM, '573f34e6', 0x4560, 'shsax r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '00ff00ef', 0x4560, 'svc #0xff00', 0, ()),
         #need [] around last entry. Not sure how to accomplish yet for ldrex and strex
-        (REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, r4', 0, ()), 
+        (REV_ALL_ARM, '9f3f94e1', 0x4560, 'ldrex  r3, r4', 0, ()),
         (REV_ALL_ARM, '9f3fd4e1', 0x4560, 'ldrexb  r3, r4', 0, ()),
         (REV_ALL_ARM, '9f4fb6e1', 0x4560, 'ldrexd  r4, r5, r6', 0, ()),
         (REV_ALL_ARM, '9f3ff4e1', 0x4560, 'ldrexh  r3, r4', 0, ()),
@@ -1352,7 +1352,7 @@ instrs = [
         (REV_ALL_ARM, '3544f3f3', 0x4560, 'vsri.32 d20, d21, #0x0d', 0, ()),
         (REV_ALL_ARM, 'f3ff3544', 0x4561, 'vsri.32 d20, d21, #0x0d', 0, ()),
         (REV_ALL_ARM, 'f3ff3546', 0x4561, 'vqshlu.s32 d20, d21, #0x13', 0, ()),
-        # 
+        #
         (REV_ALL_ARM, '800008f1', 0x4560, 'cpsie i', IF_IE, ()),
         (REV_ALL_ARM, '00010cf1', 0x4560, 'cpsid a', IF_ID, ()),
         (REV_ALL_ARM, '1a010ef1', 0x4560, 'cpsid a, #0x1a', IF_ID, ()),
@@ -1463,7 +1463,7 @@ oper = eatd.ArmPgmStatRegOper(1,15)
 
 class ArmInstructionSet(unittest.TestCase):
     ''' main unit test with all tests to run '''
-    
+
     # defaults for settings - not fully implimented and won't be so until after ARMv8 is completed.
     armTestVersion = REV_ARMv7A
     armTestOnce = True
@@ -1564,7 +1564,7 @@ class ArmInstructionSet(unittest.TestCase):
 
 
 
-        # ldrt r2, [r10], r2 
+        # ldrt r2, [r10], r2
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
         emu.writeMemory(0xbfb00008, binascii.unhexlify("ABCDEF10"))
@@ -1648,8 +1648,8 @@ class ArmInstructionSet(unittest.TestCase):
         # (131071, 'b2451ae1', 17760, 'ldrh r4, [r10, -r2] ', 0, ())
         # (131071, 'b2459ae1', 17760, 'ldrh r4, [r10, r2] ', 0, ())
 
-        # ldrh r3, [r10], -r2 
-        #b2451ae0 
+        # ldrh r3, [r10], -r2
+        #b2451ae0
         emu = vw.getEmulator()
         emu.setMeta('forrealz', True)
         emu._forrealz = True
@@ -1669,7 +1669,7 @@ class ArmInstructionSet(unittest.TestCase):
 
 
 
-        # ldr r3, [r10], r2 
+        # ldr r3, [r10], r2
         # (131071, 'b2359ae0', 17760, 'ldrh r4, [r10], r2 ', 0, ())
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
@@ -1734,7 +1734,7 @@ class ArmInstructionSet(unittest.TestCase):
         bademu = 0
         for archz, bytez, va, reprOp, iflags, emutests in instrs:
             ranAlready = False  # support for run once only
-            #itterate through architectures 
+            #itterate through architectures
             for key in ARCH_REVS:
                 test_arch = ARCH_REVS[key]
                 if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0):

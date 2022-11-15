@@ -8,6 +8,7 @@ import logging
 import collections
 
 import envi
+import envi.common as e_cmn
 
 from vivisect.const import REF_CODE, LOC_POINTER, LOC_OP
 
@@ -41,33 +42,51 @@ def analyzeFunction(vw, funcva):
         while True:
             loc = vw.getLocation(va)
 
-            # If it's not a location, terminate
-            if loc is None:
+            if loc is not None:
+                lva, lsize, ltype, linfo = loc
+            else:
+                ltype = None
+
+            # Get the instruction that has been parsed out for this location
+            # already, or parse it for the first time now. If an instruction
+            # has already been decoded in this block use the ARCH type from the
+            # previous instruction, otherwise DEFAULT
+            if op is not None:
+                arch = op.iflags & envi.ARCH_MASK
+
+            try:
+                op = vw.parseOpcode(va, arch=arch)
+            except Exception as e:
+                logger.warning('Codeblock exception at 0x%x, breaking on error %s', va, e)
+
+                # Save the block up until this location
                 blocks[start] = va - start
                 brefs.append((va, False))
                 break
 
-            lva, lsize, ltype, linfo = loc
+            if ltype == LOC_POINTER and op is not None:
+                # pointer analysis mis-identified a pointer, but this is an
+                # valid instruction so delete the pointer location and turn this
+                # address into code.
 
-            if ltype == LOC_POINTER:
-                # pointer analysis mis-identified a pointer,
-                # so clear and re-analyze instructions.
+                # This location used to be a pointer but we need to turn it into
+                # a code block
+                logger.log(e_cmn.MIRE, 'Changing address 0x%x from pointer to code', va)
+                vw.delLocation(va)
 
-                vw.delLocation(lva)
+                # Mark ltype as None so that this address is turned into an
+                # instruction
+                ltype = None
 
-                # assume we're adding a valid instruction, which is most likely.
-                if op is not None:
-                    arch = op.iflags & envi.ARCH_MASK
-
+            if ltype is None and op is not None:
+                # Now make this address an instruction and associate this
+                # location with this function
                 vw.makeCode(va, arch=arch, fva=funcva)
 
                 loc = vw.getLocation(va)
-                if loc is None:
-                    blocks[start] = va - start
-                    brefs.append((va, False))
-                    break
-
-                lva, lsize, ltype, linfo = loc
+                if loc is not None:
+                    # Grab the new location values
+                    lva, lsize, ltype, linfo = loc
 
             # If it's not an op, terminate
             if ltype != LOC_OP:
@@ -75,12 +94,9 @@ def analyzeFunction(vw, funcva):
                 brefs.append((va, False))
                 break
 
-            try:
-                op = vw.parseOpcode(va)
-                mnem[op.mnem] += 1
-            except Exception as e:
-                logger.warning('Codeblock bad opcode at 0x%x, breaking on error %s', va, e)
-                break
+            # Track the mnemonic
+            mnem[op.mnem] += 1
+
             size += lsize
             opcount += 1
             nextva = va + lsize
@@ -139,6 +155,10 @@ def analyzeFunction(vw, funcva):
             tmpcb = vw.getCodeBlock(bva)
             # sometimes codeblocks can be deleted if owned by multiple functions
             if bva not in oldblocks or tmpcb is None:
+                # If this is not a location yet, try to make it code and then
+                # attach it to the function
+                if vw.getLocation(bva) is None:
+                    vw.makeCode(bva, arch=arch, fva=funcva)
                 vw.addCodeBlock(bva, bsize, funcva)
             elif bsize != oldblocks[bva]:
                 vw.delCodeBlock(bva)

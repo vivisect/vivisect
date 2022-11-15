@@ -3,8 +3,7 @@
 # VLE opcode types
 # FIXME: generate automatically like mnems.py
 mnems = (
-    'ill',
-
+    #'ill',
     'add',
     'se_add',
     'se_and',

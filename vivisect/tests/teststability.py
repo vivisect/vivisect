@@ -40,6 +40,7 @@ class StabilityTests(unittest.TestCase):
                 self.assertEqual(fva, newfva)
                 self.assertEqual(size, vw.getFunctionMeta(fva, 'Size'))
                 self.assertEqual(instcount, vw.getFunctionMeta(fva, 'InstructionCount'))
+                self.assertEqual(len(blocks), len(vw.getFunctionBlocks(fva)))
             except Exception as e:
                 fails.append((fva, 'meta', str(e)))
                 continue
@@ -53,6 +54,7 @@ class StabilityTests(unittest.TestCase):
             try:
                 self.assertEqual(size, vw.getFunctionMeta(fva, 'Size'))
                 self.assertEqual(instcount, vw.getFunctionMeta(fva, 'InstructionCount'))
+                self.assertEqual(len(blocks), len(vw.getFunctionBlocks(fva)))
             except Exception as e:
                 fails.append((fva, 'meta', str(e)))
                 continue
