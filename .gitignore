@@ -8,3 +8,4 @@
 .idea
 coverage_html_report*
 *~
+vivisect.egg-info/

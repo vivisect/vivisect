@@ -34,6 +34,7 @@ setup(
         'cxxfilt>=0.2.1,<0.3.0',
         'msgpack>=1.0.0,<1.1.0',
         'pycparser>=2.20',
+        'lxml>=4.8.0',
     ],
     extras_require={
         'docs': [
