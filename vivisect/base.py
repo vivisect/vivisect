@@ -223,7 +223,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if ltype == LOC_IMPORT:
             # Check if the import is registered in NoReturnApis
             if self.getMeta('NoReturnApis', {}).get(linfo.lower()):
-                self.cfctx.addNoReturnAddr( lva )
+                self.cfctx.addNoReturnAddr(lva)
 
     def _handleDELLOCATION(self, loc):
         # FIXME delete xrefs

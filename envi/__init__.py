@@ -219,6 +219,9 @@ class ArchitectureModule:
         '''
         return tova, reftype, rflags
 
+    def archModifyOp(self, op, plat):
+        pass
+
     def archGetBadOps(self, byteslist=None):
         '''
         Returns a list of opcodes which are indicators of wrong disassembly.
