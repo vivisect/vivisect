@@ -8,7 +8,7 @@ import envi
 import vivisect.exc as v_exc
 import vivisect.impemu.monitor as viv_imp_monitor
 
-STOS = ('stosb', 'stosw', 'stosd', 'stosq')
+INSTRS = ('int', 'stosb', 'stosw', 'stosd', 'stosq')
 
 
 class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
@@ -24,13 +24,14 @@ class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
         self.badcode = False
         self.badops = vw.arch.archGetBadOps()
         self.arch = vw.getMeta('Architecture')
+        self.plat = vw.getMeta('Platform')
 
     def prehook(self, emu, op, eip):
         if op in self.badops:
             emu.stopEmu()
             raise v_exc.BadOpBytes(op.va)
 
-        if op.mnem in STOS:
+        if op.mnem.startswith('stos'):
             if self.arch == 'i386':
                 reg = emu.getRegister(envi.archs.i386.REG_EDI)
             elif self.arch == 'amd64':
@@ -38,13 +39,22 @@ class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
             if self.vw.isValidPointer(reg) and self.vw.getLocation(reg) is None:
                 self.vw.makePointer(reg, follow=True)
 
+        if op.mnem == 'int':
+            # TODO: We've got in a couple places the notion of very architecture
+            # or platform specific handling of instructions. should formalize that.
+            if self.plat == 'linux' and self.arch == 'i386':
+                reg = emu.getRegister(envi.archs.i386.REG_EAX)
+                if reg == 1:
+                    emu.stopEmu()
+                    self.vw.addNoReturnVa(eip)
+
 
 def analyzeFunction(vw, fva):
 
     emulate = False
     dist = vw.getFunctionMeta(fva, 'MnemDist', default=[])
 
-    for s in STOS:
+    for s in INSTRS:
         if s in dist:
             emulate = True
             break

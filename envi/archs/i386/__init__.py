@@ -6,6 +6,8 @@ import envi
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *
 
+import envi.archs.i386.opconst as opconst
+
 class i386Module(envi.ArchitectureModule):
 
     def __init__(self):
@@ -16,6 +18,13 @@ class i386Module(envi.ArchitectureModule):
         envi.ArchitectureModule.initRegGroups(self)
         self._regGrps.update({'general': ['eax', 'ecx', 'edx', 'ebx', 'esi', 'edi',
                                 'ebp', 'esp', 'eip'] })
+
+    def archModifyOp(self, op, plat):
+        # linux-x86 specific. it's a syscall (except in the case of exit...)
+        if op.opcode == opconst.INS_TRAP:
+            # if we're on linux-i386, this is how they do syscalls, otherwise, it's a trap
+            if op.getOperValue(0) == 0x80 and plat != 'linux':
+                op.iflags |= opconst.IF_NOFALL
 
     def archGetRegCtx(self):
         return i386RegisterContext()
