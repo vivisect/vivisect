@@ -58,7 +58,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         for mnem, count in self.mndist.items():
             # XXX - CONFIG OPTION
-            if round(float(float(count) / float(self.insn_count)), 3) >= .60:
+            if round(float( float(count) / float(self.insn_count)), 3) >= .60:
                 return False
 
         return True

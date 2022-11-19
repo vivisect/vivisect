@@ -211,8 +211,6 @@ def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
         logger.debug("funcdist: 0x%x", funcdist)
 
         idx = getGoodIndex(curplts, funcdist)
-        if not idx:
-            return
         fva = curplts[idx]
 
         ### magic check:  we are working off incomplete data... it's completely possible our
@@ -246,8 +244,6 @@ def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
             funcdist //= divisor
 
         idx = getGoodIndex(curplts, funcdist)
-        if not idx:
-            return
 
         tmpva = curplts[idx]
         logger.debug("... backwards from... 0x%x", tmpva)
@@ -259,7 +255,8 @@ def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
             # check if already in a PLT function (ignore if it's part of some other func)
             curfunc = vw.getFunction(tmpva)
             if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
-                tmpva -= funcdist
+                #logger.debug('skip 0x%x: already function', tmpva)
+                tmpva -= funcdist 
                 continue
 
             # check if there's enough room for an even additional one beyond this 
@@ -339,7 +336,6 @@ def getGoodIndex(curplts, funcdist):
     Roll through a list of PLT entires looking for two that are <funcdist> apart
     '''
     # find starting point of two curplts this distance apart
-    idx = None
     for idx in range(1, len(curplts)):
         if curplts[idx] - curplts[idx-1] == funcdist:
             return idx

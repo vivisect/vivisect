@@ -373,7 +373,7 @@ def analyzeFunction(vw, funcva):
                     taintrepr = emu.reprVivTaint(taintval)
                 else:
                     taintrepr = 'None'
-                logger.error('0x%x: opval=0x%x: brflags is BR_DEREF, but loctup is None.  Don\'t know what to do. skipping.  taint:%r (%r)', op.va, opval, taintval, taintrepr)
+                logger.exception('0x%x: opval=0x%x: brflags is BR_DEREF, but loctup is None.  Don\'t know what to do. skipping.  taint:%r (%r)', op.va, opval, taintval, taintrepr)
                 continue
 
             lva, lsz, ltype, ltinfo = loctup

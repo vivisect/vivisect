@@ -122,7 +122,7 @@ iflag_lookup = {
     opconst.INS_XCHGCC: envi.IF_COND,
     opconst.INS_TRET: envi.IF_NOFALL | envi.IF_RET,
     opconst.INS_HALT: envi.IF_NOFALL,
-    # opconst.INS_TRAP: envi.IF_NOFALL,
+    opconst.INS_TRAP: envi.IF_NOFALL,
     opconst.INS_TRAPCC: envi.IF_NOFALL | envi.IF_COND,
     opconst.INS_DEBUG: envi.IF_NOFALL,
     opconst.INS_INVALIDOP: envi.IF_NOFALL,
@@ -585,6 +585,7 @@ class i386Opcode(envi.Opcode):
         (PREFIX_FS, "fs"),
         (PREFIX_GS, "gs"),
     ]
+
 
     def getBranches(self, emu=None):
         ret = []

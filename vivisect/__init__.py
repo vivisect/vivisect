@@ -1168,25 +1168,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             loctup = self.getLocation(va)
             # XXX - in the case where we've set a location on what should be an
             # opcode lets make sure L_LTYPE == LOC_OP if not lets reset L_TINFO = original arch param
-            # so that at least parse opcode won't fail
+            # so that at least parse opcode wont fail
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
-
-        amod = self.imem_archs[(arch & envi.ARCH_MASK) >> 16]
-
         if not skipcache:
             key = (va, arch, b[off:off+16])
-            op = self._op_cache.get(key, None)
-            if not op:
-                op = amod.archParseOpcode(b, off, va)
-                amod.archModifyOp(op, self.getMeta('Platform'))
-            self._op_cache[key] = op
-            return op
-
-        op = amod.archParseOpcode(b, off, va)
-        # return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
-        amod.archModifyOp(op, self.getMeta('Platform'))
-        return op
+            valu = self._op_cache.get(key, None)
+            if not valu:
+                valu = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+            self._op_cache[key] = valu
+            return valu
+        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
     def clearOpcache(self):
         '''
@@ -1392,6 +1384,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     self.addXref(va, ptrdest[0], REF_CODE, bflags & ~envi.BR_DEREF)
                 else:
                     self.addXref(va, tova, REF_CODE, bflags)
+
 
             else:
                 # vivisect does NOT create REF_CODE entries for

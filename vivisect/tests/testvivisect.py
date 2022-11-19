@@ -1086,11 +1086,15 @@ class VivisectTest(v_t_utils.VivTest):
 
         for va, size, ltyp, name in exports:
             loc = vw.getLocation(va)
-            self.assertIsNotNone(loc)
-            self.assertEqual(loc[v_const.L_VA], va)
-            self.assertEqual(loc[v_const.L_SIZE], size)
-            self.assertEqual(loc[v_const.L_LTYPE], ltyp)
-            self.assertEqual(vw.getName(loc[v_const.L_VA]), name)
+            try:
+                self.assertIsNotNone(loc)
+                self.assertEqual(loc[v_const.L_VA], va)
+                self.assertEqual(loc[v_const.L_SIZE], size)
+                self.assertEqual(loc[v_const.L_LTYPE], ltyp)
+                self.assertEqual(vw.getName(loc[v_const.L_VA]), name)
+            except:
+                breakpoint()
+                print('wat')
 
     def test_libfunc_meta_equality(self):
         '''
