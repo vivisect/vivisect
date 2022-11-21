@@ -3,6 +3,7 @@ Linux Platform Module
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
+import sys
 import signal
 import struct
 import logging
