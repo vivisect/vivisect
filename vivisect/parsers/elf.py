@@ -117,7 +117,7 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
         baseaddr = 0x05000000
         for offset,size in merged:
             bytez = elf.readAtOffset(offset,size)
-            memmaps.append((baseaddr + offset, 0x7, fname, bytez, None))
+            memmaps.append((baseaddr + offset, 0x7, fname, bytez, 0))
 
         for sec in secs:
             if sec.sh_offset and sec.sh_size:
@@ -229,6 +229,11 @@ def getAddBaseAddr(elf, baseaddr=None):
     if not elf.isPreLinked() and elf.isSharedObject():
         addbase = True
         baseoff = baseaddr
+
+    elif elf.isRelocatable():
+        addbase = True
+        baseoff = 0
+
     else:
         addbase = False
         baseoff = baseaddr - elfbaseaddr
@@ -301,6 +306,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # Base addr is earliest section address rounded to pagesize
     # Some ELF's require adding the baseaddr to most/all later addresses
     addbase, baseoff, baseaddr = getAddBaseAddr(elf, baseaddr)
+    logger.warning("addbase: %r, baseoff: 0x%x, baseaddr: 0x%x", addbase, baseoff, baseaddr)
 
     elf.fd.seek(0)
     md5hash = v_parsers.md5Bytes(byts)
@@ -421,7 +427,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             continue # Skip non-memory mapped sections
 
         sva = sec.sh_addr
+        logger.warning("sva = sec.sh_addr (0x%x)", sva)
         sva += baseoff
+        logger.warning("sva += baseoff (0x%x) == 0x%x", baseoff, sva)
 
         # if we've already defined a location at this address, skip it. (eg. DYNAMICS)
         if vw.getLocation(sva) == sva:
