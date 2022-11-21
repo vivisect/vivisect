@@ -9,7 +9,6 @@ Please see the quickstart/usage docs over at our [docs page](https://vivisect.re
 ## Installing
 
 For most use cases, you should just be able to run `pip install "vivisect[gui]"` to get both the vivisect/vdb libraries and UI components. For other use cases, please see our [documentation](https://vivisect.readthedocs.io/en/latest/).
-On modern Windows (Win7+), VDB requires PyWin32 also be installed, for setting up debugging privileges.  This package is also easily installed with `pip install pywin32`.
 
 
 ## Versioning
