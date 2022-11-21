@@ -98,6 +98,7 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
             logger.info('Skipping: %s', pgm)
 
     if len(pgms) == 0:
+        # NOTE: among other file types, Linux Kernel modules have no program headers
         secs = elf.getSections()
         # fall back to loading sections as best we can...
         logger.info('elf: no program headers found! (in %r)', fname)
@@ -114,7 +115,6 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
 
             merged.append( maps[i] )
 
-        baseaddr = 0x05000000
         for offset,size in merged:
             bytez = elf.readAtOffset(offset,size)
             memmaps.append((baseaddr + offset, 0x7, fname, bytez, 0))
