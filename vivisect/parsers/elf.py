@@ -56,7 +56,7 @@ def getMemBaseAndSize(vw, elf, baseaddr=None):
 
     for mapva, mperms, mname, mbytes, malign in memmaps:
         if mapva < baseaddr:
-            baseaddr = mapva
+            baseaddr = mapva & -e_const.PAGE_SIZE   # align to page-size
         endva = mapva + len(mbytes)
         if endva > topmem:
             topmem = endva
@@ -103,7 +103,7 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
         # fall back to loading sections as best we can...
         logger.info('elf: no program headers found! (in %r)', fname)
 
-        maps = [ [s.sh_offset,s.sh_size] for s in secs if s.sh_offset and s.sh_size ]
+        maps = [ [s.sh_offset,s.sh_size,s.sh_addralign] for s in secs if s.sh_offset and s.sh_size ]
         maps.sort()
 
         merged = []
@@ -115,9 +115,9 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
 
             merged.append( maps[i] )
 
-        for offset,size in merged:
+        for offset,size,align in merged:
             bytez = elf.readAtOffset(offset,size)
-            memmaps.append((baseaddr + offset, 0x7, fname, bytez, 0))
+            memmaps.append((baseaddr + offset, 0x7, fname, bytez, align))
 
         for sec in secs:
             if sec.sh_offset and sec.sh_size:
