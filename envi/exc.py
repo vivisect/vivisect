@@ -208,7 +208,7 @@ class MapNotFoundException(EnviException):
     """
     def __init__(self, mmapva):
         self.mmapva = mmapva
-        
+
     def __repr__(self):
         return 'Map not found at base va 0x%.8x!' % self.mmapva
 

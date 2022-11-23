@@ -11,7 +11,7 @@ import vivisect.impemu.monitor as viv_imp_monitor
 INSTRS = ('int', 'stosb', 'stosw', 'stosd', 'stosq')
 
 
-class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
+class instrhook_watcher(viv_imp_monitor.EmulationMonitor):
 
     def __init__(self, vw, tryva):
         viv_imp_monitor.EmulationMonitor.__init__(self)
@@ -38,16 +38,6 @@ class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
                 reg = emu.getRegister(envi.archs.amd64.REG_RDI)
             if self.vw.isValidPointer(reg) and self.vw.getLocation(reg) is None:
                 self.vw.makePointer(reg, follow=True)
-
-        if op.mnem == 'int':
-            # TODO: We've got in a couple places the notion of very architecture
-            # or platform specific handling of instructions. should formalize that.
-            if self.plat == 'linux' and self.arch == 'i386':
-                reg = emu.getRegister(envi.archs.i386.REG_EAX)
-                if reg == 1:
-                    emu.stopEmu()
-                    self.vw.addNoReturnVa(eip)
-
 
 def analyzeFunction(vw, fva):
 

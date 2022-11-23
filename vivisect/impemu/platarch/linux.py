@@ -14,6 +14,10 @@ class Linuxi386Emulator(v_i_i386.i386WorkspaceEmulator):
         if syscall != 0x80:
             raise e_exc.BreakpointHit(self)
 
+        reg = self.getRegister(e_i386.REG_EAX)
+        if reg == 1:
+            self.stopEmu()
+
 class LinuxAmd64Emulator(v_i_i386.i386WorkspaceEmulator):
     def i_syscall(self, op):
         # TODO: there is a long list of >300 functions we'd need to deal with here

@@ -29,6 +29,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         self.lastop = None
         self.badcode = False
         self.arch = None
+        self.plat = vw.getMeta('Platform')
 
         self.badops = vw.arch.archGetBadOps()
 
@@ -40,6 +41,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         if not self.hasret or self.badcode:
             return False
 
+        # TODO: Rethink this logic. Otherwise I'll breakout movfuscator again.
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
         for mnem, count in self.mndist.items():
             if round(float( float(count) / float(self.insn_count)), 3) >= .67 and self.insn_count > 4:
@@ -70,6 +72,15 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         if op.mnem == "out":  # FIXME arch specific. see above idea.
             emu.stopEmu()
             raise v_exc.BadOutInstruction(op.va)
+
+        if op.mnem == 'int':
+            # TODO: We've got in a couple places the notion of very architecture
+            # or platform specific handling of instructions. should formalize that.
+            if self.plat == 'linux' and self.arch == envi.ARCH_I386:
+                reg = emu.getRegister(envi.archs.i386.REG_EAX)
+                if reg == 1:
+                    emu.stopEmu()
+                    self.vw.addNoReturnVa(eip)
 
         if op in self.badops:
             emu.stopEmu()
