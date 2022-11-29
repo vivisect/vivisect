@@ -684,12 +684,6 @@ class GdbClientStub(GdbStubBase):
         self._gdb_sock.connect((self._gdb_host, self._gdb_port))
         self._gdb_sock.settimeout(None)
 
-
-    def __del__(self):
-        if self._gdb_sock is not None:
-            self._gdb_sock.close()
-            self._gdb_sock = None
-
     def gdbAttach(self):
         """
         Attaches to the GDB server.
@@ -700,6 +694,9 @@ class GdbClientStub(GdbStubBase):
         Returns:
             None
         """
+        # Clear any cached XML files
+        self._xml = {}
+
         self._connectSocket()
         if self._gdb_servertype in ('gdbserver', 'serverstub', 'qemu'):
             self._targetRemote()
@@ -713,7 +710,6 @@ class GdbClientStub(GdbStubBase):
         A hook for subclasses to insert functionality after attaching to a
         GDB Server
         '''
-        pass
 
     def _targetRemote(self, options=None):
         """
@@ -943,7 +939,7 @@ class GdbClientStub(GdbStubBase):
 
         return maps
 
-    def gdbGetXMLFile(self, fname=b'target.xml'):
+    def gdbGetFeatureFile(self, fname=b'target.xml'):
         if isinstance(fname, str):
             fname = fname.encode()
         if fname not in self._xml:
@@ -964,7 +960,7 @@ class GdbClientStub(GdbStubBase):
         regs = []
         index = 0
         # First get the "target" XML and then identify the real XML file name
-        tgt_xml = self.gdbGetXMLFile('target.xml')
+        tgt_xml = self.gdbGetFeatureFile('target.xml')
         arch_xml_name = None
         for elem in tgt_xml.getroot():
             if not isinstance(elem, etree._Comment):
@@ -981,7 +977,7 @@ class GdbClientStub(GdbStubBase):
                     index += 1
 
         if arch_xml_name is not None:
-            for elem in self.gdbGetXMLFile(arch_xml_name).getroot():
+            for elem in self.gdbGetFeatureFile(arch_xml_name).getroot():
                 if not isinstance(elem, etree._Comment) and elem.tag == 'reg':
                     regs.append((elem.get('name'), int(elem.get('bitsize')), index))
                     index += 1
@@ -1002,13 +998,7 @@ class GdbClientStub(GdbStubBase):
         logger.debug('Requesting register %s', reg)
         cmd = b"p" + reg
         res = self._msgExchange(cmd)
-        if not res:
-            regname = self._gdb_reg_fmt[regidx][0]
-            logger.debug('Cannot retrieve register %d (%s) individually' %
-                    (regidx, regname))
-            regs = self.gdbGetRegisters()
-            return regs[regname]
-        elif res[0:1] == b'E':
+        if res[0:1] == b'E':
             raise Exception('Error occurred while dumping register info: %s'
                 % res[1:])
         return self._decodeGDBVal(res)
@@ -1027,12 +1017,7 @@ class GdbClientStub(GdbStubBase):
         val_str = self._encodeGDBVal(val, self._gdb_reg_fmt[regidx][1])
         cmd = b'P%.2x=%s' % (regidx, val_str)
         res = self._msgExchange(cmd)
-        if not res:
-            regname = self._gdb_reg_fmt[regidx][0]
-            logger.debug('Cannot set register %d (%s) individually' %
-                    (regidx, regname))
-            self.gdbSetRegisters({regname: val})
-        elif res[0:1] == b'E':
+        if res[0:1] == b'E':
             regname = self._gdb_reg_fmt[regidx][0]
             logger.warning('Setting register %d (%s) failed with error %s' %
                     (regidx, regname, res[1:3]))

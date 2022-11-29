@@ -144,166 +144,166 @@ class TestServer(gdbstub.GdbServerStub):
 
 portadd = itertools.count()
 
-#class TestGdbServerStub(unittest.TestCase):
-#    """
-#    Unit tests for the gdb server stub code.
-#    """
-#
-#    def __init__(self, methodName='runTest'):
-#        """
-#        Constructor for gdb server stub testing code.
-#
-#        Args:
-#            methodName (str): name of the testing function.
-#
-#        Returns:
-#            None
-#        """
-#        self.client = None
-#        self.server = None
-#        self.server_thread = None
-#
-#        self.host = 'localhost'
-#        self.port = 1235
-#        self.arch = 'amd64'
-#        self.addr_size = 64 # bits
-#        self.bigend = False # little-endian
-#
-#        super(TestGdbServerStub, self).__init__(methodName=methodName)
-#
-#    def setUp(self):
-#        """
-#        Creates a client and server for use by a unit test.
-#
-#        Args:
-#            None
-#
-#        Returns:
-#            None
-#        """
-#        self.port += next(portadd)
-#        logger.warning("\n\nTestGdbServerStub: setUp(): port %d" % self.port)
-#
-#        # Create a GDB client instance
-#        self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.bigend,
-#                gdb_reg_fmts.QEMU_X86_64_REG, self.host, self.port,
-#                'serverstub')
-#
-#        # Create a test server
-#        self.server = TestServer(self.arch, self.addr_size, self.bigend,
-#                gdb_reg_fmts.QEMU_X86_64_REG, self.port)
-#
-#        # Start the server
-#        self.server_thread = threading.Thread(target=self.server.runServer)
-#        self.server_thread.daemon = True
-#        self.server_thread.start()
-#
-#        time.sleep(1)
-#
-#        # Attach the client
-#        self.client.gdbAttach()
-#
-#    def tearDown(self):
-#        """
-#        Destroys the client and server after a test is complete.
-#
-#        Args:
-#            None
-#
-#        Returns:
-#            None
-#        """
-#        logger.warning("\n\nTestGdbServerStub: tearDown()")
-#        self.client.gdbDetach()
-#        self.server_thread.join()
-#        self.client = None  # server teardown
-#        time.sleep(1)
-#        self.server_thread = None
-#
-#    def test_GetRegisterVal(self):
-#        """
-#        Tests the server's handling of register read requests.
-#
-#        Args:
-#            None
-#
-#        Returns:
-#            None
-#        """
-#        registers = self.client.gdbGetRegisters()
-#        # TODO: We should probably check all registers in the future
-#        reg_name = 'rax'
-#        actual = self.server.targetRegs[reg_name]
-#        expected = registers[reg_name]
-#        self.assertEqual(expected, actual)
-#
-#    def test_SetRegisterVal(self):
-#        """
-#        Tests the server's handling of register write requests.
-#
-#        Args:
-#            None
-#
-#        Returns:
-#            None
-#        """
-#        updates = {
-#                'rax': 123456,
-#                'rbx': 8675309,
-#                }
-#
-#        self.client.gdbSetRegisters(updates)
-#        for reg_name in updates.keys():
-#            expected = updates[reg_name]
-#            actual = self.server.targetRegs[reg_name]
-#            self.assertEqual(expected, actual)
-#
-#    def test_ReadMemory(self):
-#        """
-#        Tests the server's handling of memory read operations.
-#
-#        Args:
-#            None
-#
-#        Returns:
-#            None
-#        """
-#        addr = 0x1000
-#        expected = self.client.gdbReadMem(addr, 4)
-#        actual = self.server.targetAddr[addr]
-#        self.assertEqual(expected, actual)
-#
-#    def test_WriteMemory(self):
-#        """
-#        Tests the server's handling of memory write operations.
-#
-#        Args:
-#            None
-#
-#        Returns:
-#            None
-#        """
-#        addr = 0x1000
-#        fmt32bit = e_bits.getFormat(4, self.bigend)
-#        expected = struct.pack(fmt32bit, 0xdeadface)
-#        self.client.gdbWriteMem(addr, expected)
-#        actual = self.server.targetAddr[addr]
-#        self.assertEqual(expected, actual)
-#
-#    def test_Stepi(self):
-#        """
-#        Tests the server's handling of single step (into) operations.
-#
-#        Args:
-#            None
-#
-#        Returns:
-#            None
-#        """
-#        self.client.gdbStepi()
-#        expected = 0x5002
-#        actual = self.server.targetRegs['rip']
-#        self.assertEqual(expected, actual)
+class TestGdbServerStub(unittest.TestCase):
+    """
+    Unit tests for the gdb server stub code.
+    """
+
+    def __init__(self, methodName='runTest'):
+        """
+        Constructor for gdb server stub testing code.
+
+        Args:
+            methodName (str): name of the testing function.
+
+        Returns:
+            None
+        """
+        self.client = None
+        self.server = None
+        self.server_thread = None
+
+        self.host = 'localhost'
+        self.port = 1235
+        self.arch = 'amd64'
+        self.addr_size = 64 # bits
+        self.bigend = False # little-endian
+
+        super(TestGdbServerStub, self).__init__(methodName=methodName)
+
+    def setUp(self):
+        """
+        Creates a client and server for use by a unit test.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        self.port += next(portadd)
+        logger.warning("\n\nTestGdbServerStub: setUp(): port %d" % self.port)
+
+        # Create a GDB client instance
+        self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.bigend,
+                gdb_reg_fmts.QEMU_X86_64_REG, self.host, self.port,
+                'serverstub')
+
+        # Create a test server
+        self.server = TestServer(self.arch, self.addr_size, self.bigend,
+                gdb_reg_fmts.QEMU_X86_64_REG, self.port)
+
+        # Start the server
+        self.server_thread = threading.Thread(target=self.server.runServer)
+        self.server_thread.daemon = True
+        self.server_thread.start()
+
+        time.sleep(1)
+
+        # Attach the client
+        self.client.gdbAttach()
+
+    def tearDown(self):
+        """
+        Destroys the client and server after a test is complete.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        logger.warning("\n\nTestGdbServerStub: tearDown()")
+        self.client.gdbDetach()
+        self.server_thread.join()
+        self.client = None  # server teardown
+        time.sleep(1)
+        self.server_thread = None
+
+    def test_GetRegisterVal(self):
+        """
+        Tests the server's handling of register read requests.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        registers = self.client.gdbGetRegisters()
+        # TODO: We should probably check all registers in the future
+        reg_name = 'rax'
+        actual = self.server.targetRegs[reg_name]
+        expected = registers[reg_name]
+        self.assertEqual(expected, actual)
+
+    def test_SetRegisterVal(self):
+        """
+        Tests the server's handling of register write requests.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        updates = {
+                'rax': 123456,
+                'rbx': 8675309,
+                }
+
+        self.client.gdbSetRegisters(updates)
+        for reg_name in updates.keys():
+            expected = updates[reg_name]
+            actual = self.server.targetRegs[reg_name]
+            self.assertEqual(expected, actual)
+
+    def test_ReadMemory(self):
+        """
+        Tests the server's handling of memory read operations.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        addr = 0x1000
+        expected = self.client.gdbReadMem(addr, 4)
+        actual = self.server.targetAddr[addr]
+        self.assertEqual(expected, actual)
+
+    def test_WriteMemory(self):
+        """
+        Tests the server's handling of memory write operations.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        addr = 0x1000
+        fmt32bit = e_bits.getFormat(4, self.bigend)
+        expected = struct.pack(fmt32bit, 0xdeadface)
+        self.client.gdbWriteMem(addr, expected)
+        actual = self.server.targetAddr[addr]
+        self.assertEqual(expected, actual)
+
+    def test_Stepi(self):
+        """
+        Tests the server's handling of single step (into) operations.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        self.client.gdbStepi()
+        expected = 0x5002
+        actual = self.server.targetRegs['rip']
+        self.assertEqual(expected, actual)
 
 class TestGdbClientStub(unittest.TestCase):
     """
