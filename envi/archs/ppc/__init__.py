@@ -165,6 +165,13 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
 
         could easily also be written as:
             ( (0x00004000, 0x00002000), )
+
+        There are three different ways that the VLE configuration information
+        can be set in vivisect:
+            1. BAM, sets the default 
+            2. The tlbwe instruction
+            3. ELF parsing
+            4. command line
         '''
         # Handle a few different map input styles
         if isinstance(maps, dict):
@@ -208,6 +215,26 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         # The ref type and flags do not need to change regardless of if tova is
         # in a VLE page or not
         return tova, reftype, rflags
+
+    def archMarkupVW(self, vw):
+        # Add VaSets to track PowerPC SPR reads and writes.
+        import vivisect.const as viv_const
+        vw.addVaSet("PpcSprReads", (("va", viv_const.VASET_ADDRESS),
+                                    ("spr", viv_const.VASET_STRING),
+                                    ("value", viv_const.VASET_INTEGER)))
+
+        vw.addVaSet("PpcSprWrites", (("va", viv_const.VASET_ADDRESS),
+                                     ("spr", viv_const.VASET_STRING),
+                                     ("value", viv_const.VASET_INTEGER)))
+
+        vw.addVaSet("PpcTlbWrites", (("va", viv_const.VASET_ADDRESS),
+                                     ('mas0', viv_const.VASET_INTEGER),
+                                     ('mas1', viv_const.VASET_INTEGER),
+                                     ('mas2', viv_const.VASET_INTEGER),
+                                     ('mas3', viv_const.VASET_INTEGER)))
+
+        # add the PPC architecture structures to the namespace
+        vw.addStructureModule('ppc', 'vstruct.defs.ppc')
 
 
 class Ppc32EmbeddedModule(Ppc64EmbeddedModule):

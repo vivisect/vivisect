@@ -700,6 +700,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
+        self.arch.archMarkupVW(self)
+
         self._load_event.set()
 
     def _mcb_bigend(self, name, value):
@@ -737,7 +739,11 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.vprint('Workspace was Saved to Server: %s' % wshost)
         self.vprint('(You must close this local copy and work from the server to stay in sync.)')
 
-    def _mcb_PpcMemoryMaps(self, name, maps):
+    def _mcb_PpcVlePages(self, name, maps):
+        """
+        Each time the PPC VLE Pages meta gets set we need to update the VLE
+        configuration information in all PPC architecture modules.
+        """
         ppc_archs = (
             envi.ARCH_PPC_E32,
             envi.ARCH_PPC_E64,

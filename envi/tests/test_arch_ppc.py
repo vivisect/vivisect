@@ -1728,9 +1728,9 @@ class PpcInstructionSet(unittest.TestCase):
         for archname, results in vle_map_tests.items():
             vw, _, _ = getVivEnv(archname)
             vw.addMemoryMap(0x00800000, 7, 'flash', vle_test_mem)
-            vw.setMeta('PpcMemoryMaps', vle_maps)
+            vw.setMeta('PpcVlePages', vle_maps)
 
-            # This has to be called after the PpcVleMaps meta is set
+            # This has to be called after the PpcVlePages meta is set
             emu = vw.getEmulator()
 
             for addr, valid_instr in results:

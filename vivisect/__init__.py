@@ -321,7 +321,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # PowerPC special case, if there are memory maps defined propagate those
         # to the new emulator
-        maps = self.getMeta('PpcMemoryMaps')
+        maps = self.getMeta('PpcVlePages')
         if maps is not None:
             emu.setVleMaps(maps)
 

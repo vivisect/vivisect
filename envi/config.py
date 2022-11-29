@@ -73,6 +73,34 @@ class EnviConfig:
         '''
         return self.cfgdocs.get(optname)
 
+    def getOptionByString(self, pathstring):
+        optparts = pathstring.split('.')
+        config = self
+        for opart in optparts[:-1]:
+            config = config.getSubConfig(opart, add=False)
+            if config is None:
+                raise e_exc.ConfigInvalidName(pathstring)
+
+        optname = optparts[-1]
+        if optname not in config.cfginfo:
+            raise e_exc.ConfigInvalidOption(optname)
+
+        return config[optname]
+
+    def setOptionByString(self, pathstring, value):
+        optparts = pathstring.split('.')
+        config = self
+        for opart in optparts[:-1]:
+            config = config.getSubConfig(opart, add=False)
+            if config is None:
+                raise e_exc.ConfigInvalidName(pathstring)
+
+        optname = optparts[-1]
+        if optname not in config.cfginfo:
+            raise e_exc.ConfigInvalidOption(optname)
+
+        config[optname] = value
+
     def getConfigPaths(self):
         '''
         Return a list of tuples including: (type, valid path strings, existing value)

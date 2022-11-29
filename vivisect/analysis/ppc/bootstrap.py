@@ -14,29 +14,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+from vivisect.analysis.ppc.vlepages import DEFAULT_PPC_PAGES, DEFAULT_PPC_PAGES_VLE
+
+
 def set_rchw_vle(vw):
-    maps = vw.getMeta('PpcMemoryMaps')
-    if maps is None:
-        logger.error("Unable to change PPC MMU settings to VLE because none are defined")
-        return
-
-    # When the RCHW VLE flag is set memory maps 1, 2, and 3 (Flash, EBI, SRAM)
-    # are set to VLE by default
-    for idx in (1, 2, 3):
-        if idx in maps:
-            maps[idx][3] = True
-            logger.debug('Changing PPC Memory Map entry %d to VLE: 0x%x - 0x%x (%s)',
-                    maps[idx][0], maps[idx][0]+maps[idx][1], maps[idx][2])
-        else:
-            logger.error('Cannot update PPC Memory Map entry %d to VLE because it is not defined', idx)
-
-    vw.setMeta('PpcMemoryMaps', maps)
+    # If a VLE page configuration was specified manually, don't override it.
+    vle_pages = vw.getMeta('PpcVlePages')
+    if vle_pages is DEFAULT_PPC_PAGES
+        # If the VLE pages are still the default pages, update entries 1, 2,
+        # and 3 (Flash, EBI, SRAM) to be VLE.
+        vw.setMeta('PpcVlePages', DEFAULT_PPC_PAGES_VLE)
 
 
 def analyze(vw):
-    # add the PPC architecture structures to the namespace
-    vw.addStructureModule('ppc', 'vstruct.defs.ppc')
-
     logger.info('...analyzing PowerPC Entry Points.')
 
     bootentries = []

@@ -70,36 +70,31 @@ IVORx_MASK = 0x0000FFF0
 class PpcAnalysisMonitor(viv_monitor.AnalysisMonitor):
 
     def __init__(self, vw, fva):
-        super().__init__(vw, fva)
+        viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
         self.retbytes = None
         self.badops = vw.arch.archGetBadOps()
-        self.spr_reads = {}
-        self.spr_writes = {}
-        self.mmu_writes = []
+        self.spr_reads = []
+        self.spr_writes = []
+        self.tlb_writes = []
 
     def prehook(self, emu, op, starteip):
-
         if op in self.badops:
             raise viv_exc.BadOpBytes(op.va)
-
-        super().prehook(emu, op, starteip)
+        viv_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
 
     def posthook(self, emu, op, starteip):
-        super().posthook(emu, op, starteip)
+        viv_monitor.AnalysisMonitor.posthook(self, emu, op, starteip)
 
         # Look for SPR reads and writes, except for LR (and CTR?)
-        if op.mnem == 'mfspr' and len(op.opers) >= 2 and op.opers[1].reg != e_ppc.REG_LR:
+        if op.mnem == 'mfspr' and op.opers[1].reg != e_ppc.REG_LR:
             sprname = op.opers[1].repr(op)
-            if sprname not in self.spr_reads:
-                self.spr_reads[sprname] = []
-            self.spr_reads[sprname].append(op.va)
-
-        elif op.mnem == 'mtspr' and len(op.opers) >= 1 and op.opers[0].reg != e_ppc.REG_LR:
-            sprname = op.opers[0].repr(op)
             value = emu.getOperValue(op, 1)
-            if sprname not in self.spr_writes:
-                self.spr_writes[sprname] = []
-            self.spr_writes[sprname].append((op.va, value))
+            self.spr_reads.append((op.va, sprname, value))
+
+        elif op.mnem == 'mtspr' and op.opers[0].reg != e_ppc.REG_LR:
+            sprname = op.opers[0].repr(op)
+            value = emu.getOperValue(op, 0)
+            self.spr_writes.append((op.va, sprname, value))
 
         elif op.mnem == 'tlbwe':
             # Read the MAS0-3 SPR values right now and those are the values that
@@ -108,28 +103,17 @@ class PpcAnalysisMonitor(viv_monitor.AnalysisMonitor):
             mas1 = emu.getRegister(e_ppc.REG_MAS1)
             mas2 = emu.getRegister(e_ppc.REG_MAS2)
             mas3 = emu.getRegister(e_ppc.REG_MAS3)
-            self.mmu_writes.append((op.va, mas0, mas1, mas2, mas3))
+            self.tlb_writes.append((op.va, mas0, mas1, mas2, mas3))
 
     def addAnalysisResults(self, vw, emu):
-        super().addAnalysisResults(vw, emu)
+        viv_monitor.AnalysisMonitor.addAnalysisResults(self, vw, emu)
 
-        # Add custom PPC VA Sets if any SPR reads/writes or TLB writes happened,
-        # sort the entries to make it faster to find specific instruction in
-        # future analysis modules.
-        try:
-            vaset = vw.getVaSet("ppc_spr_reads")
-        except viv_exc.InvalidVaSet:
-            vw.addVaSet("ppc_spr_reads", (("funcva", viv_const.VASET_ADDRESS), ("reads", viv_const.VASET_COMPLEX)))
-
-        try:
-            vaset = vw.getVaSet("ppc_spr_writes")
-        except viv_exc.InvalidVaSet:
-            vw.addVaSet("ppc_spr_writes", (("funcva", viv_const.VASET_ADDRESS), ("writes", viv_const.VASET_COMPLEX)))
-
-        if self.spr_reads and vw.getVaSet('ppc_spr_reads'):
-            vw.setVaSetRow('ppc_spr_reads', (self.fva, dict((k, sorted(v)) for k, v in self.spr_reads.items())))
-        if self.spr_writes and vw.getVaSet('ppc_spr_writes'):
-            vw.setVaSetRow('ppc_spr_writes', (self.fva, dict((k, sorted(v)) for k, v in self.spr_writes.items())))
+        for row in self.spr_reads:
+            vw.setVaSetRow('PpcSprReads', row)
+        for row in self.spr_writes:
+            vw.setVaSetRow('PpcSprWrites', row)
+        for row in self.tlb_writes:
+            vw.setVaSetRow('PpcTlbWrites', row)
 
         # If there was an IVPR write, get any IVORx SPRs written in this
         # function and log these as possible exception handlers, if the target

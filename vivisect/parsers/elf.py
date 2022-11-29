@@ -613,9 +613,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # Now that the program and section headers have been parsed, if this is a
     # PowerPC 32-bit ELF we need to check for VLE flags
     if arch in ppc_arch_names:
-        maps = vw.getMeta('PpcMemoryMaps')
-        if maps is None:
-            maps = []
+        vle_pages = vw.getMeta('PpcVlePages')
+        if vle_pages is None:
+            vle_pages = []
 
         # Loop through each loaded program header and if the load section is
         # marked as VLE, or it maps back to a section that is marked as VLE,
@@ -629,13 +629,13 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 vle = int(bool(phdr.p_flags & Elf.PF_PPC_VLE))
                 vle_flags.append(vle)
 
-                maps.append((phdr.p_vaddr, phdr.p_align, vle))
+                vle_pages.append((phdr.p_vaddr, phdr.p_align, vle))
 
-        # Update the VLE maps
-        logger.info("Adding PowerPC VLE maps %s" % maps)
+        # Update the VLE pages
+        logger.info("Adding PowerPC VLE pages %s" % vle_pages)
 
         # Turn the list into a dict before writing it
-        vw.setMeta('PpcMemoryMaps', dict((i, m) for i, m in enumerate(maps)))
+        vw.setMeta('PpcVlePages', dict((i, m) for i, m in enumerate(vle_pages)))
 
         # If all of the loaded and executable sections are VLE, then change this
         # to be ppc-vle, if only some are ensure it is ppc32-embedded, otherwise

@@ -67,17 +67,17 @@ defconfig = {
             },
         },
 
-        'arch':{
-            'ppc':{
-                'options':'spe',
-                'bootstrap':{
-                    'rchwaddrs':[
+        'arch': {
+            'ppc': {
+                'options': 'spe',
+                'bootstrap': {
+                    'rchwaddrs': [
                         0x0000, 0x4000, 0x10000, 0x1C000, 0x20000, 0x30000,
                         0x800000
                     ],
                 },
-                'findvlepages':True,
-                'mmu':[],
+                'findvlepages': True,
+                'mmu': [],
             },
         },
 

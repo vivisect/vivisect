@@ -63,10 +63,10 @@ class PpcWorkspaceEmulator(v_i_emulator.WorkspaceEmulator):
         '''
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
 
-        # If there is a PpcMemoryMaps Meta defined, update the emulator now.
+        # If there is a PpcVlePages Meta defined, update the emulator now.
         # This has to be checked here because the workspace emulators are
         # created after the metadata events are parsed
-        maps = vw.getMeta('PpcMemoryMaps')
+        maps = vw.getMeta('PpcVlePages')
         if maps is not None:
             self.setVleMaps(maps)
 
@@ -78,7 +78,7 @@ class PpcWorkspaceEmulator(v_i_emulator.WorkspaceEmulator):
         Return the current value of the specified register index. Modified to
         support taint tracking during function analysis.
         """
-        value = super().getRegister(index)
+        value = v_i_emulator.WorkspaceEmulator.getRegister(self, index)
 
         # If there is no saved instruction, or the register is not one of the
         # taint registers, just return the value.
@@ -114,12 +114,12 @@ class PpcWorkspaceEmulator(v_i_emulator.WorkspaceEmulator):
     def i_tlbwe(self, op):
         '''
         Custom handling of the tlbwe instruction to update the workspace
-        PpcMemorMaps meta variable to allow detection of VLE pages
+        PpcVlePages meta variable to allow detection of VLE pages
         '''
-        # Replace or add an MMU entry if the PpcMemoryMaps meta variable is
+        # Replace or add an MMU entry if the PpcVlePages meta variable is
         # defined and the findvlepages configuration option is enabled
         if self.findvlepages:
-            maps = self.vw.getMeta('PpcMemoryMaps')
+            vle_pages = self.vw.getMeta('PpcVlePages')
 
             mas0 = self.getRegister(e_ppc.REG_MAS0)
             mas1 = self.getRegister(e_ppc.REG_MAS1)
@@ -133,9 +133,9 @@ class PpcWorkspaceEmulator(v_i_emulator.WorkspaceEmulator):
             vle = bool(mas2 & MAS2_VLE_MASK)
 
             logger.debug('Writing PPC MMU entry %d: 0x%x - 0x%x (%s)', idx, base, base+size, vle)
-            maps[idx] = [base, size, vle]
+            vle_pages[idx] = [base, size, vle]
 
-            self.vw.setMeta('PpcMemoryMaps', maps)
+            self.vw.setMeta('PpcVlePages', vle_pages)
 
 
 class Ppc64EmbeddedWorkspaceEmulator(PpcWorkspaceEmulator, e_ppc.Ppc64EmbeddedEmulator):
