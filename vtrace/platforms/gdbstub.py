@@ -38,6 +38,7 @@ import envi.common as e_cmn
 import vtrace.platforms.gdb_exc as gdb_exc
 
 from itertools import groupby
+from vtrace.platforms import signals
 
 logger = logging.getLogger(__name__)
 #e_cmn.initLogging(logger, level=logging.INFO)
@@ -89,8 +90,19 @@ class GdbStubBase:
                 b'multiprocess': None
                 }
 
+        self._settings = {}
+
+        self._NoAckMode = False
         self._bigend = bigend
         self._addr_size = addr_size
+        self._doEncoding = True
+
+
+    def _getFeat(self, featurename):
+        '''
+        Returns a given "_supported_feature" entry, or None.
+        '''
+        return self._supported_features.get(featurename)
 
     def setGdbArchitecture(self, archname, setMeta=True):
         '''
@@ -193,7 +205,7 @@ class GdbStubBase:
         if self._gdb_sock is None:
             raise Exception('No socket available for transmission')
 
-        logger.debug('Transmitting packet: %s' % (pkt))
+        logger.log(e_cmn.MIRE, 'Transmitting packet: %s' % (pkt))
         self._gdb_sock.sendall(pkt)
     
     def _recvResponse(self):
@@ -214,7 +226,7 @@ class GdbStubBase:
             raise Exception('Socket not responding')
 
         # If this is an acknowledgment packet, return early
-        if res in (b'+', b'-'):
+        if not self._NoAckMode and res in (b'+', b'-'):
             return res
 
         elif res == b'$':
@@ -235,9 +247,10 @@ class GdbStubBase:
         if expected_csum != actual_csum:
             raise Exception('Invalid packet data checksum')
 
-        # only send Ack if this is *not* an Ack/Retrans and if everything 
-        # checks out ok (checksum, $/#/etc)
-        self._sendAck()
+        if not self._NoAckMode:
+            # only send Ack if this is *not* an Ack/Retrans and if everything 
+            # checks out ok (checksum, $/#/etc)
+            self._sendAck()
 
         decoded = self._lengthDecode(msg_data)
         logger.info('_recvMessage: decoded=%r' % decoded)
@@ -271,7 +284,7 @@ class GdbStubBase:
             str: The characters read up until and including the delimiting
             character.
         """
-        logger.debug("_recvUntil(%r)", clist)
+        logger.log(e_cmn.MIRE, "_recvUntil(%r)", clist)
         ret = []
         x = b''
         while x not in clist:
@@ -280,7 +293,7 @@ class GdbStubBase:
                 raise Exception('Socket closed unexpectedly')
             ret.append(x)
             
-        logger.debug('_recvUntil(%r):  %r', clist, ret)
+        logger.log(e_cmn.MIRE, '_recvUntil(%r):  %r', clist, ret)
         return b''.join(ret)
 
     def _msgExchange(self, msg, expect_res= True):
@@ -303,13 +316,16 @@ class GdbStubBase:
         status = None
         res = None
 
-        # Send the command until its receipt is acknowledged
-        while (status != b'+') and (retry_count < retry_max):
+        if self._NoAckMode:
             self._sendMsg(msg)
-            status = self._recvResponse()
-            retry_count += 1
-        if retry_count >= retry_max:
-            logger.warning("_msgExchange:  Not received Ack in retry_max (%r) attempts!", retry_max)
+        else:
+            # Send the command until its receipt is acknowledged
+            while (status != b'+') and (retry_count < retry_max):
+                self._sendMsg(msg)
+                status = self._recvResponse()
+                retry_count += 1
+            if retry_count >= retry_max:
+                logger.warning("_msgExchange:  Not received Ack in retry_max (%r) attempts!", retry_max)
 
         # Return the response
         if expect_res:
@@ -330,7 +346,8 @@ class GdbStubBase:
         Returns:
             None
         """
-        self._transPkt(b'+')
+        if not self._NoAckMode:
+            self._transPkt(b'+')
 
     def _sendRetrans(self):
         """
@@ -442,38 +459,48 @@ class GdbStubBase:
         Returns:
             str: The encoded data.
         """
+        if not self._doEncoding:
+            return data
+
         max_rep = 97
         grouped = [b''.join([b'%c' % x for x in g]) for _, g in groupby(data)]
-        enc_data = b''
+
+        enc_list = []
         for g in grouped:
             length = len(g)
             char = g[0:1]
             # Special handling for b'#' (6 + 29)
             if length == 6:
-                enc_data += b'%s\"%s' % (char, char)
+                enc_list.append(b'%s\"%s' % (char, char))
+
             # Special handling for b'$' (7 + 29)
             elif length == 7:
-                enc_data += b'%s\"%s%s' % (char, char, char)
+                enc_list.append(b'%s\"%s%s' % (char, char, char))
+
             # GDB only supports encoded up to 126 repetitions
             elif length > max_rep:
                 q, r = divmod(length, max_rep)
                 # Split into chunks of 126 repetitions
                 chunk = b'%s*%s' % (char, b'%c' % (max_rep + 29))
-                enc_data += chunk * q
+                print("chunk(%d:%d): %r" % (q, r, chunk))
+                enc_list.append(chunk * q)
+
                 # Handle the remainder
                 if r == 6:
-                    enc_data += b'%s\"%s' % (char, char)
+                    enc_list.append(b'%s\"%s' % (char, char))
                 elif r == 7:
-                    enc_data += b'%s\"%s%s' % (char, char, char)
+                    enc_list.append(b'%s\"%s%s' % (char, char, char))
                 else:
-                    enc_data += b'%s*%s' % (char, b'%c' % (r + 29))
+                    enc_list.append(b'%s*%s' % (char, b'%c' % (r + 29)))
+
             elif length > 2:
                 rep_count = length - 1
-                enc_data += b'%s*%s' % (char, b'%c' % (rep_count + 29))
-            else:
-                enc_data += g
+                enc_list.append(b'%s*%s' % (char, b'%c' % (rep_count + 29)))
 
-        return enc_data
+            else:
+                enc_list.append(g)
+
+        return b''.join(enc_list)
 
     def _lengthDecode(self, data):
         """
@@ -576,7 +603,7 @@ class GdbStubBase:
         Returns:
             None
         """
-        logger.info('Sending message: %s' % (msg))
+        logger.log(e_cmn.MIRE, 'Sending message: %s' % (msg))
         
         # Build the command packet
         pkt = self._buildPkt(msg)
@@ -1358,8 +1385,9 @@ class GdbClientStub(GdbStubBase):
 
 
 STATE_STARTUP = 0
-STATE_RUNNING = 1
-STATE_SHUTDOWN = 2
+STATE_RUNSTART = 1
+STATE_RUNNING = 2
+STATE_SHUTDOWN = 3
 
 
 class GdbServerStub(GdbStubBase):
@@ -1409,16 +1437,28 @@ class GdbServerStub(GdbStubBase):
         self.breakPointsSW = []
         self.breakPointsHW = []
 
+        self._stop_reason = signals.SIG_0     ## @ac0rn this tracks the reason for halt, but 0 is "not stopped". i'll need your help ensuring all the interactions between Emulator and GdbStubBase honor this
+
+    def setGdbHaltReason(self, reason):
+        '''
+        The Emulator should call this 
+        '''
+        self._halt_reason = reason
+
+    def isRunning(self):
+        '''
+        if self._halt_reason is non-zero, we've halted
+        '''
+        return not self._halt_reason
 
     def _recvServer(self, maxlen=10000):
         '''
         Receive packets for the server (from a connected client)
         '''
-        logger.debug("_recvServer")
         data = b''
         while not len(data) or data[-1:] != b'#':
             data += self._recvUntil((b'#', b'\x03'))
-            logger.debug("_recvServer: data=%r", data)
+            logger.log(e_cmn.MIRE, "_recvServer: data=%r", data)
             if data == b'\x03':
                 logger.info("Received BREAK!  Raising GdbBreakException")
                 raise gdb_exc.GdbBreakException()
@@ -1428,7 +1468,15 @@ class GdbServerStub(GdbStubBase):
                 raise gdb_exc.InvalidGdbPacketException("Invalid Packet: %r" % data)
 
 
-        logger.debug("done with read loop:  %r", data)
+        logger.log(e_cmn.MIRE, "done with read loop:  %r", data)
+
+        # state housekeeping
+        if self.state == STATE_RUNSTART:
+            self.state = STATE_RUNNING
+            if data[0:1] == b'+':
+                # meh, housewarming gift.  eat it.
+                data = data[1:]
+
         # now do our packet checks
         if data[0:1] != b'$':
             logger.warning("fail: data doesn't start with '$'")
@@ -1439,7 +1487,7 @@ class GdbServerStub(GdbStubBase):
         # pull the checksum bytes
         csum = self._gdb_sock.recv(2)
         calccsum = self._gdbCSum(data)
-        logger.debug("DATA: %r     CSUM: %r (calculated: %.2x)", data, csum, calccsum)
+        logger.log(e_cmn.MIRE, "DATA: %r     CSUM: %r (calculated: %.2x)", data, csum, calccsum)
         if int(csum, 16) != calccsum:
             raise gdb_exc.InvalidGdbPacketException("Invalid Packet (checksum): %r  %r!=%r" % (data, csum, calccsum))
 
@@ -1460,11 +1508,11 @@ class GdbServerStub(GdbStubBase):
         """
         data = b''
         logger.info("runServer starting...")
-        sock = socket.socket()
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._server_sock = socket.socket()
+        self._server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         while True:
             try:
-                sock.bind(('localhost', self._gdb_port))
+                self._server_sock.bind(('localhost', self._gdb_port))
                 break
 
             except OSError as e:
@@ -1473,28 +1521,49 @@ class GdbServerStub(GdbStubBase):
 
                 self._gdb_port += 1
 
-        sock.listen(5)
+        self._server_sock.listen(1)
         logger.info("runServer listening on port %d", self._gdb_port)
 
-        self.state = STATE_RUNNING
+        self.state = STATE_STARTUP
 
-        while self.state == STATE_RUNNING:
+        while self.state in (STATE_RUNNING, STATE_RUNSTART, STATE_STARTUP):
             try:
+                self.state = STATE_RUNSTART
                 self._gdb_sock, addr = sock.accept()
                 logger.info("runServer: Received Connection from %r", addr)
+                self._postClientAttach(addr)
+                self.last_reason = self._halt_reason
                 
                 while True:
-                    logger.info("runServer continuing...")
+                    logger.log(e_cmn.MIRE, "runServer continuing...")
                     try:
+                        # Check and handle the processor breaking.
+                        if self._halt_reason != 0 and \
+                                self._halt_reason != self.last_reason:
+                            # send the halt reason to the client (since they should
+                            # be waiting for it...
+                            self._doServerResponse(self._handleEndCont(), False)
+
+                        self.last_reason = self._halt_reason
+
+                        # check to see if there's any data to process
+                        x, y, z = select.select([self._gdb_sock],[],[], .1)
+                        if not x:
+                            continue
+
+                        # if the client has sent command data, handle it here.
                         data = self._recvServer()
                         #TODO: coalesce with _parseMsg?
-                        # ack receipt
-                        logger.info("received: %r    xmitting '+'", data)
-                        self._sendAck()
-                        #self._gdb_sock.sendall(b'+')
+
+                        if self._NoAckMode:
+                            logger.debug("received: %r", data)
+                        else:
+                            # ack receipt
+                            logger.debug("received: %r    xmitting '+'", data)
+                            self._sendAck()
 
                     except gdb_exc.InvalidGdbPacketException as e:
-                        logger.info("Invalid Packet Exception!  %r", e)
+                        logger.warning("Invalid Packet Exception!  %r", e)
                         self._sendRetrans()
                         continue
 
@@ -1506,7 +1575,7 @@ class GdbServerStub(GdbStubBase):
                         logger.warning('gdbstub.runServer() Exception: %r', e, exc_info=1)
                         break
 
-                    logger.debug("runServer: %r" % data)
+                    logger.log(e_cmn.MIRE, "runServer: %r" % data)
                     self._cmdHandler(data)  
             
             except Exception as e:
@@ -1516,6 +1585,9 @@ class GdbServerStub(GdbStubBase):
                 self._gdb_sock.close()
 
         sock.close()
+
+    def _postClientAttach(self, addr):
+        pass
 
 
     def _cmdHandler(self, data):
@@ -1537,46 +1609,85 @@ class GdbServerStub(GdbStubBase):
         # TODO: the error codes could be finer-grain
         try:
             if cmd == b'?':
+                logger.info('_handleHaltInfo(%r)' % cmd_data)
                 res = self._handleHaltInfo()
             elif cmd == b'g':
+                logger.info('_handleReadRegs(%r)' % cmd_data)
                 res = self._handleReadRegs()
             elif cmd == b'G':
+                logger.info('_handleWriteRegs(%r)' % (cmd_data))
                 res = self._handleWriteRegs(cmd_data)
+            elif cmd == b'p':
+                logger.info('_handleReadReg(%r)' % cmd_data)
+                res = self._handleReadReg(cmd_data)
+            elif cmd == b'P':
+                logger.info('_handleWriteReg(%r)' % (cmd_data))
+                res = self._handleWriteReg(cmd_data)
             elif cmd == b'c':
-                res = self._handleCont()
+                logger.info('_handleCont(%r)' % cmd_data)
+                self._handleCont()
+                res = None
             elif cmd == b'D':
+                logger.info('_handleDetach(%r)' % cmd_data)
                 res = self._handleDetach()
             elif cmd == b'Z':
+                logger.info('_handleSetBreak(%r)' % (cmd_data))
                 res = self._handleSetBreak(cmd_data)
             elif cmd == b'z':
+                logger.info('_handleRemoveBreak(%r)' % (cmd_data))
                 res = self._handleRemoveBreak(cmd_data)
             elif cmd == b'm':
+                logger.info('_handleReadMem(%r)' % (cmd_data))
                 res = self._handleReadMem(cmd_data)
             elif cmd == b'M':
+                logger.info('_handleWriteMem(%r)' % (cmd_data))
                 res = self._handleWriteMem(cmd_data)
             elif cmd == b's':
+                logger.info('_handleStepi(%r)' % cmd_data)
                 res = self._handleStepi()
+            elif cmd == b'H':
+                logger.info('_handleSetThread(%r)' % (cmd_data))
+                res = self._handleSetThread(cmd_data)
 
             elif cmd == b'q':
+                logger.info('_handleQuery(%r)' % (cmd_data))
                 res = self._handleQuery(cmd_data)
 
             elif cmd == b'Q':
+                logger.info('_handleQSetting(%r)' % (cmd_data))
                 res = self._handleQSetting(cmd_data)
 
             elif cmd == b'\x03':
+                logger.info('_handleBREAK(%r)' % cmd_data)
                 res = self._handleBREAK()
 
             else:
                 #raise Exception(b'Unsupported command %s' % cmd)
-                logger.warning('Unsupported command %s' % cmd)
-                self._msgExchange(b'')
+                logger.warning('Unsupported command %s (%r)' % (cmd, cmd_data))
+                #self._msgExchange(b'')
+                res = b''
 
         except Exception as e:
             logger.warning("_cmdHandler(%r): EXCEPTION: %r", data, e)
             self._msgExchange(b'E%.2x' % errno.EPERM)
             raise
 
+        logger.log(e_cmn.MIRE, "Server Response (pre-enc): %r" % res)
+        self._doServerResponse(self, res, expect_res)
+
+    def _doServerResponse(self, res, expect_res):
+        '''
+        Take care of encoding and sending server response messages
+        '''
         enc_res = self._lengthEncode(res)
+
+
+        # if we have a PacketSize set, ship PacketSize-3 (leave room for #cs)
+        # is this correct?
+        pktsize = self._getFeat(b'PacketSize')
+        if pktsize:
+            enc_res = enc_res[:pktsize-3]
+
         self._msgExchange(enc_res, expect_res)
 
     def _parseBreakPkt(self, pkt_data):
@@ -1826,7 +1937,43 @@ class GdbServerStub(GdbStubBase):
 
         return b'OK'
 
-    def _serverWriteRegVal(self, reg_name, reg_val):
+    def _handleWriteReg(self, cmd_data):
+        """
+        Handles client requests to write to one register.
+
+        Args:
+            reg_data (str): The request packet.
+
+        Returns:
+            str: GDB status code
+        """
+        rpart, vpart = cmd_data.split(b'=')
+        ridx = int(rpart, 16)
+        rval = self._decodeGDBVal(vpart)
+        print("P %r  == %x=%x" % (cmd_data, ridx, rval))
+
+        reg = self._gdb_reg_fmt[ridx]
+        reg_name = reg[0]
+        self._serverWriteRegValByName(reg_name, rval)
+
+        return b'OK'
+
+    def _serverWriteRegVal(self, ridx, reg_val):
+        """
+        Instructs the execution engine to write the provided value into the 
+        provided register.
+
+        Args:
+            reg_name (str): The name of the register to write to.
+
+            reg_val (int): The value to write into the register.
+
+        Returns:
+            None
+        """
+        raise Exception('Server translation layer must implement this function')
+
+    def _serverWriteRegValByName(self, reg_name, reg_val):
         """
         Instructs the execution engine to write the provided value into the 
         provided register.
@@ -1854,13 +2001,40 @@ class GdbServerStub(GdbStubBase):
         registers = {}
         for reg in self._gdb_reg_fmt:
             reg_name = reg[0]
-            reg_val = self._serverReadRegVal(reg_name)
+            reg_val = self._serverReadRegValByName(reg_name)
             registers[reg_name] = reg_val
 
         reg_pkt = self._buildRegPkt(registers)
         return reg_pkt
 
-    def _serverReadRegVal(self, reg_name):
+    def _handleReadReg(self, cmd_data):
+        """
+        Instructs the execution engine to read the value of one register.
+
+        Args:
+            Register Index
+
+        Returns:
+            str: A GDB remote protocol register packet.
+        """
+        ridx = int(cmd_data, 16)
+        reg_val = self._serverReadRegVal(ridx)
+        reg_pkt = b"%.2x" % reg_val
+        return reg_pkt
+
+    def _serverReadRegVal(self, ridx):
+        """
+        Returns the value currently stored in a given register.
+
+        Args:
+            reg_name (str): The register name.
+
+        Returns:
+            int: The value stored in the provided register
+        """
+        raise Exception('Server translation layer must implement this function')
+
+    def _serverReadRegValByName(self, reg_name):
         """
         Returns the value currently stored in a given register.
 
@@ -1939,8 +2113,14 @@ class GdbServerStub(GdbStubBase):
         Returns:
             int: The reason for the next halt.
         """
-        signal = self._serverCont()
-        res = b'S%.2x' % (signal)
+        self._halt_reason = signals.SIG_0
+        self._serverCont()
+
+    def _handleEndCont(self):
+        '''
+        We are no longer running.  Send the response to the client.
+        '''
+        res = b'S%.2x' % (self._halt_reason)
         return res
         
     def _serverCont(self):
@@ -1996,7 +2176,9 @@ class GdbServerStub(GdbStubBase):
         Returns:
             String response with data
         """
+        logger.debug("_handleQuery(%r)", cmd_data)
         res = self._serverQuery(cmd_data)
+        logger.debug("_handleQuery(%r) => %r", cmd_data, res)
         return res
 
 
@@ -2024,5 +2206,59 @@ class GdbServerStub(GdbStubBase):
             logger.debug("QUERY: C!")
             return self._serverQC(cmd_data)
 
+        elif cmd_data == b'L':
+            logger.debug("QUERY: L!")
+            return self._serverQL(cmd_data)
+
+        elif cmd_data == b'TStatus':
+            logger.debug("QUERY: TStatus!")
+            return self._serverQTStatus(cmd_data)
+
+        elif cmd_data == b'fThreadInfo':
+            logger.debug("QUERY: fThreadInfo!")
+            return self._serverQfThreadInfo(cmd_data)
+
+        elif cmd_data == b'Attached':
+            logger.debug("QUERY: Attached!")
+            return self._serverQAttached()
+
 
         return b""
+
+    def _handleQSetting(self, cmd_data):
+        """
+        Provides information from the query.  This is a very complex portion 
+        of this code.
+
+        Args:
+            cmd_data: What type of query, and any other information necessary
+
+        Returns:
+            String response with data
+        """
+        logger.debug("_handleQSetting(%r)", cmd_data)
+        res = self._serverQSetting(cmd_data)
+        logger.debug("_handleQSetting(%r) => %r", cmd_data, res)
+        return res
+
+    def _serverQSetting(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
+    def _handleSetThread(self, cmd_data):
+        """
+        Provides information from the query.  This is a very complex portion 
+        of this code.
+
+        Args:
+            cmd_data: What type of query, and any other information necessary
+
+        Returns:
+            String response with data
+        """
+        res = self._serverSetThread(cmd_data)
+        return res
+
+    def _serverSetThread(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
+
