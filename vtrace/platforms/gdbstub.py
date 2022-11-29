@@ -764,6 +764,7 @@ class GdbClientStub(GdbStubBase):
         #   gdb:        $vFile:pread:5,47ff,0#6a
         #   gdbserver:  $F46bf;.ELF..... <ELF binary>
         #
+        # TODO: make these functional and configurable
         self._msgExchange(b'Hc0')
         self._msgExchange(b'qC')
         self._msgExchange(b'Hg0')
