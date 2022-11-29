@@ -8,7 +8,7 @@ import envi
 import vivisect.exc as v_exc
 import vivisect.impemu.monitor as viv_imp_monitor
 
-INSTRS = ('int', 'stosb', 'stosw', 'stosd', 'stosq')
+STOS = ('stosb', 'stosw', 'stosd', 'stosq')
 
 
 class instrhook_watcher(viv_imp_monitor.EmulationMonitor):
@@ -24,14 +24,13 @@ class instrhook_watcher(viv_imp_monitor.EmulationMonitor):
         self.badcode = False
         self.badops = vw.arch.archGetBadOps()
         self.arch = vw.getMeta('Architecture')
-        self.plat = vw.getMeta('Platform')
 
     def prehook(self, emu, op, eip):
         if op in self.badops:
             emu.stopEmu()
             raise v_exc.BadOpBytes(op.va)
 
-        if op.mnem.startswith('stos'):
+        if op.mnem in STOS:
             if self.arch == 'i386':
                 reg = emu.getRegister(envi.archs.i386.REG_EDI)
             elif self.arch == 'amd64':
@@ -44,7 +43,7 @@ def analyzeFunction(vw, fva):
     emulate = False
     dist = vw.getFunctionMeta(fva, 'MnemDist', default=[])
 
-    for s in INSTRS:
+    for s in STOS:
         if s in dist:
             emulate = True
             break
