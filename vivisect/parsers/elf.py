@@ -63,7 +63,7 @@ def getMemBaseAndSize(vw, elf, baseaddr=None):
 
     size = topmem - baseaddr
 
-    if baseaddr == 0:
+    if baseaddr == 0 and not elf.isRelocatable():
         baseaddr = vw.config.viv.parsers.elf.baseaddr
         
     if savebase:
