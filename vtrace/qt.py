@@ -183,7 +183,7 @@ class RegistersView(QWidget):
         self.flagviews = {}
 
         reg_groups = trace.archGetRegisterGroups()
-        for name, group in reg_groups:
+        for name, group in reg_groups.items():
             self.regviews[name] = group
             self.viewnames.addItem(name)
 
