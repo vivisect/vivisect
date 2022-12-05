@@ -414,7 +414,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             raise Exception("PT_ATTACH failed!")
         self.setMeta("ExeName", self._findExe(pid))
 
-    def _LibraryLoadHack(self):
+    def _LibraryLoadHook(self):
         # drop special breakpoint at ld._dl_catch_exception
         bp = v_bp.PosixLibLoadHookBreakpoint('ld._dl_catch_exception')
         self.addBreakpoint(bp)
