@@ -17,6 +17,7 @@ import envi.memory as e_mem
 
 import vtrace
 import vtrace.exc as v_exc
+import vtrace.breakpoints as v_bp
 
 import vtrace.archs.arm as v_arm
 import vtrace.archs.i386 as v_i386
@@ -415,7 +416,6 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
 
     def _LibraryLoadHack(self):
         # drop special breakpoint at ld._dl_catch_exception
-        import vtrace.breakpoints as v_bp
         bp = v_bp.PosixLibLoadHookBreakpoint('ld._dl_catch_exception')
         self.addBreakpoint(bp)
 

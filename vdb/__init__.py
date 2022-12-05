@@ -1712,29 +1712,76 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
     def do_bpedit(self, line):
         """
-        Manipulcate the python code that will be run for a given
-        breakpoint by ID.  (Also the way to view the code).
+        Modify a given breakpoint.
+        * Manipulate the python code that will be run for a given
+          breakpoint by ID.
+        * Also the way to view the code
+        * Modify characteristics of the breakpoint (eg. FastBreak)
 
-        Usage: bpedit <id> ["optionally new code"]
+        Usage: bpedit [options] <id> ["optionally new code"]
+
+        where options include:
+           -F  toggles a breakpoint's FastBreak mode
+           -S  toggles a breakpoint's Silent mode (prints a consolem message on break)
+           -V  prints more metadata about a given breakpoint (default is just the code)
 
         NOTE: Your code must be surrounded by "s and may not
         contain any "s
         """
         argv = e_cli.splitargs(line)
+        verbose = False
+        try:
+            opts, args = getopt(argv, 'FSV')
+        except:
+            return self.do_help('bpedit')
+
         if len(argv) == 0:
             return self.do_help("bpedit")
-        bpid = int(argv[0])
 
-        if len(argv) == 2:
-            self.trace.setBreakpointCode(bpid, argv[1])
+        bpid = int(args[0])
 
+        bp = self.trace.getBreakpoint(bpid)
+        if bp is None:
+            self.vprint("Breakpoint %d does not exist!" % bpid)
+            return
+
+        for opt, optarg in opts:
+            if opt == '-V':
+                # print all the metadata
+                verbose = True
+
+            elif opt == '-S':
+                bp.silent = not bp.silent
+                bp = self.trace.getBreakpoint(bpid)
+
+            elif opt == '-F':
+                bp.fastbreak = not bp.fastbreak
+                bp = self.trace.getBreakpoint(bpid)
+
+        if len(args) == 2:
+            self.trace.setBreakpointCode(bpid, args[1])
+
+        # print the breakpoint metadata:
         pystr = self.trace.getBreakpointCode(bpid)
-        self.vprint("[%d] Breakpoint code: %s" % (bpid,pystr))
+        if verbose:
+            self.vprint("%r" % bp)
+            self.vprint("    code: %s" % (pystr))
+            self.vprint("    FastBreak:     %r" % bp.fastbreak)
+            self.vprint("    resonce:       %r" % bp.resonce)
+            self.vprint("    active:        %r" % bp.active)
+            self.vprint("    enabled:       %r" % bp.enabled)
+            self.vprint("    silent:        %r" % bp.silent)
+            if bp.untouchable:
+                self.vprint("    untouchable:   %r" % bp.untouchable)
+
+        else:
+            self.vprint("[%d] Breakpoint code: %s" % (bpid,pystr))
 
     def do_bp(self, line):
         """
         Show, add,  and enable/disable breakpoints
         USAGE: bp [-d <addr>] [-a <addr>] [-o <addr>] [[-c pycode] <address> [vdb cmds]]
+        -A - Show *all* breakpoints (including special bp's used for VDB functionality)
         -C - Clear All Breakpoints
         -c "py code" - Set the breakpoint code to the given python string
         -d <id> - Disable Breakpoint
@@ -1763,18 +1810,22 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "fF:e:d:o:r:L:Cc:S:W:")
+            opts,args = getopt(argv, "AfF:e:d:o:r:L:Cc:S:W:")
         except Exception as e:
             return self.do_help('bp')
 
         pycode = None
         wpargs = None
+        showall = False
         fastbreak = False
         libsearch = None
 
         for opt,optarg in opts:
             if opt == "-e":
                 self.trace.setBreakpointEnabled(eval(optarg), True)
+
+            elif opt == "-A":
+                showall = True
 
             elif opt == "-c":
                 pycode = optarg
@@ -1794,6 +1845,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             elif opt == "-C":
                 for bp in self.trace.getBreakpoints():
+                    if bp.untouchable:
+                        continue
+
                     self.bpcmds.pop(bp.id, None)
                     self.trace.removeBreakpoint(bp.id)
                     self.vdbUIEvent('vdb:delbreak', bp.id)
@@ -1862,7 +1916,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         self.vprint(" [ Breakpoints ]")
         for bp in self.trace.getBreakpoints():
-            if bp.untouchable:  # don't list untouchable bp's
+            if bp.untouchable and not showall:
+                # don't list untouchable bp's (unless forced)
                 continue
             self._print_bp(bp)
 

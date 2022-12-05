@@ -424,4 +424,4 @@ class PosixLibLoadHookBreakpoint(Breakpoint):
     def notify(self, event, trace):
         logger.debug("PosixLibLoadHookBreakpoint: reanalyze maps and resolve symbols")
         trace._findLibraryMaps(b'\x7fELF', always=True)
-        # handle unresolved expression bp's 
+        trace.runAgain()
