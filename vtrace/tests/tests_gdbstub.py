@@ -1,6 +1,7 @@
 import os
 import time
 import random
+import shutil
 import signal
 import struct
 import logging
@@ -38,7 +39,7 @@ class TestServer(gdbstub.GdbServerStub):
             big_endian (bool): True if the debug target uses big-endian
             notation.
 
-            reg (list): The list of regisers (and their sizes) made available 
+            reg (list): The list of regisers (and their sizes) made available
             for the debug target (see gdb_reg_fmts).
 
             port (int): The port that the server should listen on for GDB
@@ -47,7 +48,7 @@ class TestServer(gdbstub.GdbServerStub):
             Returns:
                 None
         """
-        gdbstub.GdbServerStub.__init__(self, arch, addr_size, big_endian, 
+        gdbstub.GdbServerStub.__init__(self, arch, addr_size, big_endian,
                 reg, port)
 
         fmt32bit = e_bits.getFormat(4, big_endian)
@@ -147,7 +148,7 @@ class TestGdbServerStub(unittest.TestCase):
     """
     Unit tests for the gdb server stub code.
     """
-    
+
     def __init__(self, methodName='runTest'):
         """
         Constructor for gdb server stub testing code.
@@ -184,7 +185,7 @@ class TestGdbServerStub(unittest.TestCase):
         logger.warning("\n\nTestGdbServerStub: setUp(): port %d" % self.port)
 
         # Create a GDB client instance
-        self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.bigend, 
+        self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.bigend,
                 gdb_reg_fmts.QEMU_X86_64_REG, self.host, self.port,
                 'serverstub')
 
@@ -194,7 +195,7 @@ class TestGdbServerStub(unittest.TestCase):
 
         # Start the server
         self.server_thread = threading.Thread(target=self.server.runServer)
-        self.server_thread.setDaemon(True)
+        self.server_thread.daemon = True
         self.server_thread.start()
 
         time.sleep(1)
@@ -308,7 +309,7 @@ class TestGdbClientStub(unittest.TestCase):
     """
     Unit tests for the gdb client stub code.
     """
-    
+
     def __init__(self, methodName='runTest'):
         """
         Constructor for gdb client stub testing code.
@@ -320,7 +321,7 @@ class TestGdbClientStub(unittest.TestCase):
             None
         """
         self.client = None
-        self.qemu_proc = None
+        self.server_proc = None
         self.server = None
         self.host = 'localhost'
         self.port = 1234
@@ -328,13 +329,13 @@ class TestGdbClientStub(unittest.TestCase):
         # FIXME: this assumes amd64/Linux
         self.test_binary = vt_help.getTestPath('linux/amd64/static64.llvm.elf')
         self.bigend = False
-        
+
         super(TestGdbClientStub, self).__init__(methodName=methodName)
 
     def setUp(self):
         """
-        Starts the qemu instance (which exposes the GDB server) and creates a
-        GDB stub client instance.
+        Starts the gdb server or qemu instance (which exposes the GDB server)
+        and creates a GDB stub client instance.
 
         Args:
             None
@@ -342,17 +343,25 @@ class TestGdbClientStub(unittest.TestCase):
         Returns:
             None
         """
-        logger.warning("\n\nTestGdbClientStub: setUp()")
+        logger.debug("\n\nTestGdbClientStub: setUp()")
         # Start the GDB server
         port = self.port + next(portadd)
-        self.qemu_proc = subprocess.Popen(['qemu-x86_64-static', '-g', str(port),
-        self.test_binary])
 
-        # Create a GDB client instance
-        self.client = gdbstub.GdbClientStub('amd64', 64, False, 
-                gdb_reg_fmts.QEMU_X86_64_REG, self.host, port, 'qemu')
+        qemu_path = shutil.which('qemu-x86_64-static')
+        if qemu_path is not None:
+            servertype = 'qemu'
+            args = [qemu_path, '-g', str(port), self.test_binary]
+        else:
+            raise Exception("Unable to run GDB tests, install 'qemu-user-staic'")
+
+        logger.debug('starting server: %s', ' '.join(args))
+        self.server_proc = subprocess.Popen(args)
+        logger.debug('server available on port %d', port)
 
         time.sleep(1)
+
+        # Create a GDB client instance
+        self.client = gdbstub.GdbClientStub('amd64', 64, False, None, self.host, port, servertype)
 
         # Attach the client
         self.client.gdbAttach()
@@ -367,14 +376,14 @@ class TestGdbClientStub(unittest.TestCase):
         Returns:
             None
         """
-        logger.warning("\n\nTestGdbClientStub: tearDown()")
-        self.client.gdbKill()
+        logger.debug("\n\nTestGdbClientStub: tearDown()")
         self.client.gdbDetach()
-        # Kill the qemu process
-        self.qemu_proc.kill()
         time.sleep(1)
-        
-        self.qemu_proc = None
+        # Kill the gdb server process
+        self.server_proc.kill()
+        time.sleep(1)
+
+        self.server_proc = None
         self.client = None  # Client teardown
 
     def test_GetRegisterVal(self):
@@ -388,10 +397,15 @@ class TestGdbClientStub(unittest.TestCase):
             None
         """
         registers = self.client.gdbGetRegisters()
+        logger.debug(registers)
         # TODO: We should probably check all registers in the future
         self.assertEqual(registers['rip'], 0x400a40)
         self.assertEqual(registers['fctrl'], 0x37f)
-        self.assertEqual(registers['cr0'], 0x80010001)
+
+        if self.client._gdb_servertype == 'qemu':
+            # CR0 registers only available over QEMU
+            self.assertEqual(registers['cr0'], 0x80010001)
+
         self.assertEqual(registers['xmm15'], 0x0)
         self.assertEqual(registers['mxcsr'], 0x1f80)
 
@@ -415,8 +429,11 @@ class TestGdbClientStub(unittest.TestCase):
             # TODO: QEMU has some strange behaviors when writing to certain
             # registers (segfaults on code segment registers, ignoring others,
             # etc...). Only test r* and x* registers for now.
-            reg = random.choice(gdb_reg_fmts.QEMU_X86_64_REG)
-            if (reg[0][0] == 'r') or ('xmm' in reg[0]):
+            reg = random.choice(self.client._gdb_reg_fmt)
+            # NOTE: For QEMU targets vector (XMM, YMM) register reads and writes
+            # are messed up, not testing the XMM/YMM registers for now
+            #if (reg[0][0] == 'r') or ('xmm' in reg[0]):
+            if reg[0][0] == 'r':
                 choices.append(reg)
                 picked += 1
 
@@ -432,7 +449,7 @@ class TestGdbClientStub(unittest.TestCase):
         registers = self.client.gdbGetRegisters()
 
         for reg_name in updates.keys():
-            self.assertEqual(registers[reg_name], updates[reg_name])
+            self.assertEqual(registers[reg_name], updates[reg_name], msg=reg_name)
 
     def test_WriteMemory(self):
         """
@@ -450,7 +467,7 @@ class TestGdbClientStub(unittest.TestCase):
         while test_count > 0:
             # Gen a random number of bytes to write
             write_size = random.randint(1, 8) # in bytes
-            
+
             # Gen a random val to write that fits in the write size
             expected = b''.join([b'%c' % random.randint(0, 256) for x in range (write_size)])
 
@@ -525,7 +542,7 @@ class TestGdbClientStub(unittest.TestCase):
         Returns:
             None
         """
-        break_addr1 = 0x400a4e 
+        break_addr1 = 0x400a4e
         break_addr2 = 0x40104c
 
         self.client.gdbSetSWBreakpoint(break_addr1)
@@ -534,7 +551,7 @@ class TestGdbClientStub(unittest.TestCase):
 
         self.client.gdbContinue()
         registers = self.client.gdbGetRegisters()
- 
+
         expected = break_addr2
         actual = registers['rip']
         self.assertEqual(expected, actual)

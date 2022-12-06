@@ -39,7 +39,7 @@ commands:
           name: install deps
           command: |
             sudo apt-get update
-            sudo apt-get -qq install libfreetype6-dev liblcms2-dev ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick
+            sudo apt-get -qq install libfreetype6-dev liblcms2-dev ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick qemu-user-static
 
       - do_python_setup
 

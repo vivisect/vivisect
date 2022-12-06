@@ -9,9 +9,16 @@
 
 from envi.const import *
 
+# translation between gdb and vivisect architecture names
+GDBARCH_LOOKUP = {
+    'i386': 'i386',
+    'amd64': 'i386',
+}
+
 ARCH_META = {
         'powerpc:vle':{
             'arch': 'ppc32',
+            'gdbarch': 'ppc32',
             'bigend': ENDIAN_MSB,
             'psize': 4,
             'pcname': 'pc',
@@ -20,6 +27,7 @@ ARCH_META = {
 
         'i386:x86-64': {
             'arch': 'amd64',
+            'gdbarch': 'i386',
             'bigend': ENDIAN_LSB,
             'psize': 8,
             'pcname': 'rip',
@@ -28,6 +36,7 @@ ARCH_META = {
 
         'i386:x86-32': {
             'arch': 'i386',
+            'gdbarch': 'i386',
             'bigend': ENDIAN_LSB,
             'psize': 4,
             'pcname': 'eip',
