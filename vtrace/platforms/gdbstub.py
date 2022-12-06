@@ -1715,8 +1715,6 @@ class GdbServerStub(GdbStubBase):
             finally:
                 self._gdb_sock.close()
 
-        sock.close()
-
     def _postClientAttach(self, addr):
         pass
 
