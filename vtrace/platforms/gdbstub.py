@@ -23,6 +23,7 @@ Consuming the client and server stubs should be done via inheritance.
 import time
 import errno
 import base64
+import select
 import struct
 import socket
 import logging
@@ -35,6 +36,7 @@ from binascii import hexlify, unhexlify
 from . import gdb_reg_fmts
 from .gdb_reg_fmts import ARCH_META, GDBARCH_LOOKUP
 
+import envi
 import envi.exc as e_exc
 import envi.common as e_cmn
 import vtrace.platforms.gdb_exc as gdb_exc
@@ -43,7 +45,28 @@ from itertools import groupby
 from vtrace.platforms import signals
 
 logger = logging.getLogger(__name__)
-#e_cmn.initLogging(logger, level=logging.DEBUG)
+e_cmn.initLogging(logger, level=logging.DEBUG)
+
+
+# Constants for tracking state
+STATE_SVR_STARTUP = 0
+STATE_SVR_RUNSTART = 1
+STATE_SVR_RUNNING = 2
+STATE_SVR_SHUTDOWN = 3
+
+STATE_CONN_DISCONNECTED = 0
+STATE_CONN_CONNECTED = 1
+
+STATE_TGT_RUNNING = 1
+STATE_TGT_PAUSED = 2
+
+SIGNAL_NONE = 0
+
+# THESE ARE COMPLETELY MADE UP.  FIXME
+HALT_NONE = 0
+HALT_ATTACH = 5
+HALT_BREAK = 10
+
 
 
 class GdbDTDResolver(etree.Resolver):
@@ -847,6 +870,8 @@ class GdbClientStub(GdbStubBase):
                 self._supported_features[f_name] = f_val
 
         # Normalize the PacketSize supported feature
+        logger.warning("PacketSize: %r" % self._supported_features.get(b'PacketSize', '1000'))
+        print("_supported_features: %r" % self._supported_features)
         size = int(self._supported_features.get(b'PacketSize', '1000'), 16)
         self._supported_features[b'PacketSize'] = size
 
@@ -1513,11 +1538,6 @@ class GdbClientStub(GdbStubBase):
         return data
 
 
-STATE_STARTUP = 0
-STATE_RUNSTART = 1
-STATE_RUNNING = 2
-STATE_SHUTDOWN = 3
-
 
 class GdbServerStub(GdbStubBase):
     """
@@ -1550,7 +1570,7 @@ class GdbServerStub(GdbStubBase):
             None
         """
         GdbStubBase.__init__(self, arch, addr_size, bigend, reg, port, find_port)
-        self.state = STATE_STARTUP
+        self.state = STATE_SVR_STARTUP
 
         self.curThread = None
         self.threadList = []
@@ -1566,7 +1586,7 @@ class GdbServerStub(GdbStubBase):
         self.breakPointsSW = []
         self.breakPointsHW = []
 
-        self._stop_reason = signals.SIG_0     ## @ac0rn this tracks the reason for halt, but 0 is "not stopped". i'll need your help ensuring all the interactions between Emulator and GdbStubBase honor this
+        self._halt_reason = signals.SIG_0     ## @ac0rn this tracks the reason for halt, but 0 is "not stopped". i'll need your help ensuring all the interactions between Emulator and GdbStubBase honor this
 
     def setGdbHaltReason(self, reason):
         '''
@@ -1600,8 +1620,8 @@ class GdbServerStub(GdbStubBase):
         logger.log(e_cmn.MIRE, "done with read loop:  %r", data)
 
         # state housekeeping
-        if self.state == STATE_RUNSTART:
-            self.state = STATE_RUNNING
+        if self.state == STATE_SVR_RUNSTART:
+            self.state = STATE_SVR_RUNNING
             if data[0:1] == b'+':
                 # meh, housewarming gift.  eat it.
                 data = data[1:]
@@ -1623,7 +1643,7 @@ class GdbServerStub(GdbStubBase):
         return data
 
 
-    def runServer(self):
+    def runServer(self, oneshot=False):
         """
         GdbServer stub.
         Starts listening on self._gdb_port and processes incoming connections
@@ -1653,18 +1673,20 @@ class GdbServerStub(GdbStubBase):
         self._server_sock.listen(1)
         logger.info("runServer listening on port %d", self._gdb_port)
 
-        self.state = STATE_STARTUP
+        self.state = STATE_SVR_STARTUP
 
-        while self.state in (STATE_RUNNING, STATE_RUNSTART, STATE_STARTUP):
+        while self.state in (STATE_SVR_RUNNING, STATE_SVR_RUNSTART, STATE_SVR_STARTUP):
             try:
-                self.state = STATE_RUNSTART
-                self._gdb_sock, addr = sock.accept()
+                self.state = STATE_SVR_RUNSTART
+                self._gdb_sock, addr = self._server_sock.accept()
+                self.connstate = STATE_CONN_CONNECTED
                 logger.info("runServer: Received Connection from %r", addr)
 
                 self._postClientAttach(addr)
                 self.last_reason = self._halt_reason
                 
-                while True:
+                while self.connstate == STATE_CONN_CONNECTED:
+                    self.state = STATE_SVR_RUNNING
                     logger.log(e_cmn.MIRE, "runServer continuing...")
                     try:
                         # Check and handle the processor breaking.
@@ -1709,11 +1731,24 @@ class GdbServerStub(GdbStubBase):
                     logger.log(e_cmn.MIRE, "runServer: %r" % data)
                     self._cmdHandler(data)  
             
+            except BrokenPipeError:
+                logger.info("BrokenPipeError:  Client disconnected.")
+                self.connstate = STATE_CONN_DISCONNECTED
+
             except Exception as e:
                 logger.critical("runServer exception!", exc_info=1)
 
             finally:
-                self._gdb_sock.close()
+                if oneshot:
+                    logger.info("'oneshot' enabled, shutting down GDB Server")
+                    self.state = STATE_SVR_SHUTDOWN
+
+                if self._gdb_sock:
+                    self._gdb_sock.close()
+
+        logger.info("GDB Server shutting down server socket")
+        self._server_sock.close()
+        logger.info("GDB Server Shutdown Complete")
 
     def _postClientAttach(self, addr):
         pass
@@ -1802,7 +1837,7 @@ class GdbServerStub(GdbStubBase):
             raise
 
         logger.log(e_cmn.MIRE, "Server Response (pre-enc): %r" % res)
-        self._doServerResponse(self, res, expect_res)
+        self._doServerResponse(res, expect_res)
 
     def _doServerResponse(self, res, expect_res):
         '''
@@ -2062,7 +2097,7 @@ class GdbServerStub(GdbStubBase):
         """
         registers = self._parseRegPacket(reg_data)
         for reg_name in registers.keys():
-            self._serverWriteRegVal(reg_name, registers[reg_name])
+            self._serverWriteRegValByName(reg_name, registers[reg_name])
 
         return b'OK'
 
@@ -2146,6 +2181,10 @@ class GdbServerStub(GdbStubBase):
         Returns:
             str: A GDB remote protocol register packet.
         """
+        #TODO: do we need an index abstraction layer here?  
+        # It's possible these indexes won't be in the order of the
+        # Architecture Register Context... specifically because we're using 
+        # Register Groups.
         ridx = int(cmd_data, 16)
         reg_val = self._serverReadRegVal(ridx)
         reg_pkt = b"%.2x" % reg_val
@@ -2390,4 +2429,306 @@ class GdbServerStub(GdbStubBase):
     def _serverSetThread(self, cmd_data):
         raise Exception('Server translation layer must implement this function')
 
+
+class GdbBaseServer(GdbServerStub):
+    '''
+    Emulated hardware debugger/gdb-stub for testing.
+    '''
+    def __init__(self, emu, port=47001, find_port=True):
+        self.emu = emu
+
+        regfmt = self.generateRegFmt()
+        print("regfmt:")
+        print("    " + '\n    '.join([repr(x) for x in regfmt]))
+        arch = emu.vw.arch._arch_name
+        addr_size = emu.imem_psize * 8
+        big_endian = emu.getEndian()    # ENDIAN_LSB = 0, so big_endian will either be 0 or 1
+
+        GdbServerStub.__init__(self, arch, addr_size, big_endian, regfmt, port, find_port)
+
+        # don't ask me why, but GDB doesn't like the way we encode repeated values.  so for now, leave it off.
+        self._doEncoding = False
+
+        self.runthread = None
+        self.connstate = STATE_CONN_DISCONNECTED
+        self.last_signal = SIGNAL_NONE
+
+        self.xfer_read_handlers = {
+            b'features': {
+                b'target.xml': self.XferFeaturesReadTargetXml,
+            },
+        }
+
+    def generateRegFmt(self, emu=None, reggrps=['general']):
+        '''
+        '''
+        if emu is None:
+            emu = self.emu
+
+        archname = self.emu.vw.arch._arch_name
+        arch = envi.getArchModule(archname)
+        regs_core = arch.archGetRegisterGroups().get('general')
+        regfmt = [(name, bitsize, idx) for idx, (name, bitsize) in enumerate(emu._rctx_regdef) if name in regs_core]
+        return regfmt
+
+    # SERVER IMPLEMENTATION FUNCTIONS
+    def _serverGetHaltSignal(self):
+        return self._halt_reason
+
+    def _serverReadMem(self, addr, size):
+        """
+        Simulates a debugger reading memory.
+
+        Args:
+            addr (int): The memory address to read from.
+
+            size (int): The size of the read.
+
+        Returns:
+            None
+        """
+        return self.emu.readMemory(addr, size)
+
+    def _serverWriteMem(self, addr, val):
+        """
+        Simulates a debugger writing memory.
+
+        Args:
+            addr (int): The memory address to read from.
+
+            val (int): The value to write:
+
+        Returns:
+            None
+        """
+        self.emu.writeMemory(addr, val)
+
+    def _serverWriteRegVal(self, reg_idx, reg_val):
+        """
+        Simulates a debugger writing to a register.
+
+        Args:
+            reg_idx (int): The index of the register to write to.
+
+            reg_val (int): The value to write to the register.
+
+        Returns:
+            None
+
+        """
+        self.emu.setRegister(reg_idx, reg_val)
+
+    def _serverReadRegVal(self, reg_idx):
+        """
+        Simulates a debugger reading from a register.
+
+        Args:
+            reg_idx (int): The index of the register to read from.
+
+        Returns:
+            None
+        """
+        reg_val = 0
+        try:
+            reg_val = self.emu.getRegister(reg_idx)
+        except InvalidRegisterName:
+            print("Attempted Bad Register Access: %r   (returning zero)" % reg_idx)
+
+        return reg_val
+
+    def _serverWriteRegValByName(self, reg_name, reg_val):
+        """
+        Simulates a debugger writing to a register.
+
+        Args:
+            reg_name (str): The name of the register to write to.
+
+            reg_val (int): The value to write to the register.
+
+        Returns:
+            None
+        """
+        self.emu.setRegisterByName(reg_name, reg_val)
+
+    def _serverReadRegValByName(self, reg_name):
+        """
+        Simulates a debugger reading from a register.
+
+        Args:
+            reg_name (str): The name of the register to read from.
+
+        Returns:
+            None
+        """
+        reg_val = 0
+        try:
+            reg_val = self.emu.getRegisterByName(reg_name)
+        except InvalidRegisterName:
+            print("Attempted Bad Register Access: %r   (returning zero)" % reg_name)
+
+        return reg_val
+
+    def _serverStepi(self):
+        """
+        Simulates a debugger single stepping (into).
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        try:
+            self.emu.stepi()
+        except Exception as e:
+            print("ERROR on stepi: %r" % e)
+        return signals.SIGTRAP
+
+    def _serverDetach(self):
+        """
+        Simulates the receipt of a detach command.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        self.connstate = STATE_CONN_DISCONNECTED
+
+    def _serverQSupported(self, cmd_data):
+        return b"PacketSize=1000;qXfer:memory-map:read+;qXfer:features:read+"
+
+    def _serverQXfer(self, cmd_data):
+        res = b''
+        fields = cmd_data.split(b":")
+        logger.warning("qXfer fields:  %r", fields)
+        if fields[2] == b'read':
+            section = self.xfer_read_handlers.get(fields[1])
+            if not section:
+                logger.warning("qXfer no section:  %r", fields[1])
+                return b'E00'
+
+            hdlr = section.get(fields[3])
+            if not hdlr:
+                logger.warning("qXfer no handler:  %r", fields[3])
+                return b'E00'
+
+            res = hdlr(fields)
+
+            offstr, szstr = fields[-1].split(b',')
+            off = int(offstr, 16)
+            sz = int(szstr, 16)
+
+            logger.debug("_serverQXfer(%r) => %r", cmd_data, res[off:off+sz])
+            if (off+sz) >= len(res):
+                return b'l' + res[off:off+sz]
+            return b'm' + res[off:off+sz]
+
+    def _serverQC(self, cmd_data):
+        '''
+        return Current Thread ID
+        '''
+        return b'QC0'
+
+    def _serverQL(self, cmd_data):
+        '''
+        return Current Thread ID
+        '''
+        return b'qM011000000010'
+
+    def _serverQTStatus(self, cmd_data):
+        '''
+        return Current Thread Status
+        '''
+        return b'T0'
+
+    def _serverQfThreadInfo(self, cmd_data):
+        '''
+        return Current Thread Status
+        just tell them we're done...
+        '''
+        return b'l'
+
+    def _serverQAttached(self):
+        '''
+        return whether we're attached?
+        '''
+        return b'1'
+
+    def _serverQCRC(self, cmd_data):
+        return b''
+
+    def XferFeaturesReadTargetXml(self, fields):
+        return getTargetXml(self.emu, self.emu._arch_name)
+
+    def _serverQSetting(self, cmd_data):
+        print("FIXME: serverQSetting(%r)" % cmd_data)
+        if b':' in cmd_data:
+            key, value = cmd_data.split(b':', 1)
+            self._settings[key] = value
+        else:
+            self._settings[cmd_data] = True
+        return b'OK'
+
+    def _serverSetThread(self, cmd_data):
+        print("setting thread:  %r" % cmd_data)
+        return b'OK'
+
+def getTargetXml(emu, arch='ppc32-embedded', reggrps=['general']):
+    global target, regdefs
+    '''
+    Takes in a RegisterContext and an archname.
+    Returns an XML file as described in the gdb-remote spec 
+    '''
+    archmod = envi.getArchModule(emu._arch_name)
+
+    gdbarchname = 'powerpc:vle'
+    regdefs = {}
+    for regnum, (rname, bitsize) in enumerate(emu.getRegDef()):
+        regdefs[rname] = (regnum, bitsize)
+    
+    # features defined in https://sourceware.org/gdb/current/onlinedocs/gdb/PowerPC-Features.html
+    import xml.etree.ElementTree as ET
+
+    target = ET.Element('target')
+    
+    arch = ET.SubElement(target, 'architecture')
+    arch.text = gdbarchname
+
+    feat_core = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.core'})
+
+    reggrps = archmod.archGetRegisterGroups()
+    for rname in reggrps.get('gdb_power_core'):
+        regnum, bitsize = regdefs[translateRegFrom(rname)]
+        #print(rname, regnum, bitsize)
+        ET.SubElement(feat_core, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
+
+    feat_fpu = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.fpu'})
+    for rname in reggrps.get('gdb_power_fpu'):
+        regnum, bitsize = regdefs[translateRegFrom(rname)]
+        #print(rname, regnum, bitsize)
+        ET.SubElement(feat_fpu, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
+
+    feat_spr = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.e200spr'})
+    for rname in reggrps.get('gdb_power_spr'):
+        regnum, bitsize = regdefs[translateRegFrom(rname)]
+        ET.SubElement(feat_spr, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
+
+    #feat_altivec = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.altivec'})
+    #for rname in reggrps.get('gdb_power_altivec'):
+    #    regnum, bitsize = regdefs[translateRegFrom(rname)]
+    #    ET.SubElement(feat_altivec, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
+
+    #feat_spe = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.spe'})
+    #for rname in reggrps.get('gdb_power_spe'):
+        #regnum, bitsize = regdefs[translateRegFrom(rname)]
+        #ET.SubElement(feat_spe, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
+
+
+    out = [b'<?xml version="1.0"?>',
+            b'<!DOCTYPE target SYSTEM "gdb-target.dtd">']
+    out.append(ET.tostring(target))
+
+    return b'\n'.join(out)
 

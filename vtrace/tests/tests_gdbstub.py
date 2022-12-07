@@ -12,13 +12,32 @@ import subprocess
 
 import envi.bits as e_bits
 
-
+import vivisect.cli as vivcli
 import vivisect.tests.helpers as vt_help
 import vtrace.platforms.gdbstub as gdbstub
 import vtrace.platforms.gdb_reg_fmts as gdb_reg_fmts
 
 
 logger = logging.getLogger(__name__)
+
+
+class TestEmuServer(gdbstub.GdbBaseServer):
+    """
+    Represents a GDB server using the server stub code. Once Vivisect
+    integration is complete, we shouldn't need this code.
+    """
+
+    def __init__(self, emu, port=47001, find_port=True):
+        """
+        Constructor for the TestSever class.
+
+        Args:
+            emu (Emulator): the Emulator this GDB Server uses for test
+
+            Returns:
+                None
+        """
+        gdbstub.GdbBaseServer.__init__(self, emu, port, find_port=find_port)
 
 
 class TestServer(gdbstub.GdbServerStub):
@@ -190,12 +209,20 @@ class TestGdbServerStub(unittest.TestCase):
                 'serverstub')
 
         # Create a test server
-        self.server = TestServer(self.arch, self.addr_size, self.bigend,
-                gdb_reg_fmts.QEMU_X86_64_REG, self.port)
+        #self.server = TestServer(self.arch, self.addr_size, self.bigend,
+        #        gdb_reg_fmts.QEMU_X86_64_REG, self.port)
+        vw = vivcli.VivCli()
+        test_binary = vt_help.getTestPath('linux/amd64/static64.llvm.elf')
+        fname = vw.loadFromFile(test_binary)
+        pc = vw.parseExpression(fname+'.__entry')
+
+        emu = vw.getEmulator()
+        emu.setProgramCounter(pc)
+
+        self.server = TestEmuServer(emu, port=self.port, find_port=False)
 
         # Start the server
-        self.server_thread = threading.Thread(target=self.server.runServer)
-        self.server_thread.daemon = True
+        self.server_thread = threading.Thread(target=self.server.runServer, args=(True,), daemon=True)
         self.server_thread.start()
 
         time.sleep(1)
@@ -233,7 +260,7 @@ class TestGdbServerStub(unittest.TestCase):
         registers = self.client.gdbGetRegisters()
         # TODO: We should probably check all registers in the future
         reg_name = 'rax'
-        actual = self.server.targetRegs[reg_name]
+        actual = self.server.emu.getRegisterByName(reg_name)
         expected = registers[reg_name]
         self.assertEqual(expected, actual)
 
@@ -247,6 +274,7 @@ class TestGdbServerStub(unittest.TestCase):
         Returns:
             None
         """
+        self.server.emu.setRegisterByName('rbx', 0x47145)
         updates = {
                 'rax': 123456,
                 'rbx': 8675309,
@@ -255,7 +283,7 @@ class TestGdbServerStub(unittest.TestCase):
         self.client.gdbSetRegisters(updates)
         for reg_name in updates.keys():
             expected = updates[reg_name]
-            actual = self.server.targetRegs[reg_name]
+            actual = self.server.emu.getRegisterByName(reg_name)
             self.assertEqual(expected, actual)
 
     def test_ReadMemory(self):
@@ -268,10 +296,10 @@ class TestGdbServerStub(unittest.TestCase):
         Returns:
             None
         """
-        addr = 0x1000
-        expected = self.client.gdbReadMem(addr, 4)
-        actual = self.server.targetAddr[addr]
-        self.assertEqual(expected, actual)
+        for addr, name in self.server.emu.vw.getNames()[:20]:
+            expected = self.client.gdbReadMem(addr, 4)
+            actual = self.server.emu.readMemory(addr, 4)
+            self.assertEqual(expected, actual)
 
     def test_WriteMemory(self):
         """
@@ -283,12 +311,12 @@ class TestGdbServerStub(unittest.TestCase):
         Returns:
             None
         """
-        addr = 0x1000
-        fmt32bit = e_bits.getFormat(4, self.bigend)
-        expected = struct.pack(fmt32bit, 0xdeadface)
-        self.client.gdbWriteMem(addr, expected)
-        actual = self.server.targetAddr[addr]
-        self.assertEqual(expected, actual)
+        for addr, name in self.server.emu.vw.getNames()[:20]:
+            fmt32bit = e_bits.getFormat(4, self.bigend)
+            expected = struct.pack(fmt32bit, 0xdeadface)
+            self.client.gdbWriteMem(addr, expected)
+            actual = self.server.emu.readMemory(addr, 4)
+            self.assertEqual(expected, actual)
 
     def test_Stepi(self):
         """
@@ -300,9 +328,13 @@ class TestGdbServerStub(unittest.TestCase):
         Returns:
             None
         """
+        startpc = self.server.emu.getProgramCounter()
+        op = self.server.emu.parseOpcode(startpc)
+
         self.client.gdbStepi()
-        expected = 0x5002
-        actual = self.server.targetRegs['rip']
+
+        expected = startpc + len(op)
+        actual = self.server.emu.getProgramCounter()
         self.assertEqual(expected, actual)
 
 class TestGdbClientStub(unittest.TestCase):
@@ -331,6 +363,129 @@ class TestGdbClientStub(unittest.TestCase):
         self.bigend = False
 
         super(TestGdbClientStub, self).__init__(methodName=methodName)
+        '''
+        static64.__libc_start_main():
+          0x00401040:  push r14
+          0x00401042:  push r13
+          0x00401044:  xor eax,eax
+          0x00401046:  push r12
+          0x00401048:  push rbp
+          0x00401049:  mov r12,r8
+        vdb > reg
+                  cs:0x00000033 (51)                             ss:0x0000002b (43)
+               ctrl0:0x00000000 (0)                             st0:0x00000000 (0)
+               ctrl1:0x00000000 (0)                             st1:0x00000000 (0)
+              ctrl10:0x00000000 (0)                             st2:0x00000000 (0)
+              ctrl11:0x00000000 (0)                             st3:0x00000000 (0)
+              ctrl12:0x00000000 (0)                             st4:0x00000000 (0)
+              ctrl13:0x00000000 (0)                             st5:0x00000000 (0)
+              ctrl14:0x00000000 (0)                             st6:0x00000000 (0)
+              ctrl15:0x00000000 (0)                             st7:0x00000000 (0)
+               ctrl2:0x00000000 (0)                           test0:0x00000000 (0)
+               ctrl3:0x00000000 (0)                           test1:0x00000000 (0)
+               ctrl4:0x00000000 (0)                           test2:0x00000000 (0)
+               ctrl5:0x00000000 (0)                           test3:0x00000000 (0)
+               ctrl6:0x00000000 (0)                           test4:0x00000000 (0)
+               ctrl7:0x00000000 (0)                           test5:0x00000000 (0)
+               ctrl8:0x00000000 (0)                           test6:0x00000000 (0)
+               ctrl9:0x00000000 (0)                           test7:0x00000000 (0)
+              debug0:0x00000000 (0)                            ymm0:0x00000000 (0)
+              debug1:0x00000000 (0)                            ymm1:0x00000000 (0)
+             debug10:0x00000000 (0)                           ymm10:0x00000000 (0)
+             debug11:0x00000000 (0)                           ymm11:0x00000000 (0)
+             debug12:0x00000000 (0)                           ymm12:0x00000000 (0)
+             debug13:0x00000000 (0)                           ymm13:0x00000000 (0)
+             debug14:0x00000000 (0)                           ymm14:0x00000000 (0)
+             debug15:0x00000000 (0)                           ymm15:0x00000000 (0)
+              debug2:0x00000000 (0)                            ymm2:0x00000000 (0)
+              debug3:0x00000000 (0)                            ymm3:0x00000000 (0)
+              debug4:0x00000000 (0)                            ymm4:0x00000000 (0)
+              debug5:0x00000000 (0)                            ymm5:0x00000000 (0)
+              debug6:0xffff4ff0 (4294922224)                   ymm6:0x00000000 (0)
+              debug7:0x00000000 (0)                            ymm7:0x00000000 (0)
+              debug8:0x00000000 (0)                            ymm8:0x00000000 (0)
+              debug9:0x00000000 (0)                            ymm9:0x00000000 (0)
+                  ds:0x00000000 (0)
+              eflags:0x00000246 (582)
+                  es:0x00000000 (0)
+                fpcr:0x00000000 (0)
+                fpsr:0x00000000 (0)
+                  fs:0x00000000 (0)
+                  gs:0x00000000 (0)
+                 r10:0x00000000 (0)
+                 r11:0x00000000 (0)
+                 r12:0x00401b40 (4201280)
+                 r13:0x00000000 (0)
+                 r14:0x00000000 (0)
+                 r15:0x00000000 (0)
+                  r8:0x00401b40 (4201280)
+                  r9:0x00000000 (0)
+                 rax:0x00000000 (0)
+                 rbp:0x00000000 (0)
+                 rbx:0x00000000 (0)
+                 rcx:0x00401aa0 (4201120)
+                 rdi:0x00400b60 (4197216)
+                 rdx:0x7fffe610a858 (140737053239384)
+                 rip:0x0040104c (4198476)
+                 rsi:0x00000001 (1)
+                 rsp:0x7fffe610a818 (140737053239320)
+
+
+        but GDB against a QEMU target differs:
+            0x0000000000400a40 in ?? ()
+            (gdb) i r
+            rax            0x0                 0
+            rbx            0x0                 0
+            rcx            0x0                 0
+            rdx            0x0                 0
+            rsi            0x0                 0
+            rdi            0x0                 0
+            rbp            0x0                 0x0
+            rsp            0x40007ff7f0        0x40007ff7f0
+            r8             0x0                 0
+            r9             0x0                 0
+            r10            0x0                 0
+            r11            0x0                 0
+            r12            0x0                 0
+            r13            0x0                 0
+            r14            0x0                 0
+            r15            0x0                 0
+            rip            0x400a40            0x400a40
+            eflags         0x202               [ IOPL=0 IF ]
+            cs             0x33                51
+            ss             0x2b                43
+            ds             0x0                 0
+            es             0x0                 0
+            fs             0x0                 0
+            gs             0x0                 0
+            fs_base        0x0                 0
+            gs_base        0x0                 0
+            k_gs_base      0x0                 0
+            cr0            0x80010001          [ PG WP PE ]
+            cr2            0x0                 0
+            cr3            0x0                 [ PDBR=0 PCID=0 ]
+            cr4            0x220               [ OSFXSR PAE ]
+            cr8            0x0                 0
+            efer           0x500               [ LMA LME ]
+            xmm0           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm1           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm2           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm3           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm4           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm5           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm6           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm7           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm8           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm9           {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm10          {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm11          {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm12          {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm13          {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm14          {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            xmm15          {v4_float = {0x0, 0x0, 0x0, 0x0}, v2_double = {0x0, 0x0}, v16_int8 = {0x0 <repeats 16 times>}, v8_int16 = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, v4_int32 = {0x0, 0x0, 0x0, 0x0}, v2_int64 = {0x0, 0x0}, uint128 = 0x0}
+            mxcsr          0x1f80              [ IM DM ZM OM UM PM ]
+            (gdb)
+        '''
 
     def setUp(self):
         """
@@ -343,7 +498,7 @@ class TestGdbClientStub(unittest.TestCase):
         Returns:
             None
         """
-        logger.debug("\n\nTestGdbClientStub: setUp()")
+        logger.info("\n\nTestGdbClientStub: setUp()")
         # Start the GDB server
         port = self.port + next(portadd)
 
@@ -354,9 +509,9 @@ class TestGdbClientStub(unittest.TestCase):
         else:
             raise Exception("Unable to run GDB tests, install 'qemu-user-staic'")
 
-        logger.debug('starting server: %s', ' '.join(args))
+        logger.info('starting server: %s', ' '.join(args))
         self.server_proc = subprocess.Popen(args)
-        logger.debug('server available on port %d', port)
+        logger.info('server available on port %d', port)
 
         time.sleep(1)
 
@@ -376,7 +531,7 @@ class TestGdbClientStub(unittest.TestCase):
         Returns:
             None
         """
-        logger.debug("\n\nTestGdbClientStub: tearDown()")
+        logger.info("\n\nTestGdbClientStub: tearDown()")
         self.client.gdbDetach()
         time.sleep(1)
         # Kill the gdb server process
@@ -397,10 +552,11 @@ class TestGdbClientStub(unittest.TestCase):
             None
         """
         registers = self.client.gdbGetRegisters()
-        logger.debug(registers)
+        logger.info(registers)
         # TODO: We should probably check all registers in the future
         self.assertEqual(registers['rip'], 0x400a40)
         self.assertEqual(registers['fctrl'], 0x37f)
+        self.assertEqual(registers['rsp'], 0x40007ff7f0)    # yes, in QEMU, this is correct
 
         if self.client._gdb_servertype == 'qemu':
             # CR0 registers only available over QEMU
