@@ -15,6 +15,7 @@ import envi.bits as e_bits
 import vivisect.cli as vivcli
 import vivisect.tests.helpers as vt_help
 import vtrace.platforms.gdbstub as gdbstub
+import vtrace.platforms.gdb_client as gdbclient
 import vtrace.platforms.gdb_reg_fmts as gdb_reg_fmts
 
 
@@ -184,9 +185,10 @@ class TestGdbServerStub(unittest.TestCase):
 
         self.host = 'localhost'
         self.port = 1235
-        self.arch = 'amd64'
-        self.addr_size = 64 # bits
-        self.bigend = False # little-endian
+        self.arch = None
+        self.psize = None
+        self.addr_size = None
+        self.bigend = None
 
         super(TestGdbServerStub, self).__init__(methodName=methodName)
 
@@ -203,14 +205,7 @@ class TestGdbServerStub(unittest.TestCase):
         self.port += next(portadd)
         logger.warning("\n\nTestGdbServerStub: setUp(): port %d" % self.port)
 
-        # Create a GDB client instance
-        self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.bigend,
-                gdb_reg_fmts.QEMU_X86_64_REG, self.host, self.port,
-                'serverstub')
-
-        # Create a test server
-        #self.server = TestServer(self.arch, self.addr_size, self.bigend,
-        #        gdb_reg_fmts.QEMU_X86_64_REG, self.port)
+        # setup the emulator
         vw = vivcli.VivCli()
         test_binary = vt_help.getTestPath('linux/amd64/static64.llvm.elf')
         fname = vw.loadFromFile(test_binary)
@@ -218,7 +213,22 @@ class TestGdbServerStub(unittest.TestCase):
 
         emu = vw.getEmulator()
         emu.setProgramCounter(pc)
+        self.arch = emu.vw.arch._arch_name
+        self.psize = emu.getPointerSize()
+        self.addr_size = self.psize * 8
+        self.bigend = emu.getEndian()
 
+        # Create a GDB client instance
+        #self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.bigend,
+        #        gdb_reg_fmts.QEMU_X86_64_REG, self.host, self.port,
+        #        'serverstub')
+
+        self.client = gdbclient.GdbStubMixin(self.arch, self.host, self.port, 'gdbserver',
+                self.psize, self.bigend)
+
+        # Create a test server
+        #self.server = TestServer(self.arch, self.addr_size, self.bigend,
+        #        gdb_reg_fmts.QEMU_X86_64_REG, self.port)
         self.server = TestEmuServer(emu, port=self.port, find_port=False)
 
         # Start the server
@@ -520,6 +530,7 @@ class TestGdbClientStub(unittest.TestCase):
 
         # Attach the client
         self.client.gdbAttach()
+        self.client._gdbJustAttached()
 
     def tearDown(self):
         """

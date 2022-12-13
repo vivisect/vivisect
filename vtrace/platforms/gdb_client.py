@@ -33,7 +33,7 @@ class GdbStubMixin(gdbstub.GdbClientStub):
                     port,
                     server)
 
-        self.ctx = self.arch.archGetRegCtx()
+        self.ctx = envi.getArchModule(arch_name).archGetRegCtx()
         self._rctx_pcindex = self.ctx._rctx_pcindex
         self._rctx_spindex = self.ctx._rctx_spindex
 
@@ -57,6 +57,15 @@ class GdbStubMixin(gdbstub.GdbClientStub):
                         (arch, server))
 
         elif server == 'gdbserver':
+            if arch == 'amd64':
+                reg_fmt = gdb_reg_fmts.GDB_USER_X86_64_REG
+            elif arch in ('ppc32', 'ppc64'):
+                reg_fmt = gdb_reg_fmts.QEMU_PPC64_REG
+            else:
+                raise Exception('Debugging %s with %s not currently supported' % 
+                        (arch, server))
+
+        elif server == 'serverstub':
             if arch == 'amd64':
                 reg_fmt = gdb_reg_fmts.GDB_USER_X86_64_REG
             elif arch in ('ppc32', 'ppc64'):
