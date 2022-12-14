@@ -871,7 +871,6 @@ class GdbClientStub(GdbStubBase):
 
         # Normalize the PacketSize supported feature
         logger.warning("PacketSize: %r" % self._supported_features.get(b'PacketSize', '1000'))
-        print("_supported_features: %r" % self._supported_features)
         size = int(self._supported_features.get(b'PacketSize', '1000'), 16)
         self._supported_features[b'PacketSize'] = size
 
