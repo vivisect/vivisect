@@ -3,7 +3,6 @@ import base64
 import logging
 import traceback
 import threading
-import contextlib
 import collections
 
 import envi
