@@ -322,6 +322,9 @@ class TestGdbServerStub(unittest.TestCase):
             None
         """
         for addr, name in self.server.emu.vw.getNames()[:20]:
+            if not self.server.emu.vw.isValidPointer(addr):
+                continue
+
             fmt32bit = e_bits.getFormat(4, self.bigend)
             expected = struct.pack(fmt32bit, 0xdeadface)
             self.client.gdbWriteMem(addr, expected)
