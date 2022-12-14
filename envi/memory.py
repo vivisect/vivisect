@@ -150,7 +150,7 @@ class IMemory:
         mapend = mapva+mapsize
         if va+size > mapend:
             return False
-        if mapperm & perm != perm:
+        if mapperm & perm != perm and not self._supervisor:
             return False
         return True
 
@@ -572,7 +572,7 @@ class MemoryObject(IMemory):
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not mperms & MM_READ:
+                if not (mperms & MM_READ or self._supervisor):
                     msg = "Bad Memory Read (no READ permission): %s: %s" % (hex(va), hex(size))
                     if _origva is not None:
                         msg += " (original va: %s)" % hex(_origva)
