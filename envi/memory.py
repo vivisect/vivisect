@@ -1,6 +1,7 @@
 import re
 import struct
 import logging
+import contextlib
 
 import envi
 import envi.exc as e_exc
