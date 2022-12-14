@@ -3,7 +3,6 @@ import base64
 import logging
 import traceback
 import threading
-import contextlib
 import collections
 
 import envi
@@ -207,12 +206,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         length of the event list (called after successful save)..
         '''
         self._event_saved = len(self._event_list)
-
-    @contextlib.contextmanager
-    def getAdminRights(self):
-        self._supervisor = True
-        yield
-        self._supervisor = False
 
     def _handleADDLOCATION(self, loc):
         lva, lsize, ltype, linfo = loc

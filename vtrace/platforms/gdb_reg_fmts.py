@@ -13,6 +13,7 @@ from envi.const import *
 GDBARCH_LOOKUP = {
     'i386': 'i386',
     'amd64': 'i386',
+    'powerpc': 'ppc32-embedded',
 }
 
 ARCH_META = {

@@ -1,6 +1,7 @@
 import re
 import struct
 import logging
+import contextlib
 
 import envi
 import envi.exc as e_exc
@@ -149,7 +150,7 @@ class IMemory:
         mapend = mapva+mapsize
         if va+size > mapend:
             return False
-        if mapperm & perm != perm:
+        if mapperm & perm != perm and not self._supervisor:
             return False
         return True
 
@@ -544,6 +545,20 @@ class MemoryObject(IMemory):
     def getMemoryMaps(self):
         return [mmap for mva, mmaxva, mmap, mbytes in self._map_defs]
 
+    @contextlib.contextmanager
+    def getAdminRights(self):
+        '''
+        Useful for accessing memory in ways not permitted by the map permissions
+
+        eg.
+
+        with mem.getAdminRights():
+            mem.writeMemory(addr, data)
+        '''
+        self._supervisor = True
+        yield
+        self._supervisor = False
+
     def readMemory(self, va, size, _origva=None):
         '''
         Read memory from maps stored in memory maps.
@@ -557,7 +572,7 @@ class MemoryObject(IMemory):
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not mperms & MM_READ:
+                if not (mperms & MM_READ or self._supervisor):
                     msg = "Bad Memory Read (no READ permission): %s: %s" % (hex(va), hex(size))
                     if _origva is not None:
                         msg += " (original va: %s)" % hex(_origva)
