@@ -2500,7 +2500,13 @@ class GdbBaseEmuServer(GdbServerStub):
         Returns:
             None
         """
-        self.emu.writeMemory(addr, val)
+        if len(val) > 40:
+            logger.info('_serverWriteMem(0x%x, %r)', addr, val[:40]+b'...')
+        else:
+            logger.info('_serverWriteMem(0x%x, %r)', addr, val)
+
+        with self.emu.getAdminRights():
+            self.emu.writeMemory(addr, val)
 
     def _serverWriteRegVal(self, reg_idx, reg_val):
         """

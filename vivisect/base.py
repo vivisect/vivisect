@@ -208,12 +208,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         '''
         self._event_saved = len(self._event_list)
 
-    @contextlib.contextmanager
-    def getAdminRights(self):
-        self._supervisor = True
-        yield
-        self._supervisor = False
-
     def _handleADDLOCATION(self, loc):
         lva, lsize, ltype, linfo = loc
         self.locmap.setMapLookup(lva, lsize, loc)
