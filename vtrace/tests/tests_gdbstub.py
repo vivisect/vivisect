@@ -22,7 +22,7 @@ import vtrace.platforms.gdb_reg_fmts as gdb_reg_fmts
 logger = logging.getLogger(__name__)
 
 
-class TestEmuServer(gdbstub.GdbBaseServer):
+class TestEmuServer(gdbstub.GdbBaseEmuServer):
     """
     Represents a GDB server using the server stub code. Once Vivisect
     integration is complete, we shouldn't need this code.
@@ -38,7 +38,7 @@ class TestEmuServer(gdbstub.GdbBaseServer):
             Returns:
                 None
         """
-        gdbstub.GdbBaseServer.__init__(self, emu, port, find_port=find_port)
+        gdbstub.GdbBaseEmuServer.__init__(self, emu, port, find_port=find_port)
 
 
 class TestServer(gdbstub.GdbServerStub):

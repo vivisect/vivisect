@@ -2180,10 +2180,6 @@ class GdbServerStub(GdbStubBase):
         Returns:
             str: A GDB remote protocol register packet.
         """
-        #TODO: do we need an index abstraction layer here?  
-        # It's possible these indexes won't be in the order of the
-        # Architecture Register Context... specifically because we're using 
-        # Register Groups.
         ridx = int(cmd_data, 16)
         reg_val = self._serverReadRegVal(ridx)
         reg_pkt = b"%.2x" % reg_val
@@ -2429,7 +2425,7 @@ class GdbServerStub(GdbStubBase):
         raise Exception('Server translation layer must implement this function')
 
 
-class GdbBaseServer(GdbServerStub):
+class GdbBaseEmuServer(GdbServerStub):
     '''
     Emulated hardware debugger/gdb-stub for testing.
     '''
@@ -2451,6 +2447,10 @@ class GdbBaseServer(GdbServerStub):
         self.runthread = None
         self.connstate = STATE_CONN_DISCONNECTED
         self.last_signal = SIGNAL_NONE
+
+        # THIS IS INELEGANT AND SHOULD BE MORE STREAMLINED SOMEWHERE ELSE?
+        (self._gdb_target_xml,
+            self._gdb_reg_fmt) = getTargetXml(emu)  # limited registers
 
         self.xfer_read_handlers = {
             b'features': {
@@ -2527,9 +2527,14 @@ class GdbBaseServer(GdbServerStub):
         Returns:
             None
         """
+        #TODO: do we need an index abstraction layer here?  
+        # It's possible these indexes won't be in the order of the
+        # Architecture Register Context... specifically because we're using 
+        # Register Groups.
         reg_val = 0
         try:
-            reg_val = self.emu.getRegister(reg_idx)
+            envi_idx = self._gdb_reg_fmt[reg_idx][2]
+            reg_val = self.emu.getRegister(envi_idx)
         except InvalidRegisterName:
             print("Attempted Bad Register Access: %r   (returning zero)" % reg_idx)
 
@@ -2659,7 +2664,7 @@ class GdbBaseServer(GdbServerStub):
         return b''
 
     def XferFeaturesReadTargetXml(self, fields):
-        return getTargetXml(self.emu, self.emu._arch_name)
+        return self._gdb_target_xml
 
     def _serverQSetting(self, cmd_data):
         print("FIXME: serverQSetting(%r)" % cmd_data)
@@ -2674,60 +2679,83 @@ class GdbBaseServer(GdbServerStub):
         print("setting thread:  %r" % cmd_data)
         return b'OK'
 
-def getTargetXml(emu, arch='ppc32-embedded', reggrps=['general']):
+
+
+def getGdbArchName(arch, bigend, psize):
+    '''
+    Returns a GDB-appropriate architecture name for the given architecture/endian/psize
+    '''
+    for gdbarch, gdbdict in ARCH_META.items():
+        if arch != gdbdict.get('arch'):
+            continue
+        if bigend != gdbdict.get('bigend'):
+            continue
+        if psize != gdbdict.get('psize'):
+            continue
+
+        return gdbarch
+
+    return None
+
+def getTargetXml(emu, reggrps=[('general', 'org.gnu.gdb.i386.core')]):
     global target, regdefs
     '''
     Takes in a RegisterContext and an archname.
-    Returns an XML file as described in the gdb-remote spec 
-    '''
-    archmod = envi.getArchModule(emu._arch_name)
+    Returns an XML file as described in the gdb-remote spec
+    Also returns a tuple mapping GDB register indexes (which we're handing to the client) 
+    to RegisterContext-based indexes for each index.
 
-    gdbarchname = 'powerpc:vle'
+    We may be *way* overcomplicating this to look like PEMicro and GDB.
+
+
+    #TODO:  make the reggrp names in envi architecture <arch>.<feature>  like "gdb.i386.core"
+    and "gdb.power.e200spr" so it's programmatic to generate the "org.gnu.gdb.power.e200spr"
+    names
+    '''
+    archmod = emu.imem_archs[envi.ARCH_DEFAULT]
+
+    archname = archmod._arch_name
+
+    gdbarchname = getGdbArchName(archname, emu.getEndian(), emu.getPointerSize()) #'powerpc:vle'
+
+    # pre-calculate the envi-centric register definition lookup dictionary
     regdefs = {}
     for regnum, (rname, bitsize) in enumerate(emu.getRegDef()):
         regdefs[rname] = (regnum, bitsize)
     
-    # features defined in https://sourceware.org/gdb/current/onlinedocs/gdb/PowerPC-Features.html
+    # features defined in https://sourceware.org/gdb/current/onlinedocs/gdb/Standard-Target-Features.html#Standard-Target-Features
+    #       PPC - https://sourceware.org/gdb/current/onlinedocs/gdb/PowerPC-Features.html
+    #       x86 - https://sourceware.org/gdb/current/onlinedocs/gdb/i386-Features.html#i386-Features
+    #       many other archs
+
     import xml.etree.ElementTree as ET
 
+    # this will be the same as the GdbStub._gdb_reg_fmt, and should be good to use for that purpose
+    reg_idx_map = []
     target = ET.Element('target')
     
     arch = ET.SubElement(target, 'architecture')
     arch.text = gdbarchname
 
-    feat_core = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.core'})
+    if not reggrps:
+        for rgps in archmod.archGetRegisterGroups():
+            reggrps.append(rgps)
 
-    reggrps = archmod.archGetRegisterGroups()
-    for rname in reggrps.get('gdb_power_core'):
-        regnum, bitsize = regdefs[translateRegFrom(rname)]
-        #print(rname, regnum, bitsize)
-        ET.SubElement(feat_core, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
+    for group, feat_name in reggrps:
+        # the xml element to populate
+        feat = ET.SubElement(target, 'feature', {'name': feat_name})
 
-    feat_fpu = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.fpu'})
-    for rname in reggrps.get('gdb_power_fpu'):
-        regnum, bitsize = regdefs[translateRegFrom(rname)]
-        #print(rname, regnum, bitsize)
-        ET.SubElement(feat_fpu, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
-
-    feat_spr = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.e200spr'})
-    for rname in reggrps.get('gdb_power_spr'):
-        regnum, bitsize = regdefs[translateRegFrom(rname)]
-        ET.SubElement(feat_spr, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
-
-    #feat_altivec = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.altivec'})
-    #for rname in reggrps.get('gdb_power_altivec'):
-    #    regnum, bitsize = regdefs[translateRegFrom(rname)]
-    #    ET.SubElement(feat_altivec, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
-
-    #feat_spe = ET.SubElement(target, 'feature', {'name': 'org.gnu.gdb.power.spe'})
-    #for rname in reggrps.get('gdb_power_spe'):
-        #regnum, bitsize = regdefs[translateRegFrom(rname)]
-        #ET.SubElement(feat_spe, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
+        reggrp = archmod.archGetRegisterGroup(group)
+        for rname in reggrp:
+            regnum, bitsize = regdefs[rname]
+            reg_idx_map.append((rname, bitsize, regnum))
+            #print(rname, regnum, bitsize)
+            ET.SubElement(feat, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
 
 
     out = [b'<?xml version="1.0"?>',
             b'<!DOCTYPE target SYSTEM "gdb-target.dtd">']
     out.append(ET.tostring(target))
 
-    return b'\n'.join(out)
+    return b'\n'.join(out), reg_idx_map
 

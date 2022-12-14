@@ -200,7 +200,7 @@ class ArchitectureModule:
         Returns a tuple of registers for a named register group.  Returns
         None if requested name does not exist
         '''
-        reg_groups = self.archGetRegisterGroups()
+        reg_groups = self.archGetRegisterGroups().items()
         for gname, group in reg_groups:
             if name == gname:
                 return group
