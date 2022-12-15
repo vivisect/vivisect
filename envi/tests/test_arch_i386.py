@@ -219,6 +219,7 @@ i386MultiByteOpcodes = [
     ('PMAXUB', '660FDE2541414141', 0x40, 'pmaxub xmm4,oword [0x41414141]', 'pmaxub xmm4,oword [0x41414141]'),
     ('MOVNTDQ', '660FE73D78563412', 0x40, 'movntdq oword [0x12345678],xmm7', 'movntdq oword [0x12345678],xmm7'),
     ('PADDD', '660FFECE', 0x40, 'paddd xmm1,xmm6', 'paddd xmm1,xmm6'),
+    ('VPCEXT', '0F3F070B', 0x40, 'vpcext 7, 0xB','vpcext imm8, imm8'),
 
     ('MOV AMETH_C', '0f20d0', 0x40, 'mov eax,ctrl2', 'mov eax,ctrl2'),
     ('MOV AMETH_C 2', '0f20f1', 0x40, 'mov ecx,ctrl6', 'mov ecx,ctrl6'),
