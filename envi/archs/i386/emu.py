@@ -2641,3 +2641,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pextrd(self, op):
         self.i_pextrb(op, width=4)
+        
+    def i_vpcext(self, op):
+        # return value is stored in ebx
+        # if ebx == 0: Virtual PC detected, else: illegal instruction exception
+        pass
