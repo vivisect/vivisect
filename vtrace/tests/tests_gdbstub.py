@@ -325,10 +325,15 @@ class TestGdbServerStub(unittest.TestCase):
             if not self.server.emu.vw.isValidPointer(addr):
                 continue
 
+            # create the bytes we're writing
             fmt32bit = e_bits.getFormat(4, self.bigend)
             expected = struct.pack(fmt32bit, 0xdeadface)
+
+            # do the writing through GDB
             self.client.gdbWriteMem(addr, expected)
+            # read it back directly from the Emulator
             actual = self.server.emu.readMemory(addr, 4)
+            # Do the test
             self.assertEqual(expected, actual)
 
     def test_Stepi(self):
