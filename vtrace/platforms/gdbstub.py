@@ -38,6 +38,7 @@ from .gdb_reg_fmts import ARCH_META, GDBARCH_LOOKUP
 
 import envi
 import envi.exc as e_exc
+import envi.bits as e_bits
 import envi.common as e_cmn
 import vtrace.platforms.gdb_exc as gdb_exc
 
@@ -45,7 +46,7 @@ from itertools import groupby
 from vtrace.platforms import signals
 
 logger = logging.getLogger(__name__)
-e_cmn.initLogging(logger, level=logging.DEBUG)
+#e_cmn.initLogging(logger, level=logging.DEBUG)
 
 
 # Constants for tracking state
@@ -1569,7 +1570,7 @@ class GdbServerStub(GdbStubBase):
             None
         """
         GdbStubBase.__init__(self, arch, addr_size, bigend, reg, port, find_port)
-        self.state = STATE_SVR_STARTUP
+        self.gdb_server_state = STATE_SVR_STARTUP
 
         self.curThread = None
         self.threadList = []
@@ -1585,7 +1586,7 @@ class GdbServerStub(GdbStubBase):
         self.breakPointsSW = []
         self.breakPointsHW = []
 
-        self._halt_reason = signals.SIG_0     ## @ac0rn this tracks the reason for halt, but 0 is "not stopped". i'll need your help ensuring all the interactions between Emulator and GdbStubBase honor this
+        self._halt_reason = 0
 
     def setGdbHaltReason(self, reason):
         '''
@@ -1606,7 +1607,7 @@ class GdbServerStub(GdbStubBase):
         data = b''
         while not len(data) or data[-1:] != b'#':
             data += self._recvUntil((b'#', b'\x03'))
-            logger.log(e_cmn.MIRE, "_recvServer: data=%r", data)
+            logger.log(e_cmn.MIRE, "_recvServer(%d): data=%r", self.gdb_server_state, data)
             if data == b'\x03':
                 logger.info("Received BREAK!  Raising GdbBreakException")
                 raise gdb_exc.GdbBreakException()
@@ -1619,8 +1620,8 @@ class GdbServerStub(GdbStubBase):
         logger.log(e_cmn.MIRE, "done with read loop:  %r", data)
 
         # state housekeeping
-        if self.state == STATE_SVR_RUNSTART:
-            self.state = STATE_SVR_RUNNING
+        if self.gdb_server_state == STATE_SVR_RUNSTART:
+            self.gdb_server_state = STATE_SVR_RUNNING
             if data[0:1] == b'+':
                 # meh, housewarming gift.  eat it.
                 data = data[1:]
@@ -1672,27 +1673,26 @@ class GdbServerStub(GdbStubBase):
         self._server_sock.listen(1)
         logger.info("runServer listening on port %d", self._gdb_port)
 
-        self.state = STATE_SVR_STARTUP
+        self.gdb_server_state = STATE_SVR_STARTUP
 
-        while self.state in (STATE_SVR_RUNNING, STATE_SVR_RUNSTART, STATE_SVR_STARTUP):
+        while self.gdb_server_state in (STATE_SVR_RUNNING, STATE_SVR_RUNSTART, STATE_SVR_STARTUP):
             try:
-                self.state = STATE_SVR_RUNSTART
+                self.gdb_server_state = STATE_SVR_RUNSTART
                 self._gdb_sock, addr = self._server_sock.accept()
                 self.connstate = STATE_CONN_CONNECTED
                 logger.info("runServer: Received Connection from %r", addr)
 
                 self._postClientAttach(addr)
                 self.last_reason = self._halt_reason
-                
+
                 while self.connstate == STATE_CONN_CONNECTED:
-                    self.state = STATE_SVR_RUNNING
                     logger.log(e_cmn.MIRE, "runServer continuing...")
                     try:
                         # Check and handle the processor breaking.
                         if self._halt_reason != 0 and \
                                 self._halt_reason != self.last_reason:
-                            # send the halt reason to the client (since they should
-                            # be waiting for it...
+                            # send the halt reason to the client (since they 
+                            # should be waiting for it...
                             self._doServerResponse(self._handleEndCont(), False)
 
                         self.last_reason = self._halt_reason
@@ -1740,7 +1740,7 @@ class GdbServerStub(GdbStubBase):
             finally:
                 if oneshot:
                     logger.info("'oneshot' enabled, shutting down GDB Server")
-                    self.state = STATE_SVR_SHUTDOWN
+                    self.gdb_server_state = STATE_SVR_SHUTDOWN
 
                 if self._gdb_sock:
                     self._gdb_sock.close()
@@ -1831,6 +1831,10 @@ class GdbServerStub(GdbStubBase):
                 res = b''
 
         except Exception as e:
+            import sys, traceback
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_tb(exc_traceback)
+            traceback.print_exception(exc_value)
             logger.warning("_cmdHandler(%r): EXCEPTION: %r", data, e)
             self._msgExchange(b'E%.2x' % errno.EPERM)
             raise
@@ -1882,18 +1886,22 @@ class GdbServerStub(GdbStubBase):
         """
         break_type, addr = self._parseBreakPkt(cmd_data)
 
-        if break_type == b'0':
-            self.breakPointsSW.append(addr)
-            self._serverSetSWBreak(addr)
+        try:
+            if break_type == b'0':
+                self.breakPointsSW.append(addr)
+                return self._serverSetSWBreak(addr)
 
-        elif break_type == b'1':
-            self.breakPointsHW.append(addr)
-            self._serverSetHWBreak(addr)
+            elif break_type == b'1':
+                self.breakPointsHW.append(addr)
+                return self._serverSetHWBreak(addr)
 
-        else:
-            raise Exception('Unsupported breakpoint type: %s' % break_type)
+            else:
+                raise Exception('Unsupported breakpoint type: %s' % break_type)
 
-        return b'OK'
+        except ValueError:
+            # address wasn't in the list
+            logger.log('Unable to add breakpoint %d %#x', break_type, addr)
+            return b'E01'
 
     def _serverSetHWBreak(self, addr):
         """
@@ -1935,18 +1943,22 @@ class GdbServerStub(GdbStubBase):
         """
         break_type, addr = self._parseBreakPkt(cmd_data)
 
-        if break_type == b'0':
-            self._serverRemoveSWBreak(addr)
-            self.breakPointsSW.remove(addr)
+        try:
+            if break_type == b'0':
+                self.breakPointsSW.remove(addr)
+                return self._serverRemoveSWBreak(addr)
 
-        elif break_type == b'1':
-            self._serverRemoveHWBreak(addr)
-            self.breakPointsHW.remove(addr)
+            elif break_type == b'1':
+                self.breakPointsHW.remove(addr)
+                return self._serverRemoveHWBreak(addr)
 
-        else:
-            raise Exception('Unsupported breakpoint type: %s' % break_type)
+            else:
+                raise Exception('Unsupported breakpoint type: %s' % break_type)
 
-        return b'OK'
+        except ValueError:
+            # address wasn't in the list
+            logger.log('Unable to remove breakpoint %d %#x', break_type, addr)
+            return b'E01'
 
     def _serverRemoveHWBreak(self, addr):
         """
@@ -1986,16 +1998,32 @@ class GdbServerStub(GdbStubBase):
         Returns:
             str: A GDB response packet containing the halt reason.
         """
+
+        # Example msg exchange of halt info
+        #   $ ? #3f
+        #   $ T05 06:0*, ; 07:a0dcf*"7f0* ; 10:400a40*' ; thread:p10311.10311 ; 
+        #   core:9 ; #65
+
         signal = self._serverGetHaltSignal()
         if type(signal) == int:
             res = b'S%.2x' % (signal)
 
         else:
             #signal better be a (int, dict)
-            # regdict should be "regname": <intvalue> pairs
+            # regdict should be regidx:regval pairs
             signal, regdict = signal
             res = b'T%.2x' % (signal)
-            res += b';'.join(["%s:%.2x" % (k, v) for k, v in list(regdict.items())])
+            reginfo = []
+            for regidx, regval in regdict.items():
+                # TODO: The register values should be padded out by the size of 
+                # the register which may not be the target's address size
+                regvalstr = hexlify(e_bits.buildbytes(regval, self._addr_size, self._bigend)) 
+                reginfo.append(b'%.2d:%s' % (regidx, regvalstr))
+            res += b';'.join(reginfo) + b';'
+
+        # TODO: get the thread and core info if both the server and client 
+        # support the "multiprocess" feature
+        #res += b'thread:%s;core:%s;' % (self._serverGetThread(), self._serverGetCore())
 
         return res
 
@@ -2065,9 +2093,7 @@ class GdbServerStub(GdbStubBase):
         val = cmd_data.split(b':')[1]
         val = unhexlify(val)
 
-        self._serverWriteMem(addr, val)
-
-        return b'OK'
+        return self._serverWriteMem(addr, val)
 
     def _serverWriteMem(self, addr, val):
         """
@@ -2422,6 +2448,12 @@ class GdbServerStub(GdbStubBase):
         return res
 
     def _serverSetThread(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
+    def _serverGetThread(self, cmd_data=None):
+        raise Exception('Server translation layer must implement this function')
+
+    def _serverGetCore(self, cmd_data=None):
         raise Exception('Server translation layer must implement this function')
 
 
