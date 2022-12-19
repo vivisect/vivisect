@@ -146,12 +146,15 @@ class IMemory:
         mmap = self.getMemoryMap(va)
         if mmap is None:
             return False
+
         mapva, mapsize, mapperm, mapfile = mmap
         mapend = mapva+mapsize
         if va+size > mapend:
             return False
+
         if mapperm & perm != perm and not self._supervisor:
             return False
+
         return True
 
     def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
