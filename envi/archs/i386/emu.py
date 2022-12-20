@@ -2646,4 +2646,4 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         # expected behavior: EBX is set to 0 if Virtual PC is detected or an exception is raised
         # in a malware sample with an anti-vm check using this instruction, vpcext is followed by a "test ebx, ebx" and exception handling code. 
         # to avoid a "non-defined" value in the register it is set to zero
-        self.setRegister(REG_EBX, 0)
+        self.setRegister(REG_EBX, 0xffffffff)

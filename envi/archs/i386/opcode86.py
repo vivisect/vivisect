@@ -354,7 +354,7 @@ tbl32_0F = [
 (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
 (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
 (0, 0, ARG_NONE, ARG_NONE, ARG_NONE, 0, 0, 0, 0, 0),  
-(0, INS_OTHER, ADDRMETH_I | OPTYPE_b | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_80386, "vpcext", 0, 0, 0),  
+(0, INS_OTHER, ADDRMETH_I | OPTYPE_b | OP_R, ADDRMETH_I | OPTYPE_b | OP_R, ARG_NONE, cpu_VIRTUALPC, "vpcext", 0, 0, 0),  
 # 0f40
 ( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovo", 0, 0, 0),  
 ( 0, INS_MOVCC, ADDRMETH_G | OPTYPE_v | OP_W, ADDRMETH_E | OPTYPE_v | OP_R, ARG_NONE, cpu_PENTPRO, "cmovno", 0, 0, 0),  
