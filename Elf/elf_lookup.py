@@ -76,6 +76,7 @@ EM_XTENSA = 94
 EM_NUM = 95
 EM_MSP430 = 105
 EM_ARM_AARCH64 = 183
+EM_RISCV = 243
 EM_ALPHA = 0x9026
 
 # There are plenty more of these to
@@ -178,6 +179,7 @@ e_machine_types = {
     EM_XTENSA:"Tensilica Xtensa Architecture",
     EM_NUM:"",
     EM_ARM_AARCH64:"ARM aarch64",
+    EM_RISCV:"RISC-V",
     EM_ALPHA:"",
 }
 
