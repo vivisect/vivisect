@@ -492,8 +492,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             trace.setMeta('PendingBreak', False)
             bp = trace.getCurrentBreakpoint()
             if bp:
-                if not bp.silent:
-                    self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
+                self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
                 cmdstr = self.bpcmds.get(bp.id, None)
                 if cmdstr is not None:
                     self.onecmd(cmdstr)
@@ -1722,7 +1721,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         where options include:
            -F  toggles a breakpoint's FastBreak mode
-           -S  toggles a breakpoint's Silent mode (prints a consolem message on break)
+           -S  toggles a breakpoint's Stealth mode (doesn't fire Notifiers, still runs BP code)
            -V  prints more metadata about a given breakpoint (default is just the code)
 
         NOTE: Your code must be surrounded by "s and may not
@@ -1751,12 +1750,10 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 verbose = True
 
             elif opt == '-S':
-                bp.silent = not bp.silent
-                bp = self.trace.getBreakpoint(bpid)
+                bp.stealthbreak = not bp.stealthbreak
 
             elif opt == '-F':
                 bp.fastbreak = not bp.fastbreak
-                bp = self.trace.getBreakpoint(bpid)
 
         if len(args) == 2:
             self.trace.setBreakpointCode(bpid, args[1])
@@ -1770,7 +1767,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.vprint("    resonce:       %r" % bp.resonce)
             self.vprint("    active:        %r" % bp.active)
             self.vprint("    enabled:       %r" % bp.enabled)
-            self.vprint("    silent:        %r" % bp.silent)
+            self.vprint("    stealth:       %r" % bp.stealthbreak)
             if bp.untouchable:
                 self.vprint("    untouchable:   %r" % bp.untouchable)
 
