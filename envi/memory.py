@@ -456,8 +456,8 @@ class MemoryObject(IMemory):
         tmpva = suggestaddr
         maxaddr = (1 << (8 * self.imem_psize)) - 1
 
-        MAP_ALIGN_NMASK = mapalign - 1
-        MAP_ALIGN_MASK = ~MAP_ALIGN_NMASK
+        map_align_nmask = mapalign - 1
+        map_align_mask = ~map_align_nmask
 
         while baseva is None:
             # if we roll into illegal memory, start over at page 2.  skip 0.
@@ -481,8 +481,8 @@ class MemoryObject(IMemory):
                     # we ran into a memory map.  adjust.
                     good = False
                     tmpva = mmendva
-                    tmpva += MAP_ALIGN_NMASK
-                    tmpva &= MAP_ALIGN_MASK
+                    tmpva += map_align_nmask
+                    tmpva &= map_align_mask
                     break
 
             if good:
