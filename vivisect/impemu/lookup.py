@@ -18,6 +18,7 @@ workspace_emus  = {
     'thumb' :v_i_arm.ThumbWorkspaceEmulator,
     'thumb16' :v_i_arm.Thumb16WorkspaceEmulator,
     ('windows','i386'):v_i_windows.Windowsi386Emulator,
+    ('windows','amd64'): v_i_windows.WindowsAmd64Emulator,
     'rv32' :v_i_riscv.RiscV32WorkspaceEmulator,
     'rv64' :v_i_riscv.RiscV64WorkspaceEmulator,
 }

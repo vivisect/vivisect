@@ -110,6 +110,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.relocations = []
         self._dead_data = []
         self.iscode = {}
+        self.iscode_arch = {}
 
         self.xrefs = []
         self.xrefs_by_to = {}
@@ -774,7 +775,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
             logger.debug('discovered new function (followPointer(0x%x))', va)
-            self.makeFunction(va)
+            arch = self.iscode_arch.get(va, envi.ARCH_DEFAULT)
+            self.makeFunction(va, arch=arch)
             return True
 
         elif ltype == LOC_STRING:
@@ -1127,6 +1129,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.iscode[va]
 
         self.iscode[va] = True
+
         # because we're doing partial emulation, demote some of the logging
         # messages to low priority.
         kwargs['loglevel'] = e_common.EMULOG
@@ -1141,6 +1144,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if wat.looksgood():
             self.iscode[va] = True
+            self.iscode_arch[va] = wat.arch
+
         else:
             self.iscode[va] = False
 
@@ -1167,7 +1172,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
         if not skipcache:
-            key = (va, arch, b[:16])
+            key = (va, arch, b[off:off+16])
             valu = self._op_cache.get(key, None)
             if not valu:
                 valu = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
@@ -2877,6 +2882,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if nname in self.filemeta:
             raise Exception("Duplicate File Name: %s" % nname)
         self._fireEvent(VWE_ADDFILE, (nname, imagebase, md5sum))
+        self.setFileMeta(nname, 'OrigName', filename)
         return nname
 
     def addEntryPoint(self, va):
