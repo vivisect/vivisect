@@ -492,7 +492,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             trace.setMeta('PendingBreak', False)
             bp = trace.getCurrentBreakpoint()
             if bp:
-                self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
+                if not self.silent:
+                    self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
                 cmdstr = self.bpcmds.get(bp.id, None)
                 if cmdstr is not None:
                     self.onecmd(cmdstr)
@@ -1721,7 +1722,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         where options include:
            -F  toggles a breakpoint's FastBreak mode
-           -S  toggles a breakpoint's Stealth mode (doesn't fire Notifiers, still runs BP code)
+           -S  toggles a breakpoint's Silent mode (doesn't print console msg, still runs BP code)
            -V  prints more metadata about a given breakpoint (default is just the code)
 
         NOTE: Your code must be surrounded by "s and may not
@@ -1750,7 +1751,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                 verbose = True
 
             elif opt == '-S':
-                bp.stealthbreak = not bp.stealthbreak
+                bp.silent = not bp.silent
 
             elif opt == '-F':
                 bp.fastbreak = not bp.fastbreak
@@ -1764,12 +1765,12 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             self.vprint("%r" % bp)
             self.vprint("    code: %s" % (pystr))
             self.vprint("    FastBreak:     %r" % bp.fastbreak)
-            self.vprint("    resonce:       %r" % bp.resonce)
-            self.vprint("    active:        %r" % bp.active)
             self.vprint("    enabled:       %r" % bp.enabled)
-            self.vprint("    stealth:       %r" % bp.stealthbreak)
-            if bp.untouchable:
-                self.vprint("    untouchable:   %r" % bp.untouchable)
+            self.vprint("    silent:        %r" % bp.silent)
+            self.vprint("    active:        %r" % bp.active)
+            self.vprint("    resonce:       %r" % bp.resonce)
+            if bp.stealthbreak:
+                self.vprint("    stealth:       %r" % bp.stealthbreak)
 
         else:
             self.vprint("[%d] Breakpoint code: %s" % (bpid,pystr))

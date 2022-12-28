@@ -576,9 +576,11 @@ class TracerBase(vtrace.Notifier):
     def _findLibraryMaps(self, magic, always=False):
         # A utility for platforms which lack library load
         # notification through the operating system
+        # TODO: update to handle *losing* memory maps as well.
         bmaps = self.getMeta("BadMaps", [])
         done = {}
         mlen = len(magic)
+        newcount = 0
 
         for addr, size, perms, fname in self.getMemoryMaps():
             if not fname:
@@ -587,7 +589,7 @@ class TracerBase(vtrace.Notifier):
             if done.get(fname):
                 continue
 
-            if addr in self.getMeta("LibraryPaths"):
+            if fname == self.getMeta("LibraryPaths").get(addr):
                 continue
 
             if fname in bmaps:
@@ -597,9 +599,12 @@ class TracerBase(vtrace.Notifier):
                 if self.readMemory(addr, mlen) == magic:
                     done[fname] = True
                     self.addLibraryBase(fname, addr, always=always)
+                    newcount += 1
 
             except Exception as e:
                 logger.warning('findLibraryMaps(0x%x, %d, %s, %s) hit exception: %s', addr, size, perms, fname, e)
+
+        return newcount
 
     def _loadBinaryNorm(self, normname):
         if not self.libloaded.get(normname, False):
