@@ -1843,7 +1843,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             elif opt == "-C":
                 for bp in self.trace.getBreakpoints():
-                    if bp.untouchable:
+                    if bp.stealthbreak:
                         continue
 
                     self.bpcmds.pop(bp.id, None)
@@ -1914,8 +1914,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         self.vprint(" [ Breakpoints ]")
         for bp in self.trace.getBreakpoints():
-            if bp.untouchable and not showall:
-                # don't list untouchable bp's (unless forced)
+            if bp.stealthbreak and not showall:
+                # don't list stealthbreak bp's (unless forced)
                 continue
             self._print_bp(bp)
 

@@ -699,7 +699,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         self.requireAttached()
         bp = self.bpbyid.pop(id, None)
-        if bp is not None and not bp.untouchable:
+        if bp is not None and not bp.stealthbreak:
             bp.deactivate(self)
             if bp in self.deferred:
                 self.deferred.remove(bp)
@@ -760,7 +760,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         NOTE: code which wants to be remote-safe should use this
         """
         bp = self.getBreakpoint(bpid)
-        if bp is None or bp.untouchable:
+        if bp is None or bp.stealthbreak:
             raise Exception("Breakpoint %d Not Found" % bpid)
         if not enabled: # To catch the "disable" of fastbreaks...
             bp.deactivate(self)
