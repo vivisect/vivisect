@@ -2850,11 +2850,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     def writeMemory(self, va, bytez):
         '''
         Override writeMemory to hook into the Event subsystem.
+        Stores overwritten data for easy undo.
         '''
-        fname = self.getFileByVa(va)
-        fileva = self.getFileMeta(fname, 'imagebase')
-        off = va - fileva
-        self._fireEvent(VWE_WRITEMEM, (fname, off, bytez, self._supervisor))
+        oldbytes = self.readMemory(va, len(bytez))
+        self._fireEvent(VWE_WRITEMEM, (va, bytez, oldbytes))
 
     def getFiles(self):
         """

@@ -1,6 +1,7 @@
 import re
 import struct
 import logging
+import contextlib
 
 import envi
 import envi.exc as e_exc
@@ -431,6 +432,23 @@ class MemoryObject(IMemory):
         self._map_defs = []
         self._supervisor = False
 
+    @contextlib.contextmanager
+    def getAdminRights(self):
+        '''
+        Support function for ContextManager to support usage like:
+            "with vw.getAdminWrites():"
+
+        Sets _supervisor privileges (allowing writes to all workspace maps),
+        yields to perform the user's write-action, then sets _supervisor back
+        to the original value.
+        '''
+        oldrights = self._supervisor
+        self._supervisor = True
+        try:
+            yield
+        finally:
+            self._supervisor = oldrights
+
     def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0x1000, name='', fill=b'\0', align=None):
         '''
         Find a free block of memory (no maps exist) and allocate a new map
@@ -582,6 +600,58 @@ class MemoryObject(IMemory):
             msg += " (original va: %s)" % hex(_origva)
 
         raise envi.SegmentationViolation(va, msg)
+
+    def _reqProbeMem(self, va, size, perm):
+        '''
+        Calls probeMemory() and either returns or raises the appropriate exception
+        '''
+        msg = None
+
+        # check starting address map
+        startmap = self.getMemoryMap(va)
+        if startmap is None:
+            msg = "Bad Memory Access (invalid memory range): 0x%x: 0x%x (%s)" % (
+                    va, size, getPermName(perm))
+            raise envi.SegmentationViolation(va, msg)
+
+        # check ending address map
+        endmap = self.getMemoryMap(va+size-1)
+        if endmap is None:
+            msg = "Bad Memory Access (invalid memory range): 0x%x: 0x%x (%s)" % (
+                    va, size, getPermName(perm))
+            raise envi.SegmentationViolation(va, msg)
+
+        # check that all memory is valid and correct permissions
+        ptr = va
+        curmap = startmap
+        endmapva, endmapsize, endmapperm, endmapfile = endmap
+
+        while True:
+            mapva, mapsize, mapperm, mapfile = curmap
+
+            # check permissions
+            if mapperm & perm != perm:
+                if curmap != startmap:
+                    msg = "Bad Memory Access (%r): 0x%x: 0x%x (orig va: 0x%x)" % (
+                            getPermName(perm), mapva, size, va)
+                else:
+                    msg = "Bad Memory Access (%r): 0x%x: 0x%x" % (
+                            getPermName(perm), va, size)
+                raise envi.SegmentationViolation(va, msg)
+
+            # if the endmap exists, and we are here, and the perms check out... we're good!
+            if ptr == endmapva:
+                break
+
+            # go to next map
+            ptr = mapva + mapsize
+            curmap = self.getMemoryMap(ptr)
+            if not curmap:
+                msg = "Bad Memory Access (invalid memory range): 0x%x: 0x%x (%s)" % (
+                        va, size, pnames[perm])
+                raise envi.SegmentationViolation(va, msg)
+
+        return True
 
     def writeMemory(self, va, bytez, _origva=None):
         '''

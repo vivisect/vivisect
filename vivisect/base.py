@@ -3,7 +3,6 @@ import base64
 import logging
 import traceback
 import threading
-import contextlib
 import collections
 
 import envi
@@ -207,23 +206,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         length of the event list (called after successful save)..
         '''
         self._event_saved = len(self._event_list)
-
-    @contextlib.contextmanager
-    def getAdminRights(self):
-        '''
-        Support function for ContextManager to support usage like:
-            "with vw.getAdminWrites():"
-
-        Sets _supervisor privileges (allowing writes to all workspace maps),
-        yields to perform the user's write-action, then sets _supervisor back
-        to the original value.
-        '''
-        oldrights = self._supervisor
-        self._supervisor = True
-        try:
-            yield
-        finally:
-            self._supervisor = oldrights
 
     def _handleADDLOCATION(self, loc):
         lva, lsize, ltype, linfo = loc
@@ -553,10 +535,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         Handle permanent writes to a memory map after initialization
         (fname, off, bytez, supv) where supv is supervisor mode...
         '''
-        fname, off, bytez, supv = einfo
-        imgbase = self.getFileMeta(fname, 'imagebase')
+        va, bytez, oldbytes = einfo
         with self.getAdminRights():
-            e_mem.MemoryObject.writeMemory(self, imgbase + off, bytez)
+            e_mem.MemoryObject.writeMemory(self, va, bytez)
 
     def _initEventHandlers(self):
         self.ehand = [None for x in range(VWE_MAX)]

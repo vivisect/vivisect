@@ -2,10 +2,10 @@
 Connect any Exports we have to Imports we may also have 
 (most useful for multiple file workspaces)
 '''
-
 import logging
 logger = logging.getLogger(__name__)
 
+from vivisect import LOC_OP
 
 def analyze(vw):
     """
