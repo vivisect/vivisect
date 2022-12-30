@@ -1618,7 +1618,6 @@ class VivisectTest(v_t_utils.VivTest):
 
             oldmem = vw.readMemory(base, 10)
 
-            #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
             with self.assertRaises(e_exc.SegmentationViolation):
                 vw.writeMemory(base, b"testing...")
 
