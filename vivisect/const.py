@@ -71,7 +71,7 @@ VWE_CHAT            = 40 # (username, message)
 VWE_SYMHINT         = 41 # (va, idx, hint)
 VWE_AUTOANALFIN     = 42 # (starttime, endtime)
 
-VWE_WRITEMEM        = 43 # (mapva, offset, bytes)
+VWE_WRITEMEM        = 43 # (va, bytes, oldbytes)
 
 VWE_MAX             = 44
 

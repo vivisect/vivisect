@@ -2852,6 +2852,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Override writeMemory to hook into the Event subsystem.
         Stores overwritten data for easy undo.
         '''
+        self._reqProbeMem(va, len(bytez), e_mem.MM_WRITE)
         oldbytes = self.readMemory(va, len(bytez))
         self._fireEvent(VWE_WRITEMEM, (va, bytez, oldbytes))
 

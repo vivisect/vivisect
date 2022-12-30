@@ -143,6 +143,7 @@ class IMemory:
         Example probeMemory(0x41414141, 20, envi.memory.MM_WRITE)
         (check if the memory for 20 bytes at 0x41414141 is writable)
         """
+        #FIXME: make probeMemory handle cross-map access as well as _supervisor
         mmap = self.getMemoryMap(va)
         if mmap is None:
             return False
@@ -439,7 +440,7 @@ class MemoryObject(IMemory):
     def getAdminRights(self):
         '''
         Support function for ContextManager to support usage like:
-            "with vw.getAdminWrites():"
+            "with vw.getAdminRights():"
 
         Sets _supervisor privileges (allowing writes to all workspace maps),
         yields to perform the user's write-action, then sets _supervisor back
@@ -606,7 +607,7 @@ class MemoryObject(IMemory):
 
     def _reqProbeMem(self, va, size, perm):
         '''
-        Calls probeMemory() and either returns or raises the appropriate exception
+        Checks memory map permissions and either returns True or raises the appropriate exception
         '''
         msg = None
 
@@ -633,7 +634,7 @@ class MemoryObject(IMemory):
             mapva, mapsize, mapperm, mapfile = curmap
 
             # check permissions
-            if mapperm & perm != perm:
+            if (mapperm & perm != perm) and not self._supervisor:
                 if curmap != startmap:
                     msg = "Bad Memory Access (%r): 0x%x: 0x%x (orig va: 0x%x)" % (
                             getPermName(perm), mapva, size, va)

@@ -300,7 +300,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.addNoReturnApi("*.pthread_exit")
     vw.addNoReturnApi("*.longjmp")
 
-    # for VivWorkspace, MSB==1, LSB==0... which is the same as True/False
+    # for VivWorkspace, MSB==1, LSB==0... which is the same as True/False for Big-Endian
     vw.setEndian(elf.getEndian())
 
     # Base addr is earliest section address rounded to pagesize
@@ -427,9 +427,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             continue # Skip non-memory mapped sections
 
         sva = sec.sh_addr
-        logger.warning("sva = sec.sh_addr (0x%x)", sva)
         sva += baseoff
-        logger.warning("sva += baseoff (0x%x) == 0x%x", baseoff, sva)
 
         # if we've already defined a location at this address, skip it. (eg. DYNAMICS)
         if vw.getLocation(sva) == sva:
@@ -1057,3 +1055,37 @@ def isStripped(elf):
         return True
 
     return False
+
+
+'''
+Base Offsets are complicated, so let's break them down a bit.
+
+Base Offsets originally refered to whether to add a base address to values to come up with a virtual address.
+Variations of ELFs that regularly cause problems/differences:
+    * Shared Objects
+    * Kernel Modules / Object files
+    * Prelinked SO's and EXEs
+
+Accesses which are impacted by these addresses/offsets:
+    * Pointer to Program Headers
+    * Pointer to Section Headers
+    * Program Headers
+    * Sections
+    * Dynamics Table
+    * Dynamics Entries (see dt_rebase for existing list which require adding base offsets)
+    Via either Sections or Dynamics:
+        * String Table(s)
+        * Symbol Table(s)
+        * Relocs Table(s)
+        * GOT
+        * PLT
+        * INIT / FINI
+        * INIT_ARRAY / FINI_ARRAY / PREINIT_ARRAY
+        * ???  Dwarf?
+
+If a file isn't intended for relocation, this can cause problems because:
+    * Pointers can be hard-coded into the instructions themselves
+    * ELF headers/Dynamics can not understand the relocatable parts
+
+    
+'''
