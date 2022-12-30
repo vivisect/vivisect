@@ -628,10 +628,10 @@ class MemoryObject(IMemory):
         # check that all memory is valid and correct permissions
         ptr = va
         curmap = startmap
-        endmapva, endmapsize, endmapperm, endmapfile = endmap
+        endmapva, endmapsz, endmapperm, endmapfile = endmap
 
         while True:
-            mapva, mapsize, mapperm, mapfile = curmap
+            mapva, mapsz, mapperm, mapfile = curmap
 
             # check permissions
             if (mapperm & perm != perm) and not self._supervisor:
@@ -644,11 +644,11 @@ class MemoryObject(IMemory):
                 raise envi.SegmentationViolation(va, msg)
 
             # if the endmap exists, and we are here, and the perms check out... we're good!
-            if ptr == endmapva:
+            if endmapva <= ptr < endmapva+endmapsz:
                 break
 
             # go to next map
-            ptr = mapva + mapsize
+            ptr = mapva + mapsz
             curmap = self.getMemoryMap(ptr)
             if not curmap:
                 msg = "Bad Memory Access (invalid memory range): 0x%x: 0x%x (%s)" % (
