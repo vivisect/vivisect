@@ -9,6 +9,14 @@ logger = logging.getLogger(__name__)
 
 class VivisectMultiFileTest(v_t_utils.VivTest):
     def test_multiple_i386(self):
+        '''
+        Note: because we're using a non-relocatable executable (vdir.llvm) and relocating it, this
+        will unfortunately throw a lot of ugly exceptions, because there are hard-coded addresses
+        in the instructions themselves, which are relocations because the file isn't "relocatable"
+
+        We only test the things which should work because they are made available for relocation
+        through the ELF metadata.
+        '''
         vw = helpers.getTestWorkspace_nocache('linux', 'i386', 'chgrp.llvm')
         vw = helpers.getTestWorkspace_nocache('linux', 'i386', 'vdir.llvm', vw=vw)
         vw = helpers.getTestWorkspace_nocache('linux', 'i386', 'ld-2.31.so', vw=vw)

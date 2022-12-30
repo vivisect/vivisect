@@ -87,6 +87,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         else:
             self.r_types = {}
 
+        self.dyns = {}
         self.pheaders = []
         self.sections = []
         self.secnames = {}
@@ -290,7 +291,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         This must be run before most Dynamic-data accessors like getDynStrtabString(),
         getDynSymTabInfo(), etc..
         '''
-        self.dyns = {}
         dynbytes = self.getDynBytes()
         if dynbytes is None:
             return

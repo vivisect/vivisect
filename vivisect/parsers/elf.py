@@ -399,7 +399,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         makeFunctionTable(elf, vw, f_preinita, f_preinitasz, 'preinit_array', new_functions, new_pointers, baseoff)
 
     # dynamic table
-    phdr = elf.getDynPHdr()    # file offset?
+    phdr = elf.getDynPHdr()     # this is the Program Header which points at the DYNAMICS table, not the other way around.
     if phdr is not None:
         sva, size = phdr.p_vaddr, phdr.p_memsz
         sva += baseoff     # getDynInfo returns (offset, filesz)

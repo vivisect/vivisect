@@ -5,7 +5,7 @@ Connect any Exports we have to Imports we may also have
 import logging
 logger = logging.getLogger(__name__)
 
-from vivisect import LOC_OP
+from vivisect import LOC_OP, REF_CODE
 
 def analyze(vw):
     """
