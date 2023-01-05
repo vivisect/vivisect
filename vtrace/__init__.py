@@ -1147,6 +1147,11 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         width = self.arch.getPointerSize()
         return e_bits.hex(value, width)
 
+    def vprint(self, msg, addnl=True):
+        if addnl:
+            msg = msg + "\n"
+        return print(msg)
+
     def buildNewTrace(self, **kwargs):
         '''
         Build a new/clean trace "like" this one.  For platforms where a

@@ -112,6 +112,9 @@ class VdbTrace(object):
     def __getattr__(self, name):
         return getattr(self.db.getTrace(), name)
 
+    def vprint(self, msg, addnl=True):
+        return self.db.vprint(msg, addnl)
+
 defconfig = {
 
     'vdb':{
@@ -587,6 +590,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if douni:
             memstr = (b"\x00".join(memstr)) + b"\x00"
 
+        memstr = memstr.decode('utf8')
         addr = self.parseExpression(exprstr)
         self.memobj.writeMemory(addr, memstr)
         self.vdbUIEvent('vdb:writemem', (addr,memstr))
