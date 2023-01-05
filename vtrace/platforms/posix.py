@@ -61,6 +61,14 @@ class PosixMixin:
         # break after our library load events to make things easy
         self.runAgain(False)  # Clear this, if they want BREAK to run, it will
         self.fireNotifiers(vtrace.NOTIFY_BREAK)
+        # POSIX hack - Windows signals on library load, POSIX doesn't
+        self._LibraryLoadHook()
+        
+    def _LibraryLoadHook(self):
+        '''
+        Implement at the platform level
+        '''
+        pass
 
     def platformProcessEvent(self, event):
         pid, status = event
