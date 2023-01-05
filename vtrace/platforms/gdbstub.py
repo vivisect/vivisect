@@ -1616,7 +1616,6 @@ class GdbServerStub(GdbStubBase):
                 logger.warning("fail: len(data): %d   maxlen: %d", len(data), maxlen)
                 raise gdb_exc.InvalidGdbPacketException("Invalid Packet: %r" % data)
 
-
         logger.log(e_cmn.MIRE, "done with read loop:  %r", data)
 
         # state housekeeping
@@ -1788,8 +1787,7 @@ class GdbServerStub(GdbStubBase):
                 res = self._handleWriteReg(cmd_data)
             elif cmd == b'c':
                 logger.info('_handleCont(%r)' % cmd_data)
-                self._handleCont()
-                res = None
+                res = self._handleCont()
             elif cmd == b'D':
                 logger.info('_handleDetach(%r)' % cmd_data)
                 res = self._handleDetach()
@@ -1811,18 +1809,15 @@ class GdbServerStub(GdbStubBase):
             elif cmd == b'H':
                 logger.info('_handleSetThread(%r)' % (cmd_data))
                 res = self._handleSetThread(cmd_data)
-
             elif cmd == b'q':
                 logger.info('_handleQuery(%r)' % (cmd_data))
                 res = self._handleQuery(cmd_data)
-
             elif cmd == b'Q':
                 logger.info('_handleQSetting(%r)' % (cmd_data))
                 res = self._handleQSetting(cmd_data)
-
             elif cmd == b'\x03':
-                logger.info('_handleBREAK(%r)' % cmd_data)
-                res = self._handleBREAK()
+                logger.info('_handleBreak(%r)' % cmd_data)
+                res = self._handleBreak()
 
             else:
                 #raise Exception(b'Unsupported command %s' % cmd)
@@ -1887,11 +1882,11 @@ class GdbServerStub(GdbStubBase):
         break_type, addr = self._parseBreakPkt(cmd_data)
 
         try:
-            if break_type == b'0':
+            if break_type == 48:    # b'0'
                 self.breakPointsSW.append(addr)
                 return self._serverSetSWBreak(addr)
 
-            elif break_type == b'1':
+            elif break_type == 49:  # b'1'
                 self.breakPointsHW.append(addr)
                 return self._serverSetHWBreak(addr)
 
@@ -1944,11 +1939,11 @@ class GdbServerStub(GdbStubBase):
         break_type, addr = self._parseBreakPkt(cmd_data)
 
         try:
-            if break_type == b'0':
+            if break_type == 48:    # b'0'
                 self.breakPointsSW.remove(addr)
                 return self._serverRemoveSWBreak(addr)
 
-            elif break_type == b'1':
+            elif break_type == 49:  # b'1'
                 self.breakPointsHW.remove(addr)
                 return self._serverRemoveHWBreak(addr)
 
@@ -2005,7 +2000,7 @@ class GdbServerStub(GdbStubBase):
         #   core:9 ; #65
 
         signal = self._serverGetHaltSignal()
-        if type(signal) == int:
+        if isinstance(signal, int):
             res = b'S%.2x' % (signal)
 
         else:
@@ -2024,6 +2019,10 @@ class GdbServerStub(GdbStubBase):
         # TODO: get the thread and core info if both the server and client 
         # support the "multiprocess" feature
         #res += b'thread:%s;core:%s;' % (self._serverGetThread(), self._serverGetCore())
+
+        # TODO: properly handle the different types of possible response 
+        # situations described in:
+        # https://sourceware.org/gdb/onlinedocs/gdb/Stop-Reply-Packets.html#Stop-Reply-Packets
 
         return res
 
@@ -2245,8 +2244,10 @@ class GdbServerStub(GdbStubBase):
         Returns:
             None
         """
-        signal = self._serverStepi()
-        res = b'S%.2x' % (signal)
+        # After every step the current signal information should be provided (it 
+        # will likely be SIGTRAP)
+        sig = self._serverStepi()
+        res = b'S%.2x' % sig
         return res
 
     def _serverStepi(self):
@@ -2302,8 +2303,9 @@ class GdbServerStub(GdbStubBase):
         Returns:
             int: The reason for the next halt.
         """
-        self._halt_reason = signals.SIG_0
-        self._serverCont()
+        sig = self._serverCont()
+        res = b'S%.2x' % sig
+        return res
 
     def _handleEndCont(self):
         '''
@@ -2326,7 +2328,7 @@ class GdbServerStub(GdbStubBase):
         """
         raise Exception('Server translation layer must implement this function')
 
-    def _handleBREAK(self):
+    def _handleBreak(self):
         """
         Sends a BREAK signal to the execution engine
 
@@ -2336,11 +2338,11 @@ class GdbServerStub(GdbStubBase):
         Returns:
             None
         """
-        signal = self._serverCont()
+        signal = self._serverBreak()
         res = b'S%.2x' % (signal)
         return res
 
-    def _serverBREAK(self):
+    def _serverBreak(self):
         """
         Halt target execution at the current address.
 
@@ -2351,8 +2353,6 @@ class GdbServerStub(GdbStubBase):
             None
         """
         raise Exception('Server translation layer must implement this function')
-
-
 
     def _handleQuery(self, cmd_data):
         """
@@ -2369,7 +2369,6 @@ class GdbServerStub(GdbStubBase):
         res = self._serverQuery(cmd_data)
         logger.debug("_handleQuery(%r) => %r", cmd_data, res)
         return res
-
 
     def _serverQuery(self, cmd_data):
         """
