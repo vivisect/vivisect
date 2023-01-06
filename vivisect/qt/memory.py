@@ -377,21 +377,14 @@ class VQVivMemoryCanvas(VivCanvasBase):
         return (nva, va-nva)
 
 
-class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
-
-    def __init__(self, vw, vwqgui):
-        self.vw = vw
-        self.vwqgui = vwqgui
-
+class VQVivViewRemote:
+    '''
+    Must be a mixin with VQViv*View
+    '''
+    def __init__(self):
         self._leading = False
         self._following = None
         self._follow_menu = None  # init'd in handler below
-
-        e_mem_qt.VQMemoryWindow.__init__(self, vw, syms=vw, parent=vwqgui, mwname='viv')
-        viv_base.VivEventCore.__init__(self, vw)
-
-        vwqgui.addEventCore(self)
-        self.mem_canvas._canv_rend_middle = True
 
         self.addHotKeyTarget('viv:xrefsto', self._viv_xrefsto)
         self.addHotKey('x', 'viv:xrefsto')
@@ -412,11 +405,11 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
                     self.vw.iAmLeader(self.uuid, self.getEnviNavName(), locexpr)
                 else:
                     self.vw.killLeaderSession(self.uuid)
-                self.updateMemWindowTitle()
+                self.updateWindowTitle()
 
             def clearFollow():
                 self._following = None
-                self.updateMemWindowTitle()
+                self.updateWindowTitle()
 
             leadact.toggled.connect(leadToggle)
             menu.addAction(leadact)
@@ -428,7 +421,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
                 def setFollow():
                     self._following = uuid
-                    self.updateMemWindowTitle()
+                    self.updateWindowTitle()
                     self.navToLeader()
 
                 action = self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
@@ -467,27 +460,6 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
         return title, va
 
-    def _getRenderVaSize(self):
-        '''
-        Vivisect steps in and attempts to map to locations when they exist.
-
-        since we have a location database, let's use that to make sure we get a
-        real location if it exists.  otherwise, we end up in no-man's land,
-        since we rely on labels, which only exist for the base of a location.
-        '''
-        addr, size = e_mem_qt.VQMemoryWindow._getRenderVaSize(self)
-        if addr is None:
-            return addr, size
-
-        loc = self.vw.getLocation(addr, range=False)
-        if loc is None:
-            return addr, size
-
-        return loc[L_VA], size
-
-    def initMemoryCanvas(self, memobj, syms=None):
-        return VQVivMemoryCanvas(memobj, syms=syms, parent=self)
-
     def _viv_xrefsto(self):
 
         if self.mem_canvas._canv_curva is not None:
@@ -501,24 +473,6 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             dock = self.vwqgui.vqDockWidget(view, floating=True)
             dock.resize(800, 600)
 
-    def loadDefaultRenderers(self):
-
-        import envi.memcanvas.renderers as e_render
-
-        # FIXME check endianness
-        self.mem_canvas.addRenderer("bytes",    e_render.ByteRend())
-        self.mem_canvas.addRenderer("u_int_16", e_render.ShortRend())
-        self.mem_canvas.addRenderer("u_int_32", e_render.LongRend())
-        self.mem_canvas.addRenderer("u_int_64", e_render.QuadRend())
-
-        vivrend = viv_rend.WorkspaceRenderer(self.vw)
-        self.mem_canvas.addRenderer('Viv', vivrend)
-        self.mem_canvas.setRenderer('Viv')
-
-    def _updateFunction(self, fva):
-        for cbva, cbsize, cbfva in self.vw.getFunctionBlocks(fva):
-            self.mem_canvas.renderMemoryUpdate(cbva, cbsize)
-
     def _rtmAddLeaderSession(self, uuid, user, fname):
         '''
         Add Action to RendToolsMenu (Opts/Follow) for a given session
@@ -527,7 +481,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
         def setFollow():
             self._following = uuid
-            self.updateMemWindowTitle()
+            self.updateWindowTitle()
             self.navToLeader()
 
         action = self._follow_menu.addAction('%s - %s' % (user, fname), setFollow)
@@ -542,7 +496,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         action = self._rtmGetActionByUUID(uuid)
         action.setText('%s - %s' % (user, fname))
         if self._following == uuid:
-            self.updateMemWindowTitle()
+            self.updateWindowTitle()
 
     def _rtmGetActionByUUID(self, uuid):
         for action in self._follow_menu.actions():
@@ -561,7 +515,7 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
             self._follow_menu.removeAction(action)
             if self._following == uuid:
                 self._following = None
-                self.updateMemWindowTitle()
+                self.updateWindowTitle()
         else:
             logger.warning("Attempting to remove Menu Action that doesn't exist: %r", uuid)
             self._rtmRebuild()
@@ -587,41 +541,6 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
         Returns a list of active UUIDs for leader sessions
         '''
         return [action.whatsThis() for action in self._follow_menu.actions()]
-
-    def VWE_SYMHINT(self, vw, event, einfo):
-        va, idx, hint = einfo
-        self.mem_canvas.renderMemoryUpdate(va, 1)
-
-    def VWE_ADDLOCATION(self, vw, event, einfo):
-        va, size, ltype, tinfo = einfo
-        self.mem_canvas.renderMemoryUpdate(va, size)
-
-    def VWE_DELLOCATION(self, vw, event, einfo):
-        va, size, ltype, tinfo = einfo
-        self.mem_canvas.renderMemoryUpdate(va, size)
-
-    def VWE_ADDFUNCTION(self, vw, event, einfo):
-        va, meta = einfo
-        self.mem_canvas.renderMemoryUpdate(va, 1)
-
-    def VWE_SETFUNCMETA(self, vw, event, einfo):
-        fva, key, val = einfo
-        self._updateFunction(fva)
-
-    def VWE_SETFUNCARGS(self, vw, event, einfo):
-        fva, fargs = einfo
-        self._updateFunction(fva)
-
-    def VWE_COMMENT(self, vw, event, einfo):
-        va, cmnt = einfo
-        self.mem_canvas.renderMemoryUpdate(va, 1)
-
-    @idlethread
-    def VWE_SETNAME(self, vw, event, einfo):
-        va, name = einfo
-        self.mem_canvas.renderMemoryUpdate(va, 1)
-        for fromva, tova, rtype, rflag in self.vw.getXrefsTo(va):
-            self.mem_canvas.renderMemoryUpdate(fromva, 1)
 
     @idlethread
     def VTE_IAMLEADER(self, vw, event, einfo):
@@ -661,3 +580,91 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
                 return
 
             self.enviNavGoto(expr)
+
+class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore, VQVivViewRemote):
+
+    def __init__(self, vw, vwqgui):
+        self.vw = vw
+        self.vwqgui = vwqgui
+
+        e_mem_qt.VQMemoryWindow.__init__(self, vw, syms=vw, parent=vwqgui, mwname='viv')
+        VQVivViewRemote.__init__(self)
+        viv_base.VivEventCore.__init__(self, vw)
+
+        vwqgui.addEventCore(self)
+        self.mem_canvas._canv_rend_middle = True
+
+    def _getRenderVaSize(self):
+        '''
+        Vivisect steps in and attempts to map to locations when they exist.
+
+        since we have a location database, let's use that to make sure we get a
+        real location if it exists.  otherwise, we end up in no-man's land,
+        since we rely on labels, which only exist for the base of a location.
+        '''
+        addr, size = e_mem_qt.VQMemoryWindow._getRenderVaSize(self)
+        if addr is None:
+            return addr, size
+
+        loc = self.vw.getLocation(addr, range=False)
+        if loc is None:
+            return addr, size
+
+        return loc[L_VA], size
+
+    def initMemoryCanvas(self, memobj, syms=None):
+        return VQVivMemoryCanvas(memobj, syms=syms, parent=self)
+
+    def loadDefaultRenderers(self):
+
+        import envi.memcanvas.renderers as e_render
+
+        # FIXME check endianness
+        self.mem_canvas.addRenderer("bytes",    e_render.ByteRend())
+        self.mem_canvas.addRenderer("u_int_16", e_render.ShortRend())
+        self.mem_canvas.addRenderer("u_int_32", e_render.LongRend())
+        self.mem_canvas.addRenderer("u_int_64", e_render.QuadRend())
+
+        vivrend = viv_rend.WorkspaceRenderer(self.vw)
+        self.mem_canvas.addRenderer('Viv', vivrend)
+        self.mem_canvas.setRenderer('Viv')
+
+    def _updateFunction(self, fva):
+        for cbva, cbsize, cbfva in self.vw.getFunctionBlocks(fva):
+            self.mem_canvas.renderMemoryUpdate(cbva, cbsize)
+
+    def VWE_SYMHINT(self, vw, event, einfo):
+        va, idx, hint = einfo
+        self.mem_canvas.renderMemoryUpdate(va, 1)
+
+    def VWE_ADDLOCATION(self, vw, event, einfo):
+        va, size, ltype, tinfo = einfo
+        self.mem_canvas.renderMemoryUpdate(va, size)
+
+    def VWE_DELLOCATION(self, vw, event, einfo):
+        va, size, ltype, tinfo = einfo
+        self.mem_canvas.renderMemoryUpdate(va, size)
+
+    def VWE_ADDFUNCTION(self, vw, event, einfo):
+        va, meta = einfo
+        self.mem_canvas.renderMemoryUpdate(va, 1)
+
+    def VWE_SETFUNCMETA(self, vw, event, einfo):
+        fva, key, val = einfo
+        self._updateFunction(fva)
+
+    def VWE_SETFUNCARGS(self, vw, event, einfo):
+        fva, fargs = einfo
+        self._updateFunction(fva)
+
+    def VWE_COMMENT(self, vw, event, einfo):
+        va, cmnt = einfo
+        self.mem_canvas.renderMemoryUpdate(va, 1)
+
+    @idlethread
+    def VWE_SETNAME(self, vw, event, einfo):
+        va, name = einfo
+        self.mem_canvas.renderMemoryUpdate(va, 1)
+        for fromva, tova, rtype, rflag in self.vw.getXrefsTo(va):
+            self.mem_canvas.renderMemoryUpdate(fromva, 1)
+

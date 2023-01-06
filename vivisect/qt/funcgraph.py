@@ -282,7 +282,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         curname = self.getEnviNavName()
         mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name', text=curname)
         if ok:
-            self.setMemWindowName(str(mwname))
+            self.setWindowName(str(mwname))
 
         if self.vw.server:
             if user is None:
@@ -642,7 +642,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         expr = state.get('expr','')
         self.enviNavGoto(expr)
 
-    def setMemWindowName(self, mwname):
+    def setWindowName(self, mwname):
         '''
         Set the memory window name/title prefix to the given string.
         '''

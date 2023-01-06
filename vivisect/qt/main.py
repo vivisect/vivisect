@@ -622,13 +622,13 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     @idlethread
     def newMemoryView(self, name='viv', floating=False):
         dock, widget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
-        widget.setMemWindowName(name)
+        widget.setWindowName(name)
 
     @idlethread
     def newFuncGraphView(self, name=None, floating=False):
         dock, widget = self.vqBuildDockWidget('VQVivFuncgraphView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
         if name is not None:
-            widget.setMemWindowName(name)
+            widget.setWindowName(name)
 
     @idlethread
     def newSymbolikFuncView(self, floating=False):

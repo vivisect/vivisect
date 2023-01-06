@@ -160,18 +160,18 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
     def initMemoryCanvas(self, memobj, syms=None):
         return e_memcanvas_qt.VQMemoryCanvas(memobj, syms=syms, parent=self)
 
-    def setMemWindowName(self, mwname):
+    def setWindowName(self, mwname):
         '''
         Set the memory window name/title prefix to the given string.
         '''
         self.mwname = mwname
         self.setEnviNavName(mwname)
-        self.updateMemWindowTitle()
+        self.updateWindowTitle()
 
     def getExprTitle(self):
         return str(self.addr_entry.text()), 0
 
-    def updateMemWindowTitle(self):
+    def updateWindowTitle(self):
         expr, va = self.getExprTitle()
 
         title = '%s: %s' % (self.mwname, expr)
@@ -189,7 +189,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         def lockToggle():
             self.mwlocked = not self.mwlocked
-            self.updateMemWindowTitle()
+            self.updateWindowTitle()
 
         lockact.toggled.connect(lockToggle)
         menu.addAction(lockact)
@@ -200,7 +200,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         curname = self.getEnviNavName()
         mwname, ok = QInputDialog.getText(self, 'Set Mem Window Name', 'Name', text=curname)
         if ok:
-            self.setMemWindowName(str(mwname))
+            self.setWindowName(str(mwname))
 
     def rendToolsMenu(self, event):
         menu = self.getRendToolsMenu()
@@ -287,7 +287,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
             self.mem_canvas.addText('Invalid Size: %s (%s)' % (expr, e))
             return None, None
 
-        self.updateMemWindowTitle()
+        self.updateWindowTitle()
         return addr, size
 
     @idlethread
@@ -329,7 +329,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
     def vqSetSaveState(self, state):
         self.addr_entry.setText(state.get('addr_entry',''))
         self.size_entry.setText(state.get('size_entry',''))
-        self.setMemWindowName( str(state.get('name','mem')) )
+        self.setWindowName( str(state.get('name','mem')) )
 
         rendname = state.get('rend_select')
         if rendname:
