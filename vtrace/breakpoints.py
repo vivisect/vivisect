@@ -161,6 +161,11 @@ class Breakpoint:
 
             d = vtrace.VtraceExpressionLocals(trace)
             d['bp'] = self
+            d['event'] = event
+            d['trace'] = trace
+            d['vprint'] = trace.vprint
+            if hasattr(trace, 'db'):
+                d['db'] = trace.db
             exec(cobj, None, d)
 
 class TrackerBreak(Breakpoint):
