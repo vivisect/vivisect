@@ -326,10 +326,9 @@ class GdbStubBase:
         while x not in clist:
             x = self._gdb_sock.recv(1)
             if len(x) == 0:
-                raise Exception('Socket closed unexpectedly')
+                raise gdb_exc.GdbClientDetachedException('Socket closed unexpectedly')
             ret.append(x)
 
-            
         logger.log(e_cmn.MIRE, '_recvUntil(%r):  %r', clist, ret)
         return b''.join(ret)
 
@@ -1711,6 +1710,11 @@ class GdbServerStub(GdbStubBase):
                             # ack receipt
                             logger.debug("received: %r    xmitting '+'", data)
                             self._sendAck()
+
+                    except gdb_exc.GdbClientDetachedException as e:
+                        logger.debug("Client disconnected: %r", e)
+                        res = self._handleDetach()
+                        break
 
                     except gdb_exc.InvalidGdbPacketException as e:
                         logger.warning("Invalid Packet Exception!  %r", e)
