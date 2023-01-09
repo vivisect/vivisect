@@ -1029,7 +1029,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                             # technically the start of the full string, but the binary does
                             # some optimizations and just ref's inside the full string to save 
                             # some space
-                            return count + loc[L_SIZE]
+                            return loc[L_SIZE] - (va - loc[L_VA])
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
@@ -1081,7 +1081,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         if bytes[offset+count] != 0:
                             # same thing as in the string case, a binary can ref into a string
                             # only part of the full string.
-                            return count + loc[L_SIZE]
+                            return loc[L_SIZE] - (va - loc[L_VA])
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
