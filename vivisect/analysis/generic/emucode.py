@@ -113,7 +113,7 @@ def analyze(vw):
         bcode = []
 
         vatodo = set([va for va, name in vw.getNames() if vw.getLocation(va) is None and va not in tried])
-        vatodo = vatodo.union([tova for _, tova, _, _ in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None and tova not in tried])
+        vatodo = vatodo.union([tova for _, tova, _, _ in vw.getXrefs(rtype=REF_PTR) if tova not in tried])
         for va in vatodo:
             loc = vw.getLocation(va)
             if loc is not None:
