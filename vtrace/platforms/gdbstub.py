@@ -29,6 +29,7 @@ import socket
 import logging
 import os.path
 import binascii
+import itertools
 from lxml import etree
 from io import StringIO
 from binascii import hexlify, unhexlify
@@ -517,11 +518,11 @@ class GdbStubBase:
             char = g[0:1]
             # Special handling for b'#' (6 + 29)
             if length == 6:
-                enc_list.append(b'%s\"%s' % (char, char))
+                enc_list.append(b'%s*"%s' % (char, char))
 
             # Special handling for b'$' (7 + 29)
             elif length == 7:
-                enc_list.append(b'%s\"%s%s' % (char, char, char))
+                enc_list.append(b'%s*"%s%s' % (char, char, char))
 
             # GDB only supports encoded up to 126 repetitions
             elif length > max_rep:
@@ -533,9 +534,9 @@ class GdbStubBase:
 
                 # Handle the remainder
                 if r == 6:
-                    enc_list.append(b'%s\"%s' % (char, char))
+                    enc_list.append(b'%s*"%s' % (char, char))
                 elif r == 7:
-                    enc_list.append(b'%s\"%s%s' % (char, char, char))
+                    enc_list.append(b'%s*"%s%s' % (char, char, char))
                 else:
                     enc_list.append(b'%s*%s' % (char, b'%c' % (r + 29)))
 
@@ -2054,7 +2055,7 @@ class GdbServerStub(GdbStubBase):
             for regidx, regval in regdict.items():
                 # TODO: The register values should be padded out by the size of 
                 # the register which may not be the target's address size
-                regvalstr = hexlify(e_bits.buildbytes(regval, self._addr_size, self._bigend)) 
+                regvalstr = hexlify(e_bits.buildbytes(regval, self.emu.psize, self._bigend)) 
                 reginfo.append(b'%.2d:%s' % (regidx, regvalstr))
             res += b';'.join(reginfo) + b';'
 
@@ -2533,20 +2534,18 @@ class GdbBaseEmuServer(GdbServerStub):
     '''
     Emulated hardware debugger/gdb-stub for testing.
     '''
-    def __init__(self, emu, port=47001, find_port=True):
+    def __init__(self, emu, port=47001, find_port=True, reggrps=None):
         self.emu = emu
 
-        regfmt = self.generateRegFmt()
-        print("regfmt:")
-        print("    " + '\n    '.join([repr(x) for x in regfmt]))
+        if reggrps is None:
+            reggrps = ['general']
+
+        regfmt = self.generateRegFmt(reggrps)
         arch = emu.vw.arch._arch_name
-        addr_size = emu.imem_psize * 8
+        addr_size = emu.psize * 8
         big_endian = emu.getEndian()    # ENDIAN_LSB = 0, so big_endian will either be 0 or 1
 
         GdbServerStub.__init__(self, arch, addr_size, big_endian, regfmt, port, find_port)
-
-        # don't ask me why, but GDB doesn't like the way we encode repeated values.  so for now, leave it off.
-        self._doEncoding = False
 
         self.runthread = None
         self.connstate = STATE_CONN_DISCONNECTED
@@ -2564,16 +2563,15 @@ class GdbBaseEmuServer(GdbServerStub):
             },
         }
 
-    def generateRegFmt(self, emu=None, reggrps=['general']):
-        '''
-        '''
-        if emu is None:
-            emu = self.emu
+    def setPort(self, port):
+        self._gdb_port = port
 
+    def generateRegFmt(self, reggrps):
         archname = self.emu.vw.arch._arch_name
         arch = envi.getArchModule(archname)
-        regs_core = arch.archGetRegisterGroups().get('general')
-        regfmt = [(name, bitsize, idx) for idx, (name, bitsize) in enumerate(emu._rctx_regdef) if name in regs_core]
+        groups = arch.archGetRegisterGroups()
+        regs = itertools.chain(regnames for grp, regnames in groups.items() if grp in reggrps)
+        regfmt = [(name, bitsize, idx) for idx, (name, bitsize) in enumerate(self.emu._rctx_regdef) if name in regs]
         return regfmt
 
     # SERVER IMPLEMENTATION FUNCTIONS
