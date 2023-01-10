@@ -651,12 +651,13 @@ class GdbStubBase:
         """
 
         logger.log(e_cmn.MIRE, 'Sending message: %s' % (msg))
-        
+
         # Build the command packet
         pkt = self._buildPkt(msg)
 
         # Transmit the packet
         self._transPkt(pkt)
+
 
 class GdbClientStub(GdbStubBase):
     """
@@ -698,6 +699,7 @@ class GdbClientStub(GdbStubBase):
         self._offsets = None
 
         self._xml = {}
+        self._symbols = {}
 
     def gdbDetach(self):
         """
@@ -749,6 +751,9 @@ class GdbClientStub(GdbStubBase):
         """
         # Clear any cached XML files
         self._xml = {}
+
+        # Clear any cached symbols
+        self._symbols = {}
 
         self._connectSocket()
         if self._gdb_servertype in ('gdbserver', 'serverstub', 'qemu'):
@@ -818,10 +823,10 @@ class GdbClientStub(GdbStubBase):
         self._msgExchange(b'qC')
         self._msgExchange(b'Hg0')
         self.gdbGetOffsets()
-        self.gdbGetSymbol(b'main')
 
-        if self._gdb_reg_fmt is None:
-            self._gdb_reg_fmt = self.gdbGetRegsFromTargetXML()
+        # Symbols take a long time to retrieve from the vivisect GDB server, 
+        # don't ask for them by default.
+        #self.gdbGetSymbol(b'main')
 
     def qSupported(self, options=None):
         supported_cmd = 'qSupported'
@@ -840,9 +845,7 @@ class GdbClientStub(GdbStubBase):
         # The default support options
         options += ['swbreak', 'hwbreak', 'vContSupported']
 
-        # For some reason without the "xmlRegisters=i386" GDB server won't
-        # return XML register data, but QEMU will, but only for x86 platforms
-        if self._gdb_servertype == 'gdbserver' and self._gdbarch is not None:
+        if self._gdbarch is not None:
             xmlreg_opt = 'xmlRegisters=%s' % self._gdbarch
             options.append(xmlreg_opt)
         else:
@@ -874,9 +877,34 @@ class GdbClientStub(GdbStubBase):
         size = int(self._supported_features.get(b'PacketSize', '1000'), 16)
         self._supported_features[b'PacketSize'] = size
 
+    def gdbGetSymbols(self):
+        symbols = {}
+
+        # Send qSymbol:: to start request the next symbol, when the answer is OK 
+        # then the target has no more symbols
+        res = self._msgExchange(b'qSymbol::')
+        while res != b'OK' and not res.startswith(b'E'):
+            if not res.startswith(b'qSymbol:'):
+                raise Exception('Unexpected response to qSymbol:: %r' % res)
+            answer = res[8:]
+
+            # Some gdb servers return names with no addresses
+            if b':' not in answer:
+                self._symbols[unhexlify(answer)] = None
+            else:
+                name, addr = answer.split(b':')
+                self._symbols[unhexlify(name)] = self._decodeGDBVal(addr)
+
+            # Now ask for the next one
+            res = self._msgExchange(b'qSymbol::')
+
     def gdbGetSymbol(self, symbol):
-        symhex = hexlify(symbol)
-        return self._msgExchange(b'qSymbol:' + symhex)
+        # If symbols have have already been retrieved, look up the specific 
+        # symbol
+        if not self._symbols:
+            self.gdbGetSymbols()
+
+        return self._symbols[symbol]
 
     def gdbGetOffsets(self, cached=True):
         if self._offsets and cached:
@@ -903,13 +931,9 @@ class GdbClientStub(GdbStubBase):
         is returned
         '''
         off = 0
-        # For some reason qemu targets break the XML up into smaller chunks than
-        # the max packet size specified in the read, so send a smaller max
-        # packet size.
-        if self._gdb_servertype == 'qemu':
-            size = min(self._supported_features[b'PacketSize'], 2000)
-        else:
-            size = self._supported_features[b'PacketSize']
+
+        # Subtract 5 bytes from the max size to account for the start/end bytes
+        size = self._supported_features[b'PacketSize'] - 5
 
         out = []
         while True:
@@ -1006,7 +1030,7 @@ class GdbClientStub(GdbStubBase):
             self._xml[fname] = etree.parse(StringIO(data.decode()), parser)
         return self._xml[fname]
 
-    def gdbGetRegsFromTargetXML(self):
+    def _processTargetMeta(self):
         """
         Takes a specific GDB target XML file and turns it into the expected list of
         3-tuple objects contained in this file.
@@ -1052,10 +1076,20 @@ class GdbClientStub(GdbStubBase):
         logger.debug('Requesting register %s', reg)
         cmd = b"p" + reg
         res = self._msgExchange(cmd)
+
         if res[0:1] == b'E':
             raise Exception('Error occurred while dumping register info: %s'
                 % res[1:])
-        return self._decodeGDBVal(res)
+
+        elif res == b'':
+            # If the response is empty then we have to get the value from the 
+            # "read all registers" packet
+            all_regs = self.gdbGetRegisters()
+            reg_name = self._gdb_reg_fmt[regidx][0]
+            return all_regs[reg_name]
+
+        else:
+            return self._decodeGDBVal(res)
 
     def gdbSetRegister(self, regidx, val):
         """
@@ -1071,10 +1105,17 @@ class GdbClientStub(GdbStubBase):
         val_str = self._encodeGDBVal(val, self._gdb_reg_fmt[regidx][1])
         cmd = b'P%.2x=%s' % (regidx, val_str)
         res = self._msgExchange(cmd)
+
         if res[0:1] == b'E':
             regname = self._gdb_reg_fmt[regidx][0]
             logger.warning('Setting register %d (%s) failed with error %s' %
                     (regidx, regname, res[1:3]))
+
+        elif res == b'':
+            # If the response is empty then we have to change the value using 
+            # the "set all registers" packet
+            reg_name = self._gdb_reg_fmt[regidx][0]
+            self.gdbSetRegisters({reg_name: val})
 
     def gdbGetRegisterByName(self, regname):
         """
@@ -1729,10 +1770,9 @@ class GdbServerStub(GdbStubBase):
                         logger.warning('gdbstub.runServer() Exception: %r', e, exc_info=1)
                         break
 
-
                     logger.log(e_cmn.MIRE, "runServer: %r" % data)
                     self._cmdHandler(data)  
-            
+
             except BrokenPipeError:
                 logger.info("BrokenPipeError:  Client disconnected.")
                 self.connstate = STATE_CONN_DISCONNECTED
@@ -1754,7 +1794,6 @@ class GdbServerStub(GdbStubBase):
 
     def _postClientAttach(self, addr):
         pass
-
 
     def _cmdHandler(self, data):
         """
@@ -1846,7 +1885,6 @@ class GdbServerStub(GdbStubBase):
         Take care of encoding and sending server response messages
         '''
         enc_res = self._lengthEncode(res)
-
 
         # if we have a PacketSize set, ship PacketSize-3 (leave room for #cs)
         # is this correct?
@@ -2388,32 +2426,45 @@ class GdbServerStub(GdbStubBase):
         if cmd_data.startswith(b'Supported'):
             logger.debug("QUERY: SUPPORTED STUFF!")
             #TODO: parse what the client asserts it supports and store
-            return self._serverQSupported(cmd_data)
+            return self._serverQSupported(cmd_data[10:])
+
+        elif cmd_data == b'Symbol::':
+            logger.debug("QUERY: Symbol!")
+            return self._serverQSymbol(None)
 
         elif cmd_data.startswith(b'Xfer'):
             logger.debug("QUERY: Xfer!")
-            return self._serverQXfer(cmd_data)
+            return self._serverQXfer(cmd_data[5:])
 
         elif cmd_data == b'C':
             logger.debug("QUERY: C!")
-            return self._serverQC(cmd_data)
+            return self._serverQC(None)
 
-        elif cmd_data == b'L':
+        elif cmd_data.startswith(b'L'):
             logger.debug("QUERY: L!")
-            return self._serverQL(cmd_data)
+            if len(cmd_data) > 2:
+                return self._serverQL(cmd_data[2:])
+            else:
+                return self._serverQL(None)
 
         elif cmd_data == b'TStatus':
             logger.debug("QUERY: TStatus!")
-            return self._serverQTStatus(cmd_data)
+            return self._serverQTStatus(None)
 
         elif cmd_data == b'fThreadInfo':
             logger.debug("QUERY: fThreadInfo!")
-            return self._serverQfThreadInfo(cmd_data)
+            return self._serverQfThreadInfo(None)
 
-        elif cmd_data == b'Attached':
+        elif cmd_data.startswith(b'Attached'):
             logger.debug("QUERY: Attached!")
-            return self._serverQAttached()
+            if len(cmd_data) > 9:
+                return self._serverQAttached(cmd_data[10:])
+            else:
+                return self._serverQAttached(None)
 
+        elif cmd_data.startswith(b'CRC'):
+            logger.debug("QUERY: CRC!")
+            return self._serverQCRC(cmd_data[4:])
 
         return b""
 
@@ -2459,6 +2510,24 @@ class GdbServerStub(GdbStubBase):
     def _serverGetCore(self, cmd_data=None):
         raise Exception('Server translation layer must implement this function')
 
+    def _serverQSymbol(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
+    def _serverQC(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
+    def _serverQL(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
+    def _serverQfThreadInfo(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
+    def _serverQAttached(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
+    def _serverQCRC(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
 
 class GdbBaseEmuServer(GdbServerStub):
     '''
@@ -2482,6 +2551,8 @@ class GdbBaseEmuServer(GdbServerStub):
         self.runthread = None
         self.connstate = STATE_CONN_DISCONNECTED
         self.last_signal = SIGNAL_NONE
+
+        self.symbol_iter = None
 
         # THIS IS INELEGANT AND SHOULD BE MORE STREAMLINED SOMEWHERE ELSE?
         (self._gdb_target_xml,
@@ -2543,6 +2614,8 @@ class GdbBaseEmuServer(GdbServerStub):
         with self.emu.getAdminRights():
             self.emu.writeMemory(addr, val)
 
+        return b'OK'
+
     def _serverWriteRegVal(self, reg_idx, reg_val):
         """
         Simulates a debugger writing to a register.
@@ -2557,6 +2630,8 @@ class GdbBaseEmuServer(GdbServerStub):
 
         """
         self.emu.setRegister(reg_idx, reg_val)
+
+        return b'OK'
 
     def _serverReadRegVal(self, reg_idx):
         """
@@ -2594,6 +2669,8 @@ class GdbBaseEmuServer(GdbServerStub):
             None
         """
         self.emu.setRegisterByName(reg_name, reg_val)
+
+        return b'OK'
 
     def _serverReadRegValByName(self, reg_name):
         """
@@ -2640,6 +2717,7 @@ class GdbBaseEmuServer(GdbServerStub):
             None
         """
         self.connstate = STATE_CONN_DISCONNECTED
+        return b'OK'
 
     def _serverQSupported(self, cmd_data):
         return b"PacketSize=1000;qXfer:memory-map:read+;qXfer:features:read+"
@@ -2695,14 +2773,18 @@ class GdbBaseEmuServer(GdbServerStub):
         '''
         return b'l'
 
-    def _serverQAttached(self):
+    def _serverQAttached(self, cmd_data):
         '''
-        return whether we're attached?
-        '''
-        return b'1'
+        Returns an indication of how this process was created, if multiprocess
+        extensions are enabled this query has a "pid" argument indicating the
+        process that the info is being queried for.
 
-    def _serverQCRC(self, cmd_data):
-        return b''
+        Return values:
+            1:   The remote server attached to an existing process. 
+            0:   The remote server created a new process.
+            E??: Error was encountered
+        '''
+        return b'0'
 
     def XferFeaturesReadTargetXml(self, fields):
         return self._gdb_target_xml
@@ -2720,6 +2802,29 @@ class GdbBaseEmuServer(GdbServerStub):
         print("setting thread:  %r" % cmd_data)
         return b'OK'
 
+    def _serverQSymbol(self, cmd_data):
+        if self.symbol_iter is None:
+            self.symbol_iter = iter(self.emu.vw.getNames())
+
+        try:
+            # All valid symbols should have the filename prefixed to the symbol 
+            # name
+            addr, name = next(self.symbol_iter)
+            while '.' not in name:
+                # Iterate until we reach the end of the list or we find another 
+                # valid symbol name.
+                addr, name = next(self.symbol_iter)
+
+            _, sname = name.split('.', 1)
+            return b'qSymbol:' + hexlify(sname.encode()) + b':' + self._encodeGDBVal(addr)
+
+        except StopIteration:
+            return b'OK'
+
+    def _serverQCRC(self, cmd_data):
+        data = self.emu.readMemory(addr, size)
+        crc = binascii.crc32(data)
+        return b'C' + self._encodeGDBVal(crc)
 
 
 def getGdbArchName(arch, bigend, psize):
