@@ -143,6 +143,7 @@ class IMemory:
         Example probeMemory(0x41414141, 20, envi.memory.MM_WRITE)
         (check if the memory for 20 bytes at 0x41414141 is writable)
         """
+        #FIXME: make probeMemory handle cross-map access as well as _supervisor
         mmap = self.getMemoryMap(va)
         if mmap is None:
             return False
@@ -435,6 +436,23 @@ class MemoryObject(IMemory):
         self._map_defs = []
         self._supervisor = False
 
+    @contextlib.contextmanager
+    def getAdminRights(self):
+        '''
+        Support function for ContextManager to support usage like:
+            "with vw.getAdminRights():"
+
+        Sets _supervisor privileges (allowing writes to all workspace maps),
+        yields to perform the user's write-action, then sets _supervisor back
+        to the original value.
+        '''
+        oldrights = self._supervisor
+        self._supervisor = True
+        try:
+            yield
+        finally:
+            self._supervisor = oldrights
+
     def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0x1000, name='', fill=b'\0', align=None):
         '''
         Find a free block of memory (no maps exist) and allocate a new map
@@ -444,7 +462,7 @@ class MemoryObject(IMemory):
         self.addMemoryMap(baseva, perms, name, fill*size, align)
         return baseva
 
-    def findFreeMemoryBlock(self, size, suggestaddr=0x1000, MIN_MEM_ADDR = 0x1000):
+    def findFreeMemoryBlock(self, size, suggestaddr=0x1000, MIN_MEM_ADDR = 0x1000, mapalign=0x10000):
         '''
         Find a block of memory in the address-space of the correct size which 
         doesn't overlap any existing maps.  Attempts to offer the map starting
@@ -459,6 +477,9 @@ class MemoryObject(IMemory):
 
         tmpva = suggestaddr
         maxaddr = (1 << (8 * self.imem_psize)) - 1
+
+        map_align_nmask = mapalign - 1
+        map_align_mask = ~map_align_nmask
 
         while baseva is None:
             # if we roll into illegal memory, start over at page 2.  skip 0.
@@ -482,8 +503,8 @@ class MemoryObject(IMemory):
                     # we ran into a memory map.  adjust.
                     good = False
                     tmpva = mmendva
-                    tmpva += PAGE_NMASK
-                    tmpva &= PAGE_MASK
+                    tmpva += map_align_nmask
+                    tmpva &= map_align_mask
                     break
 
             if good:
@@ -597,6 +618,58 @@ class MemoryObject(IMemory):
             msg += " (original va: %s)" % hex(_origva)
 
         raise envi.SegmentationViolation(va, msg)
+
+    def _reqProbeMem(self, va, size, perm):
+        '''
+        Checks memory map permissions and either returns True or raises the appropriate exception
+        '''
+        msg = None
+
+        # check starting address map
+        startmap = self.getMemoryMap(va)
+        if startmap is None:
+            msg = "Bad Memory Access (invalid memory range): 0x%x: 0x%x (%s)" % (
+                    va, size, getPermName(perm))
+            raise envi.SegmentationViolation(va, msg)
+
+        # check ending address map
+        endmap = self.getMemoryMap(va+size-1)
+        if endmap is None:
+            msg = "Bad Memory Access (invalid memory range): 0x%x: 0x%x (%s)" % (
+                    va, size, getPermName(perm))
+            raise envi.SegmentationViolation(va, msg)
+
+        # check that all memory is valid and correct permissions
+        ptr = va
+        curmap = startmap
+        endmapva, endmapsz, endmapperm, endmapfile = endmap
+
+        while True:
+            mapva, mapsz, mapperm, mapfile = curmap
+
+            # check permissions
+            if (mapperm & perm != perm) and not self._supervisor:
+                if curmap != startmap:
+                    msg = "Bad Memory Access (%r): 0x%x: 0x%x (orig va: 0x%x)" % (
+                            getPermName(perm), mapva, size, va)
+                else:
+                    msg = "Bad Memory Access (%r): 0x%x: 0x%x" % (
+                            getPermName(perm), va, size)
+                raise envi.SegmentationViolation(va, msg)
+
+            # if the endmap exists, and we are here, and the perms check out... we're good!
+            if endmapva <= ptr < endmapva+endmapsz:
+                break
+
+            # go to next map
+            ptr = mapva + mapsz
+            curmap = self.getMemoryMap(ptr)
+            if not curmap:
+                msg = "Bad Memory Access (invalid memory range): 0x%x: 0x%x (%s)" % (
+                        va, size, pnames[perm])
+                raise envi.SegmentationViolation(va, msg)
+
+        return True
 
     def writeMemory(self, va, bytez, _origva=None):
         '''

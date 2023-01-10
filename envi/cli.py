@@ -259,7 +259,7 @@ class EnviCli(Cmd):
         if intro is not None:
             self.vprint(intro)
 
-        while not self.shutdown.isSet():
+        while not self.shutdown.is_set():
             try:
                 Cmd.cmdloop(self, intro=intro)
             except Exception:
@@ -311,7 +311,7 @@ class EnviCli(Cmd):
             self.vprint("\nERROR: (%s) %s" % (msg.__class__.__name__, msg))
             logger.warning("\nERROR: (%s) %s", msg.__class__.__name__, msg, exc_info=1)
 
-        if self.shutdown.isSet():
+        if self.shutdown.is_set():
             return True
 
     def do_help(self, line):

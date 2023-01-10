@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 import envi
+import envi.exc as e_exc
 import envi.memory as e_memory
 import envi.memcanvas as e_mcanvas
 
@@ -191,7 +192,7 @@ class VivisectTest(v_t_utils.VivTest):
         self.chgrp_vw.do_filemeta('chgrp')
         output = self.chgrp_vw.canvas.strval
         self.assertIn("'DT_INIT': 134516068", output)
-        self.assertIn("'addbase': False,\n 'canaries': False,\n 'imagebase': 134512640", output)
+        self.assertIn("'canaries': False,\n 'imagebase': 134512640", output)
         self.chgrp_vw.canvas.clearCanvas()
 
     def test_cli_fscope(self):
@@ -758,7 +759,7 @@ class VivisectTest(v_t_utils.VivTest):
         '''
         vw = self.firefox_vw
         self.assertIsNotNone(vw.parsedbin)
-        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut', 'thunk_reg']), set(vw.getVaSetNames()))
+        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut', 'thunk_reg', 'ResolvedImports']), set(vw.getVaSetNames()))
 
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60, adjacent=True))
@@ -1610,3 +1611,27 @@ class VivisectTest(v_t_utils.VivTest):
 
         # since it's assigned, the result from "vw.getVivGuid()" should be the same
         self.assertEqual(newguid, vw.getVivGuid())
+
+    def test_write_fail(self):
+        with self.snap(self.chown_vw) as vw:
+            base = vw.getFileMeta('chown', 'imagebase')
+
+            oldmem = vw.readMemory(base, 10)
+
+            with self.assertRaises(e_exc.SegmentationViolation):
+                vw.writeMemory(base, b"testing...")
+
+            self.assertEqual(oldmem, vw.readMemory(base, 10))
+
+            with vw.getAdminRights():
+                vw.writeMemory(base, b"testing...")
+
+            self.assertEqual(b'testing...', vw.readMemory(base, 10))
+
+            with self.assertRaises(e_exc.SegmentationViolation):
+                vw.writeMemory(base, b"FOOBARBAZ.")
+
+            self.assertEqual(b'testing...', vw.readMemory(base, 10))
+
+            with vw.getAdminRights():
+                vw.writeMemory(base, oldmem)
