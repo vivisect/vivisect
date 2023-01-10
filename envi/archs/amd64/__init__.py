@@ -26,17 +26,14 @@ class Amd64Module(e_i386.i386Module):
         envi.ArchitectureModule.__init__(self, "amd64")
         self._arch_dis = Amd64Disasm()
 
+    def initRegGroups(self):
+        envi.ArchitectureModule.initRegGroups(self)
+        self._regGrps.update({'general': ['rax', 'rbx', 'rcx', 'rdx', 'rsi', 'rdi', 'rbp',
+                                'rsp', 'rip', 'r8', 'r9', 'r10', 'r11', 'r12',
+                                'r13', 'r14', 'r15']} )
+
     def archGetRegCtx(self):
         return Amd64RegisterContext()
-
-    def archGetRegisterGroups(self):
-        groups = envi.ArchitectureModule.archGetRegisterGroups(self)
-
-        groups['general'] = ['rax', 'rbx', 'rcx', 'rdx', 'rsi', 'rdi', 'rbp',
-                                'rsp', 'rip', 'r8', 'r9', 'r10', 'r11', 'r12',
-                                'r13', 'r14', 'r15']
-
-        return groups
 
     def getPointerSize(self):
         return 8

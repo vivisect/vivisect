@@ -110,6 +110,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.relocations = []
         self._dead_data = []
         self.iscode = {}
+        self.iscode_arch = {}
 
         self.xrefs = []
         self.xrefs_by_to = {}
@@ -181,6 +182,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
         self.addVaSet('thunk_reg', ( ('fva', VASET_ADDRESS), ('reg', VASET_STRING), ('tgtval', VASET_INTEGER)) )
+        self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING), 
+                ('resolved address', VASET_ADDRESS)))
 
     def vprint(self, msg):
         logger.info(msg)
@@ -780,7 +783,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
             logger.debug('discovered new function (followPointer(0x%x))', va)
-            self.makeFunction(va)
+            arch = self.iscode_arch.get(va, envi.ARCH_DEFAULT)
+            self.makeFunction(va, arch=arch)
             return True
 
         elif ltype == LOC_STRING:
@@ -1179,6 +1183,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.iscode[va]
 
         self.iscode[va] = True
+
         # because we're doing partial emulation, demote some of the logging
         # messages to low priority.
         kwargs['loglevel'] = e_common.EMULOG
@@ -1193,6 +1198,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if wat.looksgood():
             self.iscode[va] = True
+            self.iscode_arch[va] = wat.arch
+
         else:
             self.iscode[va] = False
 
@@ -2898,9 +2905,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.initMeta('GUID', guid())
         
         mod = viv_parsers.getParserModule(fmtname)
+
         fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
 
-        self.initMeta("StorageName", filename+".viv")
+        if not self.getMeta('StorageName'):
+            self.initMeta("StorageName", filename+".viv")
 
         # Snapin our analysis modules
         self._snapInAnalysisModules()
@@ -2931,6 +2940,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.initMeta('StorageName', mapfname+".viv")
         # Snapin our analysis modules
         self._snapInAnalysisModules()
+
+    def writeMemory(self, va, bytez):
+        '''
+        Override writeMemory to hook into the Event subsystem.
+        Stores overwritten data for easy undo.
+        '''
+        self._reqProbeMem(va, len(bytez), e_mem.MM_WRITE)
+        oldbytes = self.readMemory(va, len(bytez))
+        self._fireEvent(VWE_WRITEMEM, (va, bytez, oldbytes))
 
     def getFiles(self):
         """

@@ -533,6 +533,15 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         '''
         pass
 
+    def _handleWRITEMEM(self, einfo):
+        '''
+        Handle permanent writes to a memory map after initialization
+        (fname, off, bytez, supv) where supv is supervisor mode...
+        '''
+        va, bytez, oldbytes = einfo
+        with self.getAdminRights():
+            e_mem.MemoryObject.writeMemory(self, va, bytez)
+
     def _initEventHandlers(self):
         self.ehand = [None for x in range(VWE_MAX)]
         self.ehand[VWE_ADDLOCATION] = self._handleADDLOCATION
@@ -577,6 +586,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
         self.ehand[VWE_ENDIAN] = self._handleENDIAN
+        self.ehand[VWE_WRITEMEM] = self._handleWRITEMEM
 
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER

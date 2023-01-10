@@ -265,6 +265,7 @@ cpu_AESNI = 0x0000b000
 cpu_AVX   = 0x0000c000
 cpu_BMI   = 0x0000d000
 cpu_OSPKE = 0x0000e000
+cpu_VIRTUALPC = 0x0000f000
 
 #eventually, change this for your own codes
 #ADDEXP_SCALE_OFFSET= 0 

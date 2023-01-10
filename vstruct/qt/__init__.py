@@ -114,6 +114,9 @@ class VQStructNamespacesView(vq_tree.VQTreeView):
         pos_elf = model.append(('', 'Elf'), parent=pos)
         pos_elf.modinfo = ('elf', 'vstruct.defs.elf')
 
+        osx  = model.append(('osx', ''))
+        osx_macho = model.append(('', 'macho'), parent=osx)
+
         arch = model.append(('arch',''))
         arch_ppc = model.append(('PowerPC', ''), parent=arch)
         arch_ppc_krnl = model.append(('PowerPC Kernel', ''), parent=arch_ppc)

@@ -156,6 +156,11 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         # Add event numbers to here for auto-continue
         self.auto_continue = [NOTIFY_LOAD_LIBRARY, NOTIFY_CREATE_THREAD, NOTIFY_UNLOAD_LIBRARY, NOTIFY_EXIT_THREAD, NOTIFY_DEBUG_PRINT]
 
+        # Create a LoadLibrary hook to enable simple and consistent 
+        # Break-On-Load/Init functionality. This is also necessary for
+        # resolving symbols on new library loads.
+        self.registerNotifier(NOTIFY_LOAD_LIBRARY, LibraryNotifier())
+
     def execute(self, cmdline):
         """
         Start a new process and debug it
@@ -694,7 +699,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         self.requireAttached()
         bp = self.bpbyid.pop(id, None)
-        if bp is not None:
+        if bp is not None and not bp.stealthbreak:
             bp.deactivate(self)
             if bp in self.deferred:
                 self.deferred.remove(bp)
@@ -755,7 +760,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         NOTE: code which wants to be remote-safe should use this
         """
         bp = self.getBreakpoint(bpid)
-        if bp is None:
+        if bp is None or bp.stealthbreak:
             raise Exception("Breakpoint %d Not Found" % bpid)
         if not enabled: # To catch the "disable" of fastbreaks...
             bp.deactivate(self)
