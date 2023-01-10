@@ -25,15 +25,14 @@ class Breakpoint:
     bpcodeobj = {} # Cache compiled code objects on the class def
 
     def __init__(self, address, expression=None):
-        self.resonce = False
+        self.resonce = False        # has this addr expression been resolved yet?
         self.address = address
-        self.enabled = True
-        self.active = False
+        self.enabled = True         # should this BP be used/ignored
+        self.active = False         # have we placed a BP in the code (eg. i386: \xCC)
+        self.silent = False         # don't print "Hit Break" messages, still runs code/notifiers
         self.fastbreak = False      # no NOTIFY_BREAK, autocont, no NOTIFY_CONTINUE
-        self.stealthbreak = False   # no NOTIFY_BREAK
-        self.silent = False
-        self.untouchable = False    # system breakpoint.  can't remove it or see it.
-        self._complained = False
+        self.stealthbreak = False   # no NOTIFY_BREAK - used for hidden/system events
+        self._complained = False    # only complain about not resolving this *once*
 
         self.id = -1
         self.vte = None
@@ -423,10 +422,12 @@ class PosixLibLoadHookBreakpoint(Breakpoint):
     '''
     def __init__(self, expression):
         Breakpoint.__init__(self, None, expression=expression)
-        self.untouchable = True
-        self.silent = True
+        self.stealthbreak = True
 
     def notify(self, event, trace):
         logger.debug("PosixLibLoadHookBreakpoint: reanalyze maps and resolve symbols")
-        trace._findLibraryMaps(b'\x7fELF', always=True)
-        # handle unresolved expression bp's 
+        if not trace._findLibraryMaps(b'\x7fELF', always=True):
+            # if we find new maps, we'll let the LOAD_LIBRARY Autoload config setting handle
+            # whether we continue or not.  if we fire this and *don't* find a new map, 
+            # let's just continue like nothing ever happened.  "Nothing to see here."
+            trace.runAgain()

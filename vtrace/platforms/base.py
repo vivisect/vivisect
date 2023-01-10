@@ -203,8 +203,19 @@ class TracerBase(vtrace.Notifier):
                 # only effects active breaks
                 bp.deactivate(self)
 
-    def _activBreakpoints(self):
+    def _updateBreakAddresses(self):
+        """
+        Update breakpoint address resolution (in unresolved breakpoints).
+        Intended to be run after events which change the namespace, such as
+        NOTIFY_LOAD_LIBRARY events
+        """
+        for bp in self.deferred:
+            addr = bp.resolveAddress(self)
+            if addr is not None:
+                self.breakpoints[addr] = bp
+                self.deferred.remove(bp)
 
+    def _activBreakpoints(self):
         """
         Run through the breakpoints and setup
         the ones that are enabled.
@@ -214,11 +225,7 @@ class TracerBase(vtrace.Notifier):
         """
 
         # Resolve deferred breaks
-        for bp in self.deferred:
-            addr = bp.resolveAddress(self)
-            if addr is not None:
-                self.deferred.remove(bp)
-                self.breakpoints[addr] = bp
+        self._updateBreakAddresses()
 
         for bp in self.breakpoints.values():
             if bp.isEnabled():
@@ -569,15 +576,20 @@ class TracerBase(vtrace.Notifier):
     def _findLibraryMaps(self, magic, always=False):
         # A utility for platforms which lack library load
         # notification through the operating system
+        # TODO: update to handle *losing* memory maps as well.
         bmaps = self.getMeta("BadMaps", [])
         done = {}
         mlen = len(magic)
+        newcount = 0
 
         for addr, size, perms, fname in self.getMemoryMaps():
             if not fname:
                 continue
 
             if done.get(fname):
+                continue
+
+            if fname == self.getMeta("LibraryPaths").get(addr):
                 continue
 
             if fname in bmaps:
@@ -587,9 +599,12 @@ class TracerBase(vtrace.Notifier):
                 if self.readMemory(addr, mlen) == magic:
                     done[fname] = True
                     self.addLibraryBase(fname, addr, always=always)
+                    newcount += 1
 
             except Exception as e:
                 logger.warning('findLibraryMaps(0x%x, %d, %s, %s) hit exception: %s', addr, size, perms, fname, e)
+
+        return newcount
 
     def _loadBinaryNorm(self, normname):
         if not self.libloaded.get(normname, False):

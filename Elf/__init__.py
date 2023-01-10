@@ -87,6 +87,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         else:
             self.r_types = {}
 
+        self.dyns = {}
         self.pheaders = []
         self.sections = []
         self.secnames = {}
@@ -290,7 +291,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         This must be run before most Dynamic-data accessors like getDynStrtabString(),
         getDynSymTabInfo(), etc..
         '''
-        self.dyns = {}
         dynbytes = self.getDynBytes()
         if dynbytes is None:
             return
@@ -780,6 +780,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def isRelocatable(self):
         '''
         Returns true if the given Elf binary is marked as a relocatable file.
+        isRelocatable() helps determine if this ELF is a Kernel Module (.ko) 
+        or Object file (.o), *not* a Shared Object (.so) or executable.
         '''
         return self.e_type == ET_REL
 

@@ -17,6 +17,7 @@ import envi.const as e_const
 
 import vtrace
 import vtrace.exc as v_exc
+import vtrace.breakpoints as v_bp
 
 import vtrace.archs.arm as v_arm
 import vtrace.archs.i386 as v_i386
@@ -413,11 +414,9 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             raise Exception("PT_ATTACH failed!")
         self.setMeta("ExeName", self._findExe(pid))
 
-    def _LibraryLoadHack(self):
+    def _LibraryLoadHook(self):
         # drop special breakpoint at ld._dl_catch_exception
-        import vtrace.breakpoints as v_bp
         bp = v_bp.PosixLibLoadHookBreakpoint('ld._dl_catch_exception')
-        # FIXME: make this bp hidden and immutable (like, can't delete it!!)
         self.addBreakpoint(bp)
 
     def platformPs(self):
