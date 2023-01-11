@@ -372,7 +372,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         **kwargs is handed into the new trace to handle any platform magic
         """
-        oldtrace = self.getTrace(**kwargs)
+        oldtrace = self.getTrace()
         if oldtrace.isRunning():
             oldtrace.sendBreak()
         if oldtrace.isAttached():
