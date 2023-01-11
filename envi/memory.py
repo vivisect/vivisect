@@ -538,28 +538,6 @@ class MemoryObject(IMemory):
 
         raise e_exc.MapNotFoundException(mapva)
 
-    def collapseMaps(self, strict=True):
-        '''
-        Sort through all memory maps and collapse any which abutt.
-        If strict, only collapse if the permissions are the same.
-        Otherwise, collapse them and or the permissions together.
-
-        TODO: make all map bytes collapsed and make maps start at an offset?
-        '''
-        oldmaps = list(self._map_defs)
-        # if we have no maps, skip the whole process
-        if not len(oldmaps):
-            return
-
-        newmaps = collapseMemoryMaps(oldmaps, strict)
-
-        for ova, ovamax, ommap, obytez in oldmaps:
-            self.delMemoryMap(ova)
-
-        for cva, cvamax, cmmap, cbytez in newmaps:
-            cmva, cmsz, cmperms, cmfname = cmmap
-            self.addMemoryMap(cmva, cmperms, cmfname, cbytez)
-
     def getMemorySnap(self):
         '''
         Take a memory snapshot which may be restored later.
@@ -818,45 +796,3 @@ def memdiff(bytes1, bytes2):
             ret.append((beginoff, offset-beginoff))
         offset += 1
     return ret
-
-def collapseMemoryMaps(oldmaps, strict=True):
-    '''
-    Sort through a list of memory maps and collapse any which abutt.
-    If strict, only collapse if the permissions are the same.
-    Otherwise, collapse them and or the permissions together.
-
-    TODO: make all map bytes collapsed and make maps start at an offset?
-        or poss
-    '''
-    oldmaps.sort()
-
-    # start off with the current map as the first oldmap, and add it
-    newmaps = [oldmaps[0]]
-    curva, curvamax, curmmap, curbytez = oldmaps[0]
-
-    for omidx in range(1, len(oldmaps)):
-        ova, ovamax, ommap, obytez = oldmaps[omidx]
-        omva, omsz, omperms, omfname = ommap
-        if ova == curvamax and curmmap[3] == ommap[3] and (curmmap[2]==ommap[2] or not strict):
-            # collapse this into previous and update curvamax and curbytes if perms or not strict
-            curvamax = ovamax
-            cmva, cmsz, cmperms, cmfname = curmmap
-            if len(cmfname):
-                if len(omfname):
-                    newfname = '%s + %s' % (cmfname, omfname)
-                else:
-                    newfname = cmfname
-            else:
-                newfname = omfname
-
-            curbytez += obytez
-            curmmap = (cmva, (cmsz+omsz), (cmperms|omperms), newfname)
-            newmaps[-1] = curva, curvamax, curmmap, curbytez
-
-        else:
-            # add this map to newmaps and update cur*
-            newmaps.append(oldmaps[omidx])
-            curva, curvamax, curmmap, curbytez = oldmaps[omidx]
-
-    return newmaps
-
