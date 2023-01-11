@@ -307,7 +307,7 @@ regs_core.append('ctr')
 regs_core.append('xer')
 
 regs_fpu = ['f%d' %x for x in range(32)]
-regs_fpu.append('fpscr')
+regs_fpu.append('FPSCR')
 
 regs_altivec = ['vr%d' %x for x in range(64)]
 regs_altivec.append('vscr')
