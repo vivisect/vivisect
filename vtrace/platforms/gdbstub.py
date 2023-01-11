@@ -24,6 +24,7 @@ import time
 import errno
 import base64
 import select
+import signal
 import struct
 import socket
 import logging
@@ -2538,24 +2539,22 @@ class GdbBaseEmuServer(GdbServerStub):
         self.emu = emu
 
         if reggrps is None:
-            reggrps = ['general']
+            reggrps = [('general', 'org.gnu.gdb.i386.core')]
 
-        regfmt = self.generateRegFmt(reggrps)
         arch = emu.vw.arch._arch_name
         addr_size = emu.psize * 8
-        big_endian = emu.getEndian()    # ENDIAN_LSB = 0, so big_endian will either be 0 or 1
+        big_endian = emu.getEndian()
 
-        GdbServerStub.__init__(self, arch, addr_size, big_endian, regfmt, port, find_port)
+        # _gdb_reg_fmt will be filled in by getTargetXML()
+        GdbServerStub.__init__(self, arch, addr_size, big_endian, None, port, find_port)
+
+        self.getTargetXml(reggrps)
 
         self.runthread = None
         self.connstate = STATE_CONN_DISCONNECTED
-        self.last_signal = SIGNAL_NONE
+        self._halt_reason = SIGNAL_NONE
 
         self.symbol_iter = None
-
-        # THIS IS INELEGANT AND SHOULD BE MORE STREAMLINED SOMEWHERE ELSE?
-        (self._gdb_target_xml,
-            self._gdb_reg_fmt) = getTargetXml(emu)  # limited registers
 
         self.xfer_read_handlers = {
             b'features': {
@@ -2563,16 +2562,69 @@ class GdbBaseEmuServer(GdbServerStub):
             },
         }
 
+    def getTargetXml(self, reggrps):
+        '''
+        Takes in a RegisterContext and an archname.
+        Returns an XML file as described in the gdb-remote spec
+        Also returns a tuple mapping GDB register indexes (which we're handing to the client) 
+        to RegisterContext-based indexes for each index.
+
+        We may be *way* overcomplicating this to look like PEMicro and GDB.
+
+
+        #TODO:  make the reggrp names in envi architecture <arch>.<feature>  like "gdb.i386.core"
+        and "gdb.power.e200spr" so it's programmatic to generate the "org.gnu.gdb.power.e200spr"
+        names
+        '''
+        archmod = self.emu.imem_archs[envi.ARCH_DEFAULT]
+
+        archname = archmod._arch_name
+
+        gdbarchname = getGdbArchName(archname, self.emu.getEndian(), self.emu.getPointerSize())
+
+        # pre-calculate the envi-centric register definition lookup dictionary
+        regdefs = {}
+        for regnum, (rname, bitsize) in enumerate(self.emu.getRegDef()):
+            regdefs[rname] = (regnum, bitsize)
+
+        # features defined in https://sourceware.org/gdb/current/onlinedocs/gdb/Standard-Target-Features.html#Standard-Target-Features
+        #       PPC - https://sourceware.org/gdb/current/onlinedocs/gdb/PowerPC-Features.html
+        #       x86 - https://sourceware.org/gdb/current/onlinedocs/gdb/i386-Features.html#i386-Features
+        #       many other archs
+
+        import xml.etree.ElementTree as ET
+
+        # this will be the same as the GdbStub._gdb_reg_fmt, and should be good to use for that purpose
+        reg_idx_map = []
+        target = ET.Element('target')
+
+        arch = ET.SubElement(target, 'architecture')
+        arch.text = gdbarchname
+
+        if not reggrps:
+            for rgps in archmod.archGetRegisterGroups():
+                reggrps.append(rgps)
+
+        for group, feat_name in reggrps:
+            # the xml element to populate
+            feat = ET.SubElement(target, 'feature', {'name': feat_name})
+
+            reggrp = archmod.archGetRegisterGroup(group)
+            for rname in reggrp:
+                regnum, bitsize = regdefs[rname]
+                reg_idx_map.append((rname, bitsize, regnum))
+                #print(rname, regnum, bitsize)
+                ET.SubElement(feat, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
+
+        out = [b'<?xml version="1.0"?>',
+                b'<!DOCTYPE target SYSTEM "gdb-target.dtd">']
+        out.append(ET.tostring(target))
+
+        self._gdb_target_xml = b'\n'.join(out)
+        self._gdb_reg_fmt = reg_idx_map
+
     def setPort(self, port):
         self._gdb_port = port
-
-    def generateRegFmt(self, reggrps):
-        archname = self.emu.vw.arch._arch_name
-        arch = envi.getArchModule(archname)
-        groups = arch.archGetRegisterGroups()
-        regs = itertools.chain(regnames for grp, regnames in groups.items() if grp in reggrps)
-        regfmt = [(name, bitsize, idx) for idx, (name, bitsize) in enumerate(self.emu._rctx_regdef) if name in regs]
-        return regfmt
 
     # SERVER IMPLEMENTATION FUNCTIONS
     def _serverGetHaltSignal(self):
@@ -2698,11 +2750,11 @@ class GdbBaseEmuServer(GdbServerStub):
         Returns:
             None
         """
-        try:
-            self.emu.stepi()
-        except Exception as e:
-            print("ERROR on stepi: %r" % e)
-        return signals.SIGTRAP
+        self.emu.stepi()
+
+        # Return the trap signal
+        self._halt_reason = signal.SIGTRAP
+        return self._halt_reason
 
     def _serverDetach(self):
         """
@@ -2715,6 +2767,7 @@ class GdbBaseEmuServer(GdbServerStub):
             None
         """
         self.connstate = STATE_CONN_DISCONNECTED
+        self._halt_reason = 0
         return b'OK'
 
     def _serverQSupported(self, cmd_data):
@@ -2796,6 +2849,13 @@ class GdbBaseEmuServer(GdbServerStub):
             self._settings[cmd_data] = True
         return b'OK'
 
+    def _serverGetThread(self, cmd_data=None):
+        # The thread syntax is p<process ID>:<thread ID>
+        return b'p1:1'
+
+    def _serverGetCore(self, cmd_data=None):
+        return b'1'
+
     def _serverSetThread(self, cmd_data):
         print("setting thread:  %r" % cmd_data)
         return b'OK'
@@ -2840,66 +2900,3 @@ def getGdbArchName(arch, bigend, psize):
         return gdbarch
 
     return None
-
-def getTargetXml(emu, reggrps=[('general', 'org.gnu.gdb.i386.core')]):
-    global target, regdefs
-    '''
-    Takes in a RegisterContext and an archname.
-    Returns an XML file as described in the gdb-remote spec
-    Also returns a tuple mapping GDB register indexes (which we're handing to the client) 
-    to RegisterContext-based indexes for each index.
-
-    We may be *way* overcomplicating this to look like PEMicro and GDB.
-
-
-    #TODO:  make the reggrp names in envi architecture <arch>.<feature>  like "gdb.i386.core"
-    and "gdb.power.e200spr" so it's programmatic to generate the "org.gnu.gdb.power.e200spr"
-    names
-    '''
-    archmod = emu.imem_archs[envi.ARCH_DEFAULT]
-
-    archname = archmod._arch_name
-
-    gdbarchname = getGdbArchName(archname, emu.getEndian(), emu.getPointerSize()) #'powerpc:vle'
-
-    # pre-calculate the envi-centric register definition lookup dictionary
-    regdefs = {}
-    for regnum, (rname, bitsize) in enumerate(emu.getRegDef()):
-        regdefs[rname] = (regnum, bitsize)
-    
-    # features defined in https://sourceware.org/gdb/current/onlinedocs/gdb/Standard-Target-Features.html#Standard-Target-Features
-    #       PPC - https://sourceware.org/gdb/current/onlinedocs/gdb/PowerPC-Features.html
-    #       x86 - https://sourceware.org/gdb/current/onlinedocs/gdb/i386-Features.html#i386-Features
-    #       many other archs
-
-    import xml.etree.ElementTree as ET
-
-    # this will be the same as the GdbStub._gdb_reg_fmt, and should be good to use for that purpose
-    reg_idx_map = []
-    target = ET.Element('target')
-    
-    arch = ET.SubElement(target, 'architecture')
-    arch.text = gdbarchname
-
-    if not reggrps:
-        for rgps in archmod.archGetRegisterGroups():
-            reggrps.append(rgps)
-
-    for group, feat_name in reggrps:
-        # the xml element to populate
-        feat = ET.SubElement(target, 'feature', {'name': feat_name})
-
-        reggrp = archmod.archGetRegisterGroup(group)
-        for rname in reggrp:
-            regnum, bitsize = regdefs[rname]
-            reg_idx_map.append((rname, bitsize, regnum))
-            #print(rname, regnum, bitsize)
-            ET.SubElement(feat, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
-
-
-    out = [b'<?xml version="1.0"?>',
-            b'<!DOCTYPE target SYSTEM "gdb-target.dtd">']
-    out.append(ET.tostring(target))
-
-    return b'\n'.join(out), reg_idx_map
-
