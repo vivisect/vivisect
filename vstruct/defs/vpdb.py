@@ -26,17 +26,22 @@ class StreamDirectory(vstruct.VStruct):
         super().__init__()
         self.blockSize = blksize
         self.numStreams = v_uint32(bigend=False)
-        self.streamSizes = vstruct.VArray()
-        self.streamBlocks = vstruct.VArray()
+        # self.streamSizes = vstruct.VArray()
+        # self.streamBlocks = vstruct.VArray()
 
-    def pcb_numstreams(self):
-        self.streamSizes = vstruct.VArray([v_uint32(bigend=False) for i in range(self.numstreams)])
+    def pcb_numStreams(self):
+        self.streamSizes = vstruct.VArray([v_uint32(bigend=False) for i in range(self.numStreams)])
 
-    def pcb_streamsizes(self):
+    def pcb_streamSizes(self):
         nums = []
-        for _, valu in self.streamSizes:
+        maxSize = 2 ** 32 - 1
+        for idx, valu in self.streamSizes:
+            if valu == maxSize:
+                nums.append(0)
+                continue
             nums.append(math.ceil(int(valu)/self.blockSize))
 
+        self.streamBlocks = vstruct.VArray()
         for numblks in nums:
             blks = vstruct.VArray([v_uint32(bigend=False) for i in range(numblks)])
             self.streamBlocks.vsAddElement(blks)
