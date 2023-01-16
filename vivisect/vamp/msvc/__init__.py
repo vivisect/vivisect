@@ -6,30 +6,47 @@ import binascii
 import envi.bytesig as e_bytesig
 
 sigs = [
-    ('680000000064a10000000050', 'ff00000000ffffffffffffff','ntdll.seh3_prolog'),
+    ('680000000064a10000000050', 'ff00000000ffffffffffffff', 'ntdll.seh3_prolog'),
     ('8b4df064890d00000000595f5e5bc951c3', None, 'ntdll.seh3_epilog'),
-    ('8b4df064890d00000000595f5f5e5b8be55d51c3', None, 'ntdll.seh4_epilog'),
     ('680000000064ff35000000008b442410', 'ff00000000ffffffffffffffffffffff', 'ntdll.seh4_prolog'),
-    ('a10000000033c58945fc','ff00000000ffffffffff','ntdll.gs_prolog'),
+    # Seen in 32-bit samples using VS 2005, 2008, 2010, 2012, 2013.
+    ('8b4df064890d00000000595f5f5e5b8be55d51c3', None, 'ntdll.seh4_epilog'),
+    # Seen in 32-bit samples using VS 2015, 2017 15.0.
+    ('8b4df064890d00000000595f5f5e5b8be55d51f2c3', None, 'ntdll.seh4_epilog'),
+    ('a10000000033c58945fc', 'ff00000000ffffffffff', 'ntdll.gs_prolog'),
 
-    ('513d001000008d4c2408721481e9001000002d0010000085013d0010000073ec2bc88bc485018be18b088b400450c3', None, 'ntdll._alloca_probe'),  #32-bit VS 6.0
-    ('518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8720a8bc159948b00890424c32d001000008500ebe9', None, 'ntdll._alloca_probe'),  # 32-bit VS 2005, 2008, 2010, 2012, 2013
-    ('518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8f2720b8bc159948b00890424f2c32d001000008500ebe7', None, 'ntdll._alloca_probe'),  # 32-bit VS 2015, 2017, 2019
-    ('4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd37316664181e200f04d8d9b00f0ffff41c603004d3bd375f04c8b14244c8b5c24084883c410c3', None, 'ntdll._alloca_probe'),  # 64-bit VS 2005, 2008, 2010, 2012, 2013, 2015
-    ('4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd3f27317664181e200f04d8d9b00f0ffff41c603004d3bd3f275ef4c8b14244c8b5c24084883c410f2c3', None, 'ntdll._alloca_probe'),  # 64-bit VS 2017, 2019
+    # Seen in 32-bit samples using VS 6.
+    ('513d001000008d4c2408721481e9001000002d0010000085013d0010000073ec2bc88bc485018be18b088b400450c3', None, 'ntdll._alloca_probe'),
+    # Seen in 32-bit samples using VS 2005, 2008, 2010, 2012, 2013.
+    ('518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8720a8bc159948b00890424c32d001000008500ebe9', None, 'ntdll._alloca_probe'),
+    # Seen in 32-bit samples using VS 2015, 2017, 2019.
+    ('518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8f2720b8bc159948b00890424f2c32d001000008500ebe7', None, 'ntdll._alloca_probe'),
+    # Seen in 64-bit samples using VS 2005, 2008, 2010, 2012, 2013, 2015.
+    ('4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd37316664181e200f04d8d9b00f0ffff41c603004d3bd375f04c8b14244c8b5c24084883c410c3', None, 'ntdll._alloca_probe'),
+    # Seen in 64-bit samples using VS 2017, 2019.
+    ('4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd3f27317664181e200f04d8d9b00f0ffff41c603004d3bd3f275ef4c8b14244c8b5c24084883c410f2c3', None, 'ntdll._alloca_probe'),
 
-    ('3b0d000000000f85afdc0200c3', 'ffff00000000ffffffffffffff', 'ntdll.security_check_cookie'),
+#    ('3b0d000000000f85afdc0200c3', 'ffff00000000ffffffffffffff', 'ntdll.security_check_cookie'),
+    # 32-bit assembly used in VS 2005, 2008, 2010, 2012, 2013.
+    ('3b0d000000007502f3c3e9', 'ffff00000000ffffffffff','ntdll.security_check_cookie'),
+    # 32-bit assembly used in VS 2015, 2017 (includes bnd opcodes).
+    ('3b0d00000000f27502f2c3f2e9', 'ffff00000000ffffffffffffff', 'ntdll.security_check_cookie'),
+    # 64-bit assembly used in VS 2005, 2008, 2010, 2012, 2013.
+    ('483b0d00000000751148c1c11066f7c1ffff7502f3c348c1c910e9', 'ffffff00000000ffffffffffffffffffffffffffffffffffffffff', 'ntdll.security_check_cookie_64'),
+    # 64-bit assembly used in VS 2015.
+    ('483b0d00000000f2751148c1c11066f7c1fffff27502f2c348c1c910e9', 'ffffff00000000ffffffffffffffffffffffffffffffffffffffffffff', 'ntdll.security_check_cookie_64'),
+    # 64-bit assembly used in VS 2019.
+    ('483b0d00000000f2751248c1c11066f7c1fffff27502f2c348c1c910e9', 'ffffff00000000ffffffffffffffffffffffffffffffffffffffffffff', 'ntdll.security_check_cookie_64'),
+
     ('8bff558bec5151a300000000890d00000000891500000000891d00000000893500000000893d000000008c15000000008c0d000000008c1d000000008c05000000008c25000000008c2d000000009c',
      'ffffffffffffffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ff',
      'ntdll.report_gsfailure',
     ),
-
     ('8bff558bec81ec28030000a300000000890d00000000891500000000891d00000000893500000000893d00000000668c1500000000668c0d00000000668c1d00000000668c0500000000668c2500000000668c2d000000009c',
      'ffffffffffffffffffffffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ff',
      'ntdll.report_gsfailure',
     ),
 
-    ('3b0d000000007502f3c3e9', 'ffff00000000ffffffffff','ntdll.security_check_cookie'),
     ('6aff5064a100000000508b44240c64892500000000896c240c8d6c240c50c3',None, 'ntdll.eh_prolog'),
 
 ]
