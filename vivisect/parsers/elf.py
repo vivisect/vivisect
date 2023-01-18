@@ -44,6 +44,89 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('FIXME implement parseMemory for elf!')
 
+def getMemBaseAndSize(vw, elf, baseaddr=None):
+    '''
+    Returns the default baseaddr and memory size required to load the file
+    '''
+    savebase = baseaddr
+
+    memmaps = getMemoryMapInfo(elf)
+    baseaddr = 0xffffffffffffffffffffffff
+    topmem = 0
+
+    for mapva, mperms, mname, mbytes, malign in memmaps:
+        if mapva < baseaddr:
+            baseaddr = mapva & -e_const.PAGE_SIZE   # align to page-size
+        endva = mapva + len(mbytes)
+        if endva > topmem:
+            topmem = endva
+
+    size = topmem - baseaddr
+
+    if baseaddr == 0 and not elf.isRelocatable():
+        baseaddr = vw.config.viv.parsers.elf.baseaddr
+        
+    if savebase:
+        # if we provided a baseaddr, override what the file wants
+        baseaddr = savebase
+        
+    return baseaddr, size
+
+
+
+def getMemoryMapInfo(elf, fname=None, baseaddr=None):
+    '''
+    Gets the default baseaddr and memory map information
+    All the information necessary to add memory maps (or get overall size info)
+    '''
+    memmaps = []
+
+    addbase, baseoff, baseaddr = getAddBaseAddr(elf, baseaddr)
+
+    pgms = elf.getPheaders()
+    for pgm in pgms:
+        if pgm.p_type == Elf.PT_LOAD:
+            if pgm.p_memsz == 0:
+                continue
+            logger.info('Loading: %s', pgm)
+            bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
+            bytez += b'\x00' * (pgm.p_memsz - pgm.p_filesz)
+            pva = pgm.p_vaddr
+            pva += baseoff
+            memmaps.append((pva, pgm.p_flags & 0x7, fname, bytez, e_const.PAGE_SIZE))
+        else:
+            logger.info('Skipping: %s', pgm)
+
+    if len(pgms) == 0:
+        # NOTE: among other file types, Linux Kernel modules have no program headers
+        secs = elf.getSections()
+        # fall back to loading sections as best we can...
+        logger.info('elf: no program headers found! (in %r)', fname)
+
+        maps = [ [s.sh_offset,s.sh_size,s.sh_addralign] for s in secs if s.sh_offset and s.sh_size ]
+        maps.sort()
+
+        merged = []
+        for i in range(len(maps)):
+
+            if merged and maps[i][0] == (merged[-1][0] + merged[-1][1]):
+                merged[-1][1] += maps[i][1]
+                continue
+
+            merged.append( maps[i] )
+
+        for offset,size,align in merged:
+            bytez = elf.readAtOffset(offset,size)
+            memmaps.append((baseaddr + offset, 0x7, fname, bytez, align))
+
+        for sec in secs:
+            if sec.sh_offset and sec.sh_size:
+                sec.sh_addr = baseaddr + sec.sh_offset
+
+    return memmaps
+
+
+
 def makeStringTable(vw, va, maxva):
 
     while va < maxva:
@@ -69,7 +152,8 @@ def makeSymbolTable(vw, va, maxva):
         va += len(s)
     return ret
 
-def makeDynamicTable(vw, va, maxva):
+def makeDynamicTable(vw, va, maxva, baseoff=0):
+    logger.debug("0x%x -> 0x%x", va, maxva)
     ret = []
     sname = 'elf.Elf%dDynamic' % (vw.getPointerSize() * 8)
     while va < maxva:
@@ -83,7 +167,7 @@ def makeDynamicTable(vw, va, maxva):
             break
     return ret
 
-def makeRelocTable(vw, va, maxva, addbase, baseaddr, addend=False):
+def makeRelocTable(vw, va, maxva, baseoff, addend=False):
     if addend:
         sname = 'elf.Elf%dReloca' % (vw.getPointerSize() * 8)
     else:
@@ -95,8 +179,8 @@ def makeRelocTable(vw, va, maxva, addbase, baseaddr, addend=False):
         vw.setComment(va, tname)
         va += len(s)
 
-def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0, addbase=False):
-    logger.debug('makeFunctionTable(tbladdr=0x%x, size=0x%x, tblname=%r,  baseaddr=0x%x)', tbladdr, size, tblname, baseaddr)
+def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseoff=0):
+    logger.debug('makeFunctionTable(tbladdr=0x%x, size=0x%x, tblname=%r,  baseoff=0x%x)', tbladdr, size, tblname, baseoff)
     psize = vw.getPointerSize()
 
     # If the provided buffer is shorter than the standard pointer size, use the
@@ -107,19 +191,17 @@ def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseaddr=0, 
     fmtgrps = e_bits.fmt_chars[vw.getEndian()]
     pfmt = fmtgrps[psize]
     secbytes = elf.readAtRva(tbladdr, size)
-    if addbase:
-        tbladdr += baseaddr
+    tbladdr += baseoff
 
     ptr_count = 0
     for off in range(0, size, psize):
         addr, = struct.unpack_from(pfmt, secbytes, off)
-        if addbase:
-            addr += baseaddr
+        addr += baseoff
 
         nstub = tblname + "_%d"
         pname = nstub % ptr_count
 
-        vw.makeName(addr, pname, filelocal=True)
+        vw.makeName(addr, pname, filelocal=True, makeuniq=True)
         ptrs.append((tbladdr + off, addr, pname))
         funcs.append((pname, addr))
         ptr_count += 1
@@ -146,11 +228,60 @@ archcalls = {
     'rv64': 'lp64d',
 }
 
+def getAddBaseAddr(elf, baseaddr=None):
+    '''
+    # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.
+    '''
+    baseoff = 0
+    logger.debug("baseaddr: %r\tbaseoff: 0x%x", baseaddr, baseoff)
+    elfbaseaddr = elf.getBaseAddress()
+    if baseaddr is None:
+        baseaddr = elfbaseaddr
+
+    if not elf.isPreLinked() and elf.isSharedObject():
+        addbase = True
+        baseoff = baseaddr
+
+    elif elf.isRelocatable():
+        addbase = True
+        baseoff = 0
+
+    else:
+        addbase = False
+        baseoff = baseaddr - elfbaseaddr
+
+    logger.debug("baseaddr: %r\tbaseoff: 0x%x", baseaddr, baseoff)
+    return addbase, baseoff, baseaddr
+
+# which Dynamic Types require rebasing
+dt_rebase = (
+        Elf.DT_INIT, 
+        Elf.DT_FINI, 
+        Elf.DT_INIT_ARRAY, 
+        Elf.DT_FINI_ARRAY, 
+        Elf.DT_GNU_HASH,
+        Elf.DT_STRTAB,
+        Elf.DT_SYMTAB,
+        Elf.DT_PLTGOT,
+        Elf.DT_JMPREL,
+        Elf.DT_REL,
+        Elf.DT_VERNEED,
+)
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # analysis of discovered functions and data locations should be stored until the end of loading
+    logger.info("loadElfIntoWorkspace(filename=%r, baseaddr: %r", filename, baseaddr)
     data_ptrs = []
     new_pointers = []
     new_functions = []
+
+    # get baseaddr and size, then make sure we have a good baseaddr
+    filebaseaddr, size = getMemBaseAndSize(vw, elf, baseaddr=baseaddr)
+    if baseaddr is None:
+        baseaddr = filebaseaddr
+
+    logger.debug('initial file baseva: 0x%x  size: 0x%x', baseaddr, size)
+    baseaddr = vw.findFreeMemoryBlock(size, baseaddr)
+    logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
 
     arch = arch_names.get(elf.e_machine)
     if isinstance(arch, dict):
@@ -183,16 +314,13 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     vw.addNoReturnApi("*.pthread_exit")
     vw.addNoReturnApi("*.longjmp")
 
-    # for VivWorkspace, MSB==1, LSB==0... which is the same as True/False
+    # for VivWorkspace, MSB==1, LSB==0... which is the same as True/False for Big-Endian
     vw.setEndian(elf.getEndian())
 
     # Base addr is earliest section address rounded to pagesize
-    # NOTE: This is only for prelink'd so's and exe's.  Make something for old style so.
-    addbase = False
-    if not elf.isPreLinked() and elf.isSharedObject():
-        addbase = True
-    if baseaddr is None:
-        baseaddr = elf.getBaseAddress()
+    # Some ELF's require adding the baseaddr to most/all later addresses
+    addbase, baseoff, baseaddr = getAddBaseAddr(elf, baseaddr)
+    logger.warning("addbase: %r, baseoff: 0x%x, baseaddr: 0x%x", addbase, baseoff, baseaddr)
 
     elf.fd.seek(0)
     md5hash = v_parsers.md5Bytes(byts)
@@ -222,50 +350,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     for sec in elf.getSections():
         secnames.append(sec.getName())
 
-    pgms = elf.getPheaders()
     secs = elf.getSections()
 
-    for pgm in pgms:
-        if pgm.p_type == Elf.PT_LOAD:
-            if pgm.p_memsz == 0:
-                continue
-            logger.info('Loading: %s', pgm)
-            bytez = elf.readAtOffset(pgm.p_offset, pgm.p_filesz)
-            bytez += b'\x00' * (pgm.p_memsz - pgm.p_filesz)
-            pva = pgm.p_vaddr
-            if addbase:
-                pva += baseaddr
-            vw.addMemoryMap(pva, pgm.p_flags & 0x7, fname, bytez, align=e_const.PAGE_SIZE)
-        else:
-            logger.info('Skipping: %s', pgm)
-
-    if len(pgms) == 0:
-        # fall back to loading sections as best we can...
-        vw.vprint('elf: no program headers found!')
-
-        maps = [ [s.sh_offset,s.sh_size] for s in secs if s.sh_offset and s.sh_size ]
-        maps.sort()
-
-        merged = []
-        for i in range(len(maps)):
-
-            if merged and maps[i][0] == (merged[-1][0] + merged[-1][1]):
-                merged[-1][1] += maps[i][1]
-                continue
-
-            merged.append( maps[i] )
-
-        baseaddr = 0x05000000
-        if elf.isRelocatable():
-            baseaddr = 0
-        for offset, size in merged:
-            bytez = elf.readAtOffset(offset,size)
-            vw.addMemoryMap(baseaddr + offset, 0x7, fname, bytez)
-
-        for sec in secs:
-            if sec.sh_offset and sec.sh_size:
-                sec.sh_addr = baseaddr + sec.sh_offset
-
+    for mmapva, mmperms, mfname, mbytez, malign in getMemoryMapInfo(elf, fname, baseaddr):
+        logger.debug("vw.addMemoryMap(0x%x, 0x%x, %r, 0x%x, 0x%x)", mmapva, mmperms, mfname, len(mbytez), malign)
+        vw.addMemoryMap(mmapva, mmperms, mfname, mbytez, malign)
 
     # First add all section definitions so we have them
     for sec in secs:
@@ -275,8 +364,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             continue # Skip non-memory mapped sections
 
         sva = sec.sh_addr
-        if addbase:
-            sva += baseaddr
+        sva += baseoff
 
         vw.addSegment(sva, size, sname, fname)
 
@@ -291,8 +379,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 continue
 
             sva = phdr.p_vaddr
-            if addbase:
-                sva += baseaddr
+            sva += baseoff
 
             vw.addSegment(sva, phdr.p_memsz, 'PHDR%d' % pcount, fname)
             pcount += 1
@@ -300,54 +387,49 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # load information from dynamics:
     f_init = elf.dyns.get(Elf.DT_INIT)
     if f_init is not None:
-        if addbase:
-            f_init += baseaddr
-        vw.makeName(f_init, "init_function", filelocal=True)
+        f_init += baseoff
+        vw.makeName(f_init, "init_function", filelocal=True, makeuniq=True)
         vw.addEntryPoint(f_init)
 
     f_fini = elf.dyns.get(Elf.DT_FINI)
     if f_fini is not None:
-        if addbase:
-            f_fini += baseaddr
-        vw.makeName(f_fini, "fini_function", filelocal=True)
+        f_fini += baseoff
+        vw.makeName(f_fini, "fini_function", filelocal=True, makeuniq=True)
         vw.addEntryPoint(f_fini)
 
     f_inita = elf.dyns.get(Elf.DT_INIT_ARRAY)
     if f_inita is not None:
         f_initasz = elf.dyns.get(Elf.DT_INIT_ARRAYSZ)
-        makeFunctionTable(elf, vw, f_inita, f_initasz, 'init_array', new_functions, new_pointers, baseaddr, addbase)
+        makeFunctionTable(elf, vw, f_inita, f_initasz, 'init_array', new_functions, new_pointers, baseoff)
 
     f_finia = elf.dyns.get(Elf.DT_FINI_ARRAY)
     if f_finia is not None:
         f_finiasz = elf.dyns.get(Elf.DT_FINI_ARRAYSZ)
-        makeFunctionTable(elf, vw, f_finia, f_finiasz, 'fini_array', new_functions, new_pointers, baseaddr, addbase)
+        makeFunctionTable(elf, vw, f_finia, f_finiasz, 'fini_array', new_functions, new_pointers, baseoff)
 
     f_preinita = elf.dyns.get(Elf.DT_PREINIT_ARRAY)
     if f_preinita is not None:
         f_preinitasz = elf.dyns.get(Elf.DT_PREINIT_ARRAYSZ)
-        makeFunctionTable(elf, vw, f_preinita, f_preinitasz, 'preinit_array', new_functions, new_pointers, baseaddr, addbase)
+        makeFunctionTable(elf, vw, f_preinita, f_preinitasz, 'preinit_array', new_functions, new_pointers, baseoff)
 
     # dynamic table
-    phdr = elf.getDynPHdr()    # file offset?
+    phdr = elf.getDynPHdr()     # this is the Program Header which points at the DYNAMICS table, not the other way around.
     if phdr is not None:
         sva, size = phdr.p_vaddr, phdr.p_memsz
-        if addbase:
-            sva += baseaddr     # getDynInfo returns (offset, filesz)
-        makeDynamicTable(vw, sva, sva+size)
+        sva += baseoff     # getDynInfo returns (offset, filesz)
+        makeDynamicTable(vw, sva, sva+size, baseoff)
         # if there's no Dynamics PHDR, don't bother trying to parse it from Sections.  It doesn't exist.
 
     # dynstr table
     sva, size = elf.getDynStrTabInfo()
     if sva is not None:
-        if addbase:
-            sva += baseaddr
+        sva += baseoff
         makeStringTable(vw, sva, sva+size)
 
     # dynsyms table
     sva, symsz, size = elf.getDynSymTabInfo()
     if sva is not None:
-        if addbase:
-            sva += baseaddr
+        sva += baseoff
         [s for s in makeSymbolTable(vw, sva, sva+size)]
 
     # Now trigger section specific analysis
@@ -359,8 +441,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             continue # Skip non-memory mapped sections
 
         sva = sec.sh_addr
-        if addbase:
-            sva += baseaddr
+        sva += baseoff
 
         # if we've already defined a location at this address, skip it. (eg. DYNAMICS)
         if vw.getLocation(sva) == sva:
@@ -376,7 +457,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 new_functions.append(init_tup)
 
         elif sname == ".init_array":
-            makeFunctionTable(elf, vw, sec.sh_addr, size, 'init_function', new_functions, new_pointers, baseaddr, addbase)
+            makeFunctionTable(elf, vw, sec.sh_addr, size, 'init_function', new_functions, new_pointers, baseoff)
 
         elif sname == ".fini":
             fini_tup = ("fini_function", sva)
@@ -385,10 +466,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 new_functions.append(fini_tup)
 
         elif sname == ".fini_array":
-            makeFunctionTable(elf, vw, sec.sh_addr, size, 'fini_function', new_functions, new_pointers, baseaddr, addbase)
+            makeFunctionTable(elf, vw, sec.sh_addr, size, 'fini_function', new_functions, new_pointers, baseoff)
 
         elif sname == ".dynamic":  # Imports
-            makeDynamicTable(vw, sva, sva+size)
+            makeDynamicTable(vw, sva, sva+size, baseoff)
 
         elif sname == ".dynstr":  # String table for dynamics
             makeStringTable(vw, sva, sva+size)
@@ -404,10 +485,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             makeSymbolTable(vw, sva, sva+size)
 
         elif sec.sh_type == Elf.SHT_REL:
-            makeRelocTable(vw, sva, sva+size, addbase, baseaddr)
+            makeRelocTable(vw, sva, sva+size, baseoff)
 
         elif sec.sh_type == Elf.SHT_RELA:
-            makeRelocTable(vw, sva, sva+size, addbase, baseaddr, addend=True)
+            makeRelocTable(vw, sva, sva+size, baseoff, addend=True)
 
         if sec.sh_flags & Elf.SHF_STRINGS:
             makeStringTable(vw, sva, sva+size)
@@ -421,18 +502,23 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             vw.addLibraryDependancy(name)
         else:
             logger.debug("DYNAMIC:\t%r", d)
+        
+        dval = d.d_value
+        if d.d_tag in dt_rebase and addbase:
+            dval += baseoff
 
-        elfmeta[Elf.dt_names.get(d.d_tag)] = d.d_value
+        elfmeta[Elf.dt_names.get(d.d_tag)] = dval
 
     # TODO: create a VaSet instead? setMeta allows more free-form info,
     # but isn't currently accessible from the gui
     vw.setFileMeta(fname, 'ELF_DYNAMICS', elfmeta)
     vw.setFileMeta(fname, 'addbase', addbase)
+    vw.setFileMeta(fname, 'baseoff', baseoff)
 
     # applyRelocs is specifically prior to "process Dynamic Symbols" because Dynamics-only symbols
     # (ie. not using Section Headers) may not get all the symbols.  Some ELF's simply list too
     # small a space using SYMTAB and SYMTABSZ
-    postfix = applyRelocs(elf, vw, addbase, baseaddr)
+    postfix = applyRelocs(elf, vw, addbase, baseoff)
 
     # process Dynamic Symbols - this must happen *after* relocations, which can expand the size of this
     for s in elf.getDynSyms():
@@ -441,8 +527,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         if sva == 0:
             continue
-        if addbase:
-            sva += baseaddr
+
+        sva += baseoff
         if sva == 0:
             continue
 
@@ -469,8 +555,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             # So aparently Elf64 binaries on amd64 use HIOS and then
             # s.st_other cause that's what all the kewl kids are doing...
             sva = s.st_other
-            if addbase:
-                sva += baseaddr
+            sva += baseoff
             if vw.isValidPointer(sva):
                 try:
                     new_functions.append(("DynSym: STT_HIOS", sva))
@@ -481,8 +566,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         elif stype == Elf.STT_MDPROC:    # there's only one that isn't HI or LO...
             sva = s.st_other
-            if addbase:
-                sva += baseaddr
+            sva += baseoff
             if vw.isValidPointer(sva):
                 try:
                     vw.addExport(sva, EXP_DATA, dmglname, fname, makeuniq=True)
@@ -495,13 +579,13 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         if dmglname in postfix:
             for rlva, addend in postfix[dmglname]:
-                if addbase:
-                    vw.addRelocation(rlva, RTYPE_BASEPTR, sva + addend - baseaddr)
-                else:
-                    vw.addRelocation(rlva, RTYPE_BASEPTR, sva + addend)
+                vw.addRelocation(rlva, RTYPE_BASEPTR, sva + addend - baseoff)
 
-    vw.addVaSet("FileSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
-    vw.addVaSet("WeakSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
+    vaSetNames = vw.getVaSetNames()
+    if not 'FileSymbols' in vaSetNames:
+        vw.addVaSet("FileSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
+    if not 'WeakSymbols' in vaSetNames:
+        vw.addVaSet("WeakSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
 
     # apply symbols to workspace (if any)
     relocs = [r for idx, r in elf.getRelocs()]
@@ -527,15 +611,16 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                                                                         Elf.st_info_bind.get(s.getInfoBind(), s.st_other),
                                                                         s.name)
 
-        if s.getInfoType() == Elf.STT_FILE:
+        symtype = s.getInfoType()
+        if symtype == Elf.STT_FILE:
             vw.setVaSetRow('FileSymbols', (dmglname, sva))
             continue
-        elif s.getInfoType() == Elf.STT_NOTYPE:
+
+        elif symtype == Elf.STT_NOTYPE:
             # mapping symbol
             if arch in ('arm', 'thumb', 'thumb16'):
                 symname = s.getName()
-                if addbase:
-                    sva += baseaddr
+                sva += baseoff
                 if symname == '$a':
                     # ARM code
                     logger.info('mapping (NOTYPE) ARM symbol: 0x%x: %r', sva, dmglname)
@@ -550,10 +635,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     # Data Items (eg. literal pool)
                     logger.info('mapping (NOTYPE) data symbol: 0x%x: %r', sva, dmglname)
                     data_ptrs.append(sva)
-        elif s.getInfoType() == Elf.STT_OBJECT:
+        elif symtype == Elf.STT_OBJECT:
             symname = s.getName()
-            if addbase:
-                sva += baseaddr
+            sva += baseoff
             if symname:
                 vw.makeName(sva, symname, filelocal=True, makeuniq=True)
                 valu = vw.readMemoryPtr(sva)
@@ -601,8 +685,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         # TODO: make use of _ZTSN (typeinfo) and _ZTVN (vtable) entries if name demangles cleanly
 
-        if addbase:
-            sva += baseaddr
+        sva += baseoff
         if vw.isValidPointer(sva) and len(dmglname):
             try:
                 if s.getInfoBind() == Elf.STB_WEAK:
@@ -623,10 +706,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         if s.getInfoType() == Elf.STT_FUNC:
             new_functions.append(("STT_FUNC", sva))
 
-    if addbase:
-        eentry = baseaddr + elf.e_entry
-    else:
-        eentry = elf.e_entry
+    eentry = baseoff + elf.e_entry
 
     if vw.isValidPointer(eentry):
         vw.addExport(eentry, EXP_FUNCTION, '__entry', fname)
@@ -655,7 +735,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     return fname
 
 
-def applyRelocs(elf, vw, addbase=False, baseaddr=0):
+def applyRelocs(elf, vw, addbase=False, baseoff=0):
     '''
     process relocations / strings (relocs use Dynamic Symbols)
     '''
@@ -665,15 +745,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
     for secidx, r in elf.getRelocs():
         rtype = r.getType()
         rlva = r.r_offset
-        if elf.isRelocatable():
-            container = elf.getSectionByIndex(secidx)
-            if container.sh_flags & elf_lookup.SHF_INFO_LINK:
-                othr = elf.getSectionByIndex(container.sh_info)
-                if othr:
-                    rlva += othr.sh_addr
-
-        if addbase:
-            rlva += baseaddr
+        rlva += baseoff
         try:
             # If it has a name, it's an externally resolved "import" entry,
             # otherwise, just a regular reloc
@@ -821,8 +893,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                             vw.makeName(rlva, pname)
 
                         # name the target as well
-                        if addbase:
-                            ptr += baseaddr
+                        ptr += baseoff
                         # normalize thumb addresses
                         ptr &= -2
                         vw.makeName(ptr, name)
@@ -849,8 +920,7 @@ def applyRelocs(elf, vw, addbase=False, baseaddr=0):
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
 
-                        if addbase:
-                            ptr += baseaddr
+                        ptr += baseoff
                         vw.makeImport(ptr, "*", dmglname)
                         vw.setComment(ptr, name)
 
@@ -1005,3 +1075,37 @@ def isStripped(elf):
         return True
 
     return False
+
+
+'''
+Base Offsets are complicated, so let's break them down a bit.
+
+Base Offsets originally refered to whether to add a base address to values to come up with a virtual address.
+Variations of ELFs that regularly cause problems/differences:
+    * Shared Objects
+    * Kernel Modules / Object files
+    * Prelinked SO's and EXEs
+
+Accesses which are impacted by these addresses/offsets:
+    * Pointer to Program Headers
+    * Pointer to Section Headers
+    * Program Headers
+    * Sections
+    * Dynamics Table
+    * Dynamics Entries (see dt_rebase for existing list which require adding base offsets)
+    Via either Sections or Dynamics:
+        * String Table(s)
+        * Symbol Table(s)
+        * Relocs Table(s)
+        * GOT
+        * PLT
+        * INIT / FINI
+        * INIT_ARRAY / FINI_ARRAY / PREINIT_ARRAY
+        * ???  Dwarf?
+
+If a file isn't intended for relocation, this can cause problems because:
+    * Pointers can be hard-coded into the instructions themselves
+    * ELF headers/Dynamics can not understand the relocatable parts
+
+    
+'''

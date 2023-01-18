@@ -20,6 +20,7 @@ def addAnalysisModules(vw):
 
     if fmt == 'pe':
 
+        vw.addAnalysisModule("vivisect.analysis.generic.linker")
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.pe")
 
@@ -141,15 +142,19 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.elf.elfplt")
         # late-analysis ELF PLT tidying up, allowing unused PLT entries to be made into functions
         vw.addAnalysisModule("vivisect.analysis.elf.elfplt_late")
+        vw.addAnalysisModule("vivisect.analysis.generic.linker")
         vw.addAnalysisModule("vivisect.analysis.generic.thunks")
         vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
     elif fmt == 'macho': # MACH-O ###################################################
 
+        vw.addAnalysisModule("vivisect.analysis.generic.linker")
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         if arch == 'i386':
             viv_analysis_i386.addEntrySigs(vw)
             vw.addAnalysisModule("vivisect.analysis.i386.importcalls")
+
+        vw.addStructureModule('osx', 'vstruct.defs.macho')
 
         # Add the one that brute force finds function entry signatures
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")
