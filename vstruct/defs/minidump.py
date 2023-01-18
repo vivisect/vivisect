@@ -3,6 +3,8 @@ import logging
 import vstruct
 from vstruct.primitives import *
 
+logger = logging.getLogger(__name__)
+
 class MiniDumpString(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
@@ -570,7 +572,7 @@ class MiniDump(object):
                 stream = vars(self)[sclass.__name__] = sclass()
                 stream.vsParse(bytez, offset=soffset)
             else:
-                logging.info('Unknown stream type of %d', header.StreamType)
+                logger.info('Unknown stream type of %d', header.StreamType)
 
     def tree(self):
         txt = []
