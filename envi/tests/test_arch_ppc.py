@@ -1578,13 +1578,13 @@ class PpcInstructionSet(unittest.TestCase):
         emu.setRegisterByName('r1', r1)
         emu.setRegisterByName('cr', cr)
         emu.setRegisterByName('xer', xer)
-        emu.setRegisterByName('FPSCR', fpscr)
+        emu.setRegisterByName('fpscr', fpscr)
 
         emu.executeOpcode(op)
 
         newcr = int(emu.getRegisterByName('cr'))
         newxer = int(emu.getRegisterByName('xer'))
-        newfpscr = int(emu.getRegisterByName('FPSCR'))
+        newfpscr = int(emu.getRegisterByName('fpscr'))
 
         tmpl = "%r:  r0:%x r1:%x cr:%x xer:%x   ncr:%x nxer:%x nfpscr:%x   ecr:%x exer:%x efpscr:%x"
         self.assertEqual((newcr, newxer, newfpscr), (expcr, expxer, expfpscr), \
