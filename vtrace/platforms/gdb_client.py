@@ -24,14 +24,9 @@ class GdbStubMixin(gdbstub.GdbClientStub):
     """
 
     def __init__(self, arch_name, host, port, server, psize=8, endian=False):
-        gdbstub.GdbClientStub.__init__(self, 
-                    arch_name,
-                    psize * 8, #TODO: pointer size in bits,
-                    endian,
-                    self._getRegFmt(arch_name, server), #TODO: reg formats,
-                    host,
-                    port,
-                    server)
+        gdbstub.GdbClientStub.__init__(self, arch_name, psize, endian,
+                                       self._getRegFmt(arch_name, server),
+                                       host, port, server)
 
         self.ctx = envi.getArchModule(arch_name).archGetRegCtx()
         self._rctx_pcindex = self.ctx._rctx_pcindex
@@ -82,19 +77,11 @@ class GdbStubMixin(gdbstub.GdbClientStub):
     def _gdbJustAttached(self):
         '''
         '''
-        try:
-            logger.info("attempting to pull register metadata from GDB Server")
-            self._gdb_reg_fmt = self._processTargetMeta()
+        logger.info("attempting to pull register metadata from GDB Server")
+        self._gdb_reg_fmt = self._processTargetMeta()
 
-        except Exception as e:
-            logger.warning("Exception reading registers dynamically: %r", e)
-
-    def _setGdbArchitecture(self, gdbarch):
-        '''
-        GdbStubMixin version.  Calls GdbStub's version
-        '''
-        self.setGdbArchitecture(gdbarch)  # powerpc:vle - style
-        envi.stealArchMethods(self, self._arch)   # self._arch should be updated in the prev call
+    def setGdbArchitecture(self, gdbarch):
+        envi.stealArchMethods(self, self._arch)
         print("ARCH: %r" % self.arch)
         self.ctx = self.arch.archGetRegCtx()
         self._rctx_pcindex = self.ctx._rctx_pcindex
@@ -329,14 +316,9 @@ class GdbStubMixin(gdbstub.GdbClientStub):
         # for now... perhaps we'll use this later to automatically update from the target....
         pass
 
-    def _gdbSetArch(self, arch):
-        reginfo
-
     def _gdbLoadLibraries(self):
         if self._gdb_filemagic:
             self._findLibraryMaps(self._gdb_filemagic, always=True)
-
-
 
 
 class GdbStubTrace(

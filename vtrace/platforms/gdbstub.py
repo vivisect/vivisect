@@ -20,6 +20,7 @@ to follow.
 Consuming the client and server stubs should be done via inheritance.
 """
 
+import os
 import time
 import errno
 import base64
@@ -31,12 +32,13 @@ import logging
 import os.path
 import binascii
 import itertools
+import collections
 from lxml import etree
 from io import StringIO
 from binascii import hexlify, unhexlify
 
 from . import gdb_reg_fmts
-from .gdb_reg_fmts import ARCH_META, GDBARCH_LOOKUP
+from .gdb_reg_fmts import ARCH_META
 
 import envi
 import envi.exc as e_exc
@@ -65,12 +67,6 @@ STATE_TGT_PAUSED = 2
 
 SIGNAL_NONE = 0
 
-# THESE ARE COMPLETELY MADE UP.  FIXME
-HALT_NONE = 0
-HALT_ATTACH = 5
-HALT_BREAK = 10
-
-
 
 class GdbDTDResolver(etree.Resolver):
     def resolve(self, url, id, context):
@@ -80,16 +76,30 @@ class GdbDTDResolver(etree.Resolver):
                 return self.resolve_string(f.read(), context)
 
 
+# constants to make it easier to keep track of which tuple index in the gdb 
+# register format is which
+REG_FMT_SIZE = 0
+REG_FMT_IDX  = 1
+
+ENVI_TO_GDB_IDX  = 0
+ENVI_TO_GDB_NAME = 1
+ENVI_TO_GDB_SIZE = 2
+
+GDB_TO_ENVI_IDX  = 0
+GDB_TO_ENVI_NAME = 1
+GDB_TO_ENVI_SIZE = 2
+
+
 class GdbStubBase:
-    def __init__(self, arch, addr_size, bigend, reg, port, find_port=True):
+    def __init__(self, arch, psize, bigend, reg, port, find_port=True):
         """
         Base class for consumers of GDB protocol for remote debugging.
 
         Args:
             arch (str): The architecture of the target being debugged.
 
-            addr_size (int): The addresss size of the target being debugged
-            in bits (e.g. 64 for x86_64)
+            psize (int): The addresss size of the target being debugged
+            in bytes (e.g. 8 for x86_64)
 
             bigend (bool): False if the byte storage used by the debugged target is
             little-endian, True if big-endian.   (as per the rest of Vivisect)
@@ -108,8 +118,35 @@ class GdbStubBase:
         self._gdb_port = port
         self._gdb_find_port = find_port
         self._arch = arch
-        self._gdbarch = GDBARCH_LOOKUP.get(arch)
-        self._gdb_reg_fmt = reg
+        self._bigend = bigend
+        self._psize = psize
+
+        # Identify the GDB architecture name
+        self._gdbarch = self.getGdbArchName()
+
+        # In python 3.7 insertion order for the standard dict type is guaranteed 
+        # to maintain insertion order, but to maintain backwards compatibility 
+        # we explicitly use the OrderedDict type.
+        #
+        # If the supplied reg parameter is already a dict we can just pass it as 
+        # a parameter, if it is a list or tuple take the first item from each 
+        # entry and use that as the key.
+        if reg is None:
+            self._gdb_reg_fmt = reg
+
+        elif isinstance(reg, (list, tuple)):
+            self._gdb_reg_fmt = collections.OrderedDict()
+            for entry in reg:
+                self._gdb_reg_fmt[entry[0]] = entry[1:]
+
+        elif isinstance(reg, dict):
+            self._gdb_reg_fmt = collections.OrderedDict(reg)
+
+        elif isinstance(reg, collections.OrderedDict):
+            self._gdb_reg_fmt = reg
+
+        else:
+            raise Exception('Bad register format type: %r' % reg)
 
         # socket overwhich the client talks to the server
         self._gdb_sock = None
@@ -118,50 +155,31 @@ class GdbStubBase:
         #TODO: complete the list, but for now the only thing we care about is
         # PacketSize
         self._supported_features = {
-                b'Supported': None,
-                b'PacketSize': None,
-                b'QPassSignals': None,
-                b'qXfer:memory-map:read': None,
-                b'qXfer:features:read': None,
-                b'QStartNoAckMode': None,
-                b'multiprocess': None
-                }
+            b'PacketSize': None,
+            b'QPassSignals': None,
+            b'qXfer:memory-map:read': None,
+            b'qXfer:features:read': None,
+            b'qXfer:exec-file:read': None,
+            b'QStartNoAckMode': None,
+            b'multiprocess': None
+        }
 
         self._settings = {}
 
         self._NoAckMode = False
-        self._bigend = bigend
-        self._addr_size = addr_size
         self._doEncoding = True
 
+    def getGdbArchName(self):
+        '''
+        Returns a GDB-appropriate architecture name for the given architecture/endian/psize
+        '''
+        return ARCH_META.get((self._arch, self._bigend, self._psize))
 
     def _getFeat(self, featurename):
         '''
         Returns a given "_supported_feature" entry, or None.
         '''
         return self._supported_features.get(featurename)
-
-    def setGdbArchitecture(self, archname, setMeta=True):
-        '''
-        This sets the GDB Architecture name, and other architectural settings
-        implied by them.
-
-        if setMeta is True and the archname is found in our lookup table, the
-        following metasettings will be updated:
-        * self._arch
-        * self._bigend
-        * self._addr_size
-        * self._arch_pcname
-        * self._arch_spname
-
-        '''
-        if setMeta and archname in ARCH_META:
-            self._arch = ARCH_META[archname]['arch']
-            self._gdbarch = ARCH_META[archname]['gdbarch']
-            self._bigend = ARCH_META[archname]['bigend']
-            self._addr_size = ARCH_META[archname]['psize'] * 8
-            self._arch_pcname = ARCH_META[archname]['pcname']
-            self._arch_spname = ARCH_META[archname]['spname']
 
     def _decodeGDBVal(self, val):
         """
@@ -260,7 +278,7 @@ class GdbStubBase:
         status = None
 
         if len(res) == 0:
-            raise Exception('Socket not responding')
+            raise gdb_exc.GdbClientDetachedException('Socket not responding')
 
         # If this is an acknowledgment packet, return early
         if not self._NoAckMode and res in (b'+', b'-'):
@@ -348,7 +366,7 @@ class GdbStubBase:
         Returns:
             str: the response from the target.
         """
-        #logger.debug('_msgExchange: %r %r', msg, expect_res)
+        logger.debug('_msgExchange: %r %r', msg, expect_res)
         retry_count = 0
         retry_max = 10
         status = None
@@ -421,7 +439,6 @@ class GdbStubBase:
             self._gdb_sock.close()
             self._gdb_sock = None
 
-
     def _buildRegPkt(self, reg_state):
         """
         Constructs a register packet from the current register state.
@@ -433,30 +450,17 @@ class GdbStubBase:
         Returns:
             str: The body of a GDB register packet.
         """
-        reg_pkt = b''
-        reg_cnt = len(reg_state)
-        reg_updated = 0
-        for r in self._gdb_reg_fmt:
-            reg_name = r[0]
+        reg_pkt = bytearray()
 
-            # Only updated the registers supported by the server
-            if reg_updated >= reg_cnt:
+        # Continue encoding register values until either a register entry isn't 
+        # found in the register state to encode, or we have completed all 
+        # registers.
+        for reg_name, (reg_size, reg_idx) in self._gdb_reg_fmt.items():
+            if reg_name not in reg_state:
+                logger.log(e_cmn.SHITE, 'Stopped encoding register packet @ %s(%d)',
+                           reg_name, reg_idx)
                 break
-
-            # size in bytes
-            reg_size = r[1] // 8
-            reg_val = reg_state[reg_name]
-
-            reg_val = self._encodeGDBVal(reg_val, r[1])
-
-            # two ascii characters per byte
-            write_size = reg_size * 2
-            if reg_size != len(reg_val) // 2:
-                raise Exception('Attempt to store %d byte value in %d byte register'
-                        % (len(reg_val) // 2, reg_size))
-
-            reg_pkt += reg_val
-            reg_updated += 1
+            reg_pkt += self._encodeGDBVal(reg_state[reg_name], reg_size)
 
         return reg_pkt
 
@@ -474,26 +478,30 @@ class GdbStubBase:
         """
         regs = {}
         offset = 0
-        for r in self._gdb_reg_fmt:
-            logger.debug('r: %s(%d):%d' % (r[0], r[2], r[1]))
-            # GDB server doesn't have to send all registers, so bail if we
-            # run out of data
-            if offset >= len(pkt):
-                break
-            reg_name = r[0]
+        # The self._gdb_reg_fmt
+        for reg_name, (reg_size, reg_idx) in self._gdb_reg_fmt.items():
+            logger.log(e_cmn.MIRE, 'r: %s(%d):%d', reg_name, reg_size, reg_idx)
 
-            # convert bits to bytes
-            reg_size = r[1] // 8
-            # each byte is a two digit hex number
-            read_size = reg_size * 2
-            reg_val = pkt[offset:offset + read_size]
-            logger.debug('decoding (%d bits, %d chars): %s' % (r[1], read_size, reg_val.decode()))
+            # Most likely the GDB server will just return the general packets, 
+            # so if we run out of data stop parsing
+            if offset >= len(pkt):
+                logger.log(e_cmn.SHITE, 'Stopped parsing register packet @ %s(%d)',
+                           reg_name, reg_idx)
+                break
+
+            # Convert bits to bytes and then each byte is a two digit hex number
+            reg_msg_size = (reg_size // 8) * 2
+
+            reg_val = pkt[offset:offset + reg_msg_size]
+            logger.log(e_cmn.MIRE, 'decoding (%d bits, %d chars): %r',
+                       reg_size, reg_msg_size, reg_val)
+
             # convert to an int
             reg_val = self._decodeGDBVal(reg_val)
-            logger.debug('decoded: %#x' % reg_val)
+            logger.log(e_cmn.MIRE, 'decoded: %#x', reg_val)
 
             regs[reg_name] = reg_val
-            offset += read_size
+            offset += reg_msg_size
 
         return regs
 
@@ -510,45 +518,77 @@ class GdbStubBase:
         if not self._doEncoding:
             return data
 
-        max_rep = 97
-        grouped = [b''.join([b'%c' % x for x in g]) for _, g in groupby(data)]
+        # Run Length encoding (from
+        # https://sourceware.org/gdb/onlinedocs/gdb/Overview.html#Overview):
+        #
+        # Response data can be run-length encoded to save space. Run-length 
+        # encoding replaces runs of identical characters with one instance of 
+        # the repeated character, followed by a ‘*’ and a repeat count. The 
+        # repeat count is itself sent encoded, to avoid binary characters in 
+        # data: a value of n is sent as n+29. For a repeat count greater or 
+        # equal to 3, this produces a printable ASCII character, e.g. a space 
+        # (ASCII code 32) for a repeat count of 3. (This is because run-length 
+        # encoding starts to win for counts 3 or more.) Thus, for example, ‘0* ’ 
+        # is a run-length encoding of “0000”: the space character after ‘*’ 
+        # means repeat the leading 0 32 - 29 = 3 more times.
+        #
+        # The printable characters ‘#’ and ‘$’ or with a numeric value greater 
+        # than 126 must not be used. Runs of six repeats (‘#’) or seven repeats 
+        # (‘$’) can be expanded using a repeat count of only five (‘"’). For 
+        # example, ‘00000000’ can be encoded as ‘0*"00’. 
 
-        enc_list = []
-        for g in grouped:
-            length = len(g)
-            char = g[0:1]
-            # Special handling for b'#' (6 + 29)
-            if length == 6:
-                enc_list.append(b'%s*"%s' % (char, char))
+        splat = ord('*')
+        quote = ord('"')
+        tilde = ord('~')
 
-            # Special handling for b'$' (7 + 29)
-            elif length == 7:
-                enc_list.append(b'%s*"%s%s' % (char, char, char))
+        encoded = bytearray()
+        for char, groupiter in groupby(data):
+            group = bytes(groupiter)
+            while group:
+                # The lengths checked for included the initial character, so 
+                # instead of checking for <3, ==6, ==7, and <=97 we need to 
+                # check for <4, ==7, ==8, and <=98.
+                if len(group) < 4:
+                    encoded += group
+                    break
 
-            # GDB only supports encoded up to 126 repetitions
-            elif length > max_rep:
-                q, r = divmod(length, max_rep)
-                # Split into chunks of 126 repetitions
-                chunk = b'%s*%s' % (char, b'%c' % (max_rep + 29))
-                print("chunk(%d:%d): %r" % (q, r, chunk))
-                enc_list.append(chunk * q)
+                elif len(group) == 7:
+                    # 29 + 6 ('#') is not a permitted repeat char
+                    encoded.append(char)
+                    encoded.append(splat)
+                    encoded.append(quote)  # 29 + 5
+                    encoded.append(char)
+                    break
 
-                # Handle the remainder
-                if r == 6:
-                    enc_list.append(b'%s*"%s' % (char, char))
-                elif r == 7:
-                    enc_list.append(b'%s*"%s%s' % (char, char, char))
+                elif len(group) == 8:
+                    # 29 + 7 ('$') is not a permitted repeat char
+                    encoded.append(char)
+                    encoded.append(splat)
+                    encoded.append(quote)  # 29 + 5
+                    encoded.append(char)
+                    encoded.append(char)
+                    break
+
+                elif len(group) <= 98: 
+                    # Max repeat character is 29 + 97 ('~')
+                    encoded.append(char)
+                    encoded.append(splat)
+
+                    # Subtract 1 for the initial character
+                    encoded.append(29 + len(group) - 1)
+                    break
+
                 else:
-                    enc_list.append(b'%s*%s' % (char, b'%c' % (r + 29)))
+                    # Add the max chunk and let the loop go one more time.
+                    encoded.append(char)
+                    encoded.append(splat)
+                    encoded.append(tilde)
 
-            elif length > 2:
-                rep_count = length - 1
-                enc_list.append(b'%s*%s' % (char, b'%c' % (rep_count + 29)))
+                    # Remove the initial character plus the 97 following 
+                    # characters from the "to be encoded" list
+                    group = group[98:]
 
-            else:
-                enc_list.append(g)
-
-        return b''.join(enc_list)
+        return encoded
 
     def _lengthDecode(self, data):
         """
@@ -666,15 +706,15 @@ class GdbClientStub(GdbStubBase):
     The GDB client stub code. GDB clients should inherit from this class.
     """
     # TODO: make a "discovery" mode which pulls target.xml instead of requiring an architecture up front
-    def __init__(self, arch, addr_size, bigend, reg, host, port, servertype):
+    def __init__(self, arch, psize, bigend, reg, host, port, servertype):
         """
         The GDB client stub.
 
         Args:
             arch (str): The architecture of the target being debugged.
 
-            addr_size (int): The addresss size of the target being debugged
-            in bits (e.g. 64 for x86_64)
+            psize (int): The addresss size of the target being debugged
+            in bytes (e.g. 8 for x86_64)
 
             bigend (bool): False if the byte storage used by the debugged target is
             little-endian, True if big-endian.
@@ -694,7 +734,7 @@ class GdbClientStub(GdbStubBase):
         Returns:
             None
         """
-        GdbStubBase.__init__(self, arch, addr_size, bigend, reg, port)
+        GdbStubBase.__init__(self, arch, psize, bigend, reg, port)
 
         self._gdb_host = host
         self._gdb_servertype = servertype
@@ -770,6 +810,7 @@ class GdbClientStub(GdbStubBase):
         A hook for subclasses to insert functionality after attaching to a
         GDB Server
         '''
+        pass
 
     def _targetRemote(self, options=None):
         """
@@ -847,11 +888,9 @@ class GdbClientStub(GdbStubBase):
         # The default support options
         options += ['swbreak', 'hwbreak', 'vContSupported']
 
-        if self._gdbarch is not None:
-            xmlreg_opt = 'xmlRegisters=%s' % self._gdbarch
-            options.append(xmlreg_opt)
-        else:
-            options.append('xmlRegisters')
+        assert self._gdbarch is not None
+        xmlreg_opt = 'xmlRegisters=%s' % self._gdbarch.split(':')[0]
+        options.append(xmlreg_opt)
 
         supported_cmd += ':' + '+;'.join(options)
         res = self._msgExchange(supported_cmd.encode())
@@ -950,8 +989,8 @@ class GdbClientStub(GdbStubBase):
                 else:
                     logger.warning("qXfer:%s:%s:%s [off=0x%x]: unexpected response: %r", qtype, cmd, name, off, data)
 
-            # go until we get less than we asked for
-            if res == b'l' or len(data) < size:
+            # Go until the server indicates the response is done
+            if res == b'l':
                 break
 
         return b''.join(out)
@@ -1032,36 +1071,52 @@ class GdbClientStub(GdbStubBase):
             self._xml[fname] = etree.parse(StringIO(data.decode()), parser)
         return self._xml[fname]
 
+    def _getRegsInfoFromXml(self, root, index=0):
+        regs = []
+        for elem in root:
+            if not isinstance(elem, etree._Comment):
+                if elem.tag == 'feature' and len(elem) > 0:
+                    regs.extend(self._getRegsInfoFromXml(elem, index))
+
+                elif elem.tag == 'reg':
+                    name = elem.get('name')
+                    bitsize = int(elem.get('bitsize'))
+                    regnum = elem.get('regnum')
+
+                    if regnum is not None:
+                        index = int(regnum)
+
+                    regs.append((index, name, bitsize))
+
+                    index += 1
+        return regs
+
     def _processTargetMeta(self):
         """
         Takes a specific GDB target XML file and turns it into the expected list of
         3-tuple objects contained in this file.
         """
+        # The registers will need to be added to the returned register format in 
+        # ascending order of the register indexes/numbers
         regs = []
-        index = 0
+
         # First get the "target" XML and then identify the real XML file name
         tgt_xml = self.gdbGetFeatureFile('target.xml')
-        arch_xml_name = None
-        for elem in tgt_xml.getroot():
-            if not isinstance(elem, etree._Comment):
-                if elem.tag in ('xi:include', '{http://www.w3.org/2001/XInclude}include'):
-                    arch_xml_name = tgt_xml.getroot().getchildren()[1].get('href')
-                    break
-                elif elem.tag == 'feature' and len(elem) > 0:
-                    for feat_elem in elem:
-                        if not isinstance(feat_elem, etree._Comment) and feat_elem.tag == 'reg':
-                            regs.append((feat_elem.get('name'), int(feat_elem.get('bitsize')), index))
-                            index += 1
-                elif elem.tag == 'reg':
-                    regs.append((elem.get('name'), int(elem.get('bitsize')), index))
-                    index += 1
 
-        if arch_xml_name is not None:
-            for elem in self.gdbGetFeatureFile(arch_xml_name).getroot():
-                if not isinstance(elem, etree._Comment) and elem.tag == 'reg':
-                    regs.append((elem.get('name'), int(elem.get('bitsize')), index))
-                    index += 1
-        return regs
+        # See if there is another XMl file we need to retrieve
+        for elem in tgt_xml.getroot():
+            if not isinstance(elem, etree._Comment) and \
+                    elem.tag in ('xi:include', '{http://www.w3.org/2001/XInclude}include'):
+                filename = tgt_xml.getroot().getchildren()[1].get('href')
+                tgt_xml = self.gdbGetFeatureFile(filename)
+                break
+
+        regs = self._getRegsInfoFromXml(tgt_xml.getroot())
+
+        # sort the collected registers by index and create the necessary GDB 
+        # register format
+        reg_fmt = collections.OrderedDict((n, (s, i)) for i, n, s in sorted(regs))
+        return reg_fmt
 
     def gdbGetRegister(self, regidx):
         """
@@ -1087,7 +1142,7 @@ class GdbClientStub(GdbStubBase):
             # If the response is empty then we have to get the value from the 
             # "read all registers" packet
             all_regs = self.gdbGetRegisters()
-            reg_name = self._gdb_reg_fmt[regidx][0]
+            reg_name = self._gdb_to_envi_map[regidx][GDB_TO_ENVI_NAME]
             return all_regs[reg_name]
 
         else:
@@ -1104,19 +1159,20 @@ class GdbClientStub(GdbStubBase):
         Returns:
             None
         """
-        val_str = self._encodeGDBVal(val, self._gdb_reg_fmt[regidx][1])
+
+        _, reg_name, reg_size = self._gdb_to_envi_map[regidx]
+        val_str = self._encodeGDBVal(val, reg_size)
         cmd = b'P%.2x=%s' % (regidx, val_str)
         res = self._msgExchange(cmd)
 
         if res[0:1] == b'E':
-            regname = self._gdb_reg_fmt[regidx][0]
             logger.warning('Setting register %d (%s) failed with error %s' %
-                    (regidx, regname, res[1:3]))
+                    (regidx, reg_name, res[1:3]))
 
         elif res == b'':
             # If the response is empty then we have to change the value using 
-            # the "set all registers" packet
-            reg_name = self._gdb_reg_fmt[regidx][0]
+            # the "set all registers" packet, for some reason GDB servers do 
+            # this with "general" registers
             self.gdbSetRegisters({reg_name: val})
 
     def gdbGetRegisterByName(self, regname):
@@ -1130,13 +1186,14 @@ class GdbClientStub(GdbStubBase):
         Returns:
             integer value
         """
-        for rn, rsz, ridx in self._gdb_reg_fmt:
-            if rn == regname:
-                return self.gdbGetRegister(ridx)
+        try:
+            reg_idx = self._gdb_reg_fmt[reg_name][GDB_TO_ENVI_NAME]
+            return self.gdbGetRegister(reg_idx)
 
-        raise e_exc.InvalidRegisterName("Invalid Register Name in gdbGetRegisterByName: %r" % regname)
+        except IndexError:
+            raise e_exc.InvalidRegisterName("Invalid Register Name in gdbGetRegisterByName: %r" % regname)
 
-    def gdbSetRegisterByName(self, regname, val):
+    def gdbSetRegisterByName(self, name, val):
         """
         Set a register with a new value.
 
@@ -1147,11 +1204,12 @@ class GdbClientStub(GdbStubBase):
         Returns:
             None
         """
-        for rn, rsz, ridx in self._gdb_reg_fmt:
-            if rn == regname:
-                return self.gdbSetRegister(ridx, val)
+        try:
+            reg_idx = self._gdb_reg_fmt[reg_name][REG_FMT_IDX]
+            self.gdbSetRegister(reg_idx, val)
 
-        raise e_exc.InvalidRegisterName("Invalid Register Name in gdbSetRegisterByName(%r, %r)" % (regname, val))
+        except IndexError:
+            raise e_exc.InvalidRegisterName("Invalid Register Name in gdbSetRegisterByName(%r, %r)" % (name, val))
 
     def gdbGetRegisters(self, reg = []):
         """
@@ -1194,18 +1252,16 @@ class GdbClientStub(GdbStubBase):
             # (one big context object), all updates will include all possible
             # registers.
             if reg_name not in cur_reg_vals.keys():
-                logger.warning('Register %s not recognized by GDB' % reg_name)
+                logger.warning('Register %s not part of general registers' % reg_name)
                 continue
             cur_reg_vals[reg_name] = updates[reg_name]
 
-        # TODO: build the packet
         reg_pkt_data = self._buildRegPkt(cur_reg_vals)
         cmd = b'G%s' % reg_pkt_data
         self._msgExchange(cmd)
 
     setRegisters = gdbSetRegisters
 
-    # TODO: add support for setting kinds based on architecture
     def _gdbSetBreakpoint(self, bp_type, addr):
         """
         Generic function for setting breakpoints.
@@ -1384,7 +1440,6 @@ class GdbClientStub(GdbStubBase):
         res = self._msgExchange(b'qL1ff00000000')
         if res.startswith(b'qM'):
             while res[4] != 0x31:
-                #print("res[4] == %r" % res[4])
                 count = int(res[2:4], 16)
                 done = res[4]
                 argthreadid = res[5:13]
@@ -1532,10 +1587,7 @@ class GdbClientStub(GdbStubBase):
         # messages end with b';'
         pairs.pop()
         for p in pairs:
-            vals = p.split(b':')
-            n = vals[0]
-            r = vals[1]
-            ret.append((n, r))
+            ret.append(p.split(b':'))
 
         return ret
 
@@ -1587,15 +1639,15 @@ class GdbServerStub(GdbStubBase):
     this class. Functions that start with '_server' must be implemented by
     the code controlling the debugged process (e.g. the vivisect emulator).
     """
-    def __init__(self, arch, addr_size, bigend, reg, port, find_port=True):
+    def __init__(self, arch, psize, bigend, reg, port, find_port=True):
         """
         The GDB sever stub.
 
         Args:
             arch (str): The architecture of the target being debugged.
 
-            addr_size (int): The addresss size of the target being debugged
-            in bits (e.g. 64 for x86_64)
+            psize (int): The addresss size of the target being debugged
+            in bytes (e.g. 8 for x86_64)
 
             bigend (bool): False if the byte storage used by the debugged target is
             little-endian, True if big-endian.
@@ -1611,7 +1663,19 @@ class GdbServerStub(GdbStubBase):
         Returns:
             None
         """
-        GdbStubBase.__init__(self, arch, addr_size, bigend, reg, port, find_port)
+        GdbStubBase.__init__(self, arch, psize, bigend, reg, port, find_port)
+
+        # Set the features supported by this server
+        self._supported_features = {
+            b'PacketSize': 0x1000,
+            b'QPassSignals': None,
+            b'qXfer:memory-map:read': b'+',
+            b'qXfer:features:read': b'+',
+            b'qXfer:exec-file:read': b'+',
+            b'QStartNoAckMode': None,
+            b'multiprocess': None
+        }
+
         self.gdb_server_state = STATE_SVR_STARTUP
 
         self.curThread = None
@@ -1629,6 +1693,21 @@ class GdbServerStub(GdbStubBase):
         self.breakPointsHW = []
 
         self._halt_reason = 0
+
+    def _serverQSupported(self, cmd_data):
+        # Build the list of supported features from the configuration dictionary
+        features = []
+        for feat, val in self._supported_features.items():
+            if isinstance(val, int):
+                features.append(b'%s=' % feat + self._encodeGDBVal(val))
+            elif isinstance(val, bytes):
+                features.append(feat + b'=' + val)
+            elif isinstance(val, str):
+                # the features should always be in bytes no matter what
+                assert isinstance(feat, bytes)
+                features.append(('%s=%s' % (feat.decode(), val)).encode())
+
+        return b';'.join(features)
 
     def setGdbHaltReason(self, reason):
         '''
@@ -1727,7 +1806,6 @@ class GdbServerStub(GdbStubBase):
                 self.last_reason = self._halt_reason
 
                 while self.connstate == STATE_CONN_CONNECTED:
-                    logger.log(e_cmn.MIRE, "runServer continuing...")
                     try:
                         # Check and handle the processor breaking.
                         if self._halt_reason != 0 and \
@@ -1745,7 +1823,6 @@ class GdbServerStub(GdbStubBase):
 
                         # if the client has sent command data, handle it here.
                         data = self._recvServer()
-                        #TODO: coalesce with _parseMsg?
 
                         if self._NoAckMode:
                             logger.debug("received: %r", data)
@@ -1753,6 +1830,9 @@ class GdbServerStub(GdbStubBase):
                             # ack receipt
                             logger.debug("received: %r    xmitting '+'", data)
                             self._sendAck()
+
+                        logger.log(e_cmn.MIRE, "runServer: %r" % data)
+                        self._cmdHandler(data)  
 
                     except gdb_exc.GdbClientDetachedException as e:
                         logger.debug("Client disconnected: %r", e)
@@ -1768,16 +1848,9 @@ class GdbServerStub(GdbStubBase):
                         logger.info("Received BREAK signal: %r", e)
                         data = b'\x03'
 
-                    except Exception as e:
-                        logger.warning('gdbstub.runServer() Exception: %r', e, exc_info=1)
-                        break
-
-                    logger.log(e_cmn.MIRE, "runServer: %r" % data)
-                    self._cmdHandler(data)  
-
-            except BrokenPipeError:
-                logger.info("BrokenPipeError:  Client disconnected.")
-                self.connstate = STATE_CONN_DISCONNECTED
+                    except BrokenPipeError:
+                        logger.info("BrokenPipeError:  Client disconnected.")
+                        self.connstate = STATE_CONN_DISCONNECTED
 
             except Exception as e:
                 logger.critical("runServer exception!", exc_info=1)
@@ -1860,6 +1933,9 @@ class GdbServerStub(GdbStubBase):
             elif cmd == b'Q':
                 logger.info('_handleQSetting(%r)' % (cmd_data))
                 res = self._handleQSetting(cmd_data)
+            elif cmd == b'v':
+                logger.info('_handleQSetting(%r)' % (cmd_data))
+                res = self._handleVOperation(cmd_data)
             elif cmd == b'\x03':
                 logger.info('_handleBreak(%r)' % cmd_data)
                 res = self._handleBreak()
@@ -1912,6 +1988,18 @@ class GdbServerStub(GdbStubBase):
         addr = self._decodeGDBVal(addr)
 
         return break_type, addr
+
+    def _handleVOperation(self, cmd_data):
+        if cmd_data.startswith(b'File:'):
+            logger.debug("Operation: File!")
+            return self._serverVFile(cmd_data[5:])
+        else:
+            # Unrecognized 'v' commands should be replied to with an empty 
+            # string
+            return b''
+
+    def _serverVFile(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
 
     def _handleSetBreak(self, cmd_data):
         """
@@ -2180,17 +2268,13 @@ class GdbServerStub(GdbStubBase):
             str: GDB status code
         """
         rpart, vpart = cmd_data.split(b'=')
-        ridx = int(rpart, 16)
-        rval = self._decodeGDBVal(vpart)
-        print("P %r  == %x=%x" % (cmd_data, ridx, rval))
-
-        reg = self._gdb_reg_fmt[ridx]
-        reg_name = reg[0]
-        self._serverWriteRegValByName(reg_name, rval)
+        reg_idx = int(rpart, 16)
+        reg_val = self._decodeGDBVal(vpart)
+        self._serverWriteRegVal(reg_idx, reg_val)
 
         return b'OK'
 
-    def _serverWriteRegVal(self, ridx, reg_val):
+    def _serverWriteRegVal(self, reg_idx, reg_val):
         """
         Instructs the execution engine to write the provided value into the 
         provided register.
@@ -2222,7 +2306,7 @@ class GdbServerStub(GdbStubBase):
 
     def _handleReadRegs(self):
         """
-        Instructs the execution engine to read the values in all registers.
+        Instructs the execution engine to read the values in all general registers.
 
         Args:
             None
@@ -2231,10 +2315,9 @@ class GdbServerStub(GdbStubBase):
             str: A GDB remote protocol register packet.
         """
         registers = {}
-        for reg in self._gdb_reg_fmt:
-            reg_name = reg[0]
-            reg_val = self._serverReadRegValByName(reg_name)
-            registers[reg_name] = reg_val
+
+        for reg_name in self._gdb_reg_fmt:
+            registers[reg_name] = self._serverReadRegValByName(reg_name)
 
         reg_pkt = self._buildRegPkt(registers)
         return reg_pkt
@@ -2538,54 +2621,112 @@ class GdbBaseEmuServer(GdbServerStub):
     def __init__(self, emu, port=47001, find_port=True, reggrps=None):
         self.emu = emu
 
-        if reggrps is None:
-            reggrps = [('general', 'org.gnu.gdb.i386.core')]
-
-        arch = emu.vw.arch._arch_name
-        addr_size = emu.psize * 8
         big_endian = emu.getEndian()
 
-        # _gdb_reg_fmt will be filled in by getTargetXML()
-        GdbServerStub.__init__(self, arch, addr_size, big_endian, None, port, find_port)
+        # _gdb_reg_fmt will be filled in by getTargetXml()
+        GdbServerStub.__init__(self, emu.vw.arch.getArchName(), emu.psize,
+                               big_endian, None, port, find_port)
+
+        self._gdb_target_xml = None
+        self._gdb_memory_map_xml = None
+        self._gdb_reg_fmt = None
 
         self.getTargetXml(reggrps)
+
+        # Now that the gdb register format has been defined when the target XML 
+        # was generated, update the index mappings
+        self._updateEnviGdbIdxMap()
 
         self.runthread = None
         self.connstate = STATE_CONN_DISCONNECTED
         self._halt_reason = SIGNAL_NONE
 
-        self.symbol_iter = None
+        self._symbol_iter = None
+        self._thread_iter = None
 
         self.xfer_read_handlers = {
+            b'exec-file': self.XferExecFile,
             b'features': {
                 b'target.xml': self.XferFeaturesReadTargetXml,
             },
+            b'memory-map': self.XferMemoryMap,
         }
 
-    def getTargetXml(self, reggrps):
+        self.vfile_handlers = {
+            b'open':        self.vFileOpen,
+            b'close':       self.vFileClose,
+            b'pread':       self.vFileRead,
+            b'setfs':       self.vFileSetFS,
+
+            # Not supported - probably a bad idea to implement though
+            b'pwrite':      None,
+            b'fstat':       None,
+            b'unlink':      None,
+            b'readlink':    None,
+        }
+
+        # Create the attributes initialized by initProcessInfo()
+        self.pid = 1
+        self.tid = 1
+        self.processes = []
+        self.process_filenames = {}
+        self.vfile_open_files = []
+
+        # Apparently GDB expects there to be a thread, so we define one
+        self.threads = {
+            1: [1],
+        }
+
+        self.initProcessInfo()
+
+    def _updateEnviGdbIdxMap(self):
+        # Two maps to make it fast to go between GDB register indexes and the 
+        # envi register indexes
+        self._envi_to_gdb_map = {}
+        self._gdb_to_envi_map = {}
+        for reg_name, (reg_size, reg_idx) in self._gdb_reg_fmt.items():
+            envi_idx = self.emu.getRegisterIndex(reg_name)
+            self._envi_to_gdb_map[envi_idx] = (reg_idx, reg_name, reg_size)
+            self._gdb_to_envi_map[reg_idx]  = (envi_idx, reg_name, reg_size)
+
+    def initProcessInfo(self):
+        self.pid = 1
+        self.tid = 1
+        # we don't really imitate multiprocessing but this is the basic 
+        # structure for it.
+        self.processes = [1]
+
+        # Get the filename and path in use 
+        filekey = self.emu.vw.getFiles()[0]
+        filename = self.emu.vw.getFileMeta(filekey, 'OrigName')
+
+        # Sanitize the filename so environment information isn't sent to the 
+        # client
+        self.process_filenames = {
+            1: os.path.split(filename)[1].encode(),
+        }
+
+        # used in vFile operations
+        self.vfile_pid = 1
+
+        # Add placeholders for the 3 standard FDs
+        self.vfile_open_files = [None, None, None]
+
+    def getTargetXml(self, reggrps=None):
         '''
-        Takes in a RegisterContext and an archname.
-        Returns an XML file as described in the gdb-remote spec
-        Also returns a tuple mapping GDB register indexes (which we're handing to the client) 
-        to RegisterContext-based indexes for each index.
-
-        We may be *way* overcomplicating this to look like PEMicro and GDB.
-
-
-        #TODO:  make the reggrp names in envi architecture <arch>.<feature>  like "gdb.i386.core"
-        and "gdb.power.e200spr" so it's programmatic to generate the "org.gnu.gdb.power.e200spr"
-        names
+        Takes in a RegisterContext.
+        Saves a XML file as described in the gdb-remote spec
+        Also saves the tuple mapping GDB register indexes (which we're handing
+        to the client) to RegisterContext-based indexes for each index.
         '''
-        archmod = self.emu.imem_archs[envi.ARCH_DEFAULT]
+        if reggrps is None:
+            reggrps = [('general', 'org.gnu.gdb.i386.core')]
 
-        archname = archmod._arch_name
+        # TODO: Support custom register index numbers?
+        # TODO: handle custom types such as those used by vector registers
 
-        gdbarchname = getGdbArchName(archname, self.emu.getEndian(), self.emu.getPointerSize())
-
-        # pre-calculate the envi-centric register definition lookup dictionary
-        regdefs = {}
-        for regnum, (rname, bitsize) in enumerate(self.emu.getRegDef()):
-            regdefs[rname] = (regnum, bitsize)
+        # Save some register info from the emulator.
+        regdefs, metas, pcindex, spindex, _ = self.emu.getRegisterInfo()
 
         # features defined in https://sourceware.org/gdb/current/onlinedocs/gdb/Standard-Target-Features.html#Standard-Target-Features
         #       PPC - https://sourceware.org/gdb/current/onlinedocs/gdb/PowerPC-Features.html
@@ -2594,39 +2735,90 @@ class GdbBaseEmuServer(GdbServerStub):
 
         import xml.etree.ElementTree as ET
 
-        # this will be the same as the GdbStub._gdb_reg_fmt, and should be good to use for that purpose
-        reg_idx_map = []
+        # Build up the GdbStub._gdb_reg_fmt dynamically and should be good to 
+        # use for that purpose
+        #
+        # In python 3.7 insertion order for the standard dict type is guaranteed 
+        # to maintain insertion order, but to maintain backwards compatibility 
+        # we explicitly use the OrderedDict type.
+        self._gdb_reg_fmt = collections.OrderedDict()
+
         target = ET.Element('target')
 
         arch = ET.SubElement(target, 'architecture')
-        arch.text = gdbarchname
+        arch.text = self._gdbarch
+
+        archmod = self.emu.imem_archs[envi.ARCH_DEFAULT]
 
         if not reggrps:
             for rgps in archmod.archGetRegisterGroups():
                 reggrps.append(rgps)
 
-        for group, feat_name in reggrps:
+        for groups, feat_name in reggrps:
             # the xml element to populate
             feat = ET.SubElement(target, 'feature', {'name': feat_name})
 
-            reggrp = archmod.archGetRegisterGroup(group)
-            for rname in reggrp:
-                regnum, bitsize = regdefs[rname]
-                reg_idx_map.append((rname, bitsize, regnum))
-                #print(rname, regnum, bitsize)
-                ET.SubElement(feat, 'reg', {'bitsize':str(bitsize), 'name': rname, 'regnum': str(regnum) })
+            if not isinstance(groups, (list, tuple)):
+                groups = [groups]
 
-        out = [b'<?xml version="1.0"?>',
-                b'<!DOCTYPE target SYSTEM "gdb-target.dtd">']
-        out.append(ET.tostring(target))
+            for group in groups:
+                reggrp = archmod.archGetRegisterGroup(group)
 
-        self._gdb_target_xml = b'\n'.join(out)
-        self._gdb_reg_fmt = reg_idx_map
+                for reg_name in reggrp:
+                    # Some registers may be in multiple groups, if it has 
+                    # already been added to the register format, it shouldn't be 
+                    # added again.
+                    if reg_name in self._gdb_reg_fmt:
+                        continue
+
+                    # The GDB register index is based on how many registers have 
+                    # been added so far.
+                    reg_idx = len(self._gdb_reg_fmt)
+                    envi_idx = self.emu.getRegisterIndex(reg_name)
+                    reg_size = self.emu.getRegisterWidth(envi_idx)
+
+                    self._gdb_reg_fmt[reg_name] = (reg_size, reg_idx)
+
+                    # First entry in a feature must have a register number 
+                    # defined, it's easiest just to add it to all of entries
+                    elem = {
+                        'bitsize':str(reg_size),
+                        'name': reg_name,
+                        'regnum': str(reg_idx),
+                    }
+                    if envi_idx in (pcindex, spindex):
+                        elem['type'] = 'code_ptr'
+
+                    ET.SubElement(feat, 'reg', elem)
+
+        self._updateEnviGdbIdxMap()
+
+        out = b'<?xml version="1.0"?>\n'
+        out += b'<!DOCTYPE target SYSTEM "gdb-target.dtd">\n'
+
+        ET.indent(target, space='  ', level=0)
+        out+= ET.tostring(target)
+        self._gdb_target_xml = out
+
+    def getMemoryMapXml(self):
+        self._gdb_memory_map_xml = b'''<?xml version="1.0"?>
+<!DOCTYPE memory-map
+          PUBLIC "+//IDN gnu.org//DTD GDB Memory Map V1.0//EN"
+                 "http://sourceware.org/gdb/gdb-memory-map.dtd">
+<memory-map>
+'''
+        # Loop through each memory entry and add it
+        for va, msize, perms, fname in self.emu.vw.getMemoryMaps():
+            # For now consider every memory region to be RAM
+            self._gdb_memory_map_xml += b'  <memory type="ram" start="%d" length="%d"/>\n'
+
+        self._gdb_memory_map_xml += b'</memory-map>'
 
     def setPort(self, port):
         self._gdb_port = port
 
     # SERVER IMPLEMENTATION FUNCTIONS
+
     def _serverGetHaltSignal(self):
         return self._halt_reason
 
@@ -2656,10 +2848,7 @@ class GdbBaseEmuServer(GdbServerStub):
         Returns:
             None
         """
-        if len(val) > 40:
-            logger.info('_serverWriteMem(0x%x, %r)', addr, val[:40]+b'...')
-        else:
-            logger.info('_serverWriteMem(0x%x, %r)', addr, val)
+        logger.log(e_cmn.MIRE, '_serverWriteMem(0x%x, %r)', addr, val)
 
         with self.emu.getAdminRights():
             self.emu.writeMemory(addr, val)
@@ -2679,7 +2868,19 @@ class GdbBaseEmuServer(GdbServerStub):
             None
 
         """
-        self.emu.setRegister(reg_idx, reg_val)
+        try:
+            envi_idx = self._gdb_to_envi_map[reg_idx][0]
+
+            try:
+                self.emu.setRegister(envi_idx, reg_val)
+
+            except IndexError:
+                logger.warning("Attempted Bad Register Write: %d -> %d", reg_idx, envi_idx)
+                return 0
+
+        except IndexError:
+            logger.warning("Attempted Bad Register Write: %d", reg_idx)
+            return 0
 
         return b'OK'
 
@@ -2697,14 +2898,23 @@ class GdbBaseEmuServer(GdbServerStub):
         # It's possible these indexes won't be in the order of the
         # Architecture Register Context... specifically because we're using 
         # Register Groups.
-        reg_val = 0
         try:
-            envi_idx = self._gdb_reg_fmt[reg_idx][2]
-            reg_val = self.emu.getRegister(envi_idx)
-        except InvalidRegisterName:
-            print("Attempted Bad Register Access: %r   (returning zero)" % reg_idx)
+            envi_idx = self._gdb_to_envi_map[reg_idx][GDB_TO_ENVI_IDX]
+            reg_size = self._gdb_to_envi_map[reg_idx][GDB_TO_ENVI_SIZE]
 
-        return reg_val
+            try:
+                # Sometimes the register format may specify a bit width that is 
+                # smaller than the internal register size, ensure the value 
+                # returned is the correct size
+                return self.emu.getRegister(envi_idx) & e_bits.b_masks[reg_size]
+
+            except IndexError:
+                logger.warning("Attempted Bad Register Read: %d -> %d", reg_idx, envi_idx)
+                return 0
+
+        except IndexError:
+            logger.warning("Attempted Bad Register Read: %d", reg_idx)
+            return 0
 
     def _serverWriteRegValByName(self, reg_name, reg_val):
         """
@@ -2734,9 +2944,14 @@ class GdbBaseEmuServer(GdbServerStub):
         """
         reg_val = 0
         try:
-            reg_val = self.emu.getRegisterByName(reg_name)
-        except InvalidRegisterName:
-            print("Attempted Bad Register Access: %r   (returning zero)" % reg_name)
+            reg_size = self._gdb_reg_fmt[reg_name][REG_FMT_SIZE]
+
+            # Sometimes the register format may specify a bit width that is 
+            # smaller than the internal register size, ensure the value returned 
+            # is the correct size
+            reg_val = self.emu.getRegisterByName(reg_name) & e_bits.b_masks[reg_size]
+        except (KeyError, e_exc.InvalidRegisterName):
+            logger.warning("Attempted Bad Register Access: %s", reg_name)
 
         return reg_val
 
@@ -2770,26 +2985,26 @@ class GdbBaseEmuServer(GdbServerStub):
         self._halt_reason = 0
         return b'OK'
 
-    def _serverQSupported(self, cmd_data):
-        return b"PacketSize=1000;qXfer:memory-map:read+;qXfer:features:read+"
-
     def _serverQXfer(self, cmd_data):
-        res = b''
         fields = cmd_data.split(b":")
         logger.warning("qXfer fields:  %r", fields)
-        if fields[2] == b'read':
-            section = self.xfer_read_handlers.get(fields[1])
+        if fields[1] == b'read':
+            section = self.xfer_read_handlers.get(fields[0])
             if not section:
-                logger.warning("qXfer no section:  %r", fields[1])
+                logger.warning("qXfer no section:  %r", fields[0])
                 return b'E00'
 
-            hdlr = section.get(fields[3])
-            if not hdlr:
-                logger.warning("qXfer no handler:  %r", fields[3])
-                return b'E00'
+            if isinstance(section, dict):
+                hdlr = section.get(fields[2])
+                if not hdlr:
+                    logger.warning("qXfer no handler:  %r", fields[2])
+                    return b'E00'
+            else:
+                hdlr = section
 
             res = hdlr(fields)
 
+            # Determine which chunk of the item being read is being retrieved
             offstr, szstr = fields[-1].split(b',')
             off = int(offstr, 16)
             sz = int(szstr, 16)
@@ -2798,12 +3013,97 @@ class GdbBaseEmuServer(GdbServerStub):
             if (off+sz) >= len(res):
                 return b'l' + res[off:off+sz]
             return b'm' + res[off:off+sz]
+        else:
+            logger.warning("Unsupported action for query: %r", fields)
+            return b'E00'
+
+    def _serverVFile(self, cmd_data):
+        res = b''
+        cmd, cmd_params = cmd_data.split(b":", 1)
+        params = cmd_params.split(b',')
+        logger.warning('vFile command: %s(%s)', cmd, cmd_params)
+
+        hdlr = self.vfile_handlers.get(cmd)
+        if not hdlr:
+            logger.warning("vFile no handler: %s", cmd)
+
+            # Empty response indicates the command was not recognized
+            return b''
+
+        try:
+            retcode, data = hdlr(params)
+            if data:
+                return b'F' + _encodeGDBVal(addr) + b';' + data
+            else:
+                return b'F' + _encodeGDBVal(addr)
+
+        except OSError as e:
+            logger.debug('vFile operation %s(%s) failed: %r', cmd, cmd_params, e)
+
+            # Return the errno to the target
+            return b'F-1,' + self._encodeGDBVal(e.errno)
+
+    def vFileOpen(self, params):
+        filename = unhexlify(params[0])
+
+        # Ensure that the filename requested is the filename of the current 
+        # process
+        if filename != self.process_filenames[self.vfile_pid]:
+            raise FileNotFoundError(errno.ENOENT)
+
+        # Open the file
+        fd = len(self.vfile_open_files)
+
+        # Only change to r+b if you _want_ to enable writing to the original 
+        # file, probably not what we really want to enable.
+        #self.vfile_open_files[fd] =  open(filename, 'r+b')
+
+        self.vfile_open_files[fd] =  open(filename, 'rb')
+
+        return fd, None
+
+    def vFileClose(self, params):
+        fd = _decodeGDBVal(params[0])
+
+        if pid not in self.vfile_open_files:
+            raise OSError(errno.EBADF)
+
+        self.vfile_open_files[fd].close()
+        del self.vfile_open_files[fd]
+
+        return 0, None
+
+    def vFileRead(self, params):
+        fd = _decodeGDBVal(params[0])
+        count = _decodeGDBVal(params[1])
+        offset = _decodeGDBVal(params[2])
+
+        if fd not in self.vfile_open_files:
+            raise OSError(errno.EBADF)
+
+        self.vfile_open_files[fd].seek(offset)
+        data = self.vfile_open_files[fd].read(count)
+
+        return len(data), data
+
+    def vFileSetFS(self, params):
+        pid = _decodeGDBVal(params[0])
+
+        if pid == 0:
+            # Use the current running process
+            self.vfile_pid = self.pid
+            return 0
+        elif pid in self.processes:
+            self.vfile_pid = pid
+            return 0
+        else:
+            return -1
 
     def _serverQC(self, cmd_data):
         '''
         return Current Thread ID
         '''
-        return b'QC0'
+        return b'QC%s' % self._serverGetThread()
 
     def _serverQL(self, cmd_data):
         '''
@@ -2822,7 +3122,16 @@ class GdbBaseEmuServer(GdbServerStub):
         return Current Thread Status
         just tell them we're done...
         '''
-        return b'l'
+        if self._thread_iter is None:
+            self._thread_iter = iter(self.threads[self.pid])
+
+        try:
+            tid = next(self._thread_iter)
+            return b'm' + self._serverGetThread(pid=self.pid, tid=tid)
+
+        except StopIteration:
+            self._thread_iter = None
+            return b'l'
 
     def _serverQAttached(self, cmd_data):
         '''
@@ -2840,8 +3149,35 @@ class GdbBaseEmuServer(GdbServerStub):
     def XferFeaturesReadTargetXml(self, fields):
         return self._gdb_target_xml
 
+    def XferExecFile(self, fields):
+        pid = fields[2]
+
+        if not pid:
+            return self.process_filenames[self.pid]
+        elif pid in self.process_filenames:
+            return self.process_filenames[pid]
+        else:
+            logger.debug('qXfer param error: %r', fields)
+            return b'E01'
+
+    def _serverVFile(self, cmd_data):
+        # Use the first file that was added to the workspace.
+        filename = self.emu.vw.getFiles()[0]
+        imagebase = self.emu.vw.getFileMeta(filename, 'imagebase')
+
+        # Now return the bytes for this file
+        _, img = self.emu.vw.getByteDef(imagebase)
+        return img
+
+    def XferMemoryMap(self, fields):
+        if self._gdb_memory_map_xml is None:
+            # Generate the memory map now, it probably wouldn't have been 
+            # complete when the system was first initialized.
+            self.getMemoryMapXml()
+
+        return self._gdb_memory_map_xml
+
     def _serverQSetting(self, cmd_data):
-        print("FIXME: serverQSetting(%r)" % cmd_data)
         if b':' in cmd_data:
             key, value = cmd_data.split(b':', 1)
             self._settings[key] = value
@@ -2849,54 +3185,42 @@ class GdbBaseEmuServer(GdbServerStub):
             self._settings[cmd_data] = True
         return b'OK'
 
-    def _serverGetThread(self, cmd_data=None):
+    def _serverGetThread(self, cmd_data=None, pid=None, tid=None):
+        if pid is None:
+            pid = self.pid
+        if tid is None:
+            tid = self.tid
+
         # The thread syntax is p<process ID>:<thread ID>
-        return b'p1:1'
+        return b'p' + self._encodeGDBVal(pid) + b'.' + self._encodeGDBVal(tid)
 
     def _serverGetCore(self, cmd_data=None):
         return b'1'
 
     def _serverSetThread(self, cmd_data):
-        print("setting thread:  %r" % cmd_data)
         return b'OK'
 
     def _serverQSymbol(self, cmd_data):
-        if self.symbol_iter is None:
-            self.symbol_iter = iter(self.emu.vw.getNames())
+        if self._symbol_iter is None:
+            self._symbol_iter = iter(self.emu.vw.getNames())
 
         try:
             # All valid symbols should have the filename prefixed to the symbol 
             # name
-            addr, name = next(self.symbol_iter)
+            addr, name = next(self._symbol_iter)
             while '.' not in name:
                 # Iterate until we reach the end of the list or we find another 
                 # valid symbol name.
-                addr, name = next(self.symbol_iter)
+                addr, name = next(self._symbol_iter)
 
             _, sname = name.split('.', 1)
             return b'qSymbol:' + hexlify(sname.encode()) + b':' + self._encodeGDBVal(addr)
 
         except StopIteration:
+            self._symbol_iter = None
             return b'OK'
 
     def _serverQCRC(self, cmd_data):
         data = self.emu.readMemory(addr, size)
         crc = binascii.crc32(data)
         return b'C' + self._encodeGDBVal(crc)
-
-
-def getGdbArchName(arch, bigend, psize):
-    '''
-    Returns a GDB-appropriate architecture name for the given architecture/endian/psize
-    '''
-    for gdbarch, gdbdict in ARCH_META.items():
-        if arch != gdbdict.get('arch'):
-            continue
-        if bigend != gdbdict.get('bigend'):
-            continue
-        if psize != gdbdict.get('psize'):
-            continue
-
-        return gdbarch
-
-    return None

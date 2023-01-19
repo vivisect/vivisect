@@ -50,14 +50,14 @@ class TestServer(gdbstub.GdbServerStub):
     integration is complete, we shouldn't need this code.
     """
 
-    def __init__(self, arch, addr_size, big_endian, reg, port):
+    def __init__(self, arch, psize, big_endian, reg, port):
         """
         Constructor for the TestSever class.
 
         Args:
             arch (str): The architecture of the debug target.
 
-            addr_size (int): Pointer size of the debug target in bits.
+            psize (int): Pointer size of the debug target in bytes.
 
             big_endian (bool): True if the debug target uses big-endian
             notation.
@@ -71,7 +71,7 @@ class TestServer(gdbstub.GdbServerStub):
             Returns:
                 None
         """
-        gdbstub.GdbServerStub.__init__(self, arch, addr_size, big_endian,
+        gdbstub.GdbServerStub.__init__(self, arch, psize, big_endian,
                 reg, port)
 
         fmt32bit = e_bits.getFormat(4, big_endian)
@@ -200,7 +200,6 @@ class TestGdbServerStub(unittest.TestCase):
         self.port = 1235
         self.arch = None
         self.psize = None
-        self.addr_size = None
         self.bigend = None
 
         super(TestGdbServerStub, self).__init__(methodName=methodName)
@@ -228,20 +227,14 @@ class TestGdbServerStub(unittest.TestCase):
         emu.setProgramCounter(pc)
         self.arch = emu.vw.arch._arch_name
         self.psize = emu.getPointerSize()
-        self.addr_size = self.psize * 8
         self.bigend = emu.getEndian()
 
         # Create a GDB client instance
-        #self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.bigend,
-        #        gdb_reg_fmts.QEMU_X86_64_REG, self.host, self.port,
-        #        'serverstub')
-
         self.client = gdbclient.GdbStubMixin(self.arch, self.host, self.port,
-                                             'serverstub', self.psize, self.bigend)
+                                             'serverstub', self.psize,
+                                             self.bigend)
 
         # Create a test server
-        #self.server = TestServer(self.arch, self.addr_size, self.bigend,
-        #        gdb_reg_fmts.QEMU_X86_64_REG, self.port)
         self.server = TestEmuServer(emu, port=self.port, find_port=False)
 
         # Start the server
@@ -552,8 +545,7 @@ class TestGdbClientStub(unittest.TestCase):
         time.sleep(1)
 
         # Create a GDB client instance
-        #self.client = gdbstub.GdbClientStub('amd64', 64, False, None, self.host, port, servertype)
-        self.client = gdbclient.GdbStubMixin('amd64', 'localhost', port, servertype, 64, False)
+        self.client = gdbclient.GdbStubMixin('amd64', 'localhost', port, servertype, 8, False)
 
         # Attach the client
         self.client.gdbAttach()
@@ -601,8 +593,8 @@ class TestGdbClientStub(unittest.TestCase):
         # directly from the shell.
         if self.client._gdb_servertype == 'qemu':
             # From shell it would be: 0x40007ffbe0
-            # From a subprocess spawned by python this is: 0x40007ffaa0
-            self.assertEqual(registers['rsp'], 0x40007ffaa0)
+            # From a subprocess spawned by python this is: 0x40007ffa40
+            self.assertEqual(registers['rsp'], 0x40007ffa40)
 
             # CR0 registers only available over QEMU
             self.assertEqual(registers['cr0'], 0x80010001)
@@ -634,7 +626,8 @@ class TestGdbClientStub(unittest.TestCase):
             # TODO: QEMU has some strange behaviors when writing to certain
             # registers (segfaults on code segment registers, ignoring others,
             # etc...). Only test r* and x* registers for now.
-            reg = random.choice(self.client._gdb_reg_fmt)
+            reg = random.choice(list(self.client._gdb_reg_fmt.items()))
+
             # NOTE: For QEMU targets vector (XMM, YMM) register reads and writes
             # are messed up, not testing the XMM/YMM registers for now
             #if (reg[0][0] == 'r') or ('xmm' in reg[0]):
@@ -644,9 +637,7 @@ class TestGdbClientStub(unittest.TestCase):
 
         # Gen a random value for each register based on the size of the
         # register
-        for r in choices:
-            reg_name = r[0]
-            reg_size = r[1]
+        for reg_name, (reg_size, _) in choices:
             reg_val = random.randint(0, 2 ** reg_size - 1)
             updates[reg_name] = reg_val
 

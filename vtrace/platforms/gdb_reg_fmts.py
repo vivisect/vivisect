@@ -9,43 +9,20 @@
 
 from envi.const import *
 
-# translation between gdb and vivisect architecture names
-GDBARCH_LOOKUP = {
-    'i386': 'i386',
-    'amd64': 'i386',
-    'powerpc': 'ppc32-embedded',
-}
 
 ARCH_META = {
-        'powerpc:vle':{
-            'arch': 'ppc32',
-            'gdbarch': 'ppc32',
-            'bigend': ENDIAN_MSB,
-            'psize': 4,
-            'pcname': 'pc',
-            'spname': 'r1',
-        },
-
-        'i386:x86-64': {
-            'arch': 'amd64',
-            'gdbarch': 'i386',
-            'bigend': ENDIAN_LSB,
-            'psize': 8,
-            'pcname': 'rip',
-            'spname': 'rsp',
-        },
-
-        'i386:x86-32': {
-            'arch': 'i386',
-            'gdbarch': 'i386',
-            'bigend': ENDIAN_LSB,
-            'psize': 4,
-            'pcname': 'eip',
-            'spname': 'esp',
-        },
+    ('ppc-server',      ENDIAN_MSB, 8): 'powerpc',
+    ('ppc32-server',    ENDIAN_MSB, 4): 'powerpc',
+    ('ppc-embedded',    ENDIAN_MSB, 8): 'powerpc:vle',
+    ('ppc32-embedded',  ENDIAN_MSB, 4): 'powerpc:vle',
+    ('ppc-vle',         ENDIAN_MSB, 4): 'powerpc:vle',
+    ('amd64',           ENDIAN_LSB, 8): 'i386:x86-64',
+    ('i386',            ENDIAN_LSB, 4): 'i386:x86-32',
 }
 
 
+# The format of these lists is: (reg_name, reg_size, gdb_index)
+# This format is used and defined in gdbstub.py as GdbStubBase._gdb_reg_fmt
 QEMU_PPC64_REG = [
         ('r0', 0x40, 0x0),
         ('r1', 0x40, 0x1),
