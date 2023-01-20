@@ -14,22 +14,22 @@ floats = [('f%d' % x, 64)  for x in range(32)]
 vectors = [('vr%d' % x, 128)  for x in range(64)]
 
 # Special control registers that are not SPRs
-floats.append(('fpscr', 64))
+floats.append(('FPSCR', 64))
 
-vectors.append(('vscr', 32))
+vectors.append(('VSCR', 32))
 
 spes = (
-    ('acc', 64),
+    ('ACC', 64),
 )
 
 hypervisors = (
-    ('ten', 64),
+    ('TEN', 64),
 )
 
 sysregs = (
     ('pc', 64),
-    ('msr', 32),
-    ('cr', 32),
+    ('MSR', 32),
+    ('CR', 32),
 )
 
 ppc_regs32 = []
@@ -313,21 +313,21 @@ regs_general.extend([reg for reg, size in gprs64])
 
 # The general registers also need a few system and special registers
 regs_general.extend([reg for reg, size in sysregs])
-regs_general.append('lr')
-regs_general.append('ctr')
-regs_general.append('xer')
+regs_general.append('LR')
+regs_general.append('CTR')
+regs_general.append('XER')
 
 regs_fpu = ['f%d' %x for x in range(32)]
-regs_fpu.append('fpscr')
+regs_fpu.append('FPSCR')
 
 regs_altivec = ['vr%d' %x for x in range(64)]
-regs_altivec.append('vscr')
-regs_altivec.append('vrsave')
+regs_altivec.append('VSCR')
+regs_altivec.append('VRSAVE')
 
 regs_spe = ['ev%dh' %x for x in range(32)]
 regs_spe.extend([reg for reg, size in sysregs])
-regs_spe.append('acc')
-regs_spe.append('spefscr')
+regs_spe.append('ACC')
+regs_spe.append('SPEFSCR')
 
 # Drop any "write only" SPRs from this group
 regs_spr = [name for idx, (name, desc, bitsize) in spr.sprs.items() \

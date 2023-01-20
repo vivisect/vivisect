@@ -54,7 +54,7 @@ class PpcInstructionSet(unittest.TestCase):
         # XER has at least some sticky bits, which can cause issues. It would
         # arguably be detrimental to have to set this for all instructions where
         # it is necessary, since it can be hard to tell where it's relevant.
-        emu.setRegisterByName('xer', 0)
+        emu.setRegisterByName('XER', 0)
 
         ## defaults
         emu.setRegister(3, 0x414141)
@@ -80,7 +80,7 @@ class PpcInstructionSet(unittest.TestCase):
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
-                if tgt == 'PC':
+                if tgt == 'pc':
                     va = val
 
             except e_exc.InvalidRegisterName:
@@ -1559,13 +1559,13 @@ class PpcInstructionSet(unittest.TestCase):
         emu.setRegisterByName('r1', r1)
         emu.setRegisterByName('r2', r2)
         emu.setRegisterByName('r3', r3)
-        emu.setRegisterByName('cr', cr)
-        emu.setRegisterByName('xer', xer)
+        emu.setRegisterByName('CR', cr)
+        emu.setRegisterByName('XER', xer)
 
         emu.executeOpcode(op)
 
-        newcr = emu.getRegisterByName('cr')
-        newxer = emu.getRegisterByName('xer')
+        newcr = emu.getRegisterByName('CR')
+        newxer = emu.getRegisterByName('XER')
         newr3 = emu.getRegisterByName('r3')
 
         tmpl = "%r:  r1:%x r2:%x r3:%x cr:%x xer:%x   nr3:%x ncr:%x nxer:%x   er3:%x ecr:%x exer:%x"
@@ -1576,15 +1576,15 @@ class PpcInstructionSet(unittest.TestCase):
     def _do_cmpd_CR_XER(self, op, emu, r0, r1, cr, xer, fpscr, expcr, expxer, expfpscr):
         emu.setRegisterByName('r0', r0)
         emu.setRegisterByName('r1', r1)
-        emu.setRegisterByName('cr', cr)
-        emu.setRegisterByName('xer', xer)
-        emu.setRegisterByName('fpscr', fpscr)
+        emu.setRegisterByName('CR', cr)
+        emu.setRegisterByName('XER', xer)
+        emu.setRegisterByName('FPSCR', fpscr)
 
         emu.executeOpcode(op)
 
-        newcr = int(emu.getRegisterByName('cr'))
-        newxer = int(emu.getRegisterByName('xer'))
-        newfpscr = int(emu.getRegisterByName('fpscr'))
+        newcr = int(emu.getRegisterByName('CR'))
+        newxer = int(emu.getRegisterByName('XER'))
+        newfpscr = int(emu.getRegisterByName('FPSCR'))
 
         tmpl = "%r:  r0:%x r1:%x cr:%x xer:%x   ncr:%x nxer:%x nfpscr:%x   ecr:%x exer:%x efpscr:%x"
         self.assertEqual((newcr, newxer, newfpscr), (expcr, expxer, expfpscr), \
