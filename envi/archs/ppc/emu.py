@@ -576,13 +576,13 @@ class PpcAbstractEmulator(envi.Emulator):
         pass
 
     def _trap(self, op):
-        logger.log(e_common.EMULOG, 'TRAP 0x%08x: %r', op.va, op)
+        logger.debug('TRAP 0x%08x: %r', op.va, op)
 
     def _sc(self, op):
-        logger.log(e_common.EMULOG, 'SC 0x%08x: %r', op.va, op)
+        logger.debug('SC 0x%08x: %r', op.va, op)
 
     def _ehpriv(self, op):
-        logger.log(e_common.EMULOG, 'EHPRIV 0x%08x: %r', op.va, op)
+        logger.debug('EHPRIV 0x%08x: %r', op.va, op)
 
     def _wait(self, op):
         pass
