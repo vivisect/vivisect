@@ -10,18 +10,40 @@ from .regs import *
 from .const import *
 from .bits import BITMASK, COMPLEMENT
 
+
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
     if sym is not None:
         return repr(sym)
-    return "0x%.4x" % va
+    return "0x%.8x" % va
 
 
-def immToStr(val):
-    if abs(val) >= 1024:
-        return hex(val)
+def addIntToCanv(mcanv, op, idx, value):
+    hint = mcanv.syms.getSymHint(op.va, idx)
+    if hint is not None:
+        if mcanv.mem.isValidPointer(value):
+            mcanv.addVaText(hint, value)
+        else:
+            mcanv.addNameText(hint)
+    elif mcanv.mem.isValidPointer(value):
+        name = addrToName(mcanv, value)
+        mcanv.addVaText(name, value)
     else:
-        return str(val)
+        mcanv.addNameText(hex(value))
+
+
+def addTgtAddrToCanv(mcanv, op, idx, value):
+    """
+    Utility function to add an address that is executable to the canvas.
+    Because this is known to be an executable address the pointer check is not
+    performed.
+    """
+    hint = mcanv.syms.getSymHint(op.va, idx)
+    if hint is not None:
+        mcanv.addNameText(hint)
+    else:
+        name = addrToName(mcanv, value)
+        mcanv.addVaText(name, value)
 
 
 # Branch target helpers
@@ -72,6 +94,7 @@ BLR_INSTR = (
     INS_BNSLR,    INS_BNSLRL,
     INS_BSOLR,    INS_BSOLRL,
 )
+
 
 class PpcOpcode(envi.Opcode):
     def __init__(self, va, opcode, mnem, size, operands, iflags=0):
@@ -208,8 +231,7 @@ class PpcRegOper(envi.RegisterOper):
         mcanv.addNameText(rname, typename='registers')
 
     def repr(self, op):
-        rname = ppc_regs[self.reg][0]
-        return rname
+        return ppc_regs[self.reg][0]
 
     def getWidth(self, emu):
         return emu.getRegisterWidth(self.reg) >> 3
@@ -310,6 +332,7 @@ class PpcFRegOper(PpcRegOper):
 vector_fmt_chars_int = { 1: 'B', 2: 'H', 4: 'I', 8: 'Q' }
 vector_fmt_chars_flt = { 4: 'f', 8: 'd' }
 
+
 class PpcVRegOper(PpcRegOper):
     ''' Vector register operand.'''
     def __init__(self, reg, va=0, elemsize=1, signed=False, floating=False):
@@ -407,6 +430,7 @@ class PpcSPEVRegOper(PpcRegOper):
         val = struct.unpack('>Q', val_bytes)[0]
         emu.setRegister(self.reg, val)
 
+
 class PpcCRegOper(PpcRegOper):
     ''' CR register operand field.'''
     def __init__(self, field, va=0):
@@ -432,12 +456,11 @@ class PpcCRegOper(PpcRegOper):
         return True
 
     def render(self, mcanv, op, idx):
-        rname = "cr%d" % self.field
-        mcanv.addNameText(rname, typename='cregisters')
+        rname = self.repr(op)
+        mcanv.addNameText(rname, name='CR', typename='cregisters')
 
     def repr(self, op):
-        rname = "cr%d" % self.field
-        return rname
+        return 'cr' + str(self.field)
 
     def getOperValue(self, op, emu=None):
         if emu == None:
@@ -451,7 +474,10 @@ class PpcCRegOper(PpcRegOper):
 
         emu.setCr(val & 0xf, self.field)
 
+
 CRBITS = ('lt', 'gt', 'eq', 'so')
+
+
 class PpcCBRegOper(PpcRegOper):
     ''' CR register bit operand.'''
     def __init__(self, bit, va=0):
@@ -470,23 +496,16 @@ class PpcCBRegOper(PpcRegOper):
         return True
 
     def render(self, mcanv, op, idx):
-        creg = self.bit // 4
-        coff = self.bit % 4
-        name = "cr%d" % (creg)
-        if creg:
-            rname = "cr%d.%s" % (creg, CRBITS[coff])
-        else:
-            rname = "%s" % (CRBITS[coff])
-        mcanv.addNameText(rname, name=name, typename='cregisters')
+        rname = self.repr(op)
+        mcanv.addNameText(rname, name='CR', typename='cregisters')
 
     def repr(self, op, simple=True):
         creg = self.bit // 4
         coff = self.bit % 4
         if creg or not simple:
-            rname = "cr%d.%s" % (creg, CRBITS[coff])
+            return "cr%d.%s" % (creg, CRBITS[coff])
         else:
-            rname = "%s" % (CRBITS[coff])
-        return rname
+            return "%s" % (CRBITS[coff])
 
     def getOperValue(self, op, emu=None):
         if emu == None:
@@ -545,20 +564,10 @@ class PpcImmOper(envi.ImmedOper):
 
     def render(self, mcanv, op, idx):
         value = self.getOperValue(op)
-        hint = mcanv.syms.getSymHint(op.va, idx)
-        if hint != None:
-            if mcanv.mem.isValidPointer(value):
-                mcanv.addVaText(hint, value)
-            else:
-                mcanv.addNameText(hint)
-        elif mcanv.mem.isValidPointer(value):
-            name = addrToName(mcanv, value)
-            mcanv.addVaText(name, value)
-        else:
-            mcanv.addNameText(immToStr(value))
+        addIntToCanv(mcanv, op, idx, value)
 
     def repr(self, op):
-        return immToStr(self.getOperValue(op))
+        return hex(self.getOperValue(op))
 
     def getWidth(self, emu):
         return emu.psize
@@ -622,6 +631,7 @@ class PpcUImm3Oper(PpcUImmOper):
     def __init__(self, val, va=0):
         val *= 4
         super(PpcUImm3Oper, self).__init__(val, va)
+
 
 class PpcMemOper(envi.DerefOper):
     '''
@@ -696,22 +706,27 @@ class PpcMemOper(envi.DerefOper):
         emu.setRegObj(self.base_reg, rval)
 
     def render(self, mcanv, op, idx):
-        mcanv.addNameText(immToStr(self._get_offset()))
+        # First add the offset
+        offset = self._get_offset()
+        addIntToCanv(mcanv, op, idx, offset)
+
+        # Now add the base register (if it is not r0)
         if self.base_reg != 0:
             mcanv.addText('(')
             mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
             mcanv.addText(')')
 
     def repr(self, op):
-        off_str = immToStr(self._get_offset())
-
+        off_str = hex(self._get_offset())
         if self.base_reg == 0:
             return off_str
         else:
-            return '%s(%s)' % (off_str, ppc_regs[self.base_reg][0])
+            base_reg = ppc_regs[self.base_reg][0]
+            return off_str + '(' + base_reg + ')'
 
     def getWidth(self, emu):
         return self.tsize
+
 
 class PpcSEMemOper(PpcMemOper):
     '''
@@ -736,7 +751,11 @@ class PpcSEMemOper(PpcMemOper):
         On the SE load/store instructions, a base address value of 0 does not
         represent a constant 0
         '''
-        mcanv.addNameText(immToStr(self._get_offset()))
+        # First add the offset
+        offset = self._get_offset()
+        addIntToCanv(mcanv, op, idx, offset)
+
+        # Now add the base register (allowed to be r0)
         mcanv.addText('(')
         mcanv.addNameText(ppc_regs[self.base_reg][0], typename='registers')
         mcanv.addText(')')
@@ -746,7 +765,8 @@ class PpcSEMemOper(PpcMemOper):
         On the SE load/store instructions, a base address value of 0 does not
         represent a constant 0
         '''
-        return '%s(%s)' % (immToStr(self._get_offset()), ppc_regs[self.base_reg][0])
+        return hex(self._get_offset()) + '(' + ppc_regs[self.base_reg][0] + ')'
+
 
 class PpcIndexedMemOper(PpcMemOper):
     '''
@@ -782,8 +802,14 @@ class PpcIndexedMemOper(PpcMemOper):
         mcanv.addNameText(ppc_regs[self.offset][0], typename='registers')
 
     def repr(self, op):
-        base = '0' if self.base_reg == 0 else ppc_regs[self.base_reg][0]
-        return f'{base},{ppc_regs[self.offset][0]}'
+        offset_reg = ppc_regs[self.offset][0]
+
+        if self.base_reg == 0:
+            return '0x0,' + offset_reg
+        else:
+            base_reg = ppc_regs[self.base_reg][0]
+            return base_reg + ',' + offset_reg
+
 
 class PpcJmpRelOper(PpcImmOper):
     """
@@ -808,11 +834,8 @@ class PpcJmpRelOper(PpcImmOper):
 
     def render(self, mcanv, op, idx):
         value = self.getOperValue(op)
-        if mcanv.mem.isValidPointer(value):
-            name = addrToName(mcanv, value)
-            mcanv.addVaText(name, value)
-        else:
-            mcanv.addVaText('0x%.8x' % value, value)
+        addTgtAddrToCanv(mcanv, op, idx, value)
+
 
 class PpcJmpAbsOper(PpcJmpRelOper):
     """
@@ -839,7 +862,9 @@ class PpcJmpAbsOper(PpcJmpRelOper):
     def getOperValue(self, op, emu=None):
         return self.val
 
+
 fields = (None, 'c', 'x', 'cx', 's', 'cs', 'xs', 'cxs',  'f', 'fc', 'fx', 'fcx', 'fs', 'fcs', 'fxs', 'fcxs')
+
 
 OPERCLASSES = {
     FIELD_BD : PpcSImm3Oper,

@@ -78,7 +78,7 @@ class PpcWorkspaceEmulator(v_i_emulator.WorkspaceEmulator):
         Return the current value of the specified register index. Modified to
         support taint tracking during function analysis.
         """
-        value = v_i_emulator.WorkspaceEmulator.getRegister(self, index)
+        value = super().getRegister(index)
 
         # If there is no saved instruction, or the register is not one of the
         # taint registers, just return the value.

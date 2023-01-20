@@ -90,7 +90,7 @@ ppc_regs32.extend(hypervisors)
 
 from . import spr
 # populate spr_regs from the PPC SPR register list (in spr.py)
-spr_regs = [(str(x), 64) for x in range(1024)]
+spr_regs = [(hex(x), 64) for x in range(1024)]
 for sprnum, (rname, rdesc, bitsz) in spr.sprs.items():
     spr_regs[sprnum] = (rname, bitsz)
 

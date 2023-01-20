@@ -102,13 +102,23 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         regs = self.getRegisterSnap()
         mem = self.getMemorySnap()
         vleinfo = self.getPpcVleInfoSnap()
-        return regs,mem,vleinfo
+        return regs, mem, {'vlemaps': vleinfo}
 
     def setEmuSnap(self, snap):
-        regs,mem,vleinfo = snap
+        # Check if the snap has extra information, otherwise assume this is the 
+        # standard two snap elements
+        if len(snap) == 3:
+            regs, mem, sdict = snap
+            vleinfo = sdict.get('vlemaps')
+        else:
+            regs, mem = snap
+            vleinfo = None
+
         self.setRegisterSnap(regs)
         self.setMemorySnap(mem)
-        self.setPpcVleInfoSnap(vleinfo)
+
+        if vleinfo is not None:
+            self.setPpcVleInfoSnap(vleinfo)
 
     def archGetRegCtx(self):
         return Ppc64RegisterContext()

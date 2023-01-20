@@ -1644,10 +1644,10 @@ class PpcInstructionSet(unittest.TestCase):
 
     def test_vle_maps(self):
         # Populate memory with
-        #   0x182106E0: e_stwu r1,-32(r1)
+        #   0x182106E0: e_stwu r1,-0x20(r1)
         # Which should only be a valid instruction in VLE pages
         vle_test_mem = b'\x18\x21\x06\xe0' * 0x00200000
-        vle_op_str = 'e_stwu r1,-32(r1)'
+        vle_op_str = 'e_stwu r1,-0x20(r1)'
 
         # Some VLE pages, PPC architectures and if the address should be VLE or
         # not

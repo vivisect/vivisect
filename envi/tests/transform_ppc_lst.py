@@ -1064,19 +1064,14 @@ class ppc_instr(object):
             if len(arg.value) == 6 and arg.value[0:4] == "cr0.":
                 return arg.value[4:]
             return arg.value
-        elif abs(arg.value) >= 1024:
-            return hex(arg.value)
         else:
-            return str(arg.value)
+            return hex(arg.value)
 
     def _str_arg_list(self, arg_list):
         return ','.join([self._str_arg(a) for a in arg_list])
 
     def _imm_token(self, val):
-        if abs(val) >= 1024:
-            return lst_parser.Token('HEX_CONST', hex(val), val, None)
-        else:
-            return lst_parser.Token('DEC_CONST', str(val), val, None)
+        return lst_parser.Token('HEX_CONST', hex(val), val, None)
 
     def signed_bd8(self, data):
         sign = 0x0080
