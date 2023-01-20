@@ -42,7 +42,7 @@ commands:
             sudo apt-get -qq install libfreetype6-dev liblcms2-dev ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick
             sudo dpkg --add-architecture i386
             sudo apt-get update
-            sudo apt-get -qq install libc6-i386 libncurses5-i386 libstdc++6-i386
+            sudo apt-get -qq install libc6:i386 libncurses5:i386 libstdc++6:i386
 
       - do_python_setup
 
