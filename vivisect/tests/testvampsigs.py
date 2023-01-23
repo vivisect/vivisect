@@ -101,7 +101,7 @@ class VampSigTests(unittest.TestCase):
         self.assertEqual(self.run_test(opcodes), 'ntdll._alloca_probe')
 
         opcodes = '4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd3f27317664181e200f04d8d9b00f0ffff41c603004d3bd3f275ef4c8b14244c8b5c24084883c410f2c3'
-        assert self.run_test(opcodes) == 'ntdll._alloca_probe'
+        self.assertEqual(self.run_test(opcodes), 'ntdll._alloca_probe')
 
 
     def test_security_cookie_sigs(self):
@@ -109,19 +109,19 @@ class VampSigTests(unittest.TestCase):
         Test detection of security_check_cookie signatures.
         '''
         opcodes = '3b0d000000007502f3c3e9'
-        assert self.run_test(opcodes) == 'ntdll.security_check_cookie'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.security_check_cookie')
 
         opcodes = '3b0d00000000f27502f2c3f2e9'
-        assert self.run_test(opcodes) == 'ntdll.security_check_cookie'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.security_check_cookie')
 
         opcodes = '483b0d00000000751148c1c11066f7c1ffff7502f3c348c1c910e9'
-        assert self.run_test(opcodes) == 'ntdll.security_check_cookie_64'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.security_check_cookie_64')
 
         opcodes = '483b0d00000000f2751148c1c11066f7c1fffff27502f2c348c1c910e9'
-        assert self.run_test(opcodes) == 'ntdll.security_check_cookie_64'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.security_check_cookie_64')
 
         opcodes = '483b0d00000000f2751248c1c11066f7c1fffff27502f2c348c1c910e9'
-        assert self.run_test(opcodes) == 'ntdll.security_check_cookie_64'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.security_check_cookie_64')
 
 
     def test_gs_failure_sigs(self):
@@ -129,9 +129,9 @@ class VampSigTests(unittest.TestCase):
         Test detection of gs_failure signatures.
         '''
         opcodes = '3b0d000000007502f3c3e9'
-        assert self.run_test(opcodes) == 'ntdll.security_check_cookie'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.security_check_cookie')
         opcodes = '8bff558bec5151a300000000890d00000000891500000000891d00000000893500000000893d000000008c15000000008c0d000000008c1d000000008c05000000008c25000000008c2d000000009c'
-        assert self.run_test(opcodes) == 'ntdll.report_gsfailure'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.report_gsfailure')
 
         opcodes = '8bff558bec81ec28030000a300000000890d00000000891500000000891d00000000893500000000893d00000000668c1500000000668c0d00000000668c1d00000000668c0500000000668c2500000000668c2d000000009c'
-        assert self.run_test(opcodes) == 'ntdll.report_gsfailure'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.report_gsfailure')
