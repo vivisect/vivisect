@@ -42,23 +42,23 @@ class VampSigTests(unittest.TestCase):
         '''
         # True signature.
         opcodes = '680000000064a10000000050'
-        assert self.run_test(opcodes) == 'ntdll.seh3_prolog'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.seh3_prolog')
 
         # Incorrect signature.
         opcodes = '680000000064a100000000aa'
-        assert self.run_test(opcodes) is None
+        self.assertEqual(self.run_test(opcodes), None)
 
         # Signature with masked out bytes changed.
         opcodes = '68aaaaaaaa64a10000000050'
-        assert self.run_test(opcodes) == 'ntdll.seh3_prolog'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.seh3_prolog')
 
         # Signature with extra opcodes.
         opcodes = '680000000064a100000000504141414141'
-        assert self.run_test(opcodes) == 'ntdll.seh3_prolog'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.seh3_prolog')
 
         # Signature with opcodes before.
         opcodes = '4141680000000064a10000000050'
-        assert self.run_test(opcodes) is None
+        self.assertEqual(self.run_test(opcodes), None)
 
 
     def test_seh_sigs(self):
