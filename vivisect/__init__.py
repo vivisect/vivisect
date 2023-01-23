@@ -12,7 +12,6 @@ import queue
 import string
 import hashlib
 import logging
-import binascii
 import itertools
 import traceback
 import threading
@@ -43,7 +42,7 @@ from vivisect.const import *
 from vivisect.defconfig import *
 
 import vivisect.analysis.generic.emucode as v_emucode
-
+sys.setrecursionlimit(5000)
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +54,7 @@ STORAGE_MAP = {
 
 
 def guid(size=16):
-    return binascii.hexlify(os.urandom(size))
+    return e_common.hexify(os.urandom(size))
 
 
 class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
@@ -89,6 +88,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._viv_gui = None    # If a gui is running, he will put a ref here...
         self._ext_ctxmenu_hooks = {}
         self._extensions = {}
+        self._load_guid = threading.Event()
+        self._load_event = threading.Event()
 
         self.saved = False  # TODO: Have a warning when we try to close the UI if the workspace hasn't been saved
         self.rchan = None
@@ -109,6 +110,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.relocations = []
         self._dead_data = []
         self.iscode = {}
+        self.iscode_arch = {}
 
         self.xrefs = []
         self.xrefs_by_to = {}
@@ -151,11 +153,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         self._cached_emus = {}
 
-        self.parsedbin = None
         # The function entry signature decision tree
         # FIXME add to export
         self.sigtree = e_bytesig.SignatureTree()
         self.siglist = []
+
+        self._op_cache = {}
 
         self._initEventHandlers()
 
@@ -173,10 +176,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet("Bookmarks", (("va", VASET_ADDRESS), ("Bookmark Name", VASET_STRING)))
         self.addVaSet('DynamicBranches', (('va', VASET_ADDRESS), ('opcode', VASET_STRING), ('bflags', VASET_INTEGER)))
         self.addVaSet('SwitchCases', (('va', VASET_ADDRESS), ('setup_va', VASET_ADDRESS), ('Cases', VASET_INTEGER)))
+        self.addVaSet('SwitchCases_TimedOut', (('va', VASET_ADDRESS), ('timeout', VASET_INTEGER)))
         self.addVaSet('PointersFromFile', (('va', VASET_ADDRESS), ('target', VASET_ADDRESS), ('file', VASET_STRING), ('comment', VASET_STRING), ))
         self.addVaSet('CodeFragments', (('va', VASET_ADDRESS), ('calls_from', VASET_COMPLEX)))
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
+        self.addVaSet('thunk_reg', ( ('fva', VASET_ADDRESS), ('reg', VASET_STRING), ('tgtval', VASET_INTEGER)) )
+        self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING), 
+                ('resolved address', VASET_ADDRESS)))
 
     def vprint(self, msg):
         logger.info(msg)
@@ -193,6 +200,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 vwgui.doStuffAndThings()
         '''
         return self._viv_gui
+
+    def getPointerSize(self):
+        return self.psize
 
     def addCtxMenuHook(self, name, handler):
         '''
@@ -244,7 +254,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         self._extensions.pop(name, None)
 
-    def getVivGuid(self):
+    def getVivGuid(self, generate=True):
         '''
         Return the GUID for this workspace.  Every newly created VivWorkspace
         should have a unique GUID, for identifying a particular workspace for
@@ -255,7 +265,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         based workspace used to store to the server.
         '''
         vivGuid = self.getMeta('GUID')
-        if vivGuid is None:
+        if vivGuid is None and generate:
             vivGuid = guid()
             self.setMeta('GUID', vivGuid)
 
@@ -381,17 +391,38 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         return list(self.comments.items())
 
-    def addRelocation(self, va, rtype, data=None):
+    def addRelocation(self, va, rtype, data=None, size=None):
         """
         Add a relocation entry for tracking.
         Expects data to have whatever is necessary for the reloc type. eg. addend
         """
         # split "current" va into fname and offset.  future relocations will want to base all va's from an image base
-        mmva, mmsz, mmperm, fname = self.getMemoryMap(va)    # FIXME: getFileByVa does not obey file defs
+        mmap = self.getMemoryMap(va)
+        if not mmap:
+            logger.warning('addRelocation: No matching map found for %s', va)
+            return None
+        mmva, mmsz, mmperm, fname = mmap    # FIXME: getFileByVa does not obey file defs
         imgbase = self.getFileMeta(fname, 'imagebase')
         offset = va - imgbase
 
-        self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data))
+        self._fireEvent(VWE_ADDRELOC, (fname, offset, rtype, data, size))
+        return self.getRelocation(va)
+
+    def delRelocation(self, va, full=False):
+        """
+        Delete a tracked relocation.
+        """
+        mmap = self.getMemoryMap(va)
+        if not mmap:
+            logger.warning('delRelocation: No matching map found for %s', va)
+            return None
+
+        mmva, mmsz, mmperm, fname = mmap    # FIXME: getFileByVa does not obey file defs
+        reloc = self.getRelocation(va)
+        if not reloc:
+            return None
+        self._fireEvent(VWE_DELRELOC, (fname, va, reloc, full))
+        return reloc
 
     def getRelocations(self):
         """
@@ -600,11 +631,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         client to the given (potentially cobra remote)
         workspace object.
         """
-        uname = e_config.getusername()
+        uname = self.config.user.name
         self.server = remotevw
         self.rchan = remotevw.createEventChannel()
 
         self.server.vprint('%s connecting...' % uname)
+
+        self.leaders.update(self.server.getLeaderSessions())
+        self.leaderloc.update(self.server.getLeaderLocations())
+
         wsevents = self.server.exportWorkspace()
         self.importWorkspace(wsevents)
         self.server.vprint('%s connection complete!' % uname)
@@ -612,6 +647,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         thr = threading.Thread(target=self._clientThread)
         thr.setDaemon(True)
         thr.start()
+
+        timeout = self.config.viv.remote.wait_for_plat_arch
+        self._load_event.wait(timeout=timeout)
+        self._snapInAnalysisModules()
 
     def _clientThread(self):
         """
@@ -721,7 +760,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             n = self.getName(lva)
             if n is not None:
                 return n
-            return binascii.hexlify(self.readMemory(lva, lsize)).decode('utf-8')
+            return e_common.hexify(self.readMemory(lva, lsize))
 
     def followPointer(self, va):
         """
@@ -738,7 +777,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # NOTE: currently analyzePointer returns LOC_OP
             # based on function entries, lets make a func too...
             logger.debug('discovered new function (followPointer(0x%x))', va)
-            self.makeFunction(va)
+            arch = self.iscode_arch.get(va, envi.ARCH_DEFAULT)
+            self.makeFunction(va, arch=arch)
             return True
 
         elif ltype == LOC_STRING:
@@ -760,6 +800,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 continue
             if not self.probeMemory(eva, 1, e_mem.MM_EXEC):
                 continue
+            logger.debug('processEntryPoint: 0x%x', eva)
             self.makeFunction(eva)
 
     def analyze(self):
@@ -816,7 +857,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
          numPointers,
          numVtables) = self.getDiscoveredInfo()
 
-        self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (disc*100.0/(disc+undisc), disc, disc+undisc))
+        percentage = disc*100.0/(disc+undisc) if disc or undisc else 0
+        self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (percentage, disc, disc+undisc))
         self.vprint("   Xrefs/Blocks/Funcs:                             (%s / %s / %s)" % (numXrefs, numBlocks, numFuncs))
         self.vprint("   Locs,  Ops/Strings/Unicode/Nums/Ptrs/Vtables:   (%s:  %s / %s / %s / %s / %s / %s)" % (numLocs, numOps, numStrings, numUnis, numNumbers, numPointers, numVtables))
 
@@ -935,7 +977,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
                 loctup = self.getLocation(va)
                 if loctup is not None:
-                    offset += loctup[L_SIZE]
+                    nextva = loctup[L_VA] + loctup[L_SIZE]
+                    offset = nextva - mva
                     if offset % align:
                         offset += align
                         offset &= -align
@@ -1088,6 +1131,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.iscode[va]
 
         self.iscode[va] = True
+
         # because we're doing partial emulation, demote some of the logging
         # messages to low priority.
         kwargs['loglevel'] = e_common.EMULOG
@@ -1102,6 +1146,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if wat.looksgood():
             self.iscode[va] = True
+            self.iscode_arch[va] = wat.arch
+
         else:
             self.iscode[va] = False
 
@@ -1111,13 +1157,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
     #
     # Opcode API
     #
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT, skipcache=False):
         '''
         Parse an opcode from the specified virtual address.
 
-        Example: op = m.parseOpcode(0x7c773803)
+        Example: op = m.parseOpcode(0x7c773803, skipcache=True)
 
-        note: differs from the IMemory interface by checking loclist
+        Set skipcache=True in order to bypass the opcode cache and force a reparsing of bytes
         '''
         off, b = self.getByteDef(va)
         if arch == envi.ARCH_DEFAULT:
@@ -1127,8 +1173,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # so that at least parse opcode wont fail
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
-
+        if not skipcache:
+            key = (va, arch, b[off:off+16])
+            valu = self._op_cache.get(key, None)
+            if not valu:
+                valu = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+            self._op_cache[key] = valu
+            return valu
         return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+
+    def clearOpcache(self):
+        '''
+        Remove all elements from the opcode cache
+        '''
+        self._op_cache.clear()
 
     def iterJumpTable(self, startva, step=None, maxiters=None, rebase=False):
         if not step:
@@ -1193,6 +1251,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         curfva = self.getFunction(callingVa)
         # collect all the entries for the new jump table
         for cb in self.iterJumpTable(newTablAddr, rebase=rebase, step=psize):
+            if cb in codeblocks:
+                continue
             codeblocks.add(cb)
             prevcb = self.getCodeBlock(cb)
             if prevcb is None:
@@ -1220,7 +1280,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.delXref(va)
 
     def makeJumpTable(self, op, tova, rebase=False, psize=4):
-        fname = self.getMemoryMap(tova)[3]
+        fname = self.getFileByVa(tova)
         imgbase = self.getFileMeta(fname, 'imagebase')
 
         ptrbase = tova
@@ -1253,6 +1313,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 if refbflags & envi.BR_TABLE:
                     self.splitJumpTable(op.va, refva, tova, psize=psize)
 
+        i = 0
         tabdone = {}
         for i, rdest in enumerate(self.iterJumpTable(ptrbase, rebase=rebase, step=psize)):
             if not tabdone.get(rdest):
@@ -1270,6 +1331,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # This must be second (len(xrefsto))
         self.addXref(op.va, tova, REF_PTR)
+        self.setVaSetRow('SwitchCases', (op.va, op.va, i))
+        self.setVaSetRow('DynamicBranches', (op.va, repr(op), op.iflags))
 
     def makeOpcode(self, va, op=None, arch=envi.ARCH_DEFAULT):
         """
@@ -1282,7 +1345,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             except envi.InvalidInstruction as msg:
                 # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
-                logger.warning("Invalid Instruct Attempt At:", hex(va), binascii.hexlify(bytez))
+                logger.warning("Invalid Instruct Attempt At:", hex(va), e_common.hexify(bytez))
                 raise InvalidLocation(va, msg)
             except Exception as msg:
                 raise InvalidLocation(va, msg)
@@ -1468,7 +1531,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         This function should probably only be called once code-flow for the
         area is complete.
         """
+        logger.debug('makeFunction(0x%x, %r, 0x%x)', va, meta, arch)
         if self.isFunction(va):
+            logger.debug('0x%x is already a function, skipping', va)
             return
 
         if not self.isValidPointer(va):
@@ -1504,6 +1569,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             vw.setFunctionArg(fva, 1, 'char **','argv')
         '''
         rettype,retname,callconv,callname,callargs = self.getFunctionApi(fva)
+        callargs = list(callargs)
         while len(callargs) <= idx:
             callargs.append( ('int','arg%d' % len(callargs)) )
 
@@ -1647,22 +1713,29 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             ret = []
         return ret
 
-    def makeFunctionThunk(self, fva, thname, addVa=True, filelocal=False):
+    def makeFunctionThunk(self, fva, thname, addVa=True, filelocal=False, basename=None):
         """
         Inform the workspace that a given function is considered a "thunk" to another.
         This allows the workspace to process argument inheritance and several other things.
+
+        If basename is provided, that name is used to create the Vivisect name for the thunk.
+        If basename is not provided, thname is chopped and used for the Vivisect name.
+        This difference allows, for example, the Elf loader to make PLT functions named "plt_<foo>" 
+        but still use the official thunk name "*.<foo>".  This thunk name is used to look up
+        the import api.  These "*.<foo>" thunk names are also used in the addNoReturnApi().
 
         Usage: vw.makeFunctionThunk(0xvavavava, "kernel32.CreateProcessA")
         """
         self.checkNoRetApi(thname, fva)
         self.setFunctionMeta(fva, "Thunk", thname)
-        n = self.getName(fva)
 
-        base = thname.split(".")[-1]
+        if basename is None:
+            basename = thname.split(".")[-1]
+
         if addVa:
-            name = "%s_%.8x" % (base,fva)
+            name = "%s_%.8x" % (basename, fva)
         else:
-            name = base
+            name = basename
         newname = self.makeName(fva, name, filelocal=filelocal, makeuniq=True)
 
         api = self.getImpApi(thname)
@@ -1773,15 +1846,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return xrefs
         return [ xtup for xtup in xrefs if xtup[XR_RTYPE] == rtype ]
 
-    def addMemoryMap(self, va, perms, fname, bytes):
+    def addMemoryMap(self, va, perms, fname, bytes, align=None):
         """
         Add a memory map to the workspace.  This is the *only* way to
         get memory backings into the workspace.
         """
-        self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes))
+        self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes, align))
 
-    def delMemoryMap(self, va):
-        raise "OMG"
+        # since we don't return anything from _fireEvent(), pull the new info:
+        mva, msz, mperm, mbytes = self.getMemoryMap(va)
+        return msz
+
+    def delMemoryMap(self, mapva):
+        '''
+        Remove a memory map from the workspace.
+        '''
+        self._fireEvent(VWE_DELMMAP, mapva)
 
     def addSegment(self, va, size, name, filename):
         """
@@ -2001,7 +2081,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         loctup = self.getLocation(va)
         if loctup is not None:
             if loctup[L_LTYPE] != LOC_POINTER or loctup[L_VA] != va:
-                logger.warning("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
+                logger.info("0x%x: Attempting to make a Pointer where another location object exists (of type %r)", va, self.reprLocation(loctup))
             return None
 
         psize = self.psize
@@ -2120,7 +2200,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         pva, psize, tinfo = self._getStrTinfo(va, size, subs)
 
         if self.getName(va) is None:
-            m = self.readMemory(va, size-1).replace(b'\n', b'')
+            m = self.readMemory(va, size).replace(b'\x00', b'').replace(b'\n', b'')
             self.makeName(va, "str_%s_%.8x" % (m[:16].decode('utf-8'), va))
         return self.addLocation(pva, psize, LOC_STRING, tinfo=tinfo)
 
@@ -2251,7 +2331,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytez = self.getByteDef(va)
         foff = bytez.find(b'\x00', offset)
         if foff == -1:
-            return foff
+            return len(bytez) - offset
         return (foff - offset) + 1
 
     def uniStringSize(self, va):
@@ -2265,6 +2345,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if foff == -1:
             return foff
         return (foff - offset) + 2
+
+    def getFileAndOffset(self, va):
+        '''
+        Helper function which identifies the file a given VA is a part of, then
+        splits the file base and offset
+
+        Returns:  (filename, filebase, offset)
+
+        If no file is identified, None is returned
+        '''
+        fname = self.getFileByVa(va)
+        if not fname:
+            return None
+
+        fbase = self.getFileMeta(fname, 'imagebase')
+        off = va - fbase
+        return (fname, fbase, off)
 
     def addLocation(self, va, size, ltype, tinfo=None):
         """
@@ -2564,13 +2661,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(VWE_SETNAME, (va,name))
         return name
 
-    def saveWorkspace(self, fullsave=True):
+    def saveWorkspace(self, fullsave=True, filename=None):
 
-        if self.server is not None:
+        if self.server is not None and not filename:
             return
 
+        # prefer our arg filename if provided
+        if not filename:
+            filename = self.getMeta("StorageName")
+
         modname = self.getMeta("StorageModule")
-        filename = self.getMeta("StorageName")
         if modname is None:
             raise Exception("StorageModule not specified!")
         if filename is None:
@@ -2593,7 +2693,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Read the first bytes of the file descriptor and see if we can identify the type.
         If so, load up the parser for that file type, otherwise raise an exception.
 
-        Returns file md5
+        Returns the file md5
         """
         mod = None
         fd.seek(0)
@@ -2605,13 +2705,50 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if hasattr(mod, "config"):
             self.mergeConfig(mod.config)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         fd.seek(0)
-        filename = hashlib.md5(fd.read()).hexdigest()
-        fname = mod.parseFd(self, fd, filename, baseaddr=baseaddr)
+        fname = mod.parseFd(self, fd, filename=None, baseaddr=baseaddr)
 
-        self.initMeta("StorageName", filename+".viv")
+        outfile = hashlib.md5(fd.read()).hexdigest()
+        self.initMeta("StorageName", outfile+".viv")
 
         # Snapin our analysis modules
+        self._snapInAnalysisModules()
+
+        return fname
+
+    def loadParsedBin(self, pbin, fmtname=None, baseaddr=None):
+        '''
+        Load an already parsed PE or Elf file into the workspace. Raises an exception if
+        the file isn't one of those two.
+
+        Returns the file md5
+        '''
+        fd = pbin.fd
+        fd.seek(0)
+        if fmtname is None:
+            byts = fd.read(32)
+            fmtname = viv_parsers.guessFormat(byts)
+
+        filename = hashlib.md5(fd.read()).hexdigest()
+
+        mod = viv_parsers.getParserModule(fmtname)
+        if hasattr(mod, "config"):
+            self.mergeConfig(mod.config)
+
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
+        if fmtname == 'pe':
+            mod.loadPeIntoWorkspace(self, pbin)
+        elif fmtname == 'elf':
+            mod.loadElfIntoWorkspace(self, pbin)
+        else:
+            raise Exception('Failed to load in the parsed module for format %s', fmtname)
+
+        self.initMeta("StorageName", filename+".viv")
         self._snapInAnalysisModules()
 
         return fname
@@ -2670,10 +2807,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.loadWorkspace(filename)
             return self.normFileName(filename)
 
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
+        
         mod = viv_parsers.getParserModule(fmtname)
-        fname = mod.parseFile(self, filename, baseaddr=baseaddr)
 
-        self.initMeta("StorageName", filename+".viv")
+        fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
+
+        if not self.getMeta('StorageName'):
+            self.initMeta("StorageName", filename+".viv")
 
         # Snapin our analysis modules
         self._snapInAnalysisModules()
@@ -2692,6 +2834,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # TODO: Load workspace from memory?
         mod = viv_parsers.getParserModule(fmtname)
+
+        # assign GUID just before actually populating the workspace
+        self.initMeta('GUID', guid())
         mod.parseMemory(self, memobj, baseaddr)
 
         mapva, mapsize, mapperm, mapfname = memobj.getMemoryMap(baseaddr)
@@ -2701,6 +2846,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.initMeta('StorageName', mapfname+".viv")
         # Snapin our analysis modules
         self._snapInAnalysisModules()
+
+    def writeMemory(self, va, bytez):
+        '''
+        Override writeMemory to hook into the Event subsystem.
+        Stores overwritten data for easy undo.
+        '''
+        self._reqProbeMem(va, len(bytez), e_mem.MM_WRITE)
+        oldbytes = self.readMemory(va, len(bytez))
+        self._fireEvent(VWE_WRITEMEM, (va, bytez, oldbytes))
 
     def getFiles(self):
         """
@@ -2741,6 +2895,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if nname in self.filemeta:
             raise Exception("Duplicate File Name: %s" % nname)
         self._fireEvent(VWE_ADDFILE, (nname, imagebase, md5sum))
+        self.setFileMeta(nname, 'OrigName', filename)
         return nname
 
     def addEntryPoint(self, va):
@@ -2909,12 +3064,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 #
 #  Shared Workspace APIs
 #
+    # interact with the Server
     def chat(self, msg):
-        uname = e_config.getusername()
+        uname = self.config.user.name
         # FIXME this should be part of a UI event model.
         self._fireEvent(VWE_CHAT, (uname, msg))
 
-    def iAmLeader(self, winname):
+    def iAmLeader(self, uuid, winname, locexpr=None):
         '''
         Announce that your workspace is leading a window with the
         specified name.  This allows others to opt-in to following
@@ -2926,10 +3082,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if not self.server:
             raise Exception('iAmLeader() requires being connected to a server.')
 
-        user = e_config.getusername()
-        self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (user,winname))
+        user = self.config.user.name
+        self.server._fireEvent(VTE_MASK | VTE_IAMLEADER, (uuid, user, winname, locexpr))
 
-    def followTheLeader(self, winname, expr):
+    def followTheLeader(self, uuid, expr):
         '''
         Announce a new memory expression to navigate to if if a given window
         is following the specified user/winname
@@ -2939,8 +3095,46 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         if not self.server:
             raise Exception('followTheLeader() requires being connected to a server.')
-        user = e_config.getusername()
-        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (user,winname, expr))
+        self.server._fireEvent(VTE_MASK | VTE_FOLLOWME, (uuid, expr))
+
+    def killLeaderSession(self, uuid):
+        '''
+        When we shutdown a Leader session, we need to make it go away.
+
+        Example:
+            vw.killTheLeader('bf1ae9f4b94711ecbe41091ba860c051')
+        '''
+        if not self.server:
+            raise Exception('killTheLeader() requires being connected to a server.')
+        self.server._fireEvent(VTE_MASK | VTE_KILLLEADER, uuid)
+
+    def modifyLeaderSession(self, uuid, user, winname):
+        '''
+        Make changes to the username or session/window name
+
+        Example:
+            vw.killTheLeader('bf1ae9f4b94711ecbe41091ba860c051')
+        '''
+        if not self.server:
+            raise Exception('killTheLeader() requires being connected to a server.')
+        self.server._fireEvent(VTE_MASK | VTE_MODLEADER, (uuid, user, winname))
+
+    # internal data access
+    def getLeaderInfo(self, uuid=None):
+        if uuid in self.leaders:
+            user, fname = self.leaders.get(uuid)
+            return user, fname
+            
+        return None, None
+
+    def getLeaderSessions(self):
+        return dict(self.leaders)
+
+    def getLeaderLoc(self, uuid):
+        '''
+        Get the current location for a Leader session
+        '''
+        return self.leaderloc.get(uuid)
 
 #################################################################
 #
@@ -2999,9 +3193,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Add a prefix to the given name paying attention to the filename prefix, and
         any VA suffix which may exist.
-
-        This is used by multiple analysis modules.
-        Uses _getNameParts.
         '''
         fpart, npart, vapart = self._getNameParts(name, va)
         if fpart is None and vapart is None:
@@ -3081,3 +3272,9 @@ def getVivPath(*pathents):
     return os.path.join(dname, *pathents)
 
 
+##############################################################################
+# The following are touched during the release process by bump2version.
+# You should have no reason to modify these directly
+version = (1, 0, 8)
+verstring = '.'.join([str(x) for x in version])
+commit = ''

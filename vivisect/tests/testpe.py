@@ -6,12 +6,15 @@ import envi.memory as e_memory
 
 import vivisect
 import vivisect.const as viv_con
+import vivisect.parsers.pe
+
 import vivisect.tests.helpers as helpers
+import vivisect.tests.utils as v_t_utils
 
 logger = logging.getLogger(__name__)
 
 
-class PETests(unittest.TestCase):
+class PETests(v_t_utils.VivTest):
 
     @classmethod
     def setUpClass(cls):
@@ -24,6 +27,13 @@ class PETests(unittest.TestCase):
         cls.vw_mimi = vivisect.VivWorkspace()
         mimi_fn = helpers.getTestPath('windows', 'i386', 'mimikatz.exe_')
         cls.vw_mimi.loadFromFile(mimi_fn)
+
+        # this binary is a little big (1MB)
+        # and we only care about the delay import table
+        # so, don't do a full analysis
+        fn_471 = helpers.getTestPath('windows', 'i386', '471ce36855fec6b44398b9b1e3cfb9e74b122fb2cc20fdf6603ebda39f86dddf')
+        cls.vw_471 = vivisect.VivWorkspace()
+        vivisect.parsers.pe.parseFile(cls.vw_471, fn_471)
 
     def test_function_disasm(self):
         disasm = [
@@ -152,7 +162,42 @@ class PETests(unittest.TestCase):
             (0x42b32c, 'user32.SendMessageW'),
         ]
         self.assertEqual(delays, ans)
-
+ 
+    def test_delay_imports_with_va(self):
+        vw = self.vw_471
+        delays = sorted(vw.getVaSetRows('DelayImports'))
+        ans = [
+            (0x4e3a34, 'advapi32.RegCloseKey'),
+            (0x4e3a3c, 'gdi32.DeleteObject'),
+            (0x4e3a40, 'gdi32.CreateRectRgn'),
+            (0x4e3a44, 'gdi32.GetPixel'),
+            (0x4e3a48, 'gdi32.SelectObject'),
+            (0x4e3a4c, 'gdi32.CreateCompatibleDC'),
+            (0x4e3a50, 'gdi32.DeleteDC'),
+            (0x4e3a54, 'gdi32.CombineRgn'),
+            (0x4e3a58, 'gdi32.OffsetRgn'),
+            (0x4e3a5c, 'gdi32.LPtoDP'),
+            (0x4e3a60, 'gdi32.DPtoLP'),
+            (0x4e3a64, 'gdi32.CreateEllipticRgn'),
+            (0x4e3a68, 'gdi32.CreateRectRgnIndirect'),
+            (0x4e3a6c, 'gdi32.GetRgnBox'),
+            (0x4e3a70, 'gdi32.SelectPalette'),
+            (0x4e3a74, 'gdi32.SetMapMode'),
+            (0x4e3a78, 'gdi32.RealizePalette'),
+            (0x4e3a7c, 'gdi32.GetDIBits'),
+            (0x4e3a80, 'gdi32.GetDeviceCaps'),
+            (0x4e3a88, 'redeye.ARER_AutoDetect'),
+            (0x4e3a8c, 'redeye.ARER_Correct'),
+            (0x4e3a94, 'winmm.timeGetTime'),
+            (0x4e3a98, 'winmm.waveOutGetNumDevs'),
+            (0x4e3aa0, 'magfileio.magIOGetSaveList'),
+            (0x4e3aa4, 'magfileio.magIOLoadPlugsEx'),
+            (0x4e3aa8, 'magfileio.magIOUnloadPlugs'),
+            (0x4e3ab0, 'spotremove.pmi_spot_remove_auto'),
+            (0x4e3ab4, 'spotremove.pmi_red_eye_remove_auto'),
+        ]
+        self.assertEqual(delays, ans)
+ 
     def test_imports(self):
         vw = self.vw_psexec
         imps = vw.getImports()
@@ -465,7 +510,7 @@ class PETests(unittest.TestCase):
                     (4371200, 4, 9, 'gdi32.StartPage')])
 
         failed = False
-        # self.assertEqual(imps, vw.getImports())
+
         for iloc in vw.getImports():
             if iloc not in imps:
                 logger.critical(f'{iloc} was not found in the predefined imports. A new one?')
@@ -475,9 +520,35 @@ class PETests(unittest.TestCase):
         for iloc in imps:
             if iloc not in oimp:
                 logger.critical(f'The imports are missing {iloc}.')
+                failed = True
 
         if failed:
             self.fail('Please see test logs for import test failures')
+
+    def test_pe_pe32p(self):
+        '''
+        test that we use the right check for constructing the optional header
+        and that the data directories are right
+        '''
+        file_path = helpers.getTestPath('windows', 'amd64', 'a7712b7c45ae081a1576a387308077f808c666449d1ea9ba680ec410569d476f.file')
+        pe = PE.peFromFileName(file_path)
+        self.assertTrue(pe.pe32p)
+        self.eq(pe.psize, 8)
+
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfStackReserve, 0x100000)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfStackCommit, 0x1000)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfHeapReserve, 0x100000)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfHeapCommit, 0x1000)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.LoaderFlags, 0)
+        self.eq(pe.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes, 0x10)
+
+        ddir = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+        self.eq(ddir.VirtualAddress, 0x2008)
+        self.eq(ddir.Size, 0x48)
+
+        ddir = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_RESOURCE)
+        self.eq(ddir.VirtualAddress, 0x9a2000)
+        self.eq(ddir.Size, 0x3c78)
 
     def test_hiaddr_imports(self):
         # Test if imports located at a high relative address are discovered.
@@ -492,10 +563,10 @@ class PETests(unittest.TestCase):
         ans = {
             # name -> (Base, Size, Flags)
             'PE_Header': (0x400000, 0x1000, e_memory.MM_READ),
-            '.text': (0x401000, 0x71635, e_memory.MM_READ | e_memory.MM_EXEC),
-            '.data': (0x4b6000, 0x41c8, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.rdata': (0x473000, 0x42ca6, e_memory.MM_READ),
-            '.reloc': (0x4bf000, 0x661a, e_memory.MM_READ),
+            '.text': (0x401000, 0x71800, e_memory.MM_READ | e_memory.MM_EXEC),
+            '.data': (0x4b6000, 0x4200, e_memory.MM_READ | e_memory.MM_WRITE),
+            '.rdata': (0x473000, 0x42e00, e_memory.MM_READ),
+            '.reloc': (0x4bf000, 0x6800, e_memory.MM_READ),
         }
         for sva, ssize, sname, sfname in vw.getSegments():
             self.assertEqual(ans[sname][0], sva)
@@ -507,3 +578,38 @@ class PETests(unittest.TestCase):
             self.assertEqual(msize, ssize)
             self.assertEqual(flags, ans[sname][2])
             self.assertEqual(mfname, sfname)
+
+    def test_saved_structures(self):
+        ans = [
+            0x4001f0,
+            0x400218,
+            0x400240,
+            0x400268,
+            0x400290
+        ]
+        vw = self.vw_psexec
+        for va in ans:
+            loc = vw.getLocation(va)
+            self.assertIsNotNone(loc)
+            self.assertEqual(loc[0], va)
+            self.assertEqual(loc[1], 40)
+            self.assertEqual(loc[2], viv_con.LOC_STRUCT)
+            self.assertEqual(loc[3], 'pe.IMAGE_SECTION_HEADER')
+
+    def test_bad_pe_sectname(self):
+        vw = helpers.getTestWorkspace('windows', 'i386', 'HelloSection-err.exe')
+        segs = vw.getSegments()
+        pesections = [
+            # about as blunt and direct of a name as we can get
+            "[invalid name] b'\\xfftext\\x00\\x00\\x00'",
+            '.rdata\x00\x00',
+            '.data\x00\x00\x00',
+            '.rsrc\x00\x00\x00',
+            '.reloc\x00\x00',
+        ]
+        sections = [x.Name for x in vw.parsedbin.getSections()]
+        valids = [x.isNameValid() for x in vw.parsedbin.getSections()]
+        self.eq(valids, [False, True, True, True, True])
+        self.len(sections, 5)
+        for name in pesections:
+            self.isin(name, sections)

@@ -299,3 +299,44 @@ class VStructTest(unittest.TestCase):
         s.vsParse(bytez)
         self.assertEqual(s.vsGetValue(), "accelerator.dll")
         self.assertEqual(s.vsEmit(), b'a\x00c\x00c\x00e\x00l\x00e\x00r\x00a\x00t\x00o\x00r\x00.\x00d\x00l\x00l\x00\x00\x00')
+
+    def test_unsigned(self):
+        s = v_uint16(value=17)
+        byts = s.vsEmit()
+        self.assertEqual(b'\x11\x00', byts)
+
+        new = v_uint16()
+        new.vsParse(byts)
+        self.assertEqual(new.vsEmit(), s.vsEmit())
+
+        # test class that skips by having a real format
+        class v_silly(v_number):
+            _vs_builder = True
+            _vs_length = 5
+
+        num = v_silly(value=1947824, bigend=True)
+        byts = num.vsEmit()
+        self.assertEqual(b'\x00\x00\x1d\xb8\xb0', byts)
+
+        othr = v_silly(bigend=True)
+        othr.vsParse(byts)
+        self.assertEqual(othr, num)
+
+    def test_signed(self):
+        s = v_int16(value=-1)
+        self.assertEqual(b'\xff\xff', s.vsEmit())
+
+        s.vsSetValue(1)
+        self.assertEqual(b'\x01\x00', s.vsEmit())
+
+        s = v_int16(value=-1, bigend=True)
+        self.assertEqual(b'\xff\xff', s.vsEmit())
+
+        s.vsSetValue(1)
+        self.assertEqual(b'\x00\x01', s.vsEmit())
+
+        s = v_int32(value=32)
+        self.assertEqual(b'\x20\x00\x00\x00', s.vsEmit())
+
+        s = v_int32(value=-32)
+        self.assertEqual(b'\xe0\xff\xff\xff', s.vsEmit())

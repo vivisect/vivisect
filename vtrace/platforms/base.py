@@ -10,7 +10,7 @@ import traceback
 import threading
 
 import vtrace
-import envi.memory as e_mem
+import envi.const as e_const
 import envi.threads as e_threads
 import envi.symstore.resolver as e_sym_resolv
 
@@ -71,10 +71,11 @@ class TracerBase(vtrace.Notifier):
         # Set up some globally expected metadata
         self.setMeta('PendingSignal', None)
         self.setMeta('SignalInfo', None)
-        self.setMeta("IgnoredSignals",[])
-        self.setMeta("LibraryBases", {}) # name -> base address mappings for binaries
-        self.setMeta("LibraryPaths", {}) # base -> path mappings for binaries
-        self.setMeta("ThreadId", 0) # If you *can* have a thread id put it here
+        self.setMeta("IgnoredSignals", [])
+        self.setMeta("LibraryBases", {})  # name -> base address mappings for binaries
+        self.setMeta("LibraryPaths", {})  # base -> path mappings for binaries
+        self.setMeta("ThreadId", 0)  # If you *can* have a thread id put it here
+        self.setMeta("BadMaps", [])  # Maps like [vvar] on linux that we can't read from normally
         plat = platform.system().lower()
         rel  = platform.release().lower()
         self.setMeta("Platform", plat)
@@ -202,8 +203,19 @@ class TracerBase(vtrace.Notifier):
                 # only effects active breaks
                 bp.deactivate(self)
 
-    def _activBreakpoints(self):
+    def _updateBreakAddresses(self):
+        """
+        Update breakpoint address resolution (in unresolved breakpoints).
+        Intended to be run after events which change the namespace, such as
+        NOTIFY_LOAD_LIBRARY events
+        """
+        for bp in self.deferred:
+            addr = bp.resolveAddress(self)
+            if addr is not None:
+                self.breakpoints[addr] = bp
+                self.deferred.remove(bp)
 
+    def _activBreakpoints(self):
         """
         Run through the breakpoints and setup
         the ones that are enabled.
@@ -213,11 +225,7 @@ class TracerBase(vtrace.Notifier):
         """
 
         # Resolve deferred breaks
-        for bp in self.deferred:
-            addr = bp.resolveAddress(self)
-            if addr is not None:
-                self.deferred.remove(bp)
-                self.breakpoints[addr] = bp
+        self._updateBreakAddresses()
 
         for bp in self.breakpoints.values():
             if bp.isEnabled():
@@ -536,6 +544,7 @@ class TracerBase(vtrace.Notifier):
         about a LOAD_LIBRARY. (This means *not* from inside another
         notifer)
         """
+        logger.info("addLibraryBase(%r, 0x%x, %r)", libname, address, always)
 
         self.setMeta("LatestLibrary", None)
         self.setMeta("LatestLibraryNorm", None)
@@ -567,25 +576,35 @@ class TracerBase(vtrace.Notifier):
     def _findLibraryMaps(self, magic, always=False):
         # A utility for platforms which lack library load
         # notification through the operating system
+        # TODO: update to handle *losing* memory maps as well.
+        bmaps = self.getMeta("BadMaps", [])
         done = {}
         mlen = len(magic)
+        newcount = 0
 
         for addr, size, perms, fname in self.getMemoryMaps():
-
             if not fname:
                 continue
 
             if done.get(fname):
                 continue
 
+            if fname == self.getMeta("LibraryPaths").get(addr):
+                continue
+
+            if fname in bmaps:
+                continue
             try:
 
                 if self.readMemory(addr, mlen) == magic:
                     done[fname] = True
                     self.addLibraryBase(fname, addr, always=always)
+                    newcount += 1
 
             except Exception as e:
                 logger.warning('findLibraryMaps(0x%x, %d, %s, %s) hit exception: %s', addr, size, perms, fname, e)
+
+        return newcount
 
     def _loadBinaryNorm(self, normname):
         if not self.libloaded.get(normname, False):
@@ -803,7 +822,7 @@ class TracerBase(vtrace.Notifier):
     def platformProtectMemory(self, va, size, perms):
         raise Exception("Plaform does not implement protect memory")
 
-    def platformAllocateMemory(self, size, perms=e_mem.MM_RWX, suggestaddr=0):
+    def platformAllocateMemory(self, size, perms=e_const.MM_RWX, suggestaddr=0):
         raise Exception("Plaform does not implement allocate memory")
 
     def platformReadMemory(self, address, size):
@@ -875,7 +894,7 @@ class TracerBase(vtrace.Notifier):
 
 def threadwrap(func):
     def trfunc(self, *args, **kwargs):
-        if threading.currentThread().__class__ == TracerThread:
+        if threading.current_thread().__class__ == TracerThread:
             return func(self, *args, **kwargs)
         # Proxy the call through a single thread
         q = queue.Queue()
@@ -901,9 +920,8 @@ class TracerThread(threading.Thread):
     to make particular calls and on what platforms...  YAY!
     """
     def __init__(self):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, daemon=True)
         self.queue = queue.Queue()
-        self.setDaemon(True)
         self.start()
 
     def run(self):

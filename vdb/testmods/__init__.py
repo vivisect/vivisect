@@ -83,5 +83,12 @@ class VtracePythonProcTest(TestModule):
         self.trace.run()
 
     def cleanTest(self):
-        self.proc.wait()
+        try:
+            self.proc.wait(timeout=120)
+        except subprocess.TimeoutExpired:
+            pass
+        finally:
+            self.proc.stdin.close()
+            self.proc.stdout.close()
+            self.proc.kill()
         self.trace.release()

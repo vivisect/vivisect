@@ -136,3 +136,12 @@ class DistributedNotifier(Notifier):
     def deregisterNotifier(self, event, notif):
         nlist = self.notifiers.get(event)
         nlist.remove(notif)
+
+class LibraryNotifier(Notifier):
+    def notify(self, event, trace):
+        logger.info("LibraryNotifier.notify(%r, %r)", event, trace)
+
+        # update unresolved breakpoints:
+        trace._updateBreakAddresses()
+
+

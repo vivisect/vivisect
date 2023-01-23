@@ -16,8 +16,9 @@ def report(vw):
             va = lva + 1
             maxva = lva + size
             while va < maxva:
-                x = vw.getLocation(va)
-                if x is not None:
-                    res[lva] = (va-lva, vw.reprLocation((lva, size, ltype, tinfo)), vw.reprLocation(x))
+                othr = vw.getLocation(va, range=True)
+                if othr is not None:
+                    if lva != othr[0]:
+                        res[lva] = (va-lva, vw.reprLocation((lva, size, ltype, tinfo)), vw.reprLocation(othr))
                 va += 1
     return res

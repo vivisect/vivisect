@@ -2,6 +2,244 @@
 Vivisect Changelog
 ******************
 
+V1.0.8 - 2022-04-28
+===================
+
+Features
+--------
+- Improved Save-As capabilities when connected to a remote server and better struct making from the UI. 
+  (`#501 <https://github.com/vivisect/vivisect/pull/501>`_)
+- Improve output for the UI's ``names`` command.
+  (`#516 <https://github.com/vivisect/vivisect/pull/516>`_)
+
+Fixes
+-----
+- Fix issue in the proxy case where we forgot to snap in the analysis modules.
+  (`#498 <https://github.com/vivisect/vivisect/pull/498>`_)
+- Fix string naming.
+  (`#502 <https://github.com/vivisect/vivisect/pull/502>`_)
+- Fix a bug in ELFPLT analysis where certain dynamic tables were missing.
+  (`#503 <https://github.com/vivisect/vivisect/pull/503>`_)
+- Fix an issue where ELF parsing of STT_FUNCs was based on too many bits.
+  (`#505 <https://github.com/vivisect/vivisect/pull/505>`_)
+- Fix an missing name issue in Save-As.
+  (`#507 <https://github.com/vivisect/vivisect/pull/507>`_)
+- Improve thread safety for client workspaces.
+  (`#508 <https://github.com/vivisect/vivisect/pull/508>`_)
+- Fix the i386 Emulator's handling of rep(n)z.
+  (`#513 <https://github.com/vivisect/vivisect/pull/513>`_)
+- Fix issue when dealing with invalid PE section names.
+  (`#514 <https://github.com/vivisect/vivisect/pull/514>`_)
+- Fix an incorrect import name in vivbin.
+  (`#518 <https://github.com/vivisect/vivisect/pull/518>`_)
+- Fix a debug logging message in the ``libc_start_main`` analysis pass that would cause that analysis pass to exception out.
+  (`#519 <https://github.com/vivisect/vivisect/pull/519>`_)
+
+V1.0.7 - 2022-01-13
+===================
+
+Features
+--------
+- More Mach-O structure definitions and parsing support.
+  (`#495 <https://github.com/vivisect/vivisect/pull/495>`_)
+
+Fixes
+-----
+- Tweak how i386 analysis detections calling conventions.
+  (`#493 <https://github.com/vivisect/vivisect/pull/493>`_)
+- Use OptionalHeader.Magic for determining PE32/PE32+.
+  (`#494 <https://github.com/vivisect/vivisect/pull/494>`_)
+
+V1.0.6 - 2022-01-03
+===================
+
+Features
+--------
+- Cohesive Memory Maps.
+  (`#450 <https://github.com/vivisect/vivisect/pull/450>`_)
+- Add changelog to the docs build.
+  (`#462 <https://github.com/vivisect/vivisect/pull/462>`_)
+- Add test for unknown workspace events.
+  (`#463 <https://github.com/vivisect/vivisect/pull/463>`_)
+- Flesh out Delete Relocation Event and add Test Helpers.
+  (`#471 <https://github.com/vivisect/vivisect/pull/471>`_)
+- Update docs with developer intro info.
+  (`#475 <https://github.com/vivisect/vivisect/pull/475>`_)
+- Update IPython integration module.
+  (`#487 <https://github.com/vivisect/vivisect/pull/487>`_)
+- Improve Emulation Taint Comments.
+  (`#490 <https://github.com/vivisect/vivisect/pull/490>`_)
+
+Fixes
+-----
+- Fix PE carving.
+  (`#464 <https://github.com/vivisect/vivisect/pull/464>`_)
+- Update intel emulator repetition options.
+  (`#465 <https://github.com/vivisect/vivisect/pull/465>`_)
+- Update VDB's UI class inheritance to deal with display crashes.
+  (`#466 <https://github.com/vivisect/vivisect/pull/466>`_)
+- Update the various CLIs and VAMP interfaces.
+  (`#467 <https://github.com/vivisect/vivisect/pull/467>`_)
+- Fix ARM's Vivisect/VDB bridges.
+  (`#469 <https://github.com/vivisect/vivisect/pull/469>`_)
+- A grab bag of fixes for function thunking, ELF PLT analysis, ARM emulation, and no return display.
+  (`#470 <https://github.com/vivisect/vivisect/pull/470>`_)
+- Fix special character rending in the UI.
+  (`#474 <https://github.com/vivisect/vivisect/pull/474>`_)
+- Fix the intel emulator's idiv instruction.
+  (`#476 <https://github.com/vivisect/vivisect/pull/476>`_)
+- Make MACH-O parsing work.
+  (`#486 <https://github.com/vivisect/vivisect/pull/486>`_)
+
+
+V1.0.5 - 2021-09-10
+===================
+
+Fixes
+-----
+- Fix ascii string size when the string terminates at the end of a memory map.
+  (`#437 <https://github.com/vivisect/vivisect/pull/437>`_)
+- Better handle PE delay imports that use VA pointers instead of RVA pointers.
+  (`#439 <https://github.com/vivisect/vivisect/pull/439>`_)
+- envi.IMemory.readMemValue: return None on truncated read.
+  (`#444 <https://github.com/vivisect/vivisect/pull/444>`_)
+- Only apply the rep prefix on string instructions in intel emulation.
+  (`#447 <https://github.com/vivisect/vivisect/pull/447>`_)
+- Fix a pair of regressions in ELF analysis.
+  (`#448 <https://github.com/vivisect/vivisect/pull/448>`_)
+- Align ELF memory maps to page.
+  (`#451 <https://github.com/vivisect/vivisect/pull/451>`_)
+- Integer division for struct array count in ELF.
+  (`#455 <https://github.com/vivisect/vivisect/pull/455>`_)
+- Safe harness for addRelocation method on the workspace.
+  (`#456 <https://github.com/vivisect/vivisect/pull/456>`_)
+- Log to appropriate logger in elfplt late module.
+  (`#458 <https://github.com/vivisect/vivisect/pull/458>`_)
+- Allow duplicate init and fini functions in ELF files.
+  (`#459 <https://github.com/vivisect/vivisect/pull/459>`_)
+- Add Vtrace Symbol test.
+  (`#460 <https://github.com/vivisect/vivisect/pull/460>`_)
+
+v1.0.4 - 2021-08-22
+===================
+
+Features
+--------
+- Add structures to UI and a compressed version of the file to the meta events.
+  (`#396 <https://github.com/vivisect/vivisect/pull/396>`_)
+- Actual documentation!
+  (`#400 <https://github.com/vivisect/vivisect/pull/400>`_)
+- Massive ELFPLT overhaul.
+  (`#401 <https://github.com/vivisect/vivisect/pull/401>`_)
+- Speed tweaks for the pointers pass and the workspace emulator.
+  (`#402 <https://github.com/vivisect/vivisect/pull/402>`_)
+
+Fixes
+-----
+- RTD didn't like python 3.9, so go with 3.8.
+  (`#400 <https://github.com/vivisect/vivisect/pull/400>`_)
+- Have ud2 on amd64 halt codeflow and fix a MACH-O bug.
+  (`#403 <https://github.com/vivisect/vivisect/pull/403>`_)
+- Fix issues in vtrace's windows, vivisect/reports, PE/carve, and others.
+  (`#404 <https://github.com/vivisect/vivisect/pull/404>`_)
+- Tons of i386 emulator fixes.
+  (`#405 <https://github.com/vivisect/vivisect/pull/405>`_)
+- Safeguard mnemonic counting in codeblocks.py.
+  (`#408 <https://github.com/vivisect/vivisect/pull/408>`_)
+- Fix funcgraph issues with line highlighting.
+  (`#409 <https://github.com/vivisect/vivisect/pull/409>`_)
+- Fix issues in i386 decoding, a new thunk pass, new ELF relocations support, and more.
+  (`#411 <https://github.com/vivisect/vivisect/pull/411>`_)
+- Fix vstruct signed number issue.
+  (`#412 <https://github.com/vivisect/vivisect/pull/412>`_)
+- Change AMD64 symboliks class declaration to get the right dealloc method.
+  (`#413 <https://github.com/vivisect/vivisect/pull/413>`_)
+- Remove wintypes import for vtrace to avoid a python bug.
+  (`#416 <https://github.com/vivisect/vivisect/pull/416>`_)
+- Raise specific exception on invalid architecture.
+  (`#418 <https://github.com/vivisect/vivisect/pull/418>`_)
+- Raise specific exception on invalid section alignment.
+  (`#420 <https://github.com/vivisect/vivisect/pull/420>`_)
+- Raise specific exception on corrupt file.
+  (`#422 <https://github.com/vivisect/vivisect/pull/422>`_)
+- Better handle invalid exported filename in PE files.
+  (`#426 <https://github.com/vivisect/vivisect/pull/426>`_)
+- Fix struct.unpack issue and float issue on corrupt files.
+  (`#428 <https://github.com/vivisect/vivisect/pull/428>`_)
+- ARM impapi files.
+  (`#431 <https://github.com/vivisect/vivisect/pull/431>`_)
+- Fix python 3.8 compatibility issues (and add to CI) and fix platformDetach.
+  (`#432 <https://github.com/vivisect/vivisect/pull/432>`_)
+- Alignment and padding of PE sections.
+  (`#436 <https://github.com/vivisect/vivisect/pull/436>`_)
+- Better handle invalid import name.
+  (`#441 <https://github.com/vivisect/vivisect/pull/441>`_)
+
+v1.0.3 - 2021-05-02
+===================
+
+Features
+--------
+- Loosen requirements and bring setup and requirements.txt in line with each other
+  (`#399 <https://github.com/vivisect/vivisect/pull/399>`_)
+
+Fixes
+-----
+- N/A
+
+v1.0.2 - 2021-05-02
+===================
+
+Features
+--------
+- Refactor and update the posix impapi
+  (`#390 <https://github.com/vivisect/vivisect/pull/390>`_)
+
+Fixes
+-----
+- Ancient visgraph bug
+  (`#387 <https://github.com/vivisect/vivisect/pull/387>`_)
+- Easier version engineering
+  (`#388 <https://github.com/vivisect/vivisect/pull/388>`_)
+- Remove Travis CI config and fully cut over to Circle CI
+  (`#389 <https://github.com/vivisect/vivisect/pull/389>`_)
+- Add check to prevent divide by zero in print stats
+  (`#392 <https://github.com/vivisect/vivisect/pull/392>`_)
+- Fix SaveToWorkspaceServer
+  (`#393 <https://github.com/vivisect/vivisect/pull/393>`_)
+- Intel emulator bug fixes
+  (`#394 <https://github.com/vivisect/vivisect/pull/394>`_)
+- Tests for intel emulator and more fixes
+  (`#395 <https://github.com/vivisect/vivisect/pull/395>`_)
+
+
+v1.0.1 - 2021-04-05
+===================
+
+Features
+--------
+- Dynamic dialog box/Extension docs
+  (`#376 <https://github.com/vivisect/vivisect/pull/376>`_)
+- ELF Checksec and metadata additions
+  (`#379 <https://github.com/vivisect/vivisect/pull/379>`_)
+- ARM Fixes/CLI Fixes/GUI Helpers
+  (`#380 <https://github.com/vivisect/vivisect/pull/380>`_)
+
+Fixes
+-----
+- Callgraph/PE/vtrace fixes and pip installation update
+  (`#372 <https://github.com/vivisect/vivisect/pull/373>`_)
+- Extensions improvements
+  (`#374 <https://github.com/vivisect/vivisect/pull/374>`_)
+- Migration Doc and script/Cobra fixes/Data pointer improvement/Remote fixes
+  (`#377 <https://github.com/vivisect/vivisect/pull/377>`_)
+- Intel addrsize prefix fix/decoding fixes/emulator and symboliks updates/vdb fixes
+  (`#384 <https://github.com/vivisect/vivisect/pull/384>`_)
+- Cobra cluster updates/ARM analysis fixes/Elf parser fix
+  (`#385 <https://github.com/vivisect/vivisect/pull/385>`_)
+- v1.0.1 release/Intel decoding update/vtrace linux ps fix
+  (`#386 <https://github.com/vivisect/vivisect/pull/386>`_)
+
 
 v1.0.0 - 2021-02-23
 ===================
@@ -16,25 +254,25 @@ Fixes
 - Make envi.codeflow stable when analyzing function
   (Wrapped in as part of #328)
 - Fixing some issues with memory view rendering
-  (`#352 https://github.com/vivisect/vivisect/pull/352`_)
+  (`#352 <https://github.com/vivisect/vivisect/pull/352>`_)
 - Python 3 Cleanup (for extensions/UI fixes/unicode detection/switchtable regression/ELF Parser)
-  (`#353 https://github.com/vivisect/vivisect/pull/353`_)
+  (`#353 <https://github.com/vivisect/vivisect/pull/353>`_)
 - More memory render fixes
-  (`#355 https://github.com/vivisect/vivisect/pull/355`_)
+  (`#355 <https://github.com/vivisect/vivisect/pull/355>`_)
 - More python3 fixes for API consistency and packed dll name exception handling
-  (`#357 https://github.com/vivisect/vivisect/pull/357`_)
+  (`#357 <https://github.com/vivisect/vivisect/pull/357>`_)
 - Python3.6 specific import fixes
-  (`#361 https://github.com/vivisect/vivisect/pull/361`_)
+  (`#361 <https://github.com/vivisect/vivisect/pull/361>`_)
 - Memory rendering tweaks to not double show bytes
-  (`#364 https://github.com/vivisect/vivisect/pull/364`_)
+  (`#364 <https://github.com/vivisect/vivisect/pull/364>`_)
 - UI fixes for arrow keys, taint value fixes to prevent some infinity recursion
-  (`#365 https://github.com/vivisect/vivisect/pull/365`_)
+  (`#365 <https://github.com/vivisect/vivisect/pull/365>`_)
 - Symbolik View was unusable
-  (`#366 https://github.com/vivisect/vivisect/pull/366`_)
+  (`#366 <https://github.com/vivisect/vivisect/pull/366>`_)
 - DynamicBranches wasn't populating in py, and no return improvements
-  (`#367 https://github.com/vivisect/vivisect/pull/367`_)
+  (`#367 <https://github.com/vivisect/vivisect/pull/367>`_)
 - Logging update for vivbin/vdbbin
-  (`#368 https://github.com/vivisect/vivisect/pull/368`_)
+  (`#368 <https://github.com/vivisect/vivisect/pull/368>`_)
 
 v0.2.0 - 2021-02-01
 ===================
@@ -49,9 +287,9 @@ Features
   (`#327 <https://github.com/vivisect/vivisect/pull/327>`_)
 - Parse and return the delay import table
   (`#331 <https://github.com/vivisect/vivisect/pull/331>`_)
-- New noret pass/several API refreshes/intel emulator fixes/emucode hyra function fixes
+- New noret pass/several API refreshes/intel emulator fixes/emucode hydra function fixes
   (`#333 <https://github.com/vivisect/vivisect/pull/333>`_)
-- Migrate to CircleCI for Continuous Integratoin
+- Migrate to CircleCI for Continuous Integration
   (`#336 <https://github.com/vivisect/vivisect/pull/336>`_)
 - Enhance UI extensions
   (`#341 <https://github.com/vivisect/vivisect/pull/341>`_)
@@ -133,4 +371,4 @@ Fixes
 
 v0.1.0rc1 - 2020-07-30
 ======================
-- Initial Pypi Release
+- Initial PyPI Release

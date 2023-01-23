@@ -1,5 +1,5 @@
 chown_data = {
-    'imports' : [
+    'imports': [
         (0x220fd80, 8, 9, '*.endgrent'),
         (0x220fd88, 8, 9, '*.__uflow'),
         (0x220fd90, 8, 9, '*.getenv'),
@@ -82,7 +82,7 @@ chown_data = {
         (0x220fff8, 8, 9, '*.__cxa_finalize'),
     ],
 
-    'exports' : [
+    'exports': [
         (0x20027a0, 0, '__entry', 'chown'),
         (0x2008420, 0, 'fts_open', 'chown'),
         (0x20087c0, 0, 'fts_close', 'chown'),
@@ -107,41 +107,46 @@ chown_data = {
         (0x22100f8, 1, 'program_name', 'chown'),
     ],
 
-    'relocs' : [
-        ('chown', 0x20f950, 2, 0x28a0),
-        ('chown', 0x20f958, 2, 0x2860),
-        ('chown', 0x20f960, 2, 0xb19a),
-        ('chown', 0x20f980, 2, 0xb1a4),
-        ('chown', 0x20f9a0, 2, 0xb1b4),
-        ('chown', 0x20f9c0, 2, 0xb1ac),
-        ('chown', 0x20f9e0, 2, 0xb1b1),
-        ('chown', 0x20fa00, 2, 0xb1c0),
-        ('chown', 0x20fa20, 2, 0xb1c3),
-        ('chown', 0x20fa40, 2, 0xb1d1),
-        ('chown', 0x20fa60, 2, 0xb1d7),
-        ('chown', 0x20fa80, 2, 0xb1b6),
-        ('chown', 0x20faa0, 2, 0xb1de),
-        ('chown', 0x20fac0, 2, 0xb1e6),
-        ('chown', 0x20fae0, 2, 0xb1eb),
-        ('chown', 0x20fb20, 2, 0xc141),
-        ('chown', 0x20fb28, 2, 0xc149),
-        ('chown', 0x20fb30, 2, 0xc14f),
-        ('chown', 0x20fb38, 2, 0xc15c),
-        ('chown', 0x20fb40, 2, 0xc169),
-        ('chown', 0x20fb48, 2, 0xcb40),
-        ('chown', 0x20fb50, 2, 0xc17d),
-        ('chown', 0x20fb58, 2, 0xc162),
-        ('chown', 0x20fb60, 2, 0xb13d),
-        ('chown', 0x20fb68, 2, 0xc185),
-        ('chown', 0x210008, 2, 0x210008),
-        ('chown', 0x210010, 2, 0xc0d4),
-        ('chown', 0x210060, 2, 0x210070),
-        ('chown', 0x210078, 2, 0x210100),
+    'relocs': [
+        ('chown', 0x20f950, 2, 0x28a0, 8),
+        ('chown', 0x20f958, 2, 0x2860, 8),
+        ('chown', 0x20f960, 2, 0xb19a, 8),
+        ('chown', 0x20f980, 2, 0xb1a4, 8),
+        ('chown', 0x20f9a0, 2, 0xb1b4, 8),
+        ('chown', 0x20f9c0, 2, 0xb1ac, 8),
+        ('chown', 0x20f9e0, 2, 0xb1b1, 8),
+        ('chown', 0x20fa00, 2, 0xb1c0, 8),
+        ('chown', 0x20fa20, 2, 0xb1c3, 8),
+        ('chown', 0x20fa40, 2, 0xb1d1, 8),
+        ('chown', 0x20fa60, 2, 0xb1d7, 8),
+        ('chown', 0x20fa80, 2, 0xb1b6, 8),
+        ('chown', 0x20faa0, 2, 0xb1de, 8),
+        ('chown', 0x20fac0, 2, 0xb1e6, 8),
+        ('chown', 0x20fae0, 2, 0xb1eb, 8),
+        ('chown', 0x20fb20, 2, 0xc141, 8),
+        ('chown', 0x20fb28, 2, 0xc149, 8),
+        ('chown', 0x20fb30, 2, 0xc14f, 8),
+        ('chown', 0x20fb38, 2, 0xc15c, 8),
+        ('chown', 0x20fb40, 2, 0xc169, 8),
+        ('chown', 0x20fb48, 2, 0xcb40, 8),
+        ('chown', 0x20fb50, 2, 0xc17d, 8),
+        ('chown', 0x20fb58, 2, 0xc162, 8),
+        ('chown', 0x20fb60, 2, 0xb13d, 8),
+        ('chown', 0x20fb68, 2, 0xc185, 8),
+        ('chown', 0x210008, 2, 0x210008, 8),
+        ('chown', 0x210010, 2, 0xc0d4, 8),
+        ('chown', 0x210060, 2, 0x210070, 8),
+        ('chown', 0x210078, 2, 0x210100, 8),
+        ('chown', 0x210080, 0, 0, 8),
+        ('chown', 0x210088, 0, 0, 8),
+        ('chown', 0x210090, 0, 0, 8),
+        ('chown', 0x2100a0, 0, 0, 8),
+        ('chown', 0x2100a8, 0, 0, 8),
+        ('chown', 0x2100c0, 0, 0, 8),
     ],
 
-    'names' : [
+    'names': [
         (0x2001d38, 'chown.init_function'),
-        (0x2001d50, 'chown.LazyLoaderTrampoline'),
         (0x2001d60, 'chown.plt_endgrent'),
         (0x2001d70, 'chown.plt___uflow'),
         (0x2001d80, 'chown.plt_getenv'),
@@ -325,8 +330,7 @@ chown_data = {
         (0x22100f8, 'chown.program_name'),
     ],
 
-    'pltgot' : [
+    'pltgot': [
     ],
 
 }
-

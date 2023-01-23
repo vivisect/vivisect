@@ -38,7 +38,6 @@ class VtraceBasicTest(vt_tests.VtraceProcessTest):
         self.runUntilExit()
 
         bp = self.trace.getBreakpoint(bpid)
-
         self.assertTrue(bp.address is not None)
         self.assertTrue(self.trace.getMeta('testbphit'))
 
@@ -60,6 +59,6 @@ class VtraceBasicTest(vt_tests.VtraceProcessTest):
 class VtraceBasicExecTest(VtraceBasicTest, vt_tests.VtraceExecTest):
     breakpoints = {
         'windows': 'ntdll.NtTerminateProcess',
-        'linux': 'ld.malloc',
+        'linux': 'libc.malloc',
         'freebsd': 'ld._rtld_thread_init',
     }

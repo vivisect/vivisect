@@ -13,11 +13,13 @@ from vivisect.const import *
 import vivisect.analysis.generic.switchcase as vag_switch
 
 import envi.archs.i386 as e_i386
+import envi.archs.i386.opconst as e_i386const
 
 regcalls = {
     (e_i386.REG_ECX,):               ('thiscall', 1),
     (e_i386.REG_EAX,):               ('bfastcall', 1),
     (e_i386.REG_EAX, e_i386.REG_EDX): ('bfastcall', 2),
+    (e_i386.REG_EAX, e_i386.REG_ECX): ('bfastcall', 3),
     (e_i386.REG_ECX, e_i386.REG_EDX): ('msfastcall', 2),
     (e_i386.REG_EAX, e_i386.REG_ECX, e_i386.REG_EDX): ('bfastcall', 3),
 }
@@ -51,6 +53,20 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
             raise v_exc.BadOpBytes(op.va)
 
         viv_imp_monitor.AnalysisMonitor.prehook(self, emu, op, starteip)
+
+        if op.opcode == e_i386const.INS_LEA:    # x86 only
+            i = 1
+            o = op.opers[i]
+            discrete = o.isDiscrete()
+            operva = o.getOperAddr(op, emu)
+            # keep track of the max here, but save it for later too...
+            stackoff = emu.getStackOffset(operva)
+            if stackoff and stackoff >= 0:
+                self.stackmax = max(self.stackmax, stackoff)
+                self.stackargs[stackoff] = True
+
+            self.operrefs.append((starteip, i, operva, o.tsize, stackoff, discrete))
+
 
         # Do return related stuff before we execute the opcode
         if op.isReturn():
@@ -92,27 +108,28 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
 
     # if we're callee cleanup, make sure we *actually* clean up our space
     # otherwise, revert us to caller cleanup
+    realcallconv = callconv
     if emumon.endstack:
         stkoff = (emumon.endstack - stkstart) >> 2
         if callconv in argnames:
             # do our stack args line up with what we cleaned up?
             if abs(stkoff) != stackargs:
                 # we're probably caller cleanup then
-                callconv = callconv + '_caller'
+                realcallconv = callconv + '_caller'
 
     if argc > 64:
         callconv = 'unkcall'
         argc = 0
     # Add argument indexes to our argument names
     funcargs = [ argcname(callconv, i) for i in range(argc) ]
-    api = ('int',None,callconv,None,funcargs)
+    api = ('int',None,realcallconv,None,funcargs)
 
     vw.setFunctionApi(fva, api)
     return api
 
 def analyzeFunction(vw, fva):
 
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(va=fva)
     emumon = AnalysisMonitor(vw, fva)
 
     stkstart = emu.getStackCounter()

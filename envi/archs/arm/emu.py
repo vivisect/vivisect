@@ -33,6 +33,23 @@ class ArmArchitectureProcedureCall(envi.CallingConvention):
     align = 8
     pad = 0
 
+    def getReturnAddress(self, emu):
+        '''
+        Returns the return address.
+
+        Expects to be called at the function entrypoint.
+
+        Customized for ARM/THhumb, since ARM return values may be odd/even and i
+        it matters in an architecturally-specific fashion
+        '''
+        rtype, rvalue = self.retaddr_def
+        ra = emu.getRegister(rvalue)
+        emu.setThumbMode(thumb=(ra&1))
+        ra &=0xfffffffe
+
+        return ra
+
+
 aapcs = ArmArchitectureProcedureCall()
 
 class CoProcEmulator:       # useful for prototyping, but should be subclassed
@@ -379,7 +396,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         '''
         return the Current Floating Point Status/Control Register.
         '''
-        return self._rctx_vals[REG_FPSCR]
+        return self.getRegister(REG_FPSCR)
 
     def getAPSR(self):
         '''
@@ -637,10 +654,10 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def default_int_handler(self, val, emu):
         logger.warning("DEFAULT INTERRUPT HANDLER for Interrupt %d (called at 0x%x)", val, self.getProgramCounter())
-        logger.warning("Stack Dump:")
+        logger.info("Stack Dump:")
         sp = self.getStackCounter()
         for x in range(16):
-            logger.warning("\t0x%x:\t0x%x", sp, self.readMemValue(sp, self.psize))
+            logger.info("\t0x%x:\t0x%x", sp, self.readMemValue(sp, self.psize))
             sp += self.psize
 
         # return 0 in r0  (cuz clearly we succeeded!)
@@ -794,7 +811,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             if isinstance(op.opers[1], ArmImmOper):
                 # immediate version copies immediate into each element (Q=2 elements, D=1)
                 srcsz = op.opers[1].size
-                logger.warning("0x%x vmov: immediate: %x (%d bytes)", op.va, src, srcsz)
+                logger.info("0x%x vmov: immediate: %x (%d bytes)", op.va, src, srcsz)
                 # change src to fill all vectors with immediate
 
             # vreg to vreg: 1 to 1 copy
@@ -838,7 +855,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             src1 = self.getOperValue(op, 0)
             src2 = self.getOperValue(op, 1)
             val = src2 - src1
-            logger.debug("vcmpe %r  %r  %r", src1, src2, val)
+            logger.debug("vcmp %r  %r  %r  %r", op, src1, src2, val)
             fpsrc = self.getRegister(REG_FPSCR)
 
             # taken from VFCompare() from arch ref manual p80
@@ -854,7 +871,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFpFlag(PSR_C_bit, c)
             self.setFpFlag(PSR_V_bit, v)
         except Exception as e:
-            logger.warning("vcmp exception: %r", e)
+            logger.warning("vcmp exception: %r", e, exc_info=1)
 
     def i_vcmpe(self, op):
         try:
@@ -881,7 +898,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFpFlag(PSR_C_bit, c)
             self.setFpFlag(PSR_V_bit, v)
         except Exception as e:
-            logger.warning("vcmpe exception: %s", e)
+            logger.warning("vcmpe exception: %r", e, exc_info=1)
 
     FPType_Nonzero = 1
     FPType_Zero = 2
@@ -1277,6 +1294,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def setArmMode(self, arm=1):
         self.setFlag(PSR_T_bit, not arm)
+
+    def getArmThumbMode(self):
+        '''
+        Returns 1 for Thumb mode, 0 for Arm mode
+        '''
+        return self.getFlag(PSR_T_bit)
 
     def i_ldr(self, op):
         # hint: covers ldr, ldrb, ldrbt, ldrd, ldrh, ldrsh, ldrsb, ldrt   (any instr where the syntax is ldr{condition}stuff)
@@ -1998,15 +2021,62 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
 
     def i_umull(self, op):
-        logger.warning("FIXME: 0x%x: %s - in emu", op.va, op)
+        rn = self.getOperValue(op, 2)
+        rm = self.getOperValue(op, 3)
+
+        result = rn * rm
+
+        self.setOperValue(op, 0, (result >> 32))
+        self.setOperValue(op, 1, (result & 0xffffffff))
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(result, 8))
+            self.setFlag(PSR_Z_bit, not result)
+         
     def i_umlal(self, op):
-        logger.warning("FIXME: 0x%x: %s - in emu", op.va, op)
+        rdhi = self.getOperValue(op, 0)
+        rdlo = self.getOperValue(op, 1)
+        rn = self.getOperValue(op, 2)
+        rm = self.getOperValue(op, 3)
+
+        bigsrc = (rdhi << 32) | rdlo
+        result = (rn * rm) + bigsrc
+
+        self.setOperValue(op, 0, (result >> 32))
+        self.setOperValue(op, 1, (result & 0xffffffff))
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(result, 8))
+            self.setFlag(PSR_Z_bit, not result)
+         
     def i_smull(self, op):
-        logger.warning("FIXME: 0x%x: %s - in emu", op.va, op)
-    def i_umull(self, op):
-        logger.warning("FIXME: 0x%x: %s - in emu", op.va, op)
-    def i_umull(self, op):
-        logger.warning("FIXME: 0x%x: %s - in emu", op.va, op)
+        rn = e_bits.signed(self.getOperValue(op, 2), 4)
+        rm = e_bits.signed(self.getOperValue(op, 3), 4)
+
+        result = rn * rm
+
+        self.setOperValue(op, 0, (result >> 32))
+        self.setOperValue(op, 1, (result & 0xffffffff))
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(result, 8))
+            self.setFlag(PSR_Z_bit, not result)
+         
+
+    def i_umaal(self, op):
+        rdhi = self.getOperValue(op, 0)
+        rdlo = self.getOperValue(op, 1)
+        rn = self.getOperValue(op, 2)
+        rm = self.getOperValue(op, 3)
+
+        result = (rn * rm) + rdhi + rdlo
+
+        self.setOperValue(op, 0, (result >> 32))
+        self.setOperValue(op, 1, (result & 0xffffffff))
+
 
     def i_mla(self, op):
         src1 = self.getOperValue(op, 1)
@@ -2033,7 +2103,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
 
     def i_cps(self, op):
-        logger.warning("CPS: 0x%x  %r", op.va, op)
+        logger.info("CPS: 0x%x  %r", op.va, op)
         # FIXME: at some point we need ot do a priviledge check
 
     def i_pld2(self, op):

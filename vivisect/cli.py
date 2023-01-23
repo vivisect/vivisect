@@ -7,8 +7,8 @@ import shlex
 import pprint
 import socket
 import logging
-import binascii
 import traceback
+import collections
 from getopt import getopt
 
 import vtrace
@@ -29,7 +29,7 @@ import vdb
 
 import envi.cli as e_cli
 import envi.common as e_common
-import envi.memory as e_mem
+import envi.memory as e_memory
 import envi.expression as e_expr
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
@@ -39,7 +39,7 @@ from vivisect.const import *
 logger = logging.getLogger(__name__)
 
 
-class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
+class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
     '''
     A class that builds upon the VivWorkspace to provide command line capabilities so that
     things like the Vivisect UI can provide a cleaner interface that just a direct python
@@ -75,27 +75,19 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if not line:
             self.vprint("Report Modules")
             for descr, modname in viv_reports.listReportModules():
-                self.vprint("%32s %s" % (modname, descr))
+                self.vprint("Path: %32s (Name: %s)" % (modname, descr))
             return
 
-        mod = self.loadModule(line)
-        cols, results = mod.report(self)
-        for row in results:
-            for i in range(len(cols)+1):
-                val = row[i]
-                if i == 0:
-                    name = self.arch.pointerString(val)
-                    self.canvas.addVaText(name, val)
+        cols, results = viv_reports.runReportModule(self, line)
+        for va, row in results.items():
+            self.canvas.addVaText("%s:\n" % self.getName(va), va)
 
-                else:
-                    self.canvas.addText(": %s" % val)
-
-        for va, pri, info in mod.report(self):
-            name = self.getName(va)
-            if name is None:
-                name = self.arch.pointerString(va)
-            self.canvas.addVaText(name, va)
-            self.canvas.addText(": %s\n" % info)
+            for indx in range(len(cols)):
+                valu = row[indx]
+                name, typename = cols[indx]
+                self.canvas.addVaText("    " + name, va)
+                self.canvas.addText(": %s\n" % valu)
+            self.canvas.addText("\n")
 
     def do_pathcount(self, line):
         '''
@@ -105,9 +97,16 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         Usage: pathcount <func_expr>
         '''
-        fva = self.parseExpression(line)
-        if not self.isFunction(fva):
-            self.vprint('Not a function!')
+        if not line:
+            return self.do_help('pathcount')
+        try:
+            fva = self.parseExpression(line)
+            if not self.isFunction(fva):
+                self.vprint('Not a function!')
+                return
+
+        except Exception as e:
+            self.vprint(str(e))
             return
 
         g = v_t_graph.buildFunctionGraph(self, fva)
@@ -127,6 +126,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             to the given address
 
         '''
+        if not line:
+            return self.do_help("symboliks")
 
         watchaddr = None
 
@@ -167,7 +168,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 if emu.isLocalMemory(addrsym):
                     continue
                 self.vprint('[ %s ] = %s' % (addrsym, valsym))
-            self.vprint('RETURN', emu.getFunctionReturn().reduce())
+            self.vprint('RETURN  %r' % emu.getFunctionReturn().reduce())
 
     def do_names(self, line):
         '''
@@ -183,7 +184,12 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         regex = re.compile(line, re.I)
         for va, name in self.getNames():
             if regex.search(name):
-                self.vprint('0x%.8x: %s' % (va, name))
+                ftup = self.getFileAndOffset(va)
+                if ftup:
+                    fname, fbase, off = ftup
+                    self.vprint('0x%.8x: %s  (%r + 0x%x)' % (va, name, fname, off))
+                else:
+                    self.vprint("WARNING: 0x%x: %r  doesn't exist in a file!" % (va, name))
 
     def do_save(self, line):
         """
@@ -244,7 +250,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         '''
         parser = e_cli.VOptionParser()
-        parser.add_option('-f', action='store', dest='funcva', type='long')
+        parser.add_option('-f', action='store', dest='funcva', type='int')
         parser.add_option('-c', action='store_true', dest='searchComments')
         parser.add_option('-o', action='store_true', dest='searchOperands')
         parser.add_option('-t', action='store_true', dest='searchText')
@@ -268,7 +274,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if options.funcva:
             # setup valist from function data
             try:
-                fva = int(args[0], 0)
+                fva = options.funcva
                 graph = viv_graph.buildFunctionGraph(self, fva)
             except Exception as e:
                 self.vprint(repr(e))
@@ -276,7 +282,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
             for nva, node in graph.getNodes():
                 va = nva
-                endva = va + node.get('cbsize')
+                endva = nva + node.get('cbsize')
                 while va < endva:
                     lva, lsz, ltype, ltinfo = self.getLocation(va)
                     valist.append(va)
@@ -340,9 +346,13 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
                 # search full text
                 if options.searchText or defaultSearchAll:
+                    # search through the rendering of the opcode, as well as the comment
                     canv.clearCanvas()
                     op.render(canv)
                     oprepr = canv.strval
+                    cmt = self.getComment(va)
+                    if cmt is not None:
+                        oprepr += "  ; " + cmt
 
                     if options.is_regex:
                         if len(re.findall(pattern, oprepr)):
@@ -358,7 +368,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
                 self.vprint(''.join(traceback.format_exception(*sys.exc_info())))
 
         if len(res) == 0:
-            self.vprint('pattern not found: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+            self.vprint('pattern not found: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
             return
 
         # set the color for each finding
@@ -368,19 +378,22 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             from vqt.main import vqtevent
             vqtevent('viv:colormap', colormap)
 
-        self.vprint('matches for: %s (%s)' % (binascii.hexlify(pattern), repr(pattern)))
+        self.vprint('matches for: %s (%s)' % (pattern.encode('utf-8').hex(), repr(pattern)))
         for va in res:
             mbase, msize, mperm, mfile = self.memobj.getMemoryMap(va)
-            pname = e_mem.reprPerms(mperm)
+            pname = e_memory.reprPerms(mperm)
             sname = self.reprPointer(va)
 
-            op = self.parseOpcode(va)
-            self.canvas.renderMemory(va, len(op))
-            cmt = self.getComment(va)
-            if cmt is not None:
-                self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
+            try:
+                op = self.parseOpcode(va)
+                self.canvas.renderMemory(va, len(op))
+                cmt = self.getComment(va)
+                if cmt is not None:
+                    self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
 
-            self.canvas.addText('\n')
+                self.canvas.addText('\n')
+            except envi.SegmentationViolation as e:
+                logger.debug("segv at 0x%x", va)
 
         self.vprint('done (%d results).' % len(res))
 
@@ -459,12 +472,9 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         Usage: exports [fname]
         """
-        edict = {}
+        edict = collections.defaultdict(list)
         for va, etype, name, filename in self.getExports():
-            exps = edict.get(filename)
-            if exps is None:
-                edict[filename] = []
-            exps.append((name, va))
+            edict[filename].append((name, va))
 
         if line:
             x = edict.get(line)
@@ -573,7 +583,7 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         """
         argv = e_cli.splitargs(line)
         try:
-            opts, args = getopt(argv, "csup:S:")
+            opts, args = getopt(argv, "csufn:p:S:")
         except Exception as e:
             logger.warning(str(e))
             return self.do_help("make")
@@ -623,18 +633,21 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
         if not line:
             return self.do_help("emulate")
 
-        emu = self.getEmulator()
         addr = self.parseExpression(line)
-        emu.setProgramCounter(addr)
+        emu = self.getEmulator(va=addr)
 
         trace = vt_envitools.TraceEmulator(emu)
 
         db = vdb.Vdb(trace=trace)
         db.cmdloop()
 
-    def do_argtrack(self, line):
+    def _do_argtrack(self, line):
+        #FIXME: this is currently broken and needs to be revamped to use 
+        # apiCall and VivTaints
         """
         Track input arguments to the given function by name or address.
+
+        (this is currently broken.  sorry!)
 
         Usage: argtrack <func_addr_expr> <arg_idx>
         """
@@ -748,8 +761,8 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
             self.vprint("Invalid Function Address: 0x%.8x (%s)" % (va, line))
 
         sig, mask = viv_vamp.genSigAndMask(self, fva)
-        self.vprint("SIGNATURE: %s" % binascii.hexlify(sig))
-        self.vprint("MASK: %s" % binascii.hexlify(mask))
+        self.vprint("SIGNATURE: %s" % e_common.hexify(sig))
+        self.vprint("MASK: %s" % e_common.hexify(mask))
 
     def do_vdb(self, line):
         '''
@@ -768,6 +781,106 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         import vivisect.vdbext as viv_vdbext
         viv_vdbext.runVdb(self._viv_gui)
+
+    def do_switch(self, line):
+        '''
+        Wire up a switch case.  
+
+        Usage: switch <jmp_va> <count> [offset]
+            where:
+                jmp_va  - the va of the  "jmp reg" instruction
+                count   - number of switch case indices are covered by this switch case jmp
+                offset  - first switch case index.
+            
+            eg: switch case handles i == 32 thru 47, count = 16, offset = 32
+        '''
+        if not line:
+            return self.do_help("switch")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) < 2:
+            return self.do_help("switch")
+
+        offset = 0
+        try:
+            if argv[0].startswith("0x"):
+                jmpva = int(argv[0], 16)
+            else:
+                jmpva = int(argv[0])
+
+            if argv[1].startswith("0x"):
+                count = int(argv[1], 16)
+            else:
+                count = int(argv[1])
+
+            if len(argv) == 3:
+                if argv[2].startswith("0x"):
+                    offset = int(argv[2], 16)
+                else:
+                    offset = int(argv[2])
+
+            import vivisect.analysis.generic.symswitchcase as vagss
+            import vivisect.analysis.generic.codeblocks as vagc
+            sc = vagss.SwitchCase(self, jmpva)
+            sc.makeSwitch(count, offset)
+            funcva = self.getFunction(jmpva)
+            vagc.analyzeFunction(self, funcva)
+        except ValueError as e:
+            self.vprint("exception: %r" % e)
+            return self.do_help("switch")
+
+    def do_m_switch(self, line):
+        '''
+        Wire up a switch-case based on an array of pointers
+
+        Usage: m_switch <jmp_va> <array_va> <count> [baseva] [offset] [size]
+            where:
+                jmp_va  - the va of the  "jmp reg" instruction
+                array_va - the location of the first pointer in the array
+                count   - number of switch case indices are covered by this switch case jmp
+                baseva  - add the offset to this address (eg. _GOT_)
+                offset  - first switch case index.
+                [size]  - size (default: pointer size)
+            
+            eg: switch case handles i == 32 thru 47, count = 16, offset = 32
+        '''
+        if not line:
+            return self.do_help("m_switch")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) < 3:
+            return self.do_help("m_switch")
+
+        size = 0
+        baseva = 0
+        offset = 0
+        try:
+            jmpva = self.parseExpression(argv[0])
+            array = self.parseExpression(argv[1])
+            count = self.parseExpression(argv[2])
+
+            if len(argv) > 3:
+                baseva = self.parseExpression(argv[3])
+
+            if len(argv) > 4:
+                offset = self.parseExpression(argv[4])
+
+            if len(argv) > 5:
+                size = self.parseExpression(argv[5])
+
+            # link up the switchcase using data provided
+            import vivisect.analysis.generic.symswitchcase as vagss
+            import vivisect.analysis.generic.codeblocks as vagc
+            vagss.link_up(self, jmpva, array, count, offset, baseva, size)
+
+            # reanalyze codeblocks for the function (since it should have changed)
+            funcva = self.getFunction(jmpva)
+            if funcva is not None:
+                vagc.analyzeFunction(self, funcva)
+
+        except ValueError as e:
+            self.vprint("exception: %r" % e)
+            return self.do_help("m_switch")
 
     def do_plt(self, line):
         '''
@@ -801,3 +914,54 @@ class VivCli(vivisect.VivWorkspace, e_cli.EnviCli):
 
         import vivisect.analysis.elf.elfplt as vaee
         vaee.analyzeFunction(self, fva)
+
+    def do_leaders(self, line):
+        '''
+        Manage Leader Sessions.  This is useful if sessions are left hanging 
+        if a leader disconnects.
+        
+        Usage: leaders (list,kill,killall)
+
+            list - show leader sessions
+            kill <uuidhex> - kill a particular session
+            killall - kill all leader sessions for a given binary
+            mod <uuid> <user> <sessionname> - rename a leader session/user
+
+        Example:
+            leaders kill 197a7797ba1511ecbe41091ba860c051
+        '''
+        if not line:
+            return self.do_help("leaders")
+
+        argv = e_cli.splitargs(line)
+        try:
+            if argv[0] == 'list':
+                self.vprint("Current Leader Sessions:")
+                for uuid, (user, fname) in self.getLeaderSessions().items():
+                    curva = self.getLeaderLoc(uuid)
+                    self.vprint(" * %s (user: %s  uuid: %s)" % (fname, user, uuid))
+
+            elif argv[0] == 'mod':
+                uuid = argv[1]
+                user = argv[2]
+                if len(argv) > 4:
+                    sessionname = ' '.join(argv[3:])
+                else:
+                    sessionname = argv[3]
+
+                self.modifyLeaderSession(uuid, user, sessionname)
+
+            elif argv[0] == 'kill':
+                if len(argv) < 2:
+                    self.vprint('kill requires a valid <uuid> argument')
+
+                uuid = argv[1]
+                self.killLeaderSession(uuid)
+                
+            elif argv[0] == 'killall':
+                for uuid, (user, fname) in self.getLeaderSessions().items():
+                    self.vprint("*killing %r (%r, %r)" % (uuid, user, fname))
+                    self.killLeaderSession(uuid)
+
+        except Exception as e:
+            self.vprint("Error: %r" % e)

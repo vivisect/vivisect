@@ -41,6 +41,11 @@ class WorkspaceEmulator:
         but most children like the ArmWorkspaceEmulator and any others that live in vivisect/impemu/platarm/
 
         Current Keyword Arguments:
+        * va
+            - Type: Integer
+            - Default: None
+            - Desc: The address to begin emulating from.  emu.setProgramCounter() is called with this value,
+                    and in the case of ArmWorkspaceEmulator, appropriate architecture is set.
         * logwrite
             - Type: Boolean
             - Default: False
@@ -108,11 +113,18 @@ class WorkspaceEmulator:
                     WARNING: While this value is configurable, changing this value without knowing what you're
                     doing can result in undesirable effects (such as infinite recursion when trying to repr
                     taint values), so change this value with care.
+        * opcache
+            - Type: Boolean
+            - Default: True
+            - Desc: By default, WorkspaceEmulators share the opcode cache storing parsed opcodes for locations 
+                    in the Vivisect Workspace.
+                    This setting disables use of the VivWorkspace's opcode cache.
         '''
         self.vw = vw
         # Set down below in runFunction
         self.funcva = None
         self.emustop = False
+        self.usecache = kwargs.get('opcache', True)
 
         self.hooks = {}
         self.taints = {}
@@ -129,7 +141,6 @@ class WorkspaceEmulator:
         self.path = self.newCodePathNode()
         self.curpath = self.path
         self.op = None
-        self.opcache = {}
         self.emumon = None
         self.psize = self.getPointerSize()
 
@@ -170,6 +181,11 @@ class WorkspaceEmulator:
         self.stack_pointer = None
         self.initStackMemory()
 
+        # set Program Counter if provided
+        va = kwargs.get('va')
+        if va:
+            self.setProgramCounter(va)
+
     def initStackMemory(self, stacksize=init_stack_size):
         '''
         Setup and initialize stack memory.
@@ -195,6 +211,8 @@ class WorkspaceEmulator:
             taints = [self.setVivTaint('funcstack', i * self.psize) for i in range(20)]
             taintbytes = b''.join([e_bits.buildbytes(taint, self.psize) for taint in taints])
 
+            self.stack_pointer -= len(taintbytes)
+            self.setStackCounter(self.stack_pointer)
             self.writeMemory(self.stack_pointer, taintbytes)
         else:
             existing_map_size = self.stack_map_top - self.stack_map_base
@@ -237,14 +255,11 @@ class WorkspaceEmulator:
         """
         self.emumon = emumon
 
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
-        # We can make an opcode *faster* with the workspace because of
-        # getByteDef etc... use it.
-        op = self.opcache.get(va)
-        if op is None:
-            op = envi.Emulator.parseOpcode(self, va, arch=arch)
-            self.opcache[va] = op
-        return op
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT, skipcache=False):
+        if not self.usecache or skipcache:
+            return self.__archemu__.parseOpcode(self, va, arch)
+
+        return self.vw.parseOpcode(va, arch=arch)
 
     def checkCall(self, starteip, endeip, op):
         """
@@ -335,7 +350,6 @@ class WorkspaceEmulator:
         # if we've already hunted this location down, know it's a table, and we've resolved it
         # step carefully so we don't conflate tables together
         xrefs = vw.getXrefsFrom(op.va, rtype=REF_CODE)
-        branches = []
         for bva, bflags in op.getBranches(emu=None):
             if bflags & envi.BR_TABLE and vw.getLocation(op.va) and len(xrefs):
                 for xrfrom, xrto, xrtype, xrflags in xrefs:
@@ -492,6 +506,7 @@ class WorkspaceEmulator:
 
                         if self.emustop:
                             return
+
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
                         return
@@ -515,7 +530,8 @@ class WorkspaceEmulator:
 
                     # TODO: hook things like error(...) when they have a param that indicates to
                     # exit. Might be a bit hairy since we'll possibly have to fix up codeblocks
-                    if self.vw.isNoReturnVa(op.va):
+                    # Make sure we can at least get past the first instruction in certain functions
+                    if self.vw.isNoReturnVa(op.va) and op.va != funcva:
                         vg_path.setNodeProp(self.curpath, 'cleanret', False)
                         break
 
@@ -658,6 +674,10 @@ class WorkspaceEmulator:
                 rettype, retname, callconv, callname, callargs = api
                 if val not in argv:
                     return self.reprVivTaint(taint)
+
+            else:
+                return self.reprVivTaint(taint)
+
 
         stackoff = self.getStackOffset(val)
         if stackoff is not None:

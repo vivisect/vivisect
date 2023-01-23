@@ -1,5 +1,4 @@
 import html
-import binascii
 
 from PyQt5 import QtCore, QtGui, QtWebEngine, QtWebEngineWidgets
 from PyQt5.QtCore import QObject, qInstallMessageHandler
@@ -8,9 +7,11 @@ from PyQt5.QtWebEngineWidgets import *
 from PyQt5.QtWidgets import *
 
 import envi.exc as e_exc
+import envi.common as e_common
+import envi.memcanvas as e_memcanvas
+
 import envi.qt.html as e_q_html
 import envi.qt.jquery as e_q_jquery
-import envi.memcanvas as e_memcanvas
 
 qt_horizontal = 1
 qt_vertical = 2
@@ -22,7 +23,7 @@ from vqt.common import *
 class LoggerPage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, msg, line, source):
         print('------------------------------------------------------------------')
-        print(f'JSconsole message = {msg}; line: {line}')
+        print(f'JSconsole message = {msg}; line: {line};')
         print('------------------------------------------------------------------')
 
 
@@ -98,6 +99,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     @idlethread
     def _scrollToVa(self, va, cb=None):
+        # TODO: Does anybody call this?
         page = self.page()
         selector = 'viv:0x%.8x' % va
         js = f'''
@@ -165,7 +167,11 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._canv_cache = self._canv_cache.replace('`', r'\`')
         js = f'''
         var node = document.querySelector('update#updatetmp');
-        node.outerHTML = `{self._canv_cache}` + node.outerHTML;
+        if (node != null) {{
+            node.outerHTML = `{self._canv_cache}` + node.outerHTML;
+        }} else {{
+            console.log("Failed to grab selector of update#updatetmp")
+        }}
         '''
         if cb:
             self.page().runJavaScript(js, cb)
@@ -217,7 +223,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         qt tags, they are a tuple of html text (<opentag>, <closetag>)
         '''
         clsname = 'envi-%s' % typename
-        namehex = binascii.hexlify(name.lower()).decode('utf-8')
+        namehex = e_common.hexify(name.lower())
         subclsname = 'envi-%s-%s' % (typename, namehex)
         return ('<span class="%s %s" envitag="%s" envival="%s" onclick="nameclick(this)">' % (clsname,subclsname,typename,namehex), '</span>')
 
@@ -257,8 +263,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._appendInside(text, cb)
 
     def addText(self, text, tag=None, cb=None):
-        text = html.escape(text)
-        #text = text.replace('\n', '<br>')
+        text = html.escape(text).encode('unicode_escape').decode('utf-8')
         if tag is not None:
             otag, ctag = tag
             text = otag + text + ctag

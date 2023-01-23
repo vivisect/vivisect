@@ -30,14 +30,21 @@ class v_bitmask(object):
 
 
 class v_base(object):
-    def __init__(self):
+    def __init__(self, bigend=False):
         self._vs_meta = {}
+        self._vs_bigend = bigend
 
     def vsGetMeta(self, name, defval=None):
         return self._vs_meta.get(name, defval)
 
     def vsSetMeta(self, name, value):
         self._vs_meta[name] = value
+
+    def vsGetEndian(self):
+        return self._vs_bigend
+
+    def vsSetEndian(self, bigend):
+        self._vs_bigend = bigend
 
     # Sub-classes (primitive base, or VStruct must have these
     def vsParse(self, bytes):
@@ -53,9 +60,10 @@ class v_base(object):
         return NotImplemented
 
 
+
 class v_prim(v_base):
-    def __init__(self):
-        v_base.__init__(self)
+    def __init__(self, bigend=False):
+        v_base.__init__(self, bigend)
         # Used by base len(),vsGetFormat, etc...
         self._vs_value = None
         self._vs_length = None
@@ -123,14 +131,31 @@ class v_prim(v_base):
 
 
 num_fmts = {
+    # big endian unsigned
     (True, 1): '>B',
     (True, 2): '>H',
     (True, 4): '>I',
     (True, 8): '>Q',
+
+    # little endian unsigned
     (False, 1): '<B',
     (False, 2): '<H',
     (False, 4): '<I',
     (False, 8): '<Q',
+}
+
+signed_fmts = {
+    # big endian signed
+    (True, 1): '>b',
+    (True, 2): '>h',
+    (True, 4): '>i',
+    (True, 8): '>q',
+
+    # little endian signed
+    (False, 1): '<b',
+    (False, 2): '<h',
+    (False, 4): '<i',
+    (False, 8): '<q',
 }
 
 
@@ -138,15 +163,20 @@ class v_number(v_prim):
     _vs_length = 1
 
     def __init__(self, value=0, bigend=False, enum=None):
-        v_prim.__init__(self)
-        self._vs_bigend = bigend
-        self._vs_value = value
+        v_prim.__init__(self, bigend)
         self._vs_enum = enum
         self._vs_length = self.__class__._vs_length
-        self._vs_fmt = num_fmts.get((bigend, self._vs_length))
+        self._setFmt()
+        self.vsSetValue(value)
 
+    def _setFmt(self):
         # TODO: could use envi.bits, but do we really want to dep on envi?
+        self._vs_fmt = num_fmts.get((self._vs_bigend, self._vs_length))
         self.maxval = (2 ** (8 * self._vs_length)) - 1
+
+    def vsSetEndian(self, bigend):
+        v_prim.vsSetEndian(self, bigend)
+        self._setFmt()
 
     def vsGetValue(self):
         return self._vs_value
@@ -171,7 +201,7 @@ class v_number(v_prim):
         else:
             r = []
             for i in range(self._vs_length):
-                r.append(ord(fbytes[offset + i]))
+                r.append(fbytes[offset + i])
 
             if not self._vs_bigend:
                 r.reverse()
@@ -328,12 +358,12 @@ class v_number(v_prim):
 class v_snumber(v_number):
     _vs_length = 1
 
-    def __init__(self, value=0, bigend=False):
-        v_number.__init__(self, value=value, bigend=bigend)
-
-        # TODO: could use envi.bits, but do we really want to dep on envi?
+    def __init__(self, value=0, bigend=False, enum=None):
         smaxval = (2**((8 * self._vs_length)-1)) - 1
         self.smask = smaxval + 1
+
+        v_number.__init__(self, value=value, bigend=bigend, enum=enum)
+        self._vs_fmt = signed_fmts.get((bigend, self._vs_length))
 
     def vsSetValue(self, value):
         value = value & self.maxval

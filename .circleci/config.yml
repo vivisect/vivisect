@@ -40,12 +40,28 @@ commands:
           command: |
             sudo apt-get update
             sudo apt-get -qq install libfreetype6-dev liblcms2-dev ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick
+            sudo dpkg --add-architecture i386
+            sudo apt-get update
+            sudo apt-get -qq install libc6:i386 libncurses5:i386 libstdc++6:i386
 
       - do_python_setup
 
       - do_test_execution
 
 jobs:
+
+  python38:
+    parallelism: 1
+    docker:
+      - image: circleci/python:3.8
+        environment:
+          VIVTESTFILES: /tmp/vivtestfiles
+          PYVERS: 3.8
+
+    working_directory: ~/repo
+
+    steps:
+      - test_steps_python
 
   python39:
     parallelism: 1
@@ -66,6 +82,13 @@ workflows:
     jobs:
 
       - python39:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+
+      - python38:
           filters:
             tags:
               only: /.*/

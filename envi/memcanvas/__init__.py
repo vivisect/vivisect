@@ -151,13 +151,15 @@ class MemoryCanvas(object):
         raise Exception('Deprecated!  use renderMemory!')
 
     def clearCanvas(self, cb=None):
-        pass
+        if cb is not None:
+            cb(None)
 
     def _beginRenderMemory(self, va, size, rend):
         pass
 
-    def _endRenderMemory(self, va, size, rend):
-        pass
+    def _endRenderMemory(self, va, size, rend, cb=None):
+        if cb is not None:
+            cb(None)
 
     def _beginRenderVa(self, va):
         pass

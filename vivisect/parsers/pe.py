@@ -1,18 +1,20 @@
 import logging
-from io import StringIO
+from io import BytesIO
 
 import PE
 import PE.carve as pe_carve
 
 import vstruct
 import vivisect
+import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
 # Steal symbol parsing from vtrace
 import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
 
 import envi.exc as e_exc
-import envi.memory as e_mem
+import envi.bits as e_bits
+import envi.const as e_const
 import envi.symstore.symcache as e_symcache
 
 from vivisect.const import *
@@ -33,11 +35,11 @@ for mod in (PE, vtrace):
 
 def parseFile(vw, filename, baseaddr=None):
     pe = PE.PE(open(filename, "rb"))
-    return loadPeIntoWorkspace(vw, pe, filename, baseaddr=baseaddr)
+    return loadPeIntoWorkspace(vw, pe, filename=filename, baseaddr=baseaddr)
 
 
 def parseBytes(vw, bytes, baseaddr=None):
-    fd = StringIO(bytes)
+    fd = BytesIO(bytes)
     fd.seek(0)
     pe = PE.PE(fd)
     return loadPeIntoWorkspace(vw, pe, baseaddr=baseaddr)
@@ -45,9 +47,8 @@ def parseBytes(vw, bytes, baseaddr=None):
 
 def parseMemory(vw, memobj, base):
     pe = PE.peFromMemoryObject(memobj, base)
-    mapbase, mapsize, perms, fname = memobj.getMemoryMap(base)
     # FIXME does the PE's load address get fixedup on rebase?
-    return loadPeIntoWorkspace(vw, pe, fname)
+    return loadPeIntoWorkspace(vw, pe, filename=None)
 
 
 def parseFd(vw, fd, filename=None, baseaddr=None):
@@ -66,7 +67,7 @@ arch_names = {
     PE.IMAGE_FILE_MACHINE_THUMB: 'thumb16',
 }
 
-defcalls = {
+archcalls = {
     'i386': 'cdecl',
     'amd64': 'msx64call',
     'arm': 'armcall',
@@ -76,22 +77,33 @@ defcalls = {
 
 # map PE relocation types to vivisect types where possible
 relmap = {
-    PE.IMAGE_REL_BASED_HIGHLOW: vivisect.RTYPE_BASEOFF,
-    PE.IMAGE_REL_BASED_DIR64: vivisect.RTYPE_BASEOFF,
+    PE.IMAGE_REL_BASED_HIGHLOW: (vivisect.RTYPE_BASEOFF, 4),
+    PE.IMAGE_REL_BASED_DIR64: (vivisect.RTYPE_BASEOFF, 8),
 }
 
 
 def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
+    # get baseaddr and size, then make sure we have a good baseaddr
+    filebaseaddr, size = getMemBaseAndSize(vw, pe, baseaddr=baseaddr)
+    if baseaddr is None:
+        baseaddr = filebaseaddr
+
+    logger.debug('initial file baseva: 0x%x  size: 0x%x', baseaddr, size)
+    baseaddr = vw.findFreeMemoryBlock(size, baseaddr)
+    logger.info("loadPeIntoWorkspace:  loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
 
     mach = pe.IMAGE_NT_HEADERS.FileHeader.Machine
 
     arch = arch_names.get(mach)
     if arch is None:
-        raise Exception("Machine %.4x is not supported for PE!" % mach)
+        raise v_exc.InvalidArchitecture("PE", hex(mach))
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Format', 'pe')
     vw.parsedbin = pe
+    ### TODO: this doesn't work from Memory (read() needs to know how big the file is)
+    byts = pe.getFileBytes()
+    vw.setMeta('FileBytes', v_parsers.compressBytes(byts))
 
     platform = 'windows'
 
@@ -102,34 +114,41 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     vw.setMeta('Platform', platform)
 
-    vw.setMeta('DefaultCall', defcalls.get(arch, 'unknown'))
+    vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
+    logger.info("PE loader: Arch: %r\tFormat: pe\tPlatform: %r\tFilename: %r\tBaseAddr: 0x%x", \
+            arch, platform, filename, baseaddr)
 
     # Set ourselves up for extended windows binary analysis
 
+    imagebase = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
     if baseaddr is None:
-        baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
-    entry = pe.IMAGE_NT_HEADERS.OptionalHeader.AddressOfEntryPoint + baseaddr
-    entryrva = entry - baseaddr
+        baseaddr = imagebase
+
+    entryrva = pe.IMAGE_NT_HEADERS.OptionalHeader.AddressOfEntryPoint
+    entry = entryrva + baseaddr
 
     codebase = pe.IMAGE_NT_HEADERS.OptionalHeader.BaseOfCode
     codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
     codervamax = codebase+codesize
 
-    fvivname = filename
+    logger.info("PE Imagebase: 0x%x\tentry: 0x%x\tcodebase: 0x%x\tcodesize: 0x%x", \
+            imagebase, entry, codebase, codesize)
+    # grab the file bytes for hashing
+    pe.fd.seek(0)
+    fhash = v_parsers.md5Bytes(byts)
+    sha256 = v_parsers.sha256Bytes(byts)
 
+    fvivname = filename
     # This will help linkers with files that are re-named
     dllname = pe.getDllName()
-    if dllname is not None:
+    if dllname:
         fvivname = dllname
 
     if fvivname is None:
-        fvivname = "pe_%.8x" % baseaddr
+        fvivname = fhash
 
-    # grab the file bytes for hashing
-    pe.fd.seek(0)
-    bytez = pe.fd.read()
-    fhash = v_parsers.md5Bytes(bytez)
-    sha256 = v_parsers.sha256Bytes(bytez)
+    logger.info("PE dllname: %r\tfvivname: %r\tmd5: %r\tsha256: %r", \
+            dllname, fvivname, fhash, sha256)
 
     # create the file and store md5 and sha256 hashes
     fname = vw.addFile(fvivname.lower(), baseaddr, fhash)
@@ -154,9 +173,14 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                 vw.setFileMeta(fname, 'Version', vsver)
 
     # Setup some va sets used by windows analysis modules
-    vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
-    vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
-    vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
+    # these will already exist for Multi-file workspaces
+    vaSetNames = vw.getVaSetNames()
+    if not 'Library Loads' in vaSetNames:
+        vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
+    if not 'pe:ordinals' in vaSetNames:
+        vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
+    if not 'DelayImports' in vaSetNames:
+        vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS)
@@ -173,15 +197,22 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Add the first page mapped in from the PE header.
     header = pe.readAtOffset(0, header_size)
 
+    if not header:
+        raise v_exc.CorruptPeFile("truncated PE header")
+
     secalign = pe.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
+    filealign = pe.IMAGE_NT_HEADERS.OptionalHeader.FileAlignment
     subsys_majver = pe.IMAGE_NT_HEADERS.OptionalHeader.MajorSubsystemVersion
     subsys_minver = pe.IMAGE_NT_HEADERS.OptionalHeader.MinorSubsystemVersion
+
+    if secalign == 0:
+        raise v_exc.CorruptPeFile("section alignment is zero")
 
     secrem = len(header) % secalign
     if secrem != 0:
         header += b'\x00' * (secalign - secrem)
 
-    vw.addMemoryMap(baseaddr, e_mem.MM_READ, fname, header)
+    vw.addMemoryMap(baseaddr, e_const.MM_READ, fname, header)
     vw.addSegment(baseaddr, len(header), "PE_Header", fname)
 
     hstruct = vw.makeStructure(baseaddr, "pe.IMAGE_DOS_HEADER")
@@ -225,10 +256,13 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     for idx, sec in enumerate(pe.sections):
         mapflags = 0
-
+        offset = sec.vsGetMeta("Offset", None)
+        if offset:
+            addr = baseaddr + offset
+            vw.makeStructure(addr, 'pe.IMAGE_SECTION_HEADER')
         chars = sec.Characteristics
         if chars & PE.IMAGE_SCN_MEM_READ:
-            mapflags |= e_mem.MM_READ
+            mapflags |= e_const.MM_READ
 
             isrsrc = (sec.VirtualAddress == ddir.VirtualAddress)
             if isrsrc and not loadrsrc:
@@ -242,16 +276,16 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             # so we can't just blindly mark these as executable quite yet.
             if not nxcompat:
                 if not vw.config.viv.parsers.pe.nx and subsys_majver < 6 and not isrsrc:
-                    mapflags |= e_mem.MM_EXEC
+                    mapflags |= e_const.MM_EXEC
 
         if chars & PE.IMAGE_SCN_MEM_READ:
-            mapflags |= e_mem.MM_READ
+            mapflags |= e_const.MM_READ
         if chars & PE.IMAGE_SCN_MEM_WRITE:
-            mapflags |= e_mem.MM_WRITE
+            mapflags |= e_const.MM_WRITE
         if chars & PE.IMAGE_SCN_MEM_EXECUTE:
-            mapflags |= e_mem.MM_EXEC
+            mapflags |= e_const.MM_EXEC
         if chars & PE.IMAGE_SCN_CNT_CODE:
-            mapflags |= e_mem.MM_EXEC
+            mapflags |= e_const.MM_EXEC
 
         secrva = sec.VirtualAddress
         secvsize = sec.VirtualSize
@@ -263,16 +297,16 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         # If the section is part of BaseOfCode->SizeOfCode
         # force execute perms...
         if secrva >= codebase and secrva < codervamax:
-            mapflags |= e_mem.MM_EXEC
+            mapflags |= e_const.MM_EXEC
 
         # If the entry point is in this section, force execute
         # permissions.
         if secrva <= entryrva and entryrva < secrvamax:
-            mapflags |= e_mem.MM_EXEC
+            mapflags |= e_const.MM_EXEC
 
         if not nxcompat:
-            if not vw.config.viv.parsers.pe.nx and subsys_majver < 6 and mapflags & e_mem.MM_READ:
-                mapflags |= e_mem.MM_EXEC
+            if not vw.config.viv.parsers.pe.nx and subsys_majver < 6 and mapflags & e_const.MM_READ:
+                mapflags |= e_const.MM_EXEC
 
         if sec.VirtualSize == 0 or sec.SizeOfRawData == 0:
             if idx+1 >= len(pe.sections):
@@ -303,7 +337,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             if sec.SizeOfRawData > pe.filesize:
                 continue
 
-        plen = sec.VirtualSize - sec.SizeOfRawData
+        #plen = sec.VirtualSize - sec.SizeOfRawData
 
         try:
             # According to http://code.google.com/p/corkami/wiki/PE#section_table if SizeOfRawData is larger than VirtualSize, VS is used..
@@ -312,11 +346,9 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize, shortok=True)
             slen = len(secbytes)
-            if slen != readsize:
-                logger.warning("Section at offset 0x%x should have 0x%x bytes, but we only got 0x%x bytes", secoff, readsize, slen)
-            secbytes += b'\x00' * plen
-            slen = len(secbytes)
-            vw.addMemoryMap(secbase, mapflags, fname, secbytes)
+            secbytes += b'\x00' * (sec.VirtualSize - slen)
+
+            slen = vw.addMemoryMap(secbase, mapflags, fname, secbytes, align=filealign)
             vw.addSegment(secbase, slen, secname, fname)
 
             # Mark dead data on resource and import data directories
@@ -342,15 +374,18 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     for rva, rtype in pe.getRelocations():
 
         # map PE reloc to VIV reloc ( or dont... )
-        vtype = relmap.get(rtype)
-        if vtype is None:
+        vtypedata = relmap.get(rtype)
+        if vtypedata is None:
             logger.info('Skipping PE Relocation type: %d at %d (no handler)', rtype, rva)
             continue
 
+        vtype, vtsize = vtypedata
+
         try:
-            mapoffset = vw.readMemoryPtr(rva + baseaddr) - baseaddr
-        except:
-            # the target adderss of the relocation is not accessible.
+            vtfmt = e_bits.getFormat(vtsize)    # for PowerPC, will need to get Endianness
+            mapoffset = vw.readMemoryFormat(rva + baseaddr, vtfmt)[0] - imagebase
+        except Exception as e:
+            # the target address of the relocation is not accessible.
             # for example, it's not mapped, or split across sections, etc.
             # technically, the PE is corrupt.
             # by continuing on here, we are a bit more robust (but maybe incorrect)
@@ -358,17 +393,18 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             #
             # discussed in:
             # https://github.com/vivisect/vivisect/issues/346
-            logger.warning('Skipping invalid PE relocation: %d', rva)
+            logger.warning('Skipping invalid PE relocation: %d (%r)', rva, e)
             continue
         else:
+            logger.info('PE relocation: 0x%x -> %r+0x%x', baseaddr+rva, fname, mapoffset)
             vw.addRelocation(rva + baseaddr, vtype, mapoffset)
 
     for rva, lname, iname in pe.getImports():
-        if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
+        if vw.probeMemory(rva + baseaddr, 4, e_const.MM_READ):
             vw.makeImport(rva + baseaddr, lname, iname)
 
     for rva, lname, iname in pe.getDelayImports():
-        if vw.probeMemory(rva + baseaddr, 4, e_mem.MM_READ):
+        if vw.probeMemory(rva + baseaddr, 4, e_const.MM_READ):
             vw.makeImport(rva + baseaddr, lname, iname)
             if lname != '*':
                 lname = vw.normFileName(lname)
@@ -379,17 +415,17 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     vw.addNoReturnApi("kernel32.ExitProcess")
     vw.addNoReturnApi("kernel32.ExitThread")
     vw.addNoReturnApi("kernel32.FatalExit")
-    vw.addNoReturnApiRegex("^msvcr.*\._CxxThrowException$")
-    vw.addNoReturnApiRegex("^msvcr.*\.abort$")
-    vw.addNoReturnApiRegex("^msvcr.*\.exit$")
-    vw.addNoReturnApiRegex("^msvcr.*\._exit$")
-    vw.addNoReturnApiRegex("^msvcr.*\.quick_exit$")
+    vw.addNoReturnApiRegex(r"^msvcr.*\._CxxThrowException$")
+    vw.addNoReturnApiRegex(r"^msvcr.*\.abort$")
+    vw.addNoReturnApiRegex(r"^msvcr.*\.exit$")
+    vw.addNoReturnApiRegex(r"^msvcr.*\._exit$")
+    vw.addNoReturnApiRegex(r"^msvcr.*\.quick_exit$")
+    vw.addNoReturnApiRegex(r"^api_ms_win_crt_runtime_.*\._invalid_parameter_noinfo_noreturn$")
+    vw.addNoReturnApiRegex(r"^api_ms_win_crt_runtime_.*\.exit$")
+    vw.addNoReturnApiRegex(r"^api_ms_win_crt_runtime_.*\._exit$")
     # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/invalid-parameter-functions?view=vs-2019
     # TODO: Again, there's a couple in there that have conditional termination that we should check for
     #vw.addNoReturnApiRegex("vcruntime140.__std_terminate")
-    vw.addNoReturnApiRegex("^api_ms_win_crt_runtime_.*\._invalid_parameter_noinfo_noreturn$")
-    vw.addNoReturnApiRegex("^api_ms_win_crt_runtime_.*\.exit$")
-    vw.addNoReturnApiRegex("^api_ms_win_crt_runtime_.*\._exit$")
     # TODO: we should add abort and terminate on the conditions that there are no signal handlers
     # registered
     # https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/cexit-c-exit?view=vs-2019
@@ -409,7 +445,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         try:
             vw.setVaSetRow('pe:ordinals', (eva, ord))
             vw.addExport(eva, EXP_UNTYPED, name, fname)
-            if vw.probeMemory(eva, 1, e_mem.MM_EXEC):
+            if vw.probeMemory(eva, 1, e_const.MM_EXEC):
                 vw.addEntryPoint(eva)
         except Exception as e:
             vw.vprint('addExport Failed: %s.%s (0x%.8x): %s' % (fname, name, eva, e))
@@ -447,7 +483,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                     vw.vprint("SEHandlerTable parse error")
 
     # Last but not least, see if we have symbol support and use it if we do
-    if vt_win32.dbghelp:
+    if vt_win32.dbghelp and filename:
 
         s = vt_win32.Win32SymbolParser(-1, filename, baseaddr)
 
@@ -515,10 +551,74 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         pe.fd.seek(0)
         fbytes = pe.fd.read()
         for offset, i in pe_carve.carve(fbytes, 1):
-            # Found a sub-pe!
-            subpe = pe_carve.CarvedPE(fbytes, offset, [i])
+            try:
+                # ensure sub-pe can be parsed
+                subpe = pe_carve.CarvedPE(fbytes, offset, [i])
+            except vivisect.exc.CorruptPeFile:
+                logger.warning("could not parse carved PE at offset 0x%x, XOR key: 0x%x", offset, i)
+                continue
+
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
             rva = pe.offsetToRva(offset) + baseaddr
             vw.markDeadData(rva, rva+len(pebytes))
 
     return fname
+
+def getMemBaseAndSize(vw, pe, baseaddr=None):
+    '''
+    Returns the default baseaddr and memory size required to load the file
+    '''
+    savebase = baseaddr
+
+    if baseaddr is None:
+        baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+
+    memmaps = [(baseaddr, e_const.MM_READ, '', 0x1000)]
+    codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
+    for idx, sec in enumerate(pe.sections):
+        secrva = sec.VirtualAddress
+        secvsize = sec.VirtualSize
+        secfsize = sec.SizeOfRawData
+        secbase = secrva + baseaddr
+        secname = sec.Name.strip("\x00")
+        secrvamax = secrva + secvsize
+
+        if sec.VirtualSize == 0 or sec.SizeOfRawData == 0:
+            if idx+1 >= len(pe.sections):
+                continue
+            # fill the gap with null bytes..
+            nsec = pe.sections[idx+1]
+            nbase = nsec.VirtualAddress + baseaddr
+
+            mlen = nbase - secbase
+            memmaps.append((secbase, 7, '', mlen))
+            continue
+
+        if sec.SizeOfRawData < sec.VirtualSize:
+            if sec.SizeOfRawData > pe.filesize:
+                continue
+
+        mlen = sec.VirtualSize
+        memmaps.append((secbase, 0, '', mlen))
+
+    baseaddr = 0xffffffffffffffffffffffff
+    topmem = 0
+
+    for mapva, mperms, mname, lenbytes in memmaps:
+        if mapva < baseaddr:
+            baseaddr = mapva
+        endva = mapva + lenbytes
+        if endva > topmem:
+            topmem = endva
+
+    size = topmem - baseaddr
+
+    if baseaddr == 0:
+        baseaddr = vw.config.viv.parsers.pe.baseoffset
+
+    if savebase:
+        # if we provided a baseaddr, override what the file wants
+        baseaddr = savebase
+        
+    return baseaddr, size
+

@@ -3,6 +3,7 @@ Linux Platform Module
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
+import sys
 import signal
 import struct
 import logging
@@ -16,6 +17,7 @@ import envi.memory as e_mem
 
 import vtrace
 import vtrace.exc as v_exc
+import vtrace.breakpoints as v_bp
 
 import vtrace.archs.arm as v_arm
 import vtrace.archs.i386 as v_i386
@@ -298,6 +300,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         self._stopped_hack = False
 
         self.fireTracerThread()
+        self.setMeta('BadMaps', ['[vvar]', '[vsyscall]'])
 
         self.initMode("Syscall", False, "Break On Syscalls")
 
@@ -411,6 +414,11 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
             raise Exception("PT_ATTACH failed!")
         self.setMeta("ExeName", self._findExe(pid))
 
+    def _LibraryLoadHook(self):
+        # drop special breakpoint at ld._dl_catch_exception
+        bp = v_bp.PosixLibLoadHookBreakpoint('ld._dl_catch_exception')
+        self.addBreakpoint(bp)
+
     def platformPs(self):
         pslist = []
         for dname in self.platformListDir('/proc'):
@@ -418,10 +426,10 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 if not dname.isdigit():
                     continue
                 cmdline = self.platformReadFile('/proc/%s/cmdline' % dname)
-                cmdline = cmdline.replace("\x00", " ")
+                cmdline = cmdline.replace(b"\x00", b" ")
                 if len(cmdline) > 0:
-                    pslist.append((int(dname), cmdline))
-            except:
+                    pslist.append((int(dname), cmdline.decode('utf-8')))
+            except Exception as e:
                 pass  # Permissions...  quick process... whatev.
         return pslist
 

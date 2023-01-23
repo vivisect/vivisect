@@ -111,13 +111,16 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                         logger.info("0x%x: +++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", op.va)
                         if op.va not in self.infloops:
                             self.infloops.append(op.va)
-                            if 'InfiniteLoops' not in vw.getVaSetNames():
-                                vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
+                            if 'InfiniteLoops' not in self.vw.getVaSetNames():
+                                self.vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
                             self.vw.setVaSetRow('InfiniteLoops', (op.va, self.fva))
 
                 except Exception as e:
                     self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
                     logger.info("0x%x: (%r) ERROR: %s", op.va, op, e)
+
+        except v_exc.BadOpBytes:
+            raise
 
         except Exception as e:
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
@@ -173,7 +176,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
 
 def analyzeFunction(vw, fva):
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(va=fva)
     emumon = AnalysisMonitor(vw, fva)
     emu.setEmulationMonitor(emumon)
 

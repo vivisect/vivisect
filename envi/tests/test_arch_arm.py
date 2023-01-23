@@ -6,6 +6,7 @@ import importlib
 
 import envi
 import envi.exc as e_exc
+import envi.common as e_common
 import envi.archs.arm as arm
 import vivisect
 
@@ -24,8 +25,8 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5953
-GOOD_EMU_TESTS = 1175
+GOOD_TESTS = 5960
+GOOD_EMU_TESTS = 1190
 '''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -591,6 +592,12 @@ instrs = [
         (REV_ALL_ARM, 'ff4cc3e3', 0x4560, 'bic  r4, r3, #0xff00', 0, ()),
         (REV_ALL_ARM, '001000eb', 0x4560, 'bl  0x00008568', 0, ()),
         (REV_ALL_ARM, '001000fa', 0x4560, 'blx  0x00008569', 0, ()),
+        (REV_ALL_ARM, '00f0c380', 0x4561, 'beq 0x000046ea', 0, ()),     # T3 +
+        (REV_ALL_ARM, '40f0fe81', 0x4561, 'bne 0x00004960', 0, ()),     # T3 +
+        (REV_ALL_ARM, '40f0fe91', 0x4561, 'b.w 0x00c44960', 0, ()),     # T4 +
+        (REV_ALL_ARM, '40f0feb9', 0x4561, 'b.w 0x00044960', 0, ()),     # T4 +
+        (REV_ALL_ARM, '3ff4c3af', 0x4561, 'beq 0x000044ea', 0, ()),     # T3 -
+        (REV_ALL_ARM, 'fff7febf', 0x4561, 'b.w 0x00004560', 0, ()),     # T4 -
         (REV_ALL_ARM, '273764ee', 0x4560, 'cdp  p7, 6, cr3, cr4, cr7, 1', 0, ()),
         (REV_ALL_ARM, '473b34ee', 0x4560, 'vsub.f64 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, 'ff0c74e3', 0x4560, 'cmn  r4, #0xff00', 0, ()),
@@ -671,6 +678,7 @@ instrs = [
         (REV_ALL_ARM, '073074e6', 0x4560, 'ldrbt  r3, [r4], -r7', 0, ()),
         (REV_ALL_ARM, '2736f4e6', 0x4560, 'ldrbt  r3, [r4], r7, lsr #12', 0, ()),
         (REV_ALL_ARM, '273674e6', 0x4560, 'ldrbt  r3, [r4], -r7, lsr #12', 0, ()),
+        (REV_ALL_ARM, '17f8016f', 0x4561, 'ldrb.w r6, [r7, #0x1]!', 0, ()),
         (REV_ALL_ARM, 'dc4c4fe1', 0x4560, 'ldrd  r4, r5, [#0x449c]', 0, ()),
         (REV_ALL_ARM, 'dc4ccfe1', 0x4560, 'ldrd  r4, r5, [#0x4634]', 0, ()),
         (REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrsb  r3, [#0x449c]', 0, ()),
@@ -1719,6 +1727,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setMeta('forrealz', True)
         emu._forrealz = True
         emu.logread = emu.logwrite = True
+        emusnap = emu.getEmuSnap()
         badcount = 0
         goodcount = 0
         goodemu = 0
@@ -1747,6 +1756,7 @@ class ArmInstructionSet(unittest.TestCase):
                     if not len(emutests):
                         try:
                             # if we don't have special tests, let's just run it in the emulator anyway and see if things break
+                            emu.setEmuSnap(emusnap)
                             if not self.validateEmulation(emu, op, (), ()):
                                 goodemu += 1
                             else:
@@ -1765,6 +1775,7 @@ class ArmInstructionSet(unittest.TestCase):
                                 if 'setup' in sCase:
                                     setters = sCase['setup']
                                 tests = sCase['tests']
+                                emu.setEmuSnap(emusnap)
                                 if not self.validateEmulation(emu, op, (setters), (tests), tidx):
                                     goodcount += 1
                                     goodemu += 1
@@ -1977,8 +1988,8 @@ def genAdvSIMDtests():
                         opthumb = am.archParseOpcode(bytezthumb, 0, 0x4561)
                         #outthumb.append(bytezthumb)
 
-                        outarm.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytezarm), 0x4560, oparm))
-                        outthumb.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytezthumb), 0x4561, opthumb))
+                        outarm.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (e_common.hexify(bytezarm), 0x4560, oparm))
+                        outthumb.append("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (e_common.hexify(bytezthumb), 0x4561, opthumb))
 
                     except envi.InvalidInstruction as e:
                         logger.warning(str(e))
@@ -2011,26 +2022,26 @@ def genTestsODA(abytez, tbytez):
         #yield oparmjson[0]
 
         if len(oparmjson) == 0 or not len(oparmjson[0].get('opcode')):
-            print("ARM code error for val: 0x%s" % binascii.hexlify(bytez))
+            print("ARM code error for val: 0x%s" % e_common.hexify(bytez))
             continue
 
         oparm = oparmjson[0].get('opcode') + " " + oparmjson[0].get('operands')
         #oparm = am.archParseOpcode(bytezarm, 0, 0x4560)
         #outarm.append(bytezarm)
-        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytez), 0x4560, oparm))
+        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (e_common.hexify(bytez), 0x4560, oparm))
 
 
     for bytez in tbytez:
         opthumbjson = oda.disassembleOpcode(bytez, 0, 0x4561)
         if len(opthumbjson) == 0 or not len(opthumbjson[0].get('opcode')):
-            print("THUMB code error for val: 0x%s" % binascii.hexlify(bytez))
+            print("THUMB code error for val: 0x%s" % e_common.hexify(bytez))
             continue
 
         opthumb = opthumbjson[0].get('opcode') + " " + oparmjson[0].get('operands')
 
         #outthumb.append(bytezthumb)
 
-        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (binascii.hexlify(bytez), 0x4561, opthumb))
+        yield ("        (REV_ALL_ARM, '%s', 0x%x, '%s', 0, ())," % (e_common.hexify(bytez), 0x4561, opthumb))
 
 def genTestsObjdump(abytez, tbytez, bigend=False):
     '''
@@ -2046,11 +2057,11 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
     if len(abytez):
         with open('/tmp/armbytez', 'wb') as f:
-            f.write(''.join(abytez))
+            f.write(b''.join(abytez))
         proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/armbytez', '-b', 'binary', '-m', 'arm', endian], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         data = proc.stdout.readlines()
         data = [x.strip() for x in data]
-        data = [x.split('\t') for x in data]
+        data = [x.split(b'\t') for x in data]
 
         for parts in data:
             if len(parts) < 4:
@@ -2064,11 +2075,11 @@ def genTestsObjdump(abytez, tbytez, bigend=False):
 
     if len(tbytez):
         with open('/tmp/thmbytez', 'wb') as f:
-            f.write(''.join(tbytez))
+            f.write(b''.join(tbytez))
         proc = subprocess.Popen(['/usr/bin/arm-linux-gnueabi-objdump', '-D','/tmp/thmbytez', '-b', 'binary', '-m', 'arm', '-M', 'force-thumb', endian], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         data = proc.stdout.readlines()
         data = [x.strip() for x in data]
-        data = [x.split('\t') for x in data]
+        data = [x.split(b'\t') for x in data]
 
         for parts in data:
             if len(parts) < 4:
