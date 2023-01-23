@@ -24,12 +24,22 @@ ARCH_THUMB16     = 4 << 16
 ARCH_THUMB       = 5 << 16
 ARCH_MSP430      = 6 << 16
 ARCH_H8          = 7 << 16
-ARCH_PPC_E32     = 8 << 16
-ARCH_PPC_E64     = 9 << 16
-ARCH_PPC_S32     = 10 << 16
-ARCH_PPC_S64     = 11 << 16
-ARCH_PPCVLE      = 12 << 16
-ARCH_PPC_D       = 13 << 16
+ARCH_A64         = 8 << 16
+ARCH_RISCV32     = 9 << 16
+ARCH_RISCV64     = 10 << 16
+ARCH_PPC_E32     = 11 << 16
+ARCH_PPC_E64     = 12 << 16
+ARCH_PPC_S32     = 13 << 16
+ARCH_PPC_S64     = 14 << 16
+ARCH_PPCVLE      = 15 << 16
+ARCH_PPC_D       = 16 << 16
+ARCH_MCS51       = 17 << 16
+ARCH_RXV2        = 18 << 16
+ARCH_SPARC       = 19 << 16
+ARCH_SPARC64     = 20 << 16
+ARCH_MIPS32      = 21 << 16
+ARCH_MIPS64      = 22 << 16
+
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
 arch_names = {
@@ -39,14 +49,21 @@ arch_names = {
     ARCH_ARMV7:     'arm',
     ARCH_THUMB16:   'thumb16',
     ARCH_THUMB:     'thumb',
+    ARCH_A64:       'a64',
     ARCH_MSP430:    'msp430',
     ARCH_H8:        'h8',
+    ARCH_RISCV32:   'rv32',
+    ARCH_RISCV64:   'rv64',
     ARCH_PPC_E32:   'ppc32-embedded',
     ARCH_PPC_E64:   'ppc-embedded',
     ARCH_PPC_S32:   'ppc32-server',
     ARCH_PPC_S64:   'ppc-server',
     ARCH_PPCVLE:    'ppc-vle',
     ARCH_PPC_D:     'ppc-desktop',
+    ARCH_RXV2:      'rxv2',
+    ARCH_SPARC:     'sparc',
+    ARCH_SPARC64:   'sparc64',
+    ARCH_MIPS32:    'mips32',
 }
 
 # used by command line config
@@ -54,6 +71,8 @@ arch_by_name = {
     'default':      ARCH_DEFAULT,
     'i386':         ARCH_I386,
     'amd64':        ARCH_AMD64,
+    'a64':          ARCH_A64,
+    'aarch64':      ARCH_A64,
     'arm':          ARCH_ARMV7,
     'armv6l':       ARCH_ARMV7,
     'armv7l':       ARCH_ARMV7,
@@ -62,6 +81,9 @@ arch_by_name = {
     'thumb2':       ARCH_THUMB,
     'msp430':       ARCH_MSP430,
     'h8':           ARCH_H8,
+    'rv32':         ARCH_RISCV32,
+    'rv64':         ARCH_RISCV64,
+    'mcs51':        ARCH_MCS51,
     'ppc32':        ARCH_PPC_E32,
     'ppc32-embedded': ARCH_PPC_E32,
     'ppc':          ARCH_PPC_E64,
@@ -78,6 +100,12 @@ arch_by_name = {
     'altivec':      ARCH_PPC_S64,
     'ppc-altivec':  ARCH_PPC_S64,
     'ppc-desktop':  ARCH_PPC_D,
+    'rxv2':         ARCH_RXV2,
+    'sparc':        ARCH_SPARC,
+    'sparc64':      ARCH_SPARC64,
+    'mips':         ARCH_MIPS32,
+    'mips32':       ARCH_MIPS32,
+    'mips64':       ARCH_MIPS64,
 }
 
 # Instruction flags (The first 8 bits are reserved for arch independant use)
