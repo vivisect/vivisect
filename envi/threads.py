@@ -19,8 +19,7 @@ def firethread(func):
     and callers may not expect sync behavior!
     '''
     def dothread(*args, **kwargs):
-        thr = threading.Thread(target=func, args=args, kwargs=kwargs)
-        thr.setDaemon(True)
+        thr = threading.Thread(target=func, args=args, kwargs=kwargs, daemon=True)
         thr.start()
         return thr
     functools.update_wrapper(dothread, func)
@@ -44,8 +43,7 @@ def maintthread(stime):
                 time.sleep(stime)
 
         def dothread(*args, **kwargs):
-            thr = threading.Thread(target=maintloop, args=args, kwargs=kwargs)
-            thr.setDaemon(True)
+            thr = threading.Thread(target=maintloop, args=args, kwargs=kwargs, daemon=True)
             thr.start()
 
         functools.update_wrapper(dothread, func)

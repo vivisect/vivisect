@@ -697,8 +697,15 @@ def reduceGraph(graph, props=('up','down')):
 
 # TODO: Move into base exception file
 class PathForceQuitException(Exception):
+    def __init__(self, pathcount=None):
+        Exception.__init__(self)
+        self.pathcount = pathcount
+
     def __repr__(self):
-        return "Path Generator forced to stop seeking a new path.  Possibly Timeout."
+        if self.pathcount is None:
+            return "Path Generator forced to stop seeking a new path.  Possibly Timeout."
+
+        return "Path Generator forced to stop seeking a new path.  Possibly Timeout. (paths processed: %d)" % self.pathcount
 
 '''
 eventually, routing will include the ability to 'source-route', picking N specific points a path must go through
@@ -754,10 +761,10 @@ class PathGenerator:
 
         while todo:
             if maxtime and time.time() > maxtime:
-                raise PathForceQuitException()
+                raise PathForceQuitException(pathcnt)
 
             if not self.__go__:
-                raise PathForceQuitException()
+                raise PathForceQuitException(pathcnt)
 
             nodeid,cpath = todo.pop()
 
@@ -812,11 +819,19 @@ class PathGenerator:
         tocbva = getGraphNodeByVa(fgraph, tova)
         frcbva = getGraphNodeByVa(fgraph, fromva)
 
+        # preroute
         preRouteGraph(fgraph, fromva, tova)
+        reduceGraph(fgraph)
+        clearRouting(fgraph)
+
+        # get node weights for reference later
+        weights = fgraph.getHierNodeWeights()
         
         pnode = vg_pathcore.newPathNode(nid=frcbva, eid=None)
+        
+        loopcount = 0
 
-        todo = [(frcbva,pnode), ]
+        todo = [(frcbva,pnode,loopcount), ]
 
         maxtime = None
         if timeout:
@@ -824,14 +839,12 @@ class PathGenerator:
 
         while todo:
             if maxtime and time.time() > maxtime:
-                raise PathForceQuitException()
+                raise PathForceQuitException(pathcnt)
 
             if not self.__go__:
-                raise PathForceQuitException()
+                raise PathForceQuitException(pathcnt)
 
-            nodeid,cpath = todo.pop()
-
-            refsfrom = fgraph.getRefsFrom((nodeid, None))
+            nodeid,cpath,loopcount = todo.pop()
 
             # This is the root node!
             if nodeid == tocbva:
@@ -844,26 +857,42 @@ class PathGenerator:
                 if maxpath and pathcnt >= maxpath:
                     return
 
+            refsfrom = fgraph.getRefsFrom((nodeid, None))
+
+            curlvl = weights.get(nodeid)
             for eid, fromid, toid, einfo in refsfrom:
-                if fgraph.getNodeProps(fromid).get('down') != True:
-                    #sys.stderr.write('.')
-                    # TODO: drop the bad edges from graph in preprocessing? instead of "if" here
-                    continue
+                tgtlvl = weights.get(toid)
+                if tgtlvl <= curlvl:
+                    # if we're moving *up* in the world, increment and check loopcount
+                    #loops = vg_pathcore.getPathLoopCount(cpath, 'nid', fromid)
+                    loopcount += 1
+                    if loopcount > loopcnt:
+                        vg_pathcore.trimPath(cpath)
+                        #sys.stderr.write('o')
 
-                # Skip loops if they are "deeper" than we are allowed
-                loops = vg_pathcore.getPathLoopCount(cpath, 'nid', fromid)
-                if loops > loopcnt:
-                    vg_pathcore.trimPath(cpath)
-                    #sys.stderr.write('o')
-
-                    # as long as we have at least one path, we count loops as paths, lest we die.
-                    if pathcnt: 
-                        pathcnt += 1
-                    continue
+                        # as long as we have at least one path, we count loops as paths, lest we die.
+                        if pathcnt: 
+                            pathcnt += 1
+                        continue
 
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=toid, eid=eid)
-                todo.append((toid,npath))
+                todo.append((toid,npath,loopcount))
 
             vg_pathcore.trimPath(cpath)
 
         self.__go__ = False
+
+def pathGenConvert(pathgen):
+    '''
+    this takes in a HierGraph path-generator and converts each path to the kind needed by Symboliks
+    '''
+    for path in pathgen:
+        newpath = []
+        prevedge = [ None ]
+        for node, nextedge in path:
+            newpath.append((node[0], prevedge[0]))
+            prevedge = nextedge
+
+        #pprint(newpath)
+        yield newpath
+

@@ -7,17 +7,21 @@ conventions...
 
 Recon Format Chars:
     A - A NULL terminated ascii string
-    W - A NULL terminated utf-16le string
+    U - A NULL terminated utf-16le string
     P - A platform width pointer
     I - An integer (32 bits for now...)
+    C - A byte
 '''
-
 import logging
-
 import vtrace.breakpoints as vt_breakpoints
 
 logger = logging.getLogger(__name__)
 
+CC_DICT = {('i386' ,'windows') : 'stdcall',
+           ('i386' ,'linux')   : 'cdecl',
+           ('amd64','windows') : 'msx64call',
+           ('amd64','linux')   : 'sysvamd64call',
+          }
 
 def reprargs(trace, fmt, args):
     r = []
@@ -30,7 +34,7 @@ def reprargs(trace, fmt, args):
             if sym is not None:
                 rstr = repr(sym)
             else:
-                rstr = '0x%.8x'
+                rstr = '0x%.8x' % arg
 
         elif fchr == 'I':
             rstr = repr(arg)
@@ -48,8 +52,7 @@ def reprargs(trace, fmt, args):
                 ubuf = buf.decode('utf-16le', 'ignore')
                 rstr = repr(ubuf.split('\x00')[0])
 
-        elif fchr == 'S':
-
+        elif fchr == 'A':
             if arg == 0:
                 rstr = 'NULL'
 
@@ -72,6 +75,28 @@ def reprargs(trace, fmt, args):
         r.append(rstr)
     return r
 
+def detect_cc(trace, autodetect=True, cc=()):
+    '''
+    Autodetect the calling convention based on
+    the current architecture and platform. Otherwise
+    get the calling convention from the input parameter
+    tuple. Otherwise default to stdcall
+    '''
+    if autodetect:
+        arch_plat = (trace.getMeta("Architecture"), trace.getMeta("Platform"))
+        return trace.getEmulator().getCallingConvention(CC_DICT[arch_plat])
+
+    return trace.getEmulator().getCallingConvetion(CC_DICT[cc]) if len(cc)>0 else trace.getEmulator().getCallingConvention('stdcall')
+
+def getArgs(trace, args):
+    '''
+    Assuming we are at the instruction after
+    a call, grab the argument at the specified
+    index (skipping the saved instruction pointer).
+    '''
+    cc = detect_cc(trace)
+    args = cc.getCallArgs(trace, args)
+    return args
 
 class ReconBreak(vt_breakpoints.Breakpoint):
     '''
@@ -90,8 +115,8 @@ class ReconBreak(vt_breakpoints.Breakpoint):
         stackptr = trace.getStackCounter()
 
         rawargs = trace.readMemoryFormat(stackptr, '<%dP' % (len(self._reconfmt) + 1))
-        savedeip = rawargs[0]
-        args = rawargs[1:]
+        savedeip = trace.getProgramCounter()
+        args = getArgs(trace, len(self._reconfmt))
 
         recon_hits = trace.getMeta('recon_hits')
 
@@ -100,7 +125,7 @@ class ReconBreak(vt_breakpoints.Breakpoint):
 
         if not trace.getMeta('recon_quiet'):
             argstr = '(%s)' % ', '.join(argrep)
-            logger.info('RECON: %.4d 0x%.8x %s%s', thid, savedeip, self._symname, argstr)
+            print('RECON: %.4d 0x%.8x %s %s' % (thid, savedeip, self._symname, argstr))
 
 
 def addReconBreak(trace, symname, reconfmt):
@@ -110,13 +135,11 @@ def addReconBreak(trace, symname, reconfmt):
     bpid = trace.addBreakpoint(bp)
     return bpid
 
-
 def clearReconHits(trace):
     '''
     Clear the current list of recon hits.
     '''
     trace.setMeta('recon_hits', [])
-
 
 def getReconHits(trace):
     '''

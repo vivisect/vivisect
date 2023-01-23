@@ -41,4 +41,3 @@ for idx in range(8):
 PAGE_SIZE = 1 << 12
 PAGE_NMASK = PAGE_SIZE - 1
 PAGE_MASK = ~PAGE_NMASK
-

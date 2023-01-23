@@ -87,6 +87,13 @@ class Crap:
         utext, ok = QInputDialog.getText(self.vwgui, 'Enter...', 'User Text')
         vprint(self.vw, '%r:  %r', ok, utext)
 
+    def printDynUserInput(self):
+        dynd = vcmn.DynamicDialog('Test Dialog')
+        dynd.addComboBox('testbox', ["a", 'b', 'c'], dfltidx=2)
+        dynd.addTextField('foo', dflt="blah blah")
+        dynd.addIntHexField('bar', dflt=47145)
+        results = dynd.prompt()
+        vprint(results)
 
 
 @idlethread

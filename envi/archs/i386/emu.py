@@ -134,7 +134,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             archmod = i386Module()
 
         envi.Emulator.__init__(self, archmod=archmod)
-        self.initEmuOpt('i386:reponce', False, 'Set to True to short circuit rep prefix')
+        self.initEmuOpt('i386:repmax', 0, 'Specify value > 0 to short circuit rep prefix')
 
         for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
@@ -247,11 +247,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # The behavior of the REP prefix is undefined when used with non-string instructions.
         rep_prefix = op.prefixes & PREFIX_REP_MASK
-        if rep_prefix and op.opcode in REP_OPCODES and not self.getEmuOpt('i386:reponce'):
+        if rep_prefix and op.opcode in REP_OPCODES and self.getEmuOpt('i386:repmax') != 1:
             # REP instructions (REP/REPNZ/REPZ/REPSIMD) get their own handlers
             handler = self.__rep_prefix_handlers__.get(rep_prefix)
             newpc = handler(meth, op)
-
         else:
             newpc = meth(op)
 
@@ -273,14 +272,19 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ZF starts off being set. 
         Then the instruction is repeated and ECX decremented until either
         ECX reaches 0 or the ZF is cleared.
+        
+        Respects emu option "i386:repmax" limiting the number of repetitions.
         '''
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 1)
 
+        repmax = emu.getEmuOpt('i386:repmax') or ecx
+
         ret = None
-        while ecx and emu.getFlag(EFLAGS_ZF):
+        while ecx and repmax and emu.getFlag(EFLAGS_ZF):
             ret = meth(op)
             ecx -= 1
+            repmax -= 1
             emu.setRegister(REG_ECX, ecx)
         return ret
 
@@ -291,14 +295,19 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         ZF starts off being cleared. 
         Then the instruction is repeated and ECX decremented until either
         ECX reaches 0 or the ZF is set.
+        
+        Respects emu option "i386:repmax" limiting the number of repetitions.
         '''
         ecx = emu.getRegister(REG_ECX)
         emu.setFlag(EFLAGS_ZF, 0)
 
+        repmax = emu.getEmuOpt('i386:repmax') or ecx
+
         ret = None
-        while ecx and not emu.getFlag(EFLAGS_ZF):
+        while ecx and repmax and not emu.getFlag(EFLAGS_ZF):
             ret = meth(op)
             ecx -= 1
+            repmax -= 1
             emu.setRegister(REG_ECX, ecx)
         return ret
 
@@ -998,14 +1007,19 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         #FIXME this needs emulation testing!
         tsize = op.opers[0].tsize
         if tsize == 1:
-            ax = self.getRegister(REG_AX)
-            ax = e_bits.signed(ax, 2)
+            val = self.getRegister(REG_AX)
+            val = e_bits.signed(val, 2)
             d = self.getOperValue(op, 0)
             d = e_bits.signed(d, 1)
             if d == 0:
                 raise e_exc.DivideByZero(self)
-            q = ax // d
-            r = ax % d
+            sign = (val < 0 and d > 0) or (val > 0 and d < 0)
+            q = (abs(val) // abs(d))
+            r = (abs(val) % abs(d))
+            if sign:
+                q = -q
+                r = -r
+
             res = ((r & 0xff) << 8) | (q & 0xff)
             self.setRegister(REG_AX, res)
 
@@ -1016,8 +1030,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = e_bits.signed(d, 2)
             if d == 0:
                 raise e_exc.DivideByZero(self)
-            q = val // d
-            r = val % d
+            sign = (val < 0 and d > 0) or (val > 0 and d < 0)
+            q = (abs(val) // abs(d))
+            r = (abs(val) % abs(d))
+            if sign:
+                q = -q
+                r = -r
 
             self.setRegister(REG_AX, q)
             self.setRegister(REG_DX, r)
@@ -1029,8 +1047,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             d = e_bits.signed(d, 4)
             if d == 0:
                 raise e_exc.DivideByZero(self)
-            q = val // d
-            r = val % d
+            sign = (val < 0 and d > 0) or (val > 0 and d < 0)
+            q = (abs(val) // abs(d))
+            r = (abs(val) % abs(d))
+            if sign:
+                q = -q
+                r = -r
 
             self.setRegister(REG_EAX, q)
             self.setRegister(REG_EDX, r)
@@ -2619,3 +2641,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pextrd(self, op):
         self.i_pextrb(op, width=4)
+        
+    def i_vpcext(self, op):
+        # expected behavior: EBX is set to 0 if Virtual PC is detected or an exception is raised
+        # in a malware sample with an anti-vm check using this instruction, vpcext is followed by a "test ebx, ebx" and exception handling code. 
+        # to avoid a "non-defined" value in the register it is set to zero
+        self.setRegister(REG_EBX, 0xffffffff)

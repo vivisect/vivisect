@@ -85,6 +85,10 @@ i386Tests = [
     {'bytes': '66f7f0',
      'setup': ({'eax': 48, 'edx': 1}, {}),
      'tests': ({'eax': 1366, 'edx': 16}, {})},
+    # idiv edi
+    {'bytes': 'f7ff',
+     'setup': ({'eax': 0xffffffe2, 'edx': 0xffffffff}, {}),
+     'tests': ({'eax': 0, 'edx': 0xffffffe2}, {})},
     # rol eax, 4
     {'bytes': 'c1c004',
      'setup': ({'eax': 5}, {}),
@@ -216,12 +220,37 @@ class i386EmulatorTests(unittest.TestCase, IntelEmulatorTests):
         emu32.setRegisterByName('ecx', -1)
         emu32.setRegisterByName('edi', 0x40000000)
         emu32.executeOpcode(op_scasb)
-        self.assertEqual(emu32.getRegisterByName('ecx'), 0xfffffff1)
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xffffffff - len("foobarbazbane\x00"))
 
         # repz Byte scan string
         emu32.setRegisterByName('eax', 0)
         emu32.setRegisterByName('ecx', -1)
         emu32.setRegisterByName('edi', 0x4000000d)
         emu32.executeOpcode(op_zscasb)
-        self.assertEqual(emu32.getRegisterByName('ecx'), 0xfffffffb)
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xffffffff - len("\x00\x00\x00f"))
 
+        # repnz Byte scan string with repmax
+        TEST_REPMAX = 2
+        orig_repmax = emu32.getEmuOpt("i386:repmax")
+        emu32.setEmuOpt("i386:repmax", TEST_REPMAX)
+
+        emu32.setRegisterByName('eax', 0)
+        emu32.setRegisterByName('ecx', -1)
+        emu32.setRegisterByName('edi', 0x40000000)
+        emu32.executeOpcode(op_scasb)
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xffffffff - min(TEST_REPMAX, len("foobarbazbane\x00")))
+
+        emu32.setEmuOpt("i386:repmax", orig_repmax)
+
+        # repz Byte scan string with repmax
+        TEST_REPMAX = 2
+        orig_repmax = emu32.getEmuOpt("i386:repmax")
+        emu32.setEmuOpt("i386:repmax", TEST_REPMAX)
+
+        emu32.setRegisterByName('eax', 0)
+        emu32.setRegisterByName('ecx', -1)
+        emu32.setRegisterByName('edi', 0x4000000d)
+        emu32.executeOpcode(op_zscasb)
+        self.assertEqual(emu32.getRegisterByName('ecx'), 0xffffffff - min(TEST_REPMAX, len("\x00\x00\x00f")))
+
+        emu32.setEmuOpt("i386:repmax", orig_repmax)
