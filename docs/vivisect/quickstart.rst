@@ -22,7 +22,7 @@ Packages for vivisect are built and push to the Python Package index at https://
 
 Which will get you the latest vivisect for use in headless mode. If would also like a cool hacker UI to do your reverse engineering in, you can instead run::
 
-    pip install vivisect[gui]
+    pip install "vivisect[gui]"
 
 Which will also install the PyQt5 dependecies necessary for running the vivisect UI.
 
@@ -40,13 +40,16 @@ Running the Vivisect UI
 =======================
 
 If you're eager to get started analyzing a binary, first:
-* Make sure vivisect is up to date.
-* Make sure you have all the GUI requirements installed
-* Make sure vivisect is in your PYTHONPATH environment variable.
+
+- Make sure vivisect is up to date.
+
+- Make sure you have all the GUI requirements installed
+
+- Make sure vivisect is in your PYTHONPATH environment variable.
 
 And then you should just be able to run the vivisect UI using this::
 
-    python -m viviect.vivbin
+    python -m vivisect.vivbin
 
 Or for convenience sake, we also register vivbin as a script name, so this should also work::
 
