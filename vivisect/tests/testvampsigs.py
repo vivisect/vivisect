@@ -66,22 +66,22 @@ class VampSigTests(unittest.TestCase):
         Test detection of seh prolog and epilog signatures.
         '''
         opcodes = '680000000064a10000000050'
-        assert self.run_test(opcodes) == 'ntdll.seh3_prolog'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.seh3_prolog')
 
         opcodes = '8b4df064890d00000000595f5e5bc951c3'
-        assert self.run_test(opcodes) == 'ntdll.seh3_epilog'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.seh3_epilog')
 
         opcodes = '680000000064ff35000000008b442410'
-        assert self.run_test(opcodes) == 'ntdll.seh4_prolog'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.seh4_prolog')
 
         opcodes = '8b4df064890d00000000595f5f5e5b8be55d51c3'
-        assert self.run_test(opcodes) == 'ntdll.seh4_epilog'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.seh4_epilog')
 
         opcodes = '8b4df064890d00000000595f5f5e5b8be55d51f2c3'
-        assert self.run_test(opcodes) == 'ntdll.seh4_epilog'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.seh4_epilog')
 
         opcodes = 'a10000000033c58945fc'
-        assert self.run_test(opcodes) == 'ntdll.gs_prolog'
+        self.assertEqual(self.run_test(opcodes), 'ntdll.gs_prolog')
 
 
     def test_alloca_probe_sigs(self):
@@ -89,16 +89,16 @@ class VampSigTests(unittest.TestCase):
         Test detection of alloca_probe signatures.
         '''
         opcodes = '513d001000008d4c2408721481e9001000002d0010000085013d0010000073ec2bc88bc485018be18b088b400450c3'
-        assert self.run_test(opcodes) == 'ntdll._alloca_probe'
+        self.assertEqual(self.run_test(opcodes), 'ntdll._alloca_probe')
 
         opcodes = '518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8720a8bc159948b00890424c32d001000008500ebe9'
-        assert self.run_test(opcodes) == 'ntdll._alloca_probe'
+        self.assertEqual(self.run_test(opcodes), 'ntdll._alloca_probe')
 
         opcodes = '518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8f2720b8bc159948b00890424f2c32d001000008500ebe7'
-        assert self.run_test(opcodes) == 'ntdll._alloca_probe'
+        self.assertEqual(self.run_test(opcodes), 'ntdll._alloca_probe')
 
         opcodes = '4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd37316664181e200f04d8d9b00f0ffff41c603004d3bd375f04c8b14244c8b5c24084883c410c3'
-        assert self.run_test(opcodes) == 'ntdll._alloca_probe'
+        self.assertEqual(self.run_test(opcodes), 'ntdll._alloca_probe')
 
         opcodes = '4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd3f27317664181e200f04d8d9b00f0ffff41c603004d3bd3f275ef4c8b14244c8b5c24084883c410f2c3'
         assert self.run_test(opcodes) == 'ntdll._alloca_probe'
