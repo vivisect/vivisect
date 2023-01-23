@@ -22,7 +22,8 @@ class InputMonitor(viv_imp_monitor.EmulationMonitor):
         self.res = []
 
     def apicall(self, emu, op, pc, api, argv):
-        self.res.append( (op.va, argv) )
+        magicargs = [(val, emu.getMagic(val)) for val in argv]
+        self.res.append( (op.va, magicargs) )
 
 def getEmuAtVa(vw, va, maxhit=None):
     """

@@ -4,5 +4,7 @@
 *.py~
 *.un~
 .hg*
+/.project
 .idea
 coverage_html_report*
+*~

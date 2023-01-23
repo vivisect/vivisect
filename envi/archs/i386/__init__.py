@@ -1,3 +1,6 @@
+'''
+Intel 32-bit Architecture
+'''
 import envi
 
 from envi.archs.i386.regs import *
@@ -9,6 +12,11 @@ class i386Module(envi.ArchitectureModule):
         envi.ArchitectureModule.__init__(self, 'i386')
         self._arch_dis = i386Disasm()
 
+    def initRegGroups(self):
+        envi.ArchitectureModule.initRegGroups(self)
+        self._regGrps.update({'general': ['eax', 'ecx', 'edx', 'ebx', 'esi', 'edi',
+                                'ebp', 'esp', 'eip'] })
+
     def archGetRegCtx(self):
         return i386RegisterContext()
 
@@ -17,14 +25,6 @@ class i386Module(envi.ArchitectureModule):
 
     def archGetNopInstr(self):
         return b'\x90'
-
-    def archGetRegisterGroups(self):
-        groups = envi.ArchitectureModule.archGetRegisterGroups(self)
-        general = ('general', ['eax', 'ebx', 'ecx', 'edx', 'esi', 'edi',
-                                'ebp', 'esp', 'eip', ], )
-
-        groups.append(general)
-        return groups
 
     def getPointerSize(self):
         return 4

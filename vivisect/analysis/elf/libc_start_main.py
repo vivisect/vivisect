@@ -29,7 +29,7 @@ def analyzeFunction(vw, funcva, lcsm=None):
     then check for arg0
     '''
     try:
-        emu = vw.getEmulator()
+        emu = vw.getEmulator(va=funcva)
         if lcsm is None:
             lcsm = getMainVas(vw)
         emumon = AnalysisMonitor(vw, funcva, lcsm)
@@ -87,7 +87,7 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
         if op.iflags & envi.IF_CALL:
             # it's a call, get the target
             branches = [br for br in op.getBranches(emu) if not (br[1] & envi.BR_FALL)]
-            logger.debug('libc_start_main: 0x%x\ttgts: %r', self.startmain, branches)
+            logger.debug('libc_start_main: %r\t\ttgts: %r', [hex(x) for x in self.startmain], branches)
 
             # check if it matches what we believe to be __libc_start_main
             for branch in branches:

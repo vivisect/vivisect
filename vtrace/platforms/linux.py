@@ -3,6 +3,7 @@ Linux Platform Module
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import os
+import sys
 import signal
 import struct
 import logging
@@ -16,6 +17,7 @@ import envi.memory as e_mem
 
 import vtrace
 import vtrace.exc as v_exc
+import vtrace.breakpoints as v_bp
 
 import vtrace.archs.arm as v_arm
 import vtrace.archs.i386 as v_i386
@@ -411,6 +413,11 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         if v_posix.ptrace(PT_ATTACH, pid, 0, 0) != 0:
             raise Exception("PT_ATTACH failed!")
         self.setMeta("ExeName", self._findExe(pid))
+
+    def _LibraryLoadHook(self):
+        # drop special breakpoint at ld._dl_catch_exception
+        bp = v_bp.PosixLibLoadHookBreakpoint('ld._dl_catch_exception')
+        self.addBreakpoint(bp)
 
     def platformPs(self):
         pslist = []
