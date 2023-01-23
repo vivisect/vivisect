@@ -30,6 +30,7 @@ def parseFile(vw, filename, baseaddr=None):
 
     vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
 
+    # figure out if there's an offset into the file we need to skip
     offset = vw.config.viv.parsers.ihex.offset
     if not offset:
         offset = 0
@@ -65,3 +66,28 @@ def parseFile(vw, filename, baseaddr=None):
 
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('ihex loader cannot parse memory!')
+
+def getMemBaseAndSize(vw, ihex, baseaddr=None):
+    '''
+    Returns the default baseaddr and memory size required to load the file
+    '''
+    savebase = baseaddr
+
+    memmaps = ihex.getMemoryMaps()
+    baseaddr = 0xffffffffffffffffffffffff
+    topmem = 0
+
+    for mapva, mperms, mname, mbytes in memmaps:
+        if mapva < baseaddr:
+            baseaddr = mapva
+        endva = mapva + len(mbytes)
+        if endva > topmem:
+            topmem = endva
+
+    size = topmem - baseaddr
+    if savebase:
+        # if we provided a baseaddr, override what the file wants
+        baseaddr = savebase
+        
+    return baseaddr, size
+

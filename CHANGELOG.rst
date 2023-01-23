@@ -2,6 +2,39 @@
 Vivisect Changelog
 ******************
 
+V1.0.8 - 2022-04-28
+===================
+
+Features
+--------
+- Improved Save-As capabilities when connected to a remote server and better struct making from the UI. 
+  (`#501 <https://github.com/vivisect/vivisect/pull/501>`_)
+- Improve output for the UI's ``names`` command.
+  (`#516 <https://github.com/vivisect/vivisect/pull/516>`_)
+
+Fixes
+-----
+- Fix issue in the proxy case where we forgot to snap in the analysis modules.
+  (`#498 <https://github.com/vivisect/vivisect/pull/498>`_)
+- Fix string naming.
+  (`#502 <https://github.com/vivisect/vivisect/pull/502>`_)
+- Fix a bug in ELFPLT analysis where certain dynamic tables were missing.
+  (`#503 <https://github.com/vivisect/vivisect/pull/503>`_)
+- Fix an issue where ELF parsing of STT_FUNCs was based on too many bits.
+  (`#505 <https://github.com/vivisect/vivisect/pull/505>`_)
+- Fix an missing name issue in Save-As.
+  (`#507 <https://github.com/vivisect/vivisect/pull/507>`_)
+- Improve thread safety for client workspaces.
+  (`#508 <https://github.com/vivisect/vivisect/pull/508>`_)
+- Fix the i386 Emulator's handling of rep(n)z.
+  (`#513 <https://github.com/vivisect/vivisect/pull/513>`_)
+- Fix issue when dealing with invalid PE section names.
+  (`#514 <https://github.com/vivisect/vivisect/pull/514>`_)
+- Fix an incorrect import name in vivbin.
+  (`#518 <https://github.com/vivisect/vivisect/pull/518>`_)
+- Fix a debug logging message in the ``libc_start_main`` analysis pass that would cause that analysis pass to exception out.
+  (`#519 <https://github.com/vivisect/vivisect/pull/519>`_)
+
 V1.0.7 - 2022-01-13
 ===================
 
@@ -338,4 +371,4 @@ Fixes
 
 v0.1.0rc1 - 2020-07-30
 ======================
-- Initial Pypi Release
+- Initial PyPI Release

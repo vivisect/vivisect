@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 import envi
+import envi.exc as e_exc
 import envi.memory as e_memory
 import envi.memcanvas as e_mcanvas
 
@@ -43,7 +44,6 @@ class VivisectTest(v_t_utils.VivTest):
             vw.canvas.renderers = oldcanv.renderers
             vw.canvas.setRenderer('viv')
 
-
     def test_xrefs_types(self):
         '''
         Test that we have data consistency in xrefs
@@ -67,7 +67,7 @@ class VivisectTest(v_t_utils.VivTest):
         output = self.chgrp_vw.canvas.strval
         self.assertIn("pattern not found: 66006f006f00 (b'f\\x00o\\x00o\\x00')", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-X ffffffff253c40050868")
         output = self.chgrp_vw.canvas.strval
         self.assertIn('0x08048e5d: -r-x loc_08048e5d + 0x0\ndone ', output)
@@ -82,27 +82,26 @@ class VivisectTest(v_t_utils.VivTest):
         output = self.chgrp_vw.canvas.strval
         self.assertIn("(b'ab.*rt')\n0x0804874e:", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-r al.*rt -c")
         output = self.chgrp_vw.canvas.strval
         self.assertIn("0x8051333  61 6c 6d 6f 73 74 20 63 65 72 74 61 69 6e 6c 79   almost certainly", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-c -r qsort")
         output = self.chgrp_vw.canvas.strval
         self.assertIn("0x80488e3  71 73 6f 72 74 00 66 63 6e 74 6c 00 6d 65 6d 6d   qsort.fcntl", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x200")
         output = self.chgrp_vw.canvas.strval
         self.assertIn("searching from 0x08048000 for 512 bytes\npattern not found: 71736f7274 (b'qsort')\n", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
+
         self.chgrp_vw.do_search("-c -r qsort -R 0x8048000:0x2000")
         output = self.chgrp_vw.canvas.strval
         self.assertIn("0x80488e3  71 73 6f 72 74 00 66 63 6e 74 6c 00 6d 65 6d 6d   qsort.fcntl.memm\n0x80488f3  6f 76 65 00 62 69 6e 64 74 65 78 74 64 6f 6d 61   ove.bindtextdoma\n\ndone (1 results).\n", output)
         self.chgrp_vw.canvas.clearCanvas()
-        
 
     def test_cli_searchopcode(self):
         '''
@@ -193,7 +192,7 @@ class VivisectTest(v_t_utils.VivTest):
         self.chgrp_vw.do_filemeta('chgrp')
         output = self.chgrp_vw.canvas.strval
         self.assertIn("'DT_INIT': 134516068", output)
-        self.assertIn("'addbase': False,\n 'canaries': False,\n 'imagebase': 134512640", output)
+        self.assertIn("'canaries': False,\n 'imagebase': 134512640", output)
         self.chgrp_vw.canvas.clearCanvas()
 
     def test_cli_fscope(self):
@@ -427,7 +426,30 @@ class VivisectTest(v_t_utils.VivTest):
                                 (134554213, 'call eax', 65537), (134541288, 'call eax', 65537),
                                 (134553449, 'call edi', 65537), (134519792, 'call eax', 65537),
                                 (134553075, 'call dword [ebx + 28]', 65541), (134540791, 'call dword [esp + 32]', 65541),
-                                (134541176, 'call eax', 65537), (134562046, 'call dword [esp + 68]', 65541)],
+                                (134541176, 'call eax', 65537), (134562046, 'call dword [esp + 68]', 65541),
+                                (134562878, 'jmp dword [0x0805e218 + ecx * 4]', 65545),
+                                (134533775, 'jmp dword [0x08059bb8 + ecx * 4]', 65545),
+                                (134544641, 'jmp dword [0x08059fac + edx * 4]', 65545),
+                                (134535515, 'jmp dword [0x08059e30 + ecx * 4]', 65545),
+                                (134569625, 'jmp dword [0x0805e4d8 + eax * 4]', 65545),
+                                (134567270, 'jmp dword [0x0805e43c + ebp * 4]', 65545),
+                                (134570812, 'jmp dword [0x0805e6d4 + edx * 4]', 65545),
+                                (134577906, 'jmp dword [0x0805eb58 + ebp * 4]', 65545),
+                                (134578230, 'jmp dword [0x0805ebec + eax * 4]', 65545),
+                                (134579289, 'jmp dword [0x0805ef3c + edi * 4]', 65545),
+                                (134521960, 'jmp dword [0x08059718 + eax * 4]', 65545),
+                                (134533577, 'jmp dword [0x08059ba4 + ebp * 4]', 65545),
+                                (134576219, 'jmp dword [0x0805e810 + ebx * 4]', 65545),
+                                (134524193, 'jmp dword [0x08059b68 + eax * 4]', 65545),
+                                (134548286, 'jmp dword [0x0805dde4 + ecx * 4]', 65545),
+                                (134524938, 'jmp dword [0x08059b78 + eax * 4]', 65545),
+                                (134579170, 'jmp dword [0x0805ee7c + eax * 4]', 65545),
+                                (134528750, 'jmp dword [0x08059b90 + eax * 4]', 65545),
+                                (134561776, 'jmp dword [0x0805e09c + eax * 4]', 65545),
+                                (134533607, 'jmp dword [0x08059d9c + ecx * 4]', 65545),
+                                (134578347, 'jmp dword [0x0805ecac + edi * 4]', 65545),
+                                (134563178, 'jmp dword [0x0805e250 + edi * 4]', 65545),
+                                (134569031, 'jmp dword [0x0805e4ac + edi * 4]', 65545)],
             'NoReturnCalls': [(134573120,), (134524676,), (134577802,), (134582295,), (134551055,), (134525456,),
                               (134568495,), (134534039,), (134524568,), (134528303,), (134578863,), (134577311,),
                               (134549928,), (134544175,), (134553138,), (134572852,), (134580661,),
@@ -439,9 +461,31 @@ class VivisectTest(v_t_utils.VivTest):
                               (134576974,), (134576909,),
                               ],
             'Bookmarks': [],
-            'SwitchCases': [],
-            'thunk_bx': [(134519744,),
-                         (134519715,)],
+            'SwitchCases': [(134533577, 134533577, 162),
+                            (134578347, 134578347, 53),
+                            (134524193, 134524193, 3),
+                            (134578230, 134578230, 101),
+                            (134577906, 134577906, 36),
+                            (134563178, 134563178, 126),
+                            (134567270, 134567270, 3),
+                            (134548286, 134548286, 93),
+                            (134524938, 134524938, 173),
+                            (134579289, 134579289, 53),
+                            (134569625, 134569625, 128),
+                            (134533775, 134533775, 120),
+                            (134528750, 134528750, 4),
+                            (134535515, 134535515, 106),
+                            (134533607, 134533607, 36),
+                            (134570812, 134570812, 1),
+                            (134579170, 134579170, 101),
+                            (134521960, 134521960, 453),
+                            (134562878, 134562878, 140),
+                            (134544641, 134544641, 11),
+                            (134561776, 134561776, 94),
+                            (134569031, 134569031, 139),
+                            (134576219, 134576219, 9)],
+            'thunk_reg': [(134519744, 'ebx', 134615040),
+                          (134519715, 'ebx', 134615040)],
             'FuncWrappers': [(134517916, 134517946)],
             'Emulation Anomalies': [(134546338, 'DivideByZero at 0x80503a2'),
                                     (134544390, 'DivideByZero at 0x804fc06'),
@@ -715,7 +759,7 @@ class VivisectTest(v_t_utils.VivTest):
         '''
         vw = self.firefox_vw
         self.assertIsNotNone(vw.parsedbin)
-        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals']), set(vw.getVaSetNames()))
+        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut', 'thunk_reg', 'ResolvedImports']), set(vw.getVaSetNames()))
 
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60, adjacent=True))
@@ -1484,17 +1528,17 @@ class VivisectTest(v_t_utils.VivTest):
                     0x140049770, 0x140049bf0, 0x140049b80, 0x140049780, 0x140049a00, 0x140049900, 0x140049700,
                     0x140049800, 0x140049880, 0x140049c00, 0x140049b00, 0x140049a10, 0x140049790, 0x140049810,
                     0x140049a90, 0x140049710, 0x14001ef10, 0x140049890, 0x140049910, 0x140049b90, 0x140049c10,
-                    0x140049b40, 0x140049aa0, 0x1400497a0, 0x140049720, 0x140049820, 0x140049a20]
+                    0x140049b40, 0x140049aa0, 0x1400497a0, 0x140049720, 0x140049820, 0x140049a20, 0x140048a10]
 
         self.assertEqual(thunks, set(impthunk))
 
-    def test_NoRet(self):
+    def test_noret(self):
 
         # test analysis stops after a few known NoRets
         # arm/sh
         self.assertIsNone(self.sh_vw.getLocation(0x0000ddaa))
         self.assertIsNone(self.sh_vw.getLocation(0x000288ce))
-       
+
         # linux/i386/vdir.llvm
         self.assertIsNone(self.vdir_vw.getLocation(0x080589ba))
         self.assertIsNone(self.vdir_vw.getLocation(0x0805875f))
@@ -1548,3 +1592,46 @@ class VivisectTest(v_t_utils.VivTest):
         # string naming should not chop off the last character
         self.assertEqual(self.chown_vw.getName(0x0200c050), 'str_ownership of %s _0200c050')
 
+    def test_relocatable_elf_simple(self):
+        kmod = helpers.getTestWorkspace('linux', 'amd64', 'hellokernel.ko')
+        self.eq(set(kmod.getFunctions()), set([0x7c, 0x95]))
+
+    def test_guid(self):
+        vw = vivisect.VivWorkspace()
+
+        # raw workspace should not have a GUID
+        self.assertEqual(vw.getMeta('GUID'), None)
+
+        chownpath = helpers.getTestPath('linux', 'amd64', 'chown')
+        vw.loadFromFile(chownpath)
+
+        # workspace gets a GUID after one of the "vw.loadFrom*" functions is called
+        newguid = vw.getMeta('GUID')
+        self.assertNotEqual(newguid, None)
+
+        # since it's assigned, the result from "vw.getVivGuid()" should be the same
+        self.assertEqual(newguid, vw.getVivGuid())
+
+    def test_write_fail(self):
+        with self.snap(self.chown_vw) as vw:
+            base = vw.getFileMeta('chown', 'imagebase')
+
+            oldmem = vw.readMemory(base, 10)
+
+            with self.assertRaises(e_exc.SegmentationViolation):
+                vw.writeMemory(base, b"testing...")
+
+            self.assertEqual(oldmem, vw.readMemory(base, 10))
+
+            with vw.getAdminRights():
+                vw.writeMemory(base, b"testing...")
+
+            self.assertEqual(b'testing...', vw.readMemory(base, 10))
+
+            with self.assertRaises(e_exc.SegmentationViolation):
+                vw.writeMemory(base, b"FOOBARBAZ.")
+
+            self.assertEqual(b'testing...', vw.readMemory(base, 10))
+
+            with vw.getAdminRights():
+                vw.writeMemory(base, oldmem)

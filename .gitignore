@@ -4,6 +4,7 @@
 *.py~
 *.un~
 .hg*
+/.project
 .idea
 .DS_Store
 coverage_html_report*
