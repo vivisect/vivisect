@@ -1701,11 +1701,18 @@ class GdbServerStub(GdbStubBase):
             if isinstance(val, int):
                 features.append(b'%s=' % feat + self._encodeGDBVal(val))
             elif isinstance(val, bytes):
-                features.append(feat + b'=' + val)
+                # If the value is '+' just append it without '='
+                if val == b'+':
+                    features.append(feat + val)
+                else:
+                    features.append(feat + b'=' + val)
             elif isinstance(val, str):
                 # the features should always be in bytes no matter what
-                assert isinstance(feat, bytes)
-                features.append(('%s=%s' % (feat.decode(), val)).encode())
+                # If the value is '+' just append it without '='
+                if val == b'+':
+                    features.append(feat + val.encode())
+                else:
+                    features.append(feat + b'=' + val.encode())
 
         return b';'.join(features)
 
