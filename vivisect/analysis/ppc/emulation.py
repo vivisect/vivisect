@@ -158,7 +158,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
     callconv = vw.getMeta('DefaultCall')
     undefregs = set(emu.getUninitRegUse())
 
-    for argnum, (_, argreg) in enumerate(ppcargnames):
+    for argnum, (_, argreg) in reversed(enumerate(ppcargnames)):
         if argreg not in undefregs:
             argc = argnum
             break
