@@ -11,25 +11,25 @@ gprs64 = [('r%d' % x, 64)  for x in range(32)]
 
 floats = [('f%d' % x, 64)  for x in range(32)]
 
-vectors = [('vr%d' % x, 128)  for x in range(64)]
+vectors = [('v%d' % x, 128)  for x in range(32)]
 
 # Special control registers that are not SPRs
-floats.append(('FPSCR', 64))
+floats.append(('fpscr', 64))
 
-vectors.append(('VSCR', 32))
+vectors.append(('vscr', 32))
 
 spes = (
-    ('ACC', 64),
-)
-
-hypervisors = (
-    ('TEN', 64),
+    ('acc', 64),
 )
 
 sysregs = (
     ('pc', 64),
-    ('MSR', 32),
-    ('CR', 32),
+    ('msr', 32),
+    ('cr', 32),
+)
+
+hypervisors = (
+    ('TEN', 64),
 )
 
 ppc_regs32 = []
@@ -151,6 +151,20 @@ ppc_meta64 = [
         ('CA',  REG_XER, 63-34, 1),
         ('TBL', REG_TB, 0, 32),
 ]
+
+# GDB expects vr0-vr31 as the vector registers, but asm listings usually use the 
+# "standard" v0-v31 register names.
+vec_meta = [('vr%d' % d, REG_V0 + d, 0, 128) for d in range(32)]
+
+# GDB sometimes uses vs0h-vs31h (the "VSX" feature) for the upper half of the 
+# vector registers
+vec_meta.extend([('vs%dh' % d, REG_V0 + d, 64, 64) for d in range(32)])
+
+# VRSAVE is an alias for USPRG0
+vec_meta.append(('vrsave', REG_USPRG0, 0, 64))
+
+ppc_meta32.extend(vec_meta)
+ppc_meta64.extend(vec_meta)
 
 spe_meta = [('ev%d' % d, d, 0, 64) for d in range(32)]
 spe_meta.extend([('ev%dh' % d, d, 32, 32) for d in range(32)])   # upper half
@@ -308,26 +322,28 @@ class Ppc64RegisterContext(e_reg.RegisterContext):
 
 regs_general = []
 regs_general.extend([reg for reg, size in gprs64])
-#regs_general.extend([reg for reg, size in floats])
-#regs_general.extend([reg for reg, size in vectors])
 
 # The general registers also need a few system and special registers
 regs_general.extend([reg for reg, size in sysregs])
-regs_general.append('LR')
-regs_general.append('CTR')
-regs_general.append('XER')
+regs_general.append('lr')
+regs_general.append('ctr')
+regs_general.append('xer')
 
 regs_fpu = ['f%d' %x for x in range(32)]
-regs_fpu.append('FPSCR')
+regs_fpu.append('fpscr')
 
+# GDB expects the vector registers to be named vr0-vr31
 regs_altivec = ['vr%d' %x for x in range(64)]
-regs_altivec.append('VSCR')
-regs_altivec.append('VRSAVE')
+regs_altivec.append('vscr')
+regs_altivec.append('vrsave')
+
+# The upper half of the vector registers is part of the "VSX" feature in GDB
+regs_vsx = ['vs%dh' %x for x in range(32)]
 
 regs_spe = ['ev%dh' %x for x in range(32)]
 regs_spe.extend([reg for reg, size in sysregs])
-regs_spe.append('ACC')
-regs_spe.append('SPEFSCR')
+regs_spe.append('acc')
+regs_spe.append('spefscr')
 
 # Drop any "write only" SPRs from this group
 regs_spr = [name for idx, (name, desc, bitsize) in spr.sprs.items() \

@@ -200,7 +200,7 @@ class PpcRegOper(envi.RegisterOper):
         emu.setRegister(self.reg, val)
 
     def render(self, mcanv, op, idx):
-        rname = ppc_regs[self.reg][0]
+        rname = self.repr(op)
         mcanv.addNameText(rname, typename='registers')
 
     def repr(self, op):
@@ -209,6 +209,44 @@ class PpcRegOper(envi.RegisterOper):
 
     def getWidth(self, emu):
         return emu.getRegisterWidth(self.reg) >> 3
+
+# SPR register types
+class PpcDCRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_DCR, va=va, oflags=oflags)
+
+
+class PpcPMRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_PMR, va=va, oflags=oflags)
+
+
+class PpcSPRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_SPR, va=va, oflags=oflags)
+
+        # To ensure we don't have to execute special code to display this SPR 
+        # cache the register name. If this is a proper register name (i.e. it 
+        # doesn't start with "0x" it should be all uppercase. All unnamed SPRs 
+        # should be displayed in hex.
+        rname = ppc_regs[self.reg][0]
+        if rname.startswith('0x'):
+            self._sprname = rname
+        else:
+            self._sprname = rname.upper()
+
+    def repr(self, op):
+        return self._sprname
+
+
+class PpcTMRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_TMR, va=va, oflags=oflags)
+
+
+class PpcTBRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_TBR, va=va, oflags=oflags)
 
 
 class PpcERegOper(PpcRegOper):

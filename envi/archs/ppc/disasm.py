@@ -790,13 +790,15 @@ def form_XS(disasm, va, ival, opcode, operands, iflags):
     return opcode, opers, iflags
 
 
-REG_OFFS = {
-        FIELD_DCRN0_4 : REG_OFFSET_DCR,
-        FIELD_PMRN0_4 : REG_OFFSET_PMR,
-        FIELD_SPRN0_4 : REG_OFFSET_SPR,
-        FIELD_TMRN0_4 : REG_OFFSET_TMR,
-        FIELD_TBRN0_4 : REG_OFFSET_TBR,
-        }
+# Special register operand classes
+REG_OPER_CLASSES = {
+    FIELD_DCRN0_4 : PpcDCRegOper,
+    FIELD_PMRN0_4 : PpcPMRegOper,
+    FIELD_SPRN0_4 : PpcSPRegOper,
+    FIELD_TMRN0_4 : PpcTMRegOper,
+    FIELD_TBRN0_4 : PpcTBRegOper,
+}
+
 
 def form_XFX(disasm, va, ival, opcode, operands, iflags):
     opers = []
@@ -809,13 +811,13 @@ def form_XFX(disasm, va, ival, opcode, operands, iflags):
         if operands[1][1] in (FIELD_DCRN5_9, FIELD_PMRN5_9, FIELD_SPRN5_9, FIELD_TMRN5_9, FIELD_TBRN5_9,):
             val = (opvals[2] << 5) | opvals[1]
             oper0 = OPERCLASSES[operands[0][1]](opvals[0], va)
-            regoff = REG_OFFS.get(operands[2][1])
-            oper1 = PpcRegOper(regoff + val, va)
+            regcls = REG_OPER_CLASSES.get(operands[2][1])
+            oper1 = regcls(val, va)
 
         else:
             val = (opvals[2] << 5) | opvals[0]
-            regoff = REG_OFFS.get(operands[2][1])
-            oper0 = PpcRegOper(regoff + val, va)    # FIXME: do we want specific DCRN, PMRN, SPRN, TMRN, TBRN operand types?
+            regcls = REG_OPER_CLASSES.get(operands[2][1])
+            oper0 = regcls(val, va)
             oper1 = OPERCLASSES[operands[1][1]](opvals[1], va)
 
         opers = (oper0, oper1)

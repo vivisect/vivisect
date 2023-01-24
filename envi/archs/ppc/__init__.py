@@ -103,6 +103,7 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         groups['fpu'] = regs_fpu
         groups['spe'] = regs_spe
         groups['spr'] = regs_spr
+        groups['vsx'] = regs_vsx
 
         return groups
 
