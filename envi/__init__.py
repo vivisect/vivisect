@@ -2,13 +2,15 @@
 The Envi framework allows architecture abstraction through the use of the
 ArchitectureModule, Opcode, Operand, and Emulator objects.
 '''
-
+import os
+import sys
 import copy
 import types
 import struct
 import logging
 import platform
 import contextlib
+import importlib.util as imputil
 
 from envi.exc import *
 
@@ -72,33 +74,19 @@ arch_by_name = {
     'i386':         ARCH_I386,
     'amd64':        ARCH_AMD64,
     'a64':          ARCH_A64,
-    'aarch64':      ARCH_A64,
     'arm':          ARCH_ARMV7,
-    'armv6l':       ARCH_ARMV7,
-    'armv7l':       ARCH_ARMV7,
     'thumb16':      ARCH_THUMB16,
     'thumb':        ARCH_THUMB,
-    'thumb2':       ARCH_THUMB,
     'msp430':       ARCH_MSP430,
     'h8':           ARCH_H8,
     'rv32':         ARCH_RISCV32,
     'rv64':         ARCH_RISCV64,
     'mcs51':        ARCH_MCS51,
-    'ppc32':        ARCH_PPC_E32,
     'ppc32-embedded': ARCH_PPC_E32,
-    'ppc':          ARCH_PPC_E64,
     'ppc-embedded': ARCH_PPC_E64,
-    'ppc64-embedded': ARCH_PPC_E64,
-    'ppc-spe':      ARCH_PPC_E64,
     'ppc-vle':      ARCH_PPCVLE,
-    'ppc32-vle':    ARCH_PPCVLE,
-    'ppcvle':       ARCH_PPCVLE,
-    'vle':          ARCH_PPCVLE,
     'ppc32-server': ARCH_PPC_S32,
     'ppc-server':   ARCH_PPC_S64,
-    'ppc64-server': ARCH_PPC_S64,
-    'altivec':      ARCH_PPC_S64,
-    'ppc-altivec':  ARCH_PPC_S64,
     'ppc-desktop':  ARCH_PPC_D,
     'rxv2':         ARCH_RXV2,
     'sparc':        ARCH_SPARC,
@@ -106,6 +94,47 @@ arch_by_name = {
     'mips':         ARCH_MIPS32,
     'mips32':       ARCH_MIPS32,
     'mips64':       ARCH_MIPS64,
+}
+
+arch_aliases = {
+    'i386':             ('i486', 'i586', 'i686', 'x86'),
+    'amd64':            ('x86_64',),
+    'arm':              ('armv6l', 'armv7l', 'a32'),
+    'thumb':            ('t32', 'thumb2'),
+    'a64':              ('aarch64',),
+    'ppc32-embedded':   ('ppc32',),
+    'ppc-embedded':     ('ppc64-embedded','ppc-spe'),
+    'ppc-server':       ('ppc64-server','altivec', 'ppc-altivec'),
+    'ppc-vle':          ('vle','ppc32-vle', 'ppcvle'),
+    'rv32':             ('riscv', 'risc-v',),
+    'mcs51':            ('8051', '80x51'),
+    'rxv2':             ('rxv1', 'rx'),
+    'mips32':           ('mips',),
+}
+
+arch_module_path = {
+    ARCH_I386:      ('i386', 'i386Module'),
+    ARCH_AMD64:     ('amd64', 'Amd64Module'),
+    ARCH_ARMV7:     ('arm', 'ArmModule'),
+    ARCH_THUMB16:   ('thumb16', 'Thumb16Module'),
+    ARCH_THUMB:     ('thumb16', 'ThumbModule'),
+    ARCH_A64:       ('a64', 'A64Module'),
+    ARCH_MSP430:    ('msp430', 'Msp430Module'),
+    ARCH_H8:        ('h8', 'H8Module'),
+    # new architectures
+    ARCH_RISCV32:   ('rv32', 'Rv32Module'),
+    ARCH_RISCV64:   ('rv64', 'Rv64Module'),
+    ARCH_PPC_E32:   ('ppc32-embedded', 'Module'),
+    ARCH_PPC_E64:   ('ppc-embedded', 'Module'),
+    ARCH_PPC_S32:   ('ppc32-server', 'Module'),
+    ARCH_PPC_S64:   ('ppc-server', 'Module'),
+    ARCH_PPCVLE:    ('ppc-vle', 'Module'),
+    ARCH_PPC_D:     ('ppc-desktop', 'Module'),
+    ARCH_RXV2:      ('rxv2', 'Module'),
+    ARCH_SPARC:     ('sparc', 'Module'),
+    ARCH_SPARC64:   ('sparc64', 'Module'),
+    ARCH_MIPS32:    ('mips32', 'Module'),
+    ARCH_MIPS64:    ('mips64', 'Module'),
 }
 
 # Instruction flags (The first 8 bits are reserved for arch independant use)
@@ -648,6 +677,9 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Sets Endianness for the Emulator.
         '''
         for arch in self.imem_archs:
+            # imem_archs may be sparse, with gaps of None
+            if not arch:
+                continue
             arch.setEndian(endian)
 
     def getEndian(self):
@@ -1349,7 +1381,103 @@ def getCurrentArch():
 
     return ret
 
+def getRealArchName(name):
+    for rname, aliases in arch_aliases.items():
+        if name in aliases:
+            return rname
+
+    return name
+
+def getArchNames():
+    """
+    Return a dict of arch_names which are currently implemented
+
+    envi.arch_names may hold future architectures which have not been merged in yet
+    """
+    modules = getArchModules(new=False)
+    return {arch: name for (arch, name) in arch_names.items() if arch>>16 < len(modules) and modules[arch>>16]}
+    
+
 def getArchModule(name=None):
+    """
+    Return an Envi architecture module instance for the following
+    architecture name.
+
+    If name is None, uses the "current" architecture.
+    """
+    if name is None:
+        name = getCurrentArch()
+
+    rname = getRealArchName(name)
+    archnum = arch_by_name.get(rname)
+
+    if archnum not in arch_module_path:
+        raise ArchNotImplemented(name)
+
+    # retrieve path and class info.  envi/archs/<aname>/__init__.py with amodname()
+    aname, amodname = arch_module_path.get(archnum)
+
+    modpath = os.sep.join(['envi', 'archs', aname, '__init__.py'])
+    if not os.path.exists(modpath):
+        raise ArchNotImplemented(name)
+
+    # get the module spec
+    spec = imputil.spec_from_file_location(rname, os.sep.join(['envi','archs', aname, '__init__.py']))
+    if not spec:
+        raise ArchNotImplemented(name)
+
+    # create an unintialized module from the spec
+    module = imputil.module_from_spec(spec)
+    if not module:
+        raise ArchNotImplemented(name)
+
+    # insert the module into sys.modules:
+    sys.modules[rname] = module
+
+    # initialize the module (actually "importing" it)
+    spec.loader.exec_module(module)
+
+    # instantiate the ArchitectureModule
+    cls = getattr(module, amodname)
+    archmod = cls()
+    
+    return archmod
+
+def getArchModules(default=ARCH_DEFAULT, new=True):
+    '''
+    Retrieve a default array of arch modules ( where index 0 is
+    also the "named" or "default" arch module.
+    '''
+    global shared_modules
+    if not new and shared_modules:
+        return shared_modules
+
+    #archs = [None for x in range(ARCH_MAX)]
+    archs = []
+    for arch, name in arch_names.items():
+        archidx = arch>>16
+        try:
+            archmod = getArchModule(name)
+
+            # make sure the list can hold this arch -- THIS NEGATES THE NEED FOR `ARCH_MAX`
+            archslen = len(archs)
+            if archidx >= archslen:
+                diff = 1 + archidx - archslen
+                archs.extend([None for x in range(diff)])
+
+            archs[archidx] = archmod
+        except ArchNotImplemented:
+            pass
+
+        except Exception as e:
+            logger.critical(e, exc_info=1)
+
+    return archs
+
+shared_modules = getArchModules()
+
+'''
+def getArchModule_deprecated(name=None):
     """
     return an Envi architecture module instance for the following
     architecture name.
@@ -1390,11 +1518,11 @@ def getArchModule(name=None):
     else:
         raise ArchNotImplemented(name)
 
-def getArchModules(default=ARCH_DEFAULT):
-    '''
+def getArchModules_deprecated(default=ARCH_DEFAULT):
+    """
     Retrieve a default array of arch modules ( where index 0 is
     also the "named" or "default" arch module.
-    '''
+    """
     import envi.archs.h8 as e_h8
     import envi.archs.arm as e_arm
     import envi.archs.i386 as e_i386
@@ -1402,18 +1530,19 @@ def getArchModules(default=ARCH_DEFAULT):
     import envi.archs.thumb16 as e_thumb16
     import envi.archs.msp430 as e_msp430
 
-    archs = [None]
 
     # These must be in ARCH_FOO order
-    archs.append(e_i386.i386Module())
-    archs.append(e_amd64.Amd64Module())
-    archs.append(e_arm.ArmModule())
-    archs.append(e_thumb16.Thumb16Module())
-    archs.append(e_thumb16.ThumbModule())
-    archs.append(e_msp430.Msp430Module())
-    archs.append(e_h8.H8Module())
+    archs = [None for x in range(ARCH_MAX)]
+    archs[ARCH_I386>>16] = e_i386.i386Module()
+    archs[ARCH_AMD64>>16] = e_amd64.Amd64Module()
+    archs[ARCH_ARMV7>>16] = e_arm.ArmModule()
+    archs[ARCH_THUMB>>16] = e_thumb16.Thumb16Module()
+    archs[ARCH_THUMB>>16] = e_thumb16.ThumbModule()
+    archs[ARCH_MSP430>>16] = e_msp430.Msp430Module()
+    archs[ARCH_H8>>16] = e_h8.H8Module()
 
     # Set the default module ( or None )
     archs[ARCH_DEFAULT] = archs[default >> 16]
 
     return archs
+'''
