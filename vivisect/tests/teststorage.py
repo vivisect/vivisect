@@ -4,6 +4,7 @@ import tempfile
 import unittest
 
 import vivisect
+import vivisect.storage.basicfile as vsbf
 from vivisect.const import *
 
 
@@ -124,3 +125,28 @@ class StorageTests(unittest.TestCase):
         self.assertIn("IndexError: list index out of range", ''.join(logcap.output))
         self.assertEqual(1, len(files))
         self.assertEqual('VivisectFile', files[0])
+
+    def test_basicfile_header(self):
+        basicfile = tempfile.NamedTemporaryFile(delete=False)
+        vw = vivisect.VivWorkspace()
+        add_events(vw)
+        vw.setMeta('StorageName', basicfile.name)
+        vw.saveWorkspace(False)
+
+        # test the header was added correctly
+        with open(basicfile.name, 'rb') as f:
+            header = f.read(8)
+            self.assertEqual(header, vsbf.vivsig_cpickle)
+
+        # now add events and make sure we don't add the header unnecessarily
+        vw = vivisect.VivWorkspace()
+        vw.loadWorkspace(basicfile.name)
+        vw.addLocation(0x6100, 3, 5)
+        vw.addLocation(0x6105, 3, 5)
+        vw.addLocation(0x610a, 3, 5)
+        vw.saveWorkspace(False)
+
+        # now load it.  if a VIV\0\0\0\0\0 was added incorrectly, this will blow up
+        vw = vivisect.VivWorkspace()
+        vw.loadWorkspace(basicfile.name)
+

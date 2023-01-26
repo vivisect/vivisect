@@ -1,13 +1,20 @@
+import os
 import pickle
 import vivisect
 
 vivsig_cpickle = b'VIV'.ljust(8, b'\x00')
 
 
+def writeFileHeader(f):
+    f.write(vivsig_cpickle)
+
 def saveWorkspaceChanges(vw, filename):
     elist = vw.exportWorkspaceChanges()
     if len(elist):
         with open(filename, 'ab') as f:
+            if not os.path.getsize(filename):
+                writeFileHeader(f)
+
             pickle.dump(elist, f, protocol=2)
 
 
@@ -24,7 +31,7 @@ def vivEventsAppendFile(filename, events):
 def vivEventsToFile(filename, events):
     with open(filename, 'wb') as f:
         # Mime type for the basic workspace
-        f.write(vivsig_cpickle)
+        writeFileHeader(f)
         pickle.dump(events, f, protocol=2)
 
 
