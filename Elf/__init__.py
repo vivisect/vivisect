@@ -343,13 +343,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         if len(self.dynstrtab) and not len(self.dynstrtab[-1]):
             self.dynstrtab.pop()
 
-        self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
-        # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
-        soname = self.dyns.get(DT_SONAME)
-        if soname is not None and soname != -1 and soname < strsz:
-            dynsymstrs = strtabbytes[:soname].split(b'\0')
-            self.dynsymtabct = len(dynsymstrs) - 1
-
         # setup names for the dynamics table entries
         for dyn in self.dynamics:
             if dyn.d_tag in HAS_STRING:
@@ -907,12 +900,40 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         in self.dynsymtabct.  Perhaps this is horrible and should be stricken
         from the code.
         '''
-        #FIXME: make this use both SECTION and PT_DYNAMICS versions...
+        # if DT_SYMTAB doesn't exist, we don't have a symbol table defined by DYNAMICS
         symtabva = self.dyns.get(DT_SYMTAB)
         if symtabva is None:
             return None, None, None
 
         symsz = self.dyns.get(DT_SYMENT)
+
+        # calculate/reuse symbol count
+        if not self.dynsymtabct:    # check if we've already got this value
+            # calculate the Dynamic Symbol Table Size
+            self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
+            if not self.dynsymtabct:
+                # if we don't 
+                self._parseDynStrs()
+                self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
+
+            # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
+            soname = self.dyns.get(DT_SONAME)
+            if soname is not None and soname != -1 and soname < strsz:
+                dynsymstrs = self.strtabbytes[:soname].split(b'\0')
+                self.dynsymtabct = len(dynsymstrs) - 1
+
+            # if any of the other Dyns which are addresses come after this, don't parse past them
+            for dyntype in dt_rebase:
+                dyn = self.dyns.get(dyntype)
+                if dyn is None:
+                    continue
+
+                if dyn > symtabva:
+                    if dyn < symtabva + (self.dynsymtabct * symsz):
+                        # we have a new winner!
+                        delta = dyn - symtabva
+                        self.dynsymtabct = delta / symsz
+
         count = self.dynsymtabct
         symtabsz = count * symsz
 
