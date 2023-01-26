@@ -1,4 +1,3 @@
-import os
 import pickle
 import vivisect
 
@@ -11,12 +10,7 @@ def writeFileHeader(f):
 def saveWorkspaceChanges(vw, filename):
     elist = vw.exportWorkspaceChanges()
     if len(elist):
-        with open(filename, 'ab') as f:
-            if not os.path.getsize(filename):
-                writeFileHeader(f)
-
-            pickle.dump(elist, f, protocol=2)
-
+        vivEventsAppendFile(filename, elist)
 
 def saveWorkspace(vw, filename):
     events = vw.exportWorkspace()
@@ -25,6 +19,10 @@ def saveWorkspace(vw, filename):
 
 def vivEventsAppendFile(filename, events):
     with open(filename, 'ab') as f:
+        # if the file is empty, add the header
+        if f.tell() == 0:
+            writeFileHeader(f)
+
         pickle.dump(events, f, protocol=2)
 
 
