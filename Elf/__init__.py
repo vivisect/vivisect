@@ -322,19 +322,19 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _parseDynStrs(self):
         # setup STRTAB for string recovery:
-        dynstrtab = self.dyns.get(DT_STRTAB)
+        dynstrtabva = self.dyns.get(DT_STRTAB)
         strsz = self.dyns.get(DT_STRSZ)
-        if dynstrtab is None or strsz is None:
-            logger.info('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
+        if dynstrtabva is None or strsz is None:
+            logger.info('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtabva, strsz)
             return
 
         if self.dynstrtabmeta != (None, None):
             curtab = self.dynstrtabmeta[0]
             logger.warning('wtf?  multiple dynamic string tables?  old: 0x%x  new: 0x%x', curtab, rva)
 
-        strtabbytes = self.readAtRva(dynstrtab, strsz)
+        strtabbytes = self.readAtRva(dynstrtabva, strsz)
 
-        self.dynstrtabmeta = (dynstrtab, strsz)
+        self.dynstrtabmeta = (dynstrtabva, strsz)
         self.dynstrtab = strtabbytes.split(b'\0')
 
         # since our string table should certainly end in '\0', we'll have an empty string
@@ -921,7 +921,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             if soname is not None and soname != -1:
                 strsz = self.dyns.get(DT_STRSZ)
                 if soname < strsz:
-                    strtabbytes = self.readAtRva(dynstrtab, soname)
+                    dynstrtabva = self.dyns.get(DT_STRTAB)
+                    strtabbytes = self.readAtRva(dynstrtabva, soname)
                     dynsymstrs = strtabbytes.split(b'\0')
                     self.dynsymtabct = len(dynsymstrs) - 1
 
