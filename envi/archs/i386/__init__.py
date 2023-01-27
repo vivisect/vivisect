@@ -8,6 +8,11 @@ from envi.archs.i386.disasm import *
 
 import envi.archs.i386.opconst as opconst
 
+PLATMODS = {
+    'linux': 0x80,
+    'windows': 0x2e
+}
+
 class i386Module(envi.ArchitectureModule):
 
     def __init__(self):
@@ -23,7 +28,7 @@ class i386Module(envi.ArchitectureModule):
         # linux-x86 specific. it's a syscall (except in the case of exit...)
         if op.opcode == opconst.INS_TRAP:
             # if we're on linux-i386, this is how they do syscalls, otherwise, it's a trap
-            if op.getOperValue(0) == 0x80 and plat != 'linux':
+            if op.getOperValue(0) == PLATMODS.get(plat, None):
                 op.iflags |= opconst.IF_NOFALL
 
     def archGetRegCtx(self):
