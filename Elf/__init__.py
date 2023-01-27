@@ -918,9 +918,11 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
             # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
             soname = self.dyns.get(DT_SONAME)
-            if soname is not None and soname != -1 and soname < strsz:
-                dynsymstrs = self.strtabbytes[:soname].split(b'\0')
-                self.dynsymtabct = len(dynsymstrs) - 1
+            if soname is not None and soname != -1:
+                strsz = self.dyns.get(DT_STRSZ)
+                if soname < strsz:
+                    dynsymstrs = self.strtabbytes[:soname].split(b'\0')
+                    self.dynsymtabct = len(dynsymstrs) - 1
 
             # if any of the other Dyns which are addresses come after this, don't parse past them
             for dyntype in dt_rebase:
