@@ -921,7 +921,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             if soname is not None and soname != -1:
                 strsz = self.dyns.get(DT_STRSZ)
                 if soname < strsz:
-                    dynsymstrs = self.strtabbytes[:soname].split(b'\0')
+                    strtabbytes = self.readAtRva(dynstrtab, soname)
+                    dynsymstrs = strtabbytes.split(b'\0')
                     self.dynsymtabct = len(dynsymstrs) - 1
 
             # if any of the other Dyns which are addresses come after this, don't parse past them
