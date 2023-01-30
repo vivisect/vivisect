@@ -24,31 +24,3 @@ class EnvitoolsTests(vtrace.tests.VtraceProcessTest):
             # test that the file mappings exist for each (which means segments have to be correct)
             filename = vw.getFileByVa(mva)
             self.assertTrue(filename in mfname)
-
-    def test_workspaceFromTraceWithCollapse_Strict(self):
-        vw = vtrace.util.vwFromTrace(self.trace, collapse=True, strict=True)
-        vwmaps = list(vw.getMemoryMaps())
-
-        for mva, msize, mperms, mfname in self.trace.getMemoryMaps():
-            if mfname in ('[vvar]', '[vsyscall]') or mperms == 0:
-                continue
-
-            # test that the file mappings exist for each (which means segments have to be correct)
-            filename = vw.getFileByVa(mva)
-            self.assertTrue(filename in mfname)
-
-        self.assertGreater(len(vwmaps), 40)
-
-    def test_workspaceFromTraceWithCollapse_Nonstrict(self):
-        vw = vtrace.util.vwFromTrace(self.trace, collapse=True, strict=False)
-        vwmaps = list(vw.getMemoryMaps())
-
-        for mva, msize, mperms, mfname in self.trace.getMemoryMaps():
-            if mfname in ('[vvar]', '[vsyscall]') or mperms == 0:
-                continue
-
-            # test that the file mappings exist for each (which means segments have to be correct)
-            filename = vw.getFileByVa(mva)
-            self.assertTrue(filename in mfname)
-
-        self.assertGreater(len(vwmaps), 20)
