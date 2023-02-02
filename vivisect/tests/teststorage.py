@@ -149,4 +149,7 @@ class StorageTests(unittest.TestCase):
         # now load it.  if a VIV\0\0\0\0\0 was added incorrectly, this will blow up
         vw = vivisect.VivWorkspace()
         vw.loadWorkspace(basicfile.name)
+        vw.getLocation(0x6100), (0x6100, 3, 5, None)
+        vw.getLocation(0x6105), (0x6105, 3, 5, None)
+        vw.getLocation(0x610a), (0x610a, 3, 5, None)
 
