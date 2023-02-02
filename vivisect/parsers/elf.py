@@ -712,7 +712,15 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
     for secidx, r in elf.getRelocs():
         rtype = r.getType()
         rlva = r.r_offset
+        if elf.isRelocatable():
+            container = elf.getSectionByIndex(secidx)
+            if container.sh_flags & elf_lookup.SHF_INFO_LINK:
+                othr = elf.getSectionByIndex(container.sh_info)
+                if othr:
+                    rlva += othr.sh_addr
+
         rlva += baseoff
+
         try:
             # If it has a name, it's an externally resolved "import" entry,
             # otherwise, just a regular reloc
