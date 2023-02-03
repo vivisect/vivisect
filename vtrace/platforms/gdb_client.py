@@ -80,6 +80,11 @@ class GdbStubMixin(gdbstub.GdbClientStub):
         logger.info("attempting to pull register metadata from GDB Server")
         self._gdb_reg_fmt = self._processTargetMeta()
 
+        # Because we've updated the register format using the server config, 
+        # update the internal parsing formats and index maps
+        self._genRegPktFmt()
+        self._updateEnviGdbIdxMap()
+
     def setGdbArchitecture(self, gdbarch):
         envi.stealArchMethods(self, self._arch)
         print("ARCH: %r" % self.arch)
