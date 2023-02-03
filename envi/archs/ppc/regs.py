@@ -64,7 +64,7 @@ spr_regs = [('%#x' % x, 64) for x in range(1024)]
 for sprnum, (rname, rdesc, bitsz) in spr.sprs.items():
     spr_regs[sprnum] = (rname, bitsz)
 
-sprnames = {x:y.lower() for x,(y,z,b) in spr.sprs.items()}
+sprnames = {x:y for x,(y,z,b) in spr.sprs.items()}
 
 REG_OFFSET_SPR = len(ppc_regs)
 ppc_regs64.extend(spr_regs)

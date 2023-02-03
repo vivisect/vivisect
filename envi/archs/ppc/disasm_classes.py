@@ -221,21 +221,28 @@ class PpcPMRegOper(PpcRegOper):
         PpcRegOper.__init__(self, reg + REG_OFFSET_PMR, va=va, oflags=oflags)
 
 
+# XER (1), LR (8), and CTR (9) are in lower case to keep GDB happy, if the SPR 
+# number is one of those then capitalize the name for. All SPRs that have a 
+# number 10 or above should not have their name modified.
+SPR_UPPER_NAME = {
+    1: 'XER',
+    8: 'LR',
+    9: 'CTR',
+}
+
+
 class PpcSPRegOper(PpcRegOper):
     def __init__(self, reg, va=0, oflags=0):
         PpcRegOper.__init__(self, reg + REG_OFFSET_SPR, va=va, oflags=oflags)
-
-        # To ensure we don't have to execute special code to display this SPR 
-        # cache the register name. If this is a proper register name (i.e. it 
-        # doesn't start with "0x" it should be all uppercase. All unnamed SPRs 
-        # should be displayed in hex.
-        rname = ppc_regs[self.reg][0]
-        if rname.startswith('0x'):
-            self._sprname = rname
-        else:
-            self._sprname = rname.upper()
+        self._sprname = None
 
     def repr(self, op):
+        if self._sprname is None:
+            # Check if the SPR number indicates that the name needs to be 
+            # capitalized or left alone.
+            rname = ppc_regs[self.reg][0]
+            self._sprname = SPR_UPPER_NAME.get(self.reg, rname)
+
         return self._sprname
 
 

@@ -1,7 +1,10 @@
 sprs = {
+    # The capitalization of these register names are inconsistent to match what 
+    # GDB expects.
     1: ("xer", " Integer exception register.", 32),
     8: ("lr", " Link register", 64),
     9: ("ctr", " Count register", 64),
+
     22: ("DEC", " Decrementer", 32),
     26: ("SRR0", " Save/restore register 0", 64),
     27: ("SRR1", "Save/restore register 1", 32),
@@ -18,7 +21,7 @@ sprs = {
     # also VRSAVE
     256: ("USPRG0", "SPR general 0", 64),
 
-    # User accessible Read-Only aliases for SPRs 272-279 (except for USPRG0)
+    # User accessible Read-Only aliases for SPRs 273-279 (except for USPRG0)
     257: ("USPRG1", "SPR general 1", 64),
     258: ("USPRG2", "SPR general 2", 64),
     259: ("USPRG3", "SPR general 3", 64),
