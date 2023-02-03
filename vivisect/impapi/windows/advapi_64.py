@@ -1,6 +1,6 @@
 # APIs for Windows 64-bit advapi library.
 # Built as a delta from the 32-bit version.
-# Format:  retval, rettype, callconv, exactname, arglist(type, name)
+# Format:  rettype, retname, callconv, exactname, arglist(type, name)
 #          arglist type is one of ['int', 'void *']
 #          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 

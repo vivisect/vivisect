@@ -1,6 +1,6 @@
 # APIs for Windows 64-bit MVSC runtime library (msvcrt).
 # Built as a delta from the 32-bit version.
-# Format:  retval, rettype, callconv, exactname, arglist(type, name)
+# Format:  rettype, retname, callconv, exactname, arglist(type, name)
 #          arglist type is one of ['int', 'void *']
 #          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 
@@ -14,10 +14,10 @@ api_32_omits = [
 
 # Define any functions specific to 64-bit.
 api_64_adds = {
-    'msvcrt.??2@yapeax_k@z':( 'int', None, 'cdecl', 'msvcrt.??2@YAPEAX_K@Z', (('int', None),) ),
-    'msvcrt.??_u@yapeax_k@z':( 'int', None, 'cdecl', 'msvcrt.??_U@YAPEAX_K@Z', (('int', None),) ),
-    'msvcrt.??3@yaxpeax@z':( 'void', None, 'cdecl', 'msvcrt.??3@YAXPEAX@Z', (('void *', 'ptr'),) ),
-    'msvcrt.??_v@yaxpeax@z':( 'void', None, 'cdecl', 'msvcrt.??_V@YAXPEAX@Z', (('void *', 'ptr'),) ),
+    'msvcrt.??2@yapeax_k@z':( 'int', None, 'msx64call', 'msvcrt.??2@YAPEAX_K@Z', (('int', None),) ),
+    'msvcrt.??_u@yapeax_k@z':( 'int', None, 'msx64call', 'msvcrt.??_U@YAPEAX_K@Z', (('int', None),) ),
+    'msvcrt.??3@yaxpeax@z':( 'void', None, 'msx64call', 'msvcrt.??3@YAXPEAX@Z', (('void *', 'ptr'),) ),
+    'msvcrt.??_v@yaxpeax@z':( 'void', None, 'msx64call', 'msvcrt.??_V@YAXPEAX@Z', (('void *', 'ptr'),) ),
     }
 
 

@@ -3,7 +3,7 @@
 # are hard-coded into this module.  Each is expected to return
 # a dictionary named "api_defs_64".
 #
-# Format:  retval, rettype, callconv, exactname, arglist(type, name)
+# Format:  rettype, retname, callconv, exactname, arglist(type, name)
 #          where arglist type is one of ['int', 'void *']
 #                arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 

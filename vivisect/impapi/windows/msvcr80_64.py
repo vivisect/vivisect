@@ -1,6 +1,6 @@
 # APIs for Windows 64-bit MSVC 2005 runtime library (msvcr80).
 # Built as a delta from the 32-bit version.
-# Format:  retval, rettype, callconv, exactname, arglist(type, name)
+# Format:  rettype, retname, callconv, exactname, arglist(type, name)
 #          arglist type is one of ['int', 'void *']
 #          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 
@@ -14,10 +14,10 @@ api_32_omits = [
 
 # Define any functions specific to 64-bit.
 api_64_adds = {
-    'msvcr80.??2@yapeax_k@z':( 'int', None, 'cdecl', 'msvcr80.??2@YAPEAX_K@Z', (('int', None),) ),
-    'msvcr80.??_u@yapeax_k@z':( 'int', None, 'cdecl', 'msvcr80.??_U@YAPEAX_K@Z', (('int', None),) ),
-    'msvcr80.??3@yaxpeax@z':( 'void', None, 'cdecl', 'msvcr80.??3@YAXPEAX@Z', (('void *', 'ptr'),) ),
-    'msvcr80.??_v@yaxpeax@z':( 'void', None, 'cdecl', 'msvcr80.??_V@YAXPEAX@Z', (('void *', 'ptr'),) ),
+    'msvcr80.??2@yapeax_k@z':( 'int', None, 'msx64call', 'msvcr80.??2@YAPEAX_K@Z', (('int', None),) ),
+    'msvcr80.??_u@yapeax_k@z':( 'int', None, 'msx64call', 'msvcr80.??_U@YAPEAX_K@Z', (('int', None),) ),
+    'msvcr80.??3@yaxpeax@z':( 'void', None, 'msx64call', 'msvcr80.??3@YAXPEAX@Z', (('void *', 'ptr'),) ),
+    'msvcr80.??_v@yaxpeax@z':( 'void', None, 'msx64call', 'msvcr80.??_V@YAXPEAX@Z', (('void *', 'ptr'),) ),
     }
 
 

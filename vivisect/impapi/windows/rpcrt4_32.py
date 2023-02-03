@@ -1,5 +1,5 @@
 # APIs for Windows 32-bit rpcrt4 library
-# Format:  retval, rettype, callconv, exactname, arglist(type, name)
+# Format:  rettype, retname, callconv, exactname, arglist(type, name)
 #          arglist type is one of ['int', 'void *']
 #          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 

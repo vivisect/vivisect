@@ -1,5 +1,5 @@
 # APIs for Windows 32-bit libraries ws2_32, mswsock, wsock32, and wininet.
-# Format:  retval, rettype, callconv, exactname, arglist(type, name)
+# Format:  rettype, retname, callconv, exactname, arglist(type, name)
 #          arglist type is one of ['int', 'void *']
 #          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 

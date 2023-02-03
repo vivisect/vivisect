@@ -1,5 +1,5 @@
 # APIs for Windows 32-bit MSVC 7.1 runtime library (msvcr71).
-# Format:  retval, rettype, callconv, exactname, arglist(type, name)
+# Format:  rettype, retname, callconv, exactname, arglist(type, name)
 #          arglist type is one of ['int', 'void *']
 #          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 

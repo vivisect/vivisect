@@ -1,5 +1,5 @@
 # APIs for Windows 32-bit MSVC 2010 runtime library (msvcr100).
-# Format:  retval, rettype, callconv, exactname, arglist(type, name)
+# Format:  rettype, retname, callconv, exactname, arglist(type, name)
 #          arglist type is one of ['int', 'void *']
 #          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 #
