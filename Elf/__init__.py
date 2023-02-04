@@ -936,7 +936,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     if dyn < symtabva + (self.dynsymtabct * symsz):
                         # we have a new winner!
                         delta = dyn - symtabva
-                        self.dynsymtabct = delta / symsz
+                        self.dynsymtabct = delta // symsz
 
         count = self.dynsymtabct
         symtabsz = count * symsz
