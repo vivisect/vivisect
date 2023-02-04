@@ -912,7 +912,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             # calculate the Dynamic Symbol Table Size
             self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
             if not self.dynsymtabct:
-                # if we don't 
+                # if we haven't set up dynsymtabct, call _parseDynStrs and create one)
                 self._parseDynStrs()
                 self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
 
@@ -926,7 +926,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                     dynsymstrs = strtabbytes.split(b'\0')
                     self.dynsymtabct = len(dynsymstrs) - 1
 
-            # if any of the other Dyns which are addresses come after this, don't parse past them
+            # if any of the other Dyns (which are addresses) come after this, don't parse past them
             for dyntype in dt_rebase:
                 dyn = self.dyns.get(dyntype)
                 if dyn is None:
