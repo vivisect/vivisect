@@ -910,11 +910,11 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # calculate/reuse symbol count
         if not self.dynsymtabct:    # check if we've already got this value
             # calculate the Dynamic Symbol Table Size
-            self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
+            self.dynsymtabct = len(self.dynstrtab)
             if not self.dynsymtabct:
                 # if we haven't set up dynsymtabct, call _parseDynStrs and create one)
                 self._parseDynStrs()
-                self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
+                self.dynsymtabct = len(self.dynstrtab)
 
             # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
             soname = self.dyns.get(DT_SONAME)
