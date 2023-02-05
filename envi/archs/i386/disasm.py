@@ -129,6 +129,11 @@ iflag_lookup = {
     opconst.INS_OFLOW: envi.IF_NOFALL,
 }
 
+PLATMODS = {
+    'linux': 0x80,
+    'windows': 0x2e
+}
+
 sizenames = ["" for x in range(65)]
 sizenames[1] = "byte"
 sizenames[2] = "word"
@@ -913,7 +918,7 @@ class i386Disasm:
 
         return sizelist[mode]
 
-    def disasm(self, bytez, offset, va):
+    def disasm(self, bytez, offset, va, extra=None):
         # Stuff for opcode parsing
         tabdesc = all_tables[0] # A tuple (optable, shiftbits, mask byte, sub, max)
         startoff = offset # Use startoff as a size knob if needed
@@ -1087,6 +1092,13 @@ class i386Disasm:
             operands[1]._is_deref = False
 
         ret = i386Opcode(va, optype, mnem, all_prefixes, (offset-startoff)+operoffset, operands, iflags)
+
+        if ret.opcode == opconst.INS_TRAP and extra:
+            # if we're on linux-i386, this is how they do syscalls, otherwise, it's a trap
+            plat = extra.get('platform')
+            if plat:
+                if ret.getOperValue(0) != PLATMODS.get(plat, None):
+                    ret.iflags |= envi.IF_NOFALL
 
         return ret
 

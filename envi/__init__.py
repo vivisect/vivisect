@@ -161,15 +161,17 @@ class ArchitectureModule:
         """
         raise ArchNotImplemented("archGetRegCtx")
 
-    def archParseOpcode(self, bytez, offset=0, va=0):
+    def archParseOpcode(self, bytez, offset=0, va=0, extra=None):
         '''
         Parse an architecture specific Opcode object from the given bytes.
 
         offset  - Offset into bytes to begin opcode parsing
         va      - Virtual address of the instruction ( for rel calcs )
+        extra   - An optional dictionary of information to pass down to an
+                  archmod to provide additional context.
 
         Example:
-            a.archParseOpcode('\xeb\xfe', va=0x41414141)
+            a.archParseOpcode(b'\xeb\xfe', va=0x41414141, extra={'platform': 'windows'})
         '''
         raise ArchNotImplemented('archParseOpcode')
 
@@ -218,9 +220,6 @@ class ArchitectureModule:
         which can be helpful for ARM/Thumb.
         '''
         return tova, reftype, rflags
-
-    def archModifyOp(self, op, plat):
-        pass
 
     def archGetBadOps(self, byteslist=None):
         '''

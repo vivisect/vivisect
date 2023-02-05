@@ -1175,20 +1175,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 arch = loctup[L_TINFO]
 
         amod = self.imem_archs[(arch & envi.ARCH_MASK) >> 16]
+        # TODO: Consider reserving another key so architectures can pass down info specific to them
+        extra = {
+            'platform': self.getMeta('Platform')
+        }
 
         if not skipcache:
             key = (va, arch, b[off:off+16])
             op = self._op_cache.get(key, None)
             if not op:
-                op = amod.archParseOpcode(b, off, va)
-                amod.archModifyOp(op, self.getMeta('Platform'))
+                op = amod.archParseOpcode(b, off, va, extra=extra)
             self._op_cache[key] = op
             return op
 
-        op = amod.archParseOpcode(b, off, va)
-        # return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
-        amod.archModifyOp(op, self.getMeta('Platform'))
-        return op
+        return amod.archParseOpcode(b, off, va, extra=extra)
 
     def clearOpcache(self):
         '''

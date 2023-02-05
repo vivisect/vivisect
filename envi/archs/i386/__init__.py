@@ -24,13 +24,6 @@ class i386Module(envi.ArchitectureModule):
         self._regGrps.update({'general': ['eax', 'ecx', 'edx', 'ebx', 'esi', 'edi',
                                 'ebp', 'esp', 'eip'] })
 
-    def archModifyOp(self, op, plat):
-        # linux-x86 specific. it's a syscall (except in the case of exit...)
-        if op.opcode == opconst.INS_TRAP:
-            # if we're on linux-i386, this is how they do syscalls, otherwise, it's a trap
-            if op.getOperValue(0) == PLATMODS.get(plat, None):
-                op.iflags |= opconst.IF_NOFALL
-
     def archGetRegCtx(self):
         return i386RegisterContext()
 
@@ -46,8 +39,8 @@ class i386Module(envi.ArchitectureModule):
     def pointerString(self, va):
         return '0x%.8x' % va
 
-    def archParseOpcode(self, bytes, offset=0, va=0):
-        return self._arch_dis.disasm(bytes, offset, va)
+    def archParseOpcode(self, bytes, offset=0, va=0, extra=None):
+        return self._arch_dis.disasm(bytes, offset, va, extra=extra)
 
     def getEmulator(self):
         return IntelEmulator()
