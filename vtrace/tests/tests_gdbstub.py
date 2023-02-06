@@ -591,10 +591,10 @@ class TestGdbClientStub(unittest.TestCase):
         # directly from the shell.
         if self.client._gdb_servertype == 'qemu':
             # From shell it would be: 0x40007ffbe0
-            # From a subprocess spawned by python this is: 0x40007ffaa0
+            # From a subprocess spawned by python this is: 0x40007ffa60
             # (this can change slightly depending on the amount of memory 
             # consumed by the GDB stub class)
-            self.assertEqual(registers['rsp'], 0x40007ffaa0)
+            self.assertEqual(registers['rsp'], 0x40007ffa60)
 
             # CR0 registers only available over QEMU
             self.assertEqual(registers['cr0'], 0x80010001)
