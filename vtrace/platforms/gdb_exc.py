@@ -7,3 +7,6 @@ class GdbBreakException(Exception):
 
 class InvalidGdbPacketException(Exception):
     pass
+
+class GdbClientDetachedException(Exception):
+    pass

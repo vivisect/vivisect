@@ -9,6 +9,7 @@ import unittest
 import itertools
 import threading
 import subprocess
+from binascii import unhexlify
 
 import envi.bits as e_bits
 
@@ -20,6 +21,8 @@ import vtrace.platforms.gdb_reg_fmts as gdb_reg_fmts
 
 
 logger = logging.getLogger(__name__)
+import envi.common as ecmn
+ecmn.initLogging(logger, ecmn.MIRE)
 
 
 class TestEmuServer(gdbstub.GdbBaseEmuServer):
@@ -47,14 +50,14 @@ class TestServer(gdbstub.GdbServerStub):
     integration is complete, we shouldn't need this code.
     """
 
-    def __init__(self, arch, addr_size, big_endian, reg, port):
+    def __init__(self, arch, psize, big_endian, reg, port):
         """
         Constructor for the TestSever class.
 
         Args:
             arch (str): The architecture of the debug target.
 
-            addr_size (int): Pointer size of the debug target in bits.
+            psize (int): Pointer size of the debug target in bytes.
 
             big_endian (bool): True if the debug target uses big-endian
             notation.
@@ -68,7 +71,7 @@ class TestServer(gdbstub.GdbServerStub):
             Returns:
                 None
         """
-        gdbstub.GdbServerStub.__init__(self, arch, addr_size, big_endian,
+        gdbstub.GdbServerStub.__init__(self, arch, psize, big_endian,
                 reg, port)
 
         fmt32bit = e_bits.getFormat(4, big_endian)
@@ -106,6 +109,7 @@ class TestServer(gdbstub.GdbServerStub):
             None
         """
         self.targetAddr[addr] = val
+        return b'OK'
 
     def _serverWriteRegVal(self, reg_name, reg_val):
         """
@@ -120,6 +124,7 @@ class TestServer(gdbstub.GdbServerStub):
             None
         """
         self.targetRegs[reg_name] = reg_val
+        return b'OK'
 
     def _serverReadRegVal(self, reg_name):
         """
@@ -162,6 +167,13 @@ class TestServer(gdbstub.GdbServerStub):
         """
         return 'OK'
 
+    def _serverQSymbol(self, cmd_data):
+        # unhexlify the incoming command data
+        sname = unhexlify(cmd_data)
+
+    def _serverQCRC(self, cmd_data):
+        raise Exception('Server translation layer must implement this function')
+
 portadd = itertools.count()
 
 class TestGdbServerStub(unittest.TestCase):
@@ -187,7 +199,6 @@ class TestGdbServerStub(unittest.TestCase):
         self.port = 1235
         self.arch = None
         self.psize = None
-        self.addr_size = None
         self.bigend = None
 
         super(TestGdbServerStub, self).__init__(methodName=methodName)
@@ -215,20 +226,14 @@ class TestGdbServerStub(unittest.TestCase):
         emu.setProgramCounter(pc)
         self.arch = emu.vw.arch._arch_name
         self.psize = emu.getPointerSize()
-        self.addr_size = self.psize * 8
         self.bigend = emu.getEndian()
 
         # Create a GDB client instance
-        #self.client = gdbstub.GdbClientStub(self.arch, self.addr_size, self.bigend,
-        #        gdb_reg_fmts.QEMU_X86_64_REG, self.host, self.port,
-        #        'serverstub')
-
-        self.client = gdbclient.GdbStubMixin(self.arch, self.host, self.port, 'gdbserver',
-                self.psize, self.bigend)
+        self.client = gdbclient.GdbStubMixin(self.arch, self.host, self.port,
+                                             'serverstub', self.psize,
+                                             self.bigend)
 
         # Create a test server
-        #self.server = TestServer(self.arch, self.addr_size, self.bigend,
-        #        gdb_reg_fmts.QEMU_X86_64_REG, self.port)
         self.server = TestEmuServer(emu, port=self.port, find_port=False)
 
         # Start the server
@@ -354,6 +359,7 @@ class TestGdbServerStub(unittest.TestCase):
         expected = startpc + len(op)
         actual = self.server.emu.getProgramCounter()
         self.assertEqual(expected, actual)
+
 
 class TestGdbClientStub(unittest.TestCase):
     """
@@ -520,21 +526,24 @@ class TestGdbClientStub(unittest.TestCase):
         # Start the GDB server
         port = self.port + next(portadd)
 
+        gdbserver_path = shutil.which('gdbserver')
         qemu_path = shutil.which('qemu-x86_64-static')
         if qemu_path is not None:
             servertype = 'qemu'
             args = [qemu_path, '-g', str(port), self.test_binary]
+        elif gdbserver_path is not None:
+            servertype = 'gdbserver'
+            args = [gdbserver_path, ':%d' % port, self.test_binary]
         else:
             raise Exception("Unable to run GDB tests, install 'qemu-user-staic'")
 
         logger.info('starting server: %s', ' '.join(args))
         self.server_proc = subprocess.Popen(args)
-        logger.info('server available on port %d', port)
 
         time.sleep(1)
 
         # Create a GDB client instance
-        self.client = gdbstub.GdbClientStub('amd64', 64, False, None, self.host, port, servertype)
+        self.client = gdbclient.GdbStubMixin('amd64', 'localhost', port, servertype, 8, False)
 
         # Attach the client
         self.client.gdbAttach()
@@ -575,11 +584,26 @@ class TestGdbClientStub(unittest.TestCase):
         # TODO: We should probably check all registers in the future
         self.assertEqual(registers['rip'], 0x400a40)
         self.assertEqual(registers['fctrl'], 0x37f)
-        self.assertEqual(registers['rsp'], 0x40007ff7f0)    # yes, in QEMU, this is correct
 
+        # The stack value depends on if this is qemu or gdbserver. The memory 
+        # maps allocated to the server subprocess do change from those allocated 
+        # by the normal qemu and gdbserver processes if they had been started 
+        # directly from the shell.
         if self.client._gdb_servertype == 'qemu':
+            # From shell it would be: 0x40007ffbe0
+            # From a subprocess spawned by python this is: 0x40007ffa60
+            # (this can change slightly depending on the amount of memory 
+            # consumed by the GDB stub class)
+            self.assertEqual(registers['rsp'], 0x40007ffa60)
+
             # CR0 registers only available over QEMU
             self.assertEqual(registers['cr0'], 0x80010001)
+        else:
+            # From shell it would be: 0x7fffffffdbb0
+            # From a subprocess spawned by python this is: 0x7fffffffda60
+            # (this can change slightly depending on the amount of memory 
+            # consumed by the GDB stub class)
+            self.assertEqual(registers['rsp'], 0x7fffffffda60)
 
         self.assertEqual(registers['xmm15'], 0x0)
         self.assertEqual(registers['mxcsr'], 0x1f80)
@@ -604,7 +628,8 @@ class TestGdbClientStub(unittest.TestCase):
             # TODO: QEMU has some strange behaviors when writing to certain
             # registers (segfaults on code segment registers, ignoring others,
             # etc...). Only test r* and x* registers for now.
-            reg = random.choice(self.client._gdb_reg_fmt)
+            reg = random.choice(list(self.client._gdb_reg_fmt.items()))
+
             # NOTE: For QEMU targets vector (XMM, YMM) register reads and writes
             # are messed up, not testing the XMM/YMM registers for now
             #if (reg[0][0] == 'r') or ('xmm' in reg[0]):
@@ -614,9 +639,7 @@ class TestGdbClientStub(unittest.TestCase):
 
         # Gen a random value for each register based on the size of the
         # register
-        for r in choices:
-            reg_name = r[0]
-            reg_size = r[1]
+        for reg_name, (reg_size, _) in choices:
             reg_val = random.randint(0, 2 ** reg_size - 1)
             updates[reg_name] = reg_val
 
@@ -636,20 +659,64 @@ class TestGdbClientStub(unittest.TestCase):
         Returns:
             None
         """
-        addr = 0x40007ffff0
-        test_count = random.randint(1, 10)
+        # Should return empty, not supported by qemu or gdbserver
+        res = self.client.qXfer('memory-map', cmd=b'read')
+        self.assertEqual(res, b'')
 
-        while test_count > 0:
+        if self.client._gdb_servertype == 'qemu':
+            # QEMU plays some memory tricks, we can't find out the memory 
+            # regions through any standard GDB methods, and reading 
+            # /proc/<pid/maps does not accurately reflect the internal address 
+            # translation done by GDB. So make the address range to write to the 
+            # 0x10000 bytes below the stack pointer
+            rsp = self.client.gdbGetRegisterByName('rsp')
+            logger.debug('RSP = 0x%x', rsp)
+            mem_start = rsp - 0x10000
+            mem_end = rsp
+
+        else:
+            # gdbserver spawns a child process
+            cmd = ['pgrep', '-P', str(self.server_proc.pid)]
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            cpid = int(proc.stdout)
+
+            # Get the child process memory maps
+            cmd = ['cat', '/proc/%d/maps' % cpid]
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+
+            # print the maps out for debugging purposes (in case writes fail
+            print('GDB server (pid %d) memory maps (process pid %d):\n%s' %
+                  (self.server_proc.pid, cpid, proc.stdout))
+
+            # Get the current stack pointer so we know what address we can modify
+            for line in proc.stdout.split('\n'):
+                if line.endswith('[stack]') and ' rw-p ' in line:
+                    # First part of the output should be: START-END
+                    start, rest = line.split('-', 1)
+                    end = rest[:len(start)]
+
+                    mem_start = int(start, 16)
+                    mem_end = int(end, 16)
+
+                    logger.debug('Found stack: 0x%x - 0x%x', mem_start, mem_end)
+                    break
+
+        for i in range(16):
+            # Get a random address in the writable segment to write
+            addr = random.randrange(mem_start, mem_end)
+
             # Gen a random number of bytes to write
             write_size = random.randint(1, 8) # in bytes
 
             # Gen a random val to write that fits in the write size
-            expected = b''.join([b'%c' % random.randint(0, 256) for x in range (write_size)])
+            expected = os.getrandom(write_size)
+
+            logger.debug('Writing %d bytes to 0x%x: %s',
+                         write_size, addr, expected.hex())
 
             self.client.gdbWriteMem(addr, expected)
             actual = self.client.gdbReadMem(addr, write_size)
             self.assertEqual(expected, actual)
-            test_count -= 1
 
     def test_ReadMemory(self):
         """

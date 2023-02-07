@@ -12,8 +12,8 @@ import xml.etree.ElementTree as xmlET
 from vtrace.platforms.signals import *
 
 logger = logging.getLogger(__name__)
-import envi.common as ecmn
-ecmn.initLogging(logger, logging.DEBUG)
+#import envi.common as ecmn
+#ecmn.initLogging(logger, logging.DEBUG)
 
 exit_types = (b'X', b'W')
 
@@ -24,14 +24,9 @@ class GdbStubMixin(gdbstub.GdbClientStub):
     """
 
     def __init__(self, arch_name, host, port, server, psize=8, endian=False):
-        gdbstub.GdbClientStub.__init__(self, 
-                    arch_name,
-                    psize * 8, #TODO: pointer size in bits,
-                    endian,
-                    self._getRegFmt(arch_name, server), #TODO: reg formats,
-                    host,
-                    port,
-                    server)
+        gdbstub.GdbClientStub.__init__(self, arch_name, psize, endian,
+                                       self._getRegFmt(arch_name, server),
+                                       host, port, server)
 
         self.ctx = envi.getArchModule(arch_name).archGetRegCtx()
         self._rctx_pcindex = self.ctx._rctx_pcindex
@@ -47,9 +42,9 @@ class GdbStubMixin(gdbstub.GdbClientStub):
         This needs to be updatable after gdbAttach()
         """
         reg_fmt = None
-        if server == 'qemu_gdb':
+        if server == 'qemu':
             if arch == 'amd64':
-                reg_fmt = gdb_reg_fmts.GDB_QEMU_X86_64_REG
+                reg_fmt = gdb_reg_fmts.QEMU_X86_64_REG
             elif arch == 'ppc32':
                 reg_fmt = gdb_reg_fmts.QEMU_PPC64_REG
             else:
@@ -82,142 +77,27 @@ class GdbStubMixin(gdbstub.GdbClientStub):
     def _gdbJustAttached(self):
         '''
         '''
-        try:
-            logger.info("attempting to pull register metadata from GDB Server")
-            self._gdb_reg_fmt = self._processTargetMeta()
+        logger.info("attempting to pull register metadata from GDB Server")
+        self._gdb_reg_fmt = self._processTargetMeta()
 
-        except Exception as e:
-            logger.warning("Exception reading registers dynamically: %r", e)
+        # Because we've updated the register format using the server config, 
+        # update the internal parsing formats and index maps
+        self._genRegPktFmt()
+        self._updateEnviGdbIdxMap()
 
-    def _setGdbArchitecture(self, gdbarch):
-        '''
-        GdbStubMixin version.  Calls GdbStub's version
-        '''
-        self.setGdbArchitecture(gdbarch)  # powerpc:vle - style
-        envi.stealArchMethods(self, self._arch)   # self._arch should be updated in the prev call
+    def setGdbArchitecture(self, gdbarch):
+        envi.stealArchMethods(self, self._arch)
         print("ARCH: %r" % self.arch)
         self.ctx = self.arch.archGetRegCtx()
         self._rctx_pcindex = self.ctx._rctx_pcindex
         self._rctx_spindex = self.ctx._rctx_spindex
-
-    def _processTargetMeta(self):
-        '''
-        pull target.xml (and supporting xi resources) from target and generate
-        a register file from that (updates self._gdb_reg_fmt)
-        '''
-        outregs = []
-        localTypes = {}
-
-        # get target.xml
-        target = self._getAndParseTargetXml()
-
-        # parse target.xml
-        # extract target.xml data into list of tuples: (regname, bitsize, regindex)
-        nextridx = 0
-        for elem in target:
-            if elem.tag == 'architecture':
-                self._setGdbArchitecture(elem.text)
-
-            elif elem.tag == 'feature':
-                featurename = elem.get('name')
-                for featelem in elem:
-                    # this is where the "reg", "flags", and "vector" and other things are
-                    fattr = featelem.attrib
-                    if featelem.tag == 'reg':
-                        rname = fattr['name']
-                        rsz = int(fattr['bitsize'])
-                        ridx = int(fattr.get('regnum', str(nextridx)))
-                        # track, but continue after any regnum is set  ORDER COUNTS!
-                        nextridx = ridx + 1
-
-                        outregs.append((rname, rsz, ridx))
-
-                    elif featelem.tag == 'flags':
-                        pass
-                    elif featelem.tag == 'union':
-                        pass
-                    elif featelem.tag == 'vector':
-                        pass
-
-        self._gdb_reg_fmt = outregs
-        return outregs
-
-    def _getAndParseTargetXml(self):
-        '''In [17]: tgtxmlqemux86                                                                                                          
-        Out[17]: b'<?xml version="1.0"?><!DOCTYPE target SYSTEM "gdb-target.dtd"><target><architecture>i386:x86-64</architecture><xi:include href="i386-64bit.xml"/></target>'
-
-        In [18]: off=0; start=tgtxmlqemux86.find(b'<xi:include', off); stop = tgtxmlqemux86.find(b'/>', start); print(tgtxmlqemux86[star
-            ...: t:stop])                                                                                                               
-        b'<xi:include href="i386-64bit.xml"'
-
-        In [19]: off=0; start=tgtxmlqemux86.find(b'<xi:include', off); stop = tgtxmlqemux86.find(b'/>', start); print(tgtxmlqemux86[star
-            ...: t:stop])                                                                                                               
-        b'<xi:include href="i386-64bit.xml"'
-
-        In [20]: off=0; start=tgtxmlqemux86.find(b'<xi:include', off); stop = tgtxmlqemux86.find(b'/>', start); field = tgtxmlqemux86[st
-            ...: art:stop+2]                                                                                                            
-
-        In [21]: off=0; start=tgtxmlqemux86.find(b'<xi:include', off); stop = tgtxmlqemux86.find(b'/>', start); field = tgtxmlqemux86[st
-            ...: art:stop+2]; field                                                                                                     
-        Out[21]: b'<xi:include href="i386-64bit.xml"/>'
-
-        In [22]: tgtx86 = tgtxmlqemux86[:start] + tgtxmlqemux86xi + tgtxmlqemux86[stop+2:]                                              
-
-        In [23]: ET.fromstring(tgtx86)                                                                                                  
-        Traceback (most recent call last):
-        ParseError: XML or text declaration not at start of entity: line 1, column 110
-        In [26]: tgtx86[110:200]
-        Out[26]: b'<?xml version="1.0"?>\n<!-- Copyright (C) 2010-2017 Free Software Foundation, Inc.\n\n     Co'
-
-        In [115]: feature0 = list(tgtx)[1]
-
-        In [126]: list(feature0)[0]
-        Out[126]: <Element 'reg' at 0x7f99fabb7310>
-
-        In [127]: tmpreg = list(feature1)[0]
-
-        In [128]: tmpreg.attrib
-        Out[128]: {'bitsize': '32', 'name': 'DEC', 'regnum': '122'}
-
-        In [129]: feature0
-        Out[129]: <Element 'feature' at 0x7f9a18e9bcc0>
-
-        In [130]: feature0.attrib
-        Out[130]: {'name': 'org.gnu.gdb.power.core'}
-
-        In [134]: feature0.attrib['name']
-        Out[134]: 'org.gnu.gdb.power.core'
-
-        '''
-        # start off with the default
-        targetXml = self.gdbGetFeatureFile(b'target.xml')
-
-        # make the XI tags actually parse correctly. and parse
-        targetXml = targetXml.replace(b"<xi:include ", b"<xi ")
-        target = xmlET.XML(targetXml)
-
-        ## tack the XI's into the target XML file
-        # iterate through children looking for XI's.  currently we only support XI at the top level
-        # any tags that are 'xi' will be replaced in the DOM by their linked feature file
-        for eidx, elem in enumerate(target):
-            if elem.tag != 'xi':
-                continue
-
-            newxmlurl = elem.attrib.get('href')
-            newxml = self.gdbGetFeatureFile(newxmlurl.encode())
-            new = xmlET.XML(newxml)
-            # swap out the XI element with the new Element
-            target[eidx] = new
-
-        return target
-
 
     def platformGetRegCtx(self, tid):
         """
         Get all registers from target
         """
         rvals = self.gdbGetRegisters()
-        
+
         for reg_name in rvals.keys():
             reg_val = rvals[reg_name]
             # The list of registers known by Vtrace and the list of registers 
@@ -268,7 +148,7 @@ class GdbStubMixin(gdbstub.GdbClientStub):
         self.stepping = True
         self.gdbStepi(processResp=False)
 
-    def platformAttach(self, pid):
+    def platformAttach(self):
         """
         """
         self.gdbAttach()
@@ -441,14 +321,9 @@ class GdbStubMixin(gdbstub.GdbClientStub):
         # for now... perhaps we'll use this later to automatically update from the target....
         pass
 
-    def _gdbSetArch(self, arch):
-        reginfo
-
     def _gdbLoadLibraries(self):
         if self._gdb_filemagic:
             self._findLibraryMaps(self._gdb_filemagic, always=True)
-
-
 
 
 class GdbStubTrace(
@@ -465,7 +340,7 @@ class GdbStubTrace(
 
 if __name__ == '__main__':
     gs = GdbStubTrace('amd64', 'localhost', 1234, 'gdbserver')
-    gs.platformAttach(1)
+    gs.platformAttach()
     #ctx = gs.platformGetRegCtx(1)
     #gs.platformSetRegCtx(1, ctx)
     print("Before: %d" % gs.platformReadMemory(0xb0755555550000, 4))

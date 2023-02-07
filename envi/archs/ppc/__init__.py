@@ -98,12 +98,12 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
 
-        groups['general'] = regs_general  # from regs.py
-        groups['gdb_power_core'] = regs_core  # from regs.py
-        groups['gdb_power_altivec'] = regs_altivec  # from regs.py
-        groups['gdb_power_fpu'] = regs_fpu  # from regs.py
-        groups['gdb_power_spe'] = regs_spe  # from regs.py
-        groups['gdb_power_spr'] = regs_spr  # from regs.py
+        groups['general'] = regs_general
+        groups['altivec'] = regs_altivec
+        groups['fpu'] = regs_fpu
+        groups['spe'] = regs_spe
+        groups['spr'] = regs_spr
+        groups['vsx'] = regs_vsx
 
         return groups
 

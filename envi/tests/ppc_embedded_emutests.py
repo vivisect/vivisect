@@ -530,11 +530,11 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x0000000000000000),
-                ('ACC', 0xacacacacacacacac),
+                ('acc', 0xacacacacacacacac),
             ),
             'tests': (
                 ('r1', 0x0000000000000000),
-                ('ACC', 0x0000000000000000),
+                ('acc', 0x0000000000000000),
             )
         },
     ],
@@ -543,11 +543,11 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1111111122222222),
-                ('ACC', 0x333333337fffffff),
+                ('acc', 0x333333337fffffff),
             ),
             'tests': (
                 ('r1', 0x44444444a2222221),
-                ('ACC', 0x44444444a2222221),
+                ('acc', 0x44444444a2222221),
             )
         },
     ],
@@ -556,11 +556,11 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1111111122222222),
-                ('ACC', 0x333333337fffffff),
+                ('acc', 0x333333337fffffff),
             ),
             'tests': (
                 ('r1', 0x444444447fffffff),
-                ('ACC', 0x444444447fffffff),
+                ('acc', 0x444444447fffffff),
             )
         },
     ],
@@ -569,11 +569,11 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1111111122222222),
-                ('ACC', 0x33333333ffffffff),
+                ('acc', 0x33333333ffffffff),
             ),
             'tests': (
                 ('r1', 0x4444444422222221),
-                ('ACC', 0x4444444422222221),
+                ('acc', 0x4444444422222221),
             )
         },
     ],
@@ -582,11 +582,11 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1111111122222222),
-                ('ACC', 0x33333333ffffffff),
+                ('acc', 0x33333333ffffffff),
             ),
             'tests': (
                 ('r1', 0x44444444ffffffff),
-                ('ACC', 0x44444444ffffffff),
+                ('acc', 0x44444444ffffffff),
             )
         },
     ],
@@ -596,11 +596,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0x30000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0x10),
-                ('ACC', 0x10),
+                ('acc', 0x10),
             )
         },
         {
@@ -608,11 +608,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0x0),
-                ('ACC', 0x0),
+                ('acc', 0x0),
             )
         },
         {
@@ -620,11 +620,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x40000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0xfffffffffffffffc),
-                ('ACC', 0xfffffffffffffffc),
+                ('acc', 0xfffffffffffffffc),
             )
         },
         {
@@ -632,11 +632,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x80000000),
                 ('r3', 0x7fff0000),
-                ('ACC', 0x1),
+                ('acc', 0x1),
             ),
             'tests': (
                 ('r1', 0xffffffff80010001),
-                ('ACC', 0xffffffff80010001),
+                ('acc', 0xffffffff80010001),
             )
         },
     ],
@@ -646,11 +646,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0x30000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0xfffffffffffffff8),
-                ('ACC', 0xfffffffffffffff8),
+                ('acc', 0xfffffffffffffff8),
             )
         },
         {
@@ -658,11 +658,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0x8),
-                ('ACC', 0x8),
+                ('acc', 0x8),
             )
         },
         {
@@ -670,11 +670,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x40000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0xc),
-                ('ACC', 0xc),
+                ('acc', 0xc),
             )
         },
         {
@@ -682,11 +682,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x80000000),
                 ('r3', 0x7fff0000),
-                ('ACC', 0x1),
+                ('acc', 0x1),
             ),
             'tests': (
                 ('r1', 0x7fff0001),
-                ('ACC', 0x7fff0001),
+                ('acc', 0x7fff0001),
             )
         },
     ],
@@ -696,11 +696,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0x30000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0xa),
-                ('ACC', 0xa),
+                ('acc', 0xa),
             )
         },
         {
@@ -708,11 +708,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0x2),
-                ('ACC', 0x2),
+                ('acc', 0x2),
             )
         },
         {
@@ -720,11 +720,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x40000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0x0),
-                ('ACC', 0x0),
+                ('acc', 0x0),
             )
         },
         {
@@ -732,11 +732,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x80000000),
                 ('r3', 0x7fff0000),
-                ('ACC', 0x1),
+                ('acc', 0x1),
             ),
             'tests': (
                 ('r1', 0xffffffffc0008001),
-                ('ACC', 0xffffffffc0008001),
+                ('acc', 0xffffffffc0008001),
             )
         },
     ],
@@ -746,11 +746,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0x30000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0xfffffffffffffffe),
-                ('ACC', 0xfffffffffffffffe),
+                ('acc', 0xfffffffffffffffe),
             )
         },
         {
@@ -758,11 +758,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0x6),
-                ('ACC', 0x6),
+                ('acc', 0x6),
             )
         },
         {
@@ -770,11 +770,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x40000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0x8),
-                ('ACC', 0x8),
+                ('acc', 0x8),
             )
         },
         {
@@ -782,11 +782,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x80000000),
                 ('r3', 0x7fff0000),
-                ('ACC', 0x1),
+                ('acc', 0x1),
             ),
             'tests': (
                 ('r1', 0x3fff8001),
-                ('ACC', 0x3fff8001),
+                ('acc', 0x3fff8001),
             )
         },
     ],
@@ -796,11 +796,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0x30000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0xa),
-                ('ACC', 0xa),
+                ('acc', 0xa),
             )
         },
         {
@@ -808,11 +808,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0x20002),
-                ('ACC', 0x20002),
+                ('acc', 0x20002),
             )
         },
         {
@@ -820,11 +820,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x40000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0x40000),
-                ('ACC', 0x40000),
+                ('acc', 0x40000),
             )
         },
         {
@@ -832,11 +832,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x80000000),
                 ('r3', 0x7fff0000),
-                ('ACC', 0x1),
+                ('acc', 0x1),
             ),
             'tests': (
                 ('r1', 0x3fff8001),
-                ('ACC', 0x3fff8001),
+                ('acc', 0x3fff8001),
             )
         },
     ],
@@ -846,11 +846,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0x30000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0xfffffffffffffffe),
-                ('ACC', 0xfffffffffffffffe),
+                ('acc', 0xfffffffffffffffe),
             )
         },
         {
@@ -858,11 +858,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x20000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0xfffffffffffe0006),
-                ('ACC', 0xfffffffffffe0006),
+                ('acc', 0xfffffffffffe0006),
             )
         },
         {
@@ -870,11 +870,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x40000),
                 ('r3', 0xffff0000),
-                ('ACC', 0x4),
+                ('acc', 0x4),
             ),
             'tests': (
                 ('r1', 0xfffffffffffc0008),
-                ('ACC', 0xfffffffffffc0008),
+                ('acc', 0xfffffffffffc0008),
             )
         },
         {
@@ -882,11 +882,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x80000000),
                 ('r3', 0x7fff0000),
-                ('ACC', 0x1),
+                ('acc', 0x1),
             ),
             'tests': (
                 ('r1', 0xffffffffc0008001),
-                ('ACC', 0xffffffffc0008001),
+                ('acc', 0xffffffffc0008001),
             )
         },
     ],
@@ -896,11 +896,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xa0000000c),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -908,11 +908,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffefffffffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -920,11 +920,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffff8fffffff8),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -932,11 +932,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8001000080010000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -946,11 +946,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xa0000000c),
-                ('ACC', 0xa0000000c),
+                ('acc', 0xa0000000c),
             )
         },
         {
@@ -958,11 +958,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffefffffffc),
-                ('ACC', 0xfffffffefffffffc),
+                ('acc', 0xfffffffefffffffc),
             )
         },
         {
@@ -970,11 +970,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffff8fffffff8),
-                ('ACC', 0xfffffff8fffffff8),
+                ('acc', 0xfffffff8fffffff8),
             )
         },
         {
@@ -982,11 +982,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8001000080010000),
-                ('ACC', 0x8001000080010000),
+                ('acc', 0x8001000080010000),
             )
         },
     ],
@@ -996,11 +996,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xe00000010),
-                ('ACC', 0xe00000010),
+                ('acc', 0xe00000010),
             )
         },
         {
@@ -1008,11 +1008,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x200000000),
-                ('ACC', 0x200000000),
+                ('acc', 0x200000000),
             )
         },
         {
@@ -1020,11 +1020,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffcfffffffc),
-                ('ACC', 0xfffffffcfffffffc),
+                ('acc', 0xfffffffcfffffffc),
             )
         },
         {
@@ -1032,11 +1032,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8001000180010001),
-                ('ACC', 0x8001000180010001),
+                ('acc', 0x8001000180010001),
             )
         },
     ],
@@ -1046,11 +1046,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffafffffff8),
-                ('ACC', 0xfffffffafffffff8),
+                ('acc', 0xfffffffafffffff8),
             )
         },
         {
@@ -1058,11 +1058,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x600000008),
-                ('ACC', 0x600000008),
+                ('acc', 0x600000008),
             )
         },
         {
@@ -1070,11 +1070,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xc0000000c),
-                ('ACC', 0xc0000000c),
+                ('acc', 0xc0000000c),
             )
         },
         {
@@ -1082,11 +1082,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x7fff00017fff0001),
-                ('ACC', 0x7fff00017fff0001),
+                ('acc', 0x7fff00017fff0001),
             )
         },
     ],
@@ -1096,11 +1096,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x500000006),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -1108,11 +1108,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffffffffffe),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -1120,11 +1120,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffcfffffffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -1132,11 +1132,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008000c0008000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -1146,11 +1146,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x500000006),
-                ('ACC', 0x500000006),
+                ('acc', 0x500000006),
             )
         },
         {
@@ -1158,11 +1158,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffffffffffe),
-                ('ACC', 0xfffffffffffffffe),
+                ('acc', 0xfffffffffffffffe),
             )
         },
         {
@@ -1170,11 +1170,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffcfffffffc),
-                ('ACC', 0xfffffffcfffffffc),
+                ('acc', 0xfffffffcfffffffc),
             )
         },
         {
@@ -1182,11 +1182,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008000c0008000),
-                ('ACC', 0xc0008000c0008000),
+                ('acc', 0xc0008000c0008000),
             )
         },
     ],
@@ -1196,11 +1196,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x90000000a),
-                ('ACC', 0x90000000a),
+                ('acc', 0x90000000a),
             )
         },
         {
@@ -1208,11 +1208,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x300000002),
-                ('ACC', 0x300000002),
+                ('acc', 0x300000002),
             )
         },
         {
@@ -1220,11 +1220,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x0),
-                ('ACC', 0x0),
+                ('acc', 0x0),
             )
         },
         {
@@ -1232,11 +1232,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008001c0008001),
-                ('ACC', 0xc0008001c0008001),
+                ('acc', 0xc0008001c0008001),
             )
         },
     ],
@@ -1246,11 +1246,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffffffffffe),
-                ('ACC', 0xfffffffffffffffe),
+                ('acc', 0xfffffffffffffffe),
             )
         },
         {
@@ -1258,11 +1258,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x500000006),
-                ('ACC', 0x500000006),
+                ('acc', 0x500000006),
             )
         },
         {
@@ -1270,11 +1270,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x800000008),
-                ('ACC', 0x800000008),
+                ('acc', 0x800000008),
             )
         },
         {
@@ -1282,11 +1282,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fff80013fff8001),
-                ('ACC', 0x3fff80013fff8001),
+                ('acc', 0x3fff80013fff8001),
             )
         },
     ],
@@ -1296,11 +1296,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x500000006),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -1308,11 +1308,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffff0001fffe),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -1320,11 +1320,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fffc0003fffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -1332,11 +1332,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fff80003fff8000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -1346,11 +1346,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x500000006),
-                ('ACC', 0x500000006),
+                ('acc', 0x500000006),
             )
         },
         {
@@ -1358,11 +1358,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffff0001fffe),
-                ('ACC', 0xffff0001fffe),
+                ('acc', 0xffff0001fffe),
             )
         },
         {
@@ -1370,11 +1370,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fffc0003fffc),
-                ('ACC', 0x3fffc0003fffc),
+                ('acc', 0x3fffc0003fffc),
             )
         },
         {
@@ -1382,11 +1382,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fff80003fff8000),
-                ('ACC', 0x3fff80003fff8000),
+                ('acc', 0x3fff80003fff8000),
             )
         },
     ],
@@ -1396,11 +1396,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x90000000a),
-                ('ACC', 0x90000000a),
+                ('acc', 0x90000000a),
             )
         },
         {
@@ -1408,11 +1408,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x1000300020002),
-                ('ACC', 0x1000300020002),
+                ('acc', 0x1000300020002),
             )
         },
         {
@@ -1420,11 +1420,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x4000000040000),
-                ('ACC', 0x4000000040000),
+                ('acc', 0x4000000040000),
             )
         },
         {
@@ -1432,11 +1432,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fff80013fff8001),
-                ('ACC', 0x3fff80013fff8001),
+                ('acc', 0x3fff80013fff8001),
             )
         },
     ],
@@ -1446,11 +1446,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffffffffffe),
-                ('ACC', 0xfffffffffffffffe),
+                ('acc', 0xfffffffffffffffe),
             )
         },
         {
@@ -1458,11 +1458,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffff0005fffe0006),
-                ('ACC', 0xffff0005fffe0006),
+                ('acc', 0xffff0005fffe0006),
             )
         },
         {
@@ -1470,11 +1470,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffc0008fffc0008),
-                ('ACC', 0xfffc0008fffc0008),
+                ('acc', 0xfffc0008fffc0008),
             )
         },
         {
@@ -1482,11 +1482,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008001c0008001),
-                ('ACC', 0xc0008001c0008001),
+                ('acc', 0xc0008001c0008001),
             )
         },
     ],
@@ -1496,11 +1496,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x40000003c),
-                ('ACC', 0x40000003c),
+                ('acc', 0x40000003c),
             )
         },
         {
@@ -1508,11 +1508,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fffffffc),
-                ('ACC', 0x3fffffffc),
+                ('acc', 0x3fffffffc),
             )
         },
         {
@@ -1520,11 +1520,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fffffffc),
-                ('ACC', 0x3fffffffc),
+                ('acc', 0x3fffffffc),
             )
         },
         {
@@ -1532,11 +1532,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x80010001),
-                ('ACC', 0x80010001),
+                ('acc', 0x80010001),
             )
         },
     ],
@@ -1546,11 +1546,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3ffffffcc),
-                ('ACC', 0x3ffffffcc),
+                ('acc', 0x3ffffffcc),
             )
         },
         {
@@ -1558,11 +1558,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x40000000c),
-                ('ACC', 0x40000000c),
+                ('acc', 0x40000000c),
             )
         },
         {
@@ -1570,11 +1570,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x40000000c),
-                ('ACC', 0x40000000c),
+                ('acc', 0x40000000c),
             )
         },
         {
@@ -1582,11 +1582,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x17fff0001),
-                ('ACC', 0x17fff0001),
+                ('acc', 0x17fff0001),
             )
         },
     ],
@@ -1596,11 +1596,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x400000020),
-                ('ACC', 0x400000020),
+                ('acc', 0x400000020),
             )
         },
         {
@@ -1608,11 +1608,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x400000000),
-                ('ACC', 0x400000000),
+                ('acc', 0x400000000),
             )
         },
         {
@@ -1620,11 +1620,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x400000000),
-                ('ACC', 0x400000000),
+                ('acc', 0x400000000),
             )
         },
         {
@@ -1632,11 +1632,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008001),
-                ('ACC', 0xc0008001),
+                ('acc', 0xc0008001),
             )
         },
     ],
@@ -1646,11 +1646,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3ffffffe8),
-                ('ACC', 0x3ffffffe8),
+                ('acc', 0x3ffffffe8),
             )
         },
         {
@@ -1658,11 +1658,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x400000008),
-                ('ACC', 0x400000008),
+                ('acc', 0x400000008),
             )
         },
         {
@@ -1670,11 +1670,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x400000008),
-                ('ACC', 0x400000008),
+                ('acc', 0x400000008),
             )
         },
         {
@@ -1682,11 +1682,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x13fff8001),
-                ('ACC', 0x13fff8001),
+                ('acc', 0x13fff8001),
             )
         },
     ],
@@ -1696,11 +1696,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x400000020),
-                ('ACC', 0x400000020),
+                ('acc', 0x400000020),
             )
         },
         {
@@ -1708,11 +1708,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x400040000),
-                ('ACC', 0x400040000),
+                ('acc', 0x400040000),
             )
         },
         {
@@ -1720,11 +1720,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x400040000),
-                ('ACC', 0x400040000),
+                ('acc', 0x400040000),
             )
         },
         {
@@ -1732,11 +1732,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x13fff8001),
-                ('ACC', 0x13fff8001),
+                ('acc', 0x13fff8001),
             )
         },
     ],
@@ -1746,11 +1746,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3ffffffe8),
-                ('ACC', 0x3ffffffe8),
+                ('acc', 0x3ffffffe8),
             )
         },
         {
@@ -1758,11 +1758,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fffc0008),
-                ('ACC', 0x3fffc0008),
+                ('acc', 0x3fffc0008),
             )
         },
         {
@@ -1770,11 +1770,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fffc0008),
-                ('ACC', 0x3fffc0008),
+                ('acc', 0x3fffc0008),
             )
         },
         {
@@ -1782,11 +1782,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008001),
-                ('ACC', 0xc0008001),
+                ('acc', 0xc0008001),
             )
         },
     ],
@@ -1796,11 +1796,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x2400000038),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -1808,11 +1808,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffafffffff8),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -1820,11 +1820,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffff8fffffff8),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -1832,11 +1832,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8001000080010000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -1846,11 +1846,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x2400000038),
-                ('ACC', 0x2400000038),
+                ('acc', 0x2400000038),
             )
         },
         {
@@ -1858,11 +1858,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffafffffff8),
-                ('ACC', 0xfffffffafffffff8),
+                ('acc', 0xfffffffafffffff8),
             )
         },
         {
@@ -1870,11 +1870,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffff8fffffff8),
-                ('ACC', 0xfffffff8fffffff8),
+                ('acc', 0xfffffff8fffffff8),
             )
         },
         {
@@ -1882,11 +1882,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8001000080010000),
-                ('ACC', 0x8001000080010000),
+                ('acc', 0x8001000080010000),
             )
         },
     ],
@@ -1896,11 +1896,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x280000003c),
-                ('ACC', 0x280000003c),
+                ('acc', 0x280000003c),
             )
         },
         {
@@ -1908,11 +1908,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffefffffffc),
-                ('ACC', 0xfffffffefffffffc),
+                ('acc', 0xfffffffefffffffc),
             )
         },
         {
@@ -1920,11 +1920,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffcfffffffc),
-                ('ACC', 0xfffffffcfffffffc),
+                ('acc', 0xfffffffcfffffffc),
             )
         },
         {
@@ -1932,11 +1932,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8001000180010001),
-                ('ACC', 0x8001000180010001),
+                ('acc', 0x8001000180010001),
             )
         },
     ],
@@ -1946,11 +1946,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffffffe0ffffffcc),
-                ('ACC', 0xffffffe0ffffffcc),
+                ('acc', 0xffffffe0ffffffcc),
             )
         },
         {
@@ -1958,11 +1958,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xa0000000c),
-                ('ACC', 0xa0000000c),
+                ('acc', 0xa0000000c),
             )
         },
         {
@@ -1970,11 +1970,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xc0000000c),
-                ('ACC', 0xc0000000c),
+                ('acc', 0xc0000000c),
             )
         },
         {
@@ -1982,11 +1982,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x7fff00017fff0001),
-                ('ACC', 0x7fff00017fff0001),
+                ('acc', 0x7fff00017fff0001),
             )
         },
     ],
@@ -1996,11 +1996,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x120000001c),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2008,11 +2008,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffdfffffffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2020,11 +2020,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffcfffffffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2032,11 +2032,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008000c0008000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -2046,11 +2046,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x120000001c),
-                ('ACC', 0x120000001c),
+                ('acc', 0x120000001c),
             )
         },
         {
@@ -2058,11 +2058,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffdfffffffc),
-                ('ACC', 0xfffffffdfffffffc),
+                ('acc', 0xfffffffdfffffffc),
             )
         },
         {
@@ -2070,11 +2070,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffcfffffffc),
-                ('ACC', 0xfffffffcfffffffc),
+                ('acc', 0xfffffffcfffffffc),
             )
         },
         {
@@ -2082,11 +2082,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008000c0008000),
-                ('ACC', 0xc0008000c0008000),
+                ('acc', 0xc0008000c0008000),
             )
         },
     ],
@@ -2096,11 +2096,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x1600000020),
-                ('ACC', 0x1600000020),
+                ('acc', 0x1600000020),
             )
         },
         {
@@ -2108,11 +2108,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x100000000),
-                ('ACC', 0x100000000),
+                ('acc', 0x100000000),
             )
         },
         {
@@ -2120,11 +2120,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x0),
-                ('ACC', 0x0),
+                ('acc', 0x0),
             )
         },
         {
@@ -2132,11 +2132,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008001c0008001),
-                ('ACC', 0xc0008001c0008001),
+                ('acc', 0xc0008001c0008001),
             )
         },
     ],
@@ -2146,11 +2146,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffff2ffffffe8),
-                ('ACC', 0xfffffff2ffffffe8),
+                ('acc', 0xfffffff2ffffffe8),
             )
         },
         {
@@ -2158,11 +2158,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x700000008),
-                ('ACC', 0x700000008),
+                ('acc', 0x700000008),
             )
         },
         {
@@ -2170,11 +2170,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x800000008),
-                ('ACC', 0x800000008),
+                ('acc', 0x800000008),
             )
         },
         {
@@ -2182,11 +2182,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fff80013fff8001),
-                ('ACC', 0x3fff80013fff8001),
+                ('acc', 0x3fff80013fff8001),
             )
         },
     ],
@@ -2196,11 +2196,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x120000001c),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2208,11 +2208,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x2fffd0003fffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2220,11 +2220,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fffc0003fffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2232,11 +2232,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fff80003fff8000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -2246,11 +2246,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x120000001c),
-                ('ACC', 0x120000001c),
+                ('acc', 0x120000001c),
             )
         },
         {
@@ -2258,11 +2258,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x2fffd0003fffc),
-                ('ACC', 0x2fffd0003fffc),
+                ('acc', 0x2fffd0003fffc),
             )
         },
         {
@@ -2270,11 +2270,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fffc0003fffc),
-                ('ACC', 0x3fffc0003fffc),
+                ('acc', 0x3fffc0003fffc),
             )
         },
         {
@@ -2282,11 +2282,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fff80003fff8000),
-                ('ACC', 0x3fff80003fff8000),
+                ('acc', 0x3fff80003fff8000),
             )
         },
     ],
@@ -2296,11 +2296,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x1600000020),
-                ('ACC', 0x1600000020),
+                ('acc', 0x1600000020),
             )
         },
         {
@@ -2308,11 +2308,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3000100040000),
-                ('ACC', 0x3000100040000),
+                ('acc', 0x3000100040000),
             )
         },
         {
@@ -2320,11 +2320,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x4000000040000),
-                ('ACC', 0x4000000040000),
+                ('acc', 0x4000000040000),
             )
         },
         {
@@ -2332,11 +2332,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fff80013fff8001),
-                ('ACC', 0x3fff80013fff8001),
+                ('acc', 0x3fff80013fff8001),
             )
         },
     ],
@@ -2346,11 +2346,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffff2ffffffe8),
-                ('ACC', 0xfffffff2ffffffe8),
+                ('acc', 0xfffffff2ffffffe8),
             )
         },
         {
@@ -2358,11 +2358,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffd0007fffc0008),
-                ('ACC', 0xfffd0007fffc0008),
+                ('acc', 0xfffd0007fffc0008),
             )
         },
         {
@@ -2370,11 +2370,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffc0008fffc0008),
-                ('ACC', 0xfffc0008fffc0008),
+                ('acc', 0xfffc0008fffc0008),
             )
         },
         {
@@ -2382,11 +2382,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x800000008000),
                 ('r3', 0x7fff00007fff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0008001c0008001),
-                ('ACC', 0xc0008001c0008001),
+                ('acc', 0xc0008001c0008001),
             )
         },
     ],
@@ -2396,11 +2396,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xa0000000c),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2408,11 +2408,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x200000004),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2420,11 +2420,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x700000007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2432,11 +2432,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000180000001),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -2446,11 +2446,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xa0000000c),
-                ('ACC', 0xa0000000c),
+                ('acc', 0xa0000000c),
             )
         },
         {
@@ -2458,11 +2458,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x200000004),
-                ('ACC', 0x200000004),
+                ('acc', 0x200000004),
             )
         },
         {
@@ -2470,11 +2470,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x700000007),
-                ('ACC', 0x700000007),
+                ('acc', 0x700000007),
             )
         },
         {
@@ -2482,11 +2482,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000180000001),
-                ('ACC', 0x8000000180000001),
+                ('acc', 0x8000000180000001),
             )
         },
     ],
@@ -2496,11 +2496,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x500000006),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2508,11 +2508,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2520,11 +2520,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2532,11 +2532,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0000000c0000000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -2546,11 +2546,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x500000006),
-                ('ACC', 0x500000006),
+                ('acc', 0x500000006),
             )
         },
         {
@@ -2558,11 +2558,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffffffffffffffff),
-                ('ACC', 0xffffffffffffffff),
+                ('acc', 0xffffffffffffffff),
             )
         },
         {
@@ -2570,11 +2570,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffffffffffffffff),
-                ('ACC', 0xffffffffffffffff),
+                ('acc', 0xffffffffffffffff),
             )
         },
         {
@@ -2582,11 +2582,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc0000000c0000000),
-                ('ACC', 0xc0000000c0000000),
+                ('acc', 0xc0000000c0000000),
             )
         },
     ],
@@ -2596,11 +2596,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x500000006),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2608,11 +2608,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x1000200020003),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2620,11 +2620,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x4000300040003),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2632,11 +2632,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fffffff3fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -2646,11 +2646,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x500000006),
-                ('ACC', 0x500000006),
+                ('acc', 0x500000006),
             )
         },
         {
@@ -2658,11 +2658,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x1000200020003),
-                ('ACC', 0x1000200020003),
+                ('acc', 0x1000200020003),
             )
         },
         {
@@ -2670,11 +2670,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x4000300040003),
-                ('ACC', 0x4000300040003),
+                ('acc', 0x4000300040003),
             )
         },
         {
@@ -2682,11 +2682,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fffffff3fffffff),
-                ('ACC', 0x3fffffff3fffffff),
+                ('acc', 0x3fffffff3fffffff),
             )
         },
     ],
@@ -2696,11 +2696,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x150016001a0020),
-                ('ACC', 0x150016001a0020),
+                ('acc', 0x150016001a0020),
             )
         },
         {
@@ -2708,11 +2708,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffff0001fffe0000),
-                ('ACC', 0xffff0001fffe0000),
+                ('acc', 0xffff0001fffe0000),
             )
         },
         {
@@ -2720,11 +2720,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffc0000fffc0000),
-                ('ACC', 0xfffc0000fffc0000),
+                ('acc', 0xfffc0000fffc0000),
             )
         },
         {
@@ -2732,11 +2732,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000180000001),
-                ('ACC', 0x8000000180000001),
+                ('acc', 0x8000000180000001),
             )
         },
     ],
@@ -2746,11 +2746,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffeafff2ffe5ffe8),
-                ('ACC', 0xffeafff2ffe5ffe8),
+                ('acc', 0xffeafff2ffe5ffe8),
             )
         },
         {
@@ -2758,11 +2758,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x1000700020008),
-                ('ACC', 0x1000700020008),
+                ('acc', 0x1000700020008),
             )
         },
         {
@@ -2770,11 +2770,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x4000800040008),
-                ('ACC', 0x4000800040008),
+                ('acc', 0x4000800040008),
             )
         },
         {
@@ -2782,11 +2782,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000180000001),
-                ('ACC', 0x8000000180000001),
+                ('acc', 0x8000000180000001),
             )
         },
     ],
@@ -2796,11 +2796,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x150012001a001c),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2808,11 +2808,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffbfffcfffbfffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2820,11 +2820,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000080000000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -2834,11 +2834,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x150012001a001c),
-                ('ACC', 0x150012001a001c),
+                ('acc', 0x150012001a001c),
             )
         },
         {
@@ -2846,11 +2846,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffbfffcfffbfffc),
-                ('ACC', 0xfffbfffcfffbfffc),
+                ('acc', 0xfffbfffcfffbfffc),
             )
         },
         {
@@ -2858,11 +2858,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000080000000),
-                ('ACC', 0x8000000080000000),
+                ('acc', 0x8000000080000000),
             )
         },
     ],
@@ -2872,11 +2872,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x150016001a0020),
-                ('ACC', 0x150016001a0020),
+                ('acc', 0x150016001a0020),
             )
         },
         {
@@ -2884,11 +2884,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffc0000fffc0000),
-                ('ACC', 0xfffc0000fffc0000),
+                ('acc', 0xfffc0000fffc0000),
             )
         },
         {
@@ -2896,11 +2896,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000180000001),
-                ('ACC', 0x8000000180000001),
+                ('acc', 0x8000000180000001),
             )
         },
     ],
@@ -2910,11 +2910,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xffeafff2ffe5ffe8),
-                ('ACC', 0xffeafff2ffe5ffe8),
+                ('acc', 0xffeafff2ffe5ffe8),
             )
         },
         {
@@ -2922,11 +2922,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x4000800040008),
-                ('ACC', 0x4000800040008),
+                ('acc', 0x4000800040008),
             )
         },
         {
@@ -2934,11 +2934,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000180000001),
-                ('ACC', 0x8000000180000001),
+                ('acc', 0x8000000180000001),
             )
         },
     ],
@@ -2948,11 +2948,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xc00340038),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2960,11 +2960,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffffff7fff8),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -2972,11 +2972,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000100000000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -2986,11 +2986,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xc00340038),
-                ('ACC', 0xc00340038),
+                ('acc', 0xc00340038),
             )
         },
         {
@@ -2998,11 +2998,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffffff7fff8),
-                ('ACC', 0xfffffffffff7fff8),
+                ('acc', 0xfffffffffff7fff8),
             )
         },
         {
@@ -3010,11 +3010,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000100000000),
-                ('ACC', 0x8000000100000000),
+                ('acc', 0x8000000100000000),
             )
         },
     ],
@@ -3024,11 +3024,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x100034003c),
-                ('ACC', 0x100034003c),
+                ('acc', 0x100034003c),
             )
         },
         {
@@ -3036,11 +3036,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fff7fffc),
-                ('ACC', 0x3fff7fffc),
+                ('acc', 0x3fff7fffc),
             )
         },
         {
@@ -3048,11 +3048,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000200000001),
-                ('ACC', 0x8000000200000001),
+                ('acc', 0x8000000200000001),
             )
         },
     ],
@@ -3062,11 +3062,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffff7ffcbffcc),
-                ('ACC', 0xfffffff7ffcbffcc),
+                ('acc', 0xfffffff7ffcbffcc),
             )
         },
         {
@@ -3074,11 +3074,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x40008000c),
-                ('ACC', 0x40008000c),
+                ('acc', 0x40008000c),
             )
         },
         {
@@ -3086,11 +3086,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x8000000000000001),
-                ('ACC', 0x8000000000000001),
+                ('acc', 0x8000000000000001),
             )
         },
     ],
@@ -3100,11 +3100,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x6001a001c),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -3112,11 +3112,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffffffbfffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -3124,11 +3124,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc000000080000000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -3138,11 +3138,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x6001a001c),
-                ('ACC', 0x6001a001c),
+                ('acc', 0x6001a001c),
             )
         },
         {
@@ -3150,11 +3150,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffffffbfffc),
-                ('ACC', 0xfffffffffffbfffc),
+                ('acc', 0xfffffffffffbfffc),
             )
         },
         {
@@ -3162,11 +3162,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc000000080000000),
-                ('ACC', 0xc000000080000000),
+                ('acc', 0xc000000080000000),
             )
         },
     ],
@@ -3176,11 +3176,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xa001a0020),
-                ('ACC', 0xa001a0020),
+                ('acc', 0xa001a0020),
             )
         },
         {
@@ -3188,11 +3188,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x3fffc0000),
-                ('ACC', 0x3fffc0000),
+                ('acc', 0x3fffc0000),
             )
         },
         {
@@ -3200,11 +3200,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc000000180000001),
-                ('ACC', 0xc000000180000001),
+                ('acc', 0xc000000180000001),
             )
         },
     ],
@@ -3214,11 +3214,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffdffe5ffe8),
-                ('ACC', 0xfffffffdffe5ffe8),
+                ('acc', 0xfffffffdffe5ffe8),
             )
         },
         {
@@ -3226,11 +3226,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x400040008),
-                ('ACC', 0x400040008),
+                ('acc', 0x400040008),
             )
         },
         {
@@ -3238,11 +3238,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x4000000080000001),
-                ('ACC', 0x4000000080000001),
+                ('acc', 0x4000000080000001),
             )
         },
     ],
@@ -3252,11 +3252,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x6001a001c),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -3264,11 +3264,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x40003fffbfffc),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             )
         },
         {
@@ -3276,11 +3276,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fffffff80000000),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             )
         },
     ],
@@ -3290,11 +3290,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x6001a001c),
-                ('ACC', 0x6001a001c),
+                ('acc', 0x6001a001c),
             )
         },
         {
@@ -3302,11 +3302,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x40003fffbfffc),
-                ('ACC', 0x40003fffbfffc),
+                ('acc', 0x40003fffbfffc),
             )
         },
         {
@@ -3314,11 +3314,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x3fffffff80000000),
-                ('ACC', 0x3fffffff80000000),
+                ('acc', 0x3fffffff80000000),
             )
         },
     ],
@@ -3328,11 +3328,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xa001a0020),
-                ('ACC', 0xa001a0020),
+                ('acc', 0xa001a0020),
             )
         },
         {
@@ -3340,11 +3340,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0x40007fffc0000),
-                ('ACC', 0x40007fffc0000),
+                ('acc', 0x40007fffc0000),
             )
         },
         {
@@ -3352,11 +3352,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0x4000000080000001),
-                ('ACC', 0x4000000080000001),
+                ('acc', 0x4000000080000001),
             )
         },
     ],
@@ -3366,11 +3366,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffffffdffe5ffe8),
-                ('ACC', 0xfffffffdffe5ffe8),
+                ('acc', 0xfffffffdffe5ffe8),
             )
         },
         {
@@ -3378,11 +3378,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
+                ('acc', 0x400000004),
             ),
             'tests': (
                 ('r1', 0xfffc000000040008),
-                ('ACC', 0xfffc000000040008),
+                ('acc', 0xfffc000000040008),
             )
         },
         {
@@ -3390,11 +3390,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000080000000),
                 ('r3', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
+                ('acc', 0x100000001),
             ),
             'tests': (
                 ('r1', 0xc000000180000001),
-                ('ACC', 0xc000000180000001),
+                ('acc', 0xc000000180000001),
             )
         },
     ],
@@ -3404,13 +3404,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xa0000000c),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3418,13 +3418,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xfffffff8fffffff8),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3432,13 +3432,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000800080008000),
                 ('r3', 0x8000800080008000),
-                ('ACC', 0x100000001),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x100000001),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
-                ('SPEFSCR', 0xc000c000),
+                ('acc', 0x100000001),
+                ('spefscr', 0xc000c000),
             )
         },
     ],
@@ -3448,13 +3448,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xa0000000c),
-                ('ACC', 0xa0000000c),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xa0000000c),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3462,13 +3462,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xfffffff8fffffff8),
-                ('ACC', 0xfffffff8fffffff8),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xfffffff8fffffff8),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3476,13 +3476,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000800080008000),
                 ('r3', 0x8000800080008000),
-                ('ACC', 0x100000001),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x100000001),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffff7fffffff),
-                ('ACC', 0x7fffffff7fffffff),
-                ('SPEFSCR', 0xc000c000),
+                ('acc', 0x7fffffff7fffffff),
+                ('spefscr', 0xc000c000),
             )
         },
     ],
@@ -3492,13 +3492,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xe00000010),
-                ('ACC', 0xe00000010),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xe00000010),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3506,13 +3506,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x3fff00003fff0000),
                 ('r3', 0x3fff0000ffff0000),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffff80000000),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0xc000c000),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0xc000c000),
             )
         },
     ],
@@ -3522,13 +3522,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xfffffffafffffff8),
-                ('ACC', 0xfffffffafffffff8),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xfffffffafffffff8),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3536,13 +3536,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x3fff00003fff0000),
                 ('r3', 0x3fff0000ffff0000),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x6000fffd80007ffe),
-                ('ACC', 0x6000fffd80007ffe),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x6000fffd80007ffe),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -3552,13 +3552,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x2400000038),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3566,13 +3566,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xfffffff8fffffff8),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3580,13 +3580,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000800080008000),
                 ('r3', 0x8000800080008000),
-                ('ACC', 0x100000001),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x100000001),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffff7fffffff),
-                ('ACC', 0x100000001),
-                ('SPEFSCR', 0xc000c000),
+                ('acc', 0x100000001),
+                ('spefscr', 0xc000c000),
             )
         },
     ],
@@ -3596,13 +3596,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x2400000038),
-                ('ACC', 0x2400000038),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x2400000038),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3610,13 +3610,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4000400040004),
                 ('r3', 0xffffffffffffffff),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xfffffff8fffffff8),
-                ('ACC', 0xfffffff8fffffff8),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xfffffff8fffffff8),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3624,13 +3624,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000800080008000),
                 ('r3', 0x8000800080008000),
-                ('ACC', 0x100000001),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x100000001),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffff7fffffff),
-                ('ACC', 0x7fffffff7fffffff),
-                ('SPEFSCR', 0xc000c000),
+                ('acc', 0x7fffffff7fffffff),
+                ('spefscr', 0xc000c000),
             )
         },
     ],
@@ -3640,13 +3640,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x280000003c),
-                ('ACC', 0x280000003c),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x280000003c),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3654,13 +3654,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x3fff00003fff),
                 ('r3', 0x3fff0000ffff),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffff80000000),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0xc000c000),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0xc000c000),
             )
         },
     ],
@@ -3670,13 +3670,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xffffffe0ffffffcc),
-                ('ACC', 0xffffffe0ffffffcc),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xffffffe0ffffffcc),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3684,13 +3684,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x3fff00003fff),
                 ('r3', 0x3fff0000ffff),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x6000fffd80007ffe),
-                ('ACC', 0x6000fffd80007ffe),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x6000fffd80007ffe),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -3700,13 +3700,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x90000000a),
-                ('ACC', 0x90000000a),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x90000000a),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3714,13 +3714,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x3fff00003fff0000),
                 ('r3', 0x3fff0000ffff0000),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffff80000000),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0xc000c000),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0xc000c000),
             )
         },
     ],
@@ -3730,13 +3730,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xfffffffffffffffe),
-                ('ACC', 0xfffffffffffffffe),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xfffffffffffffffe),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3744,13 +3744,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x3fff00003fff0000),
                 ('r3', 0x3fff0000ffff0000),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x70007ffe80003fff),
-                ('ACC', 0x70007ffe80003fff),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x70007ffe80003fff),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -3760,13 +3760,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0xffff00003fff0000),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0xffffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xffffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xffffffffbffec001),
-                ('ACC', 0xffffffffbffec001),
-                ('SPEFSCR', 0xc0000000),
+                ('acc', 0xffffffffbffec001),
+                ('spefscr', 0xc0000000),
             )
         },
     ],
@@ -3776,13 +3776,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0xffff00003fff0000),
                 ('r3', 0xffff0000ffff0000),
-                ('ACC', 0x80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x40013fff),
-                ('ACC', 0x40013fff),
-                ('SPEFSCR', 0xc0000000),
+                ('acc', 0x40013fff),
+                ('spefscr', 0xc0000000),
             )
         },
     ],
@@ -3792,13 +3792,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x1600000020),
-                ('ACC', 0x1600000020),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x1600000020),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3806,13 +3806,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x3fff00003fff),
                 ('r3', 0x3fff0000ffff),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffff80000000),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0xc000c000),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0xc000c000),
             )
         },
     ],
@@ -3822,13 +3822,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1000300020004),
                 ('r3', 0x5000600030007),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xfffffff2ffffffe8),
-                ('ACC', 0xfffffff2ffffffe8),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xfffffff2ffffffe8),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -3836,13 +3836,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x3fff00003fff),
                 ('r3', 0x3fff0000ffff),
-                ('ACC', 0x7fffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x7fffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x70007ffe80003fff),
-                ('ACC', 0x70007ffe80003fff),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x70007ffe80003fff),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -3852,13 +3852,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0xffff00003fff),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0xffffffff80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xffffffff80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xffffffffbffec001),
-                ('ACC', 0xffffffffbffec001),
-                ('SPEFSCR', 0xc0000000),
+                ('acc', 0xffffffffbffec001),
+                ('spefscr', 0xc0000000),
             )
         },
     ],
@@ -3868,13 +3868,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0xffff00003fff),
                 ('r3', 0xffff0000ffff),
-                ('ACC', 0x80000000),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x80000000),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x40013fff),
-                ('ACC', 0x40013fff),
-                ('SPEFSCR', 0xc0000000),
+                ('acc', 0x40013fff),
+                ('spefscr', 0xc0000000),
             )
         },
     ],
@@ -3884,13 +3884,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xeed8ed1a7fffffff),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0xc000),
+                ('acc', 0x400000004),
+                ('spefscr', 0xc000),
             )
         },
     ],
@@ -3900,13 +3900,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xeed8ed1a7fffffff),
-                ('ACC', 0xeed8ed1a7fffffff),
-                ('SPEFSCR', 0xc000),
+                ('acc', 0xeed8ed1a7fffffff),
+                ('spefscr', 0xc000),
             )
         },
     ],
@@ -3916,13 +3916,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffffffffffff),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0xc000),
+                ('acc', 0x400000004),
+                ('spefscr', 0xc000),
             )
         },
         {
@@ -3930,13 +3930,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000012345678),
                 ('r3', 0x8000000087654321),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xeed8ed1ae1711af0),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -3946,13 +3946,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffffffffffff),
-                ('ACC', 0x7fffffffffffffff),
-                ('SPEFSCR', 0xc000),
+                ('acc', 0x7fffffffffffffff),
+                ('spefscr', 0xc000),
             )
         },
         {
@@ -3960,13 +3960,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000012345678),
                 ('r3', 0x8000000087654321),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xeed8ed1ae1711af0),
-                ('ACC', 0xeed8ed1ae1711af0),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xeed8ed1ae1711af0),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -3976,13 +3976,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x7fffffffffffffff),
-                ('ACC', 0x7fffffffffffffff),
-                ('SPEFSCR', 0xc000),
+                ('acc', 0x7fffffffffffffff),
+                ('spefscr', 0xc000),
             )
         },
         {
@@ -3990,13 +3990,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000012345678),
                 ('r3', 0x8000000087654321),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0xeed8ed1ee1711af4),
-                ('ACC', 0xeed8ed1ee1711af4),
-                ('SPEFSCR', 0x0),
+                ('acc', 0xeed8ed1ee1711af4),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -4006,13 +4006,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x8000000400000005),
-                ('ACC', 0x8000000400000005),
-                ('SPEFSCR', 0xc000),
+                ('acc', 0x8000000400000005),
+                ('spefscr', 0xc000),
             )
         },
         {
@@ -4020,13 +4020,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000012345678),
                 ('r3', 0x8000000087654321),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x112712e91e8ee514),
-                ('ACC', 0x112712e91e8ee514),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x112712e91e8ee514),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -4036,13 +4036,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x70b88d7c00000004),
-                ('ACC', 0x70b88d7c00000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x70b88d7c00000004),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -4050,13 +4050,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000012345678),
                 ('r3', 0x8000000087654321),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x470b88d7c),
-                ('ACC', 0x470b88d7c),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x470b88d7c),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -4066,13 +4066,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x8f47728c00000004),
-                ('ACC', 0x8f47728c00000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x8f47728c00000004),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -4080,13 +4080,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000012345678),
                 ('r3', 0x8000000087654321),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x48f47728c),
-                ('ACC', 0x48f47728c),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x48f47728c),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -4096,13 +4096,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x70b88d7c00000004),
-                ('ACC', 0x70b88d7c00000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x70b88d7c00000004),
+                ('spefscr', 0x0),
             )
         },
         {
@@ -4110,13 +4110,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000012345678),
                 ('r3', 0x8000000087654321),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x470b88d7c),
-                ('ACC', 0x470b88d7c),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x470b88d7c),
+                ('spefscr', 0x0),
             )
         },
     ],
@@ -4126,13 +4126,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x1234567880000000),
                 ('r3', 0x8765432180000000),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x4),
-                ('ACC', 0x4),
-                ('SPEFSCR', 0xc0000000),
+                ('acc', 0x4),
+                ('spefscr', 0xc0000000),
             )
         },
         {
@@ -4140,13 +4140,13 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x8000000012345678),
                 ('r3', 0x8000000087654321),
-                ('ACC', 0x400000004),
-                ('SPEFSCR', 0x0),
+                ('acc', 0x400000004),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x400000000),
-                ('ACC', 0x400000000),
-                ('SPEFSCR', 0xc000),
+                ('acc', 0x400000000),
+                ('spefscr', 0xc000),
             )
         },
     ],
@@ -4156,11 +4156,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4444444411111111),
                 ('r3', 0x2222222200000000),
-                ('SPEFSCR', 0x0),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x2ffffffff),
-                ('SPEFSCR', 0xc000),
+                ('spefscr', 0xc000),
             )
         },
     ],
@@ -4170,11 +4170,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x4444444411111111),
                 ('r3', 0x2222222200000000),
-                ('SPEFSCR', 0x0),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x27fffffff),
-                ('SPEFSCR', 0xc000),
+                ('spefscr', 0xc000),
             )
         },
         {
@@ -4182,11 +4182,11 @@ emutests = {
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0xffffffff33333333),
                 ('r3', 0x22222222),
-                ('SPEFSCR', 0x0),
+                ('spefscr', 0x0),
             ),
             'tests': (
                 ('r1', 0x8000000000000001),
-                ('SPEFSCR', 0xc0000000),
+                ('spefscr', 0xc0000000),
             )
         },
     ],
@@ -4551,7 +4551,7 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x200000002),
-                ('ACC', 0x180000000),
+                ('acc', 0x180000000),
             ),
             'tests': (
                 ('r1', 0xffffffff7ffffffe),
@@ -4563,7 +4563,7 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x200000002),
-                ('ACC', 0x180000000),
+                ('acc', 0x180000000),
             ),
             'tests': (
                 ('r1', 0xffffffff80000000),
@@ -4575,7 +4575,7 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x200000002),
-                ('ACC', 0x180000000),
+                ('acc', 0x180000000),
             ),
             'tests': (
                 ('r1', 0xffffffff7ffffffe),
@@ -4587,7 +4587,7 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0x200000002),
-                ('ACC', 0x180000000),
+                ('acc', 0x180000000),
             ),
             'tests': (
                 ('r1', 0x7ffffffe),
@@ -4611,11 +4611,11 @@ emutests = {
             'setup': (
                 ('r1', 0xdfdfdfdfdfdfdfdf),
                 ('r2', 0xdfac02252020dfbf),
-                ('ACC', 0xacacacacacacacac),
+                ('acc', 0xacacacacacacacac),
             ),
             'tests': (
                 ('r1', 0xdfac02062020dfa0),
-                ('ACC', 0xacacacacacacacac),
+                ('acc', 0xacacacacacacacac),
             )
         },
     ],

@@ -200,7 +200,7 @@ class PpcRegOper(envi.RegisterOper):
         emu.setRegister(self.reg, val)
 
     def render(self, mcanv, op, idx):
-        rname = ppc_regs[self.reg][0]
+        rname = self.repr(op)
         mcanv.addNameText(rname, typename='registers')
 
     def repr(self, op):
@@ -209,6 +209,51 @@ class PpcRegOper(envi.RegisterOper):
 
     def getWidth(self, emu):
         return emu.getRegisterWidth(self.reg) >> 3
+
+# SPR register types
+class PpcDCRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_DCR, va=va, oflags=oflags)
+
+
+class PpcPMRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_PMR, va=va, oflags=oflags)
+
+
+# XER (1), LR (8), and CTR (9) are in lower case to keep GDB happy, if the SPR 
+# number is one of those then capitalize the name for. All SPRs that have a 
+# number 10 or above should not have their name modified.
+SPR_UPPER_NAME = {
+    1: 'XER',
+    8: 'LR',
+    9: 'CTR',
+}
+
+
+class PpcSPRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_SPR, va=va, oflags=oflags)
+        self._sprname = None
+
+    def repr(self, op):
+        if self._sprname is None:
+            # Check if the SPR number indicates that the name needs to be 
+            # capitalized or left alone.
+            rname = ppc_regs[self.reg][0]
+            self._sprname = SPR_UPPER_NAME.get(self.reg, rname)
+
+        return self._sprname
+
+
+class PpcTMRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_TMR, va=va, oflags=oflags)
+
+
+class PpcTBRegOper(PpcRegOper):
+    def __init__(self, reg, va=0, oflags=0):
+        PpcRegOper.__init__(self, reg + REG_OFFSET_TBR, va=va, oflags=oflags)
 
 
 class PpcERegOper(PpcRegOper):
