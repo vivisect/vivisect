@@ -2971,7 +2971,7 @@ class GdbBaseEmuServer(GdbServerStub):
         self.tid = 1
         self.processes = []
         self.process_filenames = {}
-        self.vfile_open_files = []
+        self.vfile_open_files = {}
 
         # Apparently GDB expects there to be a thread, so we define one
         self.threads = {
@@ -2996,21 +2996,27 @@ class GdbBaseEmuServer(GdbServerStub):
         # structure for it.
         self.processes = [1]
 
-        # Get the filename and path in use 
-        filekey = self.emu.vw.getFiles()[0]
-        filename = self.emu.vw.getFileMeta(filekey, 'OrigName')
+        # Get the filenames and path in use for our process (PID 1)
+        self.process_filenames = {1: {}}
+        for name in self.emu.vw.getFiles():
+            filename = self.emu.vw.getFileMeta(name, 'OrigName')
 
-        # Sanitize the filename so environment information isn't sent to the 
-        # client
-        self.process_filenames = {
-            1: os.path.split(filename)[1].encode(),
-        }
+            # Sanitize the filename so environment information isn't sent to the 
+            # client
+            key = os.path.split(filename)[1].encode()
+            if key in self.process_filenames[1]:
+                logger.warning('short filename %r already used in process filename map, not adding %r',
+                               key, filename)
+            else:
+                self.process_filenames[1][key] = filename
 
-        # used in vFile operations
+        # used in vFile operations, set to the current PID
         self.vfile_pid = 1
 
-        # Add placeholders for the 3 standard FDs
-        self.vfile_open_files = [None, None, None]
+        self.vfile_open_files = {
+            # Add placeholders for the 3 standard FDs
+            1: {0: None, 1: None, 2: None},
+        }
 
     def getTargetXml(self, reggrps=None):
         '''
@@ -3347,32 +3353,34 @@ class GdbBaseEmuServer(GdbServerStub):
             return b'F-1,' + self._encodeGDBVal(e.errno)
 
     def vFileOpen(self, params):
-        filename = unhexlify(params[0])
+        filename = unhexlify(params[0]).decode()
 
         # Ensure that the filename requested is the filename of the current 
         # process
-        if filename != self.process_filenames[self.vfile_pid]:
+        if filename not in self.process_filenames[self.vfile_pid]:
             raise FileNotFoundError(errno.ENOENT)
 
-        # Open the file
-        fd = len(self.vfile_open_files)
+        # Get the FD for the new file
+        fd = len(self.vfile_open_files[self.vfile_pid])
+
+        os_filename = self.process_filenames[self.vfile_pid][filename]
 
         # Only change to r+b if you _want_ to enable writing to the original 
         # file, probably not what we really want to enable.
-        #self.vfile_open_files[fd] =  open(filename, 'r+b')
+        #self.vfile_open_files[self.vfile_pid][fd] =  open(os_filename, 'r+b')
 
-        self.vfile_open_files[fd] =  open(filename, 'rb')
+        self.vfile_open_files[self.vfile_pid][fd] =  open(os_filename, 'rb')
 
         return fd, None
 
     def vFileClose(self, params):
         fd = _decodeGDBVal(params[0])
 
-        if pid not in self.vfile_open_files:
+        if fd not in self.vfile_open_files[self.vfile_pid]:
             raise OSError(errno.EBADF)
 
-        self.vfile_open_files[fd].close()
-        del self.vfile_open_files[fd]
+        self.vfile_open_files[self.vfile_pid][fd].close()
+        del self.vfile_open_files[self.vfile_pid][fd]
 
         return 0, None
 
@@ -3381,11 +3389,11 @@ class GdbBaseEmuServer(GdbServerStub):
         count = _decodeGDBVal(params[1])
         offset = _decodeGDBVal(params[2])
 
-        if fd not in self.vfile_open_files:
+        if fd not in self.vfile_open_files[self.vfile_pid]:
             raise OSError(errno.EBADF)
 
-        self.vfile_open_files[fd].seek(offset)
-        data = self.vfile_open_files[fd].read(count)
+        self.vfile_open_files[self.vfile_pid][fd].seek(offset)
+        data = self.vfile_open_files[self.vfile_pid][fd].read(count)
 
         return len(data), data
 
