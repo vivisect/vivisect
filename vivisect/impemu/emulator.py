@@ -117,7 +117,7 @@ class WorkspaceEmulator:
         * opcache
             - Type: Boolean
             - Default: True
-            - Desc: By default, WorkspaceEmulators share the opcode cache storing parsed opcodes for locations 
+            - Desc: By default, WorkspaceEmulators share the opcode cache storing parsed opcodes for locations
                     in the Vivisect Workspace.
                     This setting disables use of the VivWorkspace's opcode cache.
         '''

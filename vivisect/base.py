@@ -216,7 +216,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if ltype == LOC_IMPORT:
             # Check if the import is registered in NoReturnApis
             if self.getMeta('NoReturnApis', {}).get(linfo.lower()):
-                self.cfctx.addNoReturnAddr( lva )
+                self.cfctx.addNoReturnAddr(lva)
 
     def _handleDELLOCATION(self, loc):
         # FIXME delete xrefs
@@ -792,11 +792,13 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
             self._mem.makeOpcode(op.va, op=op)
             # TODO: future home of makeOpcode branch/xref analysis
-            return branches
+            if not self._mem.isNoReturnVa(op.va):
+                return branches
 
         elif loc[L_LTYPE] != LOC_OP:
             locrepr = self._mem.reprLocation(loc)
             logger.warning("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
+
         return ()
 
     def _cb_function(self, fva, fmeta):

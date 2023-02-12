@@ -4,12 +4,13 @@ import vivisect
 vivsig_cpickle = b'VIV'.ljust(8, b'\x00')
 
 
+def writeFileHeader(f):
+    f.write(vivsig_cpickle)
+
 def saveWorkspaceChanges(vw, filename):
     elist = vw.exportWorkspaceChanges()
     if len(elist):
-        with open(filename, 'ab') as f:
-            pickle.dump(elist, f, protocol=2)
-
+        vivEventsAppendFile(filename, elist)
 
 def saveWorkspace(vw, filename):
     events = vw.exportWorkspace()
@@ -18,13 +19,17 @@ def saveWorkspace(vw, filename):
 
 def vivEventsAppendFile(filename, events):
     with open(filename, 'ab') as f:
+        # if the file is empty, add the header
+        if f.tell() == 0:
+            writeFileHeader(f)
+
         pickle.dump(events, f, protocol=2)
 
 
 def vivEventsToFile(filename, events):
     with open(filename, 'wb') as f:
         # Mime type for the basic workspace
-        f.write(vivsig_cpickle)
+        writeFileHeader(f)
         pickle.dump(events, f, protocol=2)
 
 
