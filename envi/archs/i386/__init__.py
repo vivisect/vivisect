@@ -6,6 +6,13 @@ import envi
 from envi.archs.i386.regs import *
 from envi.archs.i386.disasm import *
 
+import envi.archs.i386.opconst as opconst
+
+PLATMODS = {
+    'linux': 0x80,
+    'windows': 0x2e
+}
+
 class i386Module(envi.ArchitectureModule):
 
     def __init__(self):
@@ -32,8 +39,8 @@ class i386Module(envi.ArchitectureModule):
     def pointerString(self, va):
         return '0x%.8x' % va
 
-    def archParseOpcode(self, bytes, offset=0, va=0):
-        return self._arch_dis.disasm(bytes, offset, va)
+    def archParseOpcode(self, bytes, offset=0, va=0, extra=None):
+        return self._arch_dis.disasm(bytes, offset, va, extra=extra)
 
     def getEmulator(self):
         return IntelEmulator()

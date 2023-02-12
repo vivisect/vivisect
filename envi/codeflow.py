@@ -160,7 +160,6 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
-                logger.log(e_cmn.MIRE, "... 0x%x: %r", va, op)
             except envi.InvalidInstruction as e:
                 logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
@@ -190,7 +189,7 @@ class CodeFlowContext(object):
 
                 try:
                     # Handle a table branch by adding more branches...
-                    # most if not all of the work to construct jump tables is done in makeOpcode
+                    # most, if not all, of the work to construct jump tables is done in makeOpcode
                     if bflags & envi.BR_TABLE:
                         if self._cf_exptable:
                             ptrbase = bva
@@ -236,7 +235,7 @@ class CodeFlowContext(object):
                                     logger.debug("call path: \t" + ", ".join([hex(x) for x in self._cf_blocks]))
                                     # the function that we want to make prodcedural
                                     # called us so we can't call to make it procedural
-                                    # until its done
+                                    # until it's done
                                     cf_eps[bva] = bflags
                                 else:
                                     logger.debug("descending into function 0x%x (from 0x%x)", bva, va)
@@ -287,6 +286,7 @@ class CodeFlowContext(object):
         self._funcs[va] = True
         calls_from = self.addCodeFlow(va, arch=arch)
         self._fcalls[va] = calls_from
+
         # TODO: this ones spams. A lot.
         # logger.debug('addEntryPoint(0x%x): calls_from: %r', va, calls_from)
 
