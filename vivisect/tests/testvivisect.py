@@ -7,7 +7,6 @@ import unittest
 import envi
 import envi.exc as e_exc
 import envi.const as e_const
-import envi.memory as e_memory
 import envi.memcanvas as e_mcanvas
 
 import vivisect
