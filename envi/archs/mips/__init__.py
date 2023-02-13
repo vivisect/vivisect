@@ -20,6 +20,7 @@ MIPS module
 import envi
 
 from envi.archs.mips.disasm import *
+from envi.archs.mips.regs import *
 
 class MipsModule(envi.ArchitectureModule):
 

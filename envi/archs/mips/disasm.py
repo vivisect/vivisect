@@ -194,11 +194,11 @@ class MipsRegOperand(envi.RegisterOper):
         return True
 
     def repr(self):
-        return mips_regs.registers[self.reg]
+        return "$" + mips_regs.registers[self.reg]
 
     def render(self, mcanv, op, idx):
         rname = self.repr(op)
-        mcanv.addNameText(rname, typename='registers')
+        mcanv.addNameText("$"+rname, typename='registers')
 
 
 class MipsImmOperand(envi.ImmedOper):
