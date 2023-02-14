@@ -546,54 +546,48 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         elif sname in (".bss",):
             if vw.getName(fname + '.bss_temp') is None:
-                sdasz = sec.sh_size
                 align = sec.sh_addralign
-                sdasz += align-1
-                sdasz = (sdasz // align) * align
+                sz = ((align-1 + sec.sh_size) // align) * align
 
                 # AddMemoryMap returns the size of the new memory map
-                sdasz = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
+                sz = vw.addMemoryMap(None, 7, fname, b'\0' * sz)
 
                 # It will be the last memory map added
-                sdabase = next(reversed(vw.getMemoryMaps()))[0]
-                logger.debug('creating bss_temp memory @ %#x-%#x', sdabase, sdabase+sdasz)
+                base = next(reversed(vw.getMemoryMaps()))[0]
+                logger.debug('creating bss_temp memory @ %#x-%#x', base, base+sz)
 
-                vw.addSegment(sdabase, sdasz, '.bss_temp', fname)
-                vw.makeName(sdabase, fname + ".bss_temp")
+                vw.addSegment(base, sz, '.bss_temp', fname)
+                vw.makeName(base, fname + ".bss_temp")
 
         elif sname in (".sbss", ".sdata"):
             if vw.getName('_SDA_BASE_') is None:
-                sdasz = sec.sh_size
                 align = sec.sh_addralign
-                sdasz += align-1
-                sdasz = (sdasz // align) * align
+                sz = ((align-1 + sec.sh_size) // align) * align
 
                 # AddMemoryMap returns the size of the new memory map
-                sdasz = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
+                sz = vw.addMemoryMap(None, 7, fname, b'\0' * sz)
 
                 # It will be the last memory map added
-                sdabase = next(reversed(vw.getMemoryMaps()))[0]
-                logger.debug('creating sda_base memory @ %#x-%#x', sdabase, sdabase+sdasz)
+                base = next(reversed(vw.getMemoryMaps()))[0]
+                logger.debug('creating sda_base memory @ %#x-%#x', base, base+sz)
 
-                vw.addSegment(sdabase, sdasz, '.sda_base', fname)
-                vw.makeName(sdabase, "_SDA_BASE_")
+                vw.addSegment(base, sz, '.sda_base', fname)
+                vw.makeName(base, "_SDA_BASE_")
 
         elif sname in (".sbss2", ".sdata2"):
             if vw.getName('_SDA2_BASE_') is None:
-                sdasz = sec.sh_size
                 align = sec.sh_addralign
-                sda2sz += align-1
-                sda2sz = (sda2sz // align) * align
+                sz = ((align-1 + sec.sh_size) // align) * align
 
                 # AddMemoryMap returns the size of the new memory map
-                sdasz = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
+                sz = vw.addMemoryMap(None, 7, fname, b'\0' * sz)
 
                 # It will be the last memory map added
-                sdabase = next(reversed(vw.getMemoryMaps()))[0]
-                logger.debug('creating sda2_base memory @ %#x-%#x', sdabase, sdabase+sdasz)
+                base = next(reversed(vw.getMemoryMaps()))[0]
+                logger.debug('creating sda2_base memory @ %#x-%#x', base, base+sz)
 
-                vw.addSegment(sdabase, sdasz, '.sda2_base', fname)
-                vw.makeName(sda2base, "_SDA2_BASE_")
+                vw.addSegment(base, sz, '.sda2_base', fname)
+                vw.makeName(base, "_SDA2_BASE_")
 
         # If the section is really a string table, do it
         if sec.sh_type == Elf.SHT_STRTAB:
