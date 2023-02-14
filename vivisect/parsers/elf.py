@@ -360,6 +360,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     secs = elf.getSections()
 
+    pgms = elf.getPheaders()
     for pgm in pgms:
         if pgm.p_type == Elf.PT_LOAD:
             if pgm.p_memsz == 0:
