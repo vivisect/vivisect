@@ -678,7 +678,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         for arch in self.imem_archs:
             if not arch:
                 continue
-
             arch.setEndian(self.bigend)
 
 
@@ -688,7 +687,12 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 #
     def _mcb_Architecture(self, name, value):
         archid = envi.getArchByName(value)
-        self.setMemArchitecture(archid)
+        try:
+            # Some of the ENVI archs defined may not architecture modules that 
+            # are still in progress
+            self.setMemArchitecture(archid)
+        except IndexError:
+            raise Exception("Architecture Module not defined for %s yet!" % arch)
 
         # This is for legacy stuff...
         self.arch = self.imem_archs[envi.ARCH_DEFAULT]
