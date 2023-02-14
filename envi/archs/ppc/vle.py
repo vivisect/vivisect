@@ -21,6 +21,9 @@ from .disasm import Ppc32EmbeddedDisasm
 
 import envi.bits as e_bits
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 operands = (
     None,
@@ -48,7 +51,6 @@ def case_E_X(types, data, va):
     return opers
 
 def case_E_XL(types, data, va):
-    #print(types, hex(data))
     val0 = (data & 0x3E00000) >> 21
     op0 = operands[types[0]]
     val1 = (data & 0x1F0000) >> 16
@@ -56,7 +58,6 @@ def case_E_XL(types, data, va):
     val2 = (data & 0xF800) >> 11
     op2 = operands[types[2]]
 
-    #print("E_XL", op0, val0, op1, val1, op2, val2)
     opers = ( op0(val0, va), op1(val1, va), op2(val2, va) )
     return opers
 
@@ -433,15 +434,10 @@ def is_opcode_32bit(first_short: int) -> bool:
 
 class VleDisasm(Ppc32EmbeddedDisasm):
     __ARCH__ = envi.ARCH_PPCVLE
-    def __init__(self, endian=ENDIAN_MSB, options=CAT_PPC_EMBEDDED, psize=4):
-        # any speedy stuff here
-        self.psize = psize
-        self._dis_regctx = Ppc64RegisterContext()
-        self.endian = endian
-        self.fmt = ('<I', '>I')[endian]
+
+    def setEndian(self, endian):
+        Ppc32EmbeddedDisasm.setEndian(self, endian)
         self.short_fmt = ('<H', '>H')[endian]
-        # Needed for fallback-to-PPC disasm
-        self.setCategories(options)
 
     def disasm16(self, bytez: bytes, offset: int, va: int) -> PpcOpcode:
         # first 4 bits have a value of 0,2,4,6,8,9,A,B,C,D,E (and F, but F is reserved)
@@ -482,7 +478,7 @@ class VleDisasm(Ppc32EmbeddedDisasm):
                         k += 1
                         ft2, val2 = opieces[k]
                         if ft2 != TYPE_IMM:
-                            print("PROBLEM! ft2 is not TYPE_IMM!")
+                            logger.warning("PROBLEM! ft2 is not TYPE_IMM! 0x%x: %r, %r", instr_data, ft2, val2)
 
                         opers.append(handler(value, val2, va, tsize=tsizes.get(opcode)))
                     else:
