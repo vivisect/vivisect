@@ -157,7 +157,7 @@ instructions = [
     ('102204CA', 'evsubfumiaaw r1,r2'),
     ('102204C2', 'evsubfusiaaw r1,r2'),
     ('10221A04', 'evsubfw r1,r2,r3'),
-    ('103F1206', 'evsubifw r1,31,r2'),
+    ('103F1206', 'evsubifw r1,0x1f,r2'),
     ('103C022B', 'evsplatfi r1,-0x4'),
     ('103C0229', 'evsplati r1,-0x4'),
     ('102C0229', 'evsplati r1,0xc'),

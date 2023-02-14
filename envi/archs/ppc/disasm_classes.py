@@ -251,9 +251,9 @@ class PpcPMRegOper(PpcRegOper):
 # number is one of those then capitalize the name for. All SPRs that have a 
 # number 10 or above should not have their name modified.
 SPR_UPPER_NAME = {
-    1: 'XER',
-    8: 'LR',
-    9: 'CTR',
+    1 + REG_OFFSET_SPR: 'XER',
+    8 + REG_OFFSET_SPR: 'LR',
+    9 + REG_OFFSET_SPR: 'CTR',
 }
 
 

@@ -72,11 +72,11 @@ ppc_regs32.extend(spr_regs)
 
 # sparse definition of TMR regs, so we fill in the gaps a bit
 tmr_regs = [("TMRREG%d" % x, 64) for x in range(192) ]
-tmr_regs[16] = ('tmcfg0', 64)
+tmr_regs[16] = ('TMCFG0', 64)
 
-tpri_regs = [('tpri%d' % x, 64) for x in range(32)]
-imsr_regs = [('imsr%d' % x, 64) for x in range(32)]
-inia_regs = [('inia%d' % x, 64) for x in range(32)]
+tpri_regs = [('TPRI%d' % x, 64) for x in range(32)]
+imsr_regs = [('IMSR%d' % x, 64) for x in range(32)]
+inia_regs = [('INIA%d' % x, 64) for x in range(32)]
 tmr_regs.extend(tpri_regs)
 tmr_regs.extend([("TPRIREG%d" % x, 64) for x in range(224, 288) ])   # padding
 tmr_regs.extend(imsr_regs)
@@ -310,6 +310,7 @@ statmetas = [
         ('SPEFSCR_FDBZS', REG_SPEFSCR, 63-44, 1, 'Embedded Floating-Point Divide By Zero Sticky Flag'),
         ('SPEFSCR_FUNFS', REG_SPEFSCR, 63-45, 1, 'Embedded Floating-Point Underflow Sticky Flag'),
         ('SPEFSCR_FOVFS', REG_SPEFSCR, 63-46, 1, 'Embedded Floating-Point Overflow Sticky Flag'),
+        ('SPEFSCR_MODE',  REG_SPEFSCR, 63-47, 1, 'Enbedded Floating-Point Operating Mode'),
         ('SPEFSCR_SOV',   REG_SPEFSCR, 63-48, 1, 'Summary Integer Overflow High'),
         ('SPEFSCR_OV',    REG_SPEFSCR, 63-49, 1, 'Integer Overflow High'),
         ('SPEFSCR_FG',    REG_SPEFSCR, 63-50, 1, 'Embedded Floating-Point Guard Bit Low'),
@@ -319,10 +320,10 @@ statmetas = [
         ('SPEFSCR_FUNF',  REG_SPEFSCR, 63-54, 1, 'Embedded Floating-Point Underflow Low'),
         ('SPEFSCR_FOVF',  REG_SPEFSCR, 63-55, 1, 'Embedded Floating-Point Overflow Low'),
         ('SPEFSCR_FINXE', REG_SPEFSCR, 63-57, 1, 'Embedded Floating-Point Round (Inexact) Exception Enable'),
-        ('SPEFSCR_FINVS', REG_SPEFSCR, 63-58, 1, 'Embedded Floating-Point Invalid Operation Exception Enable'),
-        ('SPEFSCR_FDBZS', REG_SPEFSCR, 63-59, 1, 'Embedded Floating-Point Divide By Zero Exception Enable'),
-        ('SPEFSCR_FUNFS', REG_SPEFSCR, 63-60, 1, 'Embedded Floating-Point Underflow Exception Enable'),
-        ('SPEFSCR_FOVFS', REG_SPEFSCR, 63-61, 1, 'Embedded Floating-Point Overflow Exception Enable'),
+        ('SPEFSCR_FINVE', REG_SPEFSCR, 63-58, 1, 'Embedded Floating-Point Invalid Operation Exception Enable'),
+        ('SPEFSCR_FDBZE', REG_SPEFSCR, 63-59, 1, 'Embedded Floating-Point Divide By Zero Exception Enable'),
+        ('SPEFSCR_FUNFE', REG_SPEFSCR, 63-60, 1, 'Embedded Floating-Point Underflow Exception Enable'),
+        ('SPEFSCR_FOVFE', REG_SPEFSCR, 63-61, 1, 'Embedded Floating-Point Overflow Exception Enable'),
         ('SPEFSCR_FRMC',  REG_SPEFSCR, 63-62, 2, 'Embedded Floating-Point Rounding Mode Control'),
 ]
 

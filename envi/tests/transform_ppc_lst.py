@@ -1059,7 +1059,8 @@ class ppc_instr(object):
 
     def _str_arg(self, arg):
         if arg.type == 'REG' and arg.value[0] == 'v':
-            return 'vr' + arg.value[1:]
+            #return 'vr' + arg.value[1:]
+            return 'v' + arg.value[1:]
         elif isinstance(arg.value, str):
             if len(arg.value) == 6 and arg.value[0:4] == "cr0.":
                 return arg.value[4:]
@@ -1519,9 +1520,9 @@ class ppc_instr(object):
         val = self._get_xfx_field2(data)
         # SPRs are capitalized, TMR and PMR names are lower case
         spr_to_str_map = {
-            1: 'xer',
-            8: 'lr',
-            9: 'ctr',
+            1: 'XER',
+            8: 'LR',
+            9: 'CTR',
             22: 'DEC',
             26: 'SRR0',
             27: 'SRR1',
