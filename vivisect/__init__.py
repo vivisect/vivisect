@@ -1786,7 +1786,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         If basename is provided, that name is used to create the Vivisect name for the thunk.
         If basename is not provided, thname is chopped and used for the Vivisect name.
-        This difference allows, for example, the Elf loader to make PLT functions named "plt_<foo>"
+        This difference allows, for example, the Elf loader to make PLT functions named "plt_<foo>" 
         but still use the official thunk name "*.<foo>".  This thunk name is used to look up
         the import api.  These "*.<foo>" thunk names are also used in the addNoReturnApi().
 
@@ -2814,7 +2814,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # assign GUID just before actually populating the workspace
         self.initMeta('GUID', guid())
-
+        
         fd.seek(0)
         fname = mod.parseFd(self, fd, filename=None, baseaddr=baseaddr)
 
@@ -2847,7 +2847,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # assign GUID just before actually populating the workspace
         self.initMeta('GUID', guid())
-
+        
         if fmtname == 'pe':
             mod.loadPeIntoWorkspace(self, pbin)
         elif fmtname == 'elf':
@@ -2916,7 +2916,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         # assign GUID just before actually populating the workspace
         self.initMeta('GUID', guid())
-
+        
         mod = viv_parsers.getParserModule(fmtname)
 
         fname = mod.parseFile(self, filename=filename, baseaddr=baseaddr)
@@ -3231,7 +3231,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if uuid in self.leaders:
             user, fname = self.leaders.get(uuid)
             return user, fname
-
+            
         return None, None
 
     def getLeaderSessions(self):
