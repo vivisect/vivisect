@@ -106,7 +106,12 @@ class ArchNotImplemented(EnviException):
     Raised by various Envi components when the architecture
     does not implement that envi component.
     """
-    pass
+    def __init__(self, component, message=None):
+        if message:
+            component = "%s: %s" % (component, message)
+
+        EnviException.__init__(self, component)
+    
 
 
 class EmuException(EnviException):

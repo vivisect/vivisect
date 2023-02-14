@@ -44,98 +44,158 @@ ARCH_MIPS64      = 22 << 16
 
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
-arch_names = {
-    ARCH_DEFAULT:   'default',
-    ARCH_I386:      'i386',
-    ARCH_AMD64:     'amd64',
-    ARCH_ARMV7:     'arm',
-    ARCH_THUMB16:   'thumb16',
-    ARCH_THUMB:     'thumb',
-    ARCH_A64:       'a64',
-    ARCH_MSP430:    'msp430',
-    ARCH_H8:        'h8',
-    ARCH_RISCV32:   'rv32',
-    ARCH_RISCV64:   'rv64',
-    ARCH_PPC_E32:   'ppc32-embedded',
-    ARCH_PPC_E64:   'ppc-embedded',
-    ARCH_PPC_S32:   'ppc32-server',
-    ARCH_PPC_S64:   'ppc-server',
-    ARCH_PPCVLE:    'ppc-vle',
-    ARCH_PPC_D:     'ppc-desktop',
-    ARCH_RXV2:      'rxv2',
-    ARCH_SPARC:     'sparc',
-    ARCH_SPARC64:   'sparc64',
-    ARCH_MIPS32:    'mips32',
-    ARCH_MIPS64:    'mips64',
+arch_defs = {
+    ARCH_I386:      {
+        'name':	    'i386',
+        'aliases':    ('i486', 'i586', 'i686', 'x86'),
+        'modpath':	('i386', 'i386Module'),
+        },
+    
+    ARCH_AMD64:     {
+        'name':	    'amd64',
+        'aliases':    ('x86_64',),
+        'modpath':	('amd64', 'Amd64Module'),
+        },
+    
+    ARCH_ARMV7:     {
+        'name':	    'arm',
+        'aliases':  ('armv6l', 'armv7l', 'a32'),
+        'modpath':	('arm', 'ArmModule'),
+        },
+    
+    ARCH_THUMB16:   {
+        'name':	    'thumb16',
+        'modpath':	('thumb16', 'Thumb16Module'),
+        },
+    
+    ARCH_THUMB:     {
+        'name':	    'thumb',
+        'aliases':  ('t32', 'thumb2'),
+        'modpath':	('thumb16', 'ThumbModule'),
+        },
+    
+    ARCH_A64:       {
+        'name':	    'a64',
+        'aliases':	('aarch64',),
+        'modpath':	('a64', 'A64Module'),
+        'disabled': False,
+        },
+    
+    ARCH_MSP430:    {
+        'name':	    'msp430',
+        'modpath':	('msp430', 'Msp430Module'),
+        },
+    
+    ARCH_H8:        {
+        'name':	    'h8',
+        'modpath':	('h8', 'H8Module'),
+        },
+    
+    ARCH_MCS51:     {
+        'name':       'mcs51',
+        'aliases':	('8051', '80x51'),
+        'modpath':	('mcs51', 'Mcs51Module'),
+        'disabled': True,
+        },
+    
+    ARCH_RISCV32:   {
+        'name':	    'rv32',
+        'aliases':	('riscv', 'risc-v',),
+        'modpath':	('rv32', 'Rv32Module'),
+        'disabled': True,
+        },
+    
+    ARCH_RISCV64:   {
+        'name':	    'rv64',
+        'modpath':	('rv64', 'Rv64Module'),
+        'disabled': True,
+        },
+    
+    ARCH_PPC_E32:   {
+        'name':	    'ppc32-embedded',
+        'aliases':	('ppc32',),
+        'modpath':	('ppc32-embedded', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_PPC_E64:   {
+        'name':	    'ppc-embedded',
+        'aliases':	('ppc64-embedded','ppc-spe'),
+        'modpath':	('ppc-embedded', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_PPC_S32:   {
+        'name':	    'ppc32-server',
+        'modpath':	('ppc32-server', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_PPC_S64:   {
+        'name':	    'ppc-server',
+        'aliases':	('ppc64-server','altivec', 'ppc-altivec'),
+        'modpath':	('ppc-server', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_PPCVLE:    {
+        'name':	    'ppc-vle',
+        'aliases':	('vle','ppc32-vle', 'ppcvle'),
+        'modpath':	('ppc-vle', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_PPC_D:     {
+        'name':	    'ppc-desktop',
+        'modpath':	('ppc-desktop', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_RXV2:      {
+        'name':	    'rxv2',
+        'aliases':	('rxv1', 'rx'),
+        'modpath':	('rxv2', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_SPARC:     {
+		'name':	    'sparc',
+        'modpath':	('sparc', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_SPARC64:   {
+        'name':	    'sparc64',
+        'modpath':	('sparc64', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_MIPS32:    {
+        'name':	    'mips32',
+        'aliases':	('mips',),
+        'modpath':	('mips32', 'Module'),
+        'disabled': True,
+        },
+    
+    ARCH_MIPS64:    {
+        'name':	    'mips64',
+        'modpath':	('mips64', 'Module'),
+        'disabled': True,
+        },
 }
 
-arch_by_name = {
-    'default':      ARCH_DEFAULT,
-    'i386':         ARCH_I386,
-    'amd64':        ARCH_AMD64,
-    'a64':          ARCH_A64,
-    'arm':          ARCH_ARMV7,
-    'thumb16':      ARCH_THUMB16,
-    'thumb':        ARCH_THUMB,
-    'msp430':       ARCH_MSP430,
-    'h8':           ARCH_H8,
-    'rv32':         ARCH_RISCV32,
-    'rv64':         ARCH_RISCV64,
-    'mcs51':        ARCH_MCS51,
-    'ppc32-embedded': ARCH_PPC_E32,
-    'ppc-embedded': ARCH_PPC_E64,
-    'ppc-vle':      ARCH_PPCVLE,
-    'ppc32-server': ARCH_PPC_S32,
-    'ppc-server':   ARCH_PPC_S64,
-    'ppc-desktop':  ARCH_PPC_D,
-    'rxv2':         ARCH_RXV2,
-    'sparc':        ARCH_SPARC,
-    'sparc64':      ARCH_SPARC64,
-    'mips':         ARCH_MIPS32,
-    'mips32':       ARCH_MIPS32,
-    'mips64':       ARCH_MIPS64,
-}
 
-arch_aliases = {
-    'i386':             ('i486', 'i586', 'i686', 'x86'),
-    'amd64':            ('x86_64',),
-    'arm':              ('armv6l', 'armv7l', 'a32'),
-    'thumb':            ('t32', 'thumb2'),
-    'a64':              ('aarch64',),
-    'ppc32-embedded':   ('ppc32',),
-    'ppc-embedded':     ('ppc64-embedded','ppc-spe'),
-    'ppc-server':       ('ppc64-server','altivec', 'ppc-altivec'),
-    'ppc-vle':          ('vle','ppc32-vle', 'ppcvle'),
-    'rv32':             ('riscv', 'risc-v',),
-    'mcs51':            ('8051', '80x51'),
-    'rxv2':             ('rxv1', 'rx'),
-    'mips32':           ('mips',),
-}
+# dynamically build lookup dictionaries
+arch_by_name = {}
+arch_by_name_and_aliases = {}
 
-arch_module_path = {
-    ARCH_I386:      ('i386', 'i386Module'),
-    ARCH_AMD64:     ('amd64', 'Amd64Module'),
-    ARCH_ARMV7:     ('arm', 'ArmModule'),
-    ARCH_THUMB16:   ('thumb16', 'Thumb16Module'),
-    ARCH_THUMB:     ('thumb16', 'ThumbModule'),
-    ARCH_A64:       ('a64', 'A64Module'),
-    ARCH_MSP430:    ('msp430', 'Msp430Module'),
-    ARCH_H8:        ('h8', 'H8Module'),
-    # new architectures
-    ARCH_RISCV32:   ('rv32', 'Rv32Module'),
-    ARCH_RISCV64:   ('rv64', 'Rv64Module'),
-    ARCH_PPC_E32:   ('ppc32-embedded', 'Module'),
-    ARCH_PPC_E64:   ('ppc-embedded', 'Module'),
-    ARCH_PPC_S32:   ('ppc32-server', 'Module'),
-    ARCH_PPC_S64:   ('ppc-server', 'Module'),
-    ARCH_PPCVLE:    ('ppc-vle', 'Module'),
-    ARCH_PPC_D:     ('ppc-desktop', 'Module'),
-    ARCH_RXV2:      ('rxv2', 'Module'),
-    ARCH_SPARC:     ('sparc', 'Module'),
-    ARCH_SPARC64:   ('sparc64', 'Module'),
-    ARCH_MIPS32:    ('mips32', 'Module'),
-    ARCH_MIPS64:    ('mips64', 'Module'),
-}
+for arch, adict in arch_defs.items():
+    arch_by_name[adict['name']] = arch
+    arch_by_name_and_aliases[adict['name']] = arch
+
+    for alias in adict.get('aliases', []):
+        arch_by_name_and_aliases[alias] = arch
+
 
 # Instruction flags (The first 8 bits are reserved for arch independant use)
 IF_NOFALL = 0x01  # Set if this instruction does *not* fall through
@@ -1357,13 +1417,13 @@ def getArchByName(archname):
     '''
     Get the architecture constant by the humon name.
     '''
-    return arch_by_name.get(archname)
+    return arch_by_name_and_aliases.get(archname)
 
 def getArchById(archid):
     '''
     Get the architecture name by the constant.
     '''
-    return arch_names.get(archid)
+    return arch_defs.get(archid).get('name')
 
 def getCurrentArch():
     """
@@ -1384,8 +1444,12 @@ def getCurrentArch():
     return ret
 
 def getRealArchName(name):
-    for rname, aliases in arch_aliases.items():
-        if name in aliases:
+    for arch, adict in arch_defs.items():
+        rname = adict.get('name')
+        if name == rname:
+            return rname
+
+        if name in adict.get('aliases', []):
             return rname
 
     return name
@@ -1393,11 +1457,9 @@ def getRealArchName(name):
 def getArchNames():
     """
     Return a dict of arch_names which are currently implemented
-
-    envi.arch_names may hold future architectures which have not been merged in yet
     """
     modules = getArchModules(new=False)
-    return {arch: name for (arch, name) in arch_names.items() if arch>>16 < len(modules) and modules[arch>>16]}
+    return {arch: name for (name, arch) in arch_by_name.items() if not arch_defs.get(arch).get('disabled')}
     
 
 def getArchModule(name=None):
@@ -1413,25 +1475,25 @@ def getArchModule(name=None):
     rname = getRealArchName(name)
     archnum = arch_by_name.get(rname)
 
-    if archnum not in arch_module_path:
-        raise ArchNotImplemented(name)
+    if archnum not in arch_defs or arch_defs.get(archnum).get('disabled'):
+        raise ArchNotImplemented(name, "Arch not defined, or Arch Disabled")
 
     # retrieve path and class info.  envi/archs/<aname>/__init__.py with amodname()
-    aname, amodname = arch_module_path.get(archnum)
+    aname, amodname = arch_defs[archnum].get('modpath')
 
     modpath = os.sep.join(['envi', 'archs', aname, '__init__.py'])
     if not os.path.exists(modpath):
-        raise ArchNotImplemented(name)
+        raise ArchNotImplemented(name, "Path does not exist: %r" % modpath)
 
     # get the module spec
     spec = imputil.spec_from_file_location(rname, os.sep.join(['envi','archs', aname, '__init__.py']))
     if not spec:
-        raise ArchNotImplemented(name)
+        raise ArchNotImplemented(name, "Failed to load module")
 
     # create an unintialized module from the spec
     module = imputil.module_from_spec(spec)
     if not module:
-        raise ArchNotImplemented(name)
+        raise ArchNotImplemented(name, "Failed to create uninitialized module from the spec")
 
     # insert the module into sys.modules:
     sys.modules[rname] = module
@@ -1445,18 +1507,15 @@ def getArchModule(name=None):
     
     return archmod
 
+
 def getArchModules(default=ARCH_DEFAULT, new=True):
     '''
     Retrieve a default array of arch modules ( where index 0 is
     also the "named" or "default" arch module.
     '''
-    global shared_modules
-    if not new and shared_modules:
-        return shared_modules
-
-    #archs = [None for x in range(ARCH_MAX)]
     archs = []
-    for arch, name in arch_names.items():
+    for arch, adict in arch_defs.items():
+        name = adict.get('name')
         archidx = arch>>16
         try:
             archmod = getArchModule(name)
@@ -1475,5 +1534,3 @@ def getArchModules(default=ARCH_DEFAULT, new=True):
             logger.critical(e, exc_info=1)
 
     return archs
-
-shared_modules = getArchModules()
