@@ -46,140 +46,163 @@ ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
 arch_defs = {
     ARCH_I386:      {
-        'name':	    'i386',
-        'aliases':    ('i486', 'i586', 'i686', 'x86'),
-        'modpath':	('i386', 'i386Module'),
+        'name':     'i386',
+        'aliases':  ('i486', 'i586', 'i686', 'x86'),
+        'modpath':  ('envi', 'archs', 'i386', ),
+        'clsname':  'i386Module',
         },
     
     ARCH_AMD64:     {
-        'name':	    'amd64',
-        'aliases':    ('x86_64',),
-        'modpath':	('amd64', 'Amd64Module'),
+        'name':     'amd64',
+        'aliases':  ('x86_64',),
+        'modpath':  ('envi', 'archs', 'amd64'),
+        'clsname':  'Amd64Module',
         },
     
     ARCH_ARMV7:     {
-        'name':	    'arm',
+        'name':     'arm',
         'aliases':  ('armv6l', 'armv7l', 'a32'),
-        'modpath':	('arm', 'ArmModule'),
+        'modpath':  ('envi', 'archs', 'arm'),
+        'clsname':  'ArmModule',
         },
     
     ARCH_THUMB16:   {
-        'name':	    'thumb16',
-        'modpath':	('thumb16', 'Thumb16Module'),
+        'name':     'thumb16',
+        'modpath':  ('envi', 'archs', 'thumb16'),
+        'clsname':  'Thumb16Module',
         },
     
     ARCH_THUMB:     {
-        'name':	    'thumb',
+        'name':     'thumb',
         'aliases':  ('t32', 'thumb2'),
-        'modpath':	('thumb16', 'ThumbModule'),
+        'modpath':  ('envi', 'archs', 'thumb16'),
+        'clsname':  'ThumbModule',
         },
     
     ARCH_A64:       {
-        'name':	    'a64',
-        'aliases':	('aarch64',),
-        'modpath':	('a64', 'A64Module'),
+        'name':     'a64',
+        'aliases':  ('aarch64',),
+        'modpath':  ('envi', 'archs', 'a64'),
+        'clsname':  'A64Module',
         'disabled': False,
         },
     
     ARCH_MSP430:    {
-        'name':	    'msp430',
-        'modpath':	('msp430', 'Msp430Module'),
+        'name':     'msp430',
+        'modpath':  ('envi', 'archs', 'msp430'),
+        'clsname':  'Msp430Module',
         },
     
     ARCH_H8:        {
-        'name':	    'h8',
-        'modpath':	('h8', 'H8Module'),
+        'name':     'h8',
+        'modpath':  ('envi', 'archs', 'h8'),
+        'clsname':  'H8Module',
         },
     
     ARCH_MCS51:     {
-        'name':       'mcs51',
-        'aliases':	('8051', '80x51'),
-        'modpath':	('mcs51', 'Mcs51Module'),
+        'name':     'mcs51',
+        'aliases':  ('8051', '80x51'),
+        'modpath':  ('envi', 'archs', 'mcs51'),
+        'clsname':  'Mcs51Module',
         'disabled': True,
         },
     
     ARCH_RISCV32:   {
-        'name':	    'rv32',
-        'aliases':	('riscv', 'risc-v',),
-        'modpath':	('rv32', 'Rv32Module'),
+        'name':     'rv32',
+        'aliases':  ('riscv', 'risc-v',),
+        'modpath':  ('envi', 'archs', 'rv32'),
+        'clsname':  'Rv32Module',
         'disabled': True,
         },
     
     ARCH_RISCV64:   {
-        'name':	    'rv64',
-        'modpath':	('rv64', 'Rv64Module'),
+        'name':     'rv64',
+        'modpath':  ('envi', 'archs', 'rv64'),
+        'clsname':  'Rv64Module',
         'disabled': True,
         },
     
     ARCH_PPC_E32:   {
-        'name':	    'ppc32-embedded',
-        'aliases':	('ppc32',),
-        'modpath':	('ppc32-embedded', 'Module'),
+        'name':     'ppc32-embedded',
+        'aliases':  ('ppc32',),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'Ppc32EmbeddedModule',
         'disabled': True,
         },
     
     ARCH_PPC_E64:   {
-        'name':	    'ppc-embedded',
-        'aliases':	('ppc64-embedded','ppc-spe'),
-        'modpath':	('ppc-embedded', 'Module'),
+        'name':     'ppc-embedded',
+        'aliases':  ('ppc64-embedded','ppc-spe'),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'Ppc64EmbeddedModule',
         'disabled': True,
         },
     
     ARCH_PPC_S32:   {
-        'name':	    'ppc32-server',
-        'modpath':	('ppc32-server', 'Module'),
+        'name':     'ppc32-server',
+        'modpath':  ('envi', 'archs', 'ppc32-server', 'Module'),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'Ppc32ServerModule',
         'disabled': True,
         },
     
     ARCH_PPC_S64:   {
-        'name':	    'ppc-server',
-        'aliases':	('ppc64-server','altivec', 'ppc-altivec'),
-        'modpath':	('ppc-server', 'Module'),
+        'name':     'ppc-server',
+        'aliases':  ('ppc64-server','altivec', 'ppc-altivec'),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'Ppc64ServerModule',
         'disabled': True,
         },
     
     ARCH_PPCVLE:    {
-        'name':	    'ppc-vle',
-        'aliases':	('vle','ppc32-vle', 'ppcvle'),
-        'modpath':	('ppc-vle', 'Module'),
+        'name':     'ppc-vle',
+        'aliases':  ('vle','ppc32-vle', 'ppcvle'),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'PpcVleModule',
         'disabled': True,
         },
     
     ARCH_PPC_D:     {
-        'name':	    'ppc-desktop',
-        'modpath':	('ppc-desktop', 'Module'),
+        'name':     'ppc-desktop',
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'PpcDesktopModule',
         'disabled': True,
         },
     
     ARCH_RXV2:      {
-        'name':	    'rxv2',
-        'aliases':	('rxv1', 'rx'),
-        'modpath':	('rxv2', 'Module'),
+        'name':     'rxv2',
+        'aliases':  ('rxv1', 'rx'),
+        'modpath':  ('envi', 'archs', 'rxv2'),
+        'clsname':  'RxModule',
         'disabled': True,
         },
     
     ARCH_SPARC:     {
-		'name':	    'sparc',
-        'modpath':	('sparc', 'Module'),
+        'name':     'sparc',
+        'modpath':  ('envi', 'archs', 'sparc'),
+        'clsname':  'SparcModule',
         'disabled': True,
         },
     
     ARCH_SPARC64:   {
-        'name':	    'sparc64',
-        'modpath':	('sparc64', 'Module'),
+        'name':     'sparc64',
+        'modpath':  ('envi', 'archs', 'sparc64'),
+        'clsname':  'Sparc64Module',
         'disabled': True,
         },
     
     ARCH_MIPS32:    {
-        'name':	    'mips32',
-        'aliases':	('mips',),
-        'modpath':	('mips32', 'Module'),
+        'name':     'mips32',
+        'aliases':  ('mips',),
+        'modpath':  ('envi', 'archs', 'mips32'),
+        'clsname':  'Mips32Module',
         'disabled': True,
         },
     
     ARCH_MIPS64:    {
-        'name':	    'mips64',
-        'modpath':	('mips64', 'Module'),
+        'name':     'mips64',
+        'modpath':  ('envi', 'archs', 'mips64'),
+        'clsname':  'Mips64Module',
         'disabled': True,
         },
 }
@@ -1478,28 +1501,16 @@ def getArchModule(name=None):
     if archnum not in arch_defs or arch_defs.get(archnum).get('disabled'):
         raise ArchNotImplemented(name, "Arch not defined, or Arch Disabled")
 
-    # retrieve path and class info.  envi/archs/<aname>/__init__.py with amodname()
-    aname, amodname = arch_defs[archnum].get('modpath')
+    # retrieve path and class info.  envi/archs/<archname>/__init__.py with amodname()
+    modpathtup = arch_defs[archnum]['modpath']
+    amodname = arch_defs[archnum].get('clsname')
 
-    modpath = os.sep.join(['envi', 'archs', aname, '__init__.py'])
-    if not os.path.exists(modpath):
-        raise ArchNotImplemented(name, "Path does not exist: %r" % modpath)
+    # load the module (given the path and module name)
+    try:
+        module = loadModuleFromPath(rname, modpathtup)
 
-    # get the module spec
-    spec = imputil.spec_from_file_location(rname, os.sep.join(['envi','archs', aname, '__init__.py']))
-    if not spec:
-        raise ArchNotImplemented(name, "Failed to load module")
-
-    # create an unintialized module from the spec
-    module = imputil.module_from_spec(spec)
-    if not module:
-        raise ArchNotImplemented(name, "Failed to create uninitialized module from the spec")
-
-    # insert the module into sys.modules:
-    sys.modules[rname] = module
-
-    # initialize the module (actually "importing" it)
-    spec.loader.exec_module(module)
+    except ModuleLoadFailure as e:
+        raise ArchNotImplemented(e.component, e.message)
 
     # instantiate the ArchitectureModule
     cls = getattr(module, amodname)
@@ -1507,6 +1518,36 @@ def getArchModule(name=None):
     
     return archmod
 
+def loadModuleFromPath(modname, modpathtup):
+    '''
+    Load a Python module given a module path
+    '''
+    modpath = os.sep.join(modpathtup)
+
+    # if we hand in the path to the directory, load the __init__.py
+    if os.path.isdir(modpath):
+        modpath = os.sep.join([modpath, '__init__.py'])
+
+    if not os.path.exists(modpath):
+        raise ModuleLoadFailure(modname, "Path does not exist: %r" % modpath)
+
+    # get the module spec
+    spec = imputil.spec_from_file_location(modname, modpath)
+    if not spec:
+        raise ModuleLoadFailure(modname, "Failed to load module")
+
+    # create an unintialized module from the spec
+    module = imputil.module_from_spec(spec)
+    if not module:
+        raise ModuleLoadFailure(modname, "Failed to create uninitialized module from the spec")
+
+    # insert the module into sys.modules:
+    sys.modules[modname] = module
+
+    # initialize the module (actually "importing" it)
+    spec.loader.exec_module(module)
+
+    return module
 
 def getArchModules(default=ARCH_DEFAULT, new=True):
     '''

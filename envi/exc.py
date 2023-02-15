@@ -101,17 +101,33 @@ class NoValidFreeMemoryFound(EnviException):
         self.size = size
 
 
+class ModuleLoadFailure(EnviException):
+    '''
+    Raised during the process of dynamically loading a Python module.
+
+    component is the name of the module being loaded
+    message is more details about the failure
+    '''
+    def __init__(self, component, message=None):
+        self.component = component
+        self.message = message
+
+        EnviException.__init__(self, component)
+
+
+    def __repr__(self):
+        component = self.component
+        if self.message:
+            component = "%s: %s" % (component, message)
+
+        return component
+
 class ArchNotImplemented(EnviException):
     """
     Raised by various Envi components when the architecture
     does not implement that envi component.
     """
-    def __init__(self, component, message=None):
-        if message:
-            component = "%s: %s" % (component, message)
-
-        EnviException.__init__(self, component)
-    
+    pass
 
 
 class EmuException(EnviException):
