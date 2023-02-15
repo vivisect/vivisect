@@ -1498,8 +1498,11 @@ def getArchModule(name=None):
     rname = getRealArchName(name)
     archnum = arch_by_name.get(rname)
 
-    if archnum not in arch_defs or arch_defs.get(archnum).get('disabled'):
-        raise ArchNotImplemented(name, "Arch not defined, or Arch Disabled")
+    if archnum not in arch_defs:
+        raise ArchNotImplemented(name, "Architecture not defined")
+
+    if arch_defs.get(archnum).get('disabled'):
+        raise ArchNotImplemented(name, "Architecture Disabled")
 
     # retrieve path and class info.  envi/archs/<archname>/__init__.py with amodname()
     modpathtup = arch_defs[archnum]['modpath']
