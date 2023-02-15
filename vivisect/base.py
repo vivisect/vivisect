@@ -695,7 +695,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             raise Exception("Architecture Module not defined for %s yet!" % arch)
 
         # This is for legacy stuff...
-        self.arch = self.imem_archs[envi.ARCH_DEFAULT]
+        self.arch = envi.getArchModule(value)
         self.psize = self.arch.getPointerSize()
 
         # Default calling convention for architecture
