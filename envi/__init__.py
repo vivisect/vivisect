@@ -84,7 +84,7 @@ arch_defs = {
         'aliases':  ('aarch64',),
         'modpath':  ('envi', 'archs', 'a64'),
         'clsname':  'A64Module',
-        'disabled': False,
+        'disabled': True,
         },
     
     ARCH_MSP430:    {
@@ -1467,6 +1467,10 @@ def getCurrentArch():
     return ret
 
 def getRealArchName(name):
+    """
+    Returns the official Architecture Name given an architecture name (which could be an alias, 
+    like x86_64 for amd64)
+    """
     for arch, adict in arch_defs.items():
         rname = adict.get('name')
         if name == rname:
@@ -1479,9 +1483,12 @@ def getRealArchName(name):
 
 def getArchNames():
     """
-    Return a dict of arch_names which are currently implemented
+    Return a subset (dict) of arch_by_name which only include enabled architectures.
+    This is helpful for accessing and displaying available architectures, since we now
+    allow definitions of architectures which may not be enabled or implemented.
+
+    Returns:   dict of { archnum: archname } 
     """
-    modules = getArchModules(new=False)
     return {arch: name for (name, arch) in arch_by_name.items() if not arch_defs.get(arch).get('disabled')}
     
 
@@ -1552,7 +1559,7 @@ def loadModuleFromPath(modname, modpathtup):
 
     return module
 
-def getArchModules(default=ARCH_DEFAULT, new=True):
+def getArchModules(default=ARCH_DEFAULT):
     '''
     Retrieve a default array of arch modules ( where index 0 is
     also the "named" or "default" arch module.
