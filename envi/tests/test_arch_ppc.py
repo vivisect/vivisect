@@ -209,27 +209,27 @@ class PpcInstructionSet(unittest.TestCase):
         return goodemu, bademu, tested_instrs
 
     def test_envi_ppcvle_disasm(self):
-        from . import ppc_vle_instructions
+        from envi.tests import ppc_vle_instructions
         self.do_envi_disasm('vle', ppc_vle_instructions)
 
     def test_envi_ppc_embedded_disasm(self):
-        from . import ppc_embedded_instructions
+        from envi.tests import ppc_embedded_instructions
         self.do_envi_disasm('ppc-embedded', ppc_embedded_instructions)
 
     def test_envi_ppc_server_disasm(self):
-        from . import ppc_server_instructions
+        from envi.tests import ppc_server_instructions
         self.do_envi_disasm('ppc-server', ppc_server_instructions)
 
     def test_envi_ppcvle_emu(self):
-        from . import ppc_vle_emutests
+        from envi.tests import ppc_vle_emutests
         self.do_envi_emu('vle', ppc_vle_emutests)
 
     def test_envi_ppc_embedded_emu(self):
-        from . import ppc_embedded_emutests
+        from envi.tests import ppc_embedded_emutests
         self.do_envi_emu('ppc-embedded', ppc_embedded_emutests)
 
     def test_envi_ppc_server_emu(self):
-        from . import ppc_server_emutests
+        from envi.tests import ppc_server_emutests
         self.do_envi_emu('ppc-server', ppc_server_emutests)
 
     def do_envi_disasm(self, archname, test_module):

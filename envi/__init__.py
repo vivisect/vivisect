@@ -2,15 +2,14 @@
 The Envi framework allows architecture abstraction through the use of the
 ArchitectureModule, Opcode, Operand, and Emulator objects.
 '''
-import os
 import sys
 import copy
 import types
 import struct
 import logging
 import platform
+import importlib
 import contextlib
-import importlib.util as imputil
 
 from envi.exc import *
 
@@ -1577,9 +1576,6 @@ def loadModuleFromAbsolutePath(modname, modpath):
 
     # insert the module into sys.modules:
     sys.modules[modname] = module
-
-    # initialize the module (actually "importing" it)
-    spec.loader.exec_module(module)
 
     return module
 
