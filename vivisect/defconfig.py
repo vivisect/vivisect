@@ -77,7 +77,7 @@ defconfig = {
                     ],
                 },
                 'findvlepages': True,
-                'mmu': [],
+                'vle_pages': [],
             },
         },
 
@@ -154,7 +154,7 @@ docconfig = {
                     'rchwaddrs':'A list of addresses to look for at for the reset-control half word (RCHW) used for PowerPC boot target identification',
                 },
                 'findvlepages':'Flag to search and automatically add VLE memory map pages from MMU instructions',
-                'mmu':'A list of [<address>, <size>] values that indicate memory segments where PowerPC VLE instructions can be found',
+                'vle_pages':'A list of [<address>, <size>] values that indicate memory segments where PowerPC VLE instructions can be found',
             },
         },
 
