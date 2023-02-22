@@ -94,7 +94,7 @@ class MipsOpcode(envi.Opcode):
         self.optype = optype
         self.mnem = mnem
         self.opers = opers
-        self.iflags = iflags | envi.ARCH_MIPS # JL this is how Vivisect can "know" that it's looking at MSP430 because it supports multiple arches in a single workspace
+        self.iflags = iflags | envi.ARCH_MIPS32
         self.size = size
 
         self.shamt = shamt
