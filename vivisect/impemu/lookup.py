@@ -7,17 +7,21 @@ import vivisect.impemu.platarch.a64 as v_i_a64
 import vivisect.impemu.platarch.i386 as v_i_i386
 import vivisect.impemu.platarch.amd64 as v_i_amd64
 import vivisect.impemu.platarch.msp430 as v_i_msp430
+
+import vivisect.impemu.platarch.linux as v_i_linux
 import vivisect.impemu.platarch.windows as v_i_windows
 
 workspace_emus  = {
-    'h8' :v_i_h8.H8WorkspaceEmulator,
+    'h8': v_i_h8.H8WorkspaceEmulator,
     'a64' :v_i_a64.A64WorkspaceEmulator,
-    'arm' :v_i_arm.ArmWorkspaceEmulator,
-    'i386'  :v_i_i386.i386WorkspaceEmulator,
-    'amd64' :v_i_amd64.Amd64WorkspaceEmulator,
-    'msp430' :v_i_msp430.Msp430WorkspaceEmulator,
-    'thumb' :v_i_arm.ThumbWorkspaceEmulator,
-    'thumb16' :v_i_arm.Thumb16WorkspaceEmulator,
-    ('windows','i386'): v_i_windows.Windowsi386Emulator,
-    ('windows','amd64'): v_i_windows.WindowsAmd64Emulator,
+    'arm': v_i_arm.ArmWorkspaceEmulator,
+    'i386': v_i_i386.i386WorkspaceEmulator,
+    'amd64': v_i_amd64.Amd64WorkspaceEmulator,
+    'msp430': v_i_msp430.Msp430WorkspaceEmulator,
+    'thumb': v_i_arm.ThumbWorkspaceEmulator,
+    'thumb16': v_i_arm.Thumb16WorkspaceEmulator,
+    ('windows', 'i386'): v_i_windows.Windowsi386Emulator,
+    ('windows', 'amd64'): v_i_windows.WindowsAmd64Emulator,
+    ('linux', 'i386'): v_i_linux.Linuxi386Emulator,
+    ('linux', 'amd64'): v_i_linux.LinuxAmd64Emulator,
 }

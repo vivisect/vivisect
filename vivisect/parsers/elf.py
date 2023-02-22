@@ -243,20 +243,6 @@ def getAddBaseAddr(elf, baseaddr=None):
     logger.debug("baseaddr: %r\tbaseoff: 0x%x", baseaddr, baseoff)
     return addbase, baseoff, baseaddr
 
-# which Dynamic Types require rebasing
-dt_rebase = (
-        Elf.DT_INIT, 
-        Elf.DT_FINI, 
-        Elf.DT_INIT_ARRAY, 
-        Elf.DT_FINI_ARRAY, 
-        Elf.DT_GNU_HASH,
-        Elf.DT_STRTAB,
-        Elf.DT_SYMTAB,
-        Elf.DT_PLTGOT,
-        Elf.DT_JMPREL,
-        Elf.DT_REL,
-        Elf.DT_VERNEED,
-)
 def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # analysis of discovered functions and data locations should be stored until the end of loading
     logger.info("loadElfIntoWorkspace(filename=%r, baseaddr: %r", filename, baseaddr)
@@ -418,6 +404,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     sva, symsz, size = elf.getDynSymTabInfo()
     if sva is not None:
         sva += baseoff
+        logger.debug("making DynSym table: 0x%x secsize: 0x%x entsize: 0x%x", sva, size, symsz)
         [s for s in makeSymbolTable(vw, sva, sva+size)]
 
     # Now trigger section specific analysis
@@ -492,7 +479,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             logger.debug("DYNAMIC:\t%r", d)
         
         dval = d.d_value
-        if d.d_tag in dt_rebase and addbase:
+        if d.d_tag in Elf.dt_rebase and addbase:
             dval += baseoff
 
         elfmeta[Elf.dt_names.get(d.d_tag)] = dval
@@ -727,7 +714,15 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
     for secidx, r in elf.getRelocs():
         rtype = r.getType()
         rlva = r.r_offset
+        if elf.isRelocatable():
+            container = elf.getSectionByIndex(secidx)
+            if container.sh_flags & elf_lookup.SHF_INFO_LINK:
+                othr = elf.getSectionByIndex(container.sh_info)
+                if othr:
+                    rlva += othr.sh_addr
+
         rlva += baseoff
+
         try:
             # If it has a name, it's an externally resolved "import" entry,
             # otherwise, just a regular reloc

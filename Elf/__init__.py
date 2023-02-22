@@ -322,19 +322,19 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
     def _parseDynStrs(self):
         # setup STRTAB for string recovery:
-        dynstrtab = self.dyns.get(DT_STRTAB)
+        dynstrtabva = self.dyns.get(DT_STRTAB)
         strsz = self.dyns.get(DT_STRSZ)
-        if dynstrtab is None or strsz is None:
-            logger.info('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtab, strsz)
+        if dynstrtabva is None or strsz is None:
+            logger.info('no dynamic string tableinfo found: DT_STRTAB: %r  DT_STRSZ: %r', dynstrtabva, strsz)
             return
 
         if self.dynstrtabmeta != (None, None):
             curtab = self.dynstrtabmeta[0]
             logger.warning('wtf?  multiple dynamic string tables?  old: 0x%x  new: 0x%x', curtab, rva)
 
-        strtabbytes = self.readAtRva(dynstrtab, strsz)
+        strtabbytes = self.readAtRva(dynstrtabva, strsz)
 
-        self.dynstrtabmeta = (dynstrtab, strsz)
+        self.dynstrtabmeta = (dynstrtabva, strsz)
         self.dynstrtab = strtabbytes.split(b'\0')
 
         # since our string table should certainly end in '\0', we'll have an empty string
@@ -342,13 +342,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # need to clean it up.
         if len(self.dynstrtab) and not len(self.dynstrtab[-1]):
             self.dynstrtab.pop()
-
-        self.dynsymtabct = len(self.dynstrtab)  # cheat: there is a 1-to-1 relationship between symbols and strings in these tables
-        # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
-        soname = self.dyns.get(DT_SONAME)
-        if soname is not None and soname != -1 and soname < strsz:
-            dynsymstrs = strtabbytes[:soname].split(b'\0')
-            self.dynsymtabct = len(dynsymstrs) - 1
 
         # setup names for the dynamics table entries
         for dyn in self.dynamics:
@@ -907,12 +900,44 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         in self.dynsymtabct.  Perhaps this is horrible and should be stricken
         from the code.
         '''
-        #FIXME: make this use both SECTION and PT_DYNAMICS versions...
+        # if DT_SYMTAB doesn't exist, we don't have a symbol table defined by DYNAMICS
         symtabva = self.dyns.get(DT_SYMTAB)
         if symtabva is None:
             return None, None, None
 
         symsz = self.dyns.get(DT_SYMENT)
+
+        # calculate/reuse symbol count
+        if not self.dynsymtabct:    # check if we've already got this value
+            # calculate the Dynamic Symbol Table Size
+            self.dynsymtabct = len(self.dynstrtab)
+            if not self.dynsymtabct:
+                # if we haven't set up dynsymtabct, call _parseDynStrs and create one)
+                self._parseDynStrs()
+                self.dynsymtabct = len(self.dynstrtab)
+
+            # if "DT_SONAME" is within this string table, there are no symbols to match that or thereafter:
+            soname = self.dyns.get(DT_SONAME)
+            if soname is not None and soname != -1:
+                strsz = self.dyns.get(DT_STRSZ)
+                if soname < strsz:
+                    dynstrtabva = self.dyns.get(DT_STRTAB)
+                    strtabbytes = self.readAtRva(dynstrtabva, soname)
+                    dynsymstrs = strtabbytes.split(b'\0')
+                    self.dynsymtabct = len(dynsymstrs) - 1
+
+            # if any of the other Dyns (which are addresses) come after this, don't parse past them
+            for dyntype in dt_rebase:
+                dyn = self.dyns.get(dyntype)
+                if dyn is None:
+                    continue
+
+                if dyn > symtabva:
+                    if dyn < symtabva + (self.dynsymtabct * symsz):
+                        # we have a new winner!
+                        delta = dyn - symtabva
+                        self.dynsymtabct = delta // symsz
+
         count = self.dynsymtabct
         symtabsz = count * symsz
 
