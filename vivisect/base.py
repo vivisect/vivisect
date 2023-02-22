@@ -692,7 +692,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # are still in progress
             self.setMemArchitecture(archid)
         except IndexError:
-            raise Exception("Architecture Module not defined for %s yet!" % arch)
+            raise Exception("Architecture Module not defined for %s yet!" % value)
 
         # This is for legacy stuff...
         self.arch = envi.getArchModule(value)
