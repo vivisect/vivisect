@@ -2,6 +2,84 @@
 Vivisect Changelog
 ******************
 
+V1.1.0 - 2023-02-18
+===================
+Features
+--------
+- Update VDB's handling of x64 systems.
+  (`#56 https://github.com/vivisect/vivisect/pull/56`_)
+- Symbolic switchcase analysis.
+  (`#112 https://github.com/vivisect/vivisect/pull/112`_)
+- Make Vivisect loader more elegantly handle multiple files.
+  (`#472 https://github.com/vivisect/vivisect/pull/472`_)
+- Funcgraph enhancements: AutoRefresh, FollowTheLeader, Xrefs Window, and Window Renaming.
+  (`#488 https://github.com/vivisect/vivisect/pull/488`_)
+- update impapi to cover msvcr100.dll
+  (`#522 https://github.com/vivisect/vivisect/pull/522`_)
+- Add a SaveToServer dialog.
+  (`#527 https://github.com/vivisect/vivisect/pull/527`_)
+- Update imphook names in the platarch emulators.
+  (`#530 https://github.com/vivisect/vivisect/pull/530`_)
+- Relocatable ELF Support.
+  (`#531 https://github.com/vivisect/vivisect/pull/531`_)
+- Check before making new location types in the UI.
+  (`#533 https://github.com/vivisect/vivisect/pull/533`_)
+- Turn register groups from a tuple to a dictionary.
+  (`#542 https://github.com/vivisect/vivisect/pull/542`_)
+- Store a file's original name in the meta info.
+  (`#543 https://github.com/vivisect/vivisect/pull/543`_)
+- Add API entry for __read_chk on posix.
+  (`#545 https://github.com/vivisect/vivisect/pull/545`_)
+- Add option to WorkspaceEmulator to disable shared caching.
+  (`#547 https://github.com/vivisect/vivisect/pull/547`_)
+- Enabling POSIX Library Load notifications.
+  (`#550 https://github.com/vivisect/vivisect/pull/550`_)
+- Add i386 opcode vpcext.
+  (`#556 https://github.com/vivisect/vivisect/pull/556`_)
+- Update vamp signatures.
+  (`#566 https://github.com/vivisect/vivisect/pull/566`_)
+- Making architecture names/numbers in envi for impending architectures.
+  (`#567 https://github.com/vivisect/vivisect/pull/567`_)
+- Refactoring Windows library APIs.
+  (`#572 https://github.com/vivisect/vivisect/pull/572`_)
+
+Fixes
+-----
+- Various fixes to improve ARM analysis.
+  (`#473 https://github.com/vivisect/vivisect/pull/473`_)
+- Fix an issue in the remote server.
+  (`#523 https://github.com/vivisect/vivisect/pull/523`_)
+- Fix some remote gui bugs.
+  (`#525 https://github.com/vivisect/vivisect/pull/525`_)
+- Documentation build fixes.
+  (`#535 https://github.com/vivisect/vivisect/pull/535`_)
+- More documentation build fixes.
+  (`#537 https://github.com/vivisect/vivisect/pull/537`_)
+- Bump QT Versions to address hanging.
+  (`#541 https://github.com/vivisect/vivisect/pull/541`_)
+- Fix VivWorkspace opcache key creation.
+  (`#544 https://github.com/vivisect/vivisect/pull/544`_)
+- More ARM bugfixes.
+  (`#546 https://github.com/vivisect/vivisect/pull/546`_)
+- Fix and extend Windows API hooking.
+  (`#548 https://github.com/vivisect/vivisect/pull/548`_)
+- VTrace posix missing import.
+  (`#549 https://github.com/vivisect/vivisect/pull/549`_)
+- minor bugfixes: VDB RegisterView widget
+  (`#552 https://github.com/vivisect/vivisect/pull/552`_)
+- Fix i386's vtrace archGetBackTrace results.
+  (`#553 https://github.com/vivisect/vivisect/pull/553`_)
+- Linux i386 syscall fixes.
+  (`#555 https://github.com/vivisect/vivisect/pull/555`_)
+- Pull back in some fixes that got lost in merges.
+  (`#564 https://github.com/vivisect/vivisect/pull/564`_)
+- Make MiniDump log to a named logger.
+  (`#565 https://github.com/vivisect/vivisect/pull/565`_)
+- Make BasicFile storage write the header when used from the UI.
+  (`#570 https://github.com/vivisect/vivisect/pull/570`_)
+- Arch Const Handling refactoring.
+  (`#571 https://github.com/vivisect/vivisect/pull/571`_)
+
 V1.0.8 - 2022-04-28
 ===================
 
