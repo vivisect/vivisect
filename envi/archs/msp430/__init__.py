@@ -34,7 +34,7 @@ class Msp430Module(envi.ArchitectureModule):
     def pointerString(self, va):
         return '0x{:04x}'.format(va)
 
-    def archParseOpcode(self, bytes, offset=0, va=0):
+    def archParseOpcode(self, bytes, offset=0, va=0, extra=None):
         return self._arch_dis.disasm(bytes, offset, va)
 
     def getEmulator(self):

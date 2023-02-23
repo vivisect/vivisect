@@ -842,6 +842,21 @@ dt_types = {
     #DT_PROCNUM  : "Most used by any processor ",
 }
 
+# which Dynamic Types require rebasing
+dt_rebase = (
+        DT_INIT, 
+        DT_FINI, 
+        DT_INIT_ARRAY, 
+        DT_FINI_ARRAY, 
+        DT_GNU_HASH,
+        DT_STRTAB,
+        DT_SYMTAB,
+        DT_PLTGOT,
+        DT_JMPREL,
+        DT_REL,
+        DT_VERNEED,
+)
+
 DF_ORIGIN =         0x00000001
 DF_SYMBOLIC =       0x00000002
 DF_TEXTREL =        0x00000004
