@@ -1514,7 +1514,7 @@ def getArchModule(name=None):
 
     # load the module (given the path and module name)
     try:
-        module = loadModuleFromPath(rname, modpathtup)
+        module = loadModuleFromPathTup(rname, modpathtup)
 
     except ModuleLoadFailure as e:
         raise ArchNotImplemented(e.component, e.message)
@@ -1525,15 +1525,35 @@ def getArchModule(name=None):
     
     return archmod
 
-def loadModuleFromPath(modname, modpathtup):
+def loadModuleFromPathTup(modname, modpathtup):
     '''
-    Load a Python module given a module path
-    '''
-    modpath = os.sep.join(modpathtup)
+    Load a Python module given a module path tuple
 
+    Searches through the PYTHONPATH for a matching module
+    '''
+    modpath = os.path.join(*modpathtup)
+    for pathbase in sys.path:
+        tmppath = os.path.join(pathbase, modpath)
+        if os.path.exists(tmppath):
+            modpath = tmppath
+            break
+    
+    return loadModuleFromAbsolutePath(modname, modpath)
+
+def loadModuleFromAbsolutePathTup(modname, modpathtup):
+    '''
+    Load a Python module given an absolute module path tuple
+    '''
+    modpath = os.sep + os.path.join(*modpathtup)
+    return loadModuleFromAbsolutePath(modname, modpath)
+
+def loadModuleFromAbsolutePath(modname, modpath):
+    '''
+    Load a Python module given an absolute module path string
+    '''
     # if we hand in the path to the directory, load the __init__.py
     if os.path.isdir(modpath):
-        modpath = os.sep.join([modpath, '__init__.py'])
+        modpath = os.path.join(modpath, '__init__.py')
 
     if not os.path.exists(modpath):
         raise ModuleLoadFailure(modname, "Path does not exist: %r" % modpath)
