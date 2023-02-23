@@ -310,7 +310,7 @@ statmetas = [
         ('SPEFSCR_FDBZS', REG_SPEFSCR, 63-44, 1, 'Embedded Floating-Point Divide By Zero Sticky Flag'),
         ('SPEFSCR_FUNFS', REG_SPEFSCR, 63-45, 1, 'Embedded Floating-Point Underflow Sticky Flag'),
         ('SPEFSCR_FOVFS', REG_SPEFSCR, 63-46, 1, 'Embedded Floating-Point Overflow Sticky Flag'),
-        ('SPEFSCR_MODE',  REG_SPEFSCR, 63-47, 1, 'Enbedded Floating-Point Operating Mode'),
+        ('SPEFSCR_MODE',  REG_SPEFSCR, 63-47, 1, 'Embedded Floating-Point Operating Mode'),
         ('SPEFSCR_SOV',   REG_SPEFSCR, 63-48, 1, 'Summary Integer Overflow High'),
         ('SPEFSCR_OV',    REG_SPEFSCR, 63-49, 1, 'Integer Overflow High'),
         ('SPEFSCR_FG',    REG_SPEFSCR, 63-50, 1, 'Embedded Floating-Point Guard Bit Low'),
