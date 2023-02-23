@@ -1578,6 +1578,9 @@ def loadModuleFromAbsolutePath(modname, modpath):
     # insert the module into sys.modules:
     sys.modules[modname] = module
 
+    # initialize the module (actually "importing" it)
+    spec.loader.exec_module(module)
+
     return module
 
 def getArchModules(default=ARCH_DEFAULT):
