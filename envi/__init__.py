@@ -1517,7 +1517,7 @@ def getArchModule(name=None):
 
     # load the module (given the path and module name)
     try:
-        module = loadModuleFromPath(rname, modpathtup)
+        module = loadModuleFromPath(rname, modpathtup, abspath=False)
 
     except ModuleLoadFailure as e:
         raise ArchNotImplemented(e.component, e.message)
@@ -1528,11 +1528,20 @@ def getArchModule(name=None):
     
     return archmod
 
-def loadModuleFromPath(modname, modpathtup):
+def loadModuleFromPath(modname, modpathtup, abspath=True):
     '''
     Load a Python module given a module path
     '''
     modpath = os.sep.join(modpathtup)
+    if abspath:
+        modpath = os.sep + modpath
+
+    else:
+        for pathbase in sys.path:
+            tmppath = os.sep.join([pathbase, modpath])
+            if os.path.exists(tmppath):
+                modpath = tmppath
+                break
 
     # if we hand in the path to the directory, load the __init__.py
     if os.path.isdir(modpath):
