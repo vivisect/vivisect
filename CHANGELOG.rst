@@ -42,6 +42,8 @@ Features
   (`#567 https://github.com/vivisect/vivisect/pull/567`_)
 - Refactoring Windows library APIs.
   (`#572 https://github.com/vivisect/vivisect/pull/572`_)
+- Sort context menu options and add "this window" option.
+  (`#577 https://github.com/vivisect/vivisect/pull/577`_)
 
 Fixes
 -----
@@ -79,6 +81,8 @@ Fixes
   (`#570 https://github.com/vivisect/vivisect/pull/570`_)
 - Arch Const Handling refactoring.
   (`#571 https://github.com/vivisect/vivisect/pull/571`_)
+- Architecture loading emergency bugfix.
+  (`#578 https://github.com/vivisect/vivisect/pull/578`_)
 
 V1.0.8 - 2022-04-28
 ===================
