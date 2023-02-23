@@ -2,14 +2,15 @@
 The Envi framework allows architecture abstraction through the use of the
 ArchitectureModule, Opcode, Operand, and Emulator objects.
 '''
+import os
 import sys
 import copy
 import types
 import struct
 import logging
 import platform
-import importlib
 import contextlib
+import importlib.util as imputil
 
 from envi.exc import *
 
