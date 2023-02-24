@@ -174,7 +174,6 @@ arch_defs = {
         'aliases':  ('rxv1', 'rx'),
         'modpath':  ('envi', 'archs', 'rxv2'),
         'clsname':  'RxModule',
-        'disabled': True,
         },
     
     ARCH_SPARC:     {
