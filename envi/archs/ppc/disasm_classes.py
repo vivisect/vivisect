@@ -116,7 +116,7 @@ class PpcOpcode(envi.Opcode):
             addb = True
 
         # If we can fall through, reflect that...
-        if not self.iflags & envi.IF_NOFALL and not self.iflags & envi.IF_CALL:
+        if not self.iflags & envi.IF_NOFALL:
            ret.append((self.va + self.size, flags|envi.BR_FALL))
 
         # Check for a call...
