@@ -58,10 +58,15 @@ class CoProcEmulator:       # useful for prototyping, but should be subclassed
 
 
 def _getRegIdx(idx, mode):
+    '''
+    Currently cheating and simply supporting only one mode and associated registers.
+    '''
     if idx >= MAX_REGS:
         return idx
-    ridx = idx + (mode*17)  # account for different banks of registers
-    ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
+
+    ridx = idx
+    #ridx = idx + (mode*17)  # account for different banks of registers
+    #ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
     return ridx
 
 def c0000(flags):

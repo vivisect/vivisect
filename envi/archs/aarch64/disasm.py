@@ -679,6 +679,7 @@ def p_ls_excl(opval, va):
     '''
     Load/store exclusive instruction
     '''
+    iflag = 0
     size = opval >> 30 & 0x3
     o2 = opval >> 23 & 0x1
     l = opval >> 22 & 0x1

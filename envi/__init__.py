@@ -82,7 +82,7 @@ arch_defs = {
     ARCH_A64:       {
         'name':     'a64',
         'aliases':  ('aarch64',),
-        'modpath':  ('envi', 'archs', 'a64'),
+        'modpath':  ('envi', 'archs', 'aarch64'),
         'clsname':  'A64Module',
         },
     

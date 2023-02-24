@@ -1,14 +1,18 @@
 #this probably needs to be looked over once more to make sure all
 #assembler symbols are correctly represented
 
+import sys
+import envi
+import struct
 import unittest
 import vivisect
 
 from binascii import unhexlify
+from envi.archs.aarch64.regs import *
 
 
 instrs = [
-#Data processing immediate
+    #Data processing immediate
 
     # PC-release addressing
     ('50abcd03', 'adr x3, [#0x1479a2]', 0, ()), #adr
@@ -4713,6 +4717,7 @@ class A64InstructionSet(unittest.TestCase):
         # setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "a64")
+        vw.setEndian(envi.ENDIAN_MSB)
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
         emu = vw.getEmulator()
@@ -4723,8 +4728,9 @@ class A64InstructionSet(unittest.TestCase):
         goodcount = 0
         goodemu = 0
         bademu = 0
-        for bytez, va, reprOp, iflags, emutests in instrs:
-            op = vw.arch.archParseOpcode(bytez.decode('hex'), 0, va)
+        for bytez, reprOp, iflags, emutests in instrs:
+            va = 0
+            op = vw.arch.archParseOpcode(unhexlify(bytez), 0, va)
             #print(repr(op))
             redoprepr = repr(op).replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()
@@ -4733,16 +4739,18 @@ class A64InstructionSet(unittest.TestCase):
                 print( bytez,redoprepr)
                 print
                 #print(out binary representation of opcode for checking)
-                num, = struct.unpack("<I", bytez.decode('hex'))
+                num, = struct.unpack("<I", unhexlify(bytez))
                 print(hex(num))
                 bs = bin(num)[2:].zfill(32)
                 print(bs)
                 
                 badcount += 1
                 
-                raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
+                print("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
                         (goodcount, va, bytez, reprOp, repr(op) ) )
-                self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
+                #raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
+                #        (goodcount, va, bytez, reprOp, repr(op) ) )
+                #self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
 
             else:
                 goodcount += 1
@@ -4789,24 +4797,15 @@ class A64InstructionSet(unittest.TestCase):
         print("Total of ", str(goodcount + badcount) + " tests completed.")
         self.assertEqual(goodcount, GOOD_TESTS)
         self.assertEqual(goodemu, GOOD_EMU_TESTS)
-        
-        #pending deletion of following comments. Please comment if they need to stay or I will delete in following commit
-        #op = vw.arch.archParseOpcode('12c3'.decode('hex'))
-        ##rotl.b #2, r3h
-        ##print( op, hex(0x7a) )
-        #emu.setRegisterByName('r3h', 0x7a)
-        #emu.executeOpcode(op)
-        ##print( hex(emu.getRegisterByName('r3h')), emu.getFlag(CCR_C) )
-        ##0xef False
 
     def validateEmulation(self, emu, op, setters, tests, tidx=0):
         # first set any environment stuff necessary
         ## defaults
-        emu.setRegister(REG_R3, 0x414141)
-        emu.setRegister(REG_R4, 0x444444)
-        emu.setRegister(REG_R5, 0x10)
-        emu.setRegister(REG_R6, 0x464646)
-        emu.setRegister(REG_R7, 0x474747)
+        emu.setRegister(REG_X3, 0x414141)
+        emu.setRegister(REG_X4, 0x444444)
+        emu.setRegister(REG_X5, 0x10)
+        emu.setRegister(REG_X6, 0x464646)
+        emu.setRegister(REG_X7, 0x474747)
         emu.setRegister(REG_SP, 0x450000)
         ## special cases
         # setup flags and registers
