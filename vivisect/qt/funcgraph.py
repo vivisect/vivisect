@@ -138,7 +138,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
     def contextMenuEvent(self, event):
         if self._canv_curva is not None:
-            menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self)
+            menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self, nav=self.parent())
         else:
             menu = QMenu(parent=self)
 
