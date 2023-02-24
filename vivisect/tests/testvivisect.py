@@ -1087,15 +1087,11 @@ class VivisectTest(v_t_utils.VivTest):
 
         for va, size, ltyp, name in exports:
             loc = vw.getLocation(va)
-            try:
-                self.assertIsNotNone(loc)
-                self.assertEqual(loc[v_const.L_VA], va)
-                self.assertEqual(loc[v_const.L_SIZE], size)
-                self.assertEqual(loc[v_const.L_LTYPE], ltyp)
-                self.assertEqual(vw.getName(loc[v_const.L_VA]), name)
-            except:
-                breakpoint()
-                print('wat')
+            self.assertIsNotNone(loc)
+            self.assertEqual(loc[v_const.L_VA], va)
+            self.assertEqual(loc[v_const.L_SIZE], size)
+            self.assertEqual(loc[v_const.L_LTYPE], ltyp)
+            self.assertEqual(vw.getName(loc[v_const.L_VA]), name)
 
     def test_libfunc_meta_equality(self):
         '''
@@ -1528,7 +1524,8 @@ class VivisectTest(v_t_utils.VivTest):
                     0x140049770, 0x140049bf0, 0x140049b80, 0x140049780, 0x140049a00, 0x140049900, 0x140049700,
                     0x140049800, 0x140049880, 0x140049c00, 0x140049b00, 0x140049a10, 0x140049790, 0x140049810,
                     0x140049a90, 0x140049710, 0x14001ef10, 0x140049890, 0x140049910, 0x140049b90, 0x140049c10,
-                    0x140049b40, 0x140049aa0, 0x1400497a0, 0x140049720, 0x140049820, 0x140049a20, 0x140048a10]
+                    0x140049b40, 0x140049aa0, 0x1400497a0, 0x140049720, 0x140049820, 0x140049a20, 0x140048a10,
+                    0x140048a80]
 
         self.assertEqual(thunks, set(impthunk))
 
