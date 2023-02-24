@@ -111,8 +111,14 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         runner = functools.partial(self._renderMemoryFinish, cb)
         e_memcanvas.MemoryCanvas.renderMemory(self, va, size, cb=runner)
 
-    def renderMemory(self, va, size, cb):
+    def renderMemory(self, va, size, cb=None):
+        '''
+        Funcgraph specific renderMemory() function.
+        '''
         # For the funcgraph canvas, this will be called once per code block
+        if not cb:
+            cb = self.__nopcb
+
         selector = 'codeblock_%.8x' % va
         js = '''var node = document.querySelector("#%s");
         if (node == null) {
@@ -127,9 +133,12 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         logger.log(MIRE, "renderMemory(%r, %r) %r", va, cb, runner)
         self.page().runJavaScript(js, runner)
 
+    def __nopcb(self):
+        pass
+
     def contextMenuEvent(self, event):
         if self._canv_curva is not None:
-            menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self)
+            menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self, nav=self.parent())
         else:
             menu = QMenu(parent=self)
 

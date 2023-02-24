@@ -1170,17 +1170,25 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             loctup = self.getLocation(va)
             # XXX - in the case where we've set a location on what should be an
             # opcode lets make sure L_LTYPE == LOC_OP if not lets reset L_TINFO = original arch param
-            # so that at least parse opcode wont fail
+            # so that at least parse opcode won't fail
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
+
+        amod = self.imem_archs[(arch & envi.ARCH_MASK) >> 16]
+        # TODO: Consider reserving another key so architectures can pass down info specific to them
+        extra = {
+            'platform': self.getMeta('Platform')
+        }
+
         if not skipcache:
             key = (va, arch, b[off:off+16])
-            valu = self._op_cache.get(key, None)
-            if not valu:
-                valu = self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
-            self._op_cache[key] = valu
-            return valu
-        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+            op = self._op_cache.get(key, None)
+            if not op:
+                op = amod.archParseOpcode(b, off, va, extra=extra)
+            self._op_cache[key] = op
+            return op
+
+        return amod.archParseOpcode(b, off, va, extra=extra)
 
     def clearOpcache(self):
         '''
@@ -1386,7 +1394,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     self.addXref(va, ptrdest[0], REF_CODE, bflags & ~envi.BR_DEREF)
                 else:
                     self.addXref(va, tova, REF_CODE, bflags)
-
 
             else:
                 # vivisect does NOT create REF_CODE entries for
@@ -3275,6 +3282,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 0, 8)
+version = (1, 1, 0)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

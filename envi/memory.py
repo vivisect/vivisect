@@ -69,6 +69,7 @@ class IMemory:
             self.setMemArchitecture(arch)
 
         self.bigend = envi.ENDIAN_LSB
+        self._supervisor = False
 
     def getEndian(self):
         '''
@@ -82,6 +83,8 @@ class IMemory:
         '''
         self.bigend = endian
         for arch in self.imem_archs:
+            if not arch:
+                continue
             arch.setEndian(self.bigend)
 
         if self.arch is not None:
@@ -434,7 +437,6 @@ class MemoryObject(IMemory):
         """
         IMemory.__init__(self, arch=arch)
         self._map_defs = []
-        self._supervisor = False
 
     @contextlib.contextmanager
     def getAdminRights(self):
