@@ -2,13 +2,15 @@
 The Envi framework allows architecture abstraction through the use of the
 ArchitectureModule, Opcode, Operand, and Emulator objects.
 '''
-
+import os
+import sys
 import copy
 import types
 import struct
 import logging
 import platform
 import contextlib
+import importlib.util as imputil
 
 from envi.exc import *
 
@@ -42,71 +44,179 @@ ARCH_MIPS64      = 22 << 16
 
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
-arch_names = {
-    ARCH_DEFAULT:   'default',
-    ARCH_I386:      'i386',
-    ARCH_AMD64:     'amd64',
-    ARCH_ARMV7:     'arm',
-    ARCH_THUMB16:   'thumb16',
-    ARCH_THUMB:     'thumb',
-    ARCH_A64:       'a64',
-    ARCH_MSP430:    'msp430',
-    ARCH_H8:        'h8',
-    ARCH_RISCV32:   'rv32',
-    ARCH_RISCV64:   'rv64',
-    ARCH_PPC_E32:   'ppc32-embedded',
-    ARCH_PPC_E64:   'ppc-embedded',
-    ARCH_PPC_S32:   'ppc32-server',
-    ARCH_PPC_S64:   'ppc-server',
-    ARCH_PPCVLE:    'ppc-vle',
-    ARCH_PPC_D:     'ppc-desktop',
-    ARCH_RXV2:      'rxv2',
-    ARCH_SPARC:     'sparc',
-    ARCH_SPARC64:   'sparc64',
-    ARCH_MIPS32:    'mips32',
-    ARCH_MIPS64:    'mips64',
+arch_defs = {
+    ARCH_I386:      {
+        'name':     'i386',
+        'aliases':  ('i486', 'i586', 'i686', 'x86'),
+        'modpath':  ('envi', 'archs', 'i386', ),
+        'clsname':  'i386Module',
+        },
+    
+    ARCH_AMD64:     {
+        'name':     'amd64',
+        'aliases':  ('x86_64',),
+        'modpath':  ('envi', 'archs', 'amd64'),
+        'clsname':  'Amd64Module',
+        },
+    
+    ARCH_ARMV7:     {
+        'name':     'arm',
+        'aliases':  ('armv6l', 'armv7l', 'a32'),
+        'modpath':  ('envi', 'archs', 'arm'),
+        'clsname':  'ArmModule',
+        },
+    
+    ARCH_THUMB16:   {
+        'name':     'thumb16',
+        'modpath':  ('envi', 'archs', 'thumb16'),
+        'clsname':  'Thumb16Module',
+        },
+    
+    ARCH_THUMB:     {
+        'name':     'thumb',
+        'aliases':  ('t32', 'thumb2'),
+        'modpath':  ('envi', 'archs', 'thumb16'),
+        'clsname':  'ThumbModule',
+        },
+    
+    ARCH_A64:       {
+        'name':     'a64',
+        'aliases':  ('aarch64',),
+        'modpath':  ('envi', 'archs', 'a64'),
+        'clsname':  'A64Module',
+        'disabled': True,
+        },
+    
+    ARCH_MSP430:    {
+        'name':     'msp430',
+        'modpath':  ('envi', 'archs', 'msp430'),
+        'clsname':  'Msp430Module',
+        },
+    
+    ARCH_H8:        {
+        'name':     'h8',
+        'modpath':  ('envi', 'archs', 'h8'),
+        'clsname':  'H8Module',
+        },
+    
+    ARCH_MCS51:     {
+        'name':     'mcs51',
+        'aliases':  ('8051', '80x51'),
+        'modpath':  ('envi', 'archs', 'mcs51'),
+        'clsname':  'Mcs51Module',
+        'disabled': True,
+        },
+    
+    ARCH_RISCV32:   {
+        'name':     'rv32',
+        'aliases':  ('riscv', 'risc-v',),
+        'modpath':  ('envi', 'archs', 'rv32'),
+        'clsname':  'Rv32Module',
+        },
+    
+    ARCH_RISCV64:   {
+        'name':     'rv64',
+        'modpath':  ('envi', 'archs', 'rv64'),
+        'clsname':  'Rv64Module',
+        },
+    
+    ARCH_PPC_E32:   {
+        'name':     'ppc32-embedded',
+        'aliases':  ('ppc32',),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'Ppc32EmbeddedModule',
+        'disabled': True,
+        },
+    
+    ARCH_PPC_E64:   {
+        'name':     'ppc-embedded',
+        'aliases':  ('ppc64-embedded','ppc-spe'),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'Ppc64EmbeddedModule',
+        'disabled': True,
+        },
+    
+    ARCH_PPC_S32:   {
+        'name':     'ppc32-server',
+        'modpath':  ('envi', 'archs', 'ppc32-server', 'Module'),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'Ppc32ServerModule',
+        'disabled': True,
+        },
+    
+    ARCH_PPC_S64:   {
+        'name':     'ppc-server',
+        'aliases':  ('ppc64-server','altivec', 'ppc-altivec'),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'Ppc64ServerModule',
+        'disabled': True,
+        },
+    
+    ARCH_PPCVLE:    {
+        'name':     'ppc-vle',
+        'aliases':  ('vle','ppc32-vle', 'ppcvle'),
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'PpcVleModule',
+        'disabled': True,
+        },
+    
+    ARCH_PPC_D:     {
+        'name':     'ppc-desktop',
+        'modpath':  ('envi', 'archs', 'ppc'),
+        'clsname':  'PpcDesktopModule',
+        'disabled': True,
+        },
+    
+    ARCH_RXV2:      {
+        'name':     'rxv2',
+        'aliases':  ('rxv1', 'rx'),
+        'modpath':  ('envi', 'archs', 'rxv2'),
+        'clsname':  'RxModule',
+        'disabled': True,
+        },
+    
+    ARCH_SPARC:     {
+        'name':     'sparc',
+        'modpath':  ('envi', 'archs', 'sparc'),
+        'clsname':  'SparcModule',
+        'disabled': True,
+        },
+    
+    ARCH_SPARC64:   {
+        'name':     'sparc64',
+        'modpath':  ('envi', 'archs', 'sparc64'),
+        'clsname':  'Sparc64Module',
+        'disabled': True,
+        },
+    
+    ARCH_MIPS32:    {
+        'name':     'mips32',
+        'aliases':  ('mips',),
+        'modpath':  ('envi', 'archs', 'mips32'),
+        'clsname':  'Mips32Module',
+        'disabled': True,
+        },
+    
+    ARCH_MIPS64:    {
+        'name':     'mips64',
+        'modpath':  ('envi', 'archs', 'mips64'),
+        'clsname':  'Mips64Module',
+        'disabled': True,
+        },
 }
 
-arch_by_name = {
-    'default':      ARCH_DEFAULT,
-    'i386':         ARCH_I386,
-    'amd64':        ARCH_AMD64,
-    'a64':          ARCH_A64,
-    'aarch64':      ARCH_A64,
-    'arm':          ARCH_ARMV7,
-    'armv6l':       ARCH_ARMV7,
-    'armv7l':       ARCH_ARMV7,
-    'thumb16':      ARCH_THUMB16,
-    'thumb':        ARCH_THUMB,
-    'thumb2':       ARCH_THUMB,
-    'msp430':       ARCH_MSP430,
-    'h8':           ARCH_H8,
-    'rv32':         ARCH_RISCV32,
-    'rv64':         ARCH_RISCV64,
-    'mcs51':        ARCH_MCS51,
-    'ppc32':        ARCH_PPC_E32,
-    'ppc32-embedded': ARCH_PPC_E32,
-    'ppc':          ARCH_PPC_E64,
-    'ppc-embedded': ARCH_PPC_E64,
-    'ppc64-embedded': ARCH_PPC_E64,
-    'ppc-spe':      ARCH_PPC_E64,
-    'ppc-vle':      ARCH_PPCVLE,
-    'ppc32-vle':    ARCH_PPCVLE,
-    'ppcvle':       ARCH_PPCVLE,
-    'vle':          ARCH_PPCVLE,
-    'ppc32-server': ARCH_PPC_S32,
-    'ppc-server':   ARCH_PPC_S64,
-    'ppc64-server': ARCH_PPC_S64,
-    'altivec':      ARCH_PPC_S64,
-    'ppc-altivec':  ARCH_PPC_S64,
-    'ppc-desktop':  ARCH_PPC_D,
-    'rxv2':         ARCH_RXV2,
-    'sparc':        ARCH_SPARC,
-    'sparc64':      ARCH_SPARC64,
-    'mips':         ARCH_MIPS32,
-    'mips32':       ARCH_MIPS32,
-    'mips64':       ARCH_MIPS64,
-}
+
+# dynamically build lookup dictionaries
+arch_by_name = {}
+arch_by_name_and_aliases = {}
+
+for arch, adict in arch_defs.items():
+    arch_by_name[adict['name']] = arch
+    arch_by_name_and_aliases[adict['name']] = arch
+
+    for alias in adict.get('aliases', []):
+        arch_by_name_and_aliases[alias] = arch
+
 
 # Instruction flags (The first 8 bits are reserved for arch independant use)
 IF_NOFALL = 0x01  # Set if this instruction does *not* fall through
@@ -218,15 +328,17 @@ class ArchitectureModule:
         """
         raise ArchNotImplemented("archGetRegCtx")
 
-    def archParseOpcode(self, bytez, offset=0, va=0):
+    def archParseOpcode(self, bytez, offset=0, va=0, extra=None):
         '''
         Parse an architecture specific Opcode object from the given bytes.
 
         offset  - Offset into bytes to begin opcode parsing
         va      - Virtual address of the instruction ( for rel calcs )
+        extra   - An optional dictionary of information to pass down to an
+                  archmod to provide additional context.
 
         Example:
-            a.archParseOpcode('\xeb\xfe', va=0x41414141)
+            a.archParseOpcode(b'\xeb\xfe', va=0x41414141, extra={'platform': 'windows'})
         '''
         raise ArchNotImplemented('archParseOpcode')
 
@@ -651,6 +763,9 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Sets Endianness for the Emulator.
         '''
         for arch in self.imem_archs:
+            # imem_archs may be sparse, with gaps of None
+            if not arch:
+                continue
             arch.setEndian(endian)
 
     def getEndian(self):
@@ -1326,13 +1441,13 @@ def getArchByName(archname):
     '''
     Get the architecture constant by the humon name.
     '''
-    return arch_by_name.get(archname)
+    return arch_by_name_and_aliases.get(archname)
 
 def getArchById(archid):
     '''
     Get the architecture name by the constant.
     '''
-    return arch_names.get(archid)
+    return arch_defs.get(archid).get('name')
 
 def getCurrentArch():
     """
@@ -1352,82 +1467,142 @@ def getCurrentArch():
 
     return ret
 
+def getRealArchName(name):
+    """
+    Returns the official Architecture Name given an architecture name (which could be an alias, 
+    like x86_64 for amd64)
+    """
+    for arch, adict in arch_defs.items():
+        rname = adict.get('name')
+        if name == rname:
+            return rname
+
+        if name in adict.get('aliases', []):
+            return rname
+
+    return name
+
+def getArchNames():
+    """
+    Return a subset (dict) of arch_by_name which only include enabled architectures.
+    This is helpful for accessing and displaying available architectures, since we now
+    allow definitions of architectures which may not be enabled or implemented.
+
+    Returns:   dict of { archnum: archname } 
+    """
+    return {arch: name for (name, arch) in arch_by_name.items() if not arch_defs.get(arch).get('disabled')}
+    
+
 def getArchModule(name=None):
     """
-    return an Envi architecture module instance for the following
+    Return an Envi architecture module instance for the following
     architecture name.
 
-    Current architectures include:
-
-    i386 - Intel i386
-    amd64 - The new 64bit AMD spec.
+    If name is None, uses the "current" architecture.
     """
     if name is None:
         name = getCurrentArch()
 
-    # Some builds have x86 (py2.6) and some have other stuff...
-    if name in ['i386', 'i486', 'i586', 'i686', 'x86']:
-        import envi.archs.i386 as e_i386
-        return e_i386.i386Module()
+    rname = getRealArchName(name)
+    archnum = arch_by_name.get(rname)
 
-    elif name in ('amd64', 'x86_64'):
-        import envi.archs.amd64 as e_amd64
-        return e_amd64.Amd64Module()
+    if archnum not in arch_defs:
+        raise ArchNotImplemented(name, "Architecture not defined")
 
-    elif name in ('arm', 'armv6l', 'armv7l'):
-        import envi.archs.arm as e_arm
-        return e_arm.ArmModule()
+    if arch_defs.get(archnum).get('disabled'):
+        raise ArchNotImplemented(name, "Architecture Disabled")
 
-    elif name in ('thumb', 'thumb16', 'thumb2'):
-        import envi.archs.thumb16 as e_thumb
-        return e_thumb.Thumb16Module()
+    # retrieve path and class info.  envi/archs/<archname>/__init__.py with amodname()
+    modpathtup = arch_defs[archnum]['modpath']
+    amodname = arch_defs[archnum].get('clsname')
 
-    elif name in ('msp430',):
-        import envi.archs.msp430 as e_msp430
-        return e_msp430.Msp430Module()
+    # load the module (given the path and module name)
+    try:
+        module = loadModuleFromPathTup(rname, modpathtup)
 
-    elif name in ('h8',):
-        import envi.archs.h8 as e_h8
-        return e_h8.H8Module()
+    except ModuleLoadFailure as e:
+        raise ArchNotImplemented(e.component, e.message)
 
-    elif name in ('riscv', 'riscv32', 'rv32', 'RV32'):
-        import envi.archs.riscv as e_riscv
-        return e_riscv.RiscV32Module()
+    # instantiate the ArchitectureModule
+    cls = getattr(module, amodname)
+    archmod = cls()
+    
+    return archmod
 
-    elif name in ('riscv64', 'rv64', 'RV64'):
-        import envi.archs.riscv as e_riscv
-        return e_riscv.RiscV64Module()
+def loadModuleFromPathTup(modname, modpathtup):
+    '''
+    Load a Python module given a module path tuple
 
-    else:
-        raise ArchNotImplemented(name)
+    Searches through the PYTHONPATH for a matching module
+    '''
+    modpath = os.path.join(*modpathtup)
+    for pathbase in sys.path:
+        tmppath = os.path.join(pathbase, modpath)
+        if os.path.exists(tmppath):
+            modpath = tmppath
+            break
+    
+    return loadModuleFromAbsolutePath(modname, modpath)
+
+def loadModuleFromAbsolutePathTup(modname, modpathtup):
+    '''
+    Load a Python module given an absolute module path tuple
+    '''
+    modpath = os.sep + os.path.join(*modpathtup)
+    return loadModuleFromAbsolutePath(modname, modpath)
+
+def loadModuleFromAbsolutePath(modname, modpath):
+    '''
+    Load a Python module given an absolute module path string
+    '''
+    # if we hand in the path to the directory, load the __init__.py
+    if os.path.isdir(modpath):
+        modpath = os.path.join(modpath, '__init__.py')
+
+    if not os.path.exists(modpath):
+        raise ModuleLoadFailure(modname, "Path does not exist: %r" % modpath)
+
+    # get the module spec
+    spec = imputil.spec_from_file_location(modname, modpath)
+    if not spec:
+        raise ModuleLoadFailure(modname, "Failed to load module")
+
+    # create an unintialized module from the spec
+    module = imputil.module_from_spec(spec)
+    if not module:
+        raise ModuleLoadFailure(modname, "Failed to create uninitialized module from the spec")
+
+    # insert the module into sys.modules:
+    sys.modules[modname] = module
+
+    # initialize the module (actually "importing" it)
+    spec.loader.exec_module(module)
+
+    return module
 
 def getArchModules(default=ARCH_DEFAULT):
     '''
     Retrieve a default array of arch modules ( where index 0 is
     also the "named" or "default" arch module.
     '''
-    import envi.archs.h8 as e_h8
-    import envi.archs.arm as e_arm
-    import envi.archs.i386 as e_i386
-    import envi.archs.amd64 as e_amd64
-    import envi.archs.thumb16 as e_thumb16
-    import envi.archs.msp430 as e_msp430
-    import envi.archs.riscv as e_riscv
+    archs = []
+    for arch, adict in arch_defs.items():
+        name = adict.get('name')
+        archidx = arch>>16
+        try:
+            archmod = getArchModule(name)
 
-    archs = [None]
+            # make sure the list can hold this arch -- THIS NEGATES THE NEED FOR `ARCH_MAX`
+            archslen = len(archs)
+            if archidx >= archslen:
+                diff = 1 + archidx - archslen
+                archs.extend([None for x in range(diff)])
 
-    # These must be in ARCH_FOO order
-    archs.append(e_i386.i386Module())
-    archs.append(e_amd64.Amd64Module())
-    archs.append(e_arm.ArmModule())
-    archs.append(e_thumb16.Thumb16Module())
-    archs.append(e_thumb16.ThumbModule())
-    archs.append(e_msp430.Msp430Module())
-    archs.append(e_h8.H8Module())
-    archs.append(e_riscv.RiscV32Module())
-    archs.append(e_riscv.RiscV64Module())
+            archs[archidx] = archmod
+        except ArchNotImplemented:
+            pass
 
-    # Set the default module ( or None )
-    archs[ARCH_DEFAULT] = archs[default >> 16]
+        except Exception as e:
+            logger.critical(e, exc_info=1)
 
     return archs
