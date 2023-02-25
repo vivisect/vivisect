@@ -4,6 +4,14 @@ import vstruct.defs.vpdb as v_d_pdb
 
 from vstruct.primitives import v_uint32
 
+CONS = [
+    None,
+    v_d_pdb.PDBStreamHeader,
+    v_d_pdb.TPIStreamHeader,
+    v_d_pdb.DBIStreamHeader,
+    v_d_pdb.TPIStreamHeader, # identical to TPI
+]
+
 class PDB:
     def __init__(self, byts):
         self.byts = byts
@@ -55,12 +63,44 @@ class PDB:
             return self.byts[offset:offset+bsize]
         return None
 
-    def getStreamByIdx(self):
-        pass
+    def getStreamByIdx(self, idx):
+        sb = self.streamdir.streamBlocks
+        if idx >= len(sb):
+            return None
+        blocks = self.streamdir.streamBlocks[idx]
+
+        # stitch together the various blocks that make up the stream
+        stream = b''
+        for _, bidx in blocks:
+            b = self.getBlockByIdx(bidx)
+            if b:
+                stream += b
+
+        return stream
+
+def getStreamStructure(obj, idx):
+    bldr = CONS[idx]
+    if bldr:
+        con = bldr()
+        byts = obj.getStreamByIdx(idx)
+        if byts:
+            con.vsParse(byts)
+            return con
+
+# TODO: change this to a filename when you actually PR this
+def loadPDBIntoWorkspace(vw, byts, filename=None, baseaddr=None):
+    obj = PDB(byts)
+
+    pstream = getStreamStructure(obj, 1)
+    tstream = getStreamStructure(obj, 2)
+    dstream = getStreamStructure(obj, 3)
+    istream = getStreamStructure(obj, 4)
+    breakpoint()
+    print('wat')
 
 if __name__ == '__main__':
     with open('C:\\Users\\James\\Documents\\Visual Studio 2015\\Projects\\raytracing\\Debug\\raytracing.pdb', 'rb') as fd:
         byts = fd.read()
-    obj = PDB(byts)
+    obj = loadPDBIntoWorkspace(None, byts)
     breakpoint()
     print('wat')

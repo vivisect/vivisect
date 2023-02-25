@@ -8,7 +8,12 @@ import math
 import vstruct
 from vstruct.primitives import *
 
-PDBSIG = b''
+
+class HashTable(vstruct.VStruct):
+    def __init__(self):
+        super().__init__()
+        self.size = v_uint32(bigend=False)
+        self.capacity = v_uint32(bigend=False)
 
 class SuperBlock(vstruct.VStruct):
     def __init__(self):
@@ -53,6 +58,9 @@ class PDBStreamHeader(vstruct.VStruct):
         self.sig = v_uint32(bigend=False)
         self.age = v_uint32(bigend=False)
         self.guid = GUID()
+
+    def pcb_guid(self):
+        pass
 
 class TPIStreamHeader(vstruct.VStruct):
     def __init__(self):
