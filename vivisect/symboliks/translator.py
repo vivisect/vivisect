@@ -11,10 +11,7 @@ class SymbolikTranslator:
         self.vw = vw
         self._eff_log = []
         self._con_log = []
-        self._op_methods = {}
-        for name in dir(self):
-            if name.startswith("i_"):
-                self._op_methods[name[2:]] = getattr(self, name)
+        self._op_methods = None
         self._cur_va = None
 
     def effSetVariable(self, rname, rsym):
@@ -44,6 +41,14 @@ class SymbolikTranslator:
 
     def translateOpcode(self, op):
         self._cur_va = op.va
+
+        if self._op_methods is None:
+            # Lazy loading since this method is the only place it's used.
+            self._op_methods = {}
+            for name in dir(self):
+                if name.startswith("i_"):
+                    self._op_methods[name[2:]] = getattr(self, name)
+
         meth = self._op_methods.get(op.mnem, None)
         if meth is None:
             # print('Symboliks: %s: %s Needs: %s' % (hex(op.va), self.__class__.__name__, repr(op)))
