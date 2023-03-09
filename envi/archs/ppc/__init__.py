@@ -113,7 +113,7 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
     def pointerString(self, va):
         return '0x%.8x' % va
 
-    def archParseOpcode(self, bytez, offset=0, va=0):
+    def archParseOpcode(self, bytez, offset=0, va=0, extra=None):
         if self.isVle(va):
             return self._arch_vle_dis.disasm(bytez, offset, va)
 
@@ -192,7 +192,7 @@ class PpcVleModule(Ppc32EmbeddedModule):
     def isVle(self, va):
         return True
 
-    def archParseOpcode(self, bytez, offset=0, va=0):
+    def archParseOpcode(self, bytez, offset=0, va=0, extra=None):
         return self._arch_dis.disasm(bytez, offset, va)
 
     def archGetBreakInstr(self):
@@ -215,7 +215,7 @@ class Ppc64ServerModule(Ppc64EmbeddedModule):
     def isVle(self, va):
         return False
 
-    def archParseOpcode(self, bytez, offset=0, va=0):
+    def archParseOpcode(self, bytez, offset=0, va=0, extra=None):
         return self._arch_dis.disasm(bytez, offset, va)
 
     def archGetRegCtx(self):

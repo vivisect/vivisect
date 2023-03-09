@@ -676,10 +676,10 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _doSetEndian(self, endian):
         self.bigend = endian
         for arch in self.imem_archs:
-            arch.setEndian(self.bigend)
+            if not arch:
+                continue
 
-        if self.arch is not None:
-            self.arch.setEndian(self.bigend)
+            arch.setEndian(self.bigend)
 
 
 #################################################################
