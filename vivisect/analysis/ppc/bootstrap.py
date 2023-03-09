@@ -20,7 +20,7 @@ from vivisect.analysis.ppc.vlepages import DEFAULT_PPC_PAGES, DEFAULT_PPC_PAGES_
 def set_rchw_vle(vw):
     # If a VLE page configuration was specified manually, don't override it.
     vle_pages = vw.getMeta('PpcVlePages')
-    if vle_pages is DEFAULT_PPC_PAGES
+    if vle_pages is DEFAULT_PPC_PAGES:
         # If the VLE pages are still the default pages, update entries 1, 2,
         # and 3 (Flash, EBI, SRAM) to be VLE.
         vw.setMeta('PpcVlePages', DEFAULT_PPC_PAGES_VLE)

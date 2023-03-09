@@ -124,18 +124,20 @@ class PpcAnalysisMonitor(viv_monitor.AnalysisMonitor):
         # We aren't checking code paths here so it's a little stupid, but it's
         # less trouble this way because it doesn't cause weird code path
         # deviations.
-        for _, ivpr_value in self.spr_writes.get('IVPR', []):
-            base = ivpr_value & IVPR_MASK
+        for _, reg, ivpr_value in self.spr_writes:
+            if reg == 'IVPR':
+                base = ivpr_value & IVPR_MASK
 
-            for ivor_name, namefmt in IVOR_MAP.items():
-                for va, ivor_value in self.spr_writes.get(ivor_name, []):
-                    eva = base | (ivor_value & IVORx_MASK)
-                    logger.debug('Looking for possible exception handler @ 0x%x', eva)
-                    if vw.isProbablyCode(eva):
-                        vw.addEntryPoint(eva)
-                        funcname = namefmt % eva
-                        vw.makeName(eva, funcname)
-                        vw.setComment(va, funcname)
+                for ivor_name, namefmt in IVOR_MAP.items():
+                    for va, ivor_reg, ivor_value in self.spr_writes:
+                        if ivor_reg == ivor_name:
+                            eva = base | (ivor_value & IVORx_MASK)
+                            logger.debug('Looking for possible exception handler @ 0x%x', eva)
+                            if vw.isProbablyCode(eva):
+                                vw.addEntryPoint(eva)
+                                funcname = namefmt % eva
+                                vw.makeName(eva, funcname)
+                                vw.setComment(va, funcname)
 
     def checkAddDataXref(self, vw, va, val, discrete, tsize):
         # For PPC data XREFS are only added through load/store instructions
@@ -158,17 +160,17 @@ def buildFunctionApi(vw, fva, emu, emumon):
     callconv = vw.getMeta('DefaultCall')
     undefregs = set(emu.getUninitRegUse())
 
-    for argnum, (_, argreg) in reversed(enumerate(ppcargnames)):
+    for argnum, (_, argreg) in reversed(list(enumerate(ppcargnames))):
         if argreg not in undefregs:
             argc = argnum
             break
 
     # Typical PPC stack will store the LR @ 4(<original r1>), any stack
     # parameters will be loaded from offsets higher than that.
-    if emumon.stackmax > 4:
-        stack_args = (emumon.stackmax-4) // emu.getPointerSize()
+    if emumon.stackmax > emu.getPointerSize():
+        stack_args = (emumon.stackmax - emu.getPointerSize()) // emu.getPointerSize()
         if stack_args > 40:
-            emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
+            emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: -1x%.8x' % emumon.stackmax)
         else:
             argc += stack_args
 
