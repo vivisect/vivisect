@@ -319,12 +319,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         emu = eclass(self, **kwargs)
         emu.setEndian(self.getEndian())
 
-        # PowerPC special case, if there are memory maps defined propagate those
-        # to the new emulator
-        maps = self.getMeta('PpcVlePages')
-        if maps is not None:
-            emu.setVleMaps(maps)
-
         return emu
 
     def getCachedEmu(self, emuname):

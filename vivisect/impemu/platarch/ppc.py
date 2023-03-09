@@ -73,6 +73,11 @@ class PpcWorkspaceEmulator(v_i_emulator.WorkspaceEmulator):
         # Track if we should automatically find VLE pages or not
         self.findvlepages = vw.config.viv.arch.ppc.findvlepages
 
+        # Grab any existing PPC VLE pages from the workspace
+        maps = vw.getMeta('PpcVlePages')
+        if maps is not None:
+            self.setVleMaps(maps)
+
     def getRegister(self, index):
         """
         Return the current value of the specified register index. Modified to
