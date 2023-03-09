@@ -21,9 +21,13 @@ init_stack_size = 0x8000
 init_stack_map = b'\xfe' * init_stack_size
 
 
-def _get_args(kwargs_value, config_value, default=None):
+def _priority_get_args(kwargs_value, config_value, default=None):
     '''
-    Return the correct value that should be used
+    Returns a configuration value to be used by the workspace emulator. The
+    priority is:
+    1. Any kwargs provided to the WorkspaceEmulator class initializer.
+    2. A value from the vivisect configuration.
+    3. The default value.
     '''
     if kwargs_value is not None:
         return kwargs_value
@@ -165,23 +169,23 @@ class WorkspaceEmulator:
 
         # Set the taint configuration for this emulator
 
-        taintbase = _get_args(
+        taintbase = _priority_get_args(
             kwargs.get('taintbase'),
             vw.config.viv.analysis.taint.cfginfo.get('base'),
             0x4156000F)
         self.taintva = itertools.count(taintbase, 0x2000)
 
-        self.taintoffset = _get_args(
+        self.taintoffset = _priority_get_args(
             kwargs.get('taintoffset'),
             vw.config.viv.analysis.taint.cfginfo.get('offset'),
             0x1000)
 
-        self.taintmask = _get_args(
+        self.taintmask = _priority_get_args(
             kwargs.get('taintmask'),
             vw.config.viv.analysis.taint.cfginfo.get('mask'),
             e_bits.sign_extend(0xffffe000, 4, self.vw.psize))
 
-        taintbyte = _get_args(
+        taintbyte = _priority_get_args(
             kwargs.get('taintbyte'),
             vw.config.viv.analysis.taint.cfginfo.get('byte'),
             b'a')
@@ -216,22 +220,22 @@ class WorkspaceEmulator:
 
         # Set the stack configuration for this emulator
 
-        self.stack_map_mask = _get_args(
+        self.stack_map_mask = _priority_get_args(
             kwargs.get('stackMask'),
             vw.config.viv.analysis.stack.cfginfo.get('mask'),
             e_bits.sign_extend(0xfff00000, 4, self.vw.psize))
 
-        self.stack_map_base = _get_args(
+        self.stack_map_base = _priority_get_args(
             kwargs.get('stackBase'),
             vw.config.viv.analysis.stack.cfginfo.get('base'),
             e_bits.sign_extend(0xbfb00000, 4, self.vw.psize))
 
-        self.stack_map_top = _get_args(
+        self.stack_map_top = _priority_get_args(
             kwargs.get('stackMapTop'),
             vw.config.viv.analysis.stack.cfginfo.get('top'),
             self.stack_map_base + init_stack_size)
 
-        self.stack_pointer = _get_args(
+        self.stack_pointer = _priority_get_args(
             kwargs.get('stackPointer'),
             vw.config.viv.analysis.stack.cfginfo.get('pointer'))
 
