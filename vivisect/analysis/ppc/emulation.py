@@ -165,8 +165,9 @@ def buildFunctionApi(vw, fva, emu, emumon):
             argc = argnum
             break
 
-    # Typical PPC stack will store the LR @ 4(<original r1>), any stack
-    # parameters will be loaded from offsets higher than that.
+    # Standard PPC calling convention will store the LR @ 4(<original r1>), any stack
+    # parameters will be loaded from offsets higher than that.  Note: Previous function/stack frame
+    # stores the *previous* stack pointer at *our* 0(r1).  Strange, but true.
     if emumon.stackmax > emu.getPointerSize():
         stack_args = (emumon.stackmax - emu.getPointerSize()) // emu.getPointerSize()
         if stack_args > 40:
