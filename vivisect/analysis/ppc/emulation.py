@@ -17,14 +17,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 ppcargnames = [
-    ('arg1', e_ppc.REG_R3),
-    ('arg2', e_ppc.REG_R4),
-    ('arg3', e_ppc.REG_R5),
-    ('arg4', e_ppc.REG_R6),
-    ('arg5', e_ppc.REG_R7),
-    ('arg6', e_ppc.REG_R8),
-    ('arg7', e_ppc.REG_R9),
-    ('arg8', e_ppc.REG_R10),
+    ('arg0', e_ppc.REG_R3),
+    ('arg1', e_ppc.REG_R4),
+    ('arg2', e_ppc.REG_R5),
+    ('arg3', e_ppc.REG_R6),
+    ('arg4', e_ppc.REG_R7),
+    ('arg5', e_ppc.REG_R8),
+    ('arg6', e_ppc.REG_R9),
+    ('arg7', e_ppc.REG_R10),
 ]
 
 # Mapping of IVORx registers to exception comment strings and function name
@@ -147,7 +147,7 @@ class PpcAnalysisMonitor(viv_monitor.AnalysisMonitor):
 
 def ppcname(idx):
     if idx >= len(ppcargnames):
-        name = 'arg%d' % (len(ppcargnames) + idx)
+        name = 'arg%d' % idx
     else:
         name = ppcargnames[idx][0]
     return name
