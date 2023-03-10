@@ -394,19 +394,18 @@ tsizes = {
 # Simplified mnemonic transformation functions
 def simpleE_ORI(ival, mnem, opcode, opers, iflags):
     if len(opers) == 3 and \
-            opers[0].isReg() and opers[0].reg == 0 and \
-            opers[1].isReg() and opers[1].reg == 0 and \
-            opers[2].isImmed() and opers[2].val == 0 and \
-            iflags == IFLAGS_NONE:
-        return 'e_nop', INS_NOP, tuple(), iflags
-    elif len(opers) == 3 and \
             opers[0].isReg() and opers[1].isReg() and \
-            opers[0].reg == opers[1].reg and \
             opers[2].isImmed() and opers[2].val == 0 and \
             iflags == IFLAGS_NONE:
-        return 'e_mr', INS_MR, opers[:2], iflags
-    else:
-        return mnem, INS_ORI, opers, iflags
+
+        if opers[0].reg == 0 and opers[1].reg == 0:
+            return 'e_nop', INS_NOP, tuple(), iflags
+            opers[0].reg == opers[1].reg and \
+
+        elif opers[2].isImmed() and opers[2].val == 0:
+            return 'e_mr', INS_MR, opers[:2], iflags
+
+    return mnem, INS_ORI, opers, iflags
 
 
 # this generates the handler table for any function starting with simple*
