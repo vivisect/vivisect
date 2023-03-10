@@ -1046,7 +1046,8 @@ class VivisectTest(v_t_utils.VivTest):
             (0x08054118, 0x000050, '.data', 'chgrp'),
             (0x08054170, 0x000184, '.bss', 'chgrp'),
             (0x08048000, 0x00a528, 'PHDR0', 'chgrp'),
-            (0x08053f0c, 0x0003e8, 'PHDR1', 'chgrp')
+            (0x08053f0c, 0x0003e8, 'PHDR1', 'chgrp'),
+            (0x08060000, 0x000190, '.bss_temp', 'chgrp'),
         ])
         self.assertEqual(segments, set(vw.getSegments()))
 

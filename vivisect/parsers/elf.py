@@ -360,6 +360,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     secs = elf.getSections()
 
     for mmapva, mmperms, mfname, mbytez, malign in getMemoryMapInfo(elf, fname, baseaddr):
+        if platform == 'unknown':
+            # unknown platforms 
+            malign = e_const.PAGE_SIZE
         logger.debug("vw.addMemoryMap(0x%x, 0x%x, %r, 0x%x, 0x%x)", mmapva, mmperms, mfname, len(mbytez), malign)
         vw.addMemoryMap(mmapva, mmperms, mfname, mbytez, malign)
 
@@ -487,33 +490,51 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         elif sname in (".bss",):
             if vw.getName(fname + '.bss_temp') is None:
-                sdasz = sec.sh_size
                 align = sec.sh_addralign
-                sdasz += align-1
-                sdasz = (sdasz // align) * align
-                sdabase = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
-                vw.addSegment(sdabase, sdasz, '.bss_temp', fname)
-                vw.makeName(sdabase, fname + ".bss_temp")
+                sz = ((align-1 + sec.sh_size) // align) * align
+
+                # Manually find a free memory segment, we can't use the return 
+                # of addMemoryMap because it returns the size not the base 
+                # address.
+                base = vw.getFreeMemAddr(sz)
+
+                logger.debug('creating bss_temp memory @ %#x-%#x', base, base+sz)
+                sz = vw.addMemoryMap(base, 7, fname, b'\0' * sz)
+
+                vw.addSegment(base, sz, '.bss_temp', fname)
+                vw.makeName(base, fname + ".bss_temp")
 
         elif sname in (".sbss", ".sdata"):
             if vw.getName('_SDA_BASE_') is None:
-                sdasz = sec.sh_size
                 align = sec.sh_addralign
-                sdasz += align-1
-                sdasz = (sdasz // align) * align
-                sdabase = vw.addMemoryMap(None, 7, fname, b'\0' * sdasz)
-                vw.addSegment(sdabase, sdasz, '.sda_base', fname)
-                vw.makeName(sdabase, "_SDA_BASE_")
+                sz = ((align-1 + sec.sh_size) // align) * align
+
+                # Manually find a free memory segment, we can't use the return 
+                # of addMemoryMap because it returns the size not the base 
+                # address.
+                base = vw.getFreeMemAddr(sz)
+
+                logger.debug('creating sda_base memory @ %#x-%#x', base, base+sz)
+                sz = vw.addMemoryMap(base, 7, fname, b'\0' * sz)
+
+                vw.addSegment(base, sz, '.sda_base', fname)
+                vw.makeName(base, "_SDA_BASE_")
 
         elif sname in (".sbss2", ".sdata2"):
             if vw.getName('_SDA2_BASE_') is None:
-                sdasz = sec.sh_size
                 align = sec.sh_addralign
-                sda2sz += align-1
-                sda2sz = (sda2sz // align) * align
-                sda2base = vw.addMemoryMap(None, 7, fname, b'\0' * sda2sz)
-                vw.addSegment(sdabase, sdasz, '.sda2_base', fname)
-                vw.makeName(sda2base, "_SDA2_BASE_")
+                sz = ((align-1 + sec.sh_size) // align) * align
+
+                # Manually find a free memory segment, we can't use the return 
+                # of addMemoryMap because it returns the size not the base 
+                # address.
+                base = vw.getFreeMemAddr(sz)
+
+                logger.debug('creating sda2_base memory @ %#x-%#x', base, base+sz)
+                sz = vw.addMemoryMap(base, 7, fname, b'\0' * sz)
+
+                vw.addSegment(base, sz, '.sda2_base', fname)
+                vw.makeName(base, "_SDA2_BASE_")
 
         # If the section is really a string table, do it
         if sec.sh_type == Elf.SHT_STRTAB:
@@ -534,9 +555,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # Now that the program and section headers have been parsed, if this is a
     # PowerPC 32-bit ELF we need to check for VLE flags
     if arch in ppc_arch_names:
-        maps = vw.getMeta('PpcVleMaps')
-        if maps is None:
-            maps = []
+        vle_pages = vw.getMeta('PpcVlePages')
+        if vle_pages is None:
+            vle_pages = []
 
         # Loop through each loaded program header and if the load section is
         # marked as VLE, or it maps back to a section that is marked as VLE,
@@ -547,16 +568,16 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             # Find any loadable and executable sections and keep track if they
             # are VLE or not.
             if phdr.p_type == Elf.PT_LOAD and phdr.p_flags & Elf.PF_X:
-                vle = phdr.p_flags & Elf.PF_PPC_VLE
+                vle = int(bool(phdr.p_flags & Elf.PF_PPC_VLE))
                 vle_flags.append(vle)
+                vle_pages.append((phdr.p_vaddr, phdr.p_align, vle))
 
-                # If this is a VLE page add it to the maps
-                if vle:
-                    maps.append((phdr.p_vaddr, phdr.p_align))
+        # Update the VLE pages
+        logger.info("Adding PowerPC VLE pages %s" % vle_pages)
 
-        # Update the VLE maps
-        logger.info("Adding PowerPC VLE maps %s" % maps)
-        vw.setMeta('PpcVleMaps', maps)
+        # Turn the list into a dict before writing it
+        vw.setMeta('PpcVlePages', dict((i, m) for i, m in enumerate(vle_pages)))
+
 
         # If all of the loaded and executable sections are VLE, then change this
         # to be ppc-vle, if only some are ensure it is ppc32-embedded, otherwise

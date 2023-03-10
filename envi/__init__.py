@@ -434,6 +434,13 @@ class ArchitectureModule:
     def archGetPointerAlignment(self):
         return 1
 
+    def archMarkupVW(self, vw):
+        """
+        Allow an architecture to make changes to the workspace based on it's
+        own needs. For example adding arch-specific VaSets.
+        """
+        pass
+
 def stealArchMethods(obj, archname):
     '''
     Used by objects which are expected to inherit from an

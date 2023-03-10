@@ -1,5 +1,21 @@
 # -*- coding: latin-1 -*-
 
+# INSTRUCTIONS:
+# from the top-level vivisect directory run:
+#   python -m envi.archs.ppc.mnems
+#   python gen_test_ppc.py
+#
+# Move these files to the correct destination folders:
+#   mv const_gen.py envi/archs/ppc/
+#   mv disasm_gen.py envi/archs/ppc/
+#   mv ppc_tables.py envi/archs/ppc/
+#   mv test_ppc_by_cat.py envi/tests
+#
+# If there are changes copy the OPERCLASSES dict from
+# envi/archs/ppc/disasm_gen.py to the end of the envi/archs/ppc/disasm_gen.py
+# file.
+
+import os
 import envi.bits as e_bits
 
 # "encodings" is data scraped from the EREF manual
@@ -1727,6 +1743,26 @@ efsadd 0 0 0 1 0 0
  0
  0
  EVX SP.FS
+efsmadd 0 0 0 1 0 0
+ rD
+ rA
+ rB
+ 0 1 0 1 1
+ 0
+ 0 0 0
+ 1
+ 0
+ EVX SP.FS
+efsmsub 0 0 0 1 0 0
+ rD
+ rA
+ rB
+ 0 1 0 1 1
+ 0
+ 0 0 0
+ 1
+ 1
+ EVX SP.FS
 efssub 0 0 0 1 0 0
  rD
  rA
@@ -1878,6 +1914,12 @@ efscfd 0 0 0 1 0 0
  1
  1
  EVX SP.FS
+efscfh 0 0 0 1 0 0
+ rD
+ 0 0 1 0 0
+ rB
+ 0 1 0 1 1 0 1 0 0 0 1
+ EVX SP.FS
 efscfui 0 0 0 1 0 0
  rD
  ///
@@ -1890,7 +1932,7 @@ efscfui 0 0 0 1 0 0
  EVX SP.FS
 efscfsi 0 0 0 1 0 0
  rD
- ///
+ 0 0 0 0 0
  rB
  0 1 0 1 1
  0
@@ -1910,7 +1952,7 @@ efscfuf 0 0 0 1 0 0
  EVX SP.FS
 efscfsf 0 0 0 1 0 0
  rD
- ///
+ 0 0 0 0 0
  rB
  0 1 0 1 1
  0
@@ -10401,6 +10443,7 @@ fcfid. 1 1 1 1 1 1
 # * evrndw, replaced UIMM with 0 0 0 0 0 (appears to be wrong in this table, defined in SPEPEM.
 # * cmpl is completely botched:  they left out the crfD field completely, which caused a shift in all the other fields.  eerily, they made up for it with ///
 # a few others (should have and will document as i think of them.  see git log.
+# * Changed /// to 0 0 0 0 0 for efscfsi to fix efscfh
 
 # TODO:
 # * isel   note: isel r15, r15, r16, cr3.eq
@@ -10589,6 +10632,14 @@ FIELD_M_DATA = {
 THING_FILL = 0
 THING_VAR = 1
 THING_STATIC = 2
+
+rfi_instrs = [
+    'rfi',
+    'rfgi',
+    'rfci',
+    'rfdi',
+    'rfmci',
+]
 
 rAnegades = [
     #'addi',        # handled in aliasing, if rA==0, these are really LI and LIS
@@ -12092,6 +12143,7 @@ for _mnem in const_gen_vle.mnems:
     out.append('IF_BRANCH_PREV_TARGET = 1<<12')
     out.append('IF_MEM_EA = 1<<13')
     out.append('IF_INDEXED = 1<<14')
+    out.append('IF_RFI = 1<<15')
     out.append('')
 
     out.append('OF_NONE      = 0')
@@ -12174,9 +12226,10 @@ for _mnem in const_gen_vle.mnems:
                 if fname == 'SIMM':
                     fname = 'SIMM%d' % sz
 
-                # If this instruction is in the SP category and the field is an
-                # GPR (rX) then use FIELD_sX instead of FIELD_rX
-                if cat.startswith('SP') and fname[0] == 'r':
+                # If this instruction is in the SP (except for SP.FS) category
+                # and the field is an GPR (rX) then use FIELD_sX instead of
+                # FIELD_rX
+                if cat.startswith('SP') and cat != 'SP.FS' and fname[0] == 'r':
                     fout.append(" ( '%s', %s, %s, 0x%x, %s )," % (fname, "FIELD_s"+fname[1:], shr, fmask, oflags))
                 else:
                     fout.append(" ( '%s', %s, %s, 0x%x, %s )," % (fname, "FIELD_"+fname, shr, fmask, oflags))
@@ -12188,12 +12241,13 @@ for _mnem in const_gen_vle.mnems:
                     fout[0] = fout[1]
                     fout[1] = temp
 
-            if len(fout) == 4 and 'FIELD_frC' in fout[3] and form == 'A':
+            elif len(fout) == 4 and 'FIELD_frC' in fout[3] and form == 'A':
                 temp = fout[2]
                 fout[2] = fout[3]
                 fout[3] = temp
 
-            if len(fout) >2 and 'FIELD_UIMM' in fout[1]:
+            elif len(fout) >2 and 'FIELD_UIMM' in fout[1] and \
+                    mnem not in ('evsubifw', ):
                 temp = fout[1]
                 fout[1] = fout[2]
                 fout[2] = temp
@@ -12232,6 +12286,9 @@ for _mnem in const_gen_vle.mnems:
                 iflags.append('IF_MEM_EA')
                 if form == 'X' and 'rA' in field_types and 'rB' in field_types:
                     iflags.append('IF_INDEXED')
+
+            if mnem in rfi_instrs:
+                iflags.append('IF_RFI')
 
             # last flag check
             if not len(iflags):
@@ -12310,7 +12367,7 @@ for _mnem in const_gen_vle.mnems:
     out2.append('}',)
 
     out3 = []
-    out3.append('# THIS SHOULD BE COPIED INTO disasm.py FOR DEPENDENCIES SAKE')
+    out3.append('# THIS SHOULD BE COPIED INTO disasm_gen.py FOR DEPENDENCIES SAKE')
     out3.append('OPERCLASSES = {')
     operkeys = [key for key in FIELD_DATA.keys() if key not in IGNORE_CONSTS]
     operkeys.extend([key for key in FIELD_M_DATA.keys() if key not in IGNORE_CONSTS])
@@ -12360,7 +12417,9 @@ for _mnem in const_gen_vle.mnems:
     utest = '''
 import sys
 import struct
+import os
 import vivisect
+import envi
 import envi.archs.ppc.disasm as eapd
 import envi.memcanvas as e_memcanvas
 
@@ -12411,10 +12470,11 @@ def make_unit_tests(outfile='test_ppc_by_cat'):
                     traceback.print_exc()
 
                 out.append(opbin)
-    with open('%s.bin' % outfile, 'wb') as f:
+    envi_test_dir = os.path.join(os.path.dirname(envi.__file__), 'tests')
+    with open(os.path.join(envi_test_dir, '%s.bin' % outfile), 'wb') as f:
         f.write(b''.join(out))
     tests.append("]\\n")
-    with open('%s.py' % outfile, 'w') as f:
+    with open(os.path.join(envi_test_dir, '%s.py' % outfile), 'w') as f:
         f.write('\\n'.join(tests))
 
 
@@ -12591,14 +12651,16 @@ if __name__ == '__main__':
 # FIXME: unit-tests using the masks for each instruction to generate them.
 
 if __name__ == '__main__':
+    cur_dir = os.path.dirname(__file__)
+
     out,out2,out3,utest = buildOutput()
-    with open('const_gen.py','w') as f:
+    with open(os.path.join(cur_dir, 'const_gen.py'),'w') as f:
         f.write( '\n'.join(out))
-    with open('ppc_tables.py','w') as f:
+    with open(os.path.join(cur_dir, 'ppc_tables.py'),'w') as f:
         f.write( '\n'.join(out2))
-    with open('disasm_gen.py','w') as f:
+    with open(os.path.join(cur_dir, 'disasm_gen.py'),'w') as f:
         f.write( '\n'.join(out3))
-    with open('gen_test_ppc.py','w') as f:
+    with open(os.path.join(cur_dir, 'gen_test_ppc.py'),'w') as f:
         f.write(utest)
 
 

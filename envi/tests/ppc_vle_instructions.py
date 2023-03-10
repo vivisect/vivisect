@@ -1,7 +1,6 @@
 # va = 0x40004560
 # psize = 4
 instructions = [
-	('0000', 'se_illegal'),
 	('0001', 'se_isync'),
 	('0002', 'se_sc'),
 	('0004', 'se_blr'),
@@ -1331,7 +1330,7 @@ instructions = [
 	('42E0', 'se_slw r0,r30'),
 	('42F0', 'se_slw r0,r31'),
 	('42F7', 'se_slw r7,r31'),
-	('4400', 'se_or r0,r0'),
+	('4400', 'se_nop'),
 	('4403', 'se_or r3,r0'),
 	('4404', 'se_or r4,r0'),
 	('4405', 'se_or r5,r0'),

@@ -38,8 +38,8 @@ def getVivEnv(arch='ppc', endian=e_const.ENDIAN_MSB):
     vw.addMemoryMap(0x10010000, 7, 'ram', b'\xfc' * 0x1000)
 
     emu = vw.getEmulator()
-    emu.setMeta('forrealz', True)
-    emu.logread = emu.logwrite = True
+    emu.logread = True
+    emu.logwrite = True
 
     sctx = vs_anal.getSymbolikAnalysisContext(vw)
     return vw, emu, sctx
@@ -209,27 +209,27 @@ class PpcInstructionSet(unittest.TestCase):
         return goodemu, bademu, tested_instrs
 
     def test_envi_ppcvle_disasm(self):
-        from . import ppc_vle_instructions
+        from envi.tests import ppc_vle_instructions
         self.do_envi_disasm('vle', ppc_vle_instructions)
 
     def test_envi_ppc_embedded_disasm(self):
-        from . import ppc_embedded_instructions
+        from envi.tests import ppc_embedded_instructions
         self.do_envi_disasm('ppc-embedded', ppc_embedded_instructions)
 
     def test_envi_ppc_server_disasm(self):
-        from . import ppc_server_instructions
+        from envi.tests import ppc_server_instructions
         self.do_envi_disasm('ppc-server', ppc_server_instructions)
 
     def test_envi_ppcvle_emu(self):
-        from . import ppc_vle_emutests
+        from envi.tests import ppc_vle_emutests
         self.do_envi_emu('vle', ppc_vle_emutests)
 
     def test_envi_ppc_embedded_emu(self):
-        from . import ppc_embedded_emutests
+        from envi.tests import ppc_embedded_emutests
         self.do_envi_emu('ppc-embedded', ppc_embedded_emutests)
 
     def test_envi_ppc_server_emu(self):
-        from . import ppc_server_emutests
+        from envi.tests import ppc_server_emutests
         self.do_envi_emu('ppc-server', ppc_server_emutests)
 
     def do_envi_disasm(self, archname, test_module):
@@ -262,10 +262,14 @@ class PpcInstructionSet(unittest.TestCase):
         logger.debug('good: %d', ngoodemu)
         logger.debug('bad: %d', nbademu)
 
+    tested_instrs = {}
+
     def do_envi_emu(self, archname, emu_module):
         bademu = 0
         goodemu = 0
-        tested_instrs = set()
+
+        if archname not in self.tested_instrs:
+            self.tested_instrs[archname] = set()
 
         vw, emu, sctx = getVivEnv(archname)
 
@@ -277,7 +281,7 @@ class PpcInstructionSet(unittest.TestCase):
                     ngoodemu, nbademu, opcodes = self.do_emutsts(emu, test_bytes, emutests)
                     goodemu += ngoodemu
                     bademu += nbademu
-                    tested_instrs |= opcodes
+                    self.tested_instrs[archname] |= opcodes
 
             except Exception as  e:
                 # Save the tests that were attempted to be run for this byte
@@ -296,15 +300,18 @@ class PpcInstructionSet(unittest.TestCase):
         # tests
         self.assertEqual(goodemu+bademu, total_tests)
 
+    def test_missing_instruction_tests(self):
         # For informational/debugging purposes, print out which instructions
         # have not been tested
         all_instrs = dict((n, getattr(eapc, n)) for n in dir(eapc) if n.startswith('INS_'))
-        untested_instrs = dict((k, v) for k, v in all_instrs.items() if v not in tested_instrs)
+        all_tested_instrs = set().union(*[s for s in self.tested_instrs.values()])
+        untested_instrs = dict((k, v) for k, v in all_instrs.items() if v not in all_tested_instrs)
 
         if untested_instrs:
-            logger.warning('%s %d out of %d instructions tested', archname, len(tested_instrs), len(all_instrs))
+            logger.warning('%d out of %d instructions tested', len(all_tested_instrs), len(all_instrs))
             msgs = ['%s (%d)' % (k, v) for k, v in untested_instrs.items()]
             logger.debug('\n'.join(msgs))
+        #self.assertEqual(len(untested_instrs), 0)
 
     def test_MASK_and_ROTL(self):
         import vivisect.symboliks.archs.ppc as vsap
@@ -1633,3 +1640,105 @@ class PpcInstructionSet(unittest.TestCase):
             logger.warning('Missing %d PPC Emulation functions', len(missing_emu_instrs))
             msgs = ['INS_%s has no matching i_%s emulation instruction' % (n.upper(), n) for n in missing_emu_instrs]
             logger.debug('\n'.join(msgs))
+        #self.assertEqual(len(missing_emu_instrs), 0)
+
+    def test_vle_maps(self):
+        # Populate memory with
+        #   0x182106E0: e_stwu r1,-0x20(r1)
+        # Which should only be a valid instruction in VLE pages
+        vle_test_mem = b'\x18\x21\x06\xe0' * 0x00200000
+        vle_op_str = 'e_stwu r1,-0x20(r1)'
+
+        # Some VLE pages, PPC architectures and if the address should be VLE or
+        # not
+        vle_maps = (
+            (0x00800000, 0x00040000, False),
+            (0x00840000, 0x00040000, True),
+            (0x00880000, 0x00080000, False),
+            (0x00900000, 0x00100000, True),
+            (0x00A00000, 0x00200000, True),
+            (0x00C00000, 0x00200000, False),
+        )
+
+        vle_map_tests = {
+            # For the "embedded" architectures the VLE pages should be used to
+            # identify if a memory address is VLE or not
+            'ppc32-embedded': (
+                (0x00800000, False), (0x0083FFFC, False),
+                (0x00840000, True),  (0x0087FFFC, True),
+                (0x00880000, False), (0x008BFFFC, False),
+                (0x008C0000, False), (0x008FFFFC, False),
+                (0x00900000, True),  (0x009FFFFC, True),
+                (0x00A00000, True),  (0x00AFFFFC, True),
+                (0x00B00000, True),  (0x00BFFFFC, True),
+                (0x00C00000, False), (0x00CFFFFC, False),
+                (0x00F00000, False), (0x00FFFFFC, False),
+            ),
+            'ppc-embedded': (
+                (0x00800000, False), (0x0083FFFC, False),
+                (0x00840000, True),  (0x0087FFFC, True),
+                (0x00880000, False), (0x008BFFFC, False),
+                (0x008C0000, False), (0x008FFFFC, False),
+                (0x00900000, True),  (0x009FFFFC, True),
+                (0x00A00000, True),  (0x00AFFFFC, True),
+                (0x00B00000, True),  (0x00BFFFFC, True),
+                (0x00C00000, False), (0x00CFFFFC, False),
+                (0x00F00000, False), (0x00FFFFFC, False),
+            ),
+
+            # The server architectures should never detect an
+            # address as VLE
+            'ppc32-server': (
+                (0x00800000, False), (0x0083FFFC, False),
+                (0x00840000, False), (0x0087FFFC, False),
+                (0x00880000, False), (0x008BFFFC, False),
+                (0x008C0000, False), (0x008FFFFC, False),
+                (0x00900000, False), (0x009FFFFC, False),
+                (0x00A00000, False), (0x00AFFFFC, False),
+                (0x00B00000, False), (0x00BFFFFC, False),
+                (0x00C00000, False), (0x00CFFFFC, False),
+                (0x00F00000, False), (0x00FFFFFC, False),
+            ),
+            'ppc-server': (
+                (0x00800000, False), (0x0083FFFC, False),
+                (0x00840000, False), (0x0087FFFC, False),
+                (0x00880000, False), (0x008BFFFC, False),
+                (0x008C0000, False), (0x008FFFFC, False),
+                (0x00900000, False), (0x009FFFFC, False),
+                (0x00A00000, False), (0x00AFFFFC, False),
+                (0x00B00000, False), (0x00BFFFFC, False),
+                (0x00C00000, False), (0x00CFFFFC, False),
+                (0x00F00000, False), (0x00FFFFFC, False),
+            ),
+
+            # The VLE architecture should always detect an address as VLE
+            'ppc-vle': (
+                (0x00800000, True),  (0x0083FFFC, True),
+                (0x00840000, True),  (0x0087FFFC, True),
+                (0x00880000, True),  (0x008BFFFC, True),
+                (0x008C0000, True),  (0x008FFFFC, True),
+                (0x00900000, True),  (0x009FFFFC, True),
+                (0x00A00000, True),  (0x00AFFFFC, True),
+                (0x00B00000, True),  (0x00BFFFFC, True),
+                (0x00C00000, True),  (0x00CFFFFC, True),
+                (0x00F00000, True),  (0x00FFFFFC, True),
+            ),
+        }
+
+        for archname, results in vle_map_tests.items():
+            vw, _, _ = getVivEnv(archname)
+            vw.addMemoryMap(0x00800000, 7, 'flash', vle_test_mem)
+            vw.setMeta('PpcVlePages', vle_maps)
+
+            # This has to be called after the PpcVlePages meta is set
+            emu = vw.getEmulator()
+
+            for addr, valid_instr in results:
+                test_msg = '%s[0x%x] == %s' % (archname, addr, valid_instr)
+                self.assertEqual(emu.isVle(addr), valid_instr, msg=test_msg)
+                if valid_instr:
+                    self.assertEqual(str(emu.parseOpcode(addr)), vle_op_str, msg=test_msg)
+                else:
+                    with self.assertRaises(e_exc.InvalidInstruction, msg=test_msg):
+                        op = emu.parseOpcode(addr)
+

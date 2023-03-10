@@ -9,7 +9,53 @@ Ways to access registers, flags or memory:
     '[expr:20]'     eg: '[r0+4:20]'             - read/write 20 bytes of memory at expr
 '''
 
-GOOD_EMU_TESTS = 462
+from envi.archs.ppc.const import *  # after adding this, I can use the variables from const.py
+
+FDNP = FP_DOUBLE_NEG_PYNAN
+FDPP = FP_DOUBLE_POS_PYNAN
+FSNP = FP_SINGLE_NEG_PYNAN
+FSPP = FP_SINGLE_POS_PYNAN
+FDNQ = FP_DOUBLE_NEG_QNAN
+FDPQ = FP_DOUBLE_POS_QNAN
+FDNS = FP_DOUBLE_NEG_SNAN
+FDPS = FP_DOUBLE_POS_SNAN
+FDNI = FP_DOUBLE_NEG_INF
+FDPI = FP_DOUBLE_POS_INF
+FSNQ = FP_SINGLE_NEG_QNAN
+FSPQ = FP_SINGLE_POS_QNAN
+FSNS = FP_SINGLE_NEG_SNAN
+FSPS = FP_SINGLE_POS_SNAN
+FSNI = FP_SINGLE_NEG_INF
+FSPI = FP_SINGLE_POS_INF
+FDNZ = FP_DOUBLE_NEG_ZERO
+FDPZ = FP_DOUBLE_POS_ZERO
+FSNZ = FP_SINGLE_NEG_ZERO
+FSPZ = FP_SINGLE_POS_ZERO
+FHNQ = FP_HALF_NEG_QNAN
+FHPQ = FP_HALF_POS_QNAN
+FHNI = FP_HALF_NEG_INF
+FHPI = FP_HALF_POS_INF
+FHNS = FP_HALF_NEG_SNAN
+FHPS = FP_HALF_POS_SNAN
+FHNZ = FP_HALF_NEG_ZERO
+FHPZ = FP_HALF_POS_ZERO
+
+_1p1s = 0x3F8CCCCD # 1.1
+_2p2s = 0x400CCCCD # 2.2
+_3p3s = 0x40533333 # 3.3
+_4p4s = 0x408CCCCD
+_5p5s = 0x40B00000
+
+n_1p1s = 0xBF8CCCCD # 1.1
+n_2p2s = 0xC00CCCCD # 2.2
+n_3p3s = 0xC0533333 # 3.3
+n_4p4s = 0xC08CCCCD
+n_5p5s = 0xC0B00000
+
+pi_d = 0x400921fb54442d18
+pi_s = 0x40490fdb
+
+GOOD_EMU_TESTS = 522
 
 emutests = {
     #'e9f2': [{'setup': (('pc', 0x471450), ('lr', 0x313370)),
@@ -1382,9 +1428,9 @@ emutests = {
                 ('cr0', 0b0010)
             ),
         },
-        
+
     ],   # 7EAAAB78,"mr r10,r21"
-    
+
     # '73408E0C': [  # 73408E0C,"e_add2i. r0,0xd60c"
     #     {
     #         'setup': (
@@ -5996,6 +6042,645 @@ emutests = {
             )
         },
     ],
+
+    '100112c9':[ # efsdiv r0,r1,r2
+        {
+            'setup':(
+                ('r0',0x0),
+                ('r1',_1p1s),
+                ('r2',_3p3s)),
+            'tests':(
+                ('r0',0x3EAAAAAB),
+                )
+        },
+            {'setup':(
+                ('r0',0x0),
+                ('r1',n_1p1s),
+                ('r2',_3p3s)
+                ),
+            'tests':(
+                ('r0',0xbEAAAAAB),
+                )
+        },
+        {
+            'setup':(
+                ('r0',0x0),
+                ('r1',FSNS),
+                ('r2',0x7F80_000),
+                ),
+            'tests':(
+                ('r0',0xff7fffff),
+                )
+        },
+            {'setup':(
+                ('r0',0x0),
+                ('r1',0x40800000),
+                ('r2',0x40000000)
+                ),
+            'tests':(
+                ('r0',0x40000000),
+                )
+        },
+            {'setup':(
+                ('r0',0x0),
+                ('r1',0x40800000),
+                ('r2',0)),
+            'tests':(
+                ('r0',0x7f7fffff),)
+        },
+    ],
+
+    '100112c0': [ # efsadd r0,r1,r2
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', _1p1s),
+                ('r2', _1p1s)
+            ),
+            'tests': (
+                ('r0', 0x400ccccd),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x40800000),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0x41000000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0xBF8CCCCD),
+                ('r2', 0xBF8CCCCD)
+            ),
+            'tests': (
+                ('r0', 0xc00ccccd),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x40800000),
+                ('r2', 0x40000000)
+            ),
+            'tests': (
+                ('r0', 0x40c00000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x40800000),
+                ('r2', FSNS)
+            ),
+            'tests': (
+                ('r0', 0xff7fffff),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', FSNS),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0xff7fffff),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', FSPS),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0x7f7fffff),
+            )
+        },
+    ],
+
+    '100112c1': [ # efssub r0,r1,r2
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', _1p1s),
+                ('r2', _1p1s)
+            ),
+            'tests': (
+                ('r0', 0x0),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x40800000),
+                ('r2', 0x40400000)
+            ),
+            'tests': (
+                ('r0', 0x3F800000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x3F8CCCCD),
+                ('r2', 0xBF8CCCCD)
+            ),
+            'tests': (
+                ('r0', 0x400CCCCD),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x40800000),
+                ('r2', 0x40000000)
+            ),
+            'tests': (
+                ('r0', 0x40000000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x40800000),
+                ('r2', FSNS)
+            ),
+            'tests': (
+                ('r0', 0xff7fffff),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', FSNS),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0xff7fffff),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', FSPS),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0x7f7fffff),
+            )
+        },
+    ],
+
+    '100102c4': [ # efsabs r0,r1
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', n_1p1s),
+            ),
+            'tests': (
+                ('r0', _1p1s),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', n_2p2s),
+            ),
+            'tests': (
+                ('r0', _2p2s),
+            )
+        },
+    ],
+
+    '10040ad1': [ # efscfh r0,r1
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x8123),
+            ),
+            'tests': (
+                ('r0', 0x80000000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x123),
+            ),
+            'tests': (
+                ('r0', 0x0),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0xc222),
+            ),
+            'tests': (
+                ('r0', 0xC0444000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x8823),
+            ),
+            'tests': (
+                ('r0', 0xb9046000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x8823),
+            ),
+            'tests': (
+                ('r0', 0xb9046000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', FHPQ),
+                ('SPEFSCR_FINVE', 0)
+            ),
+            'tests': (
+                ('r0', 0x7f7fffff),
+                ('SPEFSCR_FINV', 1),
+
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', FHNQ),
+            ),
+            'tests': (
+                ('r0', 0xff7fffff),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x1234),
+                ('r1', FHPQ),
+                ('SPEFSCR_FGH', 1),
+                ('SPEFSCR_FXH', 1),
+                ('SPEFSCR_FG', 1),
+                ('SPEFSCR_FX', 1),
+                ('SPEFSCR_FINVE', 1),
+            ),
+            'tests': (
+                ('r0', 0x1234),
+                ('r1', FHPQ),
+                ('SPEFSCR_FGH', 0),
+                ('SPEFSCR_FXH', 0),
+                ('SPEFSCR_FG', 0),
+                ('SPEFSCR_FX', 0),
+                ('SPEFSCR_FINVE', 1),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x8000),
+            ),
+            'tests': (
+                ('r0', 0x80000000),
+
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', FHNQ),
+                ('SPEFSCR_FINVE', 1),
+            ),
+            'tests': (
+                ('r0', 0),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', FHNQ),
+                ('SPEFSCR_FINVE', 0),
+            ),
+            'tests': (
+                ('r0', 0xff7fffff),
+            )
+        },
+    ],
+
+    '10000ad3': [ # efscfsf r0,r1 Does not match hardware 100%
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x40900000),
+            ),
+            'tests': (
+                ('r0', 0x3F000000),  #hardware = 0x3f012000
+            )
+        },
+    ],
+
+    '100112c2': [ # efsmadd r0,r1, r2
+        {
+            'setup': (
+                ('r0', 0x3F800000),
+                ('r1', 0x40800000),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0x41880000),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x3F800000),
+                ('r1', 0),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0x3F800000),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x0),
+                ('r2', 0x80000000)
+            ),
+            'tests': (
+                ('r0', 0x0),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x12345678),
+                ('r1', 0x0),
+                ('r2', 0x0)
+            ),
+            'tests': (
+                ('r0', 0x12345678),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x80002345),
+                ('r1', 0x0),
+                ('r2', 0x0)
+            ),
+            'tests': (
+                ('r0', 0),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', 0x0),
+                ('r2', 0x0)
+            ),
+            'tests': (
+                ('r0', 0x40400000),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', 0x80012345),
+                ('r2', 0x80012345),
+                ('SPEFSCR_FINV', 0)
+            ),
+            'tests': (
+                ('r0', 0),
+                ('SPEFSCR_FINV', 1)
+            )
+        },
+    ],
+
+    '100112c3': [ # efsmsub r0,r1, r2
+        {
+            'setup': (
+                ('r0', 0x3F800000),
+                ('r1', 0x40800000),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0x41700000),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x0),
+                ('r2', 0x80000000)
+            ),
+            'tests': (
+                ('r0', 0x0),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x12345678),
+                ('r1', 0x0),
+                ('r2', 0x0)
+            ),
+            'tests': (
+                ('r0', 0x12345678),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x80002345),
+                ('r1', 0x0),
+                ('r2', 0x0)
+            ),
+            'tests': (
+                ('r0', 0),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', 0x0),
+                ('r2', 0x0)
+            ),
+            'tests': (
+                ('r0', 0x40400000),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', 0x80012345),
+                ('r2', 0x80012345),
+                ('SPEFSCR_FINV', 0)
+            ),
+            'tests': (
+                ('r0', 0),
+                ('SPEFSCR_FINV', 1)
+            )
+        },
+    ],
+
+    '100112c8': [ # efsmul r0,r1, r2
+        {
+            'setup': (
+                ('r0', 0x3F800000),
+                ('r1', 0x40800000),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0x41800000),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x0),
+                ('r2', 0x80000000)
+            ),
+            'tests': (
+                ('r0', 0x0),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x12345678),
+                ('r1', 0x0),
+                ('r2', 0x0)
+            ),
+            'tests': (
+                ('r0', 0x0),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x80002345),
+                ('r1', 0x0),
+                ('r2', 0x40800000)
+            ),
+            'tests': (
+                ('r0', 0),  #
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', _1p1s),
+                ('r2', 0x7F800001)   # positive NaN
+            ),
+            'tests': (
+                ('r0', 0x7F7FFFFF),  # max positive
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', 0x0),
+                ('r2', 0x7F800001)   # positive NaN
+            ),
+            'tests': (
+                ('r0', 0x00000000),  # zero
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', 0xFF800001),  # negative NaN
+                ('r2', _1p1s),
+            ),
+            'tests': (
+                ('r0', 0xFF7FFFFF),  # max negative
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', 0xFF800001),  # negative NaN
+                ('r2', 0x0),
+            ),
+            'tests': (
+                ('r0', 0x00000000),  # zero
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', _1p1s),
+                ('r2', 0x80000000),  # negative zero
+            ),
+            'tests': (
+                ('r0', 0x00000000),  # positive zero
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r1', _1p1s),
+                ('r2', 0x80012345),  # denormalized
+            ),
+            'tests': (
+                ('r0', 0),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x40400000),
+                ('r2', 0x00012345),  # denormalized
+                ('r1', n_1p1s),
+            ),
+            'tests': (
+                ('r0', 0),
+            )
+        },
+    ],
+
+    '100102c5': [ # efsnabs r0,r1 Does not match hardware 100%
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0xc0900000),
+            ),
+            'tests': (
+                ('r0', 0xc0900000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', 0x40900000),
+            ),
+            'tests': (
+                ('r0', 0xc0900000),
+            )
+        },
+        {
+            'setup': (
+                ('r0', 0x0),
+                ('r1', FSPS),
+                ("SPEFSCR_FINV", 0),
+                ("SPEFSCR_FG", 1),
+                ("SPEFSCR_FX", 1),
+                ("SPEFSCR_FGH", 1),
+                ("SPEFSCR_FXH", 1),
+            ),
+            'tests': (
+                ('r0', FSNS),
+                ("SPEFSCR_FINV", 1),
+                ("SPEFSCR_FG", 0),
+                ("SPEFSCR_FX", 0),
+                ("SPEFSCR_FGH", 0),
+                ("SPEFSCR_FXH", 0),
+            )
+        },
+    ],
+
 }
 
 

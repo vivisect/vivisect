@@ -411,6 +411,7 @@ mnems = (
     'efsabs',
     'efsadd',
     'efscfd',
+    'efscfh',
     'efscfsf',
     'efscfsi',
     'efscfuf',
@@ -425,6 +426,8 @@ mnems = (
     'efsctui',
     'efsctuiz',
     'efsdiv',
+    'efsmadd',
+    'efsmsub',
     'efsmul',
     'efsnabs',
     'efsneg',
@@ -1159,6 +1162,7 @@ IF_BRANCH_UNLIKELY = 1<<11
 IF_BRANCH_PREV_TARGET = 1<<12
 IF_MEM_EA = 1<<13
 IF_INDEXED = 1<<14
+IF_RFI = 1<<15
 
 OF_NONE      = 0
 OF_SIGNED    = 1<<1

@@ -91,478 +91,628 @@ class lst_parser(object):
             else:
                 value = match
 
-            yield lst_parser.Token(kind, match, value, obj.start())
+            # Explicitly ignore "illegal" instructions parsed
+            if match not in ('se_illegal', ):
+                yield lst_parser.Token(kind, match, value, obj.start())
+
+
+Instructions = {
+    # Unconditional Branches
+    'se_b':         'signed_bd8',              # BD8:  signed 8 bit value << 1
+    'se_bl':        'signed_bd8',              # BD8:  signed 8 bit value << 1
+    'e_b':          'signed_bd24',             # BD24: signed 24 bit value << 1
+    'e_bl':         'signed_bd24',             # BD24: signed 24 bit value << 1
+    'b':            'signed_i',                # I:    signed 24 bit value << 2
+    'bl':           'signed_i',                # I:    signed 24 bit value << 2
+
+    # Conditional Branches
+    'se_bge':       'signed_bd8',              # BD8:  signed 8 bit value << 1
+    'se_bgt':       'signed_bd8',              # BD8:  signed 8 bit value << 1
+    'se_ble':       'signed_bd8',              # BD8:  signed 8 bit value << 1
+    'se_blt':       'signed_bd8',              # BD8:  signed 8 bit value << 1
+    'se_bne':       'signed_bd8',              # BD8:  signed 8 bit value << 1
+    'se_beq':       'signed_bd8',              # BD8:  signed 8 bit value << 1
+    'e_bge':        'signed_bd15',             # BD15: signed 15 bit value << 1
+    'e_bgt':        'signed_bd15',             # BD15: signed 15 bit value << 1
+    'e_ble':        'signed_bd15',             # BD15: signed 15 bit value << 1
+    'e_blt':        'signed_bd15',             # BD15: signed 15 bit value << 1
+    'e_bne':        'signed_bd15',             # BD15: signed 15 bit value << 1
+    'e_beq':        'signed_bd15',             # BD15: signed 15 bit value << 1
+    'e_bdnz':       'signed_bd15',             # BD15: signed 15 bit value << 1
+    #'bge':          'signed_b',               # B:    signed 14 bit value << 2
+    #'bge-':         'signed_b',               # B:    signed 14 bit value << 2
+    #'bge+':         'signed_b',               # B:    signed 14 bit value << 2
+    #'bgt':          'signed_b',               # B:    signed 14 bit value << 2
+    #'bgt-':         'signed_b',               # B:    signed 14 bit value << 2
+    #'bgt+':         'signed_b',               # B:    signed 14 bit value << 2
+    #'ble':          'signed_b',               # B:    signed 14 bit value << 2
+    #'ble-':         'signed_b',               # B:    signed 14 bit value << 2
+    #'ble+':         'signed_b',               # B:    signed 14 bit value << 2
+    #'blt':          'signed_b',               # B:    signed 14 bit value << 2
+    #'blt-':         'signed_b',               # B:    signed 14 bit value << 2
+    #'blt+':         'signed_b',               # B:    signed 14 bit value << 2
+    #'bne':          'signed_b',               # B:    signed 14 bit value << 2
+    #'bne-':         'signed_b',               # B:    signed 14 bit value << 2
+    #'bne+':         'signed_b',               # B:    signed 14 bit value << 2
+    #'beq':          'signed_b',               # B:    signed 14 bit value << 2
+    #'beq-':         'signed_b',               # B:    signed 14 bit value << 2
+    #'beq+':         'signed_b',               # B:    signed 14 bit value << 2
+    #'bdnz':         'signed_b',               # B:    signed 14 bit value << 2
+    #'bdnzf':        'signed_b',               # B:    signed 14 bit value << 2
+    #'bdnzt':        'signed_b',               # B:    signed 14 bit value << 2
+    #'bns':          'signed_b',               # B:    signed 14 bit value << 2
+    #'bns-':         'signed_b',               # B:    signed 14 bit value << 2
+    #'bns+':         'signed_b',               # B:    signed 14 bit value << 2
+    #'bdz':          'signed_b',               # B:    signed 14 bit value << 2
+    'bc':           'signed_b_full',           # B:    signed 14 bit value << 2
+    'bcl':          'signed_b_full',           # B:    signed 14 bit value << 2
+    'bca':          'signed_b_full',           # B:    signed 14 bit value << 2
+    'bcla':         'signed_b_full',           # B:    signed 14 bit value << 2
+    'bcctr':        'signed_xl_full',          # XL:   BO, BI, and BH operands
+    'bcctrl':       'signed_xl_full',          # XL:   BO, BI, and BH operands
+    'bclr':         'signed_xl_full',          # XL:   BO, BI, and BH operands
+    'bclrl':        'signed_xl_full',          # XL:   BO, BI, and BH operands
+
+    # Integer Select
+    'isel':         'special_r0_handling',     # A:    special handling of param rA r0 case
+    'iseleq':       'special_r0_handling',     # A:    special handling of param rA r0 case
+    'isellt':       'special_r0_handling',     # A:    special handling of param rA r0 case
+    'iselgt':       'special_r0_handling',     # A:    special handling of param rA r0 case
+
+    # Store Doubleword
+    'std':          'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
+    'stdu':         'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
+
+    # Store Float Double
+    'stfd':         'signed_d',                # D:    unsigned 16 bit value
+
+    # Load Doubleword
+    'ld':           'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
+    'ldu':          'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
+
+    # Store Word
+    'se_stw':       'unsigned_sd4_word_addr',  # SD4:  unsigned 4 bit value << 2
+    'e_stw':        'signed_d',                # D:    signed 16 bit value
+    'e_stwu':       'signed_d8',               # D8:   signed 8 bit value
+    'e_stmw':       'signed_d8',               # D8:   signed 8 bit value
+    'e_stmvgprw':   'signed_d8',               # D8:   signed 8 bit value
+    'e_stmvsprw':   'signed_d8',               # D8:   signed 8 bit value
+    'e_stmvsrrw':   'signed_d8',               # D8:   signed 8 bit value
+    'e_stmvcrrw':   'signed_d8',               # D8:   signed 8 bit value
+    'e_stmvdrrw':   'signed_d8',               # D8:   signed 8 bit value
+    'stw':          'signed_d',                # D:    unsigned 16 bit value
+    'stwu':         'signed_d',                # D:    unsigned 16 bit value
+
+    # Store Half Word
+    'se_sth':       'unsigned_sd4_half_addr',  # SD4:  unsigned 4 bit value << 1
+    'e_sth':        'signed_d',                # D:    signed 16 bit value
+    'e_sthu':       'signed_d8',               # D8:   signed 8 bit value
+    'sth':          'signed_d',                # D:    unsigned 16 bit value
+    'sthu':         'signed_d',                # D:    unsigned 16 bit value
+
+    # Store Byte
+    'se_stb':       'unsigned_sd4_byte_addr',  # SD4:  unsigned 4 bit value
+    'e_stb':        'signed_d',                # D:    signed 16 bit value
+    'e_stbu':       'signed_d8',               # D8:   signed 8 bit value
+    'stb':          'signed_d',                # D:    signed 16 bit value
+    'stbu':         'signed_d',                # D:    signed 16 bit value
+
+    # Store Float
+    'stfs':         'signed_d',                # D:    signed 16 bit value
+    'stfsu':        'signed_d',                # D:    signed 16 bit value
+    'stfd':         'signed_d',                # D:    signed 16 bit value
+    'stfdu':        'signed_d',                # D:    signed 16 bit value
+
+    # Load Word
+    'se_lwz':       'unsigned_sd4_word_addr',  # SD4:  unsigned 4 bit value << 2
+    'e_lwz':        'signed_d',                # D:    signed 16 bit value
+    'e_lwz':        'signed_d',                # D:    signed 16 bit value
+    'e_lmw':        'signed_d8',               # D8:   signed 8 bit value
+    'e_lwzu':       'signed_d8',               # D8:   signed 8 bit value
+    'e_ldmvgprw':   'signed_d8',               # D8:   signed 8 bit value
+    'e_ldmvsprw':   'signed_d8',               # D8:   signed 8 bit value
+    'e_ldmvsrrw':   'signed_d8',               # D8:   signed 8 bit value
+    'e_ldmvcrrw':   'signed_d8',               # D8:   signed 8 bit value
+    'e_ldmvdrrw':   'signed_d8',               # D8:   signed 8 bit value
+    'lwz':          'signed_d_handle_r0',      # D:    signed 16 bit value
+    'lwa':          'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
+    'lwzu':         'signed_d_handle_r0',      # D:    signed 16 bit value
+    'lwzx':         'special_r0_handling',     # X:    special handling of param rA r0 case
+
+    # Load Float Double
+    'lfd':          'signed_d',                # D:    unsigned 16 bit value
+
+    # Load Float Single
+    'lfs':          'signed_d',                # D:    unsigned 16 bit value
+
+    # Load Half
+    'se_lhz':       'unsigned_sd4_half_addr',  # SD4:  unsigned 4 bit value << 1
+    'e_lhz':        'signed_d',                # D:    signed 16 bit value
+    'e_lhzu':       'signed_d8',               # D8:   signed 8 bit value
+    'e_lha':        'signed_d',                # D:    signed 16 bit value
+    'e_lhau':       'signed_d8',               # D8:   signed 8 bit value
+    'lhz':          'signed_d',                # D:    signed 16 bit value
+    'lha':          'signed_d',                # D:    signed 16 bit value
+    'lhzu':         'signed_d',                # D:    signed 16 bit value
+    'lhax':         'special_r0_handling',     # X:    special handling of param rA r0 case
+
+    # Load Byte
+    'se_lbz':       'unsigned_sd4_byte_addr',  # SD4:  unsigned 4 bit value
+    'e_lbz':        'signed_d',                # D:    signed 16 bit value
+    'e_lbzu':       'signed_d8',               # D8:   signed 8 bit value
+    'lbz':          'signed_d',                # D:    signed 16 bit value
+    'lba':          'signed_d',                # D:    signed 16 bit value
+    'lbzu':         'signed_d',                # D:    signed 16 bit value
+
+    # Load Immediate'
+    'se_li':        'unsigned_im7',            # IM7:  unsigned 7 bit value
+    'e_li':         'signed_li20',             # LI20: signed 20 bit value
+    'e_lis':        'unsigned_i16l',           # I16L: unsigned 16 bit value
+    'li':           'signed_d',                # D:    signed 16 bit value (alias of addi)
+    'lis':          'signed_d',                # D:    signed 16 bit value (alias of addis)
+
+    # OR Immediate
+    'e_or2i':       'unsigned_i16l',           # I16L: unsigned 16 bit value
+    'e_or2is':      'unsigned_i16l',           # I16L: unsigned 16 bit value
+    'e_ori':        'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'e_ori.':       'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'ori':          'unsigned_d',              # D:    unsigned 16 bit value
+    'ori.':         'unsigned_d',              # D:    unsigned 16 bit value
+    'oris':         'unsigned_d',              # D:    unsigned 16 bit value
+
+    # XOR Immediate
+    'e_xori':       'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'e_xori.':      'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'xori':         'unsigned_d',              # D:    unsigned 16 bit value
+    'xoris':        'unsigned_d',              # D:    unsigned 16 bit value
+
+    # AND Immediate
+    'se_andi':      'unsigned_im5',            # IM5:  unsigned 5 bit value
+    'e_and2i.':     'unsigned_i16l',           # I16L: unsigned 16 bit value
+    'e_and2is.':    'unsigned_i16l',           # I16L: unsigned 16 bit value
+    'e_andi':       'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'e_andi.':      'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'andi.':        'unsigned_d',              # D:    unsigned 16 bit value
+    'andis.':       'unsigned_d',              # D:    unsigned 16 bit value
+
+    # Shift Immediate
+    'se_srwi':      'unsigned_im5',            # IM5:  unsigned 5 bit value
+    'se_srawi':     'unsigned_im5',            # IM5:  unsigned 5 bit value
+    'se_slwi':      'unsigned_im5',            # IM5:  unsigned 5 bit value
+    'e_srwi':       'unsigned_x',              # X:    unsigned 5 bit value
+    'e_srwi.':      'unsigned_x',              # X:    unsigned 5 bit value
+    'e_slwi':       'unsigned_x',              # X:    unsigned 5 bit value
+    'e_rlwi':       'unsigned_x',              # X:    unsigned 5 bit value
+    'e_rlwimi':     'unsigned_m',              # M:    3 unsigned 5 bit values
+    'e_rlwinm':     'unsigned_m',              # M:    3 unsigned 5 bit values
+    'rlwimi':       'unsigned_m',              # M:    3 unsigned 5 bit values
+    'rlwinm':       'unsigned_m',              # M:    3 unsigned 5 bit values
+    'rlwinm.':      'unsigned_m',              # M:    3 unsigned 5 bit values
+    'rlwnm':        'unsigned_m_reg',          # M:    3 unsigned 5 bit values
+    'rlwnm.':       'unsigned_m_reg',          # M:    3 unsigned 5 bit values
+    'srawi':        'unsigned_x',              # X:    unsigned 5 bit value
+    'srawi.':       'unsigned_x',              # X:    unsigned 5 bit value
+    'sradi':        'unsigned_x_dw',           # X:    unsigned 6 bit value
+    'sradi.':       'unsigned_x_dw',           # X:    unsigned 6 bit value
+    'rldimi':       'unsigned_md',             # MD:   2 unsigned 6 bit values
+    'rldimi.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
+    'rldicl':       'unsigned_md',             # MD:   2 unsigned 6 bit values
+    'rldicl.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
+    'rldic':        'unsigned_md',             # MD:   2 unsigned 6 bit values
+    'rldic.':       'unsigned_md',             # MD:   2 unsigned 6 bit values
+    'rldicr':       'unsigned_md',             # MD:   2 unsigned 6 bit values
+    'rldicr.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
+
+    # Bit Manipulate Immediate
+    'se_bmaski':    'unsigned_im5',            # IM5:  unsigned 5 bit value
+    'se_bclri':     'unsigned_im5',            # IM5:  unsigned 5 bit value
+    'se_bseti':     'unsigned_im5',            # IM5:  unsigned 5 bit value
+    'se_btsti':     'unsigned_im5',            # IM5:  unsigned 5 bit value
+    'se_bgeni':     'unsigned_im5',            # IM5:  unsigned 5 bit value
+
+    # Compare Immediate
+    'se_cmpli':     'unsigned_oim5',           # OIM5: unsigned 5 bit value
+    'se_cmpi':      'unsigned_im5',            # IM5:  unsigned 5 bit value
+    'e_cmpli':      'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'e_cmpi':       'signed_sci8',             # SCI8: "signed" 32 bit value
+    'e_cmpl16i':    'unsigned_i16a',           # IA16 (same as I16A?): unsigned 16 bit value
+    'e_cmp16i':     'signed_i16a',             # IA16 (same as I16A?): signed 16 bit value
+    'cmpli':        'unsigned_d',              # D:    unsigned 16 bit value
+    'cmpi':         'signed_d',                # D:    signed 16 bit value
+    'cmplwi':       'unsigned_d',              # D:    unsigned 16 bit value
+    'cmpwi':        'signed_d',                # D:    signed 16 bit value
+    'cmpldi':       'unsigned_d',              # D:    unsigned 16 bit value (alias of cmpli)
+    'cmpdi':        'signed_d',                # D:    signed 16 bit value (alias of cmpi)
+
+    # Trap Immediate
+    #'twui':         'signed_d_full',           # D:    signed 16 bit value
+    'tw':           'x_full',                  # X
+    #'twu':          'x_full',                  # X
+    'twi':          'signed_d_full',           # D:    signed 16 bit value
+    #'trap':         'signed_d_full',           # D:    signed 16 bit value
+    #'twgti':        'signed_d',                # D:    signed 16 bit value
+    #'twlgti':       'signed_d',                # D:    signed 16 bit value
+    #'twnei':        'signed_d',                # D:    signed 16 bit value
+    'tdi':          'signed_d',                # D:    signed 16 bit value
+    #'tdgti':        'signed_d',                # D:    signed 16 bit value
+    #'tdlgti':       'signed_d',                # D:    signed 16 bit value
+    #'tdnei':        'signed_d',                # D:    signed 16 bit value
+
+    # Add Immediate
+    'se_addi':      'unsigned_oim5',           # OIM5: unsigned 5 bit value
+    'e_add16i':     'signed_d',                # D:    signed 16 bit value
+    'e_add2i.':     'signed_i16a',             # I16A: signed 16 bit value
+    'e_add2is':     'signed_i16a',             # I16A: signed 16 bit value
+    'e_addi':       'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'e_addi.':      'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'addi':         'signed_d',                # D:    signed 16 bit value
+    'addis':        'signed_d',                # D:    signed 16 bit value
+    'addic':        'signed_d',                # D:    signed 16 bit value
+    'addic.':       'signed_d',                # D:    signed 16 bit value
+
+    # Multiply Immediate
+    'e_mulli':      'signed_sci8',             # SCI8: "signed" 32 bit value
+    'e_mull2i':     'signed_i16a',             # I16A: signed 16 bit value
+    'mulli':        'signed_d',                # D:    signed 16 bit value
+
+    # Subtract Immediate
+    'se_subi':      'unsigned_oim5',           # OIM5: unsigned 5 bit value
+    'se_subi.':     'unsigned_oim5',           # OIM5: unsigned 5 bit value
+    'e_subfic':     'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'e_subfic.':    'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
+    'subfic':       'signed_d',                # D:    signed 16 bit value
+
+    # Move To/From SPR
+    'mtspr':        'xfx_spr',                 # XFX: Special Purpose Register
+    'mfspr':        'xfx_spr',                 # XFX: Special Purpose Register
+    'mttmr':        'xfx_tmr',                 # XFX: Thread Management Register
+    'mftmr':        'xfx_tmr',                 # XFX: Thread Management Register
+    'mtpmr':        'xfx_pmr',                 # XFX: Performance Monitor Register
+    'mfpmr':        'xfx_pmr',                 # XFX: Performance Monitor Register
+
+    # Data cache
+    'dcbtst':       'dcbt',                    # X:   5 bit unsigned field
+    'dcbt':         'dcbt',                    # X:   5 bit unsigned field
+
+    # Other
+    'eieio':        'xfx_field1',              # XFX: special MO flag
+    'mbar':         'xfx_field1',              # XFX: special MO flag
+    'wrteei':       'wrteei',                  # X:   special E flag
+    'mtcr':         'mtcrf',                   # XFX: special CRM flag values
+    'mtcrf':        'mtcrf',                   # XFX: special CRM flag values
+    'mfcrf':        'mtcrf',                   # XFX: special CRM flag values
+    'mtocrf':       'mtcrf',                   # XFX: special CRM flag values
+    'mfocrf':       'mtcrf',                   # XFX: special CRM flag values
+    'mtfsf':        'mtfsf',                   # XFL: NXP EREF says XFX form, PowerISA says XFL
+    'mffsf':        'mtfsf',                   # XFL: NXP EREF says XFX form, PowerISA says XFL
+    'tlbsx':        'x_2reg_r0_handling',      # X
+    'tlbsx.':       'x_2reg_r0_handling',      # X
+    'tlbsrx.':      'x_2reg_r0_handling',      # X
+    'tlbivax':      'x_2reg_r0_handling',      # X
+    'sync':         'sync',                    # X:  special sync format
+    'msync':        'sync',                    # X:  special sync format
+    'lwsync':       'sync',                    # X:  special sync format
+    'wait':         'wait',                    # X:  special wait format
+
+    # altivec
+    'vspltisb':     'signed_vx',               # VX: signed 5 bit value
+    'vspltish':     'signed_vx',               # VX: signed 5 bit value
+    'vspltisw':     'signed_vx',               # VX: signed 5 bit value
+}
+
+regen_branch_ops = [
+    # first here are the standard simplified mnemonics for the
+    # bc/bclr/bcctr instructions:
+
+    # bc
+    'bge',        'bgt',        'ble',        'blt',        'bne',        'beq',        'bns',
+    'bge-',       'bgt-',       'ble-',       'blt-',       'bne-',       'beq-',       'bns-',
+    'bge+',       'bgt+',       'ble+',       'blt+',       'bne+',       'beq+',       'bns+',
+    'bgel',       'bgtl',       'blel',       'bltl',       'bnel',       'beql',       'bnsl',
+    'bgel-',      'bgtl-',      'blel-',      'bltl-',      'bnel-',      'beql-',      'bnsl-',
+    'bgel+',      'bgtl+',      'blel+',      'bltl+',      'bnel+',      'beql+',      'bnsl+',
+    'bgea',       'bgta',       'blea',       'blta',       'bnea',       'beqa',       'bnsa',
+    'bgea-',      'bgta-',      'blea-',      'blta-',      'bnea-',      'beqa-',      'bnsa-',
+    'bgea+',      'bgta+',      'blea+',      'blta+',      'bnea+',      'beqa+',      'bnsa+',
+    'bgela',      'bgtla',      'blela',      'bltla',      'bnela',      'beqla',      'bnsla',
+    'bgela-',     'bgtla-',     'blela-',     'bltla-',     'bnela-',     'beqla-',     'bnsla-',
+    'bgela+',     'bgtla+',     'blela+',     'bltla+',     'bnela+',     'beqla+',     'bnsla+',
+
+    # bclr
+    'bgelr',      'bgtlr',      'blelr',      'bltlr',      'bnelr',      'beqlr',      'bnslr',
+    'bgelr-',     'bgtlr-',     'blelr-',     'bltlr-',     'bnelr-',     'beqlr-',     'bnslr-',
+    'bgelr+',     'bgtlr+',     'blelr+',     'bltlr+',     'bnelr+',     'beqlr+',     'bnslr+',
+    'bgelrl',     'bgtlrl',     'blelrl',     'bltlrl',     'bnelrl',     'beqlrl',     'bnslrl',
+    'bgelrl-',    'bgtlrl-',    'blelrl-',    'bltlrl-',    'bnelrl-',    'beqlrl-',    'bnslrl-',
+    'bgelrl+',    'bgtlrl+',    'blelrl+',    'bltlrl+',    'bnelrl+',    'beqlrl+',    'bnslrl+',
+
+    # bcctr
+    'bgectr',     'bgtctr',     'blectr',     'bltctr',     'bnectr',     'beqctr',     'bnsctr',
+    'bgectr-',    'bgtctr-',    'blectr-',    'bltctr-',    'bnectr-',    'beqctr-',    'bnsctr-',
+    'bgectr+',    'bgtctr+',    'blectr+',    'bltctr+',    'bnectr+',    'beqctr+',    'bnsctr+',
+    'bgectrl',    'bgtctrl',    'blectrl',    'bltctrl',    'bnectrl',    'beqctrl',    'bnsctrl',
+    'bgectrl-',   'bgtctrl-',   'blectrl-',   'bltctrl-',   'bnectrl-',   'beqctrl-',   'bnsctrl-',
+    'bgectrl+',   'bgtctrl+',   'blectrl+',   'bltctrl+',   'bnectrl+',   'beqctrl+',   'bnsctrl+',
+
+    # bc - ctr decrement, non-zero && condition
+    'bdnzge',     'bdnzgt',     'bdnzle',     'bdnzlt',     'bdnzne',     'bdnzeq',     'bdnzns',
+    'bdnzge-',    'bdnzgt-',    'bdnzle-',    'bdnzlt-',    'bdnzne-',    'bdnzeq-',    'bdnzns-',
+    'bdnzge+',    'bdnzgt+',    'bdnzle+',    'bdnzlt+',    'bdnzne+',    'bdnzeq+',    'bdnzns+',
+    'bdnzgel',    'bdnzgtl',    'bdnzlel',    'bdnzltl',    'bdnznel',    'bdnzeql',    'bdnznsl',
+    'bdnzgel-',   'bdnzgtl-',   'bdnzlel-',   'bdnzltl-',   'bdnznel-',   'bdnzeql-',   'bdnznsl-',
+    'bdnzgel+',   'bdnzgtl+',   'bdnzlel+',   'bdnzltl+',   'bdnznel+',   'bdnzeql+',   'bdnznsl+',
+    'bdnzgea',    'bdnzgta',    'bdnzlea',    'bdnzlta',    'bdnznea',    'bdnzeqa',    'bdnznsa',
+    'bdnzgea-',   'bdnzgta-',   'bdnzlea-',   'bdnzlta-',   'bdnznea-',   'bdnzeqa-',   'bdnznsa-',
+    'bdnzgea+',   'bdnzgta+',   'bdnzlea+',   'bdnzlta+',   'bdnznea+',   'bdnzeqa+',   'bdnznsa+',
+    'bdnzgela',   'bdnzgtla',   'bdnzlela',   'bdnzltla',   'bdnznela',   'bdnzeqla',   'bdnznsla',
+    'bdnzgela-',  'bdnzgtla-',  'bdnzlela-',  'bdnzltla-',  'bdnznela-',  'bdnzeqla-',  'bdnznsla-',
+    'bdnzgela+',  'bdnzgtla+',  'bdnzlela+',  'bdnzltla+',  'bdnznela+',  'bdnzeqla+',  'bdnznsla+',
+
+    # bclr - ctr decrement, non-zero && condition
+    'bdnzgelr',   'bdnzgtlr',   'bdnzlelr',   'bdnzltlr',   'bdnznelr',   'bdnzeqlr',   'bdnznslr',
+    'bdnzgelr-',  'bdnzgtlr-',  'bdnzlelr-',  'bdnzltlr-',  'bdnznelr-',  'bdnzeqlr-',  'bdnznslr-',
+    'bdnzgelr+',  'bdnzgtlr+',  'bdnzlelr+',  'bdnzltlr+',  'bdnznelr+',  'bdnzeqlr+',  'bdnznslr+',
+    'bdnzgelrl',  'bdnzgtlrl',  'bdnzlelrl',  'bdnzltlrl',  'bdnznelrl',  'bdnzeqlrl',  'bdnznslrl',
+    'bdnzgelrl-', 'bdnzgtlrl-', 'bdnzlelrl-', 'bdnzltlrl-', 'bdnznelrl-', 'bdnzeqlrl-', 'bdnznslrl-',
+    'bdnzgelrl+', 'bdnzgtlrl+', 'bdnzlelrl+', 'bdnzltlrl+', 'bdnznelrl+', 'bdnzeqlrl+', 'bdnznslrl+',
+
+    # bc - ctr decrement, zero && condition
+    'bdzge',      'bdzgt',      'bdzle',      'bdzlt',      'bdzne',      'bdzeq',      'bdzns',
+    'bdzge-',     'bdzgt-',     'bdzle-',     'bdzlt-',     'bdzne-',     'bdzeq-',     'bdzns-',
+    'bdzge+',     'bdzgt+',     'bdzle+',     'bdzlt+',     'bdzne+',     'bdzeq+',     'bdzns+',
+    'bdzgel',     'bdzgtl',     'bdzlel',     'bdzltl',     'bdznel',     'bdzeql',     'bdznsl',
+    'bdzgel-',    'bdzgtl-',    'bdzlel-',    'bdzltl-',    'bdznel-',    'bdzeql-',    'bdznsl-',
+    'bdzgel+',    'bdzgtl+',    'bdzlel+',    'bdzltl+',    'bdznel+',    'bdzeql+',    'bdznsl+',
+    'bdzgea',     'bdzgta',     'bdzlea',     'bdzlta',     'bdznea',     'bdzeqa',     'bdznsa',
+    'bdzgea-',    'bdzgta-',    'bdzlea-',    'bdzlta-',    'bdznea-',    'bdzeqa-',    'bdznsa-',
+    'bdzgea+',    'bdzgta+',    'bdzlea+',    'bdzlta+',    'bdznea+',    'bdzeqa+',    'bdznsa+',
+    'bdzgela',    'bdzgtla',    'bdzlela',    'bdzltla',    'bdznela',    'bdzeqla',    'bdznsla',
+    'bdzgela-',   'bdzgtla-',   'bdzlela-',   'bdzltla-',   'bdznela-',   'bdzeqla-',   'bdznsla-',
+    'bdzgela+',   'bdzgtla+',   'bdzlela+',   'bdzltla+',   'bdznela+',   'bdzeqla+',   'bdznsla+',
+
+    # bclr - ctr decrement, zero && condition
+    'bdzgelr',    'bdzgtlr',    'bdzlelr',    'bdzltlr',    'bdznelr',    'bdzeqlr',    'bdznslr',
+    'bdzgelr-',   'bdzgtlr-',   'bdzlelr-',   'bdzltlr-',   'bdznelr-',   'bdzeqlr-',   'bdznslr-',
+    'bdzgelr+',   'bdzgtlr+',   'bdzlelr+',   'bdzltlr+',   'bdznelr+',   'bdzeqlr+',   'bdznslr+',
+    'bdzgelrl',   'bdzgtlrl',   'bdzlelrl',   'bdzltlrl',   'bdznelrl',   'bdzeqlrl',   'bdznslrl',
+    'bdzgelrl-',  'bdzgtlrl-',  'bdzlelrl-',  'bdzltlrl-',  'bdznelrl-',  'bdzeqlrl-',  'bdznslrl-',
+    'bdzgelrl+',  'bdzgtlrl+',  'bdzlelrl+',  'bdzltlrl+',  'bdznelrl+',  'bdzeqlrl+',  'bdznslrl+',
+
+    # Other possible branch instruction forms
+
+    'bdz',  'bdnz',  'bdnzf',  'bdnzt',  'bdzf',  'bdzt'
+    'bdz-', 'bdnz-', 'bdnzf-', 'bdnzt-', 'bdzf-', 'bdzt-'
+    'bdz+', 'bdnz+', 'bdnzf+', 'bdnzt+', 'bdzf+', 'bdzt+'
+
+    # The "un-simplified" mnemonics
+    'bc', 'bca', 'bcl', 'bcla'
+]
+
+# The BO and BI values that result in some simplified mnemonics
+branch_encodings = {
+    0b00000: {
+        '.lt': ('bdnzge', ''),
+        '.gt': ('bdnzle', ''),
+        '.eq': ('bdnzne', ''),
+        '.so': ('bdnzns', ''),
+    },
+    0b00010: {
+        '.lt': ('bdzge', ''),
+        '.gt': ('bdzle', ''),
+        '.eq': ('bdzne', ''),
+        '.so': ('bdzns', ''),
+    },
+    0b00100: {
+        '.lt': ('bge', ''),
+        '.gt': ('ble', ''),
+        '.eq': ('bne', ''),
+        '.so': ('bns', ''),
+    },
+    0b00110: {
+        '.lt': ('bge', '-'),
+        '.gt': ('ble', '-'),
+        '.eq': ('bne', '-'),
+        '.so': ('bns', '-'),
+    },
+    0b00111: {
+        '.lt': ('bge', '+'),
+        '.gt': ('ble', '+'),
+        '.eq': ('bne', '+'),
+        '.so': ('bns', '+'),
+    },
+    0b01000: {
+        '.lt': ('bdnzlt', ''),
+        '.gt': ('bdnzgt', ''),
+        '.eq': ('bdnzeq', ''),
+        '.so': ('bdnzso', ''),
+    },
+    0b01010: {
+        '.lt': ('bdzlt', ''),
+        '.gt': ('bdzgt', ''),
+        '.eq': ('bdzeq', ''),
+        '.so': ('bdzso', ''),
+    },
+    0b01100: {
+        '.lt': ('blt', ''),
+        '.gt': ('bgt', ''),
+        '.eq': ('beq', ''),
+        '.so': ('bso', ''),
+    },
+    0b01110: {
+        '.lt': ('blt', '-'),
+        '.gt': ('bgt', '-'),
+        '.eq': ('beq', '-'),
+        '.so': ('bso', '-'),
+    },
+    0b01111: {
+        '.lt': ('blt', '+'),
+        '.gt': ('bgt', '+'),
+        '.eq': ('beq', '+'),
+        '.so': ('bso', '+'),
+    },
+    0b01111: {
+        '.lt': ('blt', '+'),
+        '.gt': ('bgt', '+'),
+        '.eq': ('beq', '+'),
+        '.so': ('bso', '+'),
+    },
+    0b10000: ('bdnz', ''),
+    0b11000: ('bdnz', '-'),
+    0b11001: ('bdnz', '+'),
+    0b10010: ('bdz', ''),
+    0b11010: ('bdz', '-'),
+    0b11011: ('bdz', '+'),
+    0b10100: ('b', ''),
+}
+
+branch_op_pat = re.compile(r'^b[a-z]+?(lr|ctr)?(la|l|a)?[+-]?$')
+
+# Some instructions need to be completely re-generated
+regen_ops = [
+    'wait',
+    'mbar',
+    'tlbsx', 'tlbsx.', 'tlbsrx.', 'tlbivax',
+    'sync',
+    'tw', 'twi', 'td', 'tdi',
+    'mtfsf', 'mtfsfi',
+]
+
+# The input listings use some incorrect (or non-NXP) mnemonics, make
+# some adjustments.
+rename_mapping = {
+    'mfsprg':      (None, 'mfspr'),
+    'mtsprg':      (None, 'mtspr'),
+
+    # 'eieio' was the old PPC instruction, it should now be called 'mbar'
+    'eieio':       (None, 'mbar'),
+    #'lwsync':      (None, 'sync'),
+    #'msync':       (None, 'sync'),
+
+    # 'sync' is the standard PowerISA simplified mnemonic for
+    #   sync 0,0
+    #
+    # The EREF uses msync currently to mean the same thing, for now
+    # generate the NXP/EREF form
+    'sync':        (None, 'msync'),
+
+    # The tlbsx. instruction does not appear to be valid in PowerISA
+    # 2.x+ or the EREF.
+    'tlbsx.':      (None, 'tlbsx'),
+
+    # Generic PPC forms into forms I recognize better
+    #'twu':         (None, 'tw'),
+    #'twui':        (None, 'twi'),
+    #'trap':        ( (0x0C000000, 'twi'),
+    #                 (0x7C000000, 'tw') ),
+
+    # These new ISR load/store instrucions are misnamed in IDA
+    'e_lmvgprw':   (None, 'e_ldmvgprw'),
+    'e_lmvsprw':   (None, 'e_ldmvsprw'),
+    'e_lmvsrrw':   (None, 'e_ldmvsrrw'),
+    'e_lmvcsrrw':  (None, 'e_ldmvcsrrw'),
+    'e_lmvdsrrw':  (None, 'e_ldmvdsrrw'),
+
+    # These VLE instructions should not be translated eventually.
+    'e_srwi': (
+                   (0x74000000, 'e_rlwinm'),
+    ),
+    'e_extrwi':    (None, 'e_rlwinm'),
+    'e_extlwi':    (None, 'e_rlwinm'),
+    'e_clrlslwi':  (None, 'e_rlwinm'),
+    'e_clrlwi':    (None, 'e_rlwinm'),
+    'e_insrwi':    (None, 'e_rlwimi'),
+    'e_clrrwi':    (None, 'e_rlwinm'),
+    'e_rotrwi':    (None, 'e_rlwinm'),
+    'e_rotlwi':    (None, 'e_rlwinm'),
+    'mtcr':        (None, 'mtcrf'),
+
+    # TODO: These PPC instructions should not be translated eventually.
+    'rotldi':      (None, 'rldicl'),
+    'rotrdi':      (None, 'rldicl'),
+    'sldi':        (None, 'rldicr'),
+    'srwi':        (None, 'rlwinm'),
+    'srdi':        (None, 'rldicl'),
+    'extrwi':      (None, 'rlwinm'),
+    'extlwi':      (None, 'rlwinm'),
+    'clrlslwi':    (None, 'rlwinm'),
+    'clrlwi':      (None, 'rlwinm'),
+    'slwi':        (None, 'rlwinm'),
+    'insrwi':      (None, 'rlwimi'),
+    'insrdi':      (None, 'rldimi'),
+    'clrrwi':      (None, 'rlwinm'),
+    'rotrwi':      (None, 'rlwinm'),
+    'rotlwi':      (None, 'rlwinm'),
+    'rotlw':       (None, 'rlwnm'),
+    'inslwi':      (None, 'rlwimi'),
+    'clrrdi':      (None, 'rldicr'),
+    'clrldi':      (None, 'rldicl'),
+    'extldi':      (None, 'rldicr'),
+    'extrdi':      (None, 'rldicl'),
+    'clrlsldi':    (None, 'rldic'),
+
+    # RC=1 forms of the rotate/shift instructions
+    'rotldi.':     (None, 'rldicl.'),
+    'rotrdi.':     (None, 'rldicl.'),
+    'sldi.':       (None, 'rldicr.'),
+    'srwi.':       (None, 'rlwinm.'),
+    'srdi.':       (None, 'rldicl.'),
+    'extrwi.':     (None, 'rlwinm.'),
+    'extlwi.':     (None, 'rlwinm.'),
+    'clrlslwi.':   (None, 'rlwinm.'),
+    'clrlwi.':     (None, 'rlwinm.'),
+    'slwi.':       (None, 'rlwinm.'),
+    'insrwi.':     (None, 'rlwimi.'),
+    'insrdi.':     (None, 'rldimi.'),
+    'clrrwi.':     (None, 'rlwinm.'),
+    'rotrwi.':     (None, 'rlwinm.'),
+    'rotlwi.':     (None, 'rlwinm.'),
+    'rotlw.':      (None, 'rlwnm.'),
+    'inslwi.':     (None, 'rlwimi.'),
+    'clrrdi.':     (None, 'rldicr.'),
+    'clrldi.':     (None, 'rldicl.'),
+    'extldi.':     (None, 'rldicr.'),
+    'extrdi.':     (None, 'rldicl.'),
+    'clrlsldi.':   (None, 'rldic.'),
+}
+
+cr0_prepend = [
+        #'cmpw', 'cmpwi', 'cmplw', 'cmplwi', 'cmpli', 'cmpl', 'cmp', 'cmpi'
+        #'e_bge', 'e_ble', 'e_bne', 'e_beq', 'e_bgt', 'e_blt',
+        #'bge', 'ble', 'bne', 'beq', 'bgt', 'blt',
+        #'bgea', 'blea', 'bnea', 'beqa', 'bgta', 'blta',
+        #'bgel', 'blel', 'bnel', 'beql', 'bgtl', 'bltl',
+        #'bgela', 'blela', 'bnela', 'beqla', 'bgtla', 'bltla',
+        #'bgelr', 'blelr', 'bnelr', 'beqlr', 'bgtlr', 'bltlr',
+        #'bgelrl', 'blelrl', 'bnelrl', 'beqlrl', 'bgtlrl', 'bltlrl',
+        #'bgectr', 'blectr', 'bnectr', 'beqctr', 'bgtctr', 'bltctr',
+        #'bgectrl', 'blectrl', 'bnectrl', 'beqctrl', 'bgtctrl', 'bltctrl',
+]
+
+cr0_append = [
+]
+
+# Some instructions don't need fixing or re-evaluating
+dont_fix_instrs = [
+        'lvx', 'lvsr', 'lvsl',
+        'lxl',
+        'stvx',
+        'lbarx', 'lharx', 'lwarx', 'ldarx',
+        'stbcx.', 'sthcx.', 'stwcx.', 'stdcx.',
+        'lhbrx', 'lwbrx', 'ldbrx',
+        'sthbrx', 'stwbrx', 'stwdrx',
+        'ldx', 'lbzx',
+        'lhau',
+        'dcbst', 'dcbf', 'dcbz',
+        'icbi',
+        'tlbilx', 'tlbre',
+        'twu', 'trap',
+        'twui', 'twgti', 'twlgti', 'twnei',
+        'tdgti', 'tdlgti', 'tdnei',
+
+        'se_nop',
+]
 
 class ppc_instr(object):
-    Instructions = {
-        # Unconditional Branches
-        'se_b':         'signed_bd8',              # BD8:  signed 8 bit value << 1
-        'se_bl':        'signed_bd8',              # BD8:  signed 8 bit value << 1
-        'e_b':          'signed_bd24',             # BD24: signed 24 bit value << 1
-        'e_bl':         'signed_bd24',             # BD24: signed 24 bit value << 1
-        'b':            'signed_i',                # I:    signed 24 bit value << 2
-        'bl':           'signed_i',                # I:    signed 24 bit value << 2
-
-        # Conditional Branches
-        'se_bge':       'signed_bd8',              # BD8:  signed 8 bit value << 1
-        'se_bgt':       'signed_bd8',              # BD8:  signed 8 bit value << 1
-        'se_ble':       'signed_bd8',              # BD8:  signed 8 bit value << 1
-        'se_blt':       'signed_bd8',              # BD8:  signed 8 bit value << 1
-        'se_bne':       'signed_bd8',              # BD8:  signed 8 bit value << 1
-        'se_beq':       'signed_bd8',              # BD8:  signed 8 bit value << 1
-        'e_bge':        'signed_bd15',             # BD15: signed 15 bit value << 1
-        'e_bgt':        'signed_bd15',             # BD15: signed 15 bit value << 1
-        'e_ble':        'signed_bd15',             # BD15: signed 15 bit value << 1
-        'e_blt':        'signed_bd15',             # BD15: signed 15 bit value << 1
-        'e_bne':        'signed_bd15',             # BD15: signed 15 bit value << 1
-        'e_beq':        'signed_bd15',             # BD15: signed 15 bit value << 1
-        'e_bdnz':       'signed_bd15',             # BD15: signed 15 bit value << 1
-        #'bge':          'signed_b',               # B:    signed 14 bit value << 2
-        #'bge-':         'signed_b',               # B:    signed 14 bit value << 2
-        #'bge+':         'signed_b',               # B:    signed 14 bit value << 2
-        #'bgt':          'signed_b',               # B:    signed 14 bit value << 2
-        #'bgt-':         'signed_b',               # B:    signed 14 bit value << 2
-        #'bgt+':         'signed_b',               # B:    signed 14 bit value << 2
-        #'ble':          'signed_b',               # B:    signed 14 bit value << 2
-        #'ble-':         'signed_b',               # B:    signed 14 bit value << 2
-        #'ble+':         'signed_b',               # B:    signed 14 bit value << 2
-        #'blt':          'signed_b',               # B:    signed 14 bit value << 2
-        #'blt-':         'signed_b',               # B:    signed 14 bit value << 2
-        #'blt+':         'signed_b',               # B:    signed 14 bit value << 2
-        #'bne':          'signed_b',               # B:    signed 14 bit value << 2
-        #'bne-':         'signed_b',               # B:    signed 14 bit value << 2
-        #'bne+':         'signed_b',               # B:    signed 14 bit value << 2
-        #'beq':          'signed_b',               # B:    signed 14 bit value << 2
-        #'beq-':         'signed_b',               # B:    signed 14 bit value << 2
-        #'beq+':         'signed_b',               # B:    signed 14 bit value << 2
-        #'bdnz':         'signed_b',               # B:    signed 14 bit value << 2
-        #'bdnzf':        'signed_b',               # B:    signed 14 bit value << 2
-        #'bdnzt':        'signed_b',               # B:    signed 14 bit value << 2
-        #'bns':          'signed_b',               # B:    signed 14 bit value << 2
-        #'bns-':         'signed_b',               # B:    signed 14 bit value << 2
-        #'bns+':         'signed_b',               # B:    signed 14 bit value << 2
-        #'bdz':          'signed_b',               # B:    signed 14 bit value << 2
-        'bc':           'signed_b_full',           # B:    signed 14 bit value << 2
-        'bcl':          'signed_b_full',           # B:    signed 14 bit value << 2
-        'bca':          'signed_b_full',           # B:    signed 14 bit value << 2
-        'bcla':         'signed_b_full',           # B:    signed 14 bit value << 2
-        'bcctr':        'signed_xl_full',          # XL:   BO, BI, and BH operands
-        'bcctrl':       'signed_xl_full',          # XL:   BO, BI, and BH operands
-        'bclr':         'signed_xl_full',          # XL:   BO, BI, and BH operands
-        'bclrl':        'signed_xl_full',          # XL:   BO, BI, and BH operands
-
-        # Integer Select
-        'isel':         'special_r0_handling',     # A:    special handling of param rA r0 case
-        'iseleq':       'special_r0_handling',     # A:    special handling of param rA r0 case
-        'isellt':       'special_r0_handling',     # A:    special handling of param rA r0 case
-        'iselgt':       'special_r0_handling',     # A:    special handling of param rA r0 case
-
-        # Store Doubleword
-        'std':          'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
-        'stdu':         'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
-
-        # Store Float Double
-        'stfd':         'signed_d',                # D:    unsigned 16 bit value
-
-        # Load Doubleword
-        'ld':           'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
-        'ldu':          'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
-
-        # Store Word
-        'se_stw':       'unsigned_sd4_word_addr',  # SD4:  unsigned 4 bit value << 2
-        'e_stw':        'signed_d',                # D:    signed 16 bit value
-        'e_stwu':       'signed_d8',               # D8:   signed 8 bit value
-        'e_stmw':       'signed_d8',               # D8:   signed 8 bit value
-        'e_stmvgprw':   'signed_d8',               # D8:   signed 8 bit value
-        'e_stmvsprw':   'signed_d8',               # D8:   signed 8 bit value
-        'e_stmvsrrw':   'signed_d8',               # D8:   signed 8 bit value
-        'e_stmvcrrw':   'signed_d8',               # D8:   signed 8 bit value
-        'e_stmvdrrw':   'signed_d8',               # D8:   signed 8 bit value
-        'stw':          'signed_d',                # D:    unsigned 16 bit value
-        'stwu':         'signed_d',                # D:    unsigned 16 bit value
-
-        # Store Half Word
-        'se_sth':       'unsigned_sd4_half_addr',  # SD4:  unsigned 4 bit value << 1
-        'e_sth':        'signed_d',                # D:    signed 16 bit value
-        'e_sthu':       'signed_d8',               # D8:   signed 8 bit value
-        'sth':          'signed_d',                # D:    unsigned 16 bit value
-        'sthu':         'signed_d',                # D:    unsigned 16 bit value
-
-        # Store Byte
-        'se_stb':       'unsigned_sd4_byte_addr',  # SD4:  unsigned 4 bit value
-        'e_stb':        'signed_d',                # D:    signed 16 bit value
-        'e_stbu':       'signed_d8',               # D8:   signed 8 bit value
-        'stb':          'signed_d',                # D:    signed 16 bit value
-        'stbu':         'signed_d',                # D:    signed 16 bit value
-
-        # Store Float
-        'stfs':         'signed_d',                # D:    signed 16 bit value
-        'stfsu':        'signed_d',                # D:    signed 16 bit value
-        'stfd':         'signed_d',                # D:    signed 16 bit value
-        'stfdu':        'signed_d',                # D:    signed 16 bit value
-
-        # Load Word
-        'se_lwz':       'unsigned_sd4_word_addr',  # SD4:  unsigned 4 bit value << 2
-        'e_lwz':        'signed_d',                # D:    signed 16 bit value
-        'e_lwz':        'signed_d',                # D:    signed 16 bit value
-        'e_lmw':        'signed_d8',               # D8:   signed 8 bit value
-        'e_lwzu':       'signed_d8',               # D8:   signed 8 bit value
-        'e_ldmvgprw':   'signed_d8',               # D8:   signed 8 bit value
-        'e_ldmvsprw':   'signed_d8',               # D8:   signed 8 bit value
-        'e_ldmvsrrw':   'signed_d8',               # D8:   signed 8 bit value
-        'e_ldmvcrrw':   'signed_d8',               # D8:   signed 8 bit value
-        'e_ldmvdrrw':   'signed_d8',               # D8:   signed 8 bit value
-        'lwz':          'signed_d_handle_r0',      # D:    signed 16 bit value
-        'lwa':          'signed_ds_handle_r0',     # DS:   unsigned 14 bit value << 2
-        'lwzu':         'signed_d_handle_r0',      # D:    signed 16 bit value
-        'lwzx':         'special_r0_handling',     # X:    special handling of param rA r0 case
-
-        # Load Float Double
-        'lfd':          'signed_d',                # D:    unsigned 16 bit value
-
-        # Load Float Single
-        'lfs':          'signed_d',                # D:    unsigned 16 bit value
-
-        # Load Half
-        'se_lhz':       'unsigned_sd4_half_addr',  # SD4:  unsigned 4 bit value << 1
-        'e_lhz':        'signed_d',                # D:    signed 16 bit value
-        'e_lhzu':       'signed_d8',               # D8:   signed 8 bit value
-        'e_lha':        'signed_d',                # D:    signed 16 bit value
-        'e_lhau':       'signed_d8',               # D8:   signed 8 bit value
-        'lhz':          'signed_d',                # D:    signed 16 bit value
-        'lha':          'signed_d',                # D:    signed 16 bit value
-        'lhzu':         'signed_d',                # D:    signed 16 bit value
-        'lhax':         'special_r0_handling',     # X:    special handling of param rA r0 case
-
-        # Load Byte
-        'se_lbz':       'unsigned_sd4_byte_addr',  # SD4:  unsigned 4 bit value
-        'e_lbz':        'signed_d',                # D:    signed 16 bit value
-        'e_lbzu':       'signed_d8',               # D8:   signed 8 bit value
-        'lbz':          'signed_d',                # D:    signed 16 bit value
-        'lba':          'signed_d',                # D:    signed 16 bit value
-        'lbzu':         'signed_d',                # D:    signed 16 bit value
-
-        # Load Immediate'
-        'se_li':        'unsigned_im7',            # IM7:  unsigned 7 bit value
-        'e_li':         'signed_li20',             # LI20: signed 20 bit value
-        'e_lis':        'unsigned_i16l',           # I16L: unsigned 16 bit value
-        'li':           'signed_d',                # D:    signed 16 bit value (alias of addi)
-        'lis':          'signed_d',                # D:    signed 16 bit value (alias of addis)
-
-        # OR Immediate
-        'e_or2i':       'unsigned_i16l',           # I16L: unsigned 16 bit value
-        'e_or2is':      'unsigned_i16l',           # I16L: unsigned 16 bit value
-        'e_ori':        'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'e_ori.':       'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'ori':          'unsigned_d',              # D:    unsigned 16 bit value
-        'ori.':         'unsigned_d',              # D:    unsigned 16 bit value
-        'oris':         'unsigned_d',              # D:    unsigned 16 bit value
-
-        # XOR Immediate
-        'e_xori':       'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'e_xori.':      'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'xori':         'unsigned_d',              # D:    unsigned 16 bit value
-        'xoris':        'unsigned_d',              # D:    unsigned 16 bit value
-
-        # AND Immediate
-        'se_andi':      'unsigned_im5',            # IM5:  unsigned 5 bit value
-        'e_and2i.':     'unsigned_i16l',           # I16L: unsigned 16 bit value
-        'e_and2is.':    'unsigned_i16l',           # I16L: unsigned 16 bit value
-        'e_andi':       'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'e_andi.':      'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'andi.':        'unsigned_d',              # D:    unsigned 16 bit value
-        'andis.':       'unsigned_d',              # D:    unsigned 16 bit value
-
-        # Shift Immediate
-        'se_srwi':      'unsigned_im5',            # IM5:  unsigned 5 bit value
-        'se_srawi':     'unsigned_im5',            # IM5:  unsigned 5 bit value
-        'se_slwi':      'unsigned_im5',            # IM5:  unsigned 5 bit value
-        'e_srwi':       'unsigned_x',              # X:    unsigned 5 bit value
-        'e_srwi.':      'unsigned_x',              # X:    unsigned 5 bit value
-        'e_slwi':       'unsigned_x',              # X:    unsigned 5 bit value
-        'e_rlwi':       'unsigned_x',              # X:    unsigned 5 bit value
-        'e_rlwimi':     'unsigned_m',              # M:    3 unsigned 5 bit values
-        'e_rlwinm':     'unsigned_m',              # M:    3 unsigned 5 bit values
-        'rlwimi':       'unsigned_m',              # M:    3 unsigned 5 bit values
-        'rlwinm':       'unsigned_m',              # M:    3 unsigned 5 bit values
-        'rlwinm.':      'unsigned_m',              # M:    3 unsigned 5 bit values
-        'rlwnm':        'unsigned_m_reg',          # M:    3 unsigned 5 bit values
-        'rlwnm.':       'unsigned_m_reg',          # M:    3 unsigned 5 bit values
-        'srawi':        'unsigned_x',              # X:    unsigned 5 bit value
-        'srawi.':       'unsigned_x',              # X:    unsigned 5 bit value
-        'sradi':        'unsigned_x_dw',           # X:    unsigned 6 bit value
-        'sradi.':       'unsigned_x_dw',           # X:    unsigned 6 bit value
-        'rldimi':       'unsigned_md',             # MD:   2 unsigned 6 bit values
-        'rldimi.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
-        'rldicl':       'unsigned_md',             # MD:   2 unsigned 6 bit values
-        'rldicl.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
-        'rldic':        'unsigned_md',             # MD:   2 unsigned 6 bit values
-        'rldic.':       'unsigned_md',             # MD:   2 unsigned 6 bit values
-        'rldicr':       'unsigned_md',             # MD:   2 unsigned 6 bit values
-        'rldicr.':      'unsigned_md',             # MD:   2 unsigned 6 bit values
-
-        # Bit Manipulate Immediate
-        'se_bmaski':    'unsigned_im5',            # IM5:  unsigned 5 bit value
-        'se_bclri':     'unsigned_im5',            # IM5:  unsigned 5 bit value
-        'se_bseti':     'unsigned_im5',            # IM5:  unsigned 5 bit value
-        'se_btsti':     'unsigned_im5',            # IM5:  unsigned 5 bit value
-        'se_bgeni':     'unsigned_im5',            # IM5:  unsigned 5 bit value
-
-        # Compare Immediate
-        'se_cmpli':     'unsigned_oim5',           # OIM5: unsigned 5 bit value
-        'se_cmpi':      'unsigned_im5',            # IM5:  unsigned 5 bit value
-        'e_cmpli':      'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'e_cmpi':       'signed_sci8',             # SCI8: "signed" 32 bit value
-        'e_cmpl16i':    'unsigned_i16a',           # IA16 (same as I16A?): unsigned 16 bit value
-        'e_cmp16i':     'signed_i16a',             # IA16 (same as I16A?): signed 16 bit value
-        'cmpli':        'unsigned_d',              # D:    unsigned 16 bit value
-        'cmpi':         'signed_d',                # D:    signed 16 bit value
-        'cmplwi':       'unsigned_d',              # D:    unsigned 16 bit value
-        'cmpwi':        'signed_d',                # D:    signed 16 bit value
-        'cmpldi':       'unsigned_d',              # D:    unsigned 16 bit value (alias of cmpli)
-        'cmpdi':        'signed_d',                # D:    signed 16 bit value (alias of cmpi)
-
-        # Trap Immediate
-        #'twui':         'signed_d_full',           # D:    signed 16 bit value
-        'tw':           'x_full',                  # X
-        #'twu':          'x_full',                  # X
-        'twi':          'signed_d_full',           # D:    signed 16 bit value
-        #'trap':         'signed_d_full',           # D:    signed 16 bit value
-        #'twgti':        'signed_d',                # D:    signed 16 bit value
-        #'twlgti':       'signed_d',                # D:    signed 16 bit value
-        #'twnei':        'signed_d',                # D:    signed 16 bit value
-        'tdi':          'signed_d',                # D:    signed 16 bit value
-        #'tdgti':        'signed_d',                # D:    signed 16 bit value
-        #'tdlgti':       'signed_d',                # D:    signed 16 bit value
-        #'tdnei':        'signed_d',                # D:    signed 16 bit value
-
-        # Add Immediate
-        'se_addi':      'unsigned_oim5',           # OIM5: unsigned 5 bit value
-        'e_add16i':     'signed_d',                # D:    signed 16 bit value
-        'e_add2i.':     'signed_i16a',             # I16A: signed 16 bit value
-        'e_add2is':     'signed_i16a',             # I16A: signed 16 bit value
-        'e_addi':       'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'e_addi.':      'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'addi':         'signed_d',                # D:    signed 16 bit value
-        'addis':        'signed_d',                # D:    signed 16 bit value
-        'addic':        'signed_d',                # D:    signed 16 bit value
-        'addic.':       'signed_d',                # D:    signed 16 bit value
-
-        # Multiply Immediate
-        'e_mulli':      'signed_sci8',             # SCI8: "signed" 32 bit value
-        'e_mull2i':     'signed_i16a',             # I16A: signed 16 bit value
-        'mulli':        'signed_d',                # D:    signed 16 bit value
-
-        # Subtract Immediate
-        'se_subi':      'unsigned_oim5',           # OIM5: unsigned 5 bit value
-        'se_subi.':     'unsigned_oim5',           # OIM5: unsigned 5 bit value
-        'e_subfic':     'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'e_subfic.':    'unsigned_sci8',           # SCI8: "unsigned" 32 bit value
-        'subfic':       'signed_d',                # D:    signed 16 bit value
-
-        # Move To/From SPR
-        'mtspr':        'xfx_spr',                 # XFX: Special Purpose Register
-        'mfspr':        'xfx_spr',                 # XFX: Special Purpose Register
-        'mttmr':        'xfx_tmr',                 # XFX: Thread Management Register
-        'mftmr':        'xfx_tmr',                 # XFX: Thread Management Register
-        'mtpmr':        'xfx_pmr',                 # XFX: Performance Monitor Register
-        'mfpmr':        'xfx_pmr',                 # XFX: Performance Monitor Register
-
-        # Data cache
-        'dcbtst':       'dcbt',                    # X:   5 bit unsigned field
-        'dcbt':         'dcbt',                    # X:   5 bit unsigned field
-
-        # Other
-        'eieio':        'xfx_field1',              # XFX: special MO flag
-        'mbar':         'xfx_field1',              # XFX: special MO flag
-        'wrteei':       'wrteei',                  # X:   special E flag
-        'mtcr':         'mtcrf',                   # XFX: special CRM flag values
-        'mtcrf':        'mtcrf',                   # XFX: special CRM flag values
-        'mfcrf':        'mtcrf',                   # XFX: special CRM flag values
-        'mtocrf':       'mtcrf',                   # XFX: special CRM flag values
-        'mfocrf':       'mtcrf',                   # XFX: special CRM flag values
-        'mtfsf':        'mtfsf',                   # XFL: NXP EREF says XFX form, PowerISA says XFL
-        'mffsf':        'mtfsf',                   # XFL: NXP EREF says XFX form, PowerISA says XFL
-        'tlbsx':        'x_2reg_r0_handling',      # X
-        'tlbsx.':       'x_2reg_r0_handling',      # X
-        'tlbsrx.':      'x_2reg_r0_handling',      # X
-        'tlbivax':      'x_2reg_r0_handling',      # X
-        'sync':         'sync',                    # X:  special sync format
-        'msync':        'sync',                    # X:  special sync format
-        'lwsync':       'sync',                    # X:  special sync format
-        'wait':         'wait',                    # X:  special wait format
-
-        # altivec
-        'vspltisb':     'signed_vx',               # VX: signed 5 bit value
-        'vspltish':     'signed_vx',               # VX: signed 5 bit value
-        'vspltisw':     'signed_vx',               # VX: signed 5 bit value
-    }
-
-    regen_branch_ops = [
-        # first here are the standard simplified mnemonics for the
-        # bc/bclr/bcctr instructions:
-
-        # bc
-        'bge',        'bgt',        'ble',        'blt',        'bne',        'beq',        'bns',
-        'bge-',       'bgt-',       'ble-',       'blt-',       'bne-',       'beq-',       'bns-',
-        'bge+',       'bgt+',       'ble+',       'blt+',       'bne+',       'beq+',       'bns+',
-        'bgel',       'bgtl',       'blel',       'bltl',       'bnel',       'beql',       'bnsl',
-        'bgel-',      'bgtl-',      'blel-',      'bltl-',      'bnel-',      'beql-',      'bnsl-',
-        'bgel+',      'bgtl+',      'blel+',      'bltl+',      'bnel+',      'beql+',      'bnsl+',
-        'bgea',       'bgta',       'blea',       'blta',       'bnea',       'beqa',       'bnsa',
-        'bgea-',      'bgta-',      'blea-',      'blta-',      'bnea-',      'beqa-',      'bnsa-',
-        'bgea+',      'bgta+',      'blea+',      'blta+',      'bnea+',      'beqa+',      'bnsa+',
-        'bgela',      'bgtla',      'blela',      'bltla',      'bnela',      'beqla',      'bnsla',
-        'bgela-',     'bgtla-',     'blela-',     'bltla-',     'bnela-',     'beqla-',     'bnsla-',
-        'bgela+',     'bgtla+',     'blela+',     'bltla+',     'bnela+',     'beqla+',     'bnsla+',
-
-        # bclr
-        'bgelr',      'bgtlr',      'blelr',      'bltlr',      'bnelr',      'beqlr',      'bnslr',
-        'bgelr-',     'bgtlr-',     'blelr-',     'bltlr-',     'bnelr-',     'beqlr-',     'bnslr-',
-        'bgelr+',     'bgtlr+',     'blelr+',     'bltlr+',     'bnelr+',     'beqlr+',     'bnslr+',
-        'bgelrl',     'bgtlrl',     'blelrl',     'bltlrl',     'bnelrl',     'beqlrl',     'bnslrl',
-        'bgelrl-',    'bgtlrl-',    'blelrl-',    'bltlrl-',    'bnelrl-',    'beqlrl-',    'bnslrl-',
-        'bgelrl+',    'bgtlrl+',    'blelrl+',    'bltlrl+',    'bnelrl+',    'beqlrl+',    'bnslrl+',
-
-        # bcctr
-        'bgectr',     'bgtctr',     'blectr',     'bltctr',     'bnectr',     'beqctr',     'bnsctr',
-        'bgectr-',    'bgtctr-',    'blectr-',    'bltctr-',    'bnectr-',    'beqctr-',    'bnsctr-',
-        'bgectr+',    'bgtctr+',    'blectr+',    'bltctr+',    'bnectr+',    'beqctr+',    'bnsctr+',
-        'bgectrl',    'bgtctrl',    'blectrl',    'bltctrl',    'bnectrl',    'beqctrl',    'bnsctrl',
-        'bgectrl-',   'bgtctrl-',   'blectrl-',   'bltctrl-',   'bnectrl-',   'beqctrl-',   'bnsctrl-',
-        'bgectrl+',   'bgtctrl+',   'blectrl+',   'bltctrl+',   'bnectrl+',   'beqctrl+',   'bnsctrl+',
-
-        # bc - ctr decrement, non-zero && condition
-        'bdnzge',     'bdnzgt',     'bdnzle',     'bdnzlt',     'bdnzne',     'bdnzeq',     'bdnzns',
-        'bdnzge-',    'bdnzgt-',    'bdnzle-',    'bdnzlt-',    'bdnzne-',    'bdnzeq-',    'bdnzns-',
-        'bdnzge+',    'bdnzgt+',    'bdnzle+',    'bdnzlt+',    'bdnzne+',    'bdnzeq+',    'bdnzns+',
-        'bdnzgel',    'bdnzgtl',    'bdnzlel',    'bdnzltl',    'bdnznel',    'bdnzeql',    'bdnznsl',
-        'bdnzgel-',   'bdnzgtl-',   'bdnzlel-',   'bdnzltl-',   'bdnznel-',   'bdnzeql-',   'bdnznsl-',
-        'bdnzgel+',   'bdnzgtl+',   'bdnzlel+',   'bdnzltl+',   'bdnznel+',   'bdnzeql+',   'bdnznsl+',
-        'bdnzgea',    'bdnzgta',    'bdnzlea',    'bdnzlta',    'bdnznea',    'bdnzeqa',    'bdnznsa',
-        'bdnzgea-',   'bdnzgta-',   'bdnzlea-',   'bdnzlta-',   'bdnznea-',   'bdnzeqa-',   'bdnznsa-',
-        'bdnzgea+',   'bdnzgta+',   'bdnzlea+',   'bdnzlta+',   'bdnznea+',   'bdnzeqa+',   'bdnznsa+',
-        'bdnzgela',   'bdnzgtla',   'bdnzlela',   'bdnzltla',   'bdnznela',   'bdnzeqla',   'bdnznsla',
-        'bdnzgela-',  'bdnzgtla-',  'bdnzlela-',  'bdnzltla-',  'bdnznela-',  'bdnzeqla-',  'bdnznsla-',
-        'bdnzgela+',  'bdnzgtla+',  'bdnzlela+',  'bdnzltla+',  'bdnznela+',  'bdnzeqla+',  'bdnznsla+',
-
-        # bclr - ctr decrement, non-zero && condition
-        'bdnzgelr',   'bdnzgtlr',   'bdnzlelr',   'bdnzltlr',   'bdnznelr',   'bdnzeqlr',   'bdnznslr',
-        'bdnzgelr-',  'bdnzgtlr-',  'bdnzlelr-',  'bdnzltlr-',  'bdnznelr-',  'bdnzeqlr-',  'bdnznslr-',
-        'bdnzgelr+',  'bdnzgtlr+',  'bdnzlelr+',  'bdnzltlr+',  'bdnznelr+',  'bdnzeqlr+',  'bdnznslr+',
-        'bdnzgelrl',  'bdnzgtlrl',  'bdnzlelrl',  'bdnzltlrl',  'bdnznelrl',  'bdnzeqlrl',  'bdnznslrl',
-        'bdnzgelrl-', 'bdnzgtlrl-', 'bdnzlelrl-', 'bdnzltlrl-', 'bdnznelrl-', 'bdnzeqlrl-', 'bdnznslrl-',
-        'bdnzgelrl+', 'bdnzgtlrl+', 'bdnzlelrl+', 'bdnzltlrl+', 'bdnznelrl+', 'bdnzeqlrl+', 'bdnznslrl+',
-
-        # bc - ctr decrement, zero && condition
-        'bdzge',      'bdzgt',      'bdzle',      'bdzlt',      'bdzne',      'bdzeq',      'bdzns',
-        'bdzge-',     'bdzgt-',     'bdzle-',     'bdzlt-',     'bdzne-',     'bdzeq-',     'bdzns-',
-        'bdzge+',     'bdzgt+',     'bdzle+',     'bdzlt+',     'bdzne+',     'bdzeq+',     'bdzns+',
-        'bdzgel',     'bdzgtl',     'bdzlel',     'bdzltl',     'bdznel',     'bdzeql',     'bdznsl',
-        'bdzgel-',    'bdzgtl-',    'bdzlel-',    'bdzltl-',    'bdznel-',    'bdzeql-',    'bdznsl-',
-        'bdzgel+',    'bdzgtl+',    'bdzlel+',    'bdzltl+',    'bdznel+',    'bdzeql+',    'bdznsl+',
-        'bdzgea',     'bdzgta',     'bdzlea',     'bdzlta',     'bdznea',     'bdzeqa',     'bdznsa',
-        'bdzgea-',    'bdzgta-',    'bdzlea-',    'bdzlta-',    'bdznea-',    'bdzeqa-',    'bdznsa-',
-        'bdzgea+',    'bdzgta+',    'bdzlea+',    'bdzlta+',    'bdznea+',    'bdzeqa+',    'bdznsa+',
-        'bdzgela',    'bdzgtla',    'bdzlela',    'bdzltla',    'bdznela',    'bdzeqla',    'bdznsla',
-        'bdzgela-',   'bdzgtla-',   'bdzlela-',   'bdzltla-',   'bdznela-',   'bdzeqla-',   'bdznsla-',
-        'bdzgela+',   'bdzgtla+',   'bdzlela+',   'bdzltla+',   'bdznela+',   'bdzeqla+',   'bdznsla+',
-
-        # bclr - ctr decrement, zero && condition
-        'bdzgelr',    'bdzgtlr',    'bdzlelr',    'bdzltlr',    'bdznelr',    'bdzeqlr',    'bdznslr',
-        'bdzgelr-',   'bdzgtlr-',   'bdzlelr-',   'bdzltlr-',   'bdznelr-',   'bdzeqlr-',   'bdznslr-',
-        'bdzgelr+',   'bdzgtlr+',   'bdzlelr+',   'bdzltlr+',   'bdznelr+',   'bdzeqlr+',   'bdznslr+',
-        'bdzgelrl',   'bdzgtlrl',   'bdzlelrl',   'bdzltlrl',   'bdznelrl',   'bdzeqlrl',   'bdznslrl',
-        'bdzgelrl-',  'bdzgtlrl-',  'bdzlelrl-',  'bdzltlrl-',  'bdznelrl-',  'bdzeqlrl-',  'bdznslrl-',
-        'bdzgelrl+',  'bdzgtlrl+',  'bdzlelrl+',  'bdzltlrl+',  'bdznelrl+',  'bdzeqlrl+',  'bdznslrl+',
-
-        # Other possible branch instruction forms
-
-        'bdz',  'bdnz',  'bdnzf',  'bdnzt',  'bdzf',  'bdzt'
-        'bdz-', 'bdnz-', 'bdnzf-', 'bdnzt-', 'bdzf-', 'bdzt-'
-        'bdz+', 'bdnz+', 'bdnzf+', 'bdnzt+', 'bdzf+', 'bdzt+'
-
-        # The "un-simplified" mnemonics
-        'bc', 'bca', 'bcl', 'bcla'
-    ]
-
-    # The BO and BI values that result in some simplified mnemonics
-    branch_encodings = {
-        0b00000: {
-            '.lt': ('bdnzge', ''),
-            '.gt': ('bdnzle', ''),
-            '.eq': ('bdnzne', ''),
-            '.so': ('bdnzns', ''),
-        },
-        0b00010: {
-            '.lt': ('bdzge', ''),
-            '.gt': ('bdzle', ''),
-            '.eq': ('bdzne', ''),
-            '.so': ('bdzns', ''),
-        },
-        0b00100: {
-            '.lt': ('bge', ''),
-            '.gt': ('ble', ''),
-            '.eq': ('bne', ''),
-            '.so': ('bns', ''),
-        },
-        0b00110: {
-            '.lt': ('bge', '-'),
-            '.gt': ('ble', '-'),
-            '.eq': ('bne', '-'),
-            '.so': ('bns', '-'),
-        },
-        0b00111: {
-            '.lt': ('bge', '+'),
-            '.gt': ('ble', '+'),
-            '.eq': ('bne', '+'),
-            '.so': ('bns', '+'),
-        },
-        0b01000: {
-            '.lt': ('bdnzlt', ''),
-            '.gt': ('bdnzgt', ''),
-            '.eq': ('bdnzeq', ''),
-            '.so': ('bdnzso', ''),
-        },
-        0b01010: {
-            '.lt': ('bdzlt', ''),
-            '.gt': ('bdzgt', ''),
-            '.eq': ('bdzeq', ''),
-            '.so': ('bdzso', ''),
-        },
-        0b01100: {
-            '.lt': ('blt', ''),
-            '.gt': ('bgt', ''),
-            '.eq': ('beq', ''),
-            '.so': ('bso', ''),
-        },
-        0b01110: {
-            '.lt': ('blt', '-'),
-            '.gt': ('bgt', '-'),
-            '.eq': ('beq', '-'),
-            '.so': ('bso', '-'),
-        },
-        0b01111: {
-            '.lt': ('blt', '+'),
-            '.gt': ('bgt', '+'),
-            '.eq': ('beq', '+'),
-            '.so': ('bso', '+'),
-        },
-        0b01111: {
-            '.lt': ('blt', '+'),
-            '.gt': ('bgt', '+'),
-            '.eq': ('beq', '+'),
-            '.so': ('bso', '+'),
-        },
-        0b10000: ('bdnz', ''),
-        0b11000: ('bdnz', '-'),
-        0b11001: ('bdnz', '+'),
-        0b10010: ('bdz', ''),
-        0b11010: ('bdz', '-'),
-        0b11011: ('bdz', '+'),
-        0b10100: ('b', ''),
-    }
-
     def __init__(self, tokens, line_nr, va=0, psize=8):
         self._tokens = tokens
         self._line_nr = line_nr
@@ -592,152 +742,29 @@ class ppc_instr(object):
         if self.op.value in ['lbarx', 'lharx', 'lwarx', 'ldarx'] and len(self.args) > 3:
             self.args = self.args[:3]
 
-        if self.op.value == 'tlbre' and len(self.args) > 0:
+        elif self.op.value == 'tlbre' and len(self.args) > 0:
             # tlbre should not have parameters
             self.args = []
 
-        if self.op.value in ['mtcrf'] and len(self.args) == 1:
+        elif self.op.value in ['mtcrf'] and len(self.args) == 1:
             self.args = [lst_parser.Token('TBD', tok, 'TBD', tok.column)] + self.args[:]
 
-        if self.op.value in ['dcbt', 'dcbtst'] and len(self.args) == 2:
+        elif self.op.value in ['dcbt', 'dcbtst'] and len(self.args) == 2:
             self.args = [lst_parser.Token('TBD', tok, 'TBD', tok.column)] + self.args[:]
 
-        # Some instructions don't need fixing or re-evaluating
-        dont_fix_instrs = [
-                'lvx', 'lvsr', 'lvsl',
-                'lxl',
-                'stvx',
-                'lbarx', 'lharx', 'lwarx', 'ldarx',
-                'stbcx.', 'sthcx.', 'stwcx.', 'stdcx.',
-                'lhbrx', 'lwbrx', 'ldbrx',
-                'sthbrx', 'stwbrx', 'stwdrx',
-                'ldx', 'lbzx',
-                'lhau',
-                'dcbst', 'dcbf', 'dcbz',
-                'icbi',
-                'tlbilx', 'tlbre',
-                'twu', 'trap',
-                'twui', 'twgti', 'twlgti', 'twnei',
-                'tdgti', 'tdlgti', 'tdnei',
-        ]
+        elif self.op.value in ['std',] and len(self.args) == 3 and self.args[2].match == '(r0)':
+                self.args = self.args[:2]
+
+        # Watch for some simplified mnemonics that need reworking
+        elif self.op.value == 'se_or' and len(self.args) == 2 and self.args[0].match == 'r0' and self.args[1].match == 'r0':
+            self.op = lst_parser.Token('ASM', self.op.match, 'se_nop', self.op.column)
+            self.args = []
+
+        # Now do the fixing if necessary
         if self.op.value not in dont_fix_instrs:
             self.fix()
 
     def fix(self):
-        # The input listings use some incorrect (or non-NXP) mnemonics, make
-        # some adjustments.
-        rename_mapping = {
-            'mfsprg':      (None, 'mfspr'),
-            'mtsprg':      (None, 'mtspr'),
-
-            # 'eieio' was the old PPC instruction, it should now be called 'mbar'
-            'eieio':       (None, 'mbar'),
-            #'lwsync':      (None, 'sync'),
-            #'msync':       (None, 'sync'),
-
-            # 'sync' is the standard PowerISA simplified mnemonic for
-            #   sync 0,0
-            #
-            # The EREF uses msync currently to mean the same thing, for now
-            # generate the NXP/EREF form
-            'sync':        (None, 'msync'),
-
-            # The tlbsx. instruction does not appear to be valid in PowerISA
-            # 2.x+ or the EREF.
-            'tlbsx.':      (None, 'tlbsx'),
-
-            # Generic PPC forms into forms I recognize better
-            #'twu':         (None, 'tw'),
-            #'twui':        (None, 'twi'),
-            #'trap':        ( (0x0C000000, 'twi'),
-            #                 (0x7C000000, 'tw') ),
-
-            # These new ISR load/store instrucions are misnamed in IDA
-            'e_lmvgprw':   (None, 'e_ldmvgprw'),
-            'e_lmvsprw':   (None, 'e_ldmvsprw'),
-            'e_lmvsrrw':   (None, 'e_ldmvsrrw'),
-            'e_lmvcsrrw':  (None, 'e_ldmvcsrrw'),
-            'e_lmvdsrrw':  (None, 'e_ldmvdsrrw'),
-
-            # These VLE instructions should not be translated eventually.
-            'e_srwi': (
-                           (0x74000000, 'e_rlwinm'),
-            ),
-            'e_extrwi':    (None, 'e_rlwinm'),
-            'e_extlwi':    (None, 'e_rlwinm'),
-            'e_clrlslwi':  (None, 'e_rlwinm'),
-            'e_clrlwi':    (None, 'e_rlwinm'),
-            'e_insrwi':    (None, 'e_rlwimi'),
-            'e_clrrwi':    (None, 'e_rlwinm'),
-            'e_rotrwi':    (None, 'e_rlwinm'),
-            'e_rotlwi':    (None, 'e_rlwinm'),
-            'mtcr':        (None, 'mtcrf'),
-
-            # TODO: These PPC instructions should not be translated eventually.
-            'rotldi':      (None, 'rldicl'),
-            'rotrdi':      (None, 'rldicl'),
-            'sldi':        (None, 'rldicr'),
-            'srwi':        (None, 'rlwinm'),
-            'srdi':        (None, 'rldicl'),
-            'extrwi':      (None, 'rlwinm'),
-            'extlwi':      (None, 'rlwinm'),
-            'clrlslwi':    (None, 'rlwinm'),
-            'clrlwi':      (None, 'rlwinm'),
-            'slwi':        (None, 'rlwinm'),
-            'insrwi':      (None, 'rlwimi'),
-            'insrdi':      (None, 'rldimi'),
-            'clrrwi':      (None, 'rlwinm'),
-            'rotrwi':      (None, 'rlwinm'),
-            'rotlwi':      (None, 'rlwinm'),
-            'rotlw':       (None, 'rlwnm'),
-            'inslwi':      (None, 'rlwimi'),
-            'clrrdi':      (None, 'rldicr'),
-            'clrldi':      (None, 'rldicl'),
-            'extldi':      (None, 'rldicr'),
-            'extrdi':      (None, 'rldicl'),
-            'clrlsldi':    (None, 'rldic'),
-
-            # RC=1 forms of the rotate/shift instructions
-            'rotldi.':     (None, 'rldicl.'),
-            'rotrdi.':     (None, 'rldicl.'),
-            'sldi.':       (None, 'rldicr.'),
-            'srwi.':       (None, 'rlwinm.'),
-            'srdi.':       (None, 'rldicl.'),
-            'extrwi.':     (None, 'rlwinm.'),
-            'extlwi.':     (None, 'rlwinm.'),
-            'clrlslwi.':   (None, 'rlwinm.'),
-            'clrlwi.':     (None, 'rlwinm.'),
-            'slwi.':       (None, 'rlwinm.'),
-            'insrwi.':     (None, 'rlwimi.'),
-            'insrdi.':     (None, 'rldimi.'),
-            'clrrwi.':     (None, 'rlwinm.'),
-            'rotrwi.':     (None, 'rlwinm.'),
-            'rotlwi.':     (None, 'rlwinm.'),
-            'rotlw.':      (None, 'rlwnm.'),
-            'inslwi.':     (None, 'rlwimi.'),
-            'clrrdi.':     (None, 'rldicr.'),
-            'clrldi.':     (None, 'rldicl.'),
-            'extldi.':     (None, 'rldicr.'),
-            'extrdi.':     (None, 'rldicl.'),
-            'clrlsldi.':   (None, 'rldic.'),
-        }
-
-        cr0_prepend = [
-                #'cmpw', 'cmpwi', 'cmplw', 'cmplwi', 'cmpli', 'cmpl', 'cmp', 'cmpi'
-                #'e_bge', 'e_ble', 'e_bne', 'e_beq', 'e_bgt', 'e_blt',
-                #'bge', 'ble', 'bne', 'beq', 'bgt', 'blt',
-                #'bgea', 'blea', 'bnea', 'beqa', 'bgta', 'blta',
-                #'bgel', 'blel', 'bnel', 'beql', 'bgtl', 'bltl',
-                #'bgela', 'blela', 'bnela', 'beqla', 'bgtla', 'bltla',
-                #'bgelr', 'blelr', 'bnelr', 'beqlr', 'bgtlr', 'bltlr',
-                #'bgelrl', 'blelrl', 'bnelrl', 'beqlrl', 'bgtlrl', 'bltlrl',
-                #'bgectr', 'blectr', 'bnectr', 'beqctr', 'bgtctr', 'bltctr',
-                #'bgectrl', 'blectrl', 'bnectrl', 'beqctrl', 'bgtctrl', 'bltctrl',
-        ]
-
-        cr0_append = [
-        ]
-
         if self.op.value in rename_mapping:
             op = self.op.value
 
@@ -763,27 +790,14 @@ class ppc_instr(object):
         if self.op.value in ['rlwnm', 'ori', 'rlwnm'] and len(args_to_fix) == 0:
             self.args.append(lst_parser.Token('TBD', None, 'TBD', None))
 
-        if self.op.value in ['mtcrf'] and len(args_to_fix) == 0:
+        elif self.op.value in ['mtcrf'] and len(args_to_fix) == 0:
             self.args = [lst_parser.Token('TBD', None, 'TBD', None)] + self.args[:]
 
-        # Some instructions need to be completely re-generated
-        regen_ops = [
-            'wait',
-            'mbar',
-            'tlbsx', 'tlbsx.', 'tlbsrx.', 'tlbivax',
-            'sync',
-            'tw', 'twi', 'td', 'tdi',
-            'mtfsf', 'mtfsfi',
-        ]
-
-        if self.op.value in regen_ops:
+        elif self.op.value in regen_ops:
             self.args = [lst_parser.Token('TBD', None, 'TBD', None)]
 
         # Regen all branch conditional instructions
-
-        branch_op_pat = re.compile(r'^b[a-z]+?(lr|ctr)?(la|l|a)?[+-]?$')
-
-        if self.op.value in self.regen_branch_ops:
+        elif self.op.value in regen_branch_ops:
             self.args = [lst_parser.Token('TBD', None, 'TBD', None)]
 
             # Also rename the instruction mnemonic back to the basic
@@ -797,9 +811,9 @@ class ppc_instr(object):
         changed = False
         for arg in self.args:
             if arg.type in ['TBD', 'DEC_CONST', 'HEX_CONST']:
-                if self.op.value in ppc_instr.Instructions and not changed:
+                if self.op.value in Instructions and not changed:
                     changed = True
-                    arg_func = getattr(self, ppc_instr.Instructions[self.op.value])
+                    arg_func = getattr(self, Instructions[self.op.value])
 
                     new_arg = arg_func(self.data.value)
                     if isinstance(new_arg, list):
@@ -903,12 +917,12 @@ class ppc_instr(object):
 
             if self.op.value in ['mfspr', 'mfpmr', 'mftmr'] and \
                     fixed_args[-1].type not in ['SPR', 'HEX_CONST', 'DEC_CONST']:
-                new_arg = getattr(self, ppc_instr.Instructions[self.op.value])(self.data.value)
+                new_arg = getattr(self, Instructions[self.op.value])(self.data.value)
                 fixed_args.append(new_arg)
 
             if self.op.value in ['mtspr', 'mtpmr', 'mttmr'] and \
                     fixed_args[0].type not in ['SPR', 'HEX_CONST', 'DEC_CONST']:
-                new_arg = getattr(self, ppc_instr.Instructions[self.op.value])(self.data.value)
+                new_arg = getattr(self, Instructions[self.op.value])(self.data.value)
                 fixed_args.insert(0, new_arg)
 
         elif any(self.op.value.startswith(k) for k in rename_branch_instrs):
@@ -948,8 +962,8 @@ class ppc_instr(object):
                 # completely compatible.
 
                 # convert these into simplified mnemonics if possible
-                if fixed_args[0].value in self.branch_encodings:
-                    entry = self.branch_encodings[fixed_args[0].value]
+                if fixed_args[0].value in branch_encodings:
+                    entry = branch_encodings[fixed_args[0].value]
                     if isinstance(entry, dict):
                         if any(fixed_args[1].value.endswith(k) for k in entry):
                             suffix, values = next((k, v) for k, v in entry.items() if fixed_args[1].value.endswith(k))
@@ -1044,19 +1058,20 @@ class ppc_instr(object):
         return fmt.format(self, arg_list)
 
     def _str_arg(self, arg):
-        if isinstance(arg.value, str):
+        if arg.type == 'REG' and arg.value[0] == 'v':
+            #return 'vr' + arg.value[1:]
+            return 'v' + arg.value[1:]
+        elif isinstance(arg.value, str):
             if len(arg.value) == 6 and arg.value[0:4] == "cr0.":
                 return arg.value[4:]
             return arg.value
-        return hex(arg.value)
+        else:
+            return hex(arg.value)
 
     def _str_arg_list(self, arg_list):
         return ','.join([self._str_arg(a) for a in arg_list])
 
-    def _dec_token(self, val):
-        return lst_parser.Token('DEC_CONST', str(val), val, None)
-
-    def _hex_token(self, val):
+    def _imm_token(self, val):
         return lst_parser.Token('HEX_CONST', hex(val), val, None)
 
     def signed_bd8(self, data):
@@ -1069,7 +1084,7 @@ class ppc_instr(object):
         addr_offset = val * 2
         addr = self._va + addr_offset
 
-        return self._dec_token(addr)
+        return self._imm_token(addr)
 
     def signed_bd15(self, data):
         sign = 0x00008000
@@ -1081,7 +1096,7 @@ class ppc_instr(object):
         # shift is already incorporated into the above shifts.
         addr = self._va + val
 
-        return self._dec_token(addr)
+        return self._imm_token(addr)
 
     def signed_bd24(self, data):
         sign = 0x01000000
@@ -1093,7 +1108,7 @@ class ppc_instr(object):
         # shift is already incorporated into the above shifts.
         addr = self._va + val
 
-        return self._dec_token(addr)
+        return self._imm_token(addr)
 
     def signed_i(self, data):
         sign = 0x02000000
@@ -1110,7 +1125,7 @@ class ppc_instr(object):
             # the VA. The shift is already incorporated into the above shifts.
             addr = self._va + val
 
-        return self._dec_token(addr)
+        return self._imm_token(addr)
 
     def signed_b(self, data):
         tgt_sign = 0x00008000
@@ -1122,7 +1137,7 @@ class ppc_instr(object):
         # shift is already incorporated into the above shifts.
         addr = self._va + tgt
 
-        return self._dec_token(addr)
+        return self._imm_token(addr)
 
     def signed_b_full(self, data):
         # For non-simplified branch conditionals, grab all fields
@@ -1150,7 +1165,7 @@ class ppc_instr(object):
         addr = self._va + tgt
 
         cr_tok = lst_parser.Token('CONDITION', cr, cr, None)
-        return [self._dec_token(flags), cr_tok, self._dec_token(addr)]
+        return [self._imm_token(flags), cr_tok, self._imm_token(addr)]
 
     def signed_xl_full(self, data):
         # bclr and bcctr use this form because there is no BD operand
@@ -1174,28 +1189,28 @@ class ppc_instr(object):
         bh = (data & 0x00001800) >> 11
 
         cr_tok = lst_parser.Token('CONDITION', cr, cr, None)
-        return [self._dec_token(flags), cr_tok, self._dec_token(bh)]
+        return [self._imm_token(flags), cr_tok, self._imm_token(bh)]
 
     def unsigned_sd4_word_addr(self, data):
         mask = 0x0F00
         val = (data & mask) >> 6 # val >> 8 then << 2
-        return self._dec_token(val)
+        return self._imm_token(val)
 
     def unsigned_sd4_half_addr(self, data):
         mask = 0x0F00
         val = (data & mask) >> 7 # val >> 8 then << 1
-        return self._dec_token(val)
+        return self._imm_token(val)
 
     def unsigned_sd4_byte_addr(self, data):
         mask = 0x0F00
         val = (data & mask) >> 8
-        return self._dec_token(val)
+        return self._imm_token(val)
 
     def signed_d8(self, data):
         sign = 0x00000080
         mask = 0x0000007F
         val = (data & mask) - (data & sign)
-        return self._dec_token(val)
+        return self._imm_token(val)
 
     def signed_ds_handle_r0(self, data):
         sign = 0x00008000
@@ -1207,16 +1222,13 @@ class ppc_instr(object):
         reg_mask = 0x001F0000
         reg = (data & reg_mask) >> 16
 
-        if reg != 0:
-            return self._dec_token(val)
-        else:
-            return [self._dec_token(val), lst_parser.Token('INDIRECT_REF', '(0x0)', '(0x0)', None)]
+        return self._imm_token(val)
 
     def signed_d(self, data):
         sign = 0x00008000
         mask = 0x00007FFF
         val = (data & mask) - (data & sign)
-        return self._dec_token(val)
+        return self._imm_token(val)
 
     def signed_d_full(self, data):
         mask_TO = 0x03E00000
@@ -1230,9 +1242,9 @@ class ppc_instr(object):
         val = (data & mask) - (data & sign)
 
         reg_str ='r{}'.format(rA)
-        return [self._dec_token(TO),
+        return [self._imm_token(TO),
                 lst_parser.Token('REG', reg_str, reg_str, None),
-                self._dec_token(val)]
+                self._imm_token(val)]
 
     def x_full(self, data):
         mask_TO = 0x03E00000
@@ -1245,7 +1257,7 @@ class ppc_instr(object):
 
         rA_str ='r{}'.format(rA)
         rB_str ='r{}'.format(rB)
-        return [self._dec_token(TO),
+        return [self._imm_token(TO),
                 lst_parser.Token('REG', rA_str, rA_str, None),
                 lst_parser.Token('REG', rB_str, rB_str, None)]
 
@@ -1257,15 +1269,12 @@ class ppc_instr(object):
         reg_mask = 0x001F0000
         reg = (data & reg_mask) >> 16
 
-        if reg != 0:
-            return self._dec_token(val)
-        else:
-            return [self._dec_token(val), lst_parser.Token('INDIRECT_REF', '(0x0)', '(0x0)', None)]
+        return self._imm_token(val)
 
     def unsigned_d(self, data):
         mask = 0x0000FFFF
         val = data & mask
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def unsigned_im7(self, data):
         mask = 0x07F0
@@ -1273,7 +1282,7 @@ class ppc_instr(object):
 
         # Since this is a simple unsigned value it is most commonly used with
         # hex values
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def signed_li20(self, data):
         mask_1 = 0x00007800
@@ -1288,7 +1297,7 @@ class ppc_instr(object):
         sign = 0x00080000
         mask = 0x0007FFFF
         signed_val = (unsigned_val & mask) - (unsigned_val & sign)
-        return self._dec_token(signed_val)
+        return self._imm_token(signed_val)
 
     def _get_i16l_imm(self, data):
         mask_1 = 0x001F0000
@@ -1303,7 +1312,7 @@ class ppc_instr(object):
 
         # This unsigned immediate form is most often used in logical (AND/OR)
         # operations, make the token in hex format.
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def _get_im5_imm(self, data):
         mask = 0x01F0
@@ -1314,20 +1323,20 @@ class ppc_instr(object):
         val = self._get_im5_imm(data)
 
         # Make hex tokens for logical operation operands
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def unsigned_oim5(self, data):
         val = self._get_im5_imm(data) + 1
 
         # Make since this is used in "se_addi", make this a decimal operand
-        return self._dec_token(val)
+        return self._imm_token(val)
 
     def unsigned_x(self, data):
         mask = 0x0000F800
         val = (data & mask) >> 11
 
         # Make hex tokens for logical operation operands
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def unsigned_x_dw(self, data):
         mask_1 = 0x0000F800
@@ -1337,7 +1346,7 @@ class ppc_instr(object):
         val = val_1 | val_2
 
         # Make hex tokens for logical operation operands
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def unsigned_m(self, data):
         mask_1 = 0x0000F800
@@ -1348,7 +1357,7 @@ class ppc_instr(object):
         mask_end = (data & mask_3) >> 1
 
         # Make hex tokens for logical operation operands
-        return [self._hex_token(shift), self._hex_token(mask_begin), self._hex_token(mask_end)]
+        return [self._imm_token(shift), self._imm_token(mask_begin), self._imm_token(mask_end)]
 
     def unsigned_m_reg(self, data):
         mask_1 = 0x000007C0
@@ -1357,7 +1366,7 @@ class ppc_instr(object):
         mask_end = (data & mask_2) >> 1
 
         # Make hex tokens for logical operation operands
-        return [self._hex_token(mask_begin), self._hex_token(mask_end)]
+        return [self._imm_token(mask_begin), self._imm_token(mask_end)]
 
     def unsigned_md(self, data):
         sh_lower_mask = 0x0000F800
@@ -1369,14 +1378,14 @@ class ppc_instr(object):
         mb = (data & mb_upper_mask ) | ((data & mb_lower_mask ) >> 6)
 
         # Make hex tokens for logical operation operands
-        return [self._hex_token(sh), self._hex_token(mb)]
+        return [self._imm_token(sh), self._imm_token(mb)]
 
     def special_r0_handling(self, data):
         mask = 0x001F0000
         val = (data & mask) >> 16
 
         if val == 0:
-            return self._dec_token(val)
+            return self._imm_token(val)
         else:
             reg_str ='r{}'.format(val)
             return lst_parser.Token('REG', reg_str, reg_str, None)
@@ -1410,7 +1419,7 @@ class ppc_instr(object):
 
         # The SCI8 form is used most often in mask generating instructions,
         # make this operand hex
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def signed_sci8(self, data):
         unsigned_val = self._get_sci8_imm(data)
@@ -1421,7 +1430,7 @@ class ppc_instr(object):
 
         # The "signed" SCI8 values are used in add operations, make this
         # operand decimal.
-        return self._dec_token(signed_val)
+        return self._imm_token(signed_val)
 
     def _get_i16a_imm(self, data):
         mask_1 = 0x03E00000
@@ -1439,13 +1448,13 @@ class ppc_instr(object):
         signed_val = (unsigned_val & mask) - (unsigned_val & sign)
 
         # For signed values return a decimal operand
-        return self._dec_token(signed_val)
+        return self._imm_token(signed_val)
 
     def unsigned_i16a(self, data):
         val = self._get_i16a_imm(data)
 
         # For unsigned values return a hex operand
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def signed_vx(self, data):
         sign = 0x00100000
@@ -1453,7 +1462,7 @@ class ppc_instr(object):
         val = ((data & mask) - (data & sign)) >> 16
 
         # For signed values return a decimal operand
-        return self._dec_token(val)
+        return self._imm_token(val)
 
     def _get_xfx_field2(self, data):
         mask_1 = 0x0000F800
@@ -1466,11 +1475,11 @@ class ppc_instr(object):
     def xfx_field1(self, data):
         mask = 0x003E0000
         val = (data & mask) >> 21
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def xfx_field2(self, data):
         val = self._get_xfx_field2(data)
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def x_2reg_r0_handling(self, data):
         mask_rA = 0x001F0000
@@ -1481,7 +1490,7 @@ class ppc_instr(object):
 
         if rA == 0:
             rB_str ='r{}'.format(rB)
-            return [self._dec_token(rA),
+            return [self._imm_token(rA),
                     lst_parser.Token('REG', rB_str, rB_str, None)]
         else:
             rA_str ='r{}'.format(rA)
@@ -1496,7 +1505,7 @@ class ppc_instr(object):
         l = (data & mask_l) >> 21
         e = (data & mask_e) >> 16
 
-        return [self._dec_token(l), self._dec_token(e)]
+        return [self._imm_token(l), self._imm_token(e)]
 
     def wait(self, data):
         mask_WC = 0x00600000
@@ -1505,15 +1514,15 @@ class ppc_instr(object):
         WC = (data & mask_WC) >> 21
         WH = (data & mask_WH) >> 20
 
-        return [self._dec_token(WC), self._dec_token(WH)]
+        return [self._imm_token(WC), self._imm_token(WH)]
 
     def xfx_spr(self, data):
         val = self._get_xfx_field2(data)
         # SPRs are capitalized, TMR and PMR names are lower case
         spr_to_str_map = {
-            1: 'xer',
-            8: 'lr',
-            9: 'ctr',
+            1: 'XER',
+            8: 'LR',
+            9: 'CTR',
             22: 'DEC',
             26: 'SRR0',
             27: 'SRR1',
@@ -1716,70 +1725,70 @@ class ppc_instr(object):
         val = self._get_xfx_field2(data)
         # SPRs are capitalized, TMR and PMR names are lower case
         tmr_to_str_map = {
-            288: 'imsr0',
-            289: 'imsr1',
-            290: 'imsr2',
-            291: 'imsr3',
-            292: 'imsr4',
-            293: 'imsr5',
-            294: 'imsr6',
-            295: 'imsr7',
-            296: 'imsr8',
-            297: 'imsr9',
-            298: 'imsr10',
-            299: 'imsr11',
-            300: 'imsr12',
-            301: 'imsr13',
-            302: 'imsr14',
-            303: 'imsr15',
-            304: 'imsr16',
-            305: 'imsr17',
-            306: 'imsr18',
-            307: 'imsr19',
-            308: 'imsr20',
-            309: 'imsr21',
-            310: 'imsr22',
-            311: 'imsr23',
-            312: 'imsr24',
-            313: 'imsr25',
-            314: 'imsr26',
-            315: 'imsr27',
-            316: 'imsr28',
-            317: 'imsr29',
-            318: 'imsr30',
-            319: 'imsr31',
-            320: 'inia0',
-            321: 'inia1',
-            322: 'inia2',
-            323: 'inia3',
-            324: 'inia4',
-            325: 'inia5',
-            326: 'inia6',
-            327: 'inia7',
-            328: 'inia8',
-            329: 'inia9',
-            330: 'inia10',
-            331: 'inia11',
-            332: 'inia12',
-            333: 'inia13',
-            334: 'inia14',
-            335: 'inia15',
-            336: 'inia16',
-            337: 'inia17',
-            338: 'inia18',
-            339: 'inia19',
-            340: 'inia20',
-            341: 'inia21',
-            342: 'inia22',
-            343: 'inia23',
-            344: 'inia24',
-            345: 'inia25',
-            346: 'inia26',
-            347: 'inia27',
-            348: 'inia28',
-            349: 'inia29',
-            350: 'inia30',
-            351: 'inia31',
+            288: 'IMSR0',
+            289: 'IMSR1',
+            290: 'IMSR2',
+            291: 'IMSR3',
+            292: 'IMSR4',
+            293: 'IMSR5',
+            294: 'IMSR6',
+            295: 'IMSR7',
+            296: 'IMSR8',
+            297: 'IMSR9',
+            298: 'IMSR10',
+            299: 'IMSR11',
+            300: 'IMSR12',
+            301: 'IMSR13',
+            302: 'IMSR14',
+            303: 'IMSR15',
+            304: 'IMSR16',
+            305: 'IMSR17',
+            306: 'IMSR18',
+            307: 'IMSR19',
+            308: 'IMSR20',
+            309: 'IMSR21',
+            310: 'IMSR22',
+            311: 'IMSR23',
+            312: 'IMSR24',
+            313: 'IMSR25',
+            314: 'IMSR26',
+            315: 'IMSR27',
+            316: 'IMSR28',
+            317: 'IMSR29',
+            318: 'IMSR30',
+            319: 'IMSR31',
+            320: 'INIA0',
+            321: 'INIA1',
+            322: 'INIA2',
+            323: 'INIA3',
+            324: 'INIA4',
+            325: 'INIA5',
+            326: 'INIA6',
+            327: 'INIA7',
+            328: 'INIA8',
+            329: 'INIA9',
+            330: 'INIA10',
+            331: 'INIA11',
+            332: 'INIA12',
+            333: 'INIA13',
+            334: 'INIA14',
+            335: 'INIA15',
+            336: 'INIA16',
+            337: 'INIA17',
+            338: 'INIA18',
+            339: 'INIA19',
+            340: 'INIA20',
+            341: 'INIA21',
+            342: 'INIA22',
+            343: 'INIA23',
+            344: 'INIA24',
+            345: 'INIA25',
+            346: 'INIA26',
+            347: 'INIA27',
+            348: 'INIA28',
+            349: 'INIA29',
+            350: 'INIA30',
+            351: 'INIA31',
         }
 
         if val in tmr_to_str_map:
@@ -1791,44 +1800,44 @@ class ppc_instr(object):
         val = self._get_xfx_field2(data)
         # SPRs are capitalized, TMR and PMR names are lower case
         pmr_to_str_map = {
-            0: 'upmc0',
-            1: 'upmc1',
-            2: 'upmc2',
-            3: 'upmc3',
-            4: 'upmc4',
-            5: 'upmc5',
-            16: 'pmc0',
-            17: 'pmc1',
-            18: 'pmc2',
-            19: 'pmc3',
-            20: 'pmc4',
-            21: 'pmc5',
-            128: 'upmlca0',
-            129: 'upmlca1',
-            130: 'upmlca2',
-            131: 'upmlca3',
-            132: 'upmlca4',
-            133: 'upmlca5',
-            144: 'pmlca0',
-            145: 'pmlca1',
-            146: 'pmlca2',
-            147: 'pmlca3',
-            148: 'pmlca4',
-            149: 'pmlca5',
-            256: 'upmlcb0',
-            257: 'upmlcb1',
-            258: 'upmlcb2',
-            259: 'upmlcb3',
-            260: 'upmlcb4',
-            261: 'upmlcb5',
-            272: 'pmlcb0',
-            273: 'pmlcb1',
-            274: 'pmlcb2',
-            275: 'pmlcb3',
-            276: 'pmlcb4',
-            277: 'pmlcb5',
-            384: 'upmgc0',
-            400: 'pmgc0',
+            0: 'UPMC0',
+            1: 'UPMC1',
+            2: 'UPMC2',
+            3: 'UPMC3',
+            4: 'UPMC4',
+            5: 'UPMC5',
+            16: 'PMC0',
+            17: 'PMC1',
+            18: 'PMC2',
+            19: 'PMC3',
+            20: 'PMC4',
+            21: 'PMC5',
+            128: 'UPMLCA0',
+            129: 'UPMLCA1',
+            130: 'UPMLCA2',
+            131: 'UPMLCA3',
+            132: 'UPMLCA4',
+            133: 'UPMLCA5',
+            144: 'PMLCA0',
+            145: 'PMLCA1',
+            146: 'PMLCA2',
+            147: 'PMLCA3',
+            148: 'PMLCA4',
+            149: 'PMLCA5',
+            256: 'UPMLCB0',
+            257: 'UPMLCB1',
+            258: 'UPMLCB2',
+            259: 'UPMLCB3',
+            260: 'UPMLCB4',
+            261: 'UPMLCB5',
+            272: 'PMLCB0',
+            273: 'PMLCB1',
+            274: 'PMLCB2',
+            275: 'PMLCB3',
+            276: 'PMLCB4',
+            277: 'PMLCB5',
+            384: 'UPMGC0',
+            400: 'PMGC0',
         }
 
         if val in pmr_to_str_map:
@@ -1839,12 +1848,12 @@ class ppc_instr(object):
     def wrteei(self, data):
         mask = 0x00008000
         val = (data & mask) >> 15
-        return self._dec_token(val)
+        return self._imm_token(val)
 
     def mtcrf(self, data):
         mask = 0x000FF000
         val = (data & mask) >> 12
-        return self._hex_token(val)
+        return self._imm_token(val)
 
     def dcbt(self, data):
         mask = 0x03E00000
@@ -1854,9 +1863,9 @@ class ppc_instr(object):
         rA = (data & rA_mask) >> 16
 
         if rA == 0:
-            return [self._hex_token(val), self._hex_token(rA)]
+            return [self._imm_token(val), self._imm_token(rA)]
         else:
-            return self._hex_token(val)
+            return self._imm_token(val)
 
     def mtfsf(self, data):
         l   = (data & 0x02000000) >> 25
@@ -1867,10 +1876,10 @@ class ppc_instr(object):
         # The PowerISA indicates the operands should be displayed in this order:
         #   mtfsf FM, rfB, L, W
         return [
-            self._hex_token(fm),
+            self._imm_token(fm),
             lst_parser.Token('REG', None, 'f%d' % frB, None),
-            self._dec_token(l),
-            self._dec_token(w),
+            self._imm_token(l),
+            self._imm_token(w),
         ]
 
     def mtfsfi(self, data):
@@ -1882,8 +1891,8 @@ class ppc_instr(object):
         #   mtfsf BF, U, W
         return [
             lst_parser.Token('REG', None, 'crf%d' % bf, None),
-            self._hex_token(u),
-            self._dec_token(w),
+            self._imm_token(u),
+            self._imm_token(w),
         ]
 
     def __lt__(self, other):

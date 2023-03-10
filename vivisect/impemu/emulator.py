@@ -20,13 +20,29 @@ logger = logging.getLogger(__name__)
 init_stack_size = 0x8000
 init_stack_map = b'\xfe' * init_stack_size
 
-def imphook(impname):
 
+def _priority_get_args(kwargs_value, config_value, default=None):
+    '''
+    Returns a configuration value to be used by the workspace emulator. The
+    priority is:
+    1. Any kwargs provided to the WorkspaceEmulator class initializer.
+    2. A value from the vivisect configuration.
+    3. The default value.
+    '''
+    if kwargs_value is not None:
+        return kwargs_value
+    elif config_value is not None:
+        return config_value
+    else:
+        return default
+
+
+def imphook(impname):
     def imptemp(f):
         f.__imphook__ = impname
         return f
-
     return imptemp
+
 
 class WorkspaceEmulator:
 
@@ -127,13 +143,6 @@ class WorkspaceEmulator:
         self.usecache = kwargs.get('opcache', True)
 
         self.hooks = {}
-        self.taints = {}
-        base = int(kwargs.get('taintbase', 0x4156000F))
-        self.taintva = itertools.count(base, 0x2000)
-        self.taintoffset = 0x1000
-        self.taintmask = 0xffffe000
-        self.taintbyte = kwargs.get('taintbyte', b'a')
-        self.taintrepr = {}
 
         self.uninit_use = {}
         self.logwrite = kwargs.get('logwrite', False)
@@ -155,10 +164,44 @@ class WorkspaceEmulator:
         # But default to being as permissive as the top level logger allows
         self._log_level = kwargs.get('loglevel', logging.WARNING)
 
+        self.taints = {}
+        self.taintrepr = {}
+
+        # Set the taint configuration for this emulator
+
+        taintbase = _priority_get_args(
+            kwargs.get('taintbase'),
+            vw.config.viv.analysis.taint.cfginfo.get('base'),
+            0x4156000F)
+        self.taintva = itertools.count(taintbase, 0x2000)
+
+        self.taintoffset = _priority_get_args(
+            kwargs.get('taintoffset'),
+            vw.config.viv.analysis.taint.cfginfo.get('offset'),
+            0x1000)
+
+        self.taintmask = _priority_get_args(
+            kwargs.get('taintmask'),
+            vw.config.viv.analysis.taint.cfginfo.get('mask'),
+            e_bits.sign_extend(0xffffe000, 4, self.vw.psize))
+
+        taintbyte = _priority_get_args(
+            kwargs.get('taintbyte'),
+            vw.config.viv.analysis.taint.cfginfo.get('byte'),
+            b'a')
+
+        if isinstance(taintbyte, str):
+            self.taintbyte = taintbyte.encode('latin1')
+        elif isinstance(taintbyte, int):
+            self.taintbyte = bytes([taintbyte])
+        else:
+            # Assume it's already bytes
+            self.taintbyte = taintbyte
+
         # Map in all the memory associated with the workspace
         for va, size, perms, fname in vw.getMemoryMaps():
-            offset, bytes = vw.getByteDef(va)
-            self.addMemoryMap(va, perms, fname, bytes)
+            offset, data = vw.getByteDef(va)
+            self.addMemoryMap(va, perms, fname, data)
 
         for regidx in self.taintregs:
             regval = self.setVivTaint('uninitreg', regidx)
@@ -175,10 +218,26 @@ class WorkspaceEmulator:
 
             self.hooks[impname] = val
 
-        self.stack_map_mask = kwargs.get('stackMask')
-        self.stack_map_base = kwargs.get('stackBase')
-        self.stack_map_top = kwargs.get('stackMapTop')
-        self.stack_pointer = kwargs.get('stackPointer')
+        # Set the stack configuration for this emulator
+
+        self.stack_map_mask = _priority_get_args(
+            kwargs.get('stackMask'),
+            vw.config.viv.analysis.stack.cfginfo.get('mask'),
+            e_bits.sign_extend(0xfff00000, 4, self.vw.psize))
+
+        self.stack_map_base = _priority_get_args(
+            kwargs.get('stackBase'),
+            vw.config.viv.analysis.stack.cfginfo.get('base'),
+            e_bits.sign_extend(0xbfb00000, 4, self.vw.psize))
+
+        self.stack_map_top = _priority_get_args(
+            kwargs.get('stackMapTop'),
+            vw.config.viv.analysis.stack.cfginfo.get('top'),
+            self.stack_map_base + init_stack_size)
+
+        self.stack_pointer = _priority_get_args(
+            kwargs.get('stackPointer'),
+            vw.config.viv.analysis.stack.cfginfo.get('pointer'))
 
         if not kwargs.get('nostack', False):
             self.initStackMemory()
@@ -188,50 +247,63 @@ class WorkspaceEmulator:
         if va:
             self.setProgramCounter(va)
 
-    def initStackMemory(self, stacksize=init_stack_size):
+    def initStackMemory(self):
         '''
         Setup and initialize stack memory.
         You may call this prior to emulating instructions.
         '''
-        if self.stack_map_base is None:
-            self.stack_map_mask = e_bits.sign_extend(0xfff00000, 4, self.vw.psize)
-            self.stack_map_base = e_bits.sign_extend(0xbfb00000, 4, self.vw.psize)
-            self.stack_map_top = self.stack_map_base + stacksize
-            self.stack_pointer = self.stack_map_top
 
+        # If a memory map for the stack doesn't exist, create it now
+        stackmap = self.getMemoryMap(self.stack_map_base)
+        if stackmap is not None:
+            # Verify that the stack memory map is large enough
+            stacktopmap = self.getMemoryMap(self.stack_map_top)
+            if stacktopmap is None:
+                err_msg = 'End of stack not in valid memory map 0x%x - 0x%x' % \
+                        (self.stack_map_base, self.stack_map_top)
+                raise RuntimeError(err_msg)
+            elif stacktopmap != stackmap:
+                logger.warning('Stack spans multiple memory maps! 0x%x - 0x%x',
+                               self.stack_map_base, self.stack_map_top)
+        else:
+            # Create a stack memory map
+            stack_size = self.stack_map_top - self.stack_map_base
             stack_map = init_stack_map
-            if stacksize != init_stack_size:
-                stack_map = b'\xfe' * stacksize
+            if stack_size != init_stack_size:
+                stack_map = b'\xfe' * stack_size
 
             # Map in a memory map for the stack
-
             self.addMemoryMap(self.stack_map_base, 6, "[stack]", stack_map)
-            self.setStackCounter(self.stack_pointer)
 
-            # Create some pre-made taints for positive stack indexes
-            # NOTE: This is *ugly* for speed....
-            taints = [self.setVivTaint('funcstack', i * self.psize) for i in range(20)]
-            taintbytes = b''.join([e_bits.buildbytes(taint, self.psize) for taint in taints])
+        # If the stack pointer has not been set, set it a certain distance away
+        # from the end of the stack so we can place some taints on the stack.
+        if self.stack_pointer is None:
+            taintbytes = b''.join([e_bits.buildbytes(
+                self.setVivTaint('funcstack', i * self.vw.psize), self.vw.psize) for i in range(20)])
+            self.stack_pointer = self.stack_map_top - len(taintbytes)
 
-            self.stack_pointer -= len(taintbytes)
-            self.setStackCounter(self.stack_pointer)
-            self.writeMemory(self.stack_pointer, taintbytes)
+        elif self.stack_pointer > self.stack_map_top:
+            err_msg = 'Initial stack pointer not in stack! 0x%x (0x%x - 0x%x)' % \
+                    (self.stack_pointer, self.stack_map_base, self.stack_map_top)
+            raise RuntimeError(err_msg)
+
         else:
-            existing_map_size = self.stack_map_top - self.stack_map_base
-            new_map_size = stacksize - existing_map_size
-            if new_map_size < 0:
-                raise RuntimeError('cannot shrink stack')
+            # Determine how many taint value we can fit between the stack
+            # pointer and the top of the stack
+            num_taints = (self.stack_map_top - self.stack_pointer) // self.vw.psize
 
-            new_map_top = self.stack_map_base
-            new_map_base = new_map_top - new_map_size
+            if num_taints * self.vw.psize < self.stack_map_top - self.stack_pointer:
+                logger.warning('Initial stack pointer not aligned with emulator psize 0x%x // %d (0x%x - 0x%x)',
+                               self.stack_pointer, self.vw.psize, self.stack_map_base, self.stack_map_top)
 
-            stack_map = b''.join([struct.pack('<I', new_map_base+(i*4)) for i in range(new_map_size)])
+            taintbytes = b''.join([e_bits.buildbytes(
+                self.setVivTaint('funcstack', i * self.vw.psize), self.vw.psize) for i in range(num_taints)])
 
-            self.addMemoryMap(new_map_base, 6, "[stack]", stack_map)
-            self.stack_map_base = new_map_base
-
-            # no need to do tainting here, since SP will always be in the
-            #   first map
+        # Set the current emulator stack pointer and write the taint bytes to
+        # memory
+        self.setStackCounter(self.stack_pointer)
+        if taintbytes:
+            self.writeMemory(self.stack_pointer, taintbytes)
 
     def stopEmu(self):
         '''

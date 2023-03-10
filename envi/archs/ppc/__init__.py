@@ -2,13 +2,14 @@
 from __future__ import annotations
 import envi
 import envi.bits as e_bits
+import envi.const as e_const
 
 import copy
 import struct
 import traceback
 
-from envi.archs.ppc.regs import *
-from envi.archs.ppc.disasm import *
+import envi.archs.ppc.regs as eapr
+import envi.archs.ppc.disasm as eapd
 from . import vle
 
 ''' taken from the MCP850 ref manual (circa 2001)
@@ -61,7 +62,7 @@ PowerPC architecture, see the Programming Environments Manual.
 
 def _getLSBSet(value):
     # turn into a binary string and then remove the leading 0b
-    binvalstr = bin(value)[2:]
+    binvalstr = format(value, 'b')
     for i, c in zip(range(len(binvalstr)), reversed(binvalstr)):
         if c == '1':
             return i
@@ -75,25 +76,64 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         self.psize = mode//8
         self.maps = tuple()
         if self.psize == 8:
-            self._arch_dis = Ppc64EmbeddedDisasm()
+            self._arch_dis = eapd.Ppc64EmbeddedDisasm()
         else:
-            self._arch_dis = Ppc32EmbeddedDisasm()
+            self._arch_dis = eapd.Ppc32EmbeddedDisasm()
         self._arch_vle_dis = vle.VleDisasm()
 
         # used to store VLE information
-        # Default the alignment (page size) to be the entire valid memory range
-        self._page_size = 2 ** mode
+        # Default the alignment (page size) to the default envi PAGE_SIZE
+        self._page_size = e_const.PAGE_SIZE
         self._page_mask = 0
         self._vle_pages = {}
+
+    def getPpcVleInfoSnap(self):
+        snap = self._page_size, self._page_mask, self._vle_pages
+        return snap
+
+    def setPpcVleInfoSnap(self, snap):
+        self._page_size, self._page_mask, self._vle_pages = snap
+
+    def getEmuSnap(self):
+        """
+        Return the data needed to "snapshot" this emulator.  For PPC we need to
+        include the PPC VLE memory map info here.
+        """
+        regs = self.getRegisterSnap()
+        mem = self.getMemorySnap()
+        vleinfo = self.getPpcVleInfoSnap()
+        return regs, mem, {'vlemaps': vleinfo}
+
+    def setEmuSnap(self, snap):
+        # Check if the snap has extra information, otherwise assume this is the 
+        # standard two snap elements
+        if len(snap) == 3:
+            regs, mem, sdict = snap
+            vleinfo = sdict.get('vlemaps')
+        else:
+            regs, mem = snap
+            vleinfo = None
+
+        self.setRegisterSnap(regs)
+        self.setMemorySnap(mem)
+
+        if vleinfo is not None:
+            self.setPpcVleInfoSnap(vleinfo)
 
     def archGetRegCtx(self):
         return Ppc64RegisterContext()
 
     def archGetBreakInstr(self):
-        return '\x4c\x00\x01\x8c'   # dnh
+        # BOOKE:        dnh     4C00018C
+        # VLE 32bit:    e_dnh   7C0000C2
+        # VLE 16bit:    se_dnh  000F
+        return b'\x4C\x00\x01\x8C'
 
     def archGetNopInstr(self):
-        return '\x60\x00\x00\x00'   # ori 0,0,0
+        # BOOKE:        nop (ori 0,0,0)     60000000
+        # VLE 32bit:    e_nop (e_ori 0,0,0) 1800D000
+        # VLE 16bit:    se_nop (se_or 0,0)  4400
+        return b'\x60\x00\x00\x00'
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
@@ -120,7 +160,10 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         return self._arch_dis.disasm(bytez, offset, va)
 
     def getEmulator(self):
-        return Ppc64EmbeddedEmulator()
+        emu = Ppc64EmbeddedEmulator()
+        vleinfo = self.getPpcVleInfoSnap()
+        emu.setPpcVleInfoSnap(vleinfo)
+        return emu
 
     def setVleMaps(self, maps):
         '''
@@ -132,39 +175,46 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
 
         could easily also be written as:
             ( (0x00004000, 0x00002000), )
+
+        There are three different ways that the VLE configuration information
+        can be set in vivisect:
+            1. BAM, sets the default 
+            2. The tlbwe instruction
+            3. ELF parsing
+            4. command line
         '''
-        # TODO: squash adjacent mapped regions where possible.
+        # Handle a few different map input styles
+        if isinstance(maps, dict):
+            vlemaps = [e[:2] for e in maps.values() if (len(e) == 2) or (len(e) == 3 and e[2])]
+        else:
+            vlemaps = [e[:2] for e in maps if (len(e) == 2) or (len(e) == 3 and e[2])]
 
         # Use the mapped VLE addresses and sizes to determine a common page size
-        lowest_set_lsbs = [self._page_size]
-        lowest_set_lsbs += [_getLSBSet(addr) for addr, _ in maps]
-        lowest_set_lsbs += [_getLSBSet(size) for _, size in maps]
+        lowest_set_lsbs = [_getLSBSet(self._page_size)] + \
+                [_getLSBSet(addr) for addr, _ in vlemaps] + \
+                [_getLSBSet(size) for _, size in vlemaps]
         lsb = min(lowest_set_lsbs)
 
         # The LSB indicates the lowest bit position that can uniquely identify
         # each page, calculate a page size from that
         self._page_size = 1 << lsb
 
-        # Get the original page address and size from the existing VLE maps.
-        cur_maps = [entry for entry in self._vle_pages.values() if entry is not None]
-
-        # Now merge the two lists and turn them into individual page entries and
-        # create the new maps
-        for addr, size in cur_maps + maps:
+        for addr, size in vlemaps:
             # Add the original page address and size to the "root" entry, any
             # extra entries that must be created due to the common page size
             # will be set to None
             self._vle_pages[addr] = (addr, size)
 
             # Start at the next page
-            for page_addr in range(addr+self._page_size, size, self._page_size):
+            for page_addr in range(addr+self._page_size, addr+size, self._page_size):
                 self._vle_pages[page_addr ] = None
 
         # Lastly re-calculate the page mask
         self._page_mask = e_bits.b_masks[self.getPointerSize() * 8] & ~e_bits.b_masks[lsb]
 
     def isVle(self, va):
-        return bool(self._vle_pages.get(va & self._page_mask, False))
+        page_base_addr = va & self._page_mask
+        return page_base_addr in self._vle_pages
 
     def archModifyFuncAddr(self, va, info):
         if self.isVle(va):
@@ -176,13 +226,36 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         # in a VLE page or not
         return tova, reftype, rflags
 
+    def archMarkupVW(self, vw):
+        # Add VaSets to track PowerPC SPR reads and writes.
+        import vivisect.const as viv_const
+        vw.addVaSet("PpcSprReads", (("va", viv_const.VASET_ADDRESS),
+                                    ("spr", viv_const.VASET_STRING),
+                                    ("value", viv_const.VASET_INTEGER)))
+
+        vw.addVaSet("PpcSprWrites", (("va", viv_const.VASET_ADDRESS),
+                                     ("spr", viv_const.VASET_STRING),
+                                     ("value", viv_const.VASET_INTEGER)))
+
+        vw.addVaSet("PpcTlbWrites", (("va", viv_const.VASET_ADDRESS),
+                                     ('mas0', viv_const.VASET_INTEGER),
+                                     ('mas1', viv_const.VASET_INTEGER),
+                                     ('mas2', viv_const.VASET_INTEGER),
+                                     ('mas3', viv_const.VASET_INTEGER)))
+
+        # add the PPC architecture structures to the namespace
+        vw.addStructureModule('ppc', 'vstruct.defs.ppc')
+
 
 class Ppc32EmbeddedModule(Ppc64EmbeddedModule):
     def __init__(self, mode=32, archname='ppc32-embedded'):
         Ppc64EmbeddedModule.__init__(self, mode=mode, archname=archname)
 
     def getEmulator(self):
-        return Ppc32EmbeddedEmulator()
+        emu = Ppc32EmbeddedEmulator()
+        vleinfo = self.getPpcVleInfoSnap()
+        emu.setPpcVleInfoSnap(vleinfo)
+        return emu
 
 class PpcVleModule(Ppc32EmbeddedModule):
     def __init__(self, mode=32, archname='ppc-vle'):
@@ -196,21 +269,30 @@ class PpcVleModule(Ppc32EmbeddedModule):
         return self._arch_dis.disasm(bytez, offset, va)
 
     def archGetBreakInstr(self):
-        return '\x7c\x00\x00\xc2'   # e_dnh instruction
+        # BOOKE:        dnh     4C00018C
+        # VLE 32bit:    e_dnh   7C0000C2
+        # VLE 16bit:    se_dnh  000F
+        return b'\x7C\x00\x00\xC2'
 
     def archGetNopInstr(self):
-        return '\x18\x00\xd0\x00'   # e_ori 0,0,0 (also could be '\x44\x00' se_or 0,0)
+        # BOOKE:        nop (ori 0,0,0)     60000000
+        # VLE 32bit:    e_nop (e_ori 0,0,0) 1800D000
+        # VLE 16bit:    se_nop (se_or 0,0)  4400
+        return b'\x44\x00'
 
     def getEmulator(self):
-        return PpcVleEmulator()
+        emu = PpcVleEmulator()
+        vleinfo = self.getPpcVleInfoSnap()
+        emu.setPpcVleInfoSnap(vleinfo)
+        return emu
 
 class Ppc64ServerModule(Ppc64EmbeddedModule):
     def __init__(self, mode=64, archname='ppc-server'):
         Ppc64EmbeddedModule.__init__(self, mode=mode, archname=archname)
         if self.psize == 8:
-            self._arch_dis = Ppc64ServerDisasm()
+            self._arch_dis = eapd.Ppc64ServerDisasm()
         else:
-            self._arch_dis = Ppc32ServerDisasm()
+            self._arch_dis = eapd.Ppc32ServerDisasm()
 
     def isVle(self, va):
         return False
@@ -222,14 +304,20 @@ class Ppc64ServerModule(Ppc64EmbeddedModule):
         return Ppc64RegisterContext()
 
     def getEmulator(self):
-        return Ppc64ServerEmulator()
+        emu = Ppc64ServerEmulator()
+        vleinfo = self.getPpcVleInfoSnap()
+        emu.setPpcVleInfoSnap(vleinfo)
+        return emu
 
 class Ppc32ServerModule(Ppc64ServerModule):
     def __init__(self, mode=32, archname='ppc32-server'):
         Ppc64EmbeddedModule.__init__(self, mode=mode, archname=archname)
 
     def getEmulator(self):
-        return Ppc32ServerEmulator()
+        emu = Ppc32ServerEmulator()
+        vleinfo = self.getPpcVleInfoSnap()
+        emu.setPpcVleInfoSnap(vleinfo)
+        return emu
 
 class PpcDesktopModule(Ppc64ServerModule):
     # for now, treat desktop like server

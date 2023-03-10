@@ -93,15 +93,8 @@ class AnalysisMonitor(EmulationMonitor):
                 if spdelta <= 0:  # add function locals
                     vw.setFunctionLocal(self.fva, spdelta, LSYM_NAME, ('int','local%d' % abs(spdelta)))
 
-                continue
-
-            # Only infer things about the workspace based on discrete operands
-            if vw.isValidPointer(val) and discrete:
-                vw.addXref(va, val, REF_DATA)
-                if vw.getLocation(val) is not None:
-                    continue
-
-                vw.guessDataPointer(val, tsize)
+            else:
+                self.checkAddDataXref(vw, va, val, discrete, tsize)
 
         for va, callname, argv in self.callcomments:
             reprargs = [emu.reprVivValue(val) for val in argv]
@@ -109,6 +102,15 @@ class AnalysisMonitor(EmulationMonitor):
             cva = self.vw.vaByName(callname)
             if cva:
                 self.vw.addXref(va, cva, REF_CODE, envi.BR_PROC)
+
+    def checkAddDataXref(self, vw, va, val, discrete, tsize):
+        # Only infer things about the workspace based on discrete operands
+        if vw.isValidPointer(val) and discrete:
+            vw.addXref(va, val, REF_DATA)
+
+            # If the target location does not already exist, create one now
+            if vw.getLocation(val) is None:
+                vw.guessDataPointer(val, tsize)
 
     def addDynamicBranchHandler(self, cb):
         '''
