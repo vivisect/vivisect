@@ -15,7 +15,7 @@
 # envi/archs/ppc/disasm_gen.py to the end of the envi/archs/ppc/disasm_gen.py
 # file.
 
-import os.path
+import os
 import envi.bits as e_bits
 
 # "encodings" is data scraped from the EREF manual
@@ -12417,7 +12417,7 @@ for _mnem in const_gen_vle.mnems:
     utest = '''
 import sys
 import struct
-import os.path
+import os
 import vivisect
 import envi
 import envi.archs.ppc.disasm as eapd
