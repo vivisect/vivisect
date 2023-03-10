@@ -400,7 +400,6 @@ def simpleE_ORI(ival, mnem, opcode, opers, iflags):
 
         if opers[0].reg == 0 and opers[1].reg == 0:
             return 'e_nop', INS_NOP, tuple(), iflags
-            opers[0].reg == opers[1].reg and \
 
         elif opers[2].isImmed() and opers[2].val == 0:
             return 'e_mr', INS_MR, opers[:2], iflags
