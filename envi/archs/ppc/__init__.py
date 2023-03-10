@@ -127,13 +127,13 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         # BOOKE:        dnh     4C00018C
         # VLE 32bit:    e_dnh   7C0000C2
         # VLE 16bit:    se_dnh  000F
-        return '\x4C\x00\x01\x8C'
+        return b'\x4C\x00\x01\x8C'
 
     def archGetNopInstr(self):
         # BOOKE:        nop (ori 0,0,0)     60000000
         # VLE 32bit:    e_nop (e_ori 0,0,0) 1800D000
         # VLE 16bit:    se_nop (se_or 0,0)  4400
-        return '\x60\x00\x00\x00'
+        return b'\x60\x00\x00\x00'
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
@@ -151,7 +151,8 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         return self.psize
 
     def pointerString(self, va):
-        return '0x%.8x' % va
+        # 8 byte addresses on a 64-bit platform
+        return '0x%.16x' % va
 
     def archParseOpcode(self, bytez, offset=0, va=0, extra=None):
         if self.isVle(va):
@@ -251,6 +252,10 @@ class Ppc32EmbeddedModule(Ppc64EmbeddedModule):
     def __init__(self, mode=32, archname='ppc32-embedded'):
         Ppc64EmbeddedModule.__init__(self, mode=mode, archname=archname)
 
+    def pointerString(self, va):
+        # 4 byte addresses on a 32-bit platform
+        return '0x%.8x' % va
+
     def getEmulator(self):
         emu = Ppc32EmbeddedEmulator()
         vleinfo = self.getPpcVleInfoSnap()
@@ -272,13 +277,13 @@ class PpcVleModule(Ppc32EmbeddedModule):
         # BOOKE:        dnh     4C00018C
         # VLE 32bit:    e_dnh   7C0000C2
         # VLE 16bit:    se_dnh  000F
-        return '\x7C\x00\x00\xC2'
+        return b'\x7C\x00\x00\xC2'
 
     def archGetNopInstr(self):
         # BOOKE:        nop (ori 0,0,0)     60000000
         # VLE 32bit:    e_nop (e_ori 0,0,0) 1800D000
         # VLE 16bit:    se_nop (se_or 0,0)  4400
-        return '\x44\x00'
+        return b'\x44\x00'
 
     def getEmulator(self):
         emu = PpcVleEmulator()
@@ -312,6 +317,10 @@ class Ppc64ServerModule(Ppc64EmbeddedModule):
 class Ppc32ServerModule(Ppc64ServerModule):
     def __init__(self, mode=32, archname='ppc32-server'):
         Ppc64EmbeddedModule.__init__(self, mode=mode, archname=archname)
+
+    def pointerString(self, va):
+        # 4 byte addresses on a 32-bit platform
+        return '0x%.8x' % va
 
     def getEmulator(self):
         emu = Ppc32ServerEmulator()
