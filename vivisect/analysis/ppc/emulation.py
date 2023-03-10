@@ -171,7 +171,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
     if emumon.stackmax > emu.getPointerSize():
         stack_args = (emumon.stackmax - emu.getPointerSize()) // emu.getPointerSize()
         if stack_args > 40:
-            emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: -1x%.8x' % emumon.stackmax)
+            emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
         else:
             argc += stack_args
 
