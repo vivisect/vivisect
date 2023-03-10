@@ -151,8 +151,7 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
         return self.psize
 
     def pointerString(self, va):
-        # 8 byte addresses on a 64-bit platform
-        return '0x%.16x' % va
+        return '0x%.8x' % va
 
     def archParseOpcode(self, bytez, offset=0, va=0, extra=None):
         if self.isVle(va):
@@ -252,10 +251,6 @@ class Ppc32EmbeddedModule(Ppc64EmbeddedModule):
     def __init__(self, mode=32, archname='ppc32-embedded'):
         Ppc64EmbeddedModule.__init__(self, mode=mode, archname=archname)
 
-    def pointerString(self, va):
-        # 4 byte addresses on a 32-bit platform
-        return '0x%.8x' % va
-
     def getEmulator(self):
         emu = Ppc32EmbeddedEmulator()
         vleinfo = self.getPpcVleInfoSnap()
@@ -317,10 +312,6 @@ class Ppc64ServerModule(Ppc64EmbeddedModule):
 class Ppc32ServerModule(Ppc64ServerModule):
     def __init__(self, mode=32, archname='ppc32-server'):
         Ppc64EmbeddedModule.__init__(self, mode=mode, archname=archname)
-
-    def pointerString(self, va):
-        # 4 byte addresses on a 32-bit platform
-        return '0x%.8x' % va
 
     def getEmulator(self):
         emu = Ppc32ServerEmulator()
