@@ -715,6 +715,10 @@ class Opcode:
         Return a list of tuples.  Each tuple contains the target VA of the
         branch, and a possible set of flags showing what type of branch it is.
 
+        Without an emulator, dynamic branches may not be resolvable, and will
+        return a VA of None.  This is intended, and used by codeflow analysis
+        to mark dynamic branches for later analysis (eg. Switchcase analysis).
+
         See the BR_FOO types for all the supported envi branch flags....
         Example: for bva,bflags in op.getBranches():
         """
