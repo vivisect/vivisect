@@ -227,8 +227,9 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             secbytes = self.readAtOffset(sbase, self.e_shnum * slen)
 
             secs = sec * self.e_shnum
-            if len(secs) != len(secbytes):
-                raise Exception('Invalid Section Headers Size: %d' % len(secbytes))
+            secslen = slen * self.e_shnum
+            if secslen != len(secbytes):
+                print('Invalid Section-Headers Size: should be: %d   retrieved: %d' % (secslen, len(secbytes)))
 
             vstruct.VArray(elems=secs).vsParse(secbytes, fast=True)
 
