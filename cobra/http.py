@@ -296,8 +296,7 @@ class CobraHttpDaemon(ThreadingTCPServer):
         #ThreadingTCPServer.__init__(self, (host, port), CobraHttpConnectionHandler)
         ThreadingTCPServer.__init__(self, (host, port), CobraHttpRequestHandler)
 
-        t = Thread(target=self._timeoutSessions)
-        t.setDaemon(1)
+        t = Thread(target=self._timeoutSessions, daemon=True)
         t.start()
 
         if port == 0:
@@ -314,8 +313,7 @@ class CobraHttpDaemon(ThreadingTCPServer):
                     self.sessions.pop(key)
 
     def fireThread(self):
-        thr = Thread(target=self.serve_forever)
-        thr.setDaemon(True)
+        thr = Thread(target=self.serve_forever, daemon=True)
         thr.start()
 
     def setAuthModule(self, authmod):
