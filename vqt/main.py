@@ -3,7 +3,7 @@ import logging
 import functools
 
 from queue import Queue
-from threading import currentThread
+from threading import current_thread
 
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
@@ -37,7 +37,7 @@ def workthread(func):
     '''
     # If we're already the work thread, just do it.
     def workadd(*args, **kwargs):
-        if getattr(currentThread(),'VQtWorkerThread',False):
+        if getattr(current_thread(),'VQtWorkerThread',False):
             return func(*args, **kwargs)
 
         workerq.append( (func,args,kwargs) )
@@ -52,7 +52,7 @@ def boredthread(func):
     '''
     # If we're already the work thread, just do it.
     def workadd(*args, **kwargs):
-        if getattr(currentThread(),'VQtWorkerThread',False):
+        if getattr(current_thread(),'VQtWorkerThread',False):
             return func(*args, **kwargs)
 
         if not len(workerq):
@@ -104,7 +104,7 @@ def fireqtthread(func):
     return doqtthread
 
 def iAmQtSafeThread():
-    return getattr(currentThread(),'QtSafeThread',False)
+    return getattr(current_thread(),'QtSafeThread',False)
 
 class QEventThread(QtCore.QThread):
     '''
@@ -153,7 +153,7 @@ class QEventChannel(QtCore.QObject):
 @e_threads.firethread
 def workerThread():
     # We are *not* allowed to make Qt API calls
-    currentThread().VQtWorkerThread = True
+    current_thread().VQtWorkerThread = True
     while True:
         try:
             todo = workerq.get()
@@ -189,7 +189,7 @@ def startup(css=None):
     guiq = e_threads.EnviQueue()
     workerq = e_threads.EnviQueue()
 
-    currentThread().QtSafeThread = True
+    current_thread().QtSafeThread = True
     qapp = VQApplication(sys.argv)
     if css:
         qapp.setStyleSheet( css )
