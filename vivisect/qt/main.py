@@ -9,6 +9,7 @@ import vqt.cli as vq_cli
 import vqt.main as vq_main
 import vqt.colors as vq_colors
 import vqt.qpython as vq_python
+import vqt.hotkeys as vq_hotkey
 import vqt.application as vq_app
 
 import vivisect.cli as viv_cli
@@ -115,6 +116,8 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKeyTarget('file:connecttoserver', self._menuShareConnectServer)
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
+        self.addHotKey('ctrl+m', 'view:memory')
+        self.addHotKey('ctrl+f', 'view:funcgraph')
 
     def vprint(self, msg, addnl=True):
         # ripped and modded from envi/cli.py
@@ -633,10 +636,15 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.newFunctionsView()
     def _menuViewNames(self):
         self.newNamesView()
+
+    @vq_hotkey.hotkey('view:memory')
     def _menuViewMemory(self):
         self.newMemoryView()
+
+    @vq_hotkey.hotkey('view:funcgraph')
     def _menuViewFuncGraph(self):
         self.newFuncGraphView()
+
     def _menuViewSymboliks(self):
         self.newSymbolikFuncView()
 
@@ -673,15 +681,19 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqBuildDockWidget('VQVivNamesView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
     @idlethread
-    def newMemoryView(self, name='viv', floating=False):
+    def newMemoryView(self, name='viv', floating=False, expr=None):
         dock, widget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
         widget.setMemWindowName(name)
+        if expr is not None:
+            widget.enviNavGoto(expr)
 
     @idlethread
-    def newFuncGraphView(self, name=None, floating=False):
+    def newFuncGraphView(self, name=None, floating=False, expr=None):
         dock, widget = self.vqBuildDockWidget('VQVivFuncgraphView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
         if name is not None:
             widget.setMemWindowName(name)
+        if expr is not None:
+            widget.enviNavGoto(expr)
 
     @idlethread
     def newSymbolikFuncView(self, floating=False):
