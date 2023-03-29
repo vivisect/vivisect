@@ -101,31 +101,72 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.dynstrtabmeta = (None, None)
         self.dynstrtab = []
         self.dynsymtabct = None     # populated by _parseDynStrs()
-        logger.info('self._parsePheaders')
-        self._parsePheaders()
-        logger.info('self._parseDynLinkInfo')
-        self._parseDynLinkInfo()
 
-        logger.info('self._parseSections')
-        self._parseSections()
-        logger.info('self._parseDynamicsFromSections')
-        self._parseDynamicsFromSections()
+        try:
+            logger.info('self._parsePheaders')
+            self._parsePheaders()
+        except Exception as e:
+            logger.warning("Exception parsing Program Headers: %r" % e, exc_info=1)
+
+        try:
+            logger.info('self._parseDynLinkInfo')
+            self._parseDynLinkInfo()
+        except Exception as e:
+            logger.warning("Exception parsing Program Headers: %r" % e, exc_info=1)
+
+
+        try:
+            logger.info('self._parseSections')
+            self._parseSections()
+        except Exception as e:
+            logger.warning("Exception parsing Sections: %r" % e, exc_info=1)
+
+        try:
+            logger.info('self._parseDynamicsFromSections')
+            self._parseDynamicsFromSections()
+        except Exception as e:
+            logger.warning("Exception parsing Dynamics from Sections: %r" % e, exc_info=1)
+
 
         # load symbols and relocs from DYNAMICS
-        logger.info('self._parseDynStrs')
-        self._parseDynStrs()
-        logger.info('self._parseDynSyms')
-        self._parseDynSyms()
-        logger.info('self._parseDynRelocs')
-        self._parseDynRelocs()
+        try:
+            logger.info('self._parseDynStrs')
+            self._parseDynStrs()
+        except Exception as e:
+            logger.warning("Exception parsing String Table (via dynamics): %r" % e, exc_info=1)
+
+        try:
+            logger.info('self._parseDynSyms')
+            self._parseDynSyms()
+        except Exception as e:
+            logger.warning("Exception parsing Symbols (via dynamics): %r" % e, exc_info=1)
+
+        try:
+            logger.info('self._parseDynRelocs')
+            self._parseDynRelocs()
+        except Exception as e:
+            logger.warning("Exception parsing Relocations (via dynamics): %r" % e, exc_info=1)
+
 
         # load symbols and relocs from SECTIONS
-        logger.info('self._parseDynSymsFromSections')
-        self._parseDynSymsFromSections()
-        logger.info('self._parseSectionSymbols')
-        self._parseSectionSymbols()
-        logger.info('self._parseSectionRelocs')
-        self._parseSectionRelocs()
+        try:
+            logger.info('self._parseDynSymsFromSections')
+            self._parseDynSymsFromSections()
+        except Exception as e:
+            logger.warning("Exception parsing Dynamic Symbols (via Sections): %r" % e, exc_info=1)
+
+        try:
+            logger.info('self._parseSectionSymbols')
+            self._parseSectionSymbols()
+        except Exception as e:
+            logger.warning("Exception parsing Symbols (via Sections): %r" % e, exc_info=1)
+
+        try:
+            logger.info('self._parseSectionRelocs')
+            self._parseSectionRelocs()
+        except Exception as e:
+            logger.warning("Exception parsing Relocations (via Sections): %r" % e, exc_info=1)
+
         logger.info('done parsing ELF')
 
     def __del__(self):
@@ -186,6 +227,10 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             secbytes = self.readAtOffset(sbase, self.e_shnum * slen)
 
             secs = sec * self.e_shnum
+            secslen = slen * self.e_shnum
+            if secslen != len(secbytes):
+                logger.warning('Invalid Section-Headers Size: should be: %d   retrieved: %d', secslen, len(secbytes))
+
             vstruct.VArray(elems=secs).vsParse(secbytes, fast=True)
 
             self.sections.extend(secs)

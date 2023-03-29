@@ -56,8 +56,7 @@ class VdbLookup(UserDict):
 
 class ScriptThread(threading.Thread):
     def __init__(self, cobj, locals):
-        threading.Thread.__init__(self)
-        self.setDaemon(True)
+        super.__init__(self, daemon=True)
         self.cobj = cobj
         self.locals = locals
 
@@ -1049,11 +1048,12 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         -V         - Show operand values during single step (verbose!)
         -U         - Remainder of args is "step until" expression (stop on True)
         -Q         - Do not output to canvas
+        -O         - Step Over calls (ie. stay in this function)
         """
         t = self.trace
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "A:BC:RVUQ")
+            opts,args = getopt(argv, "A:BC:RVUOQ")
         except Exception as e:
             return self.do_help("stepi")
 
@@ -1064,6 +1064,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         tobrn = False
         showop = False
         quiet = False
+        stepover = False
 
         for opt, optarg in opts:
 
@@ -1087,6 +1088,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             elif opt == '-Q':
                 quiet = True
+
+            elif opt == '-O':
+                stepover = True
 
         if ( count is None 
              and taddr is None
@@ -1136,7 +1140,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     if not quiet:
                         self.canvas.addText('\n')
 
-                    if op.iflags & envi.IF_CALL:
+                    if op.iflags & envi.IF_CALL and not stepover:
                         depth += 1
 
                     elif op.iflags & envi.IF_RET:
@@ -1145,9 +1149,15 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     print("[E@0x%x] %r" % (pc, e))
 
 
-                tid = t.getCurrentThread()
+                # execute the instruction
+                if op.iflags & envi.IF_CALL and stepover:
+                    bp = vtrace.breakpoints.OneTimeBreak(op.va + op.size)
+                    self.trace.addBreakpoint(bp)
+                    self.trace.run()
 
-                t.stepi()
+                else:
+                    tid = t.getCurrentThread()
+                    t.stepi()
 
                 if until and t.parseExpression(until):
                     break
