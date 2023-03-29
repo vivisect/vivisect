@@ -11,7 +11,7 @@ import vivisect.impemu.monitor as viv_imp_monitor
 STOS = ('stosb', 'stosw', 'stosd', 'stosq')
 
 
-class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
+class instrhook_watcher(viv_imp_monitor.EmulationMonitor):
 
     def __init__(self, vw, tryva):
         viv_imp_monitor.EmulationMonitor.__init__(self)
@@ -38,7 +38,6 @@ class instrhook_watcher (viv_imp_monitor.EmulationMonitor):
             if self.vw.isValidPointer(reg) and self.vw.getLocation(reg) is None:
                 self.vw.makePointer(reg, follow=True)
 
-
 def analyzeFunction(vw, fva):
 
     emulate = False
@@ -50,7 +49,7 @@ def analyzeFunction(vw, fva):
             break
 
     if emulate:
-        emu = vw.getEmulator()
+        emu = vw.getEmulator(va=fva)
         instrwat = instrhook_watcher(vw, fva)
         emu.setEmulationMonitor(instrwat)
         try:

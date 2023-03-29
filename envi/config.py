@@ -4,7 +4,6 @@ Unified config object for all vtoys.
 
 import os
 import json
-import getpass
 import logging
 
 import envi.exc as e_exc
@@ -27,10 +26,6 @@ def gethomedir(*paths, **kwargs):
             logger.warning('FIXME - invalid homedir, playing along... (%s)', err)
 
     return path
-
-
-def getusername():
-    return getpass.getuser()
 
 
 class EnviConfig:

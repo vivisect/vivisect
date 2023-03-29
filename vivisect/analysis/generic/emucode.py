@@ -28,6 +28,8 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         self.insn_count = 0
         self.lastop = None
         self.badcode = False
+        self.arch = None
+        self.plat = vw.getMeta('Platform')
 
         self.badops = vw.arch.archGetBadOps()
 
@@ -39,6 +41,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         if not self.hasret or self.badcode:
             return False
 
+        # TODO: Rethink this logic. Otherwise I'll breakout movfuscator again.
         # if there is 1 mnem that makes up over 50% of all instructions then flag it as invalid
         for mnem, count in self.mndist.items():
             if round(float( float(count) / float(self.insn_count)), 3) >= .67 and self.insn_count > 4:
@@ -57,15 +60,30 @@ class watcher(viv_imp_monitor.EmulationMonitor):
 
         for mnem, count in self.mndist.items():
             # XXX - CONFIG OPTION
-            if round(float( float(count) / float(self.insn_count)), 3) >= .60:
+            if round(float(float(count) / float(self.insn_count)), 3) >= .60:
                 return False
 
         return True
 
     def prehook(self, emu, op, eip):
-        if op.mnem == "out":  # FIXME arch specific. see above idea.
-            emu.stopEmu()
-            raise v_exc.BadOutInstruction(op.va)
+        if self.arch is None:
+            self.arch = op.iflags & envi.ARCH_MASK
+
+        if self.arch == envi.ARCH_I386:
+            if op.opcode == INS_OUT:
+                emu.stopEmu()
+                raise v_exc.BadOutInstruction(op.va)
+
+            if op.opcode == INS_TRAP:
+                reg = emu.getRegister(envi.archs.i386.REG_EAX)
+                if reg == 1:
+                    emu.stopEmu()
+                    self.vw.addNoReturnVa(eip)
+
+        if self.arch == envi.ARCH_AMD64:
+            if op.opcode == INS_OUT:
+                emu.stopEmu()
+                raise v_exc.BadOutInstruction(op.va)
 
         if op in self.badops:
             emu.stopEmu()
@@ -141,7 +159,7 @@ def analyze(vw):
                 elif vw.isProbablyString(va):
                     vw.makeString(va)
             else:
-                emu = vw.getEmulator()
+                emu = vw.getEmulator(va=va)
                 wat = watcher(vw, va)
                 emu.setEmulationMonitor(wat)
 

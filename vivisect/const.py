@@ -71,14 +71,18 @@ VWE_CHAT            = 40 # (username, message)
 VWE_SYMHINT         = 41 # (va, idx, hint)
 VWE_AUTOANALFIN     = 42 # (starttime, endtime)
 
-VWE_MAX             = 43
+VWE_WRITEMEM        = 43 # (va, bytes, oldbytes)
+
+VWE_MAX             = 44
 
 # Constants for vivisect "transient" events which flow through
 # the event subsystem but are not recorded to the workspace.
 VTE_MASK            = 0x80000000
-VTE_IAMLEADER       = 1 # (user,followname)
-VTE_FOLLOWME        = 2 # (user,followname,expr)
-VTE_MAX             = 3
+VTE_IAMLEADER       = 1 # (uuid,user,followname)
+VTE_FOLLOWME        = 2 # (uuid,expr)
+VTE_KILLLEADER      = 3 # (uuid)
+VTE_MODLEADER       = 4 # (uuid,user,followname)
+VTE_MAX             = 5
 
 # API fields
 API_RET_TYPE    = 0
