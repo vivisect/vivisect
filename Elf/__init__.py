@@ -229,7 +229,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             secs = sec * self.e_shnum
             secslen = slen * self.e_shnum
             if secslen != len(secbytes):
-                print('Invalid Section-Headers Size: should be: %d   retrieved: %d' % (secslen, len(secbytes)))
+                logger.warning('Invalid Section-Headers Size: should be: %d   retrieved: %d', secslen, len(secbytes))
 
             vstruct.VArray(elems=secs).vsParse(secbytes, fast=True)
 
