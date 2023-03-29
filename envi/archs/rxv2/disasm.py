@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class RxOpcode(envi.Opcode):
 
     def __init__(self, va, opcode, mnem, operands, iflags=0, size=0):
-        self.iflags = iflags | envi.ARCH_RXV2
+        self.iflags = iflags | envi.ARCH_RX
         envi.Opcode.__init__(self, va, opcode, mnem, 0, size, operands, iflags)
 
     def __len__(self):
@@ -185,8 +185,8 @@ class RxRegDirectOper(envi.RegisterOper):
 
 class RxDisasm:
     def __init__(self):
-        self._dis_regctx = regs.RXv2RegisterContext()
-        self._dis_oparch = envi.ARCH_MSP430
+        self._dis_regctx = regs.RXRegisterContext()
+        self._dis_oparch = envi.ARCH_RX
 
         self.HANDLERS = [None for x in range(len(formconsts))]
         self.HANDLERS[FORM_AD] = self.form_AD

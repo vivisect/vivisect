@@ -1,6 +1,6 @@
 import envi.registers as e_reg
 
-from envi.archs.rxv2.const import *
+from envi.archs.rx.const import *
 
 regs32 = [
     'sp','r1','r2','r3','r4','r5','r6','r7',
@@ -69,11 +69,11 @@ status_meta = [
 e_reg.addLocalStatusMetas(l, registers_meta, status_meta, 'PSW')
 e_reg.addLocalMetas(l, registers_meta)
 
-class RXv2RegisterContext(e_reg.RegisterContext):
+class RXRegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)
         self.loadRegDef(registers_info)
         self.loadRegMetas(registers_meta, statmetas=status_meta)
         self.setRegisterIndexes(REG_PC, REG_SP, srindex=REG_USP)
 
-rctx = RXv2RegisterContext()
+rctx = RXRegisterContext()

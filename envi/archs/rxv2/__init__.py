@@ -7,14 +7,14 @@ from . import regs
 from . import const
 from . import disasm
 
-class RXv2Module(envi.ArchitectureModule):
+class RXModule(envi.ArchitectureModule):
 
     def __init__(self):
-        envi.ArchitectureModule.__init__(self, "rxv2", maxinst=4)
+        envi.ArchitectureModule.__init__(self, "rx", maxinst=4)
         self._arch_dis = disasm.RxDisasm()
 
     def archGetRegCtx(self):
-        return regs.RXv2RegisterContext()
+        return regs.RXRegisterContext()
 
     def archGetNopInstr(self):
         return '\x03'
@@ -37,10 +37,10 @@ class RXv2Module(envi.ArchitectureModule):
         return self._arch_dis.disasm(bytes, offset, va)
 
     def getEmulator(self):
-        return emu.RXv2Emulator()
+        return emu.RXEmulator()
 
     def getArchDefaultCall(self):
-        return 'rxv2call'
+        return 'rxcall'
 
-# NOTE: This one must be after the definition of RXv2Module
+# NOTE: This one must be after the definition of RXModule
 from . import emu

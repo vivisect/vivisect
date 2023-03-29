@@ -4,12 +4,12 @@ import envi
 import envi.bits as e_bits
 import envi.encoding as e_enc
 
-from envi.archs.rxv2 import RXv2Module
-from envi.archs.rxv2.regs import *
-from envi.archs.rxv2.const import *
+from envi.archs.rx import RXModule
+from envi.archs.rx.regs import *
+from envi.archs.rx.const import *
 
 
-class RXv2Call(envi.CallingConvention):
+class RXCall(envi.CallingConvention):
     arg_def = [(CC_REG, REG_R15), (CC_REG, REG_R14), (CC_REG, REG_R13), (CC_REG, REG_R12), (CC_STACK_INF, 2)]
     retaddr_def = (CC_STACK, 0)
     retval_def = (CC_REG, REG_R15)
@@ -18,18 +18,18 @@ class RXv2Call(envi.CallingConvention):
     pad = 0
 
 
-rxv2call = RXv2Call()
+rxcall = RXCall()
 
-class RXv2Emulator(RXv2RegisterContext, envi.Emulator):
+class RXEmulator(RXRegisterContext, envi.Emulator):
 
     def __init__(self, regarray=None):
-        self.archmod = RXv2Module()
+        self.archmod = RXModule()
 
         envi.Emulator.__init__(self, self.archmod)
-        RXv2RegisterContext.__init__(self)
+        RXRegisterContext.__init__(self)
 
         self._emu_segments = [(0, 0xffff)]
-        self.addCallingConvention('rxv2call', rxv2call)
+        self.addCallingConvention('rxcall', rxcall)
 
     def getArchModule(self):
         return self.archmod
