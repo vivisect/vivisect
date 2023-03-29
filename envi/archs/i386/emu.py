@@ -956,20 +956,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             self.setRegister(REG_EAX, quot)
             self.setRegister(REG_EDX, rem)
 
-        elif dsize == 8:
-            rax = self.getRegisterByName("rax")
-            rdx = self.getRegisterByName("rdx")
-            tot = (rdx << 64) + rax
-            quot = int(tot / val)
-            rem = tot % val
-
-            if tot > (2**64)-1:
-                mesg = '0x%.8x: division exception on %s' % (op.va, str(op))
-                raise e_exc.DivideError(self, msg=mesg)
-
-            self.setRegisterByName("rax", quot)
-            self.setRegisterByName("rdx", rem)
-
         else:
             raise e_exc.UnsupportedInstruction(self, op)
 
