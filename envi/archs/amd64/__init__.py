@@ -140,6 +140,28 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         else:
             self.i_pextrb(op, width=4)
 
+    def i_div(self, op):
+        tsize = op.opers[0].tsize
+        if tsize == 8:
+            val = self.getOperValue(op, 0)
+            if val == 0:
+                raise e_exc.DivideByZero(self)
+
+            rax = self.getRegister(REG_RAX)
+            rdx = self.getRegister(REG_RDX)
+            tot = (rdx << 64) + rax
+            quot = int(tot // val)
+            rem = tot % val
+
+            if tot > (2**128)-1:
+                mesg = '0x%.8x: division exception on %s' % (op.va, str(op))
+                raise e_exc.DivideError(self, msg=mesg)
+
+            self.setRegister(REG_RAX, quot)
+            self.setRegister(REG_RDX, rem)
+        else:
+            e_i386.IntelEmulator.i_div(self, op)
+
     def i_idiv(self, op):
         tsize = op.opers[0].tsize
         if tsize == 8:
