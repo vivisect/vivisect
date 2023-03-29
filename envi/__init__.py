@@ -170,9 +170,9 @@ arch_defs = {
         },
     
     ARCH_RX:      {
-        'name':     'rxv2',
-        'aliases':  ('rxv1', 'rx'),
-        'modpath':  ('envi', 'archs', 'rxv2'),
+        'name':     'rx',
+        'aliases':  ('rxv2', 'rxv1', 'rx'),
+        'modpath':  ('envi', 'archs', 'rx'),
         'clsname':  'RxModule',
         },
     
