@@ -58,6 +58,8 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
         self.addHotKey('down', 'viv:nav:nextva')
         self.addHotKey('up', 'viv:nav:prevva')
+        self.addHotKey('pgdown', 'viv:nav:nextpage')
+        self.addHotKey('pgup', 'viv:nav:prevpage')
         self.addHotKey('ctrl+down', 'viv:nav:nextundef')
         self.addHotKey('ctrl+up', 'viv:nav:prevundef')
 
@@ -113,6 +115,22 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
             loc = (self._canv_curva - 1, 1, None, None)
 
         self._selectVa(loc[0])
+
+    @vq_hotkey.hotkey('viv:nav:nextpage')
+    def _hotkey_nav_nextva(self):
+        if self._canv_curva is None:
+            return
+
+        self.scrollEvent()
+        return False
+
+    @vq_hotkey.hotkey('viv:nav:prevpage')
+    def _hotkey_nav_prevva(self):
+        if self._canv_curva is None:
+            return
+
+        self.scrollEvent()
+        return False
 
     @vq_hotkey.hotkey('viv:nav:nextundef')
     def _hotkey_nav_nextundef(self):
@@ -328,7 +346,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
 class VQVivMemoryCanvas(VivCanvasBase):
 
-    def _wheelEventCallback(self, data):
+    def _scrollEventCallback(self, data):
         '''
         Ugh. Yes. I know this sucks.
         But we have to do this because QtWebEngine does't natively let you get the max scroll size.
@@ -358,7 +376,7 @@ class VQVivMemoryCanvas(VivCanvasBase):
             if sizeremain:
                 self.renderMemoryPrepend(min(sizeremain, 128))
 
-    def wheelEvent(self, event):
+    def scrollEvent(self):
         page = self.page()
         page.runJavaScript('''
         var pcur = window.innerHeight + window.pageYOffset
@@ -368,8 +386,10 @@ class VQVivMemoryCanvas(VivCanvasBase):
             document.body.clientHeight, document.documentElement.clientHeight,
         );
         [window.innerHeight, pcur, scrollMaxY];
-        ''', self._wheelEventCallback)
+        ''', self._scrollEventCallback)
 
+    def wheelEvent(self, event):
+        self.scrollEvent()
         return e_mem_canvas.VQMemoryCanvas.wheelEvent(self, event)
 
     def _clearColorMap(self):
