@@ -9,8 +9,8 @@ import types
 import struct
 import logging
 import platform
+import importlib
 import contextlib
-import importlib.util as imputil
 
 from envi.exc import *
 
@@ -656,6 +656,10 @@ class Opcode:
         """
         Return a list of tuples.  Each tuple contains the target VA of the
         branch, and a possible set of flags showing what type of branch it is.
+
+        Without an emulator, dynamic branches may not be resolvable, and will
+        return a VA of None.  This is intended, and used by codeflow analysis
+        to mark dynamic branches for later analysis (eg. Switchcase analysis).
 
         See the BR_FOO types for all the supported envi branch flags....
         Example: for bva,bflags in op.getBranches():
@@ -1512,14 +1516,14 @@ def getArchModule(name=None):
 
     # retrieve path and class info.  envi/archs/<archname>/__init__.py with amodname()
     modpathtup = arch_defs[archnum]['modpath']
+    impname = ".".join(modpathtup)
     amodname = arch_defs[archnum].get('clsname')
 
     # load the module (given the path and module name)
     try:
-        module = loadModuleFromPathTup(rname, modpathtup)
-
-    except ModuleLoadFailure as e:
-        raise ArchNotImplemented(e.component, e.message)
+        module = importlib.import_module(impname)
+    except ImportError as e:
+        raise ArchNotImplemented(impname, e.message)
 
     # instantiate the ArchitectureModule
     cls = getattr(module, amodname)
@@ -1527,56 +1531,6 @@ def getArchModule(name=None):
     
     return archmod
 
-def loadModuleFromPathTup(modname, modpathtup):
-    '''
-    Load a Python module given a module path tuple
-
-    Searches through the PYTHONPATH for a matching module
-    '''
-    modpath = os.path.join(*modpathtup)
-    for pathbase in sys.path:
-        tmppath = os.path.join(pathbase, modpath)
-        if os.path.exists(tmppath):
-            modpath = tmppath
-            break
-    
-    return loadModuleFromAbsolutePath(modname, modpath)
-
-def loadModuleFromAbsolutePathTup(modname, modpathtup):
-    '''
-    Load a Python module given an absolute module path tuple
-    '''
-    modpath = os.sep + os.path.join(*modpathtup)
-    return loadModuleFromAbsolutePath(modname, modpath)
-
-def loadModuleFromAbsolutePath(modname, modpath):
-    '''
-    Load a Python module given an absolute module path string
-    '''
-    # if we hand in the path to the directory, load the __init__.py
-    if os.path.isdir(modpath):
-        modpath = os.path.join(modpath, '__init__.py')
-
-    if not os.path.exists(modpath):
-        raise ModuleLoadFailure(modname, "Path does not exist: %r" % modpath)
-
-    # get the module spec
-    spec = imputil.spec_from_file_location(modname, modpath)
-    if not spec:
-        raise ModuleLoadFailure(modname, "Failed to load module")
-
-    # create an unintialized module from the spec
-    module = imputil.module_from_spec(spec)
-    if not module:
-        raise ModuleLoadFailure(modname, "Failed to create uninitialized module from the spec")
-
-    # insert the module into sys.modules:
-    sys.modules[modname] = module
-
-    # initialize the module (actually "importing" it)
-    spec.loader.exec_module(module)
-
-    return module
 
 def getArchModules(default=ARCH_DEFAULT):
     '''
