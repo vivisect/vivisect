@@ -828,7 +828,7 @@ def p_load_reg_lit(opval, va):
             mnem = 'prfm'
             opcode = INS_PRFM
             olist = (
-                prfop[rt],
+                A64PreFetchOper(rt>>3, (rt>>1)&3, rt&1),
                 A64ImmOper(imm19*0b100, 0, S_LSL, va),
             )
 
@@ -1022,7 +1022,7 @@ def p_ls_reg_unsc_imm(opval, va):
                 mnem == 'prfum'
                 opcode = INS_PRFUM
                 olist = (
-                    prfop[rt],
+                    A64PreFetchOper(rt>>3, (rt>>1)&3, rt&1),
                     A64RegOper(rn, va, size=8),
                     A64ImmOper(imm9, va=va),
                 )
@@ -1184,7 +1184,7 @@ def p_ls_reg_offset(opval, va):
                 else:
                     return p_undef(opval)
                 olist = (
-                    prfop[rt],
+                    A64PreFetchOper(rt>>3, (rt>>1)&3, rt&1),
                     A64RegOper(rn, va, size=8),
                     A64RegOper(rm, va, size=regsize),
                     #FIXME extend
@@ -1259,7 +1259,7 @@ def p_ls_reg_us_imm(opval, va):
                 mnem =  'prfm'
                 opcode = INS_PRFM
                 olist = (
-                    prfop[rt],
+                    A64PreFetchOper(rt>>3, (rt>>1)&3, rt&1),
                     A64RegOper(rn, va, size=8),
                     A64ImmOper(imm12 << 3, va=va),
                 )
