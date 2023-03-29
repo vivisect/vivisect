@@ -69,11 +69,11 @@ status_meta = [
 e_reg.addLocalStatusMetas(l, registers_meta, status_meta, 'PSW')
 e_reg.addLocalMetas(l, registers_meta)
 
-class RXRegisterContext(e_reg.RegisterContext):
+class RxRegisterContext(e_reg.RegisterContext):
     def __init__(self):
         e_reg.RegisterContext.__init__(self)
         self.loadRegDef(registers_info)
         self.loadRegMetas(registers_meta, statmetas=status_meta)
         self.setRegisterIndexes(REG_PC, REG_SP, srindex=REG_USP)
 
-rctx = RXRegisterContext()
+rctx = RxRegisterContext()

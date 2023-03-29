@@ -185,7 +185,7 @@ class RxRegDirectOper(envi.RegisterOper):
 
 class RxDisasm:
     def __init__(self):
-        self._dis_regctx = regs.RXRegisterContext()
+        self._dis_regctx = regs.RxRegisterContext()
         self._dis_oparch = envi.ARCH_RX
 
         self.HANDLERS = [None for x in range(len(formconsts))]

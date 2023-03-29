@@ -4,12 +4,12 @@ import envi
 import envi.bits as e_bits
 import envi.encoding as e_enc
 
-from envi.archs.rx import RXModule
+from envi.archs.rx import RxModule
 from envi.archs.rx.regs import *
 from envi.archs.rx.const import *
 
 
-class RXCall(envi.CallingConvention):
+class RxCall(envi.CallingConvention):
     arg_def = [(CC_REG, REG_R15), (CC_REG, REG_R14), (CC_REG, REG_R13), (CC_REG, REG_R12), (CC_STACK_INF, 2)]
     retaddr_def = (CC_STACK, 0)
     retval_def = (CC_REG, REG_R15)
@@ -18,15 +18,15 @@ class RXCall(envi.CallingConvention):
     pad = 0
 
 
-rxcall = RXCall()
+rxcall = RxCall()
 
-class RXEmulator(RXRegisterContext, envi.Emulator):
+class RxEmulator(RxRegisterContext, envi.Emulator):
 
     def __init__(self, regarray=None):
-        self.archmod = RXModule()
+        self.archmod = RxModule()
 
         envi.Emulator.__init__(self, self.archmod)
-        RXRegisterContext.__init__(self)
+        RxRegisterContext.__init__(self)
 
         self._emu_segments = [(0, 0xffff)]
         self.addCallingConvention('rxcall', rxcall)
