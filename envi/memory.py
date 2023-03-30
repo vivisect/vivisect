@@ -83,6 +83,8 @@ class IMemory:
         '''
         self.bigend = endian
         for arch in self.imem_archs:
+            if not arch:
+                continue
             arch.setEndian(self.bigend)
 
         if self.arch is not None:

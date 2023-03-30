@@ -138,7 +138,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
     def contextMenuEvent(self, event):
         if self._canv_curva is not None:
-            menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self)
+            menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self, nav=self.parent())
         else:
             menu = QMenu(parent=self)
 
@@ -466,18 +466,18 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         # debounce logic
         if self._renderWaiting:
             # if we are already rendering... and another thing is waiting
-            #logger.debug('(%r) someone is already waiting... returning', threading.currentThread())
+            #logger.debug('(%r) someone is already waiting... returning', threading.current_thread())
             return
 
         while self._rendering:
-            #logger.debug('(%r) waiting for render to complete...', threading.currentThread())
+            #logger.debug('(%r) waiting for render to complete...', threading.current_thread())
             self._renderWaiting = True
             time.sleep(.1)
 
         self._renderWaiting = False
 
         with self._renderlock:
-            #logger.debug('(%r) render beginning...', threading.currentThread())
+            #logger.debug('(%r) render beginning...', threading.current_thread())
             self._rendering = True
 
         # actually do the refresh
@@ -501,7 +501,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         with self._renderlock:
             self._rendering = False
-        #logger.debug('(%r) render finished!', threading.currentThread())
+        #logger.debug('(%r) render finished!', threading.current_thread())
 
         # update the "real" _xref_cache from the one we just built
         with self._xref_cache_lock:
