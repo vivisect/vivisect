@@ -60,7 +60,7 @@ class RiscVModule(envi.ArchitectureModule):
         else:
             return None
 
-    def archParseOpcode(self, data, offset=0, va=0):
+    def archParseOpcode(self, data, offset=0, va=0, extra=None):
         return self._arch_dis.disasm(data, offset, va)
 
     def getEmulator(self, endian=None, description=None):

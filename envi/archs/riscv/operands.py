@@ -235,7 +235,7 @@ class RiscVOpcode(envi.Opcode):
         """
         return self.mnem + " " + ",".join(o.repr(self) for o in self.opers)
 
-    def render(self):
+    def render(self, mcanv):
         if self.prefixes:
             pfx = self._getPrefixName(self.prefixes)
             if pfx:
