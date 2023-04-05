@@ -66,7 +66,7 @@ def _getLSBSet(value):
     for i, c in zip(range(len(binvalstr)), reversed(binvalstr)):
         if c == '1':
             return i
-    return None
+    return 0
 
 
 class Ppc64EmbeddedModule(envi.ArchitectureModule):
