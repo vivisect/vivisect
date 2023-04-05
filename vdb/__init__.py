@@ -56,8 +56,7 @@ class VdbLookup(UserDict):
 
 class ScriptThread(threading.Thread):
     def __init__(self, cobj, locals):
-        threading.Thread.__init__(self)
-        self.setDaemon(True)
+        super.__init__(self, daemon=True)
         self.cobj = cobj
         self.locals = locals
 
@@ -492,7 +491,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             trace.setMeta('PendingBreak', False)
             bp = trace.getCurrentBreakpoint()
             if bp:
-                self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
+                if not self.silent:
+                    self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
                 cmdstr = self.bpcmds.get(bp.id, None)
                 if cmdstr is not None:
                     self.onecmd(cmdstr)
@@ -574,7 +574,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if dohex:
             memstr = binascii.unhexlify(memstr)
         if douni:
-            memstr = ("\x00".join(memstr)) + "\x00"
+            memstr = (b"\x00".join(memstr)) + b"\x00"
 
         addr = self.parseExpression(exprstr)
         self.memobj.writeMemory(addr, memstr)
@@ -1034,11 +1034,12 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         -V         - Show operand values during single step (verbose!)
         -U         - Remainder of args is "step until" expression (stop on True)
         -Q         - Do not output to canvas
+        -O         - Step Over calls (ie. stay in this function)
         """
         t = self.trace
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "A:BC:RVUQ")
+            opts,args = getopt(argv, "A:BC:RVUOQ")
         except Exception as e:
             return self.do_help("stepi")
 
@@ -1049,6 +1050,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         tobrn = False
         showop = False
         quiet = False
+        stepover = False
 
         for opt, optarg in opts:
 
@@ -1072,6 +1074,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             elif opt == '-Q':
                 quiet = True
+
+            elif opt == '-O':
+                stepover = True
 
         if ( count is None 
              and taddr is None
@@ -1121,7 +1126,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     if not quiet:
                         self.canvas.addText('\n')
 
-                    if op.iflags & envi.IF_CALL:
+                    if op.iflags & envi.IF_CALL and not stepover:
                         depth += 1
 
                     elif op.iflags & envi.IF_RET:
@@ -1130,9 +1135,15 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     print("[E@0x%x] %r" % (pc, e))
 
 
-                tid = t.getCurrentThread()
+                # execute the instruction
+                if op.iflags & envi.IF_CALL and stepover:
+                    bp = vtrace.breakpoints.OneTimeBreak(op.va + op.size)
+                    self.trace.addBreakpoint(bp)
+                    self.trace.run()
 
-                t.stepi()
+                else:
+                    tid = t.getCurrentThread()
+                    t.stepi()
 
                 if until and t.parseExpression(until):
                     break
@@ -1711,29 +1722,74 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
     def do_bpedit(self, line):
         """
-        Manipulcate the python code that will be run for a given
-        breakpoint by ID.  (Also the way to view the code).
+        Modify a given breakpoint.
+        * Manipulate the python code that will be run for a given
+          breakpoint by ID.
+        * Also the way to view the code
+        * Modify characteristics of the breakpoint (eg. FastBreak)
 
-        Usage: bpedit <id> ["optionally new code"]
+        Usage: bpedit [options] <id> ["optionally new code"]
+
+        where options include:
+           -F  toggles a breakpoint's FastBreak mode
+           -S  toggles a breakpoint's Silent mode (doesn't print console msg, still runs BP code)
+           -V  prints more metadata about a given breakpoint (default is just the code)
 
         NOTE: Your code must be surrounded by "s and may not
         contain any "s
         """
         argv = e_cli.splitargs(line)
+        verbose = False
+        try:
+            opts, args = getopt(argv, 'FSV')
+        except:
+            return self.do_help('bpedit')
+
         if len(argv) == 0:
             return self.do_help("bpedit")
-        bpid = int(argv[0])
 
-        if len(argv) == 2:
-            self.trace.setBreakpointCode(bpid, argv[1])
+        bpid = int(args[0])
 
+        bp = self.trace.getBreakpoint(bpid)
+        if bp is None:
+            self.vprint("Breakpoint %d does not exist!" % bpid)
+            return
+
+        for opt, optarg in opts:
+            if opt == '-V':
+                # print all the metadata
+                verbose = True
+
+            elif opt == '-S':
+                bp.silent = not bp.silent
+
+            elif opt == '-F':
+                bp.fastbreak = not bp.fastbreak
+
+        if len(args) == 2:
+            self.trace.setBreakpointCode(bpid, args[1])
+
+        # print the breakpoint metadata:
         pystr = self.trace.getBreakpointCode(bpid)
-        self.vprint("[%d] Breakpoint code: %s" % (bpid,pystr))
+        if verbose:
+            self.vprint("%r" % bp)
+            self.vprint("    code: %s" % (pystr))
+            self.vprint("    FastBreak:     %r" % bp.fastbreak)
+            self.vprint("    enabled:       %r" % bp.enabled)
+            self.vprint("    silent:        %r" % bp.silent)
+            self.vprint("    active:        %r" % bp.active)
+            self.vprint("    resonce:       %r" % bp.resonce)
+            if bp.stealthbreak:
+                self.vprint("    stealth:       %r" % bp.stealthbreak)
+
+        else:
+            self.vprint("[%d] Breakpoint code: %s" % (bpid,pystr))
 
     def do_bp(self, line):
         """
         Show, add,  and enable/disable breakpoints
         USAGE: bp [-d <addr>] [-a <addr>] [-o <addr>] [[-c pycode] <address> [vdb cmds]]
+        -A - Show *all* breakpoints (including special bp's used for VDB functionality)
         -C - Clear All Breakpoints
         -c "py code" - Set the breakpoint code to the given python string
         -d <id> - Disable Breakpoint
@@ -1762,18 +1818,22 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "fF:e:d:o:r:L:Cc:S:W:")
+            opts,args = getopt(argv, "AfF:e:d:o:r:L:Cc:S:W:")
         except Exception as e:
             return self.do_help('bp')
 
         pycode = None
         wpargs = None
+        showall = False
         fastbreak = False
         libsearch = None
 
         for opt,optarg in opts:
             if opt == "-e":
                 self.trace.setBreakpointEnabled(eval(optarg), True)
+
+            elif opt == "-A":
+                showall = True
 
             elif opt == "-c":
                 pycode = optarg
@@ -1793,6 +1853,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             elif opt == "-C":
                 for bp in self.trace.getBreakpoints():
+                    if bp.stealthbreak:
+                        continue
+
                     self.bpcmds.pop(bp.id, None)
                     self.trace.removeBreakpoint(bp.id)
                     self.vdbUIEvent('vdb:delbreak', bp.id)
@@ -1861,6 +1924,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
         self.vprint(" [ Breakpoints ]")
         for bp in self.trace.getBreakpoints():
+            if bp.stealthbreak and not showall:
+                # don't list stealthbreak bp's (unless forced)
+                continue
             self._print_bp(bp)
 
     def _print_bp(self, bp):
@@ -2299,6 +2365,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these yourself
-version = (1, 0, 8)
+version = (1, 1, 0)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

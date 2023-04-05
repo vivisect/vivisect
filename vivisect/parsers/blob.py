@@ -1,3 +1,4 @@
+import os
 import envi
 import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
@@ -35,9 +36,9 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
     vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
 
     bytez = fd.read()
-    vw.addMemoryMap(baseaddr, 7, filename, bytez)
-    vw.addSegment(baseaddr, len(bytez), '%.8x' % baseaddr, 'blob')
     fname = vw.addFile(filename, baseaddr, v_parsers.md5Bytes(bytez))
+    vw.addMemoryMap(baseaddr, 7, fname, bytez)
+    vw.addSegment(baseaddr, len(bytez), '%.8x' % baseaddr, fname)
     vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
 
 def parseFile(vw, filename, baseaddr=None):
@@ -63,8 +64,8 @@ def parseFile(vw, filename, baseaddr=None):
         bytez = f.read()
     fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
     vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
-    vw.addMemoryMap(baseaddr, 7, filename, bytez)
-    vw.addSegment(baseaddr, len(bytez), '%.8x' % baseaddr, 'blob')
+    vw.addMemoryMap(baseaddr, 7, fname, bytez)
+    vw.addSegment(baseaddr, len(bytez), '%.8x' % baseaddr, fname)
 
 
 def parseMemory(vw, memobj, baseaddr):
@@ -77,3 +78,10 @@ def parseMemory(vw, memobj, baseaddr):
     vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
     vw.addMemoryMap(va, perms, fname, bytez)
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
+
+def getMemBaseAndSize(vw, filename, baseaddr=None):
+    if baseaddr is None:
+        baseaddr = vw.config.viv.parsers.blob.baseaddr
+    size = os.lstat(filename).st_size
+    return baseaddr, size
+

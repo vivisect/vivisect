@@ -165,7 +165,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         archmenu = makemenu.addMenu('code (archs)')
         prevumenu = menu.addMenu('preview instruction')
 
-        archs = [ (archname,archid) for (archid,archname) in envi.arch_names.items() ]
+        archs = [ (archname,archid) for (archid,archname) in envi.getArchNames().items() ]
         archs.sort()
         for archname,archid in archs:
             if archname == 'default':

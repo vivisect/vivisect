@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 def splitargs(cmdline):
     cmdline = cmdline.replace('\\\\"', '"').replace('\\"', '')
-    patt = re.compile('\".+?\"|\S+')
+    patt = re.compile(r'".+?"|\S+')
     for item in cmdline.split('\n'):
         return [s.strip('"') for s in patt.findall(item)]
 
@@ -259,7 +259,7 @@ class EnviCli(Cmd):
         if intro is not None:
             self.vprint(intro)
 
-        while not self.shutdown.isSet():
+        while not self.shutdown.is_set():
             try:
                 Cmd.cmdloop(self, intro=intro)
             except Exception:
@@ -311,7 +311,7 @@ class EnviCli(Cmd):
             self.vprint("\nERROR: (%s) %s" % (msg.__class__.__name__, msg))
             logger.warning("\nERROR: (%s) %s", msg.__class__.__name__, msg, exc_info=1)
 
-        if self.shutdown.isSet():
+        if self.shutdown.is_set():
             return True
 
     def do_help(self, line):
@@ -398,7 +398,7 @@ class EnviCli(Cmd):
                 return
 
             if len(parts) == 2:
-                # the config entry already has a value, let's use it to decide 
+                # the config entry already has a value, let's use it to decide
                 # whether to convert it to an int or leave it as a str.
                 if type(cfg[optname]) == int:
                     newval = int(parts[1], 0)

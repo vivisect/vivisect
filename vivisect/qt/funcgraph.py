@@ -111,8 +111,14 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         runner = functools.partial(self._renderMemoryFinish, cb)
         e_memcanvas.MemoryCanvas.renderMemory(self, va, size, cb=runner)
 
-    def renderMemory(self, va, size, cb):
+    def renderMemory(self, va, size, cb=None):
+        '''
+        Funcgraph specific renderMemory() function.
+        '''
         # For the funcgraph canvas, this will be called once per code block
+        if not cb:
+            cb = self.__nopcb
+
         selector = 'codeblock_%.8x' % va
         js = '''var node = document.querySelector("#%s");
         if (node == null) {
@@ -127,9 +133,12 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         logger.log(MIRE, "renderMemory(%r, %r) %r", va, cb, runner)
         self.page().runJavaScript(js, runner)
 
+    def __nopcb(self):
+        pass
+
     def contextMenuEvent(self, event):
         if self._canv_curva is not None:
-            menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self)
+            menu = vq_ctxmenu.buildContextMenu(self.vw, va=self._canv_curva, parent=self, nav=self.parent())
         else:
             menu = QMenu(parent=self)
 
@@ -457,18 +466,18 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         # debounce logic
         if self._renderWaiting:
             # if we are already rendering... and another thing is waiting
-            #logger.debug('(%r) someone is already waiting... returning', threading.currentThread())
+            #logger.debug('(%r) someone is already waiting... returning', threading.current_thread())
             return
 
         while self._rendering:
-            #logger.debug('(%r) waiting for render to complete...', threading.currentThread())
+            #logger.debug('(%r) waiting for render to complete...', threading.current_thread())
             self._renderWaiting = True
             time.sleep(.1)
 
         self._renderWaiting = False
 
         with self._renderlock:
-            #logger.debug('(%r) render beginning...', threading.currentThread())
+            #logger.debug('(%r) render beginning...', threading.current_thread())
             self._rendering = True
 
         # actually do the refresh
@@ -492,7 +501,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         with self._renderlock:
             self._rendering = False
-        #logger.debug('(%r) render finished!', threading.currentThread())
+        #logger.debug('(%r) render finished!', threading.current_thread())
 
         # update the "real" _xref_cache from the one we just built
         with self._xref_cache_lock:
