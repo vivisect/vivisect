@@ -1857,6 +1857,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Add a memory map to the workspace.  This is the *only* way to
         get memory backings into the workspace.
         """
+        # handle nasty special case of an empty map with an alignment
+        if not len(bytes):
+            bytes = b'\0'
         self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes, align))
 
         # since we don't return anything from _fireEvent(), pull the new info:
