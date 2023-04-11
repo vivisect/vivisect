@@ -60,13 +60,20 @@ PowerPC architecture, see the Programming Environments Manual.
 '''
 
 
-def _getLSBSet(value):
-    # turn into a binary string and then remove the leading 0b
-    binvalstr = format(value, 'b')
-    for i, c in zip(range(len(binvalstr)), reversed(binvalstr)):
-        if c == '1':
-            return i
-    return None
+def _getLSBSet(value, psize=4):
+    '''
+    Determine the least significant bit of a value that is 1. If there is no
+    least significant bit, return the most significant bit to indicate that
+    there is "LSB Set".
+    '''
+    if value == 0:
+        return psize * 8
+
+    lsb = 0
+    while not (value & 1) and value != 0:
+        value >>= 1
+        lsb += 1
+    return lsb
 
 
 class Ppc64EmbeddedModule(envi.ArchitectureModule):
@@ -190,9 +197,9 @@ class Ppc64EmbeddedModule(envi.ArchitectureModule):
             vlemaps = [e[:2] for e in maps if (len(e) == 2) or (len(e) == 3 and e[2])]
 
         # Use the mapped VLE addresses and sizes to determine a common page size
-        lowest_set_lsbs = [_getLSBSet(self._page_size)] + \
-                [_getLSBSet(addr) for addr, _ in vlemaps] + \
-                [_getLSBSet(size) for _, size in vlemaps]
+        lowest_set_lsbs = [_getLSBSet(self._page_size, self.psize)] + \
+                [_getLSBSet(addr, self.psize) for addr, _ in vlemaps] + \
+                [_getLSBSet(size, self.psize) for _, size in vlemaps]
         lsb = min(lowest_set_lsbs)
 
         # The LSB indicates the lowest bit position that can uniquely identify
