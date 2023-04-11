@@ -81,6 +81,8 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
     '''
     memmaps = []
 
+    platform = elf.getPlatform()
+
     addbase, baseoff, baseaddr = getAddBaseAddr(elf, baseaddr)
 
     pgms = elf.getPheaders()
@@ -93,7 +95,14 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
             bytez += b'\x00' * (pgm.p_memsz - pgm.p_filesz)
             pva = pgm.p_vaddr
             pva += baseoff
-            memmaps.append((pva, pgm.p_flags & 0x7, fname, bytez, e_const.PAGE_SIZE))
+
+            # For posix-type platforms we should use the same page size that the 
+            # loader will use: 0x1000 (e_const.PAGE_SIZE). If the platform is 
+            # unknown use the alignmetn specified in the program header.
+            if platform == 'unknown':
+                memmaps.append((pva, pgm.p_flags & 0x7, fname, bytez, pgm.p_align))
+            else:
+                memmaps.append((pva, pgm.p_flags & 0x7, fname, bytez, e_const.PAGE_SIZE))
         else:
             logger.info('Skipping: %s', pgm)
 
@@ -360,9 +369,6 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     secs = elf.getSections()
 
     for mmapva, mmperms, mfname, mbytez, malign in getMemoryMapInfo(elf, fname, baseaddr):
-        if platform == 'unknown':
-            # unknown platforms 
-            malign = e_const.PAGE_SIZE
         logger.debug("vw.addMemoryMap(0x%x, 0x%x, %r, 0x%x, 0x%x)", mmapva, mmperms, mfname, len(mbytez), malign)
         vw.addMemoryMap(mmapva, mmperms, mfname, mbytez, malign)
 
