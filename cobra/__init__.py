@@ -194,9 +194,11 @@ class CobraSocket:
                 raise Exception('Missing "msgpack" python module ( http://visi.kenshoto.com/viki/Msgpack )')
 
             def msgpackloads(b):
+                logger.debug("<< %r  (%r)", b, loadargs)
                 return msgpack.loads(b, **loadargs)
 
             def msgpackdumps(b):
+                logger.debug(">> %r  (%r)", b, dumpargs)
                 return msgpack.dumps(b, **dumpargs)
 
             self.dumps = msgpackdumps
@@ -1165,9 +1167,43 @@ def startCobraServer(host="", port=COBRA_PORT):
         daemon.fireThread()
     return daemon
 
+daemon_threads = {}
 def runCobraServer(host='', port=COBRA_PORT):
+    global daemon_threads
+    if (host, port) in daemon_threads:
+        ######## REDO USING getCobraDaemon
+        daemon = daemon_threads.get(host, port)
+        logger.info("CobraDaemon already exists on port %d, joining to that thread.", port)
+        daemon.thr.join()
+
     daemon = CobraDaemon(host,port)
     daemon.serve_forever()
+
+def registerCobraDaemon(host, port, daemon):
+    global daemon_threads
+    if (host, port) in daemon_threads:
+        raise Exception("Daemon already exists on host %r port %d.  Please deregister that port first." % (host, port))
+
+    daemon_threads[(host, port)] = daemon
+
+def deregisterCobraDaemon(host, port):
+    global daemon_threads
+    if port in daemon_threads:
+        daemon_threads.pop(port)
+
+    else:
+        logger.warning("Attempted to deregister a CobraDaemon on a port that isn't registered: %d", port)
+
+def getCobraDaemon(host="", port=COBRA_PORT):
+    global daemon_threads
+    daemon = daemon_threads.get(port)
+    if (host, port) not in daemon_threads:
+        daemon = CobraDaemon(host, port)
+        daemon.fireThread()
+        registerCobraDaemon(host, port, daemon)
+
+    return daemon
+
 
 def shareObject(obj, name=None, doref=False):
     """
