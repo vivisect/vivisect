@@ -1,7 +1,7 @@
 import types
 import unittest
 import vtrace.tests as vt_tests
-from vtrace.envitools import LockStepper
+from vtrace.lockstep import LockStepper
 
 
 

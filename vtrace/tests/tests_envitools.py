@@ -1,5 +1,4 @@
 import vtrace
-import vtrace.envitools
 import vtrace.util
 
 
