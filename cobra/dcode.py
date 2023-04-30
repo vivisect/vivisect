@@ -68,11 +68,11 @@ class DcodeLoader(object):
         if mod is None:
             # TODO: Kinda janky. Does this work?
             spec = importlib.util.spec_from_loader(fullname, loader=None)
-            module = importlib.util.module_from_spec(spec)
+            mod = importlib.util.module_from_spec(spec)
             sys.modules[fullname] = mod
-            exec(self.fbytes, module.__dict__)
-            module.__file__ = self.filename
-            module.__loader__ = self
+            exec(self.fbytes, mod.__dict__)
+            mod.__file__ = self.filename
+            mod.__loader__ = self
             if self.path is not None:
                 mod.__path__ = [self.path]
 
