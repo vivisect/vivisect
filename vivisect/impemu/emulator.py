@@ -4,6 +4,7 @@ import itertools
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
+import envi.const as e_const
 import envi.common as e_common
 import envi.memory as e_memory
 
@@ -714,7 +715,7 @@ class WorkspaceEmulator:
 
         # It's totally ok to write to invalid memory during the
         # emulation pass (as long as safe_mem is true...)
-        probeok = self.probeMemory(va, len(bytes), e_memory.MM_WRITE)
+        probeok = self.probeMemory(va, len(bytes), e_const.MM_WRITE)
         if self._safe_mem and not probeok:
             return
 
@@ -742,7 +743,7 @@ class WorkspaceEmulator:
         self._useVirtAddr(va)
 
         # Read from the emulator's pages if we havent resolved it yet
-        probeok = self.probeMemory(va, size, e_memory.MM_READ)
+        probeok = self.probeMemory(va, size, e_const.MM_READ)
         if self._safe_mem and not probeok:
             return self.taintbyte * size
 
