@@ -111,11 +111,16 @@ class VdbTrace(object):
     def __getattr__(self, name):
         return getattr(self.db.getTrace(), name)
 
+    def vprint(self, msg, addnl=True):
+        return self.db.vprint(msg, addnl)
+
 defconfig = {
 
     'vdb':{
         'BreakOnEntry':False,
         'BreakOnMain':False,
+        'BreakOnLibraryLoad':False,
+        'BreakOnLibraryInit':False,
 
         'SymbolCacheActive':True,
         'SymbolCachePath':e_config.gethomedir('.envi','symcache'),
@@ -138,6 +143,8 @@ docconfig = {
     'vdb':{
         'BreakOnMain':'Should the debugger break on main() if known?',
         'BreakOnEntry':'Should the debugger break on the entry to the main module? (only works if you exec (and not attach to) the process)',
+        'BreakOnLibraryLoad':"Should the debugger break when a new library is loaded?",
+        'BreakOnLibraryInit':"Should the debugger break on new library init routines?",
 
         'SymbolCacheActive':'Should we cache symbols for subsequent loads?',
         'SymbolCachePaths':'Path elements ( ; seperated) to search/cache symbols (filepath,cobra)',
@@ -356,11 +363,13 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
     def getTrace(self):
         return self.trace
 
-    def newTrace(self):
+    def newTrace(self, **kwargs):
         """
         Generate a new trace for this vdb instance.  This fixes many of
         the new attach/exec data munging issues because tracer re-use is
         *very* sketchy...
+
+        **kwargs is handed into the new trace to handle any platform magic
         """
         oldtrace = self.getTrace()
         if oldtrace.isRunning():
@@ -368,11 +377,15 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if oldtrace.isAttached():
             oldtrace.detach()
 
-        self.trace = oldtrace.buildNewTrace()
+        self.trace = oldtrace.buildNewTrace(**kwargs)
         oldtrace.release()
 
-        self.bpcmds = {}
+        self.bpcmds = {}    # TODO: make these reusable from previous sessions
         self.manageTrace(self.trace)
+
+        # must be set for each trace
+        self.trace.setBreakOnLibraryLoad(self.config.vdb.BreakOnLibraryLoad)
+        self.trace.setBreakOnLibraryInit(self.config.vdb.BreakOnLibraryInit)
         return self.trace
 
     def setupSignalLookups(self):
@@ -491,7 +504,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             trace.setMeta('PendingBreak', False)
             bp = trace.getCurrentBreakpoint()
             if bp:
-                if not self.silent:
+                if not bp.silent:
                     self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
                 cmdstr = self.bpcmds.get(bp.id, None)
                 if cmdstr is not None:
@@ -576,6 +589,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if douni:
             memstr = (b"\x00".join(memstr)) + b"\x00"
 
+        memstr = memstr.decode('utf8')
         addr = self.parseExpression(exprstr)
         self.memobj.writeMemory(addr, memstr)
         self.vdbUIEvent('vdb:writemem', (addr,memstr))
@@ -2365,6 +2379,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these yourself
-version = (1, 1, 0)
+version = (1, 1, 1)
 verstring = '.'.join([str(x) for x in version])
 commit = ''
