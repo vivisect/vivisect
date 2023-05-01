@@ -129,3 +129,39 @@ def enableDcodeServer(daemon=None):
         daemon.shareObject(server, 'DcodeServer')
         return
     cobra.shareObject(server, 'DcodeServer')
+
+def main():
+    '''
+    Launch a Dcode server including any paths you list on the command line
+    '''
+    import argparse
+    parser = argparse.ArgumentParser(prog='cobraDcode', usage='%(prog)s [options] [additional_path1 [additional_path2] [...]]>')
+    parser.add_argument('-P', '--port', dest='port', type=int, default=cobra.COBRA_PORT,
+                        help='Listen on what port')
+    parser.add_argument('--cacrt', default=None, help='Use TLS encryption: With this Certificate Authority Cert (file)')
+    parser.add_argument('--srvcrt', default=None, help='Use TLS encryption: With this Server Cert (file)')
+    parser.add_argument('--srvkey', default=None, help='Use TLS encryption: With this Server Key (file)')
+    parser.add_argument('path', nargs='*')
+    args = parser.parse_args()
+
+    for path in args.path:
+        if path not in sys.path:
+            logger.info('Adding path "%s" to system path (ie. will serve to Dcode clients)', path)
+            sys.path.append(path)
+
+    # first start a cobra server on the specified port
+    daemon = cobra.startCobraServer(port=args.port, sslca=args.cacrt, sslcrt=args.srvcrt, sslkey=args.srvkey, msgpack=1)
+
+    # next, enable Dcode
+    enableDcodeServer(daemon)
+
+    # wait forever (or until the process is killed)
+    daemon.thr.join()
+
+
+
+
+if __name__ == "__main__":
+    import envi.common as ecmn
+    ecmn.initLogging(logger, logging.DEBUG)
+    main()

@@ -1160,15 +1160,16 @@ def initSocketBuilder(host,port):
         socket_builders[ (host,port) ] = builder
     return builder
 
-def startCobraServer(host="", port=COBRA_PORT):
+def startCobraServer(host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True):
+    # TODO: replace this with getCobraDaemon code?
     global daemon
     if daemon is None:
-        daemon = CobraDaemon(host,port)
+        daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
         daemon.fireThread()
     return daemon
 
 daemon_threads = {}
-def runCobraServer(host='', port=COBRA_PORT):
+def runCobraServer(host='', port=COBRA_PORT, sslca=None, sslsrt=None, sslkey=None, msgpack=True):
     global daemon_threads
     if (host, port) in daemon_threads:
         ######## REDO USING getCobraDaemon
@@ -1176,7 +1177,7 @@ def runCobraServer(host='', port=COBRA_PORT):
         logger.info("CobraDaemon already exists on port %d, joining to that thread.", port)
         daemon.thr.join()
 
-    daemon = CobraDaemon(host,port)
+    daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
     daemon.serve_forever()
 
 def registerCobraDaemon(host, port, daemon):
@@ -1194,11 +1195,11 @@ def deregisterCobraDaemon(host, port):
     else:
         logger.warning("Attempted to deregister a CobraDaemon on a port that isn't registered: %d", port)
 
-def getCobraDaemon(host="", port=COBRA_PORT):
+def getCobraDaemon(host="", port=COBRA_PORT, sslca=None, sslsrt=None, sslkey=None, msgpack=True):
     global daemon_threads
     daemon = daemon_threads.get(port)
     if (host, port) not in daemon_threads:
-        daemon = CobraDaemon(host, port)
+        daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
         daemon.fireThread()
         registerCobraDaemon(host, port, daemon)
 
