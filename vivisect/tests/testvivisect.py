@@ -6,7 +6,7 @@ import unittest
 
 import envi
 import envi.exc as e_exc
-import envi.memory as e_memory
+import envi.const as e_const
 import envi.memcanvas as e_mcanvas
 
 import vivisect
@@ -1469,15 +1469,15 @@ class VivisectTest(v_t_utils.VivTest):
     def test_firefox_segments(self):
         vw = self.firefox_vw
         ans = {
-            'PE_Header': (0x140000000, 0x1000, e_memory.MM_READ),
-            '.text': (0x140001000, 0x49000, e_memory.MM_READ | e_memory.MM_EXEC),
-            '.rdata': (0x14004a000, 0xc000, e_memory.MM_READ),
-            '.data': (0x140056000, 0x2a00, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.pdata': (0x140059000, 0x3000, e_memory.MM_READ),
-            '.00cfg': (0x14005c000, 0x200, e_memory.MM_READ),
-            '.freestd': (0x14005d000, 0x200, e_memory.MM_READ),
-            '.tls': (0x14005e000, 0x200, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.reloc': (0x140092000, 0x400, e_memory.MM_READ),
+            'PE_Header': (0x140000000, 0x1000, e_const.MM_READ),
+            '.text': (0x140001000, 0x49000, e_const.MM_READ | e_const.MM_EXEC),
+            '.rdata': (0x14004a000, 0xc000, e_const.MM_READ),
+            '.data': (0x140056000, 0x2a00, e_const.MM_READ | e_const.MM_WRITE),
+            '.pdata': (0x140059000, 0x3000, e_const.MM_READ),
+            '.00cfg': (0x14005c000, 0x200, e_const.MM_READ),
+            '.freestd': (0x14005d000, 0x200, e_const.MM_READ),
+            '.tls': (0x14005e000, 0x200, e_const.MM_READ | e_const.MM_WRITE),
+            '.reloc': (0x140092000, 0x400, e_const.MM_READ),
         }
         for sva, ssize, sname, sfname in vw.getSegments():
             self.assertEqual(ans[sname][0], sva)
