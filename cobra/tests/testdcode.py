@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 import contextlib
 import subprocess
@@ -71,6 +72,7 @@ class CobraDcodeTest(unittest.TestCase):
         p = subprocess.Popen("python3 -m cobra.dcode -P 12347 cobra".split(' '),
                 executable='python3', stdin=subprocess.PIPE)
 
+        time.sleep(.5)
         # setup client-side
         cobra.dcode.addDcodeServer('localhost', 12347)
 
@@ -82,4 +84,6 @@ class CobraDcodeTest(unittest.TestCase):
 
         # cleanup
         p.kill()
+        #time.sleep(.5)
+        p.wait()
 

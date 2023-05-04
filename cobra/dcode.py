@@ -7,12 +7,14 @@ Particularly useful for clustering and workunit stuff.
 
 """
 import os
-import imp
 import sys
 import logging
 import importlib
 
 import cobra
+
+from importlib.abc import Loader, MetaPathFinder
+from importlib.util import spec_from_loader, module_from_spec
 
 logger = logging.getLogger(__name__)
 
@@ -33,18 +35,12 @@ class DcodeServer:
         fullname = fullname.split(".")[-1]
 
         try:
-            fobj, filename, typeinfo = imp.find_module(fullname, path)
+            mspec = importlib.util.find_spec(fullname)
+            filename = mspec.origin
         except ImportError:
             return None
 
-        if os.path.isdir(filename):
-            typeinfo = ('.py', 'U', 1)
-            filename = os.path.join(filename, "__init__.py")
-
         if not os.path.exists(filename):
-            return None
-
-        if typeinfo[0] != '.py':
             return None
 
         path = os.path.dirname(filename)
@@ -53,7 +49,7 @@ class DcodeServer:
         return (fbytes, filename, path)
 
 
-class DcodeLoader(object):
+class DcodeLoader(Loader):
     """
     This object gets returned by the DcodeFinder (client-side)
     """
@@ -69,8 +65,8 @@ class DcodeLoader(object):
     def load_module(self, fullname):
         mod = sys.modules.get(fullname)
         if mod is None:
-            spec = importlib.util.spec_from_loader(fullname, loader=None)
-            mod = importlib.util.module_from_spec(spec)
+            spec = spec_from_loader(fullname, loader=None)
+            mod = module_from_spec(spec)
             sys.modules[fullname] = mod
             exec(self.fbytes, mod.__dict__)
             mod.__file__ = self.filename
@@ -81,13 +77,28 @@ class DcodeLoader(object):
         return mod
 
 
+    def create_module(self, spec):
+        return None
+
+    def exec_module(self, mod):
+        exec(self.fbytes, mod.__dict__)
+        mod.__file__ = self.filename
+        mod.__loader__ = self
+        if self.path is not None:
+            mod.__path__ = [self.path]
+        
+
+
 class DcodeFinder(object):
     """
     This object goes into the client side import path_hooks
     to allow cobra:// uri's to be added to the import path.
+
+    For reference, this is a MetaPathFinder
     """
     def __init__(self, proxy):
         self.proxy = proxy
+        self.counter = 0
 
     def find_module(self, fullname, path=None):
 
@@ -96,8 +107,8 @@ class DcodeFinder(object):
         name, ext = os.path.splitext(localname)
 
         try:
-            fobj, filename, typeinfo = imp.find_module(name, path)
-        except ImportError:
+            mspec = importlib.util.find_spec(fullname)
+        except ValueError:
 
             logger.info('Dcode Searching: %s (%s)', name, path)
             pymod = self.proxy.getPythonModule(fullname, path)
@@ -105,6 +116,28 @@ class DcodeFinder(object):
                 logger.info('Dcode Loaded: %s', fullname)
                 return DcodeLoader(*pymod)
 
+    def find_spec(self, fullname, path, target=None):
+        if self.counter:
+            raise AttributeError("find_spec called by itself....  stop recursion")
+        self.counter += 1
+
+        # Check for local modules first...
+        localname = fullname.split('.')[-1]
+        name, ext = os.path.splitext(localname)
+
+        try:
+            mspec = importlib.util.find_spec(fullname, path)
+
+        except AttributeError as e:
+            logger.info('Dcode Searching: %s (%s)', name, path)
+            pymod = self.proxy.getPythonModule(fullname, path)
+            if pymod:
+                logger.info('Dcode Loaded: %s', fullname)
+                # need to return a spec
+                return spec_from_loader(fullname, DcodeLoader(*pymod))
+
+        finally:
+            self.counter -= 1
 
 # Client-side helper functions
 def addDcodeProxy(proxy):
