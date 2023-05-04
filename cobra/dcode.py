@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class DcodeServer:
+    '''
+    Server-side Dcode class.  Allows the sharing of Server-side python modules to the remote client
+    '''
 
     def getPythonModule(self, fullname, path=None):
 
@@ -52,7 +55,7 @@ class DcodeServer:
 
 class DcodeLoader(object):
     """
-    This object gets returned by the DcodeFinder
+    This object gets returned by the DcodeFinder (client-side)
     """
     def __init__(self, fbytes, filename, path):
         object.__init__(self)
@@ -66,7 +69,6 @@ class DcodeLoader(object):
     def load_module(self, fullname):
         mod = sys.modules.get(fullname)
         if mod is None:
-            # TODO: Kinda janky. Does this work?
             spec = importlib.util.spec_from_loader(fullname, loader=None)
             mod = importlib.util.module_from_spec(spec)
             sys.modules[fullname] = mod
@@ -104,6 +106,7 @@ class DcodeFinder(object):
                 return DcodeLoader(*pymod)
 
 
+# Client-side helper functions
 def addDcodeProxy(proxy):
     finder = DcodeFinder(proxy)
     sys.meta_path.append(finder)
@@ -114,15 +117,19 @@ def addDcodeUri(uri):
     addDcodeProxy(proxy)
 
 
-def addDcodeServer(server, port=cobra.COBRA_PORT, ssl=False):
+def addDcodeServer(server, port=cobra.COBRA_PORT, ssl=False, msgpack=True):
     scheme = "cobra"
     if ssl:
         scheme = "cobrassl"
 
     uri = "%s://%s:%d/DcodeServer" % (scheme, server, port)
+    if msgpack:
+        uri += "?msgpack=1"
+
     addDcodeUri(uri)
 
 
+# Server-side helper function
 def enableDcodeServer(daemon=None):
     server = DcodeServer()
     if daemon:
@@ -130,12 +137,15 @@ def enableDcodeServer(daemon=None):
         return
     cobra.shareObject(server, 'DcodeServer')
 
+
+
 def main():
     '''
     Launch a Dcode server including any paths you list on the command line
     '''
     import argparse
     parser = argparse.ArgumentParser(prog='cobraDcode', usage='%(prog)s [options] [additional_path1 [additional_path2] [...]]>')
+    parser.add_argument('-C', '--clearpath', default=False, help='Clear the PYTHONPATH and only share specified paths')
     parser.add_argument('-P', '--port', dest='port', type=int, default=cobra.COBRA_PORT,
                         help='Listen on what port')
     parser.add_argument('--cacrt', default=None, help='Use TLS encryption: With this Certificate Authority Cert (file)')
@@ -143,6 +153,9 @@ def main():
     parser.add_argument('--srvkey', default=None, help='Use TLS encryption: With this Server Key (file)')
     parser.add_argument('path', nargs='*')
     args = parser.parse_args()
+
+    if args.clearpath:
+        sys.path = []
 
     for path in args.path:
         if path not in sys.path:
