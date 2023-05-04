@@ -13,7 +13,6 @@ A module containing memory utilities and the definition of the
 memory access API used by all vtoys trace/emulators/workspaces.
 """
 
-
 logger = logging.getLogger(__name__)
 
 

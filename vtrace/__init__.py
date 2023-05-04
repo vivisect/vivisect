@@ -161,6 +161,21 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         # resolving symbols on new library loads.
         self.registerNotifier(NOTIFY_LOAD_LIBRARY, LibraryNotifier())
 
+    def setBreakOnLibraryLoad(self, setting=True):
+        '''
+        Cause execution to halt when a new library is loaded.
+        '''
+        logger.info("setting 'BreakOnLibraryLoad' to %r", setting)
+        self.setMeta('BreakOnLibraryLoad', setting) 
+
+    def setBreakOnLibraryInit(self, setting=True):
+        '''
+        Set breakpoint on a newly loaded Library's init function 
+        (aka. <Libname>.__entry)
+        '''
+        logger.info("setting 'BreakOnLibraryInit' to %r", setting)
+        self.setMeta('BreakOnLibraryInit', setting)
+
     def execute(self, cmdline):
         """
         Start a new process and debug it
@@ -713,6 +728,20 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         # Remove cached breakpoint code
         Breakpoint.bpcodeobj.pop(id, None)
 
+    def _updateBreakAddresses(self):
+        """
+        Update breakpoint address resolution (if unresolved).
+        Intended to be run after events which change the namespace, such as
+        NOTIFY_LOAD_LIBRARY events
+        """
+        for bp in self.deferred:
+            bp.resolveAddress(self)
+            if bp.address is not None:
+                self.breakpoints[bp.address] = bp
+                self.deferred.remove(bp)
+                bp.activate(self)
+                logger.warning("Resolved bp address: %r", bp)
+
     def getCurrentBreakpoint(self):
         """
         Return the current breakpoint otherwise None
@@ -1119,7 +1148,12 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         width = self.arch.getPointerSize()
         return e_bits.hex(value, width)
 
-    def buildNewTrace(self):
+    def vprint(self, msg, addnl=True):
+        if addnl:
+            msg = msg + "\n"
+        return print(msg)
+
+    def buildNewTrace(self, **kwargs):
         '''
         Build a new/clean trace "like" this one.  For platforms where a
         special trace was handed in, this allows initialization of a new one.
@@ -1129,7 +1163,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
             if need_another_trace:
                 newt = trace.buildNewTrace()
         '''
-        return self.__class__()
+        return self.__class__(**kwargs)
 
 class TraceGroup(Notifier, v_util.TraceManager):
     """
