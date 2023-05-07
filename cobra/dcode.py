@@ -44,7 +44,7 @@ class DcodeServer:
             return None
 
         path = os.path.dirname(filename)
-        with open(filename, 'rU') as f:
+        with open(filename, 'r') as f:
             fbytes = f.read()
         return (fbytes, filename, path)
 

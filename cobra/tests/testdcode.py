@@ -1,12 +1,18 @@
 import os
 import time
+import logging
 import unittest
 import contextlib
-import subprocess
 
 import cobra
 import cobra.dcode
 import cobra.remoteapp
+
+from subprocess import Popen, PIPE
+
+logger = logging.getLogger(__name__)
+import envi.common as ecmn
+ecmn.initLogging(logger, logging.DEBUG)
 
 
 class Foo:
@@ -69,10 +75,17 @@ class CobraDcodeTest(unittest.TestCase):
         # setup server-side with special path: importing "cobra" as the base,
         # so anything in that directory becomes top-level, eg. cobra.dcode can
         # be imported as "import dcode")
-        p = subprocess.Popen("python3 -m cobra.dcode -P 12347 cobra".split(' '),
-                executable='python3', stdin=subprocess.PIPE)
+        p = Popen("python3 -m cobra.dcode -P 12347 cobra".split(' '),
+                executable='python3', stdin=PIPE, stderr=PIPE)
 
-        time.sleep(.5)
+        buf = b''
+        while b'Adding path "cobra" to system path' not in buf:
+            buf += p.stderr.read1()
+            logger.debug('waiting... %r', buf)
+
+        logger.warning("Done waiting for Cobra Dcode server setup: %r", buf)
+
+        time.sleep(.1)
         # setup client-side
         cobra.dcode.addDcodeServer('localhost', 12347)
 
