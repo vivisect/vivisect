@@ -24,7 +24,7 @@ viv_port = 0x4074
 viv_s_ip = '224.56.56.56'
 viv_s_port = 26998
 
-timeo_wait = 10
+timeo_wait = 1
 timeo_sock = 30
 timeo_aban = 120   # 2 minute timeout for abandon
 
@@ -337,16 +337,16 @@ def setup():
     return ap
 
 
-def main(argv):
-    opts = setup().parse_args(argv)
+def main():
+    opts = setup().parse_args()
     vdir = os.path.abspath(opts.dirn)
     if not os.path.isdir(vdir):
         logger.error('%s is not a valid directory!', vdir)
         return -1
 
-    print(f'Server starting (port: {opts.port})')
+    print(f'VivServer starting (port: {opts.port})')
     runMainServer(vdir, opts.port)
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())
