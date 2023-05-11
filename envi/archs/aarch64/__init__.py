@@ -33,7 +33,7 @@ class A64Module(envi.ArchitectureModule):
     def pointerString(self, va):
         return "0x%.8x" % va
 
-    def archParseOpcode(self, bytes, offset=0, va=0):
+    def archParseOpcode(self, bytes, offset=0, va=0, extra=None):
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
         """
