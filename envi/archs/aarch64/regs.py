@@ -34,7 +34,8 @@ meta_reg_bases = (0,
         META_Q_BASE,
 )
 
-aarch64_regs = [('x%d'%x, 64) for x in range(32)]  # x31 is zero register
+aarch64_regs = [('x%d'%x, 64) for x in range(31)]  # x31 is zero register
+
 REG_SP = len(aarch64_regs)
 aarch64_regs.append(('sp', 64))
 REG_PC = len(aarch64_regs)
