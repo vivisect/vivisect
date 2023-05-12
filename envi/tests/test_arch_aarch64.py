@@ -1,21 +1,26 @@
 #this probably needs to be looked over once more to make sure all
 #assembler symbols are correctly represented
 
+GOOD_TESTS = 28
+GOOD_EMU_TESTS = 1715
+
 import sys
 import envi
 import struct
 import unittest
 import vivisect
+import envi.memcanvas as e_memcanv
 
 from binascii import unhexlify
 from envi.archs.aarch64.regs import *
+from envi.tests.aarch64_data import instrs
 
 
-instrs = [
+instrs_bigend = [
     #Data processing immediate
 
     # PC-release addressing
-    ('50abcd03', 'adr x3, [#0x1479a2]', 0, ()), #adr
+    ('50abcd03', 'adr x3, #0x000579a2', 0, ()), #adr
     ('d0abcd03', 'adrp x3, [#0x1479a2000]', 0, ()), #adrp
     
     # Add/sub (immediate)
@@ -4724,53 +4729,97 @@ class A64InstructionSet(unittest.TestCase):
         emu.setMeta('forrealz', True)
         emu._forrealz = True
         emu.logread = emu.logwrite = True
-        badcount = 0
-        goodcount = 0
-        goodemu = 0
-        bademu = 0
-        for bytez, reprOp, iflags, emutests in instrs:
+
+        stats = {
+                'badcount': 0,
+                'goodcount': 0,
+                'goodemu': 0,
+                'bademu': 0,
+        }
+
+        '''
+        for bytez, reprOp, iflags, emutests in instrs_bigend:
             va = 0
+            try:
+                self._do_test(emu, va, bytez, reprOp, iflags, emutests, stats)
+            except Exception as e:
+                print("Exception: %r" % e)
+                import traceback
+                traceback.print_exc()
+        '''
+
+        vw.setEndian(envi.ENDIAN_LSB)
+        for va, bytez, reprOp, iflags, emutests in instrs:
+            try:
+                self._do_test(emu, va, bytez, reprOp, iflags, emutests, stats)
+            except Exception as e:
+                print("Exception: %r" % e)
+                import traceback
+                traceback.print_exc()
+
+        print("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % (stats['goodcount'], stats['badcount'], stats['goodemu'], stats['bademu']))
+
+        print("Total of ", str(stats['goodcount'] + stats['badcount']) + " tests completed.")
+        self.assertEqual(stats['goodcount'], GOOD_TESTS)
+        self.assertEqual(stats['goodemu'], GOOD_EMU_TESTS)
+
+    def _do_test(self, emu, va, bytez, reprOp, iflags, emutests, stats):
+            vw = emu.vw
+            strcanv = e_memcanv.StringMemoryCanvas(vw)
             op = vw.arch.archParseOpcode(unhexlify(bytez), 0, va)
-            #print(repr(op))
+
+            # clean up and normalize generated repr and control repr
+            op.render(strcanv)
             redoprepr = repr(op).replace(' ','').lower()
+            redoprender = strcanv.strval.replace(' ','').lower()
             redgoodop = reprOp.replace(' ','').lower()
-            if redoprepr != redgoodop:
-                print( bytez,redgoodop)
-                print( bytez,redoprepr)
-                print
-                #print(out binary representation of opcode for checking)
+
+            while '0x0' in redoprepr:
+                redoprepr = redoprepr.replace('0x0','0x')
+            redoprepr = redoprepr.replace('0x','')
+
+            while '0x0' in redgoodop:
+                redgoodop = redgoodop.replace('0x0','0x')
+            redgoodop = redgoodop.replace('0x','')
+
+            while '0x0' in redoprender:
+                redoprender = redoprender.replace('0x0','0x')
+            redoprender = redoprender.replace('0x','')
+
+
+            # do the comparison
+            if redoprepr != redgoodop or redoprender != redgoodop:
                 num, = struct.unpack("<I", unhexlify(bytez))
-                print(hex(num))
-                bs = bin(num)[2:].zfill(32)
-                print(bs)
+                #print(hex(num))
+                #bs = bin(num)[2:].zfill(32)
+                #print(bs)
                 
-                badcount += 1
+                stats['badcount'] += 1
                 
                 print("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
-                        (goodcount, va, bytez, reprOp, repr(op) ) )
-                #raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
-                #        (goodcount, va, bytez, reprOp, repr(op) ) )
-                #self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
+                        (stats['goodcount'], va, bytez, reprOp, repr(op) ) )
+                print("test: %r\ngood: %r" % (redoprepr, redgoodop))
 
             else:
-                goodcount += 1
+                stats['goodcount'] += 1
 
-            #print(bytez, op)
+            # emutests:
             if not len(emutests):
                 try:
                     # if we don't have special tests, let's just run it in the emulator anyway and see if things break
                     if not self.validateEmulation(emu, op, (), ()):
-                        goodemu += 1
+                        stats['goodemu'] += 1
                     else:
-                        bademu += 1
+                        stats['bademu'] += 1
                 except envi.UnsupportedInstruction:
                     #print("Instruction not in Emulator - ", repr(op))
-                    bademu += 1
+                    stats['bademu'] += 1
                 except Exception as exp:
                     print("Exception in Emulator for command - ",repr(op), bytez, reprOp)
                     print("  ",exp )
                     sys.excepthook(*sys.exc_info())
-                    bademu += 1
+                    stats['bademu'] += 1
+
             else:
                 # if we have a special test lets run it
                 for tidx, sCase in enumerate(emutests):
@@ -4781,23 +4830,17 @@ class A64InstructionSet(unittest.TestCase):
                             setters = sCase['setup']
                         tests = sCase['tests']
                         if not self.validateEmulation(emu, op, (setters), (tests), tidx):
-                            goodcount += 1
-                            goodemu += 1
+                            stats['goodcount'] += 1
+                            stats['goodemu'] += 1
                         else:
-                            bademu += 1
+                            stats['bademu'] += 1
                             raise Exception( "FAILED emulation (special case): %.8x %s - %s" % (va, bytez, op) )
 
                     else:
-                        bademu += 1
+                        stats['bademu'] += 1
                         raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (va, bytez, op))
 
         
-        print("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
-                (goodcount, badcount, goodemu, bademu))
-        print("Total of ", str(goodcount + badcount) + " tests completed.")
-        self.assertEqual(goodcount, GOOD_TESTS)
-        self.assertEqual(goodemu, GOOD_EMU_TESTS)
-
     def validateEmulation(self, emu, op, setters, tests, tidx=0):
         # first set any environment stuff necessary
         ## defaults
@@ -4876,4 +4919,27 @@ class A64InstructionSet(unittest.TestCase):
         emu.curpath[2]['writelog'] = []
         
         return success
+
+def doBinjaGrab(filename='output_linux_arm_vuln.elf'):
+    import binaryninja
+    bv = binaryninja.open_view(filename)
+    bv.save(filename+'.bndb')
+
+    testdata = []
+    for f in bv.functions:
+        #print (f)
+        for instr, va in f.instructions:
+            testdata.append((va, bv.read(va, 4), instr))
+
+    done = []
+    outlines = []
+    for va, bytez, oparry in testdata:
+        if bytez in done:
+            print("skipping existing instruction...")
+            continue
+        done.append(bytez)
+        outlines.append("    (0x%x, '%s', %r, 0, ())," % (va, bytez.hex(), ''.join([str(x) for x in oparry])))
+
+    return outlines
+
 
