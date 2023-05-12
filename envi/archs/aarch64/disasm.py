@@ -171,6 +171,7 @@ def p_addsub_imm(opval, va):
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
     imm = opval >> 10 & 0xfff
+
     #all mnemonics are either add or sub, depending on op's value
     if op == 0b0:
         mnem = 'add'
@@ -178,17 +179,20 @@ def p_addsub_imm(opval, va):
     else:
         mnem = 'sub'
         opcode = INS_SUB
+
     #if the value of s is 1, then the iflag should be set to PSR_S, becoming adds or subs
     if s == 0b0:
         iflag = 0
     else:
         iflag |= IF_PSR_S
+
     #if shift's value is 01, set shift amount to 12. else, shift is either
         #explicitly assigned to 0 (shift = 00) or defaults to 0 (shift = 1x)
     if shift == 0b01:
         shiftX = 12
     else:
         shiftX = 0
+
     #sf determines whether the register size corresponds to the 32 or 64-bit variant
     if sf == 0b0:
         size = 4
@@ -196,6 +200,17 @@ def p_addsub_imm(opval, va):
         rn += meta_reg_bases[size]
     else:
         size = 8
+
+    if imm == iflag ==  0:
+        # this is a mov
+        mnem = 'mov'
+        opcode = INS_MOV
+        olist = (
+            A64RegOper(rd, va=va, size=size),
+            A64RegOper(rn, va=va, size=size),
+        )
+        return opcode, mnem, olist, iflag, 0
+
     olist = (
         A64RegOper(rd, va=va, size=size),
         A64RegOper(rn, va=va, size=size),
