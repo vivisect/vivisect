@@ -117,7 +117,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self._selectVa(loc[0])
 
     @vq_hotkey.hotkey('viv:nav:nextpage')
-    def _hotkey_nav_nextva(self):
+    def _hotkey_nav_nextpage(self):
         if self._canv_curva is None:
             return
 
@@ -125,7 +125,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         return False
 
     @vq_hotkey.hotkey('viv:nav:prevpage')
-    def _hotkey_nav_prevva(self):
+    def _hotkey_nav_prevpage(self):
         if self._canv_curva is None:
             return
 
