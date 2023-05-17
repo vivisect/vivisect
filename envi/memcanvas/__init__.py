@@ -394,15 +394,15 @@ class FileBackedMemoryCanvas(StringMemoryCanvas):
     def __init__(self, filename, mem, syms=None, append=True, rollwindow=100):
         StringMemoryCanvas.__init__(self, mem, syms)
         if append:
-            self.fd = open(filename, 'ab')
+            self.fd = open(filename, 'ab', encoding='utf-8')
         else:
-            self.fd = open(filename, 'wb')
+            self.fd = open(filename, 'wb', encoding='utf-8')
 
         self.rollwindow = rollwindow
         self.linecount = 0
 
     def addText(self, text, tag=None):
-        StringMemoryCanvas.addText(self, text, tag)
+        super().addText(text, tag)
 
         self.linecount += 1
         if self.linecount % self.rollwindow == 0:
