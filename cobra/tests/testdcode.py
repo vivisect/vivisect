@@ -79,11 +79,15 @@ class CobraDcodeTest(unittest.TestCase):
                 executable='python3', stdin=PIPE, stderr=PIPE)
 
         buf = b''
+        starttime = time.time()
         while b'Adding path "cobra" to system path' not in buf:
-            buf += p.stderr.read1()
-            logger.debug('waiting... %r', buf)
+            # timeout after 10 seconds waiting for this string
+            if time.time() - starttime > 10:
+                break
 
-        logger.warning("Done waiting for Cobra Dcode server setup: %r", buf)
+            # peek allows us to check for data without blocking
+            if len(p.stderr.peek()):
+                buf += p.stderr.read1()
 
         time.sleep(.1)
         # setup client-side
@@ -97,6 +101,5 @@ class CobraDcodeTest(unittest.TestCase):
 
         # cleanup
         p.kill()
-        #time.sleep(.5)
         p.wait()
 

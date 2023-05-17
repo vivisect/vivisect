@@ -58,14 +58,14 @@ def newMemoryView(vw, xexpr):
         vw.getVivGui().newMemoryView(name="mem:%s" % xexpr, expr=xexpr)
         
     except:
-        logger.warning("Fail!", exc_info=1)
+        logger.warning("Failed to create new MemoryView", exc_info=1)
 
 def newFuncGraph(vw, xexpr):
     try:
         vw.getVivGui().newFuncGraphView(name="FG:%s" % xexpr, expr=xexpr)
         
     except:
-        logger.warning("Fail!", exc_info=1)
+        logger.warning("Failed to create new FunctionGraph", exc_info=1)
 
 
 def initMemSendtoMenu(vw, xexpr, xmenu):
