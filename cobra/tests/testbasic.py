@@ -1,4 +1,6 @@
+import time
 import unittest
+import itertools
 
 import cobra
 import cobra.auth as c_auth
@@ -110,6 +112,65 @@ class CobraBasicTest(unittest.TestCase):
 
     #def test_cobra_ssl(self):
     #def test_cobra_ssl_clientcert(self):
+    def test_cobra_helpers(self):
+        portnum = itertools.count(60651)
+
+        testobj = c_tests.TestObject()
+
+        # test startCobraServer
+        while True:
+            try:
+                port = next(portnum)
+                daemon = cobra.startCobraServer(host="", port=port, sslca=None, sslcrt=None, sslkey=None, msgpack=True)
+                break
+            except Exception as e:
+                print(e)
+
+        objname = daemon.shareObject( testobj )
+        tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))
+        c_tests.accessTestObject( tproxy )
+
+        # test runCobraServer. needs its own thread, since runCobraServer blocks (run_forever)
+        testobj = c_tests.TestObject()
+        import threading
+        # this is kinda horrible.  probably better off not testing runCobraServer
+        while True:
+            port = next(portnum)
+            t = threading.Thread(target=cobra.runCobraServer, kwargs={'host':'', 'port':port, 'sslca':None, 'sslcrt':None, 'sslkey':None, 'msgpack':True}, daemon=True)
+            t.start()
+            time.sleep(1)   # wildly enough time to start the daemon if it's going to
+            daemon = cobra.getCobraDaemon('', port, create=False)
+            if daemon:
+                break
+
+        objname = daemon.shareObject( testobj )
+        tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        #time.sleep(1)
+        c_tests.accessTestObject( tproxy )
+
+        
+        # test getCobraDaemon()
+        port = next(portnum)
+        testobj = c_tests.TestObject()
+
+        daemon = cobra.CobraDaemon(port=port, msgpack=True)
+        cobra.registerCobraDaemon(daemon)
+        daemon.fireThread()
+        d2 = cobra.getCobraDaemon(host="", port=port, sslca=None, sslcrt=None, sslkey=None, msgpack=True, create=False)
+        objname = d2.shareObject( testobj )
+        tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))
+        c_tests.accessTestObject( tproxy )
+
+        cobra.deregisterCobraDaemon('', port)
+
+        port = next(portnum)
+        testobj = c_tests.TestObject()
+
+        daemon = cobra.getCobraDaemon(host="", port=port, sslca=None, sslcrt=None, sslkey=None, msgpack=True)
+        objname = daemon.shareObject( testobj )
+        tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))
+        c_tests.accessTestObject( tproxy )
 
 if __name__ == '__main__':
     unittest.main()

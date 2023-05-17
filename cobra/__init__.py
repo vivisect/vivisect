@@ -45,6 +45,7 @@ COBRASSL_PORT=5653
 cobra_retrymax = None # Optional *global* retry max count
 
 socket_builders = {}    # Registered socket builders
+daemon_threads = {}     # Registered CobraDaemons, keyed on (host,port) tuples
 
 # Message Types
 COBRA_HELLO     = 0
@@ -1161,47 +1162,66 @@ def initSocketBuilder(host,port):
     return builder
 
 def startCobraServer(host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True):
-    # TODO: replace this with getCobraDaemon code?
-    global daemon
-    if daemon is None:
-        daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
-        daemon.fireThread()
-    return daemon
+    '''
+    startCobraServer starts a CobraDaemon with the provided arguments and 
+    launches it in a separate thread.  The CobraDaemon object is returned
+    to the caller.
+    '''
+    return getCobraDaemon(host, port, sslca, sslcrt, sslkey, msgpack)
 
-daemon_threads = {}
-def runCobraServer(host='', port=COBRA_PORT, sslca=None, sslsrt=None, sslkey=None, msgpack=True):
+def runCobraServer(host='', port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True):
+    '''
+    runCobraServer starts a CobraDaemon with the given parameters and serves
+    (ie.  it doesn't return).  If one is already running, we join() to its 
+    runner thread.
+    '''
     global daemon_threads
     if (host, port) in daemon_threads:
         ######## REDO USING getCobraDaemon
-        daemon = daemon_threads.get(host, port)
+        daemon = daemon_threads.get((host, port))
         logger.info("CobraDaemon already exists on port %d, joining to that thread.", port)
         daemon.thr.join()
 
     daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
+    registerCobraDaemon(daemon)
     daemon.serve_forever()
 
-def registerCobraDaemon(host, port, daemon):
+def registerCobraDaemon(daemon):
+    '''
+    Registers the given CobraDaemon using the (host, port) combination
+    '''
     global daemon_threads
-    if (host, port) in daemon_threads:
-        raise Exception("Daemon already exists on host %r port %d.  Please deregister that port first." % (host, port))
+    key = (daemon.host, daemon.port)
+    if key in daemon_threads:
+        raise Exception("Daemon already exists on host %r port %d.  Please deregister that port first." % key)
 
-    daemon_threads[(host, port)] = daemon
+    daemon_threads[key] = daemon
 
 def deregisterCobraDaemon(host, port):
+    '''
+    Deregisters the CobraDaemon registered for (host, port)
+    '''
     global daemon_threads
-    if port in daemon_threads:
-        daemon_threads.pop(port)
+    if (host, port) in daemon_threads:
+        daemon_threads.pop((host, port))
 
     else:
-        logger.warning("Attempted to deregister a CobraDaemon on a port that isn't registered: %d", port)
+        logger.warning("Attempted to deregister a CobraDaemon on a daemon that isn't registered: %r:%d", host, port)
 
-def getCobraDaemon(host="", port=COBRA_PORT, sslca=None, sslsrt=None, sslkey=None, msgpack=True):
+def getCobraDaemon(host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True, create=True):
+    '''
+    Returns a registered CobraDaemon for the given parameters.  First checks if
+    one is already running for the current host/port and returns that.
+    Otherwise, a new CobraDaemon is started and registered
+    The CobraDaemon is returned.
+    '''
     global daemon_threads
-    daemon = daemon_threads.get(port)
-    if (host, port) not in daemon_threads:
+    if (host, port) not in daemon_threads and create:
         daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
         daemon.fireThread()
-        registerCobraDaemon(host, port, daemon)
+        registerCobraDaemon(daemon)
+
+    daemon = daemon_threads.get((host, port))
 
     return daemon
 
@@ -1211,9 +1231,7 @@ def shareObject(obj, name=None, doref=False):
     If shareObject is called before startCobraServer
     or startCobraSslServer, it will call startCobraServer
     """
-    global daemon
-    if daemon is None:
-        startCobraServer()
+    daemon = getCobraDaemon()
     return daemon.shareObject(obj, name, doref=doref)
 
 def unshareObject(name):
