@@ -11,8 +11,6 @@ import cobra.remoteapp
 from subprocess import Popen, PIPE
 
 logger = logging.getLogger(__name__)
-import envi.common as ecmn
-ecmn.initLogging(logger, logging.DEBUG)
 
 
 class Foo:
