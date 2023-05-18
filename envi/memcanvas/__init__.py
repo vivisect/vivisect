@@ -409,7 +409,7 @@ class FileBackedMemoryCanvas(StringMemoryCanvas):
             self.flush()
 
     def flush(self):
-        self.fd.write(str(self).encode('utf-8'))
+        self.fd.write(str(self))
         self.clearCanvas()
         self.linecount = 0
 
