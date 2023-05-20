@@ -24,7 +24,7 @@ viv_port = 0x4074
 viv_s_ip = '224.56.56.56'
 viv_s_port = 26998
 
-timeo_wait = 1
+timeo_wait = 10
 timeo_sock = 30
 timeo_aban = 120   # 2 minute timeout for abandon
 
@@ -42,14 +42,20 @@ class VivServerClient:
         self.chan = None
         self.wsname = wsname
         self.server = server
+        self._processlock = threading.Lock()
         self.eoffset = 0
         self.q = queue.Queue()  # The actual local Q we deliver to
 
     @e_threads.firethread
     def _eatServerEvents(self):
         while True:
-            for event in self.server.getNextEvents(self.chan):
-                self.q.put(event)
+            logger.debug("Starting a Workspace Event Processing run...")
+            count = 0
+            with self._processlock:
+                for event in self.server.getNextEvents(self.chan):
+                    count += 1
+                    self.q.put(event)
+            logger.debug("Workspace Event Processing run Complete. (%d events processed)", count)
 
     def vprint(self, msg):
         return self.server.vprint(msg)
@@ -59,8 +65,24 @@ class VivServerClient:
 
     def createEventChannel(self):
         self.chan = self.server.createEventChannel(self.wsname)
+        logger.debug("VivServerClient: Event Channel created, firing _eatServerEvents() in separate thread")
         self._eatServerEvents()
+        logger.debug("Waiting for initial Workspace Events to finish processing")
+        self.waitForCurEvents()
+        logger.debug("Done processing initial Workspace Events, now back to our program")
+
         return self.chan
+
+    def waitForCurEvents(self):
+        '''
+        Since _eatServerEvents() runs in its own thread, we just wait for it's
+        _processlock to be released, signaling that it's done processing that
+        batch of VivEvents.  We don't need to do anything with the lock, so 
+        we just release the lock and return
+        '''
+        logger.debug("waiting for current Workspace Event run to complete...")
+        with self._processlock:
+            pass
 
     def exportWorkspace(self):
         # Retrieve the big initial list of viv events
