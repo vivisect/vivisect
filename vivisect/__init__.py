@@ -644,8 +644,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.importWorkspace(wsevents)
         self.server.vprint('%s connection complete!' % uname)
 
-        thr = threading.Thread(target=self._clientThread)
-        thr.setDaemon(True)
+        thr = threading.Thread(target=self._clientThread, daemon=True)
         thr.start()
 
         timeout = self.config.viv.remote.wait_for_plat_arch
@@ -1858,6 +1857,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Add a memory map to the workspace.  This is the *only* way to
         get memory backings into the workspace.
         """
+        # handle nasty special case of an empty map with an alignment
+        if not len(bytes):
+            bytes = b'\0'
         self._fireEvent(VWE_ADDMMAP, (va, perms, fname, bytes, align))
 
         # since we don't return anything from _fireEvent(), pull the new info:
@@ -3200,6 +3202,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Add a prefix to the given name paying attention to the filename prefix, and
         any VA suffix which may exist.
+
+        This is used by multiple analysis modules.
+        Uses _getNameParts.
         '''
         fpart, npart, vapart = self._getNameParts(name, va)
         if fpart is None and vapart is None:
@@ -3282,6 +3287,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 0, 8)
+version = (1, 1, 1)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

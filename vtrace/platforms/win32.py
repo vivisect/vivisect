@@ -1759,7 +1759,6 @@ class WindowsMixin:
                     else:
                         # see if we're in stack town
                         for stackbase, limit in stack:
-                            print(f"Comparing {hex(base)} to {hex(stackbase)}-{hex(limit)}")
                             if stackbase >= base >= limit:
                                 mname = '[Stack]'
                 ret.append( (base, mbi.RegionSize, perm, mname) )
