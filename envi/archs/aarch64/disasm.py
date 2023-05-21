@@ -376,8 +376,8 @@ def p_branch_uncond_imm(opval, va):
     Get the parameters for an A64Opcode for a Branch Unconditional (immediate) instruction
     '''
     op = opval >> 31
-    imm26 = opval & 0x3ffffff
-    imm26 = e_bits.bsign_extend(imm26, 26, 32)
+    imm26 = (opval & 0x3ffffff) << 2
+    imm26 = e_bits.signed(e_bits.bsign_extend(imm26, 28, 64), 8)
 
     #determines mnemonic
     if op == 0:
@@ -388,7 +388,7 @@ def p_branch_uncond_imm(opval, va):
         opcode = INS_BL
         
     olist = (
-        A64BranchOper((imm26<<2) + va, va=va),
+        A64BranchOper(imm26, va=va),
     )
 
     return opcode, mnem, olist, 0, 0
@@ -399,8 +399,10 @@ def p_cmp_branch_imm(opval, va):
     '''
     sf = opval >> 31
     op = opval >> 24 & 0x1
-    imm19 = opval >> 5 & 0x7ffff
     rt = opval & 0x1f
+    imm19 = opval >> 3 & 0x1ffffc
+    imm19 = e_bits.bsign_extend(imm19, 19, 64)
+    imm19 = e_bits.signed(imm19, 8)
 
     #mnem is determined based on op, variant is determined based on sf
     if op == 0:
@@ -409,14 +411,16 @@ def p_cmp_branch_imm(opval, va):
     else:
         mnem = 'cbnz'
         opcode = INS_CBNZ
+
     if sf == 0b0:
         size = 4
         rt += meta_reg_bases[size]
     else:
         size = 8
+
     olist = (
         A64RegOper(rt, va, size=size),
-        A64ImmOper(imm19*0b100, 0, S_LSL, va),
+        A64BranchOper(imm19, va),
     )
 
     return opcode, mnem, olist, 0, 0
@@ -1142,7 +1146,6 @@ def p_ls_reg_imm(opval, va):
         if size == 0b00:
             iflag |= IF_B
             regsize = 1     ### DOES THIS BREAK THINGS?
-            
         elif size == 0b01:
             iflag |= IF_H
             regsize = 2
@@ -2134,24 +2137,18 @@ def p_log_shft_reg(opval, va):
     opc = opval >> 29 & 0x3
     shift = opval >> 22 & 0x3
     n = opval >> 21 & 0x1
+
     rm = opval >> 16 & 0x1f
     imm6 = opval >> 10 & 0x3f
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
-    if sf == 0b0:
-        olist = (
-            A64RegOper(rd, va, size=4),
-            A64RegOper(rn, va, size=4),
-            A64RegOper(rm, va, size=4),
-            #FIXME
-        )
-    else:
-        olist = (
-            A64RegOper(rd, va, size=8),
-            A64RegOper(rn, va, size=8),
-            A64RegOper(rm, va, size=8),
-            #FIXME
-        )
+
+    size = (4, 8)[sf]
+
+    #if rn == 0x1f:
+    #    # THIS IS THE ZERO REGISTER
+
+
     if opc == 0b00 or opc == 0b11:
         if n == 0b0:
             mnem = 'and'
@@ -2161,13 +2158,25 @@ def p_log_shft_reg(opval, va):
             opcode = INS_BIC
         if opc == 0b11:
             iflag |= IF_PSR_S
+
     elif opc == 0b01:
-        mnem = 'or'
+        # mov alias:
+        if shift == n == 0 and rn == 0x1f:
+            mnem = 'mov'
+            opcode = INS_MOV
+            olist = (
+                A64RegOper(rd, va, size=size),
+                A64RegOper(rm, va, size=size),
+            )
+            return opcode, mnem, olist, iflag, 0
+
+        mnem = 'or'            #FIXME!!!!!  this should be a table, not dividing orr/orn/etc with flags...  this is not a bad idea, and i give them full credit for creativity, but let's simplify this a bit.
         opcode = INS_OR
         if n == 0b0:
             iflag |= IF_R
         else:
             iflag |= IF_N
+
     else:
         mnem = 'eo'
         opcode = INS_EO
@@ -2175,6 +2184,12 @@ def p_log_shft_reg(opval, va):
             iflag |= IF_R
         else:
             iflag |= IF_N
+
+    olist = (
+        A64RegWithZROper(rd, va, size=size),
+        A64RegWithZROper(rn, va, size=size),
+        A64RegWithZROper(rm, va, size=size),
+    )
 
     return opcode, mnem, olist, iflag, 0
 
@@ -6998,7 +7013,7 @@ class A64RegWithZROper(A64RegOper):
             # make this SP
             reg = REG_ZR
 
-        A64RegWithZROper.__init__(self, reg, va, oflags, size)
+        A64RegOper.__init__(self, reg, va, oflags, size)
 
 
 def addrToName(mcanv, va):
