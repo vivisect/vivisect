@@ -153,7 +153,7 @@ def p_pc_addr(opval, va):
 
     olist = (
         A64RegOper(rd, va=va, size=8),
-        A64ImmOper(base + imm)
+        A64ImmOper(base + imm),
     )
 
 
@@ -214,7 +214,7 @@ def p_addsub_imm(opval, va):
     olist = (
         A64RegOper(rd, va=va, size=size),
         A64RegOper(rn, va=va, size=size),
-        A64ImmOper(imm, shiftX, S_LSL, va)
+        A64ImmOper(imm, shiftX, S_LSL, va),
     )        
     return opcode, mnem, olist, iflag, 0
 
@@ -459,15 +459,14 @@ def p_branch_cond_imm(opval, va):
     '''
     Conditional branch (immediate) instruction
     '''
+    iflag = envi.IF_COND | envi.IF_BRANCH
     imm19 = opval >> 5 & 0x7ffff
     cond = opval & 0xf
-    mnem = 'B.'
-    opcode = INS_BCC
+    mnem, opcode = b_cond_table[cond]
     olist = (
-        A64CondOper(cond),
-        A64ImmOper(imm19*0x100, va=va),
+        A64ImmOper(imm19<<2, va=va),
     )
-    return opcode, mnem, olist, 0, 0
+    return opcode, mnem, olist, iflag, 0
 
 def p_excp_gen(opval, va):
     '''
@@ -521,6 +520,21 @@ def p_excp_gen(opval, va):
     
     return (opcode, mnem, olist, 0, 0)
 
+def p_sme(opval, va):
+    '''
+    Returns parameters for an A64Opcode for SME instructions
+    '''
+    op0 = opval >> 29 & 0x3
+    op1 = opval >> 10 & 0x7fff
+    op2 = opval >> 2 & 0x7
+
+    crn = opval >> 12 & 0xf
+    crm = opval >> 8 & 0xf
+    rt = opval & 0x1f
+    raise envi.InvalidInstruction(mesg="No encoding found! (unimplemented) (SME)",
+            bytez=struct.pack("<I", opval), va=va)
+    return opcode, mnem, olist, iflag, 0
+
 def p_sys(opval, va):
     '''
     Returns parameters for an A64Opcode for a system instruction
@@ -530,14 +544,15 @@ def p_sys(opval, va):
     op1 = opval >> 16 & 0x7
     crn = opval >> 12 & 0xf
     crm = opval >> 8 & 0xf
-    op2 = opval >> 5 & 0x3
+    op2 = opval >> 5 & 0x7
     rt = opval & 0x1f
     relevant = opval & 0x3fffff
 
     #this is legitimately ugly as sin. hopefully can come back and fix, though
     #since it has 6 relevant decode fields, it won't be that improvable
+    ## FIXME:  clean up LinuxKernel-based unittests, then revisit this if not filled in.
 
-    if relevant & 0b1110001111000000011111 == 0b0000000100000000011111:
+    if relevant & 0b111000_11110000_00011111 == 0b000000_01000000_00011111:
         opcode = INS_MSR
         mnem = 'msr'
         olist = (
@@ -546,19 +561,61 @@ def p_sys(opval, va):
         )
         iflag = 0
         
-    elif relevant & 0b1111111111000000011111 == 0b00001100100000000011111:
-        opcode = INS_HINT
-        mnem = 'hint'
-        olist = (
-            A64ImmOper(crm + op2, 0, S_LSL, va)
-        )
+    elif relevant & 0b111111_11110000_00011111 == 0b000011_00100000_00011111:
         iflag = 0
+        if crm == 0:
+            if op2 == 0:
+                opcode = INS_NOP
+                mnem = 'nop'
+                olist = tuple()
+            elif op2 == 1:
+                opcode = INS_YIELD
+                mnem = 'yield'
+                olist = tuple()
+
+            elif op2 == 2:
+                opcode = INS_WFE
+                mnem = 'wfe'
+                olist = tuple()
+
+            elif op2 == 3:
+                opcode = INS_WFI
+                mnem = 'wfi'
+                olist = tuple()
+
+            elif op2 == 4:
+                opcode = INS_SEV
+                mnem = 'sev'
+                olist = tuple()
+
+            elif op2 == 5:
+                opcode = INS_SEVL
+                mnem = 'sevl'
+                olist = tuple()
+
+            elif op2 == 6:
+                opcode = INS_DGH
+                mnem = 'dgh'
+                olist = tuple()
+
+            elif op2 == 7:
+                # xpacd, xpaci, xpaclri
+                opcode = INS_XPACLRI
+                mnem = 'xpaclri'
+                olist = tuple()
+
+        else:
+            opcode = INS_HINT
+            mnem = 'hint'
+            olist = (
+                A64ImmOper(crm + op2, 0, S_LSL, va),
+            )
         
-    elif relevant & 0b1111111111000011111111 == 0b00001100110000001011111:
+    elif relevant & 0b111111_11110000_11111111 == 0b000011_00110000_01011111:
         opcode = INS_CLREX
         mnem = 'clrex'
         olist = (
-            A64ImmOper(crm, 0, S_LSL, va)
+            A64ImmOper(crm, 0, S_LSL, va),
         )
         iflag = 0
         

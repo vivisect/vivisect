@@ -102,6 +102,7 @@ iencs = (\
     'IENC_BRANCH_COND_IMM',
     'IENC_EXCP_GEN',
     'IENC_SYS',
+    'IENC_SME',
     'IENC_TEST_BRANCH_IMM',
     'IENC_BRANCH_UNCOND_REG',
     'IENC_LOAD_REG_LIT',
@@ -347,6 +348,18 @@ instrnames = [
     'TBLI',
     'BCC',
     'UDF',
+    'NOP',
+    'YIELD',
+    'WFE',
+    'WFI',
+    'SEV',
+    'SEVL',
+    'DGH',
+    'TST',
+    'XPACI',
+    'XPACD',
+    'XPACLRI',
+
 ]
 
 ins_index = 85
@@ -581,6 +594,25 @@ barrier_option_table = (
     'LD',
     'ST',
     'SY',
+)
+
+b_cond_table = (
+    ('b.eq', INS_BCC),
+    ('b.ne', INS_BCC),
+    ('b.cs', INS_BCC),
+    ('b.cc', INS_BCC),
+    ('b.mi', INS_BCC),
+    ('b.pl', INS_BCC),
+    ('b.vs', INS_BCC),
+    ('b.vc', INS_BCC),
+    ('b.hi', INS_BCC),
+    ('b.ls', INS_BCC),
+    ('b.ge', INS_BCC),
+    ('b.lt', INS_BCC),
+    ('b.gt', INS_BCC),
+    ('b.le', INS_BCC),
+    ('b.al', INS_BCC),
+    ('b.nv^B', INS_BCC),
 )
 
 cond_table = (
