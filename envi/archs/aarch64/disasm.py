@@ -13,7 +13,8 @@ import envi.bits as e_bits
 All the various tables inittable references
 '''
 s_0_table = (   # undefined and unallcated
-    (0b11111111111111110000000000000000, 0b00000000000000000000000000000000, IENC_RESERVED),
+    (0b10011110000000000000000000000000, 0b10000000000000000000000000000000, IENC_SME),
+    (0b10011110000000000000000000000000, 0b00000000000000000000000000000000, IENC_RESERVED),
     (0,0,IENC_UNDEF),#catch-all
 )
 
@@ -225,12 +226,24 @@ def p_log_imm(opval, va):
     iflags = 0
     sf = opval >> 31
     opc = opval >> 29 & 0x3
-    n = opval >> 22
+    n = opval >> 10 & 0x1000    # 22 bits, but left in place
     immr = opval >> 16 & 0x3f
-    imms = opval >> 10 & 0x3f
+    imms = opval >> 4 & 0xfc0   # 10 bits, but left in place
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
 
+
+    #sf and n determine whether the register size corresponds to the 32 or 64-bit variant
+    if sf == 0b0 and n == 0b0:
+        size = 4
+        rd += meta_reg_bases[size]
+        rn += meta_reg_bases[size]
+        imm = imms + immr
+    elif sf == 0b1:
+        size = 8
+        imm = n + imms + immr
+    else:
+        return p_undef(opval, va)
 
     #depending on whether opc is equal to 0, 1, 2, or 3, mnem is set to and, orr, eor, or ands
     if opc == 0x00:
@@ -243,24 +256,24 @@ def p_log_imm(opval, va):
         mnem = 'eor'
         opcode = INS_EOR
     else:
+        if rd == 0x1f:  # the ZR
+            # alias
+            mnem = 'tst'
+            opcode = INS_TST
+            olist = (
+                A64RegOper(rn, va, size=size),
+                A64ImmOper(imm, 0, S_LSL, va),
+            )
+            return opcode, mnem, olist, 0, 0
+
         mnem = 'and'
         opcode = INS_AND
         iflags = IF_PSR_S
 
-    #sf and n determine whether the register size corresponds to the 32 or 64-bit variant
-    if sf == 0b0 and n == 0b0:
-        size = 4
-        rd += meta_reg_bases[size]
-        rn += meta_reg_bases[size]
-    elif sf == 0b1:
-        size = 8
-    else:
-        return p_undef(opval, va)
-
     olist = (
         A64RegOper(rn, va, size=size),
         A64RegOper(rd, va, size=size),
-        A64ImmOper((n + imms + immr), 0, S_LSL, va),
+        A64ImmOper(imm, 0, S_LSL, va),
     )
     
     return opcode, mnem, olist, iflags, 0
@@ -3086,7 +3099,7 @@ def p_fp_dp1(opval, va):
             elif opc == 0b000111:
                 olist = (
                     #16 Register (rd)
-                    A64RegOper(rn, va, size=4)
+                    A64RegOper(rn, va, size=4),
                 )
             else:
                 olist = (
@@ -5304,7 +5317,7 @@ def p_simd_copy(opval, va):
             olist = (
                 A64RegOper(rd, va, size=regsize),
                 A64RegOper(rn, va, size=width_spec),
-                A64ImmOper(index, va)
+                A64ImmOper(index, va),
             )
     else:
         mnem = 'ins'
@@ -6952,6 +6965,7 @@ ienc_parsers_tmp[IENC_BRANCH_UNCOND_IMM] = p_branch_uncond_imm
 ienc_parsers_tmp[IENC_BRANCH_COND_IMM] = p_branch_cond_imm
 ienc_parsers_tmp[IENC_EXCP_GEN] = p_excp_gen
 ienc_parsers_tmp[IENC_SYS] = p_sys
+ienc_parsers_tmp[IENC_SME] = p_sme
 ienc_parsers_tmp[IENC_TEST_BRANCH_IMM] = p_test_branch_imm
 ienc_parsers_tmp[IENC_BRANCH_UNCOND_REG] = p_branch_uncond_reg
 ienc_parsers_tmp[IENC_LOAD_REG_LIT] = p_load_reg_lit
