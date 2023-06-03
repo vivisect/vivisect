@@ -99,9 +99,9 @@ def fireattach(trace, pid):
 
 
 @idlethread
-def runVdb(vivgui, pid=None):
+def runVdb(vivgui, pid=None, trace=None):
     try:
-        db = vdb.Vdb()
+        db = vdb.Vdb(trace=trace)
         extendVdb(db, vivgui)
         vgui = vdb_qt_main.VdbWindow(db)
         vgui.show()

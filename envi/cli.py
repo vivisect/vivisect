@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 def splitargs(cmdline):
     cmdline = cmdline.replace('\\\\"', '"').replace('\\"', '')
-    patt = re.compile('\".+?\"|\S+')
+    patt = re.compile(r'".+?"|\S+')
     for item in cmdline.split('\n'):
         return [s.strip('"') for s in patt.findall(item)]
 
@@ -259,7 +259,7 @@ class EnviCli(Cmd):
         if intro is not None:
             self.vprint(intro)
 
-        while not self.shutdown.isSet():
+        while not self.shutdown.is_set():
             try:
                 Cmd.cmdloop(self, intro=intro)
             except Exception:
@@ -309,8 +309,9 @@ class EnviCli(Cmd):
             if self.config.cli.verbose:
                 self.vprint(traceback.format_exc())
             self.vprint("\nERROR: (%s) %s" % (msg.__class__.__name__, msg))
+            logger.warning("\nERROR: (%s) %s", msg.__class__.__name__, msg, exc_info=1)
 
-        if self.shutdown.isSet():
+        if self.shutdown.is_set():
             return True
 
     def do_help(self, line):
@@ -372,17 +373,7 @@ class EnviCli(Cmd):
             return self.do_help('config')
 
         if len(args) <= 0 and not options.do_save:
-            #FIXME for now we will hard code one level of sections
-            subnames = self.config.getSubConfigNames()
-            subnames.sort()
-            for subname in subnames:
-                subcfg = self.config.getSubConfig(subname)
-                options = list(subcfg.keys())
-                options.sort()
-                for optname in options:
-                    optval = subcfg.get(optname)
-                    self.vprint('%s.%s=%s' % (subname, optname, json.dumps(optval)))
-
+            self.vprint(self.config.reprConfigPaths())
             return
 
         # 1 option per run
@@ -391,20 +382,28 @@ class EnviCli(Cmd):
 
         if len(args) == 1:
             parts = args[0].split('=', 1)
-            subname, optname = parts[0].split('.', 1)
+            subnames = parts[0].split('.')
 
-            subcfg = self.config.getSubConfig(subname, add=False)
-            if subcfg is None:
-                self.vprint('No Such Config Section: %s' % subname)
-                return
+            cfg = self.config
+            for subname in subnames[:-1]:
+                cfg = cfg.getSubConfig(subname, add=False)
+                if cfg is None:
+                    self.vprint('No Such Config Section: %s' % subname)
+                    return
 
-            optval = subcfg.get(optname)
+            optname = subnames[-1]
+            optval = cfg.get(optname)
             if optval is None:
                 self.vprint('No Such Config Option: %s' % optname)
                 return
 
             if len(parts) == 2:
-                newval = json.loads(parts[1])
+                # the config entry already has a value, let's use it to decide
+                # whether to convert it to an int or leave it as a str.
+                if type(cfg[optname]) == int:
+                    newval = int(parts[1], 0)
+                else:
+                    newval = parts[1]
 
                 if (not isinstance(newval, str)) or not isinstance(optval, str):
                     if type(newval) != type(optval):
@@ -412,9 +411,9 @@ class EnviCli(Cmd):
                         return
 
                 optval = newval
-                subcfg[optname] = newval
+                cfg[optname] = newval
 
-            self.vprint('%s.%s=%s' % (subname, optname, json.dumps(optval)))
+            self.vprint('%s.%s=%s' % ('.'.join(subnames), optname, json.dumps(optval)))
 
         if options.do_save:
             self.config.saveConfigFile()
@@ -626,7 +625,7 @@ class EnviCli(Cmd):
             self.onecmd(command)
 
             with open(fname, 'wb') as f:
-                f.write(str(strcanvas))
+                f.write(str(strcanvas).encode('utf-8'))
 
     def do_search(self, line):
         '''

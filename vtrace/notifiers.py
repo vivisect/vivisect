@@ -136,3 +136,46 @@ class DistributedNotifier(Notifier):
     def deregisterNotifier(self, event, notif):
         nlist = self.notifiers.get(event)
         nlist.remove(notif)
+
+class LibraryNotifier(Notifier):
+    def notify(self, event, trace):
+        logger.info("LibraryNotifier.notify(%r, %r)", event, trace)
+
+        # update unresolved breakpoints:
+        trace._updateBreakAddresses()
+
+        # check meta
+        if hasattr(trace, 'db'):
+            cfgBreakLibLoad = trace.db.config.vdb.BreakOnLibraryLoad
+            cfgBreakLibInit = trace.db.config.vdb.BreakOnLibraryInit
+        else:
+            cfgBreakLibLoad = False
+            cfgBreakLibInit = False
+
+        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+        breakLibLoad = trace.getMeta('BreakOnLibraryLoad')
+        if breakLibLoad or cfgBreakLibLoad:
+            # stop this instant!
+            trace.sendBreak()
+
+        breakLibInit = trace.getMeta('BreakOnLibraryInit')
+        if breakLibInit or cfgBreakLibInit:
+            # add Breakpoint for __entry
+            libnormname = trace.getMeta('LatestLibraryNorm')
+            entryname = "%s.__entry" % (libnormname)
+            logger.debug("BreakOnLibraryInit: %r\t\thooking %s", libnormname, entryname)
+
+            # WARNING: this expects all libraries (and binaries) to have a 
+            # __entry.  every library *does*, we just need to make sure Viv/
+            # Vtrace names them appropriately.
+            try:
+                initva = trace.parseExpression(entryname)
+                logger.warning("LoadLibrary(%r): Breakpoint added at 0x%x (%r)", libnormname, initva, entryname)
+                self._doAddBreakByExp(trace, entryname)
+
+            except Exception as e:
+                logger.warning("LoadLibrary(%r): Can't add breakpoint!  %r", libnormname, e)
+
+    def _doAddBreakByExp(self, trace, expr):
+        logger.debug("_doAddBreakByExp(%r, %r)", trace, expr)
+        trace.addBreakByExpr(expr)

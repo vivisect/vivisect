@@ -4,6 +4,7 @@ import itertools
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
+import envi.const as e_const
 import envi.common as e_common
 import envi.memory as e_memory
 
@@ -41,6 +42,11 @@ class WorkspaceEmulator:
         but most children like the ArmWorkspaceEmulator and any others that live in vivisect/impemu/platarm/
 
         Current Keyword Arguments:
+        * va
+            - Type: Integer
+            - Default: None
+            - Desc: The address to begin emulating from.  emu.setProgramCounter() is called with this value,
+                    and in the case of ArmWorkspaceEmulator, appropriate architecture is set.
         * logwrite
             - Type: Boolean
             - Default: False
@@ -108,11 +114,18 @@ class WorkspaceEmulator:
                     WARNING: While this value is configurable, changing this value without knowing what you're
                     doing can result in undesirable effects (such as infinite recursion when trying to repr
                     taint values), so change this value with care.
+        * opcache
+            - Type: Boolean
+            - Default: True
+            - Desc: By default, WorkspaceEmulators share the opcode cache storing parsed opcodes for locations
+                    in the Vivisect Workspace.
+                    This setting disables use of the VivWorkspace's opcode cache.
         '''
         self.vw = vw
         # Set down below in runFunction
         self.funcva = None
         self.emustop = False
+        self.usecache = kwargs.get('opcache', True)
 
         self.hooks = {}
         self.taints = {}
@@ -168,6 +181,11 @@ class WorkspaceEmulator:
         self.stack_map_top = None
         self.stack_pointer = None
         self.initStackMemory()
+
+        # set Program Counter if provided
+        va = kwargs.get('va')
+        if va:
+            self.setProgramCounter(va)
 
     def initStackMemory(self, stacksize=init_stack_size):
         '''
@@ -238,7 +256,10 @@ class WorkspaceEmulator:
         """
         self.emumon = emumon
 
-    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
+    def parseOpcode(self, va, arch=envi.ARCH_DEFAULT, skipcache=False):
+        if not self.usecache or skipcache:
+            return self.__archemu__.parseOpcode(self, va, arch)
+
         return self.vw.parseOpcode(va, arch=arch)
 
     def checkCall(self, starteip, endeip, op):
@@ -486,6 +507,7 @@ class WorkspaceEmulator:
 
                         if self.emustop:
                             return
+
                     iscall = self.checkCall(starteip, endeip, op)
                     if self.emustop:
                         return
@@ -654,6 +676,10 @@ class WorkspaceEmulator:
                 if val not in argv:
                     return self.reprVivTaint(taint)
 
+            else:
+                return self.reprVivTaint(taint)
+
+
         stackoff = self.getStackOffset(val)
         if stackoff is not None:
             funclocal = self.vw.getFunctionLocal(self.funcva, stackoff)
@@ -689,7 +715,7 @@ class WorkspaceEmulator:
 
         # It's totally ok to write to invalid memory during the
         # emulation pass (as long as safe_mem is true...)
-        probeok = self.probeMemory(va, len(bytes), e_memory.MM_WRITE)
+        probeok = self.probeMemory(va, len(bytes), e_const.MM_WRITE)
         if self._safe_mem and not probeok:
             return
 
@@ -717,7 +743,7 @@ class WorkspaceEmulator:
         self._useVirtAddr(va)
 
         # Read from the emulator's pages if we havent resolved it yet
-        probeok = self.probeMemory(va, size, e_memory.MM_READ)
+        probeok = self.probeMemory(va, size, e_const.MM_READ)
         if self._safe_mem and not probeok:
             return self.taintbyte * size
 

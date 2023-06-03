@@ -1,18 +1,20 @@
 import unittest
 
-import envi.memory
+import envi.exc as e_exc
+import envi.const as e_const
+import envi.memory as e_mem
 
 class Memory(unittest.TestCase):
     def setUp(self):
-        self.mem = envi.memory.MemoryObject()
+        self.mem = e_mem.MemoryObject()
 
     def test_getMaxReadSize(self):
-        mmaps = [(0,  envi.memory.MM_READ, None, 0x1000 * b'\x41'),
-                 (0x1000, envi.memory.MM_READ, None, 0x500 * b'\x42'),
+        mmaps = [(0,  e_const.MM_READ, None, 0x1000 * b'\x41'),
+                 (0x1000, e_const.MM_READ, None, 0x500 * b'\x42'),
                  # gap
-                 (0x2000, envi.memory.MM_READ, None, 0x100 * b'\x43'),
-                 (0x2100, envi.memory.MM_NONE, None, 0x1000 * b'\x44'),
-                 (0x3100, envi.memory.MM_READ, None, 0x200 * b'\x45')]
+                 (0x2000, e_const.MM_READ, None, 0x100 * b'\x43'),
+                 (0x2100, e_const.MM_NONE, None, 0x1000 * b'\x44'),
+                 (0x3100, e_const.MM_READ, None, 0x200 * b'\x45')]
 
         # reverse the list just to make sure we aren't making assumptions
         # about ascending order.
@@ -37,3 +39,53 @@ class Memory(unittest.TestCase):
             size = self.mem.getMaxReadSize(va)
 
             self.assertEqual(answer, size)
+
+    def test_MapNotFoundException(self):
+        with self.assertRaises(e_exc.MapNotFoundException):
+            self.mem.delMemoryMap(0xfffffff)
+            self.assertEqual("MapNotFoundException worked properly", False, \
+                    msg="Failed to catch delMemoryMap on nonexistent map!")
+
+    def test_cohesive_mmaps(self):
+        mmaps = [
+                (0x2000, e_const.MM_READ_WRITE, None, 0x100 * b'\x43'),
+                (0x2100, e_const.MM_RWX, None, 0x1000 * b'\x44'),
+                (0x3100, e_const.MM_READ_WRITE, None, 0x200 * b'\x45'),
+                ]
+
+        # reverse the list just to make sure we aren't making assumptions
+        # about ascending order.
+        mmaps = reversed(mmaps)
+        for mmap in mmaps:
+            self.mem.addMemoryMap(*mmap)
+
+        # test writing 
+        self.mem.writeMemory(0x20f0, b'@' * 0x20)
+        self.assertEqual(self.mem.readMemory(0x20f0, 0x10), b'@'*0x10)
+        self.assertEqual(self.mem.readMemory(0x2100, 0x10), b'@'*0x10)
+
+        # test reading
+        self.assertEqual(self.mem.readMemory(0x20f0, 0x20), b'@'*0x20)
+
+    def test_cross_map_failure(self):
+        mmaps = [
+                (0x2000, e_const.MM_READ, None, 0x100 * b'\x43'),
+                (0x2100, e_const.MM_RWX, None, 0x100 * b'\x44'),
+                (0x2200, e_const.MM_WRITE, None, 0x100 * b'\x45'),
+                (0x2300, e_const.MM_READ, None, 0x100 * b'\x46'),
+                ]
+
+        # reverse the list just to make sure we aren't making assumptions
+        # about ascending order.  alternately, we could make addMemoryMap
+        # sort them every time.
+        mmaps = reversed(mmaps)
+        for mmap in mmaps:
+            self.mem.addMemoryMap(*mmap)
+
+        # test write failure
+        self.assertRaises(e_exc.SegmentationViolation, self.mem.writeMemory, 0x2100, b'@' * 0x220)
+        self.assertEqual(self.mem.readMemory(0x2100, 0x100), b"@" * 0x100)
+        self.assertEqual(self.mem.readMemory(0x2300, 0x100), b"\x46" * 0x100)
+
+        # test read failure
+        self.assertRaises(e_exc.SegmentationViolation, self.mem.readMemory, 0x20f0, 0x200)

@@ -165,7 +165,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         archmenu = makemenu.addMenu('code (archs)')
         prevumenu = menu.addMenu('preview instruction')
 
-        archs = [ (archname,archid) for (archid,archname) in envi.arch_names.items() ]
+        archs = [ (archname,archid) for (archid,archname) in envi.getArchNames().items() ]
         archs.sort()
         for archname,archid in archs:
             if archname == 'default':
@@ -203,6 +203,12 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
                         for name in names:
                             immmenu.addAction(name, ACT(vw.setSymHint, va, idx, name))
             menu.addAction('make code xref->', ACT(vw.getVivGui().addVaXref, va))
+
+            if vw.getVaSetRow('SwitchCases_TimedOut', va):
+                do_analyze = ACT(vw.getVivGui().reanalyzeSwitchCase, va)
+                do_analyze.setNewThread()
+                menu.addAction('Reanalyze Switchcase (timed out)', do_analyze)
+
 
         menu.addAction('bookmark (B)',   ACT(vw.getVivGui().addBookmark, va))
         menu.addAction('undefine (U)',   ACT(vw.delLocation, va))
