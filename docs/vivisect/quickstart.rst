@@ -77,7 +77,7 @@ Which will create a ".viv" file located at `/path/to/my/bulk/binary.exe.viv`. Th
 Collaborative Reverse Engineering
 =================================
 
-One of the most powerful aspects of Vivisect is it's real-time collaboration server capabilities.  There are two ways to collaborate with others over a network.
+One of the most powerful aspects of Vivisect is its real-time collaboration server capabilities.  There are two ways to collaborate with others over a network.
 
 - The first way is completely from the GUI, choosing `Share->Share Workspace` from one instance of Vivisect (vivbin), and others choosing `Share->Connect to Shared Workspace` from a separate Vivisect instance
 
@@ -96,9 +96,9 @@ Interacting with the VivServer
 ==============================
 
 Saving a workspace to a VivServer is as simple as `File->Save to Server`
-A popup lets you choose the server and the path.  A checkbox lets you set the default server.  If you access one server the majority of the time, you will find this very helpful.  If you want to access another server once or twice, don't check this box, and your default won't be affected
+A popup lets you choose the server and the path.  A checkbox lets you set the default server.  If you access one server the majority of the time, you will find this very helpful.  If you want to access another server once or twice, don't check this box, and your default won't be affected.
 
-The FilePath is where in the remote file repository this workspace will be stored, and it's name.  (Be sure to add the .viv extension to the filename)
+The FilePath is where in the remote file repository this workspace will be stored, and its name (Be sure to add the .viv extension to the filename).
 
 Loading a remote workspace from a VivServer is accomplished by `Share->Connect to Workspace Server`
 A similar popup will allow you to select the server, and a followup dialog will list the workspaces available.  Once you choose a workspace, the current Vivisect window will close and be replaced by a new window, connected to the remote workspace.
