@@ -22,7 +22,7 @@ import envi
 from envi.archs.mips.disasm import *
 from envi.archs.mips.regs import *
 
-class MipsModule(envi.ArchitectureModule):
+class Mips32Module(envi.ArchitectureModule):
 
     def __init__(self):
         envi.ArchitectureModule.__init__(self, "mips")
