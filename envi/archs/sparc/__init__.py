@@ -24,6 +24,6 @@ class SparcModule(envi.ArchitectureModule):
         return "0x%.08x" % (va)
 
 
-    def archParseOpcode(self, bytecode, offset=0, va=0):
+    def archParseOpcode(self, bytecode, offset=0, va=0, extra=None):
 
         return self._arch_dis.disasm(bytecode, offset, va)
