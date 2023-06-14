@@ -60,7 +60,7 @@ class Mcs51Module(envi.ArchitectureModule):
             else:
                 return "+ %d" % dabs
 
-    def archParseOpcode(self, bytes, offset=0, va=0):
+    def archParseOpcode(self, bytes, offset=0, va=0, extra=None):
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
         """
