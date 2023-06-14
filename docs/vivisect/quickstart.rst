@@ -83,7 +83,7 @@ One of the most powerful aspects of Vivisect is its real-time collaboration serv
 
 - The other way to collaborate over a network, or using localhost, is to run a VivServer.  With a VivServer, you can share an entire directory structure of VivWorkspace files.
 
-Because of the event-driven Vivisect storage model, actions taken in one Vivisect window is easily redirected to the remote Server/Workspace, and other connected workspaces updated within seconds.
+Because of the :ref:`event-driven <eventsystem>` Vivisect storage model, actions taken in one Vivisect window is easily redirected to the remote Server/Workspace, and other connected workspaces updated within seconds.
 
 Running the VivServer
 =====================
