@@ -56,8 +56,7 @@ class VdbLookup(UserDict):
 
 class ScriptThread(threading.Thread):
     def __init__(self, cobj, locals):
-        threading.Thread.__init__(self)
-        self.setDaemon(True)
+        threading.Thread.__init__(self, daemon=True)
         self.cobj = cobj
         self.locals = locals
 
@@ -112,11 +111,16 @@ class VdbTrace(object):
     def __getattr__(self, name):
         return getattr(self.db.getTrace(), name)
 
+    def vprint(self, msg, addnl=True):
+        return self.db.vprint(msg, addnl)
+
 defconfig = {
 
     'vdb':{
         'BreakOnEntry':False,
         'BreakOnMain':False,
+        'BreakOnLibraryLoad':False,
+        'BreakOnLibraryInit':False,
 
         'SymbolCacheActive':True,
         'SymbolCachePath':e_config.gethomedir('.envi','symcache'),
@@ -139,6 +143,8 @@ docconfig = {
     'vdb':{
         'BreakOnMain':'Should the debugger break on main() if known?',
         'BreakOnEntry':'Should the debugger break on the entry to the main module? (only works if you exec (and not attach to) the process)',
+        'BreakOnLibraryLoad':"Should the debugger break when a new library is loaded?",
+        'BreakOnLibraryInit':"Should the debugger break on new library init routines?",
 
         'SymbolCacheActive':'Should we cache symbols for subsequent loads?',
         'SymbolCachePaths':'Path elements ( ; seperated) to search/cache symbols (filepath,cobra)',
@@ -357,11 +363,13 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
     def getTrace(self):
         return self.trace
 
-    def newTrace(self):
+    def newTrace(self, **kwargs):
         """
         Generate a new trace for this vdb instance.  This fixes many of
         the new attach/exec data munging issues because tracer re-use is
         *very* sketchy...
+
+        **kwargs is handed into the new trace to handle any platform magic
         """
         oldtrace = self.getTrace()
         if oldtrace.isRunning():
@@ -369,11 +377,15 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if oldtrace.isAttached():
             oldtrace.detach()
 
-        self.trace = oldtrace.buildNewTrace()
+        self.trace = oldtrace.buildNewTrace(**kwargs)
         oldtrace.release()
 
-        self.bpcmds = {}
+        self.bpcmds = {}    # TODO: make these reusable from previous sessions
         self.manageTrace(self.trace)
+
+        # must be set for each trace
+        self.trace.setBreakOnLibraryLoad(self.config.vdb.BreakOnLibraryLoad)
+        self.trace.setBreakOnLibraryInit(self.config.vdb.BreakOnLibraryInit)
         return self.trace
 
     def setupSignalLookups(self):
@@ -492,7 +504,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
             trace.setMeta('PendingBreak', False)
             bp = trace.getCurrentBreakpoint()
             if bp:
-                if not self.silent:
+                if not bp.silent:
                     self.vprint("Thread: %d Hit Break: %s" % (tid, repr(bp)))
                 cmdstr = self.bpcmds.get(bp.id, None)
                 if cmdstr is not None:
@@ -577,6 +589,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         if douni:
             memstr = (b"\x00".join(memstr)) + b"\x00"
 
+        memstr = memstr.decode('utf8')
         addr = self.parseExpression(exprstr)
         self.memobj.writeMemory(addr, memstr)
         self.vdbUIEvent('vdb:writemem', (addr,memstr))
@@ -1035,11 +1048,13 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         -V         - Show operand values during single step (verbose!)
         -U         - Remainder of args is "step until" expression (stop on True)
         -Q         - Do not output to canvas
+        -O         - Step Over calls (ie. stay in this function)
+        -M         - Stay in the same Memory Map (step over calls to other maps)
         """
         t = self.trace
         argv = e_cli.splitargs(line)
         try:
-            opts,args = getopt(argv, "A:BC:RVUQ")
+            opts,args = getopt(argv, "A:BC:RVUOQ")
         except Exception as e:
             return self.do_help("stepi")
 
@@ -1050,6 +1065,9 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         tobrn = False
         showop = False
         quiet = False
+        stepover = False
+        module = False
+        curmap = None
 
         for opt, optarg in opts:
 
@@ -1073,6 +1091,14 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             elif opt == '-Q':
                 quiet = True
+
+            elif opt == '-O':
+                stepover = True
+
+            elif opt == '-M':
+                module = True
+                pc = t.getProgramCounter()
+                curmap = t.getMemoryMap(pc)
 
         if ( count is None 
              and taddr is None
@@ -1122,7 +1148,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     if not quiet:
                         self.canvas.addText('\n')
 
-                    if op.iflags & envi.IF_CALL:
+                    if op.iflags & envi.IF_CALL and not stepover:
                         depth += 1
 
                     elif op.iflags & envi.IF_RET:
@@ -1131,9 +1157,37 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
                     print("[E@0x%x] %r" % (pc, e))
 
 
-                tid = t.getCurrentThread()
+                # execute the instruction
+                if op.iflags & envi.IF_CALL and (stepover or module):
+                    follow = True
+                    if module:
+                        for tgtva in op.getTargets(emu=t):
+                            # there should be only one?
+                            tgtmap = t.getMemoryMap(tgtva)
+                            if tgtmap != curmap:
+                                follow = False
+                                break
 
-                t.stepi()
+                    else:
+                        # if we're here, and not "module-only" mode, step-over
+                        follow = False
+
+                    if follow:
+                        # this is standard "lalala execute" mode
+                        tid = t.getCurrentThread()
+                        t.stepi()
+
+                    else:
+                        # if we don't follow (stepo or out-of-module), set a 
+                        # one-time breakpoint at the next fallthrough va and go
+                        bp = vtrace.breakpoints.OneTimeBreak(op.va + op.size)
+                        self.trace.addBreakpoint(bp)
+                        self.trace.run()
+
+                else:
+                    # all non-call's just execute
+                    tid = t.getCurrentThread()
+                    t.stepi()
 
                 if until and t.parseExpression(until):
                     break
@@ -2355,6 +2409,6 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these yourself
-version = (1, 1, 0)
+version = (1, 1, 1)
 verstring = '.'.join([str(x) for x in version])
 commit = ''
