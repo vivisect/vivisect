@@ -634,14 +634,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         uname = self.config.user.name
         self.server = remotevw
         self.rchan = remotevw.createEventChannel()
+        logger.debug("initWorkspaceClient() -> Event Channel: %r", self.rchan)
 
         self.server.vprint('%s connecting...' % uname)
 
         self.leaders.update(self.server.getLeaderSessions())
         self.leaderloc.update(self.server.getLeaderLocations())
+        logger.debug("initWorkspaceClient() -> leaders updated")
 
-        wsevents = self.server.exportWorkspace()
-        self.importWorkspace(wsevents)
         self.server.vprint('%s connection complete!' % uname)
 
         thr = threading.Thread(target=self._clientThread, daemon=True)
@@ -650,6 +650,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         timeout = self.config.viv.remote.wait_for_plat_arch
         self._load_event.wait(timeout=timeout)
         self._snapInAnalysisModules()
+        logger.debug("initWorkspaceClient() -> Complete")
 
     def _clientThread(self):
         """
