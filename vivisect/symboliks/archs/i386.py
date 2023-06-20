@@ -1534,8 +1534,9 @@ class i386ArgDefSymEmu(vsym_callconv.ArgDefSymEmu):
 
 class i386SymCallingConv(vsym_callconv.SymbolikCallingConvention):
     __argdefemu__ = i386ArgDefSymEmu
+
     def __init__(self, xlator=None):
-        super().__init__(self, xlator=xlator)
+        super().__init__(xlator=xlator)
 
 class StdCall(i386SymCallingConv, e_i386.StdCall):
     pass

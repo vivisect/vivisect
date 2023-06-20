@@ -209,7 +209,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
     def i_cmpsq(self, op):
         return self._cmps(op, width=8)
 
-class Amd64ArgDefSymEmu(vsym_i386.ArgDefSymEmu):
+class Amd64ArgDefSymEmu(vsym_callconv.ArgDefSymEmu):
     __xlator__ = Amd64SymbolikTranslator
 
 class MSx64CallSym(vsym_callconv.SymbolikCallingConvention, e_amd64.MSx64Call):
@@ -218,17 +218,14 @@ class MSx64CallSym(vsym_callconv.SymbolikCallingConvention, e_amd64.MSx64Call):
 class SysVAmd64CallSym(vsym_callconv.SymbolikCallingConvention, e_amd64.SysVAmd64Call):
     __argdefemu__ = Amd64ArgDefSymEmu
 
-msx64callsym = MSx64CallSym()
-sysvamd64callsym = SysVAmd64CallSym()
-
 class Amd64SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
     __width__ = 8
 
-    def __init__(self, vw, initial_sp=0xbfbff000):
+    def __init__(self, vw, initial_sp=0xbfbff000, xlator=None):
         vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
         self.setStackBase(0xbfbff000, 16384)
-        self.addCallingConvention('sysvamd64call', SysVAmd64CallSym())
-        self.addCallingConvention('msx64call', msx64callsym)
+        self.addCallingConvention('sysvamd64call', SysVAmd64CallSym(xlator))
+        self.addCallingConvention('msx64call', MSx64CallSym(xlator))
 
     def getStackCounter(self):
         return self.getSymVariable('rsp')
