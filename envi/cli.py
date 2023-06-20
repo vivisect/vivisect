@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 def splitargs(cmdline):
     cmdline = cmdline.replace('\\\\"', '"').replace('\\"', '')
-    patt = re.compile('\".+?\"|\S+')
+    patt = re.compile(r'".+?"|\S+')
     for item in cmdline.split('\n'):
         return [s.strip('"') for s in patt.findall(item)]
 
@@ -398,7 +398,7 @@ class EnviCli(Cmd):
                 return
 
             if len(parts) == 2:
-                # the config entry already has a value, let's use it to decide 
+                # the config entry already has a value, let's use it to decide
                 # whether to convert it to an int or leave it as a str.
                 if type(cfg[optname]) == int:
                     newval = int(parts[1], 0)
@@ -620,12 +620,11 @@ class EnviCli(Cmd):
         fname = argv[0]
         command = ' '.join(argv[1:])
 
-        strcanvas = e_canvas.StringMemoryCanvas(self.canvas.mem)
+        strcanvas = e_canvas.FileBackedMemoryCanvas(fname, self.canvas.mem)
         with e_canvas.TeeCanvas(self, (self.canvas, strcanvas)) as tc:
             self.onecmd(command)
 
-            with open(fname, 'wb') as f:
-                f.write(str(strcanvas).encode('utf-8'))
+        strcanvas.flush()
 
     def do_search(self, line):
         '''

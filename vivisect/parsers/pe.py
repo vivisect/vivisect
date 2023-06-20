@@ -628,7 +628,7 @@ def getMemBaseAndSize(vw, pe, baseaddr=None):
     size = topmem - baseaddr
 
     if baseaddr == 0:
-        baseaddr = vw.config.viv.parsers.pe.baseoffset
+        baseaddr = vw.config.viv.parsers.pe.baseaddr
 
     if savebase:
         # if we provided a baseaddr, override what the file wants
