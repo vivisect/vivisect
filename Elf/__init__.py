@@ -105,14 +105,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.dynstrtab = []
         self.dynsymtabct = None     # populated by _parseDynStrs()
 
-<<<<<<< HEAD
-        logger.info('self._parseSections')
-        self._parseSections()
-
-
-        logger.info('self._parseDynamicsFromSections')
-        self._parseDynamicsFromSections()
-=======
         try:
             logger.info('self._parsePheaders')
             self._parsePheaders()
@@ -137,8 +129,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self._parseDynamicsFromSections()
         except Exception as e:
             logger.warning("Exception parsing Dynamics from Sections: %r" % e, exc_info=1)
-
->>>>>>> master
 
         # load symbols and relocs from DYNAMICS
         try:
