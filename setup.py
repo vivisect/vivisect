@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'vivbin=vivisect.vivbin:main',
+            'vivserver=vivisect.remote.server:main',
             'vdbbin=vdb.vdbbin:main',
         ]
     },
