@@ -8,6 +8,7 @@ import logging
 import collections
 
 import envi
+import envi.const as e_const
 
 from vivisect.const import REF_CODE, LOC_POINTER, LOC_OP
 
@@ -97,6 +98,13 @@ def analyzeFunction(vw, funcva):
                 if rflags & envi.BR_DEREF:
                     continue
 
+                mmap = vw.getMemoryMap(tova)
+                if mmap:
+                    mva, msize, mperm, mname = mmap
+                    if mperm & e_const.MM_UNINIT:
+                        print('bother bother bother')
+                        continue
+
                 branch = True
                 todo.append(tova)
 
@@ -136,6 +144,9 @@ def analyzeFunction(vw, funcva):
         # (like during dynamic branch analysis)
         try:
             bsize = blocks[bva]
+            if bsize == 0:
+                continue
+
             tmpcb = vw.getCodeBlock(bva)
             # sometimes codeblocks can be deleted if owned by multiple functions
             if bva not in oldblocks or tmpcb is None:

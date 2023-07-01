@@ -31,6 +31,8 @@ def analyze(vw):
         # Segment permissions check for likely code stuff at all
         if not mapflags & e_const.MM_EXEC:
             continue
+        if mapflags & e_const.MM_UNINIT:
+            continue
 
         i = 0
         maxsize = mapsize - 4

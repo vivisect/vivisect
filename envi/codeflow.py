@@ -217,6 +217,9 @@ class CodeFlowContext(object):
                     if not self._mem.probeMemory(bva, 1, e_const.MM_EXEC):
                         continue
 
+                    if self._mem.probeMemory(bva, 1, e_const.MM_UNINIT):
+                        continue
+
                     if bflags & envi.BR_PROC:
 
                         # Record that the current code flow has a call from it

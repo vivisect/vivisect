@@ -21,8 +21,9 @@ import collections
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
-import envi.common as e_common
 import envi.memory as e_mem
+import envi.const as e_const
+import envi.common as e_common
 import envi.config as e_config
 import envi.bytesig as e_bytesig
 import envi.symstore.resolver as e_resolv
@@ -963,6 +964,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         size = self.psize
 
         for mva, msize, mperm, mname in self.getMemoryMaps():
+
+            if mperm & e_const.MM_UNINIT:
+                continue
 
             offset, bytes = self.getByteDef(mva)
             maxsize = len(bytes) - size
