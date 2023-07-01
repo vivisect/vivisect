@@ -36,6 +36,7 @@ def getOutput(strcanv, timeout=10):
     output = strcanv.strval
     while not output and (time.time() - starttime) < timeout:
         time.sleep(.1)
+        output = strcanv.strval
 
     strcanv.strval = ''
     return output
