@@ -25,7 +25,7 @@ class LineStateMachine:
     So line information in dwarf is modelled as a state machine with
     1 byte opcodes, a few special opcodes, and (possibly) extensions to such.
 
-    There's a base set of opcode, a couple extensions that are access by a 00
+    There's a base set of opcode, a couple extensions that are accessed by a 00
     opcode, and the possibly a set of special opcodes that I'm not going to
     currently support for a POC
     '''
@@ -65,6 +65,9 @@ class LineStateMachine:
             self._op_ext_define_file,
             self._op_ext_set_discriminator,
         ]
+
+        self.matrix = []
+
         self._reset_registers()
 
     def _reset_registers(self):
@@ -81,9 +84,25 @@ class LineStateMachine:
         self._reg_isa = 0
         self._reg_discriminator = 0
 
+    def serializeRegisters(self):
+        return [
+            self._reg_address,
+            self._reg_op_index,
+            self._reg_file,
+            self._reg_line,
+            self._reg_column,
+            self._reg_is_stmt,
+            self._reg_basic_block,
+            self._reg_end_sequence,
+            self._reg_prologue_end,
+            self._reg_epilogue_begin,
+            self._reg_isa,
+            self._reg_discriminator
+        ]
+
     def _op_special(self, opcode):
         '''
-        See page 117 in DWARFv4 standard for the full formulas
+        See pages  116-117 in DWARFv4 standard for the full formulas and procedures here
         '''
         adjusted = opcode - self.header.opcode_base
         adv = adjusted // self.header.line_range
@@ -92,9 +111,12 @@ class LineStateMachine:
         opidx = (self._reg_op_index + adv) % self.header.max_ops_per_instr
         line_add = self.header.line_base + (adjusted % self.header.line_range)
 
+        # NOTE: The address and op_index registers, taken together, form an operation pointer that can reference any individual operation with the instruction stream.
         self._reg_address += addr_add
         self._reg_op_index = opidx
         self._reg_line += line_add
+
+        self.matrix.append(self.serializeRegisters())
 
         self._reg_discriminator = 0
         self._reg_basic_block = False
@@ -116,7 +138,7 @@ class LineStateMachine:
         '''
         should be more here
         '''
-        breakpoint()
+        self.matrix.append(self.serializeRegisters())
         self._reg_discriminator = 0
         self._reg_basic_block = False
         self._reg_prologue_end = False
