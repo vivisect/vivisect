@@ -1567,7 +1567,7 @@ class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
     __width__ = 4
 
     def __init__(self, vw, *args, xlator=None):
-        vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
+        vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw, *args, xlator=xlator)
         self.setStackBase(0xbfbff000, 16384)
 
         self.addCallingConvention('cdecl', Cdecl(xlator=xlator))

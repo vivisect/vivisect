@@ -221,8 +221,8 @@ class SysVAmd64CallSym(vsym_callconv.SymbolikCallingConvention, e_amd64.SysVAmd6
 class Amd64SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
     __width__ = 8
 
-    def __init__(self, vw, initial_sp=0xbfbff000, xlator=None):
-        vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
+    def __init__(self, vw, *args, initial_sp=0xbfbff000, xlator=None):
+        vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw, *args, xlator=xlator)
         self.setStackBase(0xbfbff000, 16384)
         self.addCallingConvention('sysvamd64call', SysVAmd64CallSym(xlator))
         self.addCallingConvention('msx64call', MSx64CallSym(xlator))
