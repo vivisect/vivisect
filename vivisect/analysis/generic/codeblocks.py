@@ -102,7 +102,6 @@ def analyzeFunction(vw, funcva):
                 if mmap:
                     mva, msize, mperm, mname = mmap
                     if mperm & e_const.MM_UNINIT:
-                        print('bother bother bother')
                         continue
 
                 branch = True
