@@ -56,7 +56,7 @@ class VdbLookup(UserDict):
 
 class ScriptThread(threading.Thread):
     def __init__(self, cobj, locals):
-        super.__init__(self, daemon=True)
+        threading.Thread.__init__(self, daemon=True)
         self.cobj = cobj
         self.locals = locals
 
@@ -1049,6 +1049,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         -U         - Remainder of args is "step until" expression (stop on True)
         -Q         - Do not output to canvas
         -O         - Step Over calls (ie. stay in this function)
+        -M         - Stay in the same Memory Map (step over calls to other maps)
         """
         t = self.trace
         argv = e_cli.splitargs(line)
@@ -1065,6 +1066,8 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         showop = False
         quiet = False
         stepover = False
+        module = False
+        curmap = None
 
         for opt, optarg in opts:
 
@@ -1091,6 +1094,11 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
             elif opt == '-O':
                 stepover = True
+
+            elif opt == '-M':
+                module = True
+                pc = t.getProgramCounter()
+                curmap = t.getMemoryMap(pc)
 
         if ( count is None 
              and taddr is None
@@ -1150,12 +1158,34 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
 
 
                 # execute the instruction
-                if op.iflags & envi.IF_CALL and stepover:
-                    bp = vtrace.breakpoints.OneTimeBreak(op.va + op.size)
-                    self.trace.addBreakpoint(bp)
-                    self.trace.run()
+                if op.iflags & envi.IF_CALL and (stepover or module):
+                    follow = True
+                    if module:
+                        for tgtva in op.getTargets(emu=t):
+                            # there should be only one?
+                            tgtmap = t.getMemoryMap(tgtva)
+                            if tgtmap != curmap:
+                                follow = False
+                                break
+
+                    else:
+                        # if we're here, and not "module-only" mode, step-over
+                        follow = False
+
+                    if follow:
+                        # this is standard "lalala execute" mode
+                        tid = t.getCurrentThread()
+                        t.stepi()
+
+                    else:
+                        # if we don't follow (stepo or out-of-module), set a 
+                        # one-time breakpoint at the next fallthrough va and go
+                        bp = vtrace.breakpoints.OneTimeBreak(op.va + op.size)
+                        self.trace.addBreakpoint(bp)
+                        self.trace.run()
 
                 else:
+                    # all non-call's just execute
                     tid = t.getCurrentThread()
                     t.stepi()
 

@@ -217,6 +217,9 @@ class SymbolResolver:
             if sym.fname in self.symobjsbyname:
                 self.symobjsbyname.pop(sym.fname, None)
 
+            if symval in self.symobjsbyaddr:
+                self.symobjsbyaddr.pop(symval, None)
+
     def addSymbol(self, sym):
         """
         Add a symbol to the resolver.
@@ -285,7 +288,7 @@ class SymbolResolver:
 
         if sym.fname:
             subres = self.symobjsbyname.get(sym.fname)
-            if subres is not None:
+            if subres is not None and isinstance(subres, SymbolResolver):
                 subres._addSymObject(sym)
                 return
 
