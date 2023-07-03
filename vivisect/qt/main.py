@@ -32,6 +32,7 @@ from PyQt5.QtWidgets import QInputDialog
 
 from vqt.common import *
 from vivisect.const import *
+from envi.threads import firethread
 from vqt.main import getOpenFileName, getSaveFileName
 from vqt.saveable import compat_isNone
 
@@ -638,10 +639,12 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.newNamesView()
 
     @vq_hotkey.hotkey('view:memory')
+    @firethread
     def _menuViewMemory(self):
         self.newMemoryView()
 
     @vq_hotkey.hotkey('view:funcgraph')
+    @firethread
     def _menuViewFuncGraph(self):
         self.newFuncGraphView()
 

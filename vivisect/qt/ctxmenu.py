@@ -53,6 +53,7 @@ def printEmuState(vw, fva, va):
 
         vw.vprint(base)
 
+@firethread
 def newMemoryView(vw, xexpr):
     try:
         vw.getVivGui().newMemoryView(name="mem:%s" % xexpr, expr=xexpr)
@@ -60,6 +61,7 @@ def newMemoryView(vw, xexpr):
     except:
         logger.warning("Fail!", exc_info=1)
 
+@firethread
 def newFuncGraph(vw, xexpr):
     try:
         vw.getVivGui().newFuncGraphView(name="FG:%s" % xexpr, expr=xexpr)
