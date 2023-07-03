@@ -638,13 +638,13 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def _menuViewNames(self):
         self.newNamesView()
 
-    @vq_hotkey.hotkey('view:memory')
     @firethread
+    @vq_hotkey.hotkey('view:memory')
     def _menuViewMemory(self):
         self.newMemoryView()
 
-    @vq_hotkey.hotkey('view:funcgraph')
     @firethread
+    @vq_hotkey.hotkey('view:funcgraph')
     def _menuViewFuncGraph(self):
         self.newFuncGraphView()
 
