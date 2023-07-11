@@ -5,8 +5,11 @@ commands and modules.
 
 import os
 import sys
+import logging
 import importlib
 import traceback
+
+logger = logging.getLogger(__name__)
 
 __all__ = ['loadExtensions', 'windows', 'i386', 'darwin', 'amd64', 'gdbstub', 'arm', 'android', 'winkern']
 
@@ -57,8 +60,15 @@ def loadExtensions(vdb, trace):
                 module.vdb = vdb
                 module.__file__ = modpath
                 spec.loader.exec_module(module)
+
+                if not hasattr(module, 'vdbExtension'):
+                    logger.info("Skipping python module %r, not a valid extension", modpath)
+                    continue
+
+                logger.info("Loading extension: %r", modpath)
                 module.vdbExtension(vdb, trace)
                 vdb.addExtension(fname, module)
+
             except Exception:
                 vdb.vprint('VDB Extension Error: %s' % modpath)
                 vdb.vprint(traceback.format_exc())

@@ -12,9 +12,11 @@ The module's vivExtension function takes a vivisect workspace
 
 import os
 import sys
+import logging
 import importlib
 import traceback
 
+logger = logging.getLogger(__name__)
 
 def loadExtensions(vw, vwgui):
 
@@ -52,8 +54,15 @@ def loadExtensions(vw, vwgui):
                 module.vw = vw
                 spec.loader.exec_module(module)
 
+                if not hasattr(module, 'vivExtension'):
+                    logger.info("Skipping python module %r, not a valid extension", modpath)
+                    continue
+
+                logger.info("Loading extension: %r", modpath)
                 module.vivExtension(vw, vwgui)
                 vw.addExtension(fname, module)
+
+
             except Exception:
                 vw.vprint('Extension Error: %s' % modpath)
                 vw.vprint(traceback.format_exc())
