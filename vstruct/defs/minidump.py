@@ -39,7 +39,7 @@ class MiniDumpLocationDescriptor(vstruct.VStruct):
 class MiniDumpMemoryDescriptor(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.StartOfMemoryPage = v_uint64()
+        self.StartOfMemoryRange = v_uint64()
         self.Memory = MiniDumpLocationDescriptor()
 
 class MiniDumpMemoryDescriptor64(vstruct.VStruct):
