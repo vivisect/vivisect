@@ -62,7 +62,7 @@ def loadExtensions(vdb, trace):
                 spec.loader.exec_module(module)
 
                 if not hasattr(module, 'vdbExtension'):
-                    logger.info("Skipping python module %r, not a valid extension", modpath)
+                    logger.warning("Skipping python module %r, not a valid extension (module has no vdbExtension() function)", modpath)
                     continue
 
                 logger.info("Loading extension: %r", modpath)
