@@ -1,6 +1,7 @@
 import time
 import unittest
 import itertools
+import threading
 
 import cobra
 import cobra.auth as c_auth
@@ -9,12 +10,6 @@ import cobra.auth.shadowfile as c_auth_shadow
 import cobra.tests as c_tests
 
 class CobraBasicTest(unittest.TestCase):
-
-    #def setUp(self):
-        #pass
-
-    #def tearDown(self):
-        #pass
 
     def test_cobra_proxy(self):
 
@@ -118,11 +113,12 @@ class CobraBasicTest(unittest.TestCase):
         testobj = c_tests.TestObject()
 
         # test startCobraServer
-        while True:
+        port = None
+        while port is None:
             try:
                 port = next(portnum)
                 daemon = cobra.startCobraServer(host="", port=port, sslca=None, sslcrt=None, sslkey=None, msgpack=True)
-                break
+
             except Exception as e:
                 print(e)
 
@@ -132,21 +128,17 @@ class CobraBasicTest(unittest.TestCase):
 
         # test runCobraServer. needs its own thread, since runCobraServer blocks (run_forever)
         testobj = c_tests.TestObject()
-        import threading
         # this is kinda horrible.  probably better off not testing runCobraServer
-        while True:
+        daemon = None
+        while daemon is None:
             port = next(portnum)
             t = threading.Thread(target=cobra.runCobraServer, kwargs={'host':'', 'port':port, 'sslca':None, 'sslcrt':None, 'sslkey':None, 'msgpack':True}, daemon=True)
             t.start()
             time.sleep(1)   # wildly enough time to start the daemon if it's going to
             daemon = cobra.getCobraDaemon('', port, create=False)
-            if daemon:
-                break
 
         objname = daemon.shareObject( testobj )
         tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))
-        #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
-        #time.sleep(1)
         c_tests.accessTestObject( tproxy )
 
         
