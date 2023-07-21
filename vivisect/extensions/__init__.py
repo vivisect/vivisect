@@ -55,7 +55,7 @@ def loadExtensions(vw, vwgui):
                 spec.loader.exec_module(module)
 
                 if not hasattr(module, 'vivExtension'):
-                    logger.info("Skipping python module %r, not a valid extension", modpath)
+                    logger.warning("Skipping python module %r, not a valid extension (module has no vivExtension() function)", modpath)
                     continue
 
                 logger.info("Loading extension: %r", modpath)
