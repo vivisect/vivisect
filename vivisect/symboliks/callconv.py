@@ -1,12 +1,65 @@
 from envi.const import *
 from vivisect.symboliks.common import *
 
+class ArgDefSymEmu(object):
+    '''
+    An emulator snapped in to return the symbolic representation of
+    a calling convention arg definition.  This is used by getPreCallArgs when
+    called by {get, set}SymbolikArgs.  This allows us to not have to
+    re-implement cc argument parsing *again* for symbolics.
+    '''
+    def __init__(self, xlator=None):
+        if not xlator:
+            xlator = self.__xlator__(None)
+        self.xlator = xlator
+
+    def getRegister(self, ridx):
+        '''
+        uses the translators method to return a symbolic object for a
+        register index.
+        '''
+        return self.xlator.getRegObj(ridx)
+
+    def getStackCounter(self):
+        '''
+        uses the translators register ctx to find the sp index and returns a
+        symbolic object for the sp.
+        '''
+        return self.getRegister(self.xlator._reg_ctx._rctx_spindex)
+
+    def setStackCounter(self, value):
+        '''
+        stubbed out so when we re-use deallocateCallSpace we don't get an
+        exception.  we only use the delta returned by deallocateCallSpace; we
+        don't care that it's setting the stack counter.
+        '''
+        pass
+
+    def readMemoryFormat(self, va, fmt):
+        # TODO: we assume psize and le, better way? must be...
+        if not fmt.startswith('<') and not fmt.endswith('P'):
+            raise Exception('we dont handle this format string')
+
+        if isinstance(va, int):
+            va = Const(va, self.xlator._psize)
+
+        if len(fmt) == 2:
+            return Mem(va, Const(self.xlator._psize, self.xlator._psize))
+
+        args = []
+        num = int(fmt[1:fmt.index('P')])
+        for i in range(num):
+            args.append(Mem(va, Const(self.xlator._psize, self.xlator._psize)))
+            va += Const(self.xlator._psize, self.xlator._psize)
+
+        return args
+
 class SymbolikCallingConvention(object):
     '''
     use as a mixin to an existing envi calling convention.
     '''
-    def __init__(self):
-        self.argdefemu = self.__argdefemu__()
+    def __init__(self, xlator=None):
+        self.argdefemu = self.__argdefemu__(xlator)
         # Set up the symbolic constants
         self._width = self.align
 
