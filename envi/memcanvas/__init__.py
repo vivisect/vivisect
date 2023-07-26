@@ -400,6 +400,40 @@ class StringMemoryCanvas(MemoryCanvas):
         return self.strval
 
 
+class FileBackedMemoryCanvas(StringMemoryCanvas):
+    '''
+    FileBackedMemoryCanvas writes output to a file of your choosing.  It writes
+    out the data to the file after `rollwindow` number of calls to `addText()`.
+
+    NOTE: when done writing to the canvas, be certain to call `flush()` or you
+            will lose data.
+    '''
+    def __init__(self, filename, mem, syms=None, append=True, rollwindow=100):
+        StringMemoryCanvas.__init__(self, mem, syms)
+        if append:
+            self.fd = open(filename, 'a', encoding='utf-8')
+        else:
+            self.fd = open(filename, 'w', encoding='utf-8')
+
+        self.rollwindow = rollwindow
+        self.linecount = 0
+
+    def addText(self, text, tag=None):
+        super().addText(text, tag)
+
+        self.linecount += 1
+        if self.linecount % self.rollwindow == 0:
+            self.flush()
+
+    def flush(self):
+        self.fd.write(str(self))
+        self.clearCanvas()
+        self.linecount = 0
+
+    def __del__(self):
+        self.flush()
+        self.fd.close()
+
 class CanvasMethodProxy(object):
     '''
     Target for teecanvas.
@@ -410,8 +444,15 @@ class CanvasMethodProxy(object):
 
     def __call__(self, *args, **kwargs):
         for canvas in self.canvases:
-            attr = getattr(canvas, self.name)
-            attr(*args, **kwargs)
+            try:
+                attr = getattr(canvas, self.name)
+                attr(*args, **kwargs)
+            except Exception as e:
+                logger.warning("Error: %r", e, exc_info=1)
+
+    def __getattr__(self, name):
+        obj = getattr(self.canvases[0], self.name)
+        return getattr(obj, name)
 
 
 class TeeCanvas(object):
