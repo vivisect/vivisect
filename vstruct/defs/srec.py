@@ -106,10 +106,7 @@ class SRecFile(vstruct.VArray):
             ffvals = [ ff.vsGetValue() for ff in self._vs_fastfields ]
             return struct.pack(self._vs_fastfmt, *ffvals)
 
-        ret = b''
-        for fname, fobj in self.vsGetFields():
-            ret += fobj.vsEmit() + b'\r\n'
-        return ret.decode('utf-8')
+        return b''.join(fobj.vsEmit() + b'\r\n' for _, fobj in self.vsGetFields())
 
     def getEntryPoints(self):
         '''
