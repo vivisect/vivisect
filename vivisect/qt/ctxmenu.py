@@ -53,6 +53,7 @@ def printEmuState(vw, fva, va):
 
         vw.vprint(base)
 
+@firethread
 def newMemoryView(vw, xexpr):
     try:
         vw.getVivGui().newMemoryView(name="mem:%s" % xexpr, expr=xexpr)
@@ -60,6 +61,7 @@ def newMemoryView(vw, xexpr):
     except:
         logger.warning("Failed to create new MemoryView", exc_info=1)
 
+@firethread
 def newFuncGraph(vw, xexpr):
     try:
         vw.getVivGui().newFuncGraphView(name="FG:%s" % xexpr, expr=xexpr)
@@ -72,6 +74,16 @@ def initMemSendtoMenu(vw, xexpr, xmenu):
     e_q_memcanvas.initMemSendtoMenu(xexpr, xmenu)
     submenu = xmenu.addMenu('sendto: <new>')
     submenu.addAction('Memory View', ACT(newMemoryView, vw, xexpr))
+
+    # check if it's code
+    tgt = vw.parseExpression(xexpr)
+    if tgt is None:
+        return
+
+    funcva = vw.getFunction(tgt)
+    if funcva is None:
+        return
+    
     submenu.addAction('FuncGraph View', ACT(newFuncGraph, vw, xexpr))
 
 def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
