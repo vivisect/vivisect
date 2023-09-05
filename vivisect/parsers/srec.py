@@ -52,7 +52,7 @@ def parseFile(vw, filename, baseaddr=None):
 
         # calculate SREC-specific hash - only the fields copied into memory
         srdata = srec.vsEmit()
-        vw.setFileMeta(fname, 'sha256_srec', v_parsers.sha256Bytes(srdata.encode('utf-8')))
+        vw.setFileMeta(fname, 'sha256_srec', v_parsers.sha256Bytes(srdata))
 
         for eva in srec.getEntryPoints():
             if eva is not None:
