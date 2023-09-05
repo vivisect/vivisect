@@ -14,7 +14,6 @@ from envi.archs.ppc.const import *
 
 from vivisect.const import *
 from vivisect.symboliks.common import *
-from vivisect.symboliks.archs.i386 import ArgDefSymEmu
 
 from envi.archs.ppc.regs import * 
 
@@ -1830,16 +1829,16 @@ class Ppc64ServerSymbolikTranslator(PpcSymbolikTranslator):
 
 
 # ArgDefSymEmus
-class Ppc32EmbeddedArgDefSymEmu(ArgDefSymEmu):
+class Ppc32EmbeddedArgDefSymEmu(vsym_callconv.ArgDefSymEmu):
     __xlator__ = Ppc32EmbeddedSymbolikTranslator
 
-class Ppc64EmbeddedArgDefSymEmu(ArgDefSymEmu):
+class Ppc64EmbeddedArgDefSymEmu(vsym_callconv.ArgDefSymEmu):
     __xlator__ = Ppc64EmbeddedSymbolikTranslator
 
-class Ppc32ServerArgDefSymEmu(ArgDefSymEmu):
+class Ppc32ServerArgDefSymEmu(vsym_callconv.ArgDefSymEmu):
     __xlator__ = Ppc32ServerSymbolikTranslator
 
-class Ppc64ServerArgDefSymEmu(ArgDefSymEmu):
+class Ppc64ServerArgDefSymEmu(vsym_callconv.ArgDefSymEmu):
     __xlator__ = Ppc64ServerSymbolikTranslator
 
 
