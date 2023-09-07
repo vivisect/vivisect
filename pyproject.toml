@@ -8,7 +8,7 @@ version = '1.1.1'
 authors = [
     { name =  'The Vivisect Peeps', email = ''}
 ]
-description = 'Pure python disassembler, debugger, emulator, and static analysis framework',
+description = 'Pure python disassembler, debugger, emulator, and static analysis framework'
 readme = 'README.rst'
 requires-python = '>=3.11'
 license = { text = 'Apache License 2.0' }
