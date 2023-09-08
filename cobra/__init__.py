@@ -45,7 +45,6 @@ COBRASSL_PORT=5653
 cobra_retrymax = None # Optional *global* retry max count
 
 socket_builders = {}    # Registered socket builders
-daemon_threads = {}     # Registered CobraDaemons, keyed on (host,port) tuples
 
 # Message Types
 COBRA_HELLO     = 0
@@ -1161,13 +1160,31 @@ def initSocketBuilder(host,port):
         socket_builders[ (host,port) ] = builder
     return builder
 
+def getCobraDaemon(host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True, create=True, wait=False):
+    '''
+    getCobraDaemon starts a CobraDaemon with the provided arguments and 
+    launches it in a separate thread.  The CobraDaemon object is returned
+    to the caller.
+
+    If there's already an existing CobraDaemon running for this host/port, 
+    that is returned instead.
+
+    This command replaces startCobraServer
+    '''
+    return daemon_manager.getCobraDaemon(host, port, sslca, sslcrt, sslkey, msgpack)
+
 def startCobraServer(host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True):
     '''
+    DEPRECATED.  See getCobraDaemon instead.
+
     startCobraServer starts a CobraDaemon with the provided arguments and 
     launches it in a separate thread.  The CobraDaemon object is returned
     to the caller.
+
+    This API remains for backward compatability only, and duplicates
+    getCobraDaemon() functionality
     '''
-    return getCobraDaemon(host, port, sslca, sslcrt, sslkey, msgpack)
+    return daemon_manager.getCobraDaemon(host, port, sslca, sslcrt, sslkey, msgpack)
 
 def runCobraServer(host='', port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True):
     '''
@@ -1175,55 +1192,65 @@ def runCobraServer(host='', port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=Non
     (ie.  it doesn't return).  If one is already running, we join() to its 
     runner thread.
     '''
-    global daemon_threads
-    if (host, port) in daemon_threads:
-        ######## REDO USING getCobraDaemon
-        daemon = daemon_threads.get((host, port))
-        logger.info("CobraDaemon already exists on port %d, joining to that thread.", port)
-        daemon.thr.join()
+    daemon_manager.getCobraDaemon(host, port, sslca, sslcrt, sslkey, msgpack, wait=True)
 
-    daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
-    registerCobraDaemon(daemon)
-    daemon.serve_forever()
 
-def registerCobraDaemon(daemon):
-    '''
-    Registers the given CobraDaemon using the (host, port) combination
-    '''
-    global daemon_threads
-    key = (daemon.host, daemon.port)
-    if key in daemon_threads:
-        raise Exception("Daemon already exists on host %r port %d.  Please deregister that port first." % key)
 
-    daemon_threads[key] = daemon
+class DaemonManager:
+    def __init__(self):
+        self.daemons = {}
 
-def deregisterCobraDaemon(host, port):
-    '''
-    Deregisters the CobraDaemon registered for (host, port)
-    '''
-    global daemon_threads
-    if (host, port) in daemon_threads:
-        daemon_threads.pop((host, port))
+    def get(self, host, port):
+        '''
+        Simple accessor for the DaemonManager's daemons dict
+        Returns None if no daemon is already registered for that host/port
+        '''
+        return self.daemons.get((host, port))
 
-    else:
-        logger.warning("Attempted to deregister a CobraDaemon on a daemon that isn't registered: %r:%d", host, port)
+    def registerCobraDaemon(self, daemon):
+        '''
+        Registers the given CobraDaemon using the (host, port) combination
+        '''
+        key = (daemon.host, daemon.port)
+        if key in self.daemons:
+            raise Exception("Daemon already exists on host %r port %d.  Please deregister that port first." % key)
 
-def getCobraDaemon(host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True, create=True):
-    '''
-    Returns a registered CobraDaemon for the given parameters.  First checks if
-    one is already running for the current host/port and returns that.
-    Otherwise, a new CobraDaemon is started and registered
-    The CobraDaemon is returned.
-    '''
-    global daemon_threads
-    if (host, port) not in daemon_threads and create:
-        daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
-        daemon.fireThread()
-        registerCobraDaemon(daemon)
+        self.daemons[key] = daemon
 
-    daemon = daemon_threads.get((host, port))
+    def deregisterCobraDaemon(self, host, port):
+        '''
+        Deregisters the CobraDaemon registered for (host, port)
+        '''
+        if (host, port) in self.daemons:
+            self.daemons.pop((host, port))
 
-    return daemon
+        else:
+            logger.warning("Attempted to deregister a CobraDaemon on a daemon that isn't registered: %r:%d", host, port)
+
+
+    def getCobraDaemon(self, host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True, create=True, wait=False):
+        '''
+        Returns a registered CobraDaemon for the given parameters.  First checks if
+        one is already running for the current host/port and returns that.
+        Otherwise, a new CobraDaemon is started and registered
+        The CobraDaemon is returned.
+        '''
+        daemon = self.get(host, port)
+        if daemon is None and create:
+            daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
+            self.registerCobraDaemon(daemon)
+
+            if wait:
+                # never returns
+                daemon.serve_forever()
+
+        if wait:
+            # daemon already exists, join it (still never returns
+            daemon.thr.join()
+        else:
+            daemon.fireThread()
+
+        return daemon
 
 
 def shareObject(obj, name=None, doref=False):
@@ -1255,3 +1282,4 @@ def requireMsgpack():
     except ImportError:
         raise Exception('Missing "msgpack" python module ( http://visi.kenshoto.com/viki/Msgpack )')
 
+daemon_manager = DaemonManager()

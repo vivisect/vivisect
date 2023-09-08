@@ -114,7 +114,8 @@ class CobraBasicTest(unittest.TestCase):
 
         # test startCobraServer
         port = None
-        while port is None:
+        daemon = None
+        while daemon is None:
             try:
                 port = next(portnum)
                 daemon = cobra.startCobraServer(host="", port=port, sslca=None, sslcrt=None, sslkey=None, msgpack=True)
@@ -147,14 +148,14 @@ class CobraBasicTest(unittest.TestCase):
         testobj = c_tests.TestObject()
 
         daemon = cobra.CobraDaemon(port=port, msgpack=True)
-        cobra.registerCobraDaemon(daemon)
+        cobra.daemon_manager.registerCobraDaemon(daemon)
         daemon.fireThread()
         d2 = cobra.getCobraDaemon(host="", port=port, sslca=None, sslcrt=None, sslkey=None, msgpack=True, create=False)
         objname = d2.shareObject( testobj )
         tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))
         c_tests.accessTestObject( tproxy )
 
-        cobra.deregisterCobraDaemon('', port)
+        cobra.daemon_manager.deregisterCobraDaemon('', port)
 
         port = next(portnum)
         testobj = c_tests.TestObject()
