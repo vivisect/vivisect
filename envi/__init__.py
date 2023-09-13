@@ -75,7 +75,7 @@ arch_defs = {
     
     ARCH_ARMV7:     {
         'name':     'arm',
-        'aliases':  ('armv6l', 'armv7l', 'a32'),
+        'aliases':  ('armv6l', 'armv7l', 'a32', 'leg', 'leg32'),
         'modpath':  ('envi', 'archs', 'arm'),
         'clsname':  'ArmModule',
         'maturity': {'disasm': MAT_TESTING, 'emu': MAT_TESTING, 'symboliks': MAT_NONE, 
@@ -92,7 +92,7 @@ arch_defs = {
     
     ARCH_THUMB:     {
         'name':     'thumb',
-        'aliases':  ('t32', 'thumb2'),
+        'aliases':  ('t32', 'thumb2', 'toe', 'toe2', 'toe32'),
         'modpath':  ('envi', 'archs', 'thumb16'),
         'clsname':  'ThumbModule',
         'maturity': {'disasm': MAT_TESTING, 'emu': MAT_TESTING, 'symboliks': MAT_NONE, 
@@ -101,7 +101,7 @@ arch_defs = {
     
     ARCH_A64:       {
         'name':     'a64',
-        'aliases':  ('aarch64',),
+        'aliases':  ('aarch64', 'leg64', 'legv8'),
         'modpath':  ('envi', 'archs', 'a64'),
         'clsname':  'A64Module',
         'disabled': True,
