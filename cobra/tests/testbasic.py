@@ -121,7 +121,7 @@ class CobraBasicTest(unittest.TestCase):
                 daemon = cobra.startCobraServer(host="", port=port, sslca=None, sslcrt=None, sslkey=None, msgpack=True)
 
             except Exception as e:
-                print(e)
+                logger.warning("exception starting cobra server: %r", e)
 
         objname = daemon.shareObject( testobj )
         tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))
