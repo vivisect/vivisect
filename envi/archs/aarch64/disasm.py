@@ -632,11 +632,11 @@ def p_sys(opval, va):
         )
         iflag = 0
         
-    elif relevant & 0b1111111111000011111111 == 0b00001100110000010011111:
+    elif relevant & 0b1111111111000011111111 == 0b00000110011000010011111:
         opcode = INS_DSB
         mnem = 'dsb'
         olist = (
-            A64BarrierOptionOper(crm),
+            # A64BarrierOptionOper(crm), # Either/or, may implement later
             A64ImmOper(crm, va=va),
         )
         iflag = 0
@@ -2617,7 +2617,7 @@ def p_data_proc_2(opval, va):
 
     if opc >> 4 & 0b1 == 0b0:
         if opc >> 3 & 0b1 == 0b0:
-            if opc & 0b0 == 0b0:
+            if opc & 0b1 == 0b0:
                 opcode = INS_UDIV
                 mnem = 'udiv'
             else:
@@ -2625,14 +2625,14 @@ def p_data_proc_2(opval, va):
                 mnem = 'sdiv'
         else:
             if opc >> 1 & 0b1 == 0b0:
-                if opc & 0b0 == 0b0:
+                if opc & 0b1 == 0b0:
                     opcode = INS_LSLV
                     mnem = 'lslv'
                 else:
                     opcode = INS_LSRV
                     mnem = 'lsrv'
             else:
-                if opc & 0b0 == 0b0:
+                if opc & 0b1 == 0b0:
                     opcode = INS_ASRV
                     mnem = 'asrv'
                 else:
@@ -7108,7 +7108,7 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
         ival = self.getOperValue(op)
         if ival > 4096:
             return "#0x%.8x" % ival
-        return str(ival)
+        return "#" + str(ival)
 
     def getOperValue(self, op, emu=None):
         return shifters[self.shtype](self.val, self.shval, self.size, emu)
@@ -7482,7 +7482,7 @@ class A64Disasm:
     #ARCH_REVS is a file containing all masks for various versions of ARM. In const.py
     _archVersionMask = ARCH_REVS['ARMv8A']
 
-    def __init__(self, endian=ENDIAN_MSB, mask = 'a64'):
+    def __init__(self, endian=ENDIAN_LSB, mask = 'a64'):
         self.setArchMask(mask)
         self.setEndian(endian)
 
