@@ -1186,15 +1186,6 @@ def startCobraServer(host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=N
     '''
     return daemon_manager.getCobraDaemon(host, port, sslca, sslcrt, sslkey, msgpack)
 
-def runCobraServer(host='', port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True):
-    '''
-    runCobraServer starts a CobraDaemon with the given parameters and serves
-    (ie.  it doesn't return).  If one is already running, we join() to its 
-    runner thread.
-    '''
-    daemon_manager.getCobraDaemon(host, port, sslca, sslcrt, sslkey, msgpack, wait=True)
-
-
 
 class DaemonManager:
     def __init__(self):
@@ -1245,7 +1236,7 @@ class DaemonManager:
                 daemon.serve_forever()
 
         if wait:
-            # daemon already exists, join it (still never returns
+            # daemon already exists, join it (still never returns)
             daemon.thr.join()
         else:
             daemon.fireThread()

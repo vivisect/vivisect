@@ -127,22 +127,6 @@ class CobraBasicTest(unittest.TestCase):
         tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))
         c_tests.accessTestObject( tproxy )
 
-        # test runCobraServer. needs its own thread, since runCobraServer blocks (run_forever)
-        testobj = c_tests.TestObject()
-        # this is kinda horrible.  probably better off not testing runCobraServer
-        daemon = None
-        while daemon is None:
-            port = next(portnum)
-            t = threading.Thread(target=cobra.runCobraServer, kwargs={'host':'', 'port':port, 'sslca':None, 'sslcrt':None, 'sslkey':None, 'msgpack':True}, daemon=True)
-            t.start()
-            time.sleep(1)   # wildly enough time to start the daemon if it's going to
-            daemon = cobra.getCobraDaemon('', port, create=False)
-
-        objname = daemon.shareObject( testobj )
-        tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))
-        c_tests.accessTestObject( tproxy )
-
-        
         # test getCobraDaemon()
         port = next(portnum)
         testobj = c_tests.TestObject()
