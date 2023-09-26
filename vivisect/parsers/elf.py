@@ -648,7 +648,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     elif vw.isProbablyUnicode(sva):
                         vw.makeUnicode(sva, size=s.st_size)
                     elif vw.isProbablyString(sva):
-                        vw.makeString(sva, size=s.st_size)
+                        try:
+                            vw.makeString(sva, size=s.st_size)
+                        except Exception as e:
+                            logger.warning("bad attempt to make a string at 0x%x of size %d", sva, s.st_size, exc_info=1)
                     elif s.st_size % vw.getPointerSize() == 0 and s.st_size >= vw.getPointerSize():
                         # so it could be something silly like an array
                         for addr in range(sva, sva+s.st_size, vw.psize):
