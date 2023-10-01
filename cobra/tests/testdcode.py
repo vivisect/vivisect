@@ -1,9 +1,16 @@
+import os
+import time
+import logging
 import unittest
 import contextlib
 
 import cobra
 import cobra.dcode
 import cobra.remoteapp
+
+from subprocess import Popen, PIPE
+
+logger = logging.getLogger(__name__)
 
 
 class Foo:
@@ -46,3 +53,51 @@ class CobraDcodeTest(unittest.TestCase):
             self.assertEqual(srv.add(), 7)
             self.assertEqual(srv.mult(), 12)
             self.assertEqual(srv.pow(), 81)
+
+
+    def test_dcode_remotecode(self):
+        '''
+        This test can be confusing, because we're using Dcode to access the
+        local machine, not a remote one.
+
+        First, we setup a dcode server with a special base path of "cobra".
+        This makes the contents of Vivisect's `cobra` directory accessible
+        as a top-level.
+
+        Next, we connect to the the Dcode server with the unittest process
+        and import dcode from the "remote" cobra path offered by Dcode.
+        
+        Assertion is just a constant from the remote cobra module
+        '''
+
+        # setup server-side with special path: importing "cobra" as the base,
+        # so anything in that directory becomes top-level, eg. cobra.dcode can
+        # be imported as "import dcode")
+        p = Popen("python3 -m cobra.dcode -P 12347 cobra".split(' '),
+                executable='python3', stdin=PIPE, stderr=PIPE)
+
+        buf = b''
+        starttime = time.time()
+        while b'Adding path "cobra" to system path' not in buf:
+            # timeout after 10 seconds waiting for this string
+            if time.time() - starttime > 10:
+                break
+
+            # peek allows us to check for data without blocking
+            if len(p.stderr.peek()):
+                buf += p.stderr.read1()
+
+        time.sleep(.1)
+        # setup client-side
+        cobra.dcode.addDcodeServer('localhost', 12347)
+
+        # this doesn't exist in the local PYTHONPATH, but should come from the Dcode server
+        import dcode    # through Dcode, this is accessing cobra.dcode
+
+        # now we'll test the constant COBRA_CALL (which we get through Dcode)
+        self.assertEqual(dcode.cobra.COBRA_CALL, 1)
+
+        # cleanup
+        p.kill()
+        p.wait()
+
