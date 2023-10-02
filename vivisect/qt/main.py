@@ -145,7 +145,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         curname = self.vw.getName(va)
         if curname is None:
-            curname = ''
+            curname = 'loc_%.8x' % va
 
         name, ok = QInputDialog.getText(parent, 'Enter...', 'Name', text=curname)
         if ok:
