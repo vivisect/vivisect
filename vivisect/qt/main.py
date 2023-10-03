@@ -118,7 +118,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
         self.addHotKey('ctrl+m', 'view:memory')
-        self.addHotKey('ctrl+f', 'view:funcgraph')
+        self.addHotKey('ctrl+g', 'view:funcgraph')
 
     def vprint(self, msg, addnl=True):
         # ripped and modded from envi/cli.py
