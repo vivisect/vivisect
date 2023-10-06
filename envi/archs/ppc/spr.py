@@ -199,6 +199,8 @@ sprs = {
     601: ("DVC1U", "Alias to high order 32 bits of DVC1 register. (alias", 32),
     602: ("DVC2U", "Alias to high order 32 bits of DVC2 register. (alias", 32),
 
+    603: ("DBCR6", " Debug control register 6 ", 32),
+
     # Hypervisor
     604: ("SPRG8", "SPRG8", 64),
     605: ("SPRG9", "SPRG9", 64),
