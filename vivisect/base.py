@@ -458,6 +458,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         else:
             self.comments[va] = comment
 
+    def _handleENDIAN(self, einfo):
+        self._doSetEndian(einfo)
+
     def _handleADDFILE(self, einfo):
         normname, imagebase, md5sum = einfo
         self.filemeta[normname] = {"md5sum":md5sum,"imagebase":imagebase}
@@ -586,6 +589,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
         self.ehand[VWE_WRITEMEM] = self._handleWRITEMEM
+        self.ehand[VWE_ENDIAN] = self._handleENDIAN
 
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
@@ -669,18 +673,34 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     #def _loadImportApi(self, apidict):
         #self._imp_api.update( apidict )
 
+    def getEndian(self):
+        return self.bigend
+
+    def _doSetEndian(self, endian):
+        self.bigend = endian
+        for arch in self.imem_archs:
+            if not arch:
+                continue
+            arch.setEndian(self.bigend)
+
 
 #################################################################
 #
 #  setMeta key callbacks
 #
     def _mcb_Architecture(self, name, value):
-        # This is for legacy stuff...
-        self.arch = envi.getArchModule(value)
-        self.psize = self.arch.getPointerSize()
-
         archid = envi.getArchByName(value)
-        self.setMemArchitecture(archid)
+        try:
+            # Some of the ENVI archs defined may not architecture modules that 
+            # are still in progress
+            self.setMemArchitecture(archid)
+        except IndexError:
+            raise Exception("Architecture Module not defined for %s yet!" % value)
+
+        # This is for legacy stuff...
+        #self.arch = envi.getArchModule(value)
+        self.arch = self.getMemArchModule()
+        self.psize = self.arch.getPointerSize()
 
         # Default calling convention for architecture
         # This will be superceded by Platform and Parser settings
