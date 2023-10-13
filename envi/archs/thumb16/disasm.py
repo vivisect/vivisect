@@ -375,7 +375,7 @@ def branch_misc(va, val, val2):  # bl and misc control
             R |= (val2 << 2) & 0b1111100
 
             opers = (ArmRegOper(Rd),
-                     ArmPgmStatRegOper(R),)
+                     ArmPgmStatRegOper(R, mask=0),)
             return COND_AL, None, 'mrs', opers, None, 0
 
         elif op == 0b0111111:
@@ -385,7 +385,7 @@ def branch_misc(va, val, val2):  # bl and misc control
             R |= (val2 << 2) & 0b1111100
 
             opers = (ArmRegOper(Rd),
-                     ArmPgmStatRegOper(R))
+                     ArmPgmStatRegOper(R, mask=0))
 
             return COND_AL, None, 'mrs', opers, None, 0
 

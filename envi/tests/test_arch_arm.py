@@ -25,8 +25,8 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5960
-GOOD_EMU_TESTS = 1190
+GOOD_TESTS = 5962
+GOOD_EMU_TESTS = 1191
 '''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -1406,7 +1406,7 @@ instrs = [
 
         (REV_ALL_ARM, 'e4404ff4', 0x4561, 'lsrs r4, r4', 0, ()),
         (REV_ALL_ARM, '63ea0102', 0x4561, 'orn.w r2,r3,r1', 0, (
-            {'setup':(('r1',0xaaaaaaaa),('r3',0x44400),),
+            {'setup':(('r3',0xaaaaaaaa),('r1',0x44400),),
                 'tests':(('r2',0xfffbbbff),) },
             )),
         (REV_ALL_ARM, 'ab066ff0', 0x2, 'lsls r3, r5, #0x1a', 0, ()),

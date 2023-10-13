@@ -361,7 +361,7 @@ def p_misc(opval, va):
         Rd = (opval>>12) & 0xf
         olist = (
             ArmRegOper(Rd, va=va),
-            ArmPgmStatRegOper(r),
+            ArmPgmStatRegOper(r, mask=0),
         )
     else:
         raise envi.InvalidInstruction(
