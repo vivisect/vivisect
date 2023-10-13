@@ -55,8 +55,8 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
     returns as much info as possible if not discrete data.
 
     * If a read is from a real memory map, return that memory.
-    
-    These are both very useful for analyzing switchcases, to determine where in 
+
+    These are both very useful for analyzing switchcases, to determine where in
     memory a read occurs and the data comes from.
     '''
     def __init__(self, vw):
@@ -69,13 +69,13 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
         Clear read-tracker to start another analysis
         '''
         self._trackReads = []
-        
+
     def track(self, va, addrval, val):
         '''
         Track reads in this SymbolikEmulator for later analysis
         '''
         self._trackReads.append((va, addrval, val))
-        
+
     def getTrackInfo(self):
         '''
         Retrieve reads so far, for analysis
@@ -84,7 +84,7 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
 
     def setupFunctionCall(self, fva, args=None):
         logger.info("setupFunctionCall: SKIPPING!")
-        
+
     def readSymMemory(self, symaddr, symsize, vals=None):
         '''
         The readSymMemory API is designed to read from the given
@@ -94,7 +94,7 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
         '''
         addrval = symaddr.update(self).solve(emu=self, vals=vals)
         logger.debug('   TSE.readSymMemory: symaddr:%r  addrval:0x%x symsize:%s',symaddr, addrval, symsize)
-        
+
         # check for a previous write first...
         symmem = self._sym_mem.get(addrval)
         if symmem is not None:
@@ -113,20 +113,20 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
                     symval = Var(linfo, self.__width__)
                     self.track(self.getMeta('va'), symaddr, symval)
                     return symval
-            
-            if self._sym_vw.isValidPointer(addrval):        
+
+            if self._sym_vw.isValidPointer(addrval):
                 if symsize.isDiscrete():
                     size = symsize.solve()
                 else:
                     size = symsize
-                    
+
                 if size in (1, 2, 4, 8):
                     # return real number from memory
                     fmt = e_bits.getFormat(size, self._sym_vw.getEndian(), signed=True)
                     val, = self._sym_vw.readMemoryFormat(addrval, fmt)
                     self.track(self.getMeta('va'), symaddr, val)
                     return Const(val, size)
-                
+
                 # return string  (really?)
                 symval = self._sym_vw.readMemory(addrval, size)
                 self.track(self.getMeta('va'), symaddr, symval)
@@ -343,8 +343,8 @@ class SwitchCase:
     Actually do the analysis for each dynamic branch.
     * First, for analysis: target addresses, case-offset, number of cases
     * Second, to wire things up.
-    
-    Tracks the state of analysis so each component can easily do it's part 
+
+    Tracks the state of analysis so each component can easily do it's part
     without handing a ton of variables around between functions.
     '''
     def __init__(self, vw, jmpva, timeout=180):
@@ -390,7 +390,7 @@ class SwitchCase:
     def clearCache(self):
         '''
         While analyzing a switchcase, we end up caching several calculated items.
-        This function clears them, so we can reset the state, like to skip 
+        This function clears them, so we can reset the state, like to skip
         inappropriate paths (eg.   if x> 3 and if x == 0
         '''
         self.cspath = None
@@ -412,8 +412,6 @@ class SwitchCase:
         '''
         self.makeSwitch()
 
-    
-    
     #### primitives for switchcase analysis ####
     def getJmpSymVar(self):
         '''
@@ -443,7 +441,7 @@ class SwitchCase:
     def getSymIdx(self):
         '''
         returns the symbolik index register, and the type of object
-        returns first one found, first checking SYMT_VAR's and only 
+        returns first one found, first checking SYMT_VAR's and only
         then looking at SYMT_MEM symbolic indexes
         '''
         symtgt = self.getSymTarget()
@@ -469,7 +467,7 @@ class SwitchCase:
         '''
         Returns a list of Constraint objects from the current codepath.
         Some of these constraints should have checks for boundaries against our
-        index variable which will prove helpful determining case-offset and 
+        index variable which will prove helpful determining case-offset and
         case-count.
         '''
         csp, asp, fullp = self.getSymbolikParts()
@@ -485,7 +483,7 @@ class SwitchCase:
         '''
         Returns symbolik effects for the last codeblock, which should never change.
         This should be small and does not require a path be generated, so it should
-        be safe for early analysis and vetting of the dynamic branch (if it's not 
+        be safe for early analysis and vetting of the dynamic branch (if it's not
         a switchcase, don't do all the heavy lifting)
         '''
         vw = self.vw
@@ -522,7 +520,7 @@ class SwitchCase:
         '''
         if not doNext and self.cspath is not None and self.aspath is not None and self.fullpath is not None:
             return self.cspath, self.aspath, self.fullpath
-        
+
         self.clearCache()
 
         vw = self.vw
@@ -551,7 +549,7 @@ class SwitchCase:
 
         if len(self.cspath[1]) == 0:
             self.cspath = self.aspath
-        
+
         self.fullpath = next(sctx.getSymbolikPaths(fva, graph=self._sgraph, args=None, paths=[self._codepath]))
 
         return self.cspath, self.aspath, self.fullpath
@@ -576,8 +574,6 @@ class SwitchCase:
 
         return cplxIdx
 
-
-    
     #### mid-level functionality ####
     def getBaseSymIdx(self):
         '''
@@ -661,7 +657,7 @@ class SwitchCase:
         self.baseoff = offset
 
         return symobj, offset
-        
+
     def getNormalizedConstraints(self):
         '''
         takes in a complex index symbolik state
@@ -669,23 +665,24 @@ class SwitchCase:
         '''
         retcons = []
         baseIdx, baseoff = self.getBaseSymIdx()
+        SKIPS = (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE)
 
         for con in self.getBoundingCons(baseIdx): # merge the two
             cons = con.cons
 
-            if not cons.symtype in (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE): 
+            if not cons.symtype in SKIPS:
                 #logger.debug("SKIPPING NON-LIMITING: cons = %s", repr(cons))
                 #return None, None, None
                 continue
-            
+
             if cons.kids[1].symtype == SYMT_CONST:
                 symvar = cons.kids[0]
                 symcmp = cons.kids[1]
-            
+
             elif cons.kids[0].symtype == SYMT_CONST:
                 symcmp = cons.kids[0]
                 symvar = cons.kids[1]
-            
+
             else:
                 # neither side of the constraint is a CONST.  this constraint does 
                 # not set static bounds on idx
@@ -725,7 +722,7 @@ class SwitchCase:
         upper = None    # the largest index used.  max=self.max_cases
         count = 0
         baseoff = None
-       
+
         try:
             while lower is None or (lower == 0 and upper is None) or (upper is not None and upper <= lower): # note: this will fail badly when it fails.  make this dependent on the codepathgen
                 # get the index we'll be looking for in constraints
@@ -749,22 +746,22 @@ class SwitchCase:
                     #conthing, consoff = peelIdxOffset(symvar)
                     if stype == SYMT_CON_GT: # this is setting the lower bound
                         newlower = offset + 1
-                        if newlower > lower: 
+                        if newlower > lower:
                             logger.info("==setting a lower bound:  %s -> %s", lower, newlower)
                             lower = newlower
-                        
+
                     elif stype == SYMT_CON_GE: # this is setting the lower bound
                         newlower = offset
-                        if newlower > lower: 
+                        if newlower > lower:
                             logger.info("==setting a lower bound:  %s -> %s", lower, newlower)
                             lower = newlower
-                        
+
                     elif stype == SYMT_CON_LT: # this is setting the upper bound
                         newupper = offset - 1
                         if upper is None or newupper < upper and newupper > 0:
                             logger.info("==setting a upper bound:  %s -> %s", upper, newupper)
                             upper = newupper
-                        
+
                     elif stype == SYMT_CON_LE: # this is setting the upper bound
                         newupper = offset
                         if upper is None or newupper < upper and newupper > 0:
@@ -778,7 +775,7 @@ class SwitchCase:
         except StopIteration:
             pass
 
-        # if upper is None:  we need to exercize upper until something doesn't make sense.  
+        # if upper is None:  we need to exercise upper until something doesn't make sense.  
         # we also need to make sure we don't analyze non-Switches.  
         if upper is None:
             upper = self.max_cases
@@ -899,8 +896,8 @@ class SwitchCase:
         try:
             # relying on getBounds() to bail on non-switch-cases
             lower, upper, baseoff = self.getBounds()
-            if None in (lower, ): 
-                logger.info("something odd in count/offset calculation...(%r,%r,%r) skipping 0x%x...", 
+            if None in (lower, ):
+                logger.info("something odd in count/offset calculation...(%r,%r,%r) skipping 0x%x...",
                             lower, upper, baseoff, self.jmpva)
                 return
 
@@ -909,7 +906,7 @@ class SwitchCase:
                 if count > self.case_failure:
                     logger.warning("TOO many switch cases detected: %d.  FAILURE.  Skipping this dynamic branch (0x%x)", count, self.jmpva)
                     return
-                
+
                 logger.warning("too many switch cases during analysis: %d   limiting to %d (0x%x)", count, self.max_cases, self.jmpva)
                 count = self.max_cases
 
@@ -919,21 +916,21 @@ class SwitchCase:
             memrefs = []
             for idx, addr in self.iterCases():
                 logger.info("0x%x analyzeSwitch: idx: %s \t address: 0x%x", self.jmpva, idx, addr)
-                
+
                 # determining when to stop identifying switch-cases can be tough.  we assume that we have the 
                 # correct number handed into this function in "count", but currently we'll stop analyzing
                 # if we run into trouble.
                 if not vw.isValidPointer(addr):
                     logger.info("found invalid pointer.  quitting.  (0x%x in 0x%x)", addr, self.jmpva)
                     break
-                
+
                 tloc = vw.getLocation(addr)
                 if tloc is not None and tloc[0] != addr:
                     # pointing at something not right.  must be done.
                     logger.info("found overlapping location at 0x%x (cur: 0x%x).  quitting. (0x%x)", \
                             addr, tloc[0], self.jmpva)
                     break
-             
+
                 if len(cases):
                     xrefsto = vw.getXrefsTo(addr)
                     # if there is an xref to this target from within this function, we're still ok... ish?
@@ -950,7 +947,7 @@ class SwitchCase:
                         if not good:
                             logger.info("target location (0x%x) has xrefs. (0x%x)", addr, self.jmpva)
                             break
-                
+
                 # this is a valid thing, we have locations...  match them up
                 caselist = cases.get(addr)
                 if caselist is None:
@@ -973,7 +970,7 @@ class SwitchCase:
             if baseoff is not None:
                 lower += baseoff
                 upper += baseoff
-            
+
             vw.setComment(self.jmpva, "lower: 0x%x, upper: 0x%x" % (lower, upper))
 
             vagc.analyzeFunction(vw, funcva)
@@ -1000,7 +997,7 @@ class SwitchCase:
         except Exception as e:
             logger.warning("Switchcase Analysis BOMBED OUT 0x%x\n%r", self.jmpva, e, exc_info=1)
 
-        logger.warning("--- %.3f (0x%x)", time.time() - start, self.jmpva)
+        logger.debug("Symswitchcase took %.3f for jump at virtual address 0x%x", time.time() - start, self.jmpva)
 
 
     def markDerefs(self):
@@ -1090,7 +1087,7 @@ def makeNames(vw, jmpva, cases, baseoff=0):
         idxs = '_'.join(outstrings)
         casename = "case_%s_%x" % (idxs, addr)
 
-        curname = vw.getName(addr) 
+        curname = vw.getName(addr)
         if curname is not None:
             ## TODO:   if already labeled, chances are good this is other cases in the same function.
             ## either simply add the new outstrings to the current one or we need to keep track of what
@@ -1103,7 +1100,6 @@ def makeNames(vw, jmpva, cases, baseoff=0):
 
     vw.makeName(jmpva, "switch_%.8x" % jmpva)
     logger.info("making switchname: switch_%.8x", jmpva)
-       
 
 
 def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
@@ -1113,8 +1109,8 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
     If baseva is None, the array is treated as a pointer array
     Otherwise, the numbers in the array are treated as offset from baseva
 
-    If itemsize is not None, itemsize is treats as the size of each item 
-        in the array (in bytes.. ie. 2, 4, 8 bytes)
+    If itemsize is not None, itemsize is treated as the size of each item
+        in the array (in bytes. ie. 2, 4, 8 bytes)
     '''
     funcva = vw.getFunction(jmpva)
     lower = 0
@@ -1145,20 +1141,20 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
             addr = e_bits.unsigned(baseva + addr, vw.psize)
 
         logger.info("0x%x analyzeSwitch: idx: %s \t address: 0x%x", jmpva, idx, addr)
-        
+
         # determining when to stop identifying switch-cases can be tough.  we assume that we have the 
         # correct number handed into this function in "count", but currently we'll stop analyzing
         # if we run into trouble.
         if not vw.isValidPointer(addr):
             logger.info("found invalid pointer.  quitting.  (0x%x in 0x%x)" % addr, jmpva)
             break
-        
+
         tloc = vw.getLocation(addr)
         if tloc is not None and tloc[0] != addr:
             # pointing at something not right.  must be done.
             logger.info("found overlapping location.  quitting.")
             break
-     
+
         if len(cases):
             xrefsto = vw.getXrefsTo(addr)
             # if there is an xref to this target from within this function, we're still ok... ish?
@@ -1176,7 +1172,7 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
                 if not good:
                     logger.info("target location (0x%x) has xrefs.", addr)
                     break
-        
+
         # this is a valid thing, we have locations...  match them up
         caselist = cases.get(addr)
         if caselist is None:
@@ -1205,7 +1201,7 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
     if baseoff is not None:
         lower += baseoff
         upper += baseoff
-    
+
     vw.setComment(jmpva, "lower: 0x%x, upper: 0x%x" % (lower, upper))
 
 
@@ -1224,8 +1220,7 @@ def analyzeFunction(vw, fva, timeout=None):
 
     if not timeout:
         timeout = vw.config.viv.analysis.symswitchcase.timeout_secs
-        
-    
+
     # because the VaSet is often updated during analysis, we have to check to see if there are new 
     # dynamic branches to analyze.
     while lastdynlen != len(dynbranches):
