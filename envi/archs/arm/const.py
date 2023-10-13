@@ -318,9 +318,11 @@ PM_REGCNT = 4
 PM_PSROFF   = 5
 PM_PRIVLVL  = 6
 
-PSR_APSR    = 2
-PSR_SPSR    = 1
 PSR_CPSR    = 0
+PSR_SPSR    = 1
+PSR_APSR    = 2
+
+
 
 INST_ENC_DP_IMM = 0 # Data Processing Immediate Shift
 INST_ENC_MISC   = 1 # Misc Instructions

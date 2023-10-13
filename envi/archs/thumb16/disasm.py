@@ -294,18 +294,22 @@ def branch_misc(va, val, val2):  # bl and misc control
 
         # xx0xxxxx and others
         if op & 0b1111110 == 0b0111000:
-            tmp = op2 & 3
+            priv_mask = op2 & 3
 
             Rn = val & 0xf
             mask = (val2 >> 8) & 0xf
-            if not (op & 1) and tmp == 0:
+            ##### Other Special Registers (magic encoding)
+            R = (op & 1)    # CPSR==0, SPSR==1
+            # also handle (seemingly) Thumb-only accesses:
+            R |= (val2 << 2) & 0b1111100
+
+            if R == 0 and priv_mask == 0:   # R == CPSR and mask&3 == 0
                 # MSR(register) p A8-498
                 R = PSR_APSR
 
-            else:   # op==0111000 and op2==01/10/11 or op==0111001
-                # MSR(register) p B9-1968
-                R = (val >> 4) & 1
-                # System Level Only...
+            # also op==0111000 and op2==01/10/11 or op==0111001
+            # MSR(register) p B9-1968
+            # System Level Only...
 
             opers = (ArmPgmStatRegOper(R, mask),
                      ArmRegOper(Rn))
@@ -364,14 +368,22 @@ def branch_misc(va, val, val2):  # bl and misc control
             return COND_AL, None, 'sub', opers, IF_PSR_S, 0
 
         elif op == 0b0111110:
+            imm8 = val2 & 0xff
             Rd = (val2 >> 8) & 0xf
+            R = (val >> 4) & 1
+            # handle special regs:
+            R |= (val2 << 2) & 0b1111100
+
             opers = (ArmRegOper(Rd),
-                     ArmPgmStatRegOper(PSR_CPSR),)
+                     ArmPgmStatRegOper(R),)
             return COND_AL, None, 'mrs', opers, None, 0
 
         elif op == 0b0111111:
             Rd = (val2 >> 8) & 0xf
             R = (val >> 4) & 1
+            # handle special regs:
+            R |= (val2 << 2) & 0b1111100
+
             opers = (ArmRegOper(Rd),
                      ArmPgmStatRegOper(R))
 

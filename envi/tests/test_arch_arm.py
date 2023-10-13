@@ -1405,6 +1405,10 @@ instrs = [
         (REV_ALL_ARM, 'f4efec2f', 0x4561, 'vext.8 q9, q10, q14, #0x0f', 0, ()),
 
         (REV_ALL_ARM, 'e4404ff4', 0x4561, 'lsrs r4, r4', 0, ()),
+        (REV_ALL_ARM, '63ea0102', 0x4561, 'orn.w r2,r3,r1', 0, (
+            {'setup':(('r1',0xaaaaaaaa),('r3',0x44400),),
+                'tests':(('r2',0xfffbbbff),) },
+            )),
         (REV_ALL_ARM, 'ab066ff0', 0x2, 'lsls r3, r5, #0x1a', 0, ()),
         (REV_ALL_ARM, '9800d6f8', 0x6, 'lsls r0, r3, #0x02', 0, ()),
         (REV_ALL_ARM, '407f10f4', 0xa, 'ldrb r0, [r0, #0x1d]', 0, ()),

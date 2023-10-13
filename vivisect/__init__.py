@@ -782,10 +782,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
 
         elif ltype == LOC_STRING:
+            logger.debug("followPointer->makeString(0x%x)", va)
             self.makeString(va)
             return True
 
         elif ltype == LOC_UNI:
+            logger.debug("followPointer->makeUnicode(0x%x)", va)
             self.makeUnicode(va)
             return True
 
@@ -1384,6 +1386,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.addXref(va, tova, REF_DATA)
                 ptrdest = None
                 if self.getLocation(tova) is None:
+                    logger.debug('makeOpcode(0x%x)->makePointer(0x%x)', va, tova)
                     ptrdest = self.makePointer(tova, follow=False)
 
                 # If the actual dest is executable, make a code ref fixup
@@ -2100,12 +2103,18 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if tova is None:
             tova = self.castPointer(va)
 
-        self.addXref(va, tova, REF_PTR)
-
         ploc = self.addLocation(va, psize, LOC_POINTER)
 
         if follow and self.isValidPointer(tova):
             self.followPointer(tova)
+
+        # Get type of target and hand into addXref()
+        rflags = 0
+        toloc = self.getLocation(tova)
+        if toloc and toloc[L_LTYPE] == LOC_OP:
+            rflags = envi.BR_PROC
+
+        self.addXref(va, tova, REF_PTR, rflags)
 
         return ploc
 

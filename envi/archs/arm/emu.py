@@ -685,6 +685,24 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, tsize))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, tsize))
        
+    def i_orn(self, op):
+        tsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            val1 = self.getOperValue(op, 1)
+            val2 = self.getOperValue(op, 2)
+        else:
+            val1 = self.getOperValue(op, 0)
+            val2 = self.getOperValue(op, 1)
+        val = val1 | (~val2)
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, tsize))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, tsize))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, tsize))
+       
     def i_stm(self, op):
         if len(op.opers) == 2:
             srcreg = op.opers[0].reg

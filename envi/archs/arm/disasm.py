@@ -4893,19 +4893,62 @@ class ArmPcOffsetOper(ArmOperand):
         return tname
 
 
-psrs = ("CPSR", "SPSR", 'APSR', 'inval', 'inval', 'inval', 'inval', 'inval',)
+CORE_PSRS = ("CPSR", "SPSR", 'APSR', None,)
+SPEC_REGS = (
+    None,
+    'IAPSR',
+    'EAPSR',
+    'PSR',
+    '<unknown>',
+    'IPSR',
+    'EPSR',
+    'IEPSR',
+    'MSP',
+    'PSP',
+    'MSPLIM',
+    'PSPLIM',
+    '<unknown>',
+    '<unknown>',
+    '<unknown>',
+    '<unknown>',
+    'PRIMASK',
+    'BASEPRI',
+    'BASEPRI_M',
+    'FAULTMASK',
+    'CONTROL',
+)
+
+psrs = [psr for psr in CORE_PSRS]
+for psr in SPEC_REGS:
+    for count in range(4):
+        psrs.append(psr)
+
 fields = (None, 'c', 'x', 'cx', 's', 'cs', 'xs', 'cxs',  'f', 'fc', 'fx', 'fcx', 'fs', 'fcs', 'fxs', 'fcxs')
+aspr_fields = [None for x in range(16)]
+aspr_fields[8] = 'nzcvq'
+aspr_fields[4] = 'g'
+aspr_fields[0xc] = 'nzcvqg'
+
+expanded_mask = []
+for x in range(16):
+    temp = 0
+    for y in range(4):
+        if x & (1<<y):
+            temp |= (0b11111111 << (y*8))
+
+    expanded_mask.append(temp)
+
 
 class ArmPgmStatRegOper(ArmOperand):
-    def __init__(self, r, val=0, mask=0xffffffff):
+    def __init__(self, r, mask=0b1111):
+        '''
+        mask and fields are overlapping data
+        '''
         self.mask = mask
-        self.val = val
         self.psr = r
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
-            return False
-        if self.val != oper.val:
             return False
         if self.r != oper.r:
             return False
@@ -4933,10 +4976,12 @@ class ArmPgmStatRegOper(ArmOperand):
         if emu is None:
             return None
         mode = emu.getProcMode()
+
+        mask = expanded_mask[self.mask]
         #SPSR does not work - fails in emu.getSPSR
         if self.psr == PSR_SPSR:    # SPSR
             psr = emu.getSPSR(mode)
-            newpsr = psr & (~self.mask) | (val & self.mask)
+            newpsr = psr & (~mask) | (val & mask)
             emu.setSPSR(mode, newpsr)
 
         else:           # CPSR (APSR is an alias for CPSR)
@@ -4947,18 +4992,30 @@ class ArmPgmStatRegOper(ArmOperand):
         return newpsr
 
     def render(self, mcanv, op, idx):
-        field = fields[self.val]
+        if self.psr == PSR_APSR:
+            field = aspr_fields[self.mask]
+        elif self.psr < 4:
+            field = fields[self.mask]
+        else:
+            field = None
+
         if field is not None:
-            psrstr = psrs[self.psr] + '_' + fields[self.val]
+            psrstr = psrs[self.psr] + '_' + field
         else:
             psrstr = psrs[self.psr]
 
         mcanv.addNameText(psrstr, typename='registers')
 
     def repr(self, op):
-        field = fields[self.val]
+        if self.psr == PSR_APSR:
+            field = aspr_fields[self.mask]
+        elif self.psr < 4:
+            field = fields[self.mask]
+        else:
+            field = None
+
         if field is not None:
-            return psrs[self.psr] + '_' + fields[self.val]
+            return psrs[self.psr] + '_' + field
         return psrs[self.psr]
 
     
@@ -5384,7 +5441,7 @@ class ArmDisasm:
         #Get opcode, base mnem, operator list and flags
         opcode, mnem, olist, flags, simdflags = self.doDecode(va, opval, bytez, offset)
         if mnem is None or type(mnem) == int:
-            raise Exception("mnem == %r!  0x%x" % (mnem, opval))
+            raise Exception("mnem == %r!  0x%x (at 0x%x)" % (mnem, opval, va))
 
         # Ok...  if we're a non-conditional branch, *or* we manipulate PC unconditionally,
         # lets call ourself envi.IF_NOFALL
