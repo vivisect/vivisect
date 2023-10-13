@@ -71,8 +71,9 @@ class ArmModule(envi.ArchitectureModule):
             return va & -2, {'arch' : envi.ARCH_THUMB}
         return va, info
 
-    def archModifyXrefAddr(self, tova, reftype, rflags):
-        if tova & 1:
+    def archModifyXrefAddr(self, tova, reftype, rflags=0):
+        # if rflags is non-zero, it indicates that the target is Code
+        if tova & 3 and rflags:
             return tova & -2, reftype, rflags
         return tova, reftype, rflags
 

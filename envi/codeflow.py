@@ -280,6 +280,7 @@ class CodeFlowContext(object):
 
         # Check if this is already a known function.
         if self._funcs.get(va) is not None:
+            logger.debug("... skipping function 0x%x (arch: %x): already analyzed", va, arch)
             return
 
         # Add this function to known functions
