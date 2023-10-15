@@ -154,7 +154,7 @@ def p_pc_addr(opval, va):
 
     olist = (
         A64RegOper(rd, va=va, size=8),
-        A64ImmOper(base + imm),
+        A64ImmOper(base + imm, size=8),
     )
 
 
@@ -444,7 +444,7 @@ def p_test_branch_imm(opval, va):
     '''
     b5 = opval >> 31 & 0x1
     op = opval >> 24 & 0x1
-    b40 = opval >> 20 & 0x1f
+    b40 = opval >> 19 & 0x1f
     imm14 = opval >> 5 & 0x3fff
     rt = opval & 0x1f
 
@@ -460,11 +460,15 @@ def p_test_branch_imm(opval, va):
         rt += meta_reg_bases[size]
     else:
         size = 8
+    if imm14 >> 13 & 0x1:   # Sign extension into 64 bits, handles negative values
+        imm14 = imm14 | 0xffffffffffffc000
     olist = (
-        A64RegOper(rt, va, size=size),
-        A64ImmOper(b5+b40, va=va),
-        A64ImmOper(imm14*0x100, va=va),
+        A64RegOper(rt, va, size=size), 
+        A64ImmOper((b5 * 0b100000) + b40, va=va), # Passes in decimal value
+        A64ImmOper((imm14*4) + va, va=va), # Passes in decimal value
     )
+
+    
 
     return opcode, mnem, olist, 0, 0
 
@@ -2627,14 +2631,14 @@ def p_data_proc_2(opval, va):
             if opc >> 1 & 0b1 == 0b0:
                 if opc & 0b1 == 0b0:
                     opcode = INS_LSLV
-                    mnem = 'lslv'
+                    mnem = 'lsl'
                 else:
                     opcode = INS_LSRV
-                    mnem = 'lsrv'
+                    mnem = 'lsr'
             else:
                 if opc & 0b1 == 0b0:
                     opcode = INS_ASRV
-                    mnem = 'asrv'
+                    mnem = 'asr'
                 else:
                     opcode = INS_RORV
                     mnem = 'rorv'
@@ -7106,7 +7110,8 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
 
     def repr(self, op):
         ival = self.getOperValue(op)
-        if ival > 4096:
+        
+        if ival >= 4096:
             return "#0x%.8x" % ival
         return "#" + str(ival)
 
@@ -7121,10 +7126,14 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
                 mcanv.addVaText(hint, value)
             else:
                 mcanv.addNameText(hint)
+        
+        elif mcanv.mem.isValidPointer(value): 
+            # mcanv.addVaText('#0x%.8x' % value, value)
 
-        elif mcanv.mem.isValidPointer(value):
-            name = addrToName(mcanv, value)
-            mcanv.addVaText(name, value)
+            if value >= 4096:
+                mcanv.addVaText('#0x%.8x' % value, value)
+            else:
+                mcanv.addVaText('#' + str(value), value)
 
         else:
             if value >= 4096:
@@ -7307,9 +7316,27 @@ class A64PreFetchOper(A64Operand):
         self.type = prfoptype
         self.target = target
         self.policy = policy
+    
+    def repr(self, op):
+        types = ["pld", "pli", "pst"]
+        targets = ["l1", "l2", "l3"]
+        policy = ["keep", "strm"]
+
+        return types[self.type] + targets[self.target] + policy[self.policy]
+
+
 
 
 class A64ShiftOper(A64Operand):
+    '''
+    From cost.py:
+    S_LSL = 0
+    S_LSR = 1
+    S_ASR = 2
+    S_ROR = 3
+    '''
+    shifts = ("lsl", "lsr", "asr", "ror")
+
     '''
     Subclass of A64Operand. Shift applied to an operand/register
     '''
@@ -7317,6 +7344,19 @@ class A64ShiftOper(A64Operand):
         self.register = register
         self.shtype = shtype
         self.shval = shval
+    
+    def repr(self, op):
+        # Should be  like "lsl #3"         
+
+        if self.shval != 0:      # First attempt at a repr function
+            return shifts[self.shtype] + " #" + str(self.shval)
+
+        else: return ""
+    
+    def render(self, mcanv, op, idx):    
+        if self.shval != 0:      # First attempt at a render function
+            mcanv.addText(shifts[self.shtype] + " #" + str(self.shval)) 
+
 
 
 class A64ExtendOper(A64Operand):
@@ -7411,6 +7451,7 @@ class A64Opcode(envi.Opcode):
         x = []
         for op in self.opers:
             x.append(op.repr(self))
+        x = list(filter(None, x))       # Removes blank spaces, prevents extra commas
         return self.mnem + " " + ", ".join(x)
 
     def render(self, mcanv):
@@ -7426,7 +7467,7 @@ class A64Opcode(envi.Opcode):
         for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
-            if i != lasti:
+            if i != lasti and self.opers[i + 1].repr(self) != "":
                 mcanv.addText(",")
 
     def getBranches(self, emu=None):
@@ -7534,7 +7575,7 @@ class A64Disasm:
                 if (opval & mask) == val:
                     enc = penc
                     #print("- found: %r" % enc)
-                    print("penc", penc, iencs[penc])
+                    print("penc", penc, iencs[penc])    # Debugging print statement, may need to be commented out
                     break
 
         # If we don't know the encoding by here, we never will ;)
@@ -7549,6 +7590,7 @@ class A64Disasm:
         opval and va
         '''
         opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va)
+
         return opcode, mnem, olist, flags, simdflags
 
 ######## helper functions #########

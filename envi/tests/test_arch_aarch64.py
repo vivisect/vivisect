@@ -4722,7 +4722,7 @@ class A64InstructionSet(unittest.TestCase):
         # setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "a64")
-        vw.setEndian(envi.ENDIAN_MSB)
+        vw.setEndian(envi.ENDIAN_LSB)
         vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
         emu = vw.getEmulator()
@@ -4747,15 +4747,16 @@ class A64InstructionSet(unittest.TestCase):
                 import traceback
                 traceback.print_exc()
         '''
+        line = 1
 
-        vw.setEndian(envi.ENDIAN_LSB)
         for va, bytez, reprOp, iflags, emutests in instrs:
             try:
-                self._do_test(emu, va, bytez, reprOp, iflags, emutests, stats)
+                self._do_test(emu, va, bytez, reprOp, iflags, emutests, stats, line)
             except Exception as e:
-                print("Exception: %r" % e)
+                # print("Exception: %r" % e)
                 import traceback
-                traceback.print_exc()
+                # traceback.print_exc()
+            line += 1
 
         print("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % (stats['goodcount'], stats['badcount'], stats['goodemu'], stats['bademu']))
 
@@ -4763,7 +4764,7 @@ class A64InstructionSet(unittest.TestCase):
         self.assertEqual(stats['goodcount'], GOOD_TESTS)
         self.assertEqual(stats['goodemu'], GOOD_EMU_TESTS)
 
-    def _do_test(self, emu, va, bytez, reprOp, iflags, emutests, stats):
+    def _do_test(self, emu, va, bytez, reprOp, iflags, emutests, stats, line = 0):
             vw = emu.vw
             strcanv = e_memcanv.StringMemoryCanvas(vw)
             op = vw.arch.archParseOpcode(unhexlify(bytez), 0, va)
@@ -4797,7 +4798,12 @@ class A64InstructionSet(unittest.TestCase):
                 stats['badcount'] += 1
                 
                 print("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
-                        (stats['goodcount'], va, bytez, reprOp, repr(op) ) )
+                        (line, va, bytez, reprOp, repr(op) ) )
+
+                # Printing out the actual comparison for debugging
+                print("Failed comparison at %.8x : \'%s\' was not equal to \'%s\' or \'%s\'" % \
+                    (va, redgoodop, redoprepr, redoprender))
+
                 print("test: %r\ngood: %r" % (redoprepr, redgoodop))
 
             else:
@@ -4842,6 +4848,8 @@ class A64InstructionSet(unittest.TestCase):
 
         
     def validateEmulation(self, emu, op, setters, tests, tidx=0):
+
+
         # first set any environment stuff necessary
         ## defaults
         emu.setRegister(REG_X3, 0x414141)
