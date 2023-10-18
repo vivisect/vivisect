@@ -3,6 +3,7 @@
 *.swo
 *.py~
 *.un~
+*~
 .hg*
 /.project
 .idea
