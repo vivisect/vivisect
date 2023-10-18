@@ -4,6 +4,7 @@ import cobra
 import queue
 import logging
 import argparse
+import binascii
 import threading
 
 import cobra.dcode

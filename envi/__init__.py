@@ -181,7 +181,6 @@ arch_defs = {
         'name':     'sparc',
         'modpath':  ('envi', 'archs', 'sparc'),
         'clsname':  'SparcModule',
-        'disabled': True,
         },
     
     ARCH_SPARC64:   {
