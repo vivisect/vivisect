@@ -1060,15 +1060,24 @@ def dp_sat_imm_32(va, val1, val2):  # p232
 
     imm2 = (val2 >> 6) & 0x3
     imm3 = (val2 >> 12) & 0x7
+    sh = (val1>>5) & 1
     sat_imm = val2 & 0x1f
 
     imm = (imm3<<2) | imm2 
-    shift_t, shift_n = DecodeImmShift(sh<<1, imm)
+    if sh and not imm:
+        # SSAT16
+        oper0 = ArmRegOper(Rd)
+        oper1 = ArmImmOper(sat_imm+1)
+        oper2 = ArmRegOper(Rn)
+        opers = (oper0, oper1, oper2)
+    
+    else:
+        shift_t, shift_n = DecodeImmShift(sh<<1, imm)
 
-    oper0 = ArmRegOper(Rd)
-    oper1 = ArmImmOper(const)
-    oper2 = ArmRegShiftImmOper(Rn, shift_t, shift_n, va)
-    opers = (oper0, oper1, oper2)
+        oper0 = ArmRegOper(Rd)
+        oper1 = ArmImmOper(sat_imm+1)
+        oper2 = ArmRegShiftImmOper(Rn, shift_t, shift_n, va)
+        opers = (oper0, oper1, oper2)
 
     return COND_AL, None, None, opers, flags, 0
 
