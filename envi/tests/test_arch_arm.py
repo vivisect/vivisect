@@ -25,8 +25,8 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5962
-GOOD_EMU_TESTS = 1191
+GOOD_TESTS = 5967
+GOOD_EMU_TESTS = 1195
 '''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -807,6 +807,7 @@ instrs = [
         (REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrsb  r3, [#0x449c]', 0, ()),
         (REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrsb  r3, [#0x4634]', 0, ()),
         (REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
+        (REV_ALL_ARM, 'a3f2fe33', 0x4561, 'sub.w r3, r3, #0x3fe', 0, ()),
         #implimented in disasm but not yet in emu
         (REV_ALL_ARM, '70f02fe1', 0x4560, 'bkpt  #0xff00', 0, ()),
         (REV_ALL_ARM, '24ff2fe1', 0x4560, 'bxj  r4', 0, ()), # note this switches to jazelle
@@ -897,6 +898,8 @@ instrs = [
         (REV_ALL_ARM, '74f603e7', 0x4560, 'smusdx r3, r4, r6', 0, ()),
         (REV_ALL_ARM, '1430a6e6', 0x4560, 'ssat r3, #0x07, r4', 0, ()),
         (REV_ALL_ARM, '1433a6e6', 0x4560, 'ssat r3, #0x07, r4, lsl #6', 0, ()),
+        (REV_ALL_ARM, '06f3c433', 0x4561, 'ssat.w r3, #0x05, r6, lsl #15', 0, ()),
+        (REV_ALL_ARM, '26f30403', 0x4561, 'ssat16.w r3, #0x05, r6', 0, ()),
         (REV_ALL_ARM, '5433a6e6', 0x4560, 'ssat r3, #0x07, r4, asr #6', 0, ()),
         (REV_ALL_ARM, '5430a6e6', 0x4560, 'ssat r3, #0x07, r4, asr #32', 0, ()),
         (REV_ALL_ARM, '1730e4e6', 0x4560, 'usat r3, #0x04, r7', 0, ()),
@@ -1030,6 +1033,7 @@ instrs = [
         (REV_ALL_ARM, 'a4f353f6', 0x4560, 'pli [r3, -r4, lsr #7]', 0, ()),
         (REV_ALL_ARM, 'e4f3d3f6', 0x4560, 'pli [r3, r4, ror #7]', 0, ()),
         (REV_ALL_ARM, '5436efe7', 0x4560, 'ubfx r3, r4, #0x0c, #0x0f', 0, ()),
+        (REV_ALL_ARM, 'c4f35436', 0x4561, 'ubfx.w r6, r4, #0x0d, #0x15', 0, ()),
         (REV_ALL_ARM, '14f603e7', 0x4560, 'smuad r3, r4, r6', 0, ()),
         (REV_ALL_ARM, '34f603e7', 0x4560, 'smuadx r3, r4, r6', 0, ()),
         (REV_ALL_ARM, '343fa6e6', 0x4560, 'ssat16 r3, #0x06, r4', 0, ()),
@@ -1112,6 +1116,7 @@ instrs = [
         (REV_ALL_ARM, '04102de5', 0x4560, 'push r1', 0, ()),
         (REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
         (REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
+        (REV_ALL_ARM, '44f35436', 0x4561, 'sbfx.w r6, r4, #0x0d, #0x15', 0, ()),
         (REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '3f5b46ec', 0x4560, 'vmov d31, r5, r6', 0, ()),
@@ -1369,8 +1374,8 @@ instrs = [
         (REV_ALL_ARM, 'aff31a81', 0x4561, 'cps #0x1a', 0, ()),
         (REV_ALL_ARM, 'f6f7e456', 0x456ffff1, 'bl 0x44af6dbc', 0, ()),
         (REV_ALL_ARM, 'D5F6FEEA', 0x2208EBE, 'blx 0x020de4bc', 0, ()),
-        (REV_ALL_ARM, '33f6e456', 0x4561, 'add.w r6, r3, #0x3de4', 0, ()),
-        (REV_ALL_ARM, '56f6e456', 0x4561, 'movw.w r6, r6, #0x6de4', 0, ()),
+        (REV_ALL_ARM, '33f6e456', 0x4561, 'add.w r6, r3, #0xde4', 0, ()),
+        (REV_ALL_ARM, '56f6e456', 0x4561, 'mov.w r6, #0x6de4', 0, ()),
         (REV_ALL_ARM, '53f83450', 0x4561, 'ldr.w r5, [r3, r4, lsl #3]', 0, ()),
 
         (REV_ALL_ARM, 'e3efa54b', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),

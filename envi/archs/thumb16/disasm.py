@@ -983,7 +983,11 @@ def ubfx_32(va, val1, val2):
     return COND_AL, None, None, opers, None, 0
 
 
-def dp_bin_imm_32(va, val1, val2):  # p232
+def dp_mov_imm_32(va, val1, val2):  # p232
+    '''
+    data processing (plain binary immediate)
+    MOV, MOVT
+    '''
     if val2 & 0x8000:
         return branch_misc(va, val1, val2)
 
@@ -1002,20 +1006,83 @@ def dp_bin_imm_32(va, val1, val2):  # p232
     oper2 = ArmImmOper(const)
     opers = [oper0, oper2]
 
-    if op in (0b00100, 0b01100):    # movw, movt
-        return COND_AL, None, None, opers, 0, 0
+    return COND_AL, None, None, opers, flags, 0
 
+
+def dp_bin_imm_32(va, val1, val2):  # p232
+    '''
+    data processing (plain binary immediate)
+    ADD, SUB, ...
+    '''
+    if val2 & 0x8000:
+        return branch_misc(va, val1, val2)
+
+    flags = IF_THUMB32
+    Rd = (val2 >> 8) & 0xf
     Rn = val1 & 0xf
+
+    imm4 = val1 & 0xf
+    i = (val1 >> 10) & 1
+    imm3 = (val2 >> 12) & 0x7
+    const = val2 & 0xff
+
+    op = (val1 >> 4) & 0x1f
+    const |= (i << 11) | (imm3 << 8)
+
+
+
     if Rn == 15 and op in (0, 0b1010):   # add/sub
         # adr
+        oper0 = ArmRegOper(Rd)
+        oper2 = ArmImmOper(const)
+        opers = (oper0, oper2)
         return COND_AL, None, 'adr', opers, None, 0
 
+    oper0 = ArmRegOper(Rd)
     oper1 = ArmRegOper(Rn)
-    opers.insert(1, oper1)
+    oper2 = ArmImmOper(const)
+    opers = (oper0, oper1, oper2)
 
     return COND_AL, None, None, opers, flags, 0
 
 
+def dp_sat_imm_32(va, val1, val2):  # p232
+    '''
+    data processing (plain binary immediate)
+    SSAT, USAT, etc....
+    '''
+    if val2 & 0x8000:
+        return branch_misc(va, val1, val2)
+
+    flags = IF_THUMB32
+    Rd = (val2 >> 8) & 0xf
+    Rn = val1 & 0xf
+
+    imm2 = (val2 >> 6) & 0x3
+    imm3 = (val2 >> 12) & 0x7
+    sat_imm = val2 & 0x1f
+
+    imm = (imm3<<2) | imm2 
+    shift_t, shift_n = DecodeImmShift(sh<<1, imm)
+
+    oper0 = ArmRegOper(Rd)
+    oper1 = ArmImmOper(const)
+    oper2 = ArmRegShiftImmOper(Rn, shift_t, shift_n, va)
+    opers = (oper0, oper1, oper2)
+
+    return COND_AL, None, None, opers, flags, 0
+
+def DecodeImmShift(sht, imm):
+    if sht == 0b11:
+        if imm == 0:
+            imm = 1
+
+    elif sht:   # any non-zero
+        if imm == 0:
+            imm = 32
+
+    return sht, imm
+    
 def dp_bfi_imm_32(va, val1, val2):  # p232
     if val2 & 0x8000:
         return branch_misc(va, val1, val2)
@@ -1034,7 +1101,7 @@ def dp_bfi_imm_32(va, val1, val2):  # p232
     oper0 = ArmRegOper(Rd)
     oper2 = ArmImmOper(const)
 
-    if op in (0b00100, 0b01100):    # movw, movt
+    if op in (0b00100, 0b01100):    # mov, movt
         return COND_AL, None, None, (oper0, oper2), 0, 0
 
     Rn = val1 & 0xf
@@ -2329,35 +2396,35 @@ thumb2_extension = [
     # data processing (plain binary immediate)
     ('1111001000',          (INS_ADD, 'add',
                              dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111001001',          (INS_MOVW, 'movw',    dp_bin_imm_32,      IF_THUMB32)),
+    ('1111001001',          (INS_MOVW, 'mov',    dp_mov_imm_32,      IF_THUMB32)),
     ('1111001010',          (INS_SUB, 'sub',
                              dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111001011',          (INS_MOVT, 'movt',    dp_bin_imm_32,      IF_THUMB32)),
-    ('11110011000',         (INS_SSAT, 'ssat',    dp_bin_imm_32,      IF_THUMB32)),
-    ('11110011001',         (INS_SSAT16, 'ssat16', dp_bin_imm_32,      IF_THUMB32)),
-    ('11110011010',         (INS_SBFX, 'sbfx',    dp_bin_imm_32,      IF_THUMB32)),
+    ('1111001011',          (INS_MOVT, 'movt',    dp_mov_imm_32,      IF_THUMB32)),
+    ('11110011000',         (INS_SSAT, 'ssat',    dp_sat_imm_32,      IF_THUMB32)),
+    ('11110011001',         (INS_SSAT16, 'ssat16', dp_sat_imm_32,     IF_THUMB32)),
+    ('11110011010',         (INS_SBFX, 'sbfx',    ubfx_32,            IF_THUMB32)),
     ('11110011011',         (INS_BFI, 'bfi',
                              dp_bfi_imm_32,      IF_THUMB32)),  # bfc if rn=1111
-    ('11110011100',         (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),
+    ('11110011100',         (INS_USAT, 'usat',    dp_sat_imm_32,      IF_THUMB32)),
     # usat16 if val2=0000xxxx00xxxxxx
-    ('111100111010',        (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),
+    ('111100111010',        (INS_USAT, 'usat',    dp_sat_imm_32,      IF_THUMB32)),
     # usat16 if val2=0000xxxx00xxxxxx
-    ('111100111011',        (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),
+    ('111100111011',        (INS_USAT, 'usat',    dp_sat_imm_32,      IF_THUMB32)),
     ('1111001111',          (INS_UBFX, 'ubfx',    ubfx_32,            IF_THUMB32)),
     ('1111011000',          (INS_ADD, 'add',
                              dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111011001',          (INS_MOVW, 'movw',    dp_bin_imm_32,      IF_THUMB32)),
+    ('1111011001',          (INS_MOVW, 'mov',    dp_mov_imm_32,      IF_THUMB32)),
     ('1111011010',          (INS_SUB, 'sub',
                              dp_bin_imm_32,      IF_THUMB32)),  # adr if rn=1111
-    ('1111011011',          (INS_MOVT, 'movt',    dp_bin_imm_32,      IF_THUMB32)),
-    ('11110111000',         (INS_SSAT, 'ssat',    dp_bin_imm_32,      IF_THUMB32)),
-    ('11110111001',         (INS_SSAT16, 'ssat16', dp_bin_imm_32,      IF_THUMB32)),
-    ('11110111010',         (INS_SBFX, 'sbfx',    dp_bin_imm_32,      IF_THUMB32)),
+    ('1111011011',          (INS_MOVT, 'movt',    dp_mov_imm_32,      IF_THUMB32)),
+    ('11110111000',         (INS_SSAT, 'ssat',    dp_sat_imm_32,      IF_THUMB32)),
+    ('11110111001',         (INS_SSAT16, 'ssat16', dp_sat_imm_32,     IF_THUMB32)),
+    ('11110111010',         (INS_SBFX, 'sbfx',    ubfx_32,            IF_THUMB32)),
     ('11110111011',         (INS_BFI, 'bfi',
                              dp_bfi_imm_32,      IF_THUMB32)),  # bfc if rn=1111
-    ('11110111100',         (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111100',         (INS_USAT, 'usat',    dp_sat_imm_32,      IF_THUMB32)),
     # usat16 if val2=0000xxxx00xxxxxx
-    ('11110111101',         (INS_USAT, 'usat',    dp_bin_imm_32,      IF_THUMB32)),
+    ('11110111101',         (INS_USAT, 'usat',    dp_sat_imm_32,      IF_THUMB32)),
     ('11110111110',         (INS_UBFX, 'ubfx',    ubfx_32,            IF_THUMB32)),
     ('11110111111',         (None, 'branchmisc',
                              branch_misc,        IF_THUMB32)),    # necessary

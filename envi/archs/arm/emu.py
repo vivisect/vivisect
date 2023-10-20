@@ -2004,7 +2004,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             loc = self.vw.getLocation(va)
             if loc is not None:
                 logger.warning("Terminating TB at Location/Reference")
-                logger.warning("%x, %d, %x, %r", loc)
+                logger.warning("%x, %d, %x, %r", *loc)
                 break
 
             tbl.append(nexttgt)
@@ -2019,7 +2019,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if idx > 0x40000000:
             self.setRegister(idxreg, 0) # args handed in can be replaced with index 0
 
-        jmptblbase = op.opers[0]._getOperBase(emu)
+        jmptblbase = op.opers[0]._getOperBase(self)
         jmptblval = self.getOperAddr(op, 0)
         jmptbltgt = (self.getOperValue(op, 0) * 2) + base
         logger.debug("0x%x: 0x%r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x", op.va, op, jmptblbase, jmptblval, jmptbltgt)
@@ -2034,6 +2034,18 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         mask = (1 << width) - 1
 
         val = (src>>lsb) & mask
+
+        self.setOperValue(op, 0, val)
+
+
+    def i_sbfx(self, op):
+        tsize = op.opers[0].tsize
+        src = self.getOperValue(op, 1)
+        lsb = self.getOperValue(op, 2)
+        width = self.getOperValue(op, 3)
+        mask = (1 << width) - 1
+
+        val = e_bits.sign_extend((src>>lsb) & mask, width, tsize)
 
         self.setOperValue(op, 0, val)
 
