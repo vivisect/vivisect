@@ -25,8 +25,8 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5967
-GOOD_EMU_TESTS = 1195
+GOOD_TESTS = 5977
+GOOD_EMU_TESTS = 1205
 '''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -1419,6 +1419,16 @@ instrs = [
         (REV_ALL_ARM, '407f10f4', 0xa, 'ldrb r0, [r0, #0x1d]', 0, ()),
         #(REV_ALL_ARM, '407f10f4', 0xa, 'tst.w r0, #768', 0, ()),
         (REV_ALL_ARM, '40704ff4', 0xe, 'strb r0, [r0, #0x1]', 0, ()),
+        (REV_ALL_ARM, '03f8014b', 0x2, 'strb.w r4, [r3], #0x1', 0, ()),
+        (REV_ALL_ARM, '83f8014b', 0x6, 'strb.w r4, [r3, #0xb01]', 0, ()),
+        (REV_ALL_ARM, '03f82140', 0x2, 'strb.w r4, [r3, r1, lsl #2]', 0, ()),
+        (REV_ALL_ARM, '43f82140', 0x6, 'str.w r4, [r3, r1, lsl #2]', 0, ()),
+        (REV_ALL_ARM, '53f82140', 0xa, 'ldr.w r4, [r3, r1, lsl #2]', 0, ()),
+        (REV_ALL_ARM, '43f8014b', 0xe, 'str.w r4, [r3], #0x1', 0, ()),
+        (REV_ALL_ARM, '53f8014b', 0x2, 'ldr.w r4, [r3], #0x1', 0, ()),
+        (REV_ALL_ARM, '23f8014b', 0xa, 'strh.w r4, [r3], #0x1', 0, ()),
+        (REV_ALL_ARM, 'a3f8014b', 0xe, 'strh.w r4, [r3, #0xb01]', 0, ()),
+        (REV_ALL_ARM, '23f82140', 0x2, 'strh.w r4, [r3, r1, lsl #2]', 0, ()),
         #(REV_ALL_ARM, '40704ff4', 0xe, 'mov.w r0, #768', 0, ()),
         (REV_ALL_ARM, 'd6f89800', 0x6, 'ldr.w r0, [r6, #0x98]', 0, ()),
         (REV_ALL_ARM, '980096e5', 0x4, 'ldr r0, [r6, #0x98]', 0, ()),       # arm

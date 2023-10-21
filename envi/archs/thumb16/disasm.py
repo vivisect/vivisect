@@ -1219,15 +1219,36 @@ def strex_32(va, val1, val2):
 
 
 def ldr_32(va, val1, val2):
+    # handle immediates and registers
+
     bitsbits = (val1 >> 4) & 0x7
     tsize = (1, 0, 2, 2, 4, 4, 0, 0)[bitsbits]
 
     rn = val1 & 0xf
     rt = (val2 >> 12) & 0xf
-    imm12 = val2 & 0xfff
+    isimmed = (val2 >> 6) & 0x3f
 
     oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmImmOffsetOper(rn, imm12, va=va, tsize=tsize)
+    # register?
+    # imm12?
+    # imm8?
+    if isimmed:
+        immtype = (val1 >> 7) & 1
+        if immtype:
+            imm12 = val2 & 0xfff
+            oper1 = ArmImmOffsetOper(rn, imm12, va=va, tsize=tsize)
+
+        else:
+            imm8 = val2 & 0xff
+            pubwl = ((val2 >> 6) & 0x18) | ((val2 >> 7) & 0x2)
+            oper1 = ArmImmOffsetOper(rn, imm8, va=va, pubwl=pubwl, tsize=tsize)
+
+    else:
+        # register type
+        rm = val2 & 0xf
+        imm2 = (val2 >> 4) & 3
+        oper1 = ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va=va, tsize=tsize)
+
 
     opers = (oper0, oper1)
     return COND_AL, None, None, opers, None, 0
@@ -2439,20 +2460,18 @@ thumb2_extension = [
                              branch_misc,        IF_THUMB32)),    # necessary
 
     # stores, loads, etc...
-    ('111110000000',        (INS_STR, 'str', ldr_shift_32,        IF_B | IF_THUMB32)),
+    ('111110000000',        (INS_STR, 'str', ldr_32,        IF_B | IF_THUMB32)), # immediate, register
     ('111110000001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
-    ('111110000010',        (INS_STR,  'str',  ldr_shift_32,      IF_H | IF_THUMB32)),
-    ('111110000011',        (INS_LDR,  'ldr',  ldr_shift_32,      IF_H | IF_THUMB32)),
-    ('111110000100',        (INS_STR,  'str',
-                             ldr_shift_32,      IF_THUMB32)),   # T4 encoding
-    ('111110000101',        (INS_LDR,  'ldr',
-                             ldr_shift_32,      IF_THUMB32)),   # T4 encoding
-    ('111110001000',        (INS_STR, 'str', ldr_32,            IF_B | IF_THUMB32)),
+    ('111110000010',        (INS_STR,  'str',  ldr_32,      IF_H | IF_THUMB32)),
+    ('111110000011',        (INS_LDR,  'ldr',  ldr_32,      IF_H | IF_THUMB32)),
+    ('111110000100',        (INS_STR,  'str',  ldr_32,      IF_THUMB32)),   # T4 encoding
+    ('111110000101',        (INS_LDR,  'ldr',  ldr_32,      IF_THUMB32)),   # T4 encoding
+    ('111110001000',        (INS_STR,  'str',  ldr_32,     IF_B | IF_THUMB32)),
     ('111110001001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
-    ('111110001010',        (INS_STR, 'str', ldr_32,            IF_H | IF_THUMB32)),
-    ('111110001011',        (INS_LDR, 'ldr', ldr_32,            IF_H | IF_THUMB32)),
-    ('111110001100',        (INS_STR,  'str',  ldr_32,      IF_THUMB32)),
-    ('111110001101',        (INS_LDR,  'ldr',  ldr_32,          IF_THUMB32)),  # T3
+    ('111110001010',        (INS_STR,  'str',  ldr_32,     IF_H | IF_THUMB32)),
+    ('111110001011',        (INS_LDR,  'ldr',  ldr_32,     IF_H | IF_THUMB32)),
+    ('111110001100',        (INS_STR,  'str',  ldr_32,     IF_THUMB32)),
+    ('111110001101',        (INS_LDR,  'ldr',  ldr_32,     IF_THUMB32)),  # T3
     ('111110010001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110011001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110011011',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),

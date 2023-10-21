@@ -4580,11 +4580,11 @@ class ArmScaledOffsetOper(ArmOperand):
         else:
             shval = ""
         if (idxing&0x10) == 0:         # post-indexed
-            tname = '[%s], %s%s %s' % (basereg, pom, offreg, shval)
+            tname = '[%s], %s%s%s' % (basereg, pom, offreg, shval)
         elif idxing == 0x10:
-            tname = '[%s, %s%s %s]' % (basereg, pom, offreg, shval)
+            tname = '[%s, %s%s%s]' % (basereg, pom, offreg, shval)
         else:               # pre-indexed
-            tname = '[%s, %s%s %s]!' % (basereg, pom, offreg, shval)
+            tname = '[%s, %s%s%s]!' % (basereg, pom, offreg, shval)
         return tname
 
 class ArmRegOffsetOper(ArmOperand):
