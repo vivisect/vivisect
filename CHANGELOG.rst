@@ -7,17 +7,17 @@ V1.1.1 - 2023-04-07
 Features
 --------
 - More test resiliency for our remote server tests.
-  (`#584 https://github.com/vivisect/vivisect/pull/584`_)
+  (`#584 <https://github.com/vivisect/vivisect/pull/584>`_)
 - Document ``getBranches`` API.
-  (`#589 https://github.com/vivisect/vivisect/pull/589`_)
+  (`#589 <https://github.com/vivisect/vivisect/pull/589>`_)
 - Add "stepo" functionality as an option for "stepi" in VDB.
-  (`#591 https://github.com/vivisect/vivisect/pull/591`_)
+  (`#591 <https://github.com/vivisect/vivisect/pull/591>`_)
 - Migrate away from some deprecated functions.
-  (`#593 https://github.com/vivisect/vivisect/pull/593`_)
+  (`#593 <https://github.com/vivisect/vivisect/pull/593>`_)
 - GUI scroll improvements.
-  (`#599 https://github.com/vivisect/vivisect/pull/599`_)
+  (`#599 <https://github.com/vivisect/vivisect/pull/599>`_)
 - Envi config get by string.
-  (`#604 https://github.com/vivisect/vivisect/pull/604`_)
+  (`#604 <https://github.com/vivisect/vivisect/pull/604>`_)
 
 Fixes
 -----
