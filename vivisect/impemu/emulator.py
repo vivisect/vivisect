@@ -270,7 +270,8 @@ class WorkspaceEmulator:
         iscall = bool(op.iflags & envi.IF_CALL)
         if iscall:
             # Either way, if it's a call PC goes to next instruction
-            if self._func_only:
+            thunkReg = self.vw.isFunctionThunkReg(endeip)
+            if self._func_only and not thunkReg:
                 self.setProgramCounter(starteip+len(op))
             api = self.getCallApi(endeip)
             rtype, rname, convname, callname, funcargs = api
@@ -290,7 +291,7 @@ class WorkspaceEmulator:
             hook = self.hooks.get(callname)
             if ret is None and hook:
                 hook(self, callconv, api, argv)
-            elif self._func_only:
+            elif self._func_only and not thunkReg:
                 if ret is None:
                     ret = self.setVivTaint('apicall', (op, endeip, api, argv))
                 retn = self.getProgramCounter()
@@ -301,7 +302,7 @@ class WorkspaceEmulator:
                 # this isn't that much of a problem, but when we hit the last codeblock that includes pops
                 # before calling any last few functions, the stack pointer gets throw off by those last few
                 # pops, which leads us to say that code path isn't a function since we miss the ret instruction.
-                # So we have here a fix for that. Added some rails so we don'y always just punch it in
+                # So we have here a fix for that. Added some rails so we don't always just punch it in
                 if self._safe_mem:
                     if not self.vw.isValidPointer(newaddr) and self.isValidPointer(retn):
                         self.setProgramCounter(retn)
@@ -427,7 +428,6 @@ class WorkspaceEmulator:
         """
 
         self.funcva = funcva
-
         # Let the current (should be base also) path know where we are starting
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
         hits = {}
@@ -687,9 +687,6 @@ class WorkspaceEmulator:
                 typename, varname = funclocal
                 return varname
 
-        if val < 4096:
-            return str(val)
-
         return '0x%.8x' % val
 
     def _useVirtAddr(self, va):
@@ -742,7 +739,7 @@ class WorkspaceEmulator:
 
         self._useVirtAddr(va)
 
-        # Read from the emulator's pages if we havent resolved it yet
+        # Read from the emulator's pages if we haven't resolved it yet
         probeok = self.probeMemory(va, size, e_const.MM_READ)
         if self._safe_mem and not probeok:
             return self.taintbyte * size

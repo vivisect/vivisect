@@ -182,7 +182,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
         self.addVaSet('thunk_reg', ( ('fva', VASET_ADDRESS), ('reg', VASET_STRING), ('tgtval', VASET_INTEGER)) )
-        self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING), 
+        self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING),
                 ('resolved address', VASET_ADDRESS)))
 
     def vprint(self, msg):
@@ -1513,6 +1513,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         except InvalidFunction:
             return False
 
+    def isFunctionThunkReg(self, fva):
+        '''
+        Returns True if fva is a thunk we've identified as being
+        something of the form of __x86.get_pc_thunk.bx
+        '''
+        return self.getVaSetRow('thunk_reg', fva) is not None
+
     def getFunctions(self):
         """
         Return a list of the function virtual addresses
@@ -1727,7 +1734,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         If basename is provided, that name is used to create the Vivisect name for the thunk.
         If basename is not provided, thname is chopped and used for the Vivisect name.
-        This difference allows, for example, the Elf loader to make PLT functions named "plt_<foo>" 
+        This difference allows, for example, the Elf loader to make PLT functions named "plt_<foo>"
         but still use the official thunk name "*.<foo>".  This thunk name is used to look up
         the import api.  These "*.<foo>" thunk names are also used in the addNoReturnApi().
 
