@@ -53,7 +53,7 @@ class CodeFlowContext(object):
 
     def _cb_opcode(self, va, op, branches):
         '''
-        Extend CodeFlowContext and implement this method to recieve
+        Extend CodeFlowContext and implement this method to receive
         a callback for every newly discovered opcode.
         '''
         return branches
@@ -70,7 +70,7 @@ class CodeFlowContext(object):
         '''
         Implement this method to receive a callback when a given code
         branch is skipped due to being in the noflow dictionary.
-        ( likely due to prodedural branch to noreturn address )
+        ( likely due to procedural branch to noreturn address )
         '''
         pass
 
@@ -89,8 +89,8 @@ class CodeFlowContext(object):
 
     def _cb_dynamic_branch(self, va, op, bflags, branches):
         '''
-        if codeflow finds a branch to a non-discrete value (eg. to a register)
-        we handle it here.  by default, we simply track the dynamic branch in a global
+        if codeflow finds a branch to a non-discrete value (eg: to a register)
+        we handle it here. By default, we simply track the dynamic branch in a global
         VaSet which is added to every workspace.
         '''
         '''
@@ -128,7 +128,7 @@ class CodeFlowContext(object):
 
     def addCodeFlow(self, va, arch=envi.ARCH_DEFAULT):
         '''
-        Do code flow disassembly from the specified address.  Returnes a list
+        Do code flow disassembly from the specified address. Returns a list
         of the procedural branch targets discovered during code flow...
 
         Set persist=True to store 'opdone' and never disassemble the same thing twice
@@ -179,7 +179,8 @@ class CodeFlowContext(object):
 
                 bva, bflags = branches.pop()
 
-                # look for dynamic branches (ie. branches which don't have a known target).  assume at least one branch
+                # look for dynamic branches (ie. branches which don't have a known target).
+                # Assume at least one branch
                 if bva is None:
                     self._cb_dynamic_branch(va, op, bflags, branches)
 
@@ -228,7 +229,7 @@ class CodeFlowContext(object):
 
                         if bva != nextva:  # NOTE: avoid call 0 constructs
 
-                            # Now we decend so we do deepest func callbacks first!
+                            # Now we descend so we do deepest func callbacks first!
                             if self._cf_recurse:
                                 # descend into functions, but make sure we don't descend into
                                 # recursive functions
@@ -236,7 +237,7 @@ class CodeFlowContext(object):
                                     logger.debug("not recursing to function 0x%x (at 0x%x): it's already in analysis call path (ie. it called *this* func)", 
                                             bva, va)
                                     logger.debug("call path: \t" + ", ".join([hex(x) for x in self._cf_blocks]))
-                                    # the function that we want to make prodcedural
+                                    # the function that we want to make procedural
                                     # called us so we can't call to make it procedural
                                     # until it's done
                                     cf_eps[bva] = bflags
