@@ -181,11 +181,13 @@ def p_addsub_imm(opval, va):
         mnem = 'sub'
         opcode = INS_SUB
 
+
     #if the value of s is 1, then the iflag should be set to PSR_S, becoming adds or subs
     if s == 0b0:
         iflag = 0
     else:
         iflag |= IF_PSR_S
+        mnem += 's'
 
     #if shift's value is 01, set shift amount to 12. else, shift is either
         #explicitly assigned to 0 (shift = 00) or defaults to 0 (shift = 1x)
@@ -193,6 +195,34 @@ def p_addsub_imm(opval, va):
         shiftX = 12
     else:
         shiftX = 0
+
+    # Check for cmp opcode 
+    if rd == 0x1f and s == 0b1:
+        # this is a cmp immediate
+        mnem = 'cmp'
+        opcode = INS_CMP 
+
+        # Setting size based on sf
+        # Must be done here, before rd is changed
+        if sf == 0b1: 
+            size = 8
+        else: 
+            size = 4
+
+        if opval >> 22 & 0x1:
+            olist = (
+            A64RegOper(rn, va=va, size=size),
+            A64ImmOper(imm, 12, S_LSL, va),
+            )
+
+        else:
+            olist = (
+            A64RegOper(rn, va=va, size=size),
+            A64ImmOper(imm),
+            )
+        
+        return opcode, mnem, olist, iflag, 0
+
 
     #sf determines whether the register size corresponds to the 32 or 64-bit variant
     if sf == 0b0:
@@ -211,14 +241,14 @@ def p_addsub_imm(opval, va):
             A64RegOper(rn, va=va, size=size),
         )
         return opcode, mnem, olist, iflag, 0
-
+        
     olist = (
         A64RegOper(rd, va=va, size=size),
         A64RegOper(rn, va=va, size=size),
         A64ImmOper(imm, shiftX, S_LSL, va),
     )        
     return opcode, mnem, olist, iflag, 0
-
+    
 def p_log_imm(opval, va):
     '''
     Get the A64Opcode parameters for a logical (immediate) instruction
@@ -1376,8 +1406,9 @@ def p_ls_reg_us_imm(opval, va):
                 opcode = INS_PRFM
                 olist = (
                     A64PreFetchOper(rt>>3, (rt>>1)&3, rt&1),
-                    A64RegOper(rn, va, size=8),
-                    A64ImmOper(imm12 << 3, va=va),
+                    # A64RegOper(rn, va, size=8),           # Combined into single A64RegImmOffOper
+                    # A64ImmOper(imm12 << 3, va=va),
+                    A64RegImmOffOper(rn, imm12 << 3, tsize=8, va=va)
                 )
                 return opcode, mnem, olist, 0, 0
 
@@ -2303,14 +2334,14 @@ def p_addsub_shft_reg(opval, va):
         olist = (
             A64RegOper(rd, va, size=4),
             A64RegOper(rn, va, size=4),
-            A64RegOper(rm, va, size=4),
+            # A64RegOper(rm, va, size=4),        # Contained with A64ShiftOper
             A64ShiftOper(rm, shtype, imm6),
         )
     else:
         olist = (
             A64RegOper(rd, va, size=8),
             A64RegOper(rn, va, size=8),
-            A64RegOper(rm, va, size=8),
+            # A64RegOper(rm, va, size=8),         # Contained with A64ShiftOper
             A64ShiftOper(rm, shtype, imm6),
         )
 
@@ -7109,11 +7140,13 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
         self.size = size
 
     def repr(self, op):
-        ival = self.getOperValue(op)
+        ival = self.getOperValue(op)    # This shifts the value using shval and shtype - is this what we want?
         
         if ival >= 4096:
             return "#0x%.8x" % ival
         return "#" + str(ival)
+
+        # return "#" + str(self.val) + ", " + opShifts[self.shtype] + " #" + str(self.shval)
 
     def getOperValue(self, op, emu=None):
         return shifters[self.shtype](self.val, self.shval, self.size, emu)
@@ -7130,16 +7163,26 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
         elif mcanv.mem.isValidPointer(value): 
             # mcanv.addVaText('#0x%.8x' % value, value)
 
+            # New approach to match repr output
+            #mcanv.addVaText(repr(op), value)
+
+            # Old method
             if value >= 4096:
                 mcanv.addVaText('#0x%.8x' % value, value)
             else:
                 mcanv.addVaText('#' + str(value), value)
+            
 
         else:
+            
+            # New approach to match repr output
+            #mcanv.addNameText(repr(op))
+
             if value >= 4096:
                 mcanv.addNameText('#0x%.8x' % value)
             else:
                 mcanv.addNameText('#' + str(value))
+            
 
 
 
@@ -7317,11 +7360,7 @@ class A64PreFetchOper(A64Operand):
         self.target = target
         self.policy = policy
     
-    def repr(self, op):
-        types = ["pld", "pli", "pst"]
-        targets = ["l1", "l2", "l3"]
-        policy = ["keep", "strm"]
-
+    def repr(self, op):                
         return types[self.type] + targets[self.target] + policy[self.policy]
 
 
@@ -7329,36 +7368,38 @@ class A64PreFetchOper(A64Operand):
 
 class A64ShiftOper(A64Operand):
     '''
-    From cost.py:
-    S_LSL = 0
-    S_LSR = 1
-    S_ASR = 2
-    S_ROR = 3
-    '''
-    shifts = ("lsl", "lsr", "asr", "ror")
-
-    '''
     Subclass of A64Operand. Shift applied to an operand/register
     '''
     def __init__(self, register, shtype, shval):
-        self.register = register
+        self.reg = register
         self.shtype = shtype
         self.shval = shval
     
-    def repr(self, op):
-        # Should be  like "lsl #3"         
+    def repr(self, op):      
+        '''
+        From cost.py:
+        S_LSL = 0, S_LSR = 1, S_ASR = 2, S_ROR = 3
+        '''   
+        if self.shval != 0: # Only display shift data if there is a shift value
+            return str(rctx.getRegisterName(self.reg)) + ", " + opShifts[self.shtype] + " #" + str(self.shval)
 
-        if self.shval != 0:      # First attempt at a repr function
-            return shifts[self.shtype] + " #" + str(self.shval)
-
-        else: return ""
+        else: return rctx.getRegisterName(self.reg)
     
-    def render(self, mcanv, op, idx):    
-        if self.shval != 0:      # First attempt at a render function
-            mcanv.addText(shifts[self.shtype] + " #" + str(self.shval)) 
+    def render(self, mcanv, op, idx):
+        # Usual render function for a register
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        if hint is not None: 
+            mcanv.addNameText(name, typename="registers")
+        else:
+            name = rctx.getRegisterName(self.reg)
+            rname = rctx.getRegisterName(self.reg & envi.RMETA_NMASK)
+            mcanv.addNameText(name, name=rname, typename="registers")
+
+        if self.shval != 0:      # Add shift data only if there is a shift value
+            mcanv.addText(',' + opShifts[self.shtype] + " #" + str(self.shval))
 
 
-
+	   
 class A64ExtendOper(A64Operand):
     '''
     Subclass of A64Operand. Extension applied to an operand/register
@@ -7451,7 +7492,6 @@ class A64Opcode(envi.Opcode):
         x = []
         for op in self.opers:
             x.append(op.repr(self))
-        x = list(filter(None, x))       # Removes blank spaces, prevents extra commas
         return self.mnem + " " + ", ".join(x)
 
     def render(self, mcanv):
@@ -7557,6 +7597,7 @@ class A64Disasm:
             raise envi.InvalidInstruction(mesg="mnem == %r!  0x%x" % (mnem, opval),
                     bytez=bytez[offset:offset+4], va=va)
 
+        flags |= envi.ARCH_A64
         op = A64Opcode(va, opcode, mnem, cond, 4, olist, flags, simdflags)
         return op
 

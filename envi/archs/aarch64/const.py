@@ -74,6 +74,8 @@ S_ASR = 2
 S_ROR = 3
 S_RRX = 4 # FIXME HACK XXX add this
 
+opShifts = ('lsl', 'lsr', 'asr', 'ror', 'rrx')
+
 ENDIAN_LSB = 0
 ENDIAN_MSB = 1
 
@@ -164,6 +166,7 @@ instrnames = [
     'ADDS',
     'SUB',
     'SUBS',
+    'CMP',
     'AND',
     'ORR',
     'EOR',
@@ -368,45 +371,45 @@ for instr in instrnames:
     ins_index += 1
 
 #IFLAGS
-IF_LE = 1 << 37
-IF_HS = 1 << 36
-IF_GE = 1 << 35
-IF_HI = 1 << 34
-IF_EQ = 1 << 33
-IF_LT = 1 << 32
-IF_GT = 1 << 31
-IF_2 = 1 << 25
-IF_NEG = 1 << 24
-IF_INV = 1 << 23
-IF_INC = 1 << 22
-IF_EL = 1 << 21
-IF_32 = 1 << 20
-IF_16 = 1 << 19
-IF_P = 1 << 18
-IF_PSR_S = 1 << 17
-IF_N = 1 << 16
-IF_Z = 1 << 15
-IF_K = 1 << 14
-IF_L = 1 << 13
-IF_A = 1 << 12
-IF_X = 1 << 11
-IF_R = 1 << 10
-IF_P = 1 << 9
-IF_B = 1 << 8
-IF_H = 1 << 7
-IF_SW = 1 << 6
-IF_S = 1 << 5
-IF_W = 1 << 4
-IF_E = 1 << 3
-IF_M = 1 << 2
-IF_I = 1 << 1
-IF_U = 1 << 0
+IF_LE = 1 << 56
+IF_HS = 1 << 55
+IF_GE = 1 << 54
+IF_HI = 1 << 53
+IF_EQ = 1 << 52
+IF_LT = 1 << 51
+IF_GT = 1 << 50
+IF_2 = 1 << 49
+IF_NEG = 1 << 48
+IF_INV = 1 << 47
+IF_INC = 1 << 46
+IF_EL = 1 << 45
+IF_32 = 1 << 44
+IF_16 = 1 << 43
+IF_P = 1 << 42
+IF_PSR_S = 1 << 41
+IF_N = 1 << 40
+IF_Z = 1 << 39
+IF_K = 1 << 38
+IF_L = 1 << 37
+IF_A = 1 << 36
+IF_X = 1 << 35
+IF_R = 1 << 34
+IF_P = 1 << 33
+IF_B = 1 << 32
+IF_H = 1 << 15
+IF_SW = 1 << 14
+IF_S = 1 << 13
+IF_W = 1 << 12
+IF_E = 1 << 11
+IF_M = 1 << 10
+IF_I = 1 << 9
+IF_U = 1 << 8
 
-IFP_U = 1 << 26
-IFP_S = 1 << 27
-IFP_P = 1 << 28
-IFP_QD = 1 << 29
-IFP_R = 1 << 30
+IFP_U = 1 << 61
+IFP_S = 1 << 60
+IFP_P = 1 << 59
+IFP_QD = 1 << 58
+IFP_R = 1 << 57
 
 IFS = (
     None,
@@ -633,3 +636,7 @@ cond_table = (
     'AL',
     'NV^b', #FIXME
 )
+
+prefetchTypes = ["pld", "pli", "pst"]   
+prefetchTargets = ["l1", "l2", "l3"]
+prefetchPolicy = ["keep", "strm"]
