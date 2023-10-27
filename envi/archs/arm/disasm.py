@@ -4193,8 +4193,14 @@ class ArmRegOper(ArmOperand):
         return regval
 
     def render(self, mcanv, op, idx):
-        rname = rctx.getRegisterName(self.reg)
-        mcanv.addNameText(rname, typename='registers')
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        if hint is not None:
+            # FIXME: bug?  what should this be?
+            mcanv.addNameText(hint, typename="registers")
+        else:
+            rname = rctx.getRegisterName(self.reg)
+            mcanv.addNameText(rname, typename='registers')
+
         if self.oflags & OF_W:
             mcanv.addText( "!" )
 
@@ -4390,9 +4396,20 @@ class ArmImmOper(ArmOperand):
         return shifters[self.shtype](self.val, self.shval, self.size, emu=emu)
 
     def render(self, mcanv, op, idx):
-        val = self.getOperValue(op)
-        mcanv.addText('#')
-        mcanv.addNameText('0x%.2x' % (val))
+        value = self.val
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        if hint is not None:
+            if mcanv.mem.isValidPointer(value):
+                mcanv.addVaText(hint, value)
+            else:
+                mcanv.addNameText(hint)
+        elif mcanv.mem.isValidPointer(value):
+            name = addrToName(mcanv, value)
+            mcanv.addVaText(name, value)
+        else:
+            val = self.getOperValue(op)
+            mcanv.addText('#')
+            mcanv.addNameText('0x%.2x' % (val))
 
     def repr(self, op):
         val = self.getOperValue(op)
@@ -4753,7 +4770,7 @@ class ArmImmOffsetOper(ArmOperand):
         # there are certain circumstances where we can survive without an emulator
         # if we don't have an emulator, we must be PC-based since we know it
         if self.base_reg == REG_PC:
-            base = self.va
+            base = self.va & 0xfffffffc
         elif emu is None:
             return None
         else:
@@ -4879,13 +4896,17 @@ class ArmPcOffsetOper(ArmOperand):
         return self.va + self.val
 
     def render(self, mcanv, op, idx):
-        value = self.getOperValue(op)
-        va = value & -2
-        if mcanv.mem.isValidPointer(va):
-            name = addrToName(mcanv, va)
-            mcanv.addVaText(name, va)
+        hint = mcanv.syms.getSymHint(op.va, idx)
+        if hint is not None:
+            mcanv.addVaText(hint, value)
         else:
-            mcanv.addVaText('0x%.8x' % va, va)
+            value = self.getOperValue(op)
+            va = value & -2
+            if mcanv.mem.isValidPointer(va):
+                name = addrToName(mcanv, va)
+                mcanv.addVaText(name, va)
+            else:
+                mcanv.addVaText('0x%.8x' % va, va)
 
     def repr(self, op):
         targ = self.getOperValue(op)

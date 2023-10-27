@@ -457,8 +457,8 @@ def branch_misc(va, val, val2):  # bl and misc control
         flags = envi.IF_CALL | IF_W
 
         # need next two bytes
-        j1 = not ((val2 >> 13) & 1 ^ s)
-        j2 = not ((val2 >> 11) & 1 ^ s)
+        j1 = not (((val2 >> 13) & 1) ^ s)
+        j2 = not (((val2 >> 11) & 1) ^ s)
 
         imm = (s << 24) | (j1 << 23) | (j2 << 22) | ((val & 0x3ff) << 12) | ((val2 & 0x7ff) << 1)
 
@@ -589,8 +589,7 @@ def it_hints(va, val):
     if mask != 0:
         # this is the IT instruction
         itoper = ThumbITOper(mask, firstcond)
-        count, cond, data = itoper.getCondData()
-        nextfew = it_strs[count][data]
+        nextfew = itoper.getSuffix()
         mnem = 'it' + nextfew   # as much as it pains me to strcat here.
 
         return COND_AL, (itoper,), 0, INS_IT, mnem
@@ -603,7 +602,7 @@ def it_hints(va, val):
 it_strs_0 = ['']
 it_strs_1 = ['e', 't']
 it_strs_2 = ['ee', 'et', 'te', 'tt']
-it_strs_3 = ['eee', 'tee', 'ete', 'tte', 'eet', 'tet', 'ett', 'ttt']
+it_strs_3 = ['eee', 'eet', 'ete', 'ett', 'tee', 'tet', 'tte', 'ttt']
 it_strs = (it_strs_0, it_strs_1, it_strs_2, it_strs_3)
 
 
@@ -620,6 +619,10 @@ class ThumbITOper(ArmOperand):
             mask >>= 1
         return x - 1
 
+    def getSuffix(self):
+        count, cond, data = self.getCondData()
+        return it_strs[count][data]
+
     def getFlags(self):
         fiz = self.firstcond & 1
         flags = 1
@@ -631,28 +634,28 @@ class ThumbITOper(ArmOperand):
         return flags
 
     def getCondData(self):
-        '''
-        deprecated: 2020-06-24
-        '''
         mask = self.mask
         cond = self.firstcond
-        count = 0
-        go = 0
+        count = 4
         cond0 = cond & 1
-        data = 0
 
-        for idx in range(4):
-            mbit = (mask >> idx) & 1
-            if go:
-                bit = bool(mbit == cond0)
-                data <<= 1
-                data |= bit
-                count += 1
+        done = False
+        while mask:
+            count -= 1
+            done = mask & 1
 
-            if mbit:
-                go = 1
+            # kill the first discovered 1
+            mask >>= 1
+            if done:
+                break
 
-        return count, self.firstcond, data
+        if count == 4:
+            count = 0
+
+        if not cond0:
+            mask ^= e_bits.bu_maxes[count]
+
+        return count, self.firstcond, mask
 
     def getITSTATEdata(self):
         '''
@@ -878,64 +881,64 @@ def shift_or_ext_32(va, val1, val2):
 
 parallel_misc_info = (
     {
-        0b000:        (INS_UADD8,   'uadd8',                IF_THUMB32),
-        0b001:        (INS_UADD16,  'uadd16',              IF_THUMB32),
-        0b010:        (INS_UASX,    'uasx',                  IF_THUMB32),
-        0b110:        (INS_USAX,    'usax',                  IF_THUMB32),
-        0b101:        (INS_USUB16,  'usub16',              IF_THUMB32),
-        0b100:        (INS_USUB8,   'usub8',                IF_THUMB32),
+        0b000:        (INS_UADD8,   'uadd8',                IF_THUMB32, 3),
+        0b001:        (INS_UADD16,  'uadd16',              IF_THUMB32, 3),
+        0b010:        (INS_UASX,    'uasx',                  IF_THUMB32, 3),
+        0b110:        (INS_USAX,    'usax',                  IF_THUMB32, 3),
+        0b101:        (INS_USUB16,  'usub16',              IF_THUMB32, 3),
+        0b100:        (INS_USUB8,   'usub8',                IF_THUMB32, 3),
 
-        0b1000:        (INS_UQADD8, 'uqadd8',                IF_THUMB32),
-        0b1001:        (INS_UQADD16, 'uqadd16',              IF_THUMB32),
-        0b1010:        (INS_UQASX,  'uqasx',                  IF_THUMB32),
-        0b1110:        (INS_UQSAX,  'uqsax',                  IF_THUMB32),
-        0b1101:        (INS_UQSUB16, 'uqsub16',              IF_THUMB32),
-        0b1100:        (INS_UQSUB8, 'uqsub8',                IF_THUMB32),
+        0b1000:        (INS_UQADD8, 'uqadd8',                IF_THUMB32, 3),
+        0b1001:        (INS_UQADD16, 'uqadd16',              IF_THUMB32, 3),
+        0b1010:        (INS_UQASX,  'uqasx',                  IF_THUMB32, 3),
+        0b1110:        (INS_UQSAX,  'uqsax',                  IF_THUMB32, 3),
+        0b1101:        (INS_UQSUB16, 'uqsub16',              IF_THUMB32, 3),
+        0b1100:        (INS_UQSUB8, 'uqsub8',                IF_THUMB32, 3),
 
-        0b10000:        (INS_UHADD8, 'uhadd8',                IF_THUMB32),
-        0b10001:        (INS_UHADD16, 'uhadd16',              IF_THUMB32),
-        0b10010:        (INS_UHASX, 'uhasx',                  IF_THUMB32),
-        0b10110:        (INS_UHSAX, 'uhsax',                  IF_THUMB32),
-        0b10101:        (INS_UHSUB16, 'uhsub16',              IF_THUMB32),
-        0b10100:        (INS_UHSUB8, 'uhsub8',                IF_THUMB32),
+        0b10000:        (INS_UHADD8, 'uhadd8',                IF_THUMB32, 3),
+        0b10001:        (INS_UHADD16, 'uhadd16',              IF_THUMB32, 3),
+        0b10010:        (INS_UHASX, 'uhasx',                  IF_THUMB32, 3),
+        0b10110:        (INS_UHSAX, 'uhsax',                  IF_THUMB32, 3),
+        0b10101:        (INS_UHSUB16, 'uhsub16',              IF_THUMB32, 3),
+        0b10100:        (INS_UHSUB8, 'uhsub8',                IF_THUMB32, 3),
     },
     {
-        0b000:        (INS_SADD8, 'sadd8',                IF_THUMB32),
-        0b001:        (INS_SADD16, 'sadd16',              IF_THUMB32),
-        0b010:        (INS_SASX, 'sasx',                  IF_THUMB32),
-        0b110:        (INS_SSAX, 'ssax',                  IF_THUMB32),
-        0b101:        (INS_SSUB16, 'ssub16',              IF_THUMB32),
-        0b100:        (INS_SSUB8, 'ssub8',                IF_THUMB32),
+        0b000:        (INS_SADD8, 'sadd8',                IF_THUMB32, 3),
+        0b001:        (INS_SADD16, 'sadd16',              IF_THUMB32, 3),
+        0b010:        (INS_SASX, 'sasx',                  IF_THUMB32, 3),
+        0b110:        (INS_SSAX, 'ssax',                  IF_THUMB32, 3),
+        0b101:        (INS_SSUB16, 'ssub16',              IF_THUMB32, 3),
+        0b100:        (INS_SSUB8, 'ssub8',                IF_THUMB32, 3),
 
-        0b1000:        (INS_QADD8, 'qadd8',                IF_THUMB32),
-        0b1001:        (INS_QADD16, 'qadd16',              IF_THUMB32),
-        0b1010:        (INS_QASX, 'qasx',                  IF_THUMB32),
-        0b1110:        (INS_QSAX, 'qsax',                  IF_THUMB32),
-        0b1101:        (INS_QSUB16, 'qsub16',              IF_THUMB32),
-        0b1100:        (INS_QSUB8, 'qsub8',                IF_THUMB32),
+        0b1000:        (INS_QADD8, 'qadd8',                IF_THUMB32, 3),
+        0b1001:        (INS_QADD16, 'qadd16',              IF_THUMB32, 3),
+        0b1010:        (INS_QASX, 'qasx',                  IF_THUMB32, 3),
+        0b1110:        (INS_QSAX, 'qsax',                  IF_THUMB32, 3),
+        0b1101:        (INS_QSUB16, 'qsub16',              IF_THUMB32, 3),
+        0b1100:        (INS_QSUB8, 'qsub8',                IF_THUMB32, 3),
 
-        0b10000:        (INS_SHADD8, 'shadd8',                IF_THUMB32),
-        0b10001:        (INS_SHADD16, 'shadd16',              IF_THUMB32),
-        0b10010:        (INS_SHASX, 'shasx',                  IF_THUMB32),
-        0b10110:        (INS_SHSAX, 'shsax',                  IF_THUMB32),
-        0b10101:        (INS_SHSUB16, 'shsub16',              IF_THUMB32),
-        0b10100:        (INS_SHSUB8, 'shsub8',                IF_THUMB32),
+        0b10000:        (INS_SHADD8, 'shadd8',                IF_THUMB32, 3),
+        0b10001:        (INS_SHADD16, 'shadd16',              IF_THUMB32, 3),
+        0b10010:        (INS_SHASX, 'shasx',                  IF_THUMB32, 3),
+        0b10110:        (INS_SHSAX, 'shsax',                  IF_THUMB32, 3),
+        0b10101:        (INS_SHSUB16, 'shsub16',              IF_THUMB32, 3),
+        0b10100:        (INS_SHSUB8, 'shsub8',                IF_THUMB32, 3),
     },
     {
-        0b00000:        (INS_QADD,  'qadd',                IF_THUMB32),
-        0b01000:        (INS_QDADD, 'qdadd',                IF_THUMB32),
-        0b10000:        (INS_QADD,  'qsub',                IF_THUMB32),
-        0b11000:        (INS_QDADD, 'qdsub',                IF_THUMB32),
+        0b00000:        (INS_QADD,  'qadd',                IF_THUMB32, 3),
+        0b01000:        (INS_QDADD, 'qdadd',                IF_THUMB32, 3),
+        0b10000:        (INS_QADD,  'qsub',                IF_THUMB32, 3),
+        0b11000:        (INS_QDADD, 'qdsub',                IF_THUMB32, 3),
 
-        0b00001:        (INS_REV,   'rev',                IF_THUMB32),
-        0b01001:        (INS_REV16,   'rev16',                IF_THUMB32),
+        0b00001:        (INS_REV,   'rev',                IF_THUMB32, 3),
+        0b01001:        (INS_REV16,   'rev16',                IF_THUMB32, 3),
         # rd, rm
-        0b10001:        (INS_RBIT,   'rbit',                IF_THUMB32),
-        0b11001:        (INS_REVSH,   'revsh',                IF_THUMB32),
+        0b10001:        (INS_RBIT,   'rbit',                IF_THUMB32, 2),
+        0b11001:        (INS_REVSH,   'revsh',                IF_THUMB32, 2),
 
         # rd, rn, rm
-        0b00010:        (INS_SEL,  'sel',                IF_THUMB32),
-        0b00011:        (INS_CLZ,  'clz',                IF_THUMB32),
+        0b00010:        (INS_SEL,  'sel',                IF_THUMB32, 3),
+        0b00011:        (INS_CLZ,  'clz',                IF_THUMB32, 2),
 
     },
 )
@@ -953,14 +956,18 @@ def parallel_misc_32(va, val1, val2):
     if pardata is None:
         return shift_or_ext_32(va, val1, val2)
 
-    opcode, mnem, flags = pardata
+    opcode, mnem, flags, opercount = pardata
     rn = (val1 & 0xf)
     rd = (val2 >> 8) & 0xf
     rm = (val2 & 0xf)
 
-    opers = (ArmRegOper(rd),
-             ArmRegOper(rn),
-             ArmRegOper(rm))
+    if opercount == 3:
+        opers = (ArmRegOper(rd),
+                 ArmRegOper(rn),
+                 ArmRegOper(rm))
+    else:
+        opers = (ArmRegOper(rd),
+                 ArmRegOper(rn))
 
     return COND_AL, opcode, mnem, opers, flags, 0
 
@@ -1454,7 +1461,6 @@ smulls_info = {
 
 
 def smull_32(va, val1, val2):
-    # TODO: does this exist in thumb?
     rn = val1 & 0xf
     rm = val2 & 0xf
     rdhi = (val2 >> 8) & 0xf
@@ -1477,8 +1483,9 @@ def smull_32(va, val1, val2):
                                       bytez=struct.pack("<HH", val1, val2),
                                       va=va-4)
 
-    opers = (ArmRegOper(rdhi, va=va),
-             ArmRegOper(rdlo, va=va),
+    opcode, mnem = secout
+    opers = (ArmRegOper(rdlo, va=va),
+             ArmRegOper(rdhi, va=va),
              ArmRegOper(rn, va=va),
              ArmRegOper(rm, va=va))
     return COND_AL, opcode, mnem, opers, None, 0
@@ -1629,6 +1636,9 @@ def dp_shift_32(va, val1, val2):
             opers = (oper0, oper1, oper2)
         else:
             opers = (oper0, oper2)
+
+        if s:
+            flags = IF_PSR_S
 
     else:
         opcode, mnem, opcnt = dp_shift_ops[op]
@@ -2578,9 +2588,11 @@ class ThumbDisasm:
                                           bytez=bytez[offset:offset+2],
                                           va=va)
 
+        #print("0x%x:   %r  opermkr: %r" % (va, mnem, opermkr))
+        ova = va+4
         if flags & IF_THUMB32:
             val2, = struct.unpack_from(self.hfmt, bytez, offset+2)
-            cond, nopcode, nmnem, olist, nflags, simdflags = opermkr(va+4, val, val2)
+            cond, nopcode, nmnem, olist, nflags, simdflags = opermkr(ova, val, val2)
 
             if nmnem is not None:   # allow opermkr to set the mnem
                 mnem = nmnem
@@ -2590,7 +2602,7 @@ class ThumbDisasm:
             oplen = 4
 
         else:
-            opnuggets = opermkr(va+4, val)
+            opnuggets = opermkr(ova, val)
             if len(opnuggets) == 5:
                 cond, olist, nflags, opcode, mnem = opnuggets
             else:
