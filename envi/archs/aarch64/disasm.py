@@ -256,9 +256,11 @@ def p_log_imm(opval, va):
     iflags = 0
     sf = opval >> 31
     opc = opval >> 29 & 0x3
-    n = opval >> 10 & 0x1000    # 22 bits, but left in place
+    #n = opval >> 10 & 0x1000    # 22 bits, but left in place
+    n = opval >> 22 & 0b1
     immr = opval >> 16 & 0x3f
-    imms = opval >> 4 & 0xfc0   # 10 bits, but left in place
+    #imms = opval >> 4 & 0xfc0   # 10 bits, but left in place
+    imms = (opval >> 10 & 0x3f)
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
 
@@ -271,7 +273,11 @@ def p_log_imm(opval, va):
         imm = imms + immr
     elif sf == 0b1:
         size = 8
-        imm = n + imms + immr
+        n *= 0b1000000000000     # Making space for imms and immr underneath n      TODO : use shifts
+        imms *= 0b1000000           # Making space for immr under imms
+        imm = n + imms + immr       # TODO : Use OR instead of add
+        # TODO - Add bitmask immediate processing here to calculated imm 
+
     else:
         return p_undef(opval, va)
 
@@ -338,6 +344,9 @@ def p_mov_wide_imm(opval, va):
     mnem = 'mov'
     opcode = INS_MOV
     iflag = mov_w_flags[opc]
+
+    if opc != 0b10:
+        mnem += movSuffixes[opc]
 
     return opcode, mnem, olist, iflag, 0
 
@@ -7141,10 +7150,26 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
 
     def repr(self, op):
         ival = self.getOperValue(op)    # This shifts the value using shval and shtype - is this what we want?
-        
-        if ival >= 4096:
-            return "#0x%.8x" % ival
-        return "#" + str(ival)
+
+        if self.shval == 0:       # Case for no shifting                         
+            if ival >= 4096:
+                return "#0x%.8x" % ival
+            return "#" + str(ival)
+        else:
+            result = ""     # Build result based on val and ival values
+            if self.val >= 4096:
+                result += "#0x%.8x" % self.val
+            else:
+                result += '#' + str(self.val)
+            
+            result += ", " + opShifts[self.shtype] + " #" + str(self.shval) + "\t;"
+
+            if ival >= 4096:
+                result += "#0x%.8x" % ival
+            else:
+                result += "#" + str(ival)
+
+            return result
 
         # return "#" + str(self.val) + ", " + opShifts[self.shtype] + " #" + str(self.shval)
 
@@ -7161,31 +7186,51 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
                 mcanv.addNameText(hint)
         
         elif mcanv.mem.isValidPointer(value): 
-            # mcanv.addVaText('#0x%.8x' % value, value)
-
-            # New approach to match repr output
-            #mcanv.addVaText(repr(op), value)
-
-            # Old method
-            if value >= 4096:
-                mcanv.addVaText('#0x%.8x' % value, value)
+            if self.shval == 0:
+                if value >= 4096:
+                    mcanv.addVaText('#0x%.8x' % value, value)
+                else:
+                    mcanv.addVaText('#' + str(value), value)
             else:
-                mcanv.addVaText('#' + str(value), value)
-            
+                result = ""
 
+                if self.val >= 4096:
+                    result += '#0x%.8x' % self.val
+                else:
+                    result += '#' + str(self.val)
+
+                result += ", " + opShifts[self.shtype] + " #" + str(self.shval) + "    ;"
+
+                if value >= 4096:
+                    result += "#0x%.8x" % value
+                else:
+                    result += "#" + str(value)
+
+                mcanv.addVaText(result, value)
+            
         else:
-            
-            # New approach to match repr output
-            #mcanv.addNameText(repr(op))
-
-            if value >= 4096:
-                mcanv.addNameText('#0x%.8x' % value)
+            if self.shval == 0:                
+                if value >= 4096:
+                    mcanv.addNameText('#0x%.8x' % value)
+                else:
+                    mcanv.addNameText('#' + str(value))
             else:
-                mcanv.addNameText('#' + str(value))
+                result = ""
+                
+                if self.val >= 4096:
+                    result += '#0x%.8x' % self.val
+                else:
+                    result += '#' + str(self.val)
+
+                result += ", " + opShifts[self.shtype] + " #" + str(self.shval) + "    ;"
+
+                if value >= 4096:
+                    result += "#0x%.8x" % value
+                else:
+                    result += "#" + str(value)
+
+                mcanv.addNameText(result)
             
-
-
-
 LDST_MODE_POSTIDX = 1
 LDST_MODE_OFFSET = 2
 LDST_MODE_PREIDX = 3
