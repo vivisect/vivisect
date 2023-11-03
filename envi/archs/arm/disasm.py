@@ -4022,7 +4022,9 @@ class ArmOpcode(envi.Opcode):
                 mnem += IFS[self.simdflags]
 
         #FIXME: Advanced SIMD modifiers (IF_V*)
-        if self.iflags & IF_THUMB32:
+        if self.iflags & IF_WIDE:
+            mnem += "w"
+        elif self.iflags & IF_THUMB32:
             mnem += ".w"
 
         mcanv.addNameText(mnem, typename="mnemonic")
@@ -4068,7 +4070,9 @@ class ArmOpcode(envi.Opcode):
             if self.simdflags:
                 mnem += IFS[self.simdflags]
 
-        if self.iflags & IF_THUMB32:
+        if self.iflags & IF_WIDE:
+            mnem += "w"
+        elif self.iflags & IF_THUMB32:
             mnem += ".w"
         x = []
         for o in self.opers:
@@ -4916,7 +4920,7 @@ class ArmPcOffsetOper(ArmOperand):
 
 CORE_PSRS = ("CPSR", "SPSR", 'APSR', None,)
 SPEC_REGS = (
-    None,
+    #None,      # empirical during testing?
     'IAPSR',
     'EAPSR',
     'PSR',

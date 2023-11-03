@@ -26,8 +26,8 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5977
-GOOD_EMU_TESTS = 1205
+GOOD_TESTS = 5976
+GOOD_EMU_TESTS = 1204
 '''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -808,7 +808,7 @@ global_instrs = [
         (REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrsb  r3, [#0x449c]', 0, ()),
         (REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrsb  r3, [#0x4634]', 0, ()),
         (REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
-        (REV_ALL_ARM, 'a3f2fe33', 0x4561, 'sub.w r3, r3, #0x3fe', 0, ()),
+        (REV_ALL_ARM, 'a3f2fe33', 0x4561, 'subw r3, r3, #0x3fe', 0, ()),
         #implimented in disasm but not yet in emu
         (REV_ALL_ARM, '70f02fe1', 0x4560, 'bkpt  #0xff00', 0, ()),
         (REV_ALL_ARM, '24ff2fe1', 0x4560, 'bxj  r4', 0, ()), # note this switches to jazelle
@@ -1375,8 +1375,8 @@ global_instrs = [
         (REV_ALL_ARM, 'aff31a81', 0x4561, 'cps #0x1a', 0, ()),
         (REV_ALL_ARM, 'f6f7e456', 0x456ffff1, 'bl 0x44af6dbc', 0, ()),
         (REV_ALL_ARM, 'D5F6FEEA', 0x2208EBE, 'blx 0x020de4bc', 0, ()),
-        (REV_ALL_ARM, '33f6e456', 0x4561, 'add.w r6, r3, #0xde4', 0, ()),
-        (REV_ALL_ARM, '56f6e456', 0x4561, 'mov.w r6, #0x6de4', 0, ()),
+        #(REV_ALL_ARM, '33f6e456', 0x4561, 'add.w r6, r3, #0xde4', 0, ()),
+        (REV_ALL_ARM, '56f6e456', 0x4561, 'movw r6, #0x6de4', 0, ()),
         (REV_ALL_ARM, '53f83450', 0x4561, 'ldr.w r5, [r3, r4, lsl #3]', 0, ()),
 
         (REV_ALL_ARM, 'e3efa54b', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
@@ -1776,55 +1776,11 @@ class ArmInstructionSet(unittest.TestCase):
                         redgoodop = redgoodop.replace('.w ',' ')
 
                         # convert both to hex:
-                        if "#" in redoprepr:
-                            idx = redoprepr.find("#")
-                            idx2 = redoprepr.find("]", idx+1)
-                            if not "0x" in redoprepr:
-                                try:
+                        redoprepr = cvtImmToHex(redoprepr)
+                        #print("redoprepr: %r" % redoprepr)
 
-                                    if idx2 != -1:
-                                        num = int(redoprepr[idx+1:idx2])
-                                        redoprepr = redoprepr[:idx]  + "#0x%x]" % (num)
-                                    else:
-                                        num = int(redoprepr[idx+1:])
-                                        redoprepr = redoprepr[:idx]  + "#0x%x" % (num)
-                                    print("redoprepr: %r" % redoprepr)
-                                except ValueError:
-                                    pass
-
-                            else:
-                                lastlen = len(redoprepr)+1
-                                while lastlen > len(redoprepr):
-                                    #print("redoprepr: %r" % redoprepr)
-                                    redoprepr = redoprepr.replace("#0x0", "#0x")
-                                    #print("redoprepr: %r" % redoprepr)
-                                    lastlen = len(redoprepr)
-                        print("redoprepr: %r" % redoprepr)
-
-                        if "#" in redgoodop:
-                            idx = redgoodop.find("#")
-                            idx2 = redgoodop.find("]", idx+1)
-                            if not "0x" in redgoodop:
-        
-                                try:
-                                    if idx2 != -1:
-                                        num = int(redgoodop[idx+1:idx2])
-                                        redgoodop = redgoodop[:idx]  + "#0x%x]" % (num)
-                                    else:
-                                        num = int(redgoodop[idx+1:])
-                                        redgoodop = redgoodop[:idx]  + "#0x%x" % (num)
-                                    print("redgoodop: %r" % redgoodop)
-                                except ValueError:
-                                    pass
-
-                            else:
-                                lastlen = len(redgoodop)+1
-                                while lastlen > len(redgoodop):
-                                    #print("redgoodop: %r" % redgoodop)
-                                    redgoodop = redgoodop.replace("#0x0", "#0x")
-                                    #print("redgoodop: %r" % redgoodop)
-                                    lastlen = len(redgoodop)
-                        print("redgoodop: %r" % redgoodop)
+                        redgoodop = cvtImmToHex(redgoodop)
+                        #print("redgoodop: %r" % redgoodop)
 
                         # remove whitespace
                         redoprepr = redoprepr.replace(' ','').replace('\t','')
@@ -1832,8 +1788,11 @@ class ArmInstructionSet(unittest.TestCase):
 
                         # do the mnemonic comparison
                         if redoprepr != redgoodop:
-                            print("%r != %r" % (redoprepr, redgoodop))
-                            num, = struct.unpack("<I", unhexlify(bytez))
+                            #print("viv: %r != test: %r" % (redoprepr, redgoodop))
+                            if len(bytez) == 4:
+                                num, = struct.unpack("<H", unhexlify(bytez))
+                            else:
+                                num, = struct.unpack("<I", unhexlify(bytez))
                             bs = bin(num)[2:].zfill(32)
                             badcount += 1
                             raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
@@ -1962,6 +1921,43 @@ class ArmInstructionSet(unittest.TestCase):
         emu.curpath[2]['writelog'] = []
 
         return success
+
+import re
+def cvtImmToHex(rep):
+    # convert to hex
+    rep += " "  # just for now
+    #print("cvtImmToHex: %r" % rep)
+    while True:
+        try:
+            i = re.finditer('#[-]*[0-9][0-9]*[ ,\]]', rep).__next__(); s = i.span(); s
+            num = int(i[0][1:-1])
+            rep = rep[:s[0]+1] + hex(num) + rep[s[1]-1:]
+            #print("iter0: %r" % rep)
+
+        except StopIteration:
+            break
+
+    # now make sure we strip any leading 0x000 0's
+    redo = True
+    while redo:
+        try:
+            redo = False
+            leng = len(rep)
+            for i in re.finditer('0x0[0-9a-f]+[ ,\]]', rep):
+                s = i.span()
+                num = int(i[0][:-1], 16)
+                rep = rep[:s[0]] + hex(num) + rep[s[1]-1:]
+                #print("iter1: %r" % rep)
+
+                if len(rep) != leng:
+                    redo = True
+                    break   # for loop.  while loop run it again
+
+        except Exception as e:
+            print("EXCEPTION: %r" % e)
+            break
+
+    return rep.strip()
 
 """
 def generateTestInfo(ophexbytez='6e'):

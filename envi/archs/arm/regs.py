@@ -27,7 +27,8 @@ arm_regs_tups = [
     ('lr', 32),  # also r14
     ('pc', 32),  # also r15
     ('cpsr', 32),
-    ('nil', 32),   # place holder
+    ('nil', 32),    # place holder
+    ('spsr', 32),   # updated for each level
     # FIXME: need to deal with ELR_hyp
 ]
 
@@ -41,15 +42,20 @@ arm_metas = [
         ("r15", REG_PC, 0, 32),
 ]
 
+REG_PC =   15
+REG_CPSR = 16
+REG_NIL =  17
+REG_SPSR = 18
+
 REG_APSR_MASK = 0xffff0000
 
 # build a translation table to allow for fast access of banked registers
 modes = list(proc_modes.keys())
 modes.sort()
 
-reg_table = [ x for x in range(17 * REGS_PER_MODE) ]
+reg_table = [ x for x in range(MODE_COUNT * REGS_PER_MODE) ]
 reg_data = [ (reg, sz) for reg,sz in arm_regs_tups ]
-reg_table_data = [ (None, 32) for x in range(17 * REGS_PER_MODE) ]
+reg_table_data = [ (None, 32) for x in range(MODE_COUNT * REGS_PER_MODE) ]
 for idx,data in enumerate(reg_data):
     reg_table_data[idx] = data
 
@@ -75,13 +81,13 @@ for modenum in modes[1:]:       # skip first since we're already done
         reg_table_data[ridx+offset] = (regname, rsz) 
 
     # PC
-    reg_table[PSR_offset-3] = 15
+    reg_table[PSR_offset-3] = REG_PC
     reg_table_data[PSR_offset-3] = ('pc_%s' % (msname), 32)
     # CPSR
-    reg_table[PSR_offset-2] = 16   # SPSR....??
+    reg_table[PSR_offset-2] = REG_CPSR   # SPSR....??
     reg_table_data[PSR_offset-2] = ('CPSR_%s' % (msname), 32) 
     # NIL
-    reg_table[PSR_offset-1] = 17
+    reg_table[PSR_offset-1] = REG_NIL
     reg_table_data[PSR_offset-1] = ('NIL_%s' % (msname), 32) 
     # PSR
     reg_table[PSR_offset] = len(reg_data)
@@ -123,12 +129,31 @@ for simdreg in range(VFP_QWORD_REG_COUNT):
 REG_FPSCR = len(reg_table)
 reg_table.append(len(reg_data))
 reg_data.append(('fpscr', 32))
+reg_table_data.append(('fpscr', 32))
 
+reg_table.append(len(reg_data))
+reg_data.append(('IPSR', 32))
+reg_table_data.append(('IPSR', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('EPSR', 32))
+reg_table_data.append(('EPSR', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('PRIMASK', 32))
+reg_table_data.append(('PRIMASK', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('FAULTMASK', 32))
+reg_table_data.append(('FAULTMASK', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('BASEPRI', 32))
+reg_table_data.append(('BASEPRI', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('CONTROL', 32))
+reg_table_data.append(('CONTROL', 32))
 
 MAX_TABLE_SIZE = len(reg_table_data)
 
 l = locals()
-e_reg.addLocalEnums(l, arm_regs_tups)
+e_reg.addLocalEnums(l, reg_table_data)
 
 PSR_N = 31  # negative
 PSR_Z = 30  # zero
@@ -228,5 +253,96 @@ class ArmRegisterContext(e_reg.RegisterContext):
         self.loadRegDef(reg_table_data)
         self.loadRegMetas(arm_metas, statmetas=arm_status_metas)
         self.setRegisterIndexes(REG_PC, REG_SP)
+
+    def getProcMode(self):
+        '''
+        get current ARM processor mode.  see proc_modes (const.py)
+        '''
+        return self._rctx_vals[REG_CPSR] & 0x1f
+
+    def setProcMode(self, mode):
+        '''
+        set the current processor mode.  stored in CPSR
+        '''
+        # write current psr to the saved psr register for target mode
+        # but not for USR or SYS modes, which don't have their own SPSR
+        if mode not in (PM_usr, PM_sys):
+            curSPSRidx = proc_modes[mode]
+            self._rctx_vals[curSPSRidx] = self.getCPSR()
+
+        # set current processor mode
+        cpsr = self._rctx_vals[REG_CPSR] & 0xffffffe0
+        self._rctx_vals[REG_CPSR] = cpsr | mode
+
+    def getRegister(self, index, mode=None):
+        """
+        Return the current value of the specified register index.
+        """
+        if mode is None:
+            mode = self.getProcMode() & 0xf
+        else:
+            mode &= 0xf
+
+        idx = (index & 0xffff)
+        ridx = _getRegIdx(idx, mode)
+
+        if (index & 0xffff) == index:   # not a metaregister
+            return self._rctx_vals[ridx]
+
+        offset = (index >> 24) & 0xff
+        width  = (index >> 16) & 0xff
+
+        mask = (2**width)-1
+        return (self._rctx_vals[ridx] >> offset) & mask
+
+    def setRegister(self, index, value, mode=None):
+        """
+        Set a register value by index.
+        """
+        if mode is None:
+            mode = self.getProcMode() & 0xf
+        else:
+            mode &= 0xf
+
+        self._rctx_dirty = True
+
+        # the raw index (in case index is a metaregister)
+        idx = (index & 0xffff)
+
+        # have to translate every register index to find the right home
+        ridx = _getRegIdx(idx, mode)
+
+        if (index & 0xffff) == index:   # not a metaregister
+            self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])      # FIXME: hack.  should look up index in proc_modes dict?
+            return
+
+        # If we get here, it's a meta register index.
+        # NOTE: offset/width are in bits...
+        offset = (index >> 24) & 0xff
+        width  = (index >> 16) & 0xff
+
+        mask = e_bits.b_masks[width]
+        mask = mask << offset
+
+        # NOTE: basewidth is in *bits*
+        basewidth = self._rctx_widths[ridx]
+        basemask  = (2**basewidth)-1
+
+        # cut a whole in basemask at the size/offset of mask
+        finalmask = basemask ^ mask
+
+        curval = self._rctx_vals[ridx]
+
+        self._rctx_vals[ridx] = (curval & finalmask) | (value << offset)
+
+def _getRegIdx(idx, mode):
+    if idx >= REGS_VECTOR_TABLE_IDX:
+        return reg_table[idx]
+
+    ridx = idx + (mode*REGS_PER_MODE)  # account for different banks of registers
+    ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
+    return ridx
+
+
 
 rctx = ArmRegisterContext()
