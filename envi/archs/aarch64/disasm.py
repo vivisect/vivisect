@@ -256,39 +256,103 @@ def p_log_imm(opval, va):
     iflags = 0
     sf = opval >> 31
     opc = opval >> 29 & 0x3
-    #n = opval >> 10 & 0x1000    # 22 bits, but left in place
     n = opval >> 22 & 0b1
     immr = opval >> 16 & 0x3f
-    #imms = opval >> 4 & 0xfc0   # 10 bits, but left in place
     imms = (opval >> 10 & 0x3f)
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
 
-
     #sf and n determine whether the register size corresponds to the 32 or 64-bit variant
     if sf == 0b0 and n == 0b0:
         size = 4
-        rd += meta_reg_bases[size]
-        rn += meta_reg_bases[size]
-        imm = imms + immr
+        #rd += meta_reg_bases[size]
+        #rn += meta_reg_bases[size]
+        #imm = imms + immr
     elif sf == 0b1:
-        size = 8
-        n *= 0b1000000000000     # Making space for imms and immr underneath n      TODO : use shifts
-        imms *= 0b1000000           # Making space for immr under imms
-        imm = n + imms + immr       # TODO : Use OR instead of add
-        # TODO - Add bitmask immediate processing here to calculated imm 
-
+        size = 8                        
     else:
         return p_undef(opval, va)
 
+    # Bitmask immediate processing to calculate encoded imm value 
+    if n == 1:
+        # All of imms is number of 1s to add
+        # value starts at 1
+        bitcount = imms + 1
+        immsize = 64    # This is number of bits of encoded value, not bytes
+
+    else:
+        # Find first zero in imms to determine size
+        immsStr = '{0:0>6b}'.format(imms)
+        zeroind = immsStr.index('0')
+        
+        if zeroind == 5:        # If last position is first zero, invalid encoding (no space for number of 1s)
+            print("Invalid imms value detected!")
+            raise ValueError
+        
+        immsize = 2 << (4 - zeroind)   # Sets size based on the index of first zero
+
+        bitcount = int(immsStr[zeroind + 1:], 2) + 1    # Determine number of 1s based on remaining imms data
+
+    binstr = '1' * bitcount # Builds the imm value
+    
+    if immsize >> 3 > 0:
+        imm = sh_ror(int(binstr, 2), immr, immsize >> 3)
+    else:
+        binstr = binstr.zfill(immsize)
+        repval = '0' * (immsize - len(binstr)) + binstr
+        while len(binstr) < 8:
+            binstr += repval
+
+        imm = sh_ror(int(binstr, 2), immr, 1)   # Rotate over 1 byte
+        imm = int(bin(imm)[len(bin(imm)) - immsize:], 2)   # Reduce back down to correct size
+    
+    if(size << 3 > immsize):    # Check to see if value needs to be repeated above itself
+        binstr = bin(imm)[2:]   # Removes 0b prefix
+        binstr = binstr.zfill(immsize) # Pad string to length with zeros
+        encstr = binstr # Saves string to append
+
+        while len(binstr) < 64:    # Append to fill entire range 
+            binstr += encstr
+
+        imm = int(binstr, 2)    # Updates imm value
+
     #depending on whether opc is equal to 0, 1, 2, or 3, mnem is set to and, orr, eor, or ands
-    if opc == 0x00:
+    if opc == 0b00:
         mnem = 'and'
         opcode = INS_AND
-    elif opc == 0x01:
+    elif opc == 0b01:
         mnem = 'orr'
         opcode = INS_ORR
-    elif opc == 0x10:
+
+        if rn == 0b11111:
+            # Check for mov alias case
+            if (sf == 0b1 and n != 1):
+                moveWidePref = False
+
+            elif (sf == 0b0 and bin(n << 6 | imms)[2:4] != '00'):
+                moveWidePref = False
+
+            elif imms < 16:
+                moveWidePref = (-1 * immr) % 16 <= (15 - imms)
+
+            elif imms > ((size * 8) - 15):
+                moveWidePref = (immr % 16) <= (imms - (size * 8 - 15))
+
+            else:
+                moveWidePref = False
+            
+            if not moveWidePref:
+                mnem = 'mov'
+                opcode = INS_MOV
+
+                olist = (
+                A64RegOper(rd, va, size=size),
+                A64ImmOper(imm, 0, S_ROR, va, size),
+                )    
+
+                return opcode, mnem, olist, iflags, 0
+
+    elif opc == 0b10:
         mnem = 'eor'
         opcode = INS_EOR
     else:
@@ -298,18 +362,18 @@ def p_log_imm(opval, va):
             opcode = INS_TST
             olist = (
                 A64RegOper(rn, va, size=size),
-                A64ImmOper(imm, 0, S_LSL, va),
+                A64ImmOper(imm, 0, S_LSL, va, size),
             )
             return opcode, mnem, olist, 0, 0
 
-        mnem = 'and'
+        mnem = 'ands'
         opcode = INS_AND
         iflags = IF_PSR_S
 
     olist = (
-        A64RegOper(rn, va, size=size),
         A64RegOper(rd, va, size=size),
-        A64ImmOper(imm, 0, S_LSL, va),
+        A64RegOper(rn, va, size=size),
+        A64ImmOper(imm, 0, S_ROR, va, size),
     )
     
     return opcode, mnem, olist, iflags, 0
@@ -2262,11 +2326,15 @@ def p_log_shft_reg(opval, va):
     #if rn == 0x1f:
     #    # THIS IS THE ZERO REGISTER
 
-
     if opc == 0b00 or opc == 0b11:
         if n == 0b0:
             mnem = 'and'
             opcode = INS_AND
+
+            if rd == 0b11111:
+                mnem = 'tst'
+                opcode = INS_TST
+
         else:
             mnem = 'bic'
             opcode = INS_BIC
@@ -2304,6 +2372,12 @@ def p_log_shft_reg(opval, va):
         A64RegWithZROper(rn, va, size=size),
         A64RegWithZROper(rm, va, size=size),
     )
+
+    if mnem == 'tst':
+        olist = (
+            A64RegWithZROper(rn, va, size=size),
+            A64ShiftOper(rm, shift, imm6, size)
+        )
 
     return opcode, mnem, olist, iflag, 0
 
@@ -7409,13 +7483,17 @@ class A64PreFetchOper(A64Operand):
         return types[self.type] + targets[self.target] + policy[self.policy]
 
 
-
-
 class A64ShiftOper(A64Operand):
     '''
     Subclass of A64Operand. Shift applied to an operand/register
     '''
-    def __init__(self, register, shtype, shval):
+    def __init__(self, register, shtype, shval, regsize=8):
+
+        # Sets appropriate prefix for register based on size (w for 32, x for 64)
+        if regsize != 8:
+            register |= ((8*regsize) << 16)
+
+        self.size = regsize
         self.reg = register
         self.shtype = shtype
         self.shval = shval
@@ -7444,7 +7522,6 @@ class A64ShiftOper(A64Operand):
             mcanv.addText(',' + opShifts[self.shtype] + " #" + str(self.shval))
 
 
-	   
 class A64ExtendOper(A64Operand):
     '''
     Subclass of A64Operand. Extension applied to an operand/register
