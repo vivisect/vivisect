@@ -41,8 +41,18 @@ rm_rd = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rm_rdn = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7))
 rn_rdm = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_REG, 0, 0x7))
 rm_rd_imm0 = simpleops((O_REG, 0, 0x7), (O_REG, 3, 0x7), (O_IMM, 0, 0))
-imm8 = simpleops((O_IMM, 8, 0xff))
+imm8 = simpleops((O_IMM, 0, 0xff))
 sh4_imm1 = simpleops((O_IMM, 3, 0x1))
+
+
+def d1_rm4_rd3_dbl(va, value):
+    # 0 1 0 0 0 1 0 0 DN(1) Rm(4) Rdn(3)
+    rdbit = shmaskval(value, 4, 0x8)
+    rd = shmaskval(value, 0, 0x7) + rdbit
+    rm = shmaskval(value, 3, 0xf)
+    if rm == REG_SP:
+        return COND_AL, (ArmRegOper(rd, va=va), ArmRegOper(rm, va=va), ArmRegOper(rd, va=va)), None
+    return COND_AL, (ArmRegOper(rd, va=va), ArmRegOper(rm, va=va)), None
 
 
 def d1_rm4_rd3(va, value):
@@ -2185,9 +2195,9 @@ thumb_base = [
     ('0100001110',  (INS_BIC, 'bic',     rm_rdn,     IF_PSR_S)),  # BIC<c> <Rdn>,<Rm>
     ('0100001111',  (INS_MVN, 'mvn',     rm_rd,      IF_PSR_S)),  # MVN<c> <Rd>,<Rm>
     # Special data in2tructions and branch and exchange
-    ('0100010000',  (INS_ADD, 'add',     d1_rm4_rd3, 0)),        # ADD<c> <Rdn>,<Rm>
-    ('0100010001',  (INS_ADD, 'add',     d1_rm4_rd3, 0)),        # ADD<c> <Rdn>,<Rm>
-    ('010001001',   (INS_ADD, 'add',     d1_rm4_rd3, 0)),        # ADD<c> <Rdn>,<Rm>
+    ('0100010000',  (INS_ADD, 'add',     d1_rm4_rd3_dbl, 0)),        # ADD<c> <Rdn>,<Rm>
+    ('0100010001',  (INS_ADD, 'add',     d1_rm4_rd3_dbl, 0)),        # ADD<c> <Rdn>,<Rm>
+    ('010001001',   (INS_ADD, 'add',     d1_rm4_rd3_dbl, 0)),        # ADD<c> <Rdn>,<Rm>
     ('010001010',   (INS_CMP, 'cmp',     d1_rm4_rd3, 0)),        # CMP<c> <Rn>,<Rm>
     ('010001011',   (INS_CMP, 'cmp',     d1_rm4_rd3, 0)),        # CMP<c> <Rn>,<Rm>
     ('01000110',    (INS_MOV, 'mov',     d1_rm4_rd3, 0)),        # MOV<c> <Rd>,<Rm>

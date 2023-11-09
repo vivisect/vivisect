@@ -261,7 +261,7 @@ PM_hyp = 0b11010
 PM_und = 0b11011
 PM_sys = 0b11111
 
-REGS_PER_MODE = 18
+REGS_PER_MODE = 22
 
 # reg stuff stolen from regs.py to support proc_modes
 # these are in context of reg_table, not reg_data.  
@@ -322,6 +322,8 @@ PM_PRIVLVL  = 6
 PSR_CPSR    = 0
 PSR_SPSR    = 1
 PSR_APSR    = 2
+
+MODE_COUNT = 17
 
 
 

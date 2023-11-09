@@ -85,14 +85,6 @@ class ITException(Exception):
     def __repr__(self):
         return "Error with Thumb IT state: va:0x%x ITSTATE: 0x%x/%x" % (self.va, self.itbase, self.itsize)
 
-def _getRegIdx(idx, mode):
-    if idx >= REGS_VECTOR_TABLE_IDX:
-        return reg_table[idx]
-
-    ridx = idx + (mode*REGS_PER_MODE)  # account for different banks of registers
-    ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
-    return ridx
-
 
 ZC_bits = PSR_Z_bit | PSR_C_bit
 NC_bits = PSR_N_bit | PSR_C_bit
@@ -380,12 +372,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setRegister(REG_SP, esp+4)
         return val
 
-    def getProcMode(self):
-        '''
-        get current ARM processor mode.  see proc_modes (const.py)
-        '''
-        return self._rctx_vals[REG_CPSR] & 0x1f     # obfuscated for speed.  could call getCPSR but it's not as fast
-
     def getCPSR(self):
         '''
         return the Current Program Status Register.
@@ -432,83 +418,6 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
         psr = self._rctx_vals[ridx] & (~mask) | (psr & mask)
         self._rctx_vals[ridx] = psr
-
-    def setProcMode(self, mode):
-        '''
-        set the current processor mode.  stored in CPSR
-        '''
-        # write current psr to the saved psr register for target mode
-        # but not for USR or SYS modes, which don't have their own SPSR
-        if mode not in (PM_usr, PM_sys):
-            curSPSRidx = proc_modes[mode]
-            self._rctx_vals[curSPSRidx] = self.getCPSR()
-
-        # set current processor mode
-        cpsr = self._rctx_vals[REG_CPSR] & 0xffffffe0
-        self._rctx_vals[REG_CPSR] = cpsr | mode
-
-    def getRegister(self, index, mode=None):
-        """
-        Return the current value of the specified register index.
-        """
-        if mode is None:
-            mode = self.getProcMode() & 0xf
-        else:
-            mode &= 0xf
-
-        idx = (index & 0xffff)
-        ridx = _getRegIdx(idx, mode)
-        if idx == index:
-            return self._rctx_vals[ridx]
-
-        offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
-
-        mask = (2**width)-1
-        return (self._rctx_vals[ridx] >> offset) & mask
-
-    def setRegister(self, index, value, mode=None):
-        """
-        Set a register value by index.
-        """
-        if mode is None:
-            mode = self.getProcMode() & 0xf
-        else:
-            mode &= 0xf
-
-        self._rctx_dirty = True
-
-        # the raw index (in case index is a metaregister)
-        idx = (index & 0xffff)
-
-        # we only keep separate register banks per mode for general registers, not vectors
-        if idx >= REGS_VECTOR_TABLE_IDX:
-            ridx = idx
-        else:
-            ridx = _getRegIdx(idx, mode)
-
-        if idx == index:    # not a metaregister
-            self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])      # FIXME: hack.  should look up index in proc_modes dict?
-            return
-
-        # If we get here, it's a meta register index.
-        # NOTE: offset/width are in bits...
-        offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
-
-        mask = e_bits.b_masks[width]
-        mask = mask << offset
-
-        # NOTE: basewidth is in *bits*
-        basewidth = self._rctx_widths[ridx]
-        basemask  = (2**basewidth)-1
-
-        # cut a whole in basemask at the size/offset of mask
-        finalmask = basemask ^ mask
-
-        curval = self._rctx_vals[ridx]
-
-        self._rctx_vals[ridx] = (curval & finalmask) | (value << offset)
 
     def integerSubtraction(self, op):
         """

@@ -4918,41 +4918,50 @@ class ArmPcOffsetOper(ArmOperand):
         return tname
 
 
-CORE_PSRS = ("CPSR", "SPSR", 'APSR', None,)
-SPEC_REGS = (
-    #None,      # empirical during testing?
-    'IAPSR',
-    'EAPSR',
-    'PSR',
-    '<unknown>',
-    'IPSR',
-    'EPSR',
-    'IEPSR',
-    'MSP',
-    'PSP',
-    'MSPLIM',
-    'PSPLIM',
-    '<unknown>',
-    '<unknown>',
-    '<unknown>',
-    '<unknown>',
-    'PRIMASK',
-    'BASEPRI',
-    'BASEPRI_M',
-    'FAULTMASK',
-    'CONTROL',
+REGx_APSR = (REG_CPSR, 0xf8000000)
+REGx_IAPSR = ((REG_CPSR, 0xf8000000), (REG_IPSR, 0x000001ff))
+REGx_EAPSR = ((REG_CPSR, 0xf8000000), (REG_EPSR, 0x0700fc00))
+REGx_PSR =   ((REG_CPSR, 0xf8000000), (REG_IPSR, 0x000001ff), (REG_EPSR, 0x0700fc00))
+REGx_IEPSR = ((REG_IPSR, 0x000001ff), (REG_EPSR, 0x0700fc00))
+REGx_MSPLIM = ()    # can't find definitions
+REGx_PSPLIM = ()    # can't find definitions
+CORE_PSRS = (("CPSR", REG_CPSR), ("SPSR", REG_SPSR), ('APSR', REGx_APSR), (None,None),)
+SPEC_REGS_SPR = (
+    (None, None),
+    ('IAPSR', REGx_IAPSR),
+    ('EAPSR', REGx_EAPSR),
+    ('PSR',   REGx_PSR),
+    ('<unknown>', None),
+    ('IPSR', REG_IPSR),
+    ('EPSR', REG_EPSR),
+    ('IEPSR', REGx_IEPSR),
+)
+SPEC_REGS_SP = (
+    ('MSP', REG_MSP),
+    ('PSP', REG_PSP),
+    ('MSPLIM', REGx_MSPLIM),
+    ('PSPLIM', REGx_PSPLIM),
+    ('<unknown>', None),
+    ('<unknown>', None),
+    ('<unknown>', None),
+    ('<unknown>', None),
+)
+SPEC_REGS_PRICTL = (
+    ('PRIMASK', REG_PRIMASK),
+    ('BASEPRI', REG_PRIMASK),
+    ('BASEPRI_MAX', REG_BASEPRI_MAX),
+    ('FAULTMASK', REG_FAULTMASK),
+    ('CONTROL', REG_CONTROL),
 )
 
-psrs = [psr for psr in CORE_PSRS]
-for psr in SPEC_REGS:
-    for count in range(4):
-        psrs.append(psr)
+
+rt_data = (SPEC_REGS_SPR, SPEC_REGS_SP, SPEC_REGS_PRICTL)
 
 fields = (None, 'c', 'x', 'cx', 's', 'cs', 'xs', 'cxs',  'f', 'fc', 'fx', 'fcx', 'fs', 'fcs', 'fxs', 'fcxs')
-aspr_fields = [None for x in range(16)]
-aspr_fields[8] = 'nzcvq'
-aspr_fields[4] = 'g'
-aspr_fields[0xc] = 'nzcvqg'
+apsr_fields = [None for x in range(16)]
+apsr_fields[8] = 'nzcvq'
+apsr_fields[4] = 'g'
+apsr_fields[0xc] = 'nzcvqg'
 
 expanded_mask = []
 for x in range(16):
@@ -4964,18 +4973,35 @@ for x in range(16):
     expanded_mask.append(temp)
 
 
+RT_PSR = 0
+RT_SP =  1
+RT_CONTROL = 2
+
 class ArmPgmStatRegOper(ArmOperand):
-    def __init__(self, r, mask=0b1111):
+    def __init__(self, r, mask=0b1111, xregs=0, rtype=RT_PSR, priv_mask=0):
         '''
         mask and fields are overlapping data
         '''
         self.mask = mask
         self.psr = r
+        self.rtype = rtype
+        self.priv_mask = priv_mask
+        
+        if xregs:
+            self.psrinfo = rt_data[rtype][xregs & 7]
+        else:
+            self.psrinfo = CORE_PSRS[r]
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
             return False
         if self.r != oper.r:
+            return False
+        if self.rtype != oper.rtype:
+            return False
+        if self.mask != oper.mask:
+            return False
+        if self.priv_mask != oper.priv_mask:
             return False
         return True
 
@@ -4990,16 +5016,29 @@ class ArmPgmStatRegOper(ArmOperand):
             return None
 
         mode = emu.getProcMode()
-        if self.psr == PSR_SPSR: # SPSR
+        if self.psrinfo[1] == PSR_SPSR: # SPSR
             psr = emu.getSPSR(mode)
-        else:
+
+        elif self.psrinfo[1] == PSR_CPSR:
             psr = emu.getCPSR()
+            if self.priv_mask == 0:
+                psr &= 0xf8000000   # APSR
+
+        elif type(self.psrinfo) == tuple:
+            psr = 0
+            for ridx, rmask in self.psrinfo:
+                tmp = emu.getRegister(ridx) & rmask
+                psr |= tmp
+
+        else:
+            psr = emu.getRegister(self.psrinfo[1])
 
         return psr
 
     def setOperValue(self, op, emu=None, val=None):
         if emu is None:
             return None
+
         mode = emu.getProcMode()
 
         mask = expanded_mask[self.mask]
@@ -5017,8 +5056,10 @@ class ArmPgmStatRegOper(ArmOperand):
         return newpsr
 
     def render(self, mcanv, op, idx):
+        # check psrinfo
+
         if self.psr == PSR_APSR:
-            field = aspr_fields[self.mask]
+            field = apsr_fields[self.mask]
         elif self.psr < 4:
             field = fields[self.mask]
         else:
@@ -5033,7 +5074,7 @@ class ArmPgmStatRegOper(ArmOperand):
 
     def repr(self, op):
         if self.psr == PSR_APSR:
-            field = aspr_fields[self.mask]
+            field = apsr_fields[self.mask]
         elif self.psr < 4:
             field = fields[self.mask]
         else:
