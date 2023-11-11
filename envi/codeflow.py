@@ -49,6 +49,12 @@ class CodeFlowContext(object):
         self._cf_recurse = recurse
         self._cf_exptable = exptable
         self._cf_blocks = []
+
+        self._cf_blocked = collections.OrderedDict()
+        self._cf_delaying = collections.defaultdict(set)
+        self._cf_delayed = collections.defaultdict(set)
+        self._calls_from = {}
+
         self._dynamic_branch_handlers = []
 
     def _cb_opcode(self, va, op, branches):
@@ -164,6 +170,8 @@ class CodeFlowContext(object):
                 logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
+                import pdb, sys
+                pdb.post_mortem(sys.exc_info()[2])
                 logger.warning('Codeflow exception at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
 
@@ -234,13 +242,13 @@ class CodeFlowContext(object):
                                 # descend into functions, but make sure we don't descend into
                                 # recursive functions
                                 if bva in self._cf_blocks:
-                                    logger.debug("not recursing to function 0x%x (at 0x%x): it's already in analysis call path (ie. it called *this* func)", 
+                                    logger.debug("not recursing to function 0x%x (at 0x%x): it's already in analysis call path (ie. it called *this* func)",
                                             bva, va)
                                     logger.debug("call path: \t" + ", ".join([hex(x) for x in self._cf_blocks]))
                                     # the function that we want to make procedural
                                     # called us so we can't call to make it procedural
                                     # until it's done
-                                    cf_eps[bva] = bflags
+                                    cf_eps[bva] = (startva, bflags)
                                 else:
                                     logger.debug("descending into function 0x%x (from 0x%x)", bva, va)
                                     self.addEntryPoint(bva, arch=bflags)
@@ -253,6 +261,17 @@ class CodeFlowContext(object):
 
                             # We only go up to procedural branches, not across
                             continue
+
+                    # we're jumping to a function we're in the middle of
+                    # it's effectively a call from, but we should block
+                    # until the other finishes processing to avoid some...odd
+                    # issues with noret detection
+                    if bva in self._cf_blocks and op.iflags & envi.IF_BRANCH:
+                        if self._cf_recurse:
+                            self._cf_delayed[startva].add(bva)
+                            self._cf_delaying[bva].add(startva)
+
+                        continue
                 except Exception as e:
                     logger.warning("codeflow: %r", e, exc_info=True)
 
@@ -261,10 +280,23 @@ class CodeFlowContext(object):
 
         # remove our local blocks from global block stack
         self._cf_blocks.pop()
-        while cf_eps:
-            fva, arch = cf_eps.popitem()
-            if not self._mem.isFunction(fva):
-                self.addEntryPoint(fva, arch=arch)
+        for fva, (pva, othrarch) in cf_eps.items():
+            if fva in self._cf_blocks:
+                self._cf_blocked[fva] = (pva, othrarch)
+            else:
+                if not self._mem.isFunction(fva):
+                    self.addEntryPoint(fva, arch=othrarch)
+
+        fallback = collections.OrderedDict()
+        items = list(self._cf_blocked.items())
+        for fva, othrarch in items:
+            if fva not in self._cf_blocks and not self._mem.isFunction(fva):
+                self._funcs.pop(fva, None)
+                self._cf_blocked.pop(fva, None)
+                self.addEntryPoint(fva, arch=othrarch)
+            else:
+                fallback[fva] = arch
+        self._cf_blocked = fallback
 
         return list(calls_from.keys())
 
@@ -295,7 +327,26 @@ class CodeFlowContext(object):
         # logger.debug('addEntryPoint(0x%x): calls_from: %r', va, calls_from)
 
         # Finally, notify the callback of a new function
-        self._cb_function(va, {'CallsFrom': calls_from})
+        # we gotta hold some of these off for a bit
+        if va not in self._cf_delayed:
+            self._cb_function(va, {'CallsFrom': calls_from})
+            # remove this function from any blocking lists
+            if va in self._cf_delaying:
+                todo = []
+                for blocked in self._cf_delaying[va]:
+                    self._cf_delayed[blocked].discard(va)
+                    if len(self._cf_delayed[blocked]) == 0:
+                        todo.append(blocked)
+
+                self._cf_delaying.pop(va, None)
+                for ova in todo:
+                    self._cf_delayed.pop(ova, None)
+                    calls = self._calls_from.pop(ova, {})
+                    self._cb_function(ova, {'CallsFrom': calls})
+        else:
+            # stash these off for later
+            self._calls_from[va] = calls_from
+
         return va
 
     def flushFunction(self, fva):
