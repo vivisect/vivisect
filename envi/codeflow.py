@@ -170,8 +170,6 @@ class CodeFlowContext(object):
                 logger.warning('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
             except Exception as e:
-                import pdb, sys
-                pdb.post_mortem(sys.exc_info()[2])
                 logger.warning('Codeflow exception at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
 
