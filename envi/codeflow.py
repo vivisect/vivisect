@@ -265,7 +265,7 @@ class CodeFlowContext(object):
                     # until the other finishes processing to avoid some...odd
                     # issues with noret detection
                     if bva in self._cf_blocks and op.iflags & envi.IF_BRANCH:
-                        if self._cf_recurse:
+                        if self._cf_recurse and startva != bva:
                             self._cf_delayed[startva].add(bva)
                             self._cf_delaying[bva].add(startva)
 
