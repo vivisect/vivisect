@@ -187,7 +187,6 @@ def p_addsub_imm(opval, va):
         iflag = 0
     else:
         iflag |= IF_PSR_S
-        mnem += 's'
 
     #if shift's value is 01, set shift amount to 12. else, shift is either
         #explicitly assigned to 0 (shift = 00) or defaults to 0 (shift = 1x)
@@ -201,6 +200,9 @@ def p_addsub_imm(opval, va):
         # this is a cmp immediate
         mnem = 'cmp'
         opcode = INS_CMP 
+
+        # Resets iflag to remove a previous S flag, which is incorrect for this mnem 
+        iflag = 0
 
         # Setting size based on sf
         # Must be done here, before rd is changed
@@ -265,83 +267,66 @@ def p_log_imm(opval, va):
     #sf and n determine whether the register size corresponds to the 32 or 64-bit variant
     if sf == 0b0 and n == 0b0:
         size = 4
-        #rd += meta_reg_bases[size]
-        #rn += meta_reg_bases[size]
-        #imm = imms + immr
+
     elif sf == 0b1:
-        size = 8                        
+        size = 8
+
     else:
         return p_undef(opval, va)
 
     # Bitmask immediate processing to calculate encoded imm value 
-    if n == 1:
-        # All of imms is number of 1s to add
-        # value starts at 1
-        bitcount = imms + 1
-        immsize = 64    # This is number of bits of encoded value, not bytes
+    if n == 1:  # Case where all of imms is number of 1s to add                
+        bitcount = imms + 1     # value starts at 1
+        immsize = 64            # This is number of bits in encoded value
 
-    else:
-        # Find first zero in imms to determine size
-        immsStr = '{0:0>6b}'.format(imms)
-        zeroind = immsStr.index('0')
+    else:     # Case to find both size and value in imms
+        zeroind = 5                  
+        for i in range(5):      # Find first zero in imms to determine end of size prefix
+            if ((imms >> 5 - i) & 0b1) == 0b0:
+                zeroind = i
+                break        
         
-        if zeroind == 5:        # If last position is first zero, invalid encoding (no space for number of 1s)
-            print("Invalid imms value detected!")
-            raise ValueError
+        if zeroind == 5:                # If last position is first zero, invalid encoding (no space for number of 1s)            
+            raise ValueError("Invalid imms value detected!")
         
-        immsize = 2 << (4 - zeroind)   # Sets size based on the index of first zero
+        immsize = 1 << (5 - zeroind)    # Calculates size (bits) based on the index of first zero
 
-        bitcount = int(immsStr[zeroind + 1:], 2) + 1    # Determine number of 1s based on remaining imms data
+        mask = 0                        # Building size prefix mask
+        for i in range(5 - zeroind):
+            mask |= 1 << i
 
-    binstr = '1' * bitcount # Builds the imm value
-    
-    if immsize >> 3 > 0:
-        imm = sh_ror(int(binstr, 2), immr, immsize >> 3)
-    else:
-        binstr = binstr.zfill(immsize)
-        repval = '0' * (immsize - len(binstr)) + binstr
-        while len(binstr) < 8:
-            binstr += repval
+        bitcount = (imms & mask) + 1    # Determine number of 1s in the encoded value
 
-        imm = sh_ror(int(binstr, 2), immr, 1)   # Rotate over 1 byte
-        imm = int(bin(imm)[len(bin(imm)) - immsize:], 2)   # Reduce back down to correct size
-    
-    if(size << 3 > immsize):    # Check to see if value needs to be repeated above itself
-        binstr = bin(imm)[2:]   # Removes 0b prefix
-        binstr = binstr.zfill(immsize) # Pad string to length with zeros
-        encstr = binstr # Saves string to append
+    binval = 0 
+    for i in range(bitcount):       # Builds the imm value from encoded number of 1s
+        binval |= 1 << i
+        
+    repcount = 64 // immsize        # Repeating binval above itself until it is 64 bits
+    imm = 0
+ 
+    for i in range(repcount):
+        imm |= binval << (immsize * i)
 
-        while len(binstr) < 64:    # Append to fill entire range 
-            binstr += encstr
+    imm = sh_ror(imm, immr, 8)  # ROR based on immr value
 
-        imm = int(binstr, 2)    # Updates imm value
+    mask = 0                    # Reducing imm back down to correct size using size mask
+    for i in range(size << 3):
+        mask |= 1 << i
+
+    imm &= mask   
 
     #depending on whether opc is equal to 0, 1, 2, or 3, mnem is set to and, orr, eor, or ands
     if opc == 0b00:
         mnem = 'and'
         opcode = INS_AND
+
     elif opc == 0b01:
         mnem = 'orr'
         opcode = INS_ORR
 
         if rn == 0b11111:
-            # Check for mov alias case
-            if (sf == 0b1 and n != 1):
-                moveWidePref = False
-
-            elif (sf == 0b0 and bin(n << 6 | imms)[2:4] != '00'):
-                moveWidePref = False
-
-            elif imms < 16:
-                moveWidePref = (-1 * immr) % 16 <= (15 - imms)
-
-            elif imms > ((size * 8) - 15):
-                moveWidePref = (immr % 16) <= (imms - (size * 8 - 15))
-
-            else:
-                moveWidePref = False
-            
-            if not moveWidePref:
+            # Check for mov alias case            
+            if not moveWidePreferred(sf, n, imms, immr):
                 mnem = 'mov'
                 opcode = INS_MOV
 
@@ -355,6 +340,7 @@ def p_log_imm(opval, va):
     elif opc == 0b10:
         mnem = 'eor'
         opcode = INS_EOR
+        
     else:
         if rd == 0x1f:  # the ZR
             # alias
@@ -366,7 +352,7 @@ def p_log_imm(opval, va):
             )
             return opcode, mnem, olist, 0, 0
 
-        mnem = 'ands'
+        mnem = 'and'
         opcode = INS_AND
         iflags = IF_PSR_S
 
@@ -580,11 +566,15 @@ def p_branch_cond_imm(opval, va):
     Conditional branch (immediate) instruction
     '''
     iflag = envi.IF_COND | envi.IF_BRANCH
-    imm19 = opval >> 5 & 0x7ffff
+    imm19 = (opval >> 5 & 0x7ffff)    
     cond = opval & 0xf
     mnem, opcode = b_cond_table[cond]
+
+    imm19 = e_bits.bsign_extend(imm19 << 2, 21, 64)   # Multipy by 4 and sign extend to 64 bits
+    label = va + imm19
+
     olist = (
-        A64ImmOper(imm19<<2, va=va),
+        A64ImmOper(label, va=va, size=8),
     )
     return opcode, mnem, olist, iflag, 0
 
@@ -2374,6 +2364,9 @@ def p_log_shft_reg(opval, va):
     )
 
     if mnem == 'tst':
+        # Removes S flag
+        iflag &= ~IF_PSR_S
+
         olist = (
             A64RegWithZROper(rn, va, size=size),
             A64ShiftOper(rm, shift, imm6, size)
@@ -7614,13 +7607,23 @@ class A64Opcode(envi.Opcode):
         x = []
         for op in self.opers:
             x.append(op.repr(self))
-        return self.mnem + " " + ", ".join(x)
+
+        mnem = self.mnem
+        if self.iflags & IF_PSR_S:
+            mnem += 's'
+
+        return mnem + " " + ", ".join(x)
 
     def render(self, mcanv):
         """
         Render this opcode to the specified memory canvas
         """
-        mcanv.addNameText(self.mnem, typename="mnemonic")
+
+        mnem = self.mnem
+        if self.iflags & IF_PSR_S:
+            mnem += 's'
+
+        mcanv.addNameText(mnem, typename="mnemonic")
         mcanv.addText(" ")
 
         # Allow each of our operands to render
@@ -7794,6 +7797,30 @@ shifters = (
     sh_ror,
     sh_rrx,
 )
+
+def moveWidePreferred(sf, n, imms, immr):    
+    # Check for mov alias case with orr oper
+
+    if sf == 0b1:
+        size = 8
+
+    else:
+        size = 4
+
+    if (sf == 0b1 and n != 1):
+        return False
+ 
+    elif (sf == 0b0 and not ((n == 0b0) and (imms >> 5 == 0b0))): 
+        return False
+
+    elif imms < 16:
+        return (-1 * immr) % 16 <= (15 - imms)
+
+    elif imms > ((size * 8) - 15):
+        return (immr % 16) <= (imms - (size * 8 - 15))
+
+    else:
+        return False
 
 if __name__=="__main__":
     import envi.archs
