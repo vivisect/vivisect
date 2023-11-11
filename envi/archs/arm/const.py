@@ -311,6 +311,9 @@ proc_modes = { # mode_name, short_name, description, offset, mode_reg_count, PSR
     PM_sys: ("System Processor Mode", "sys", "Runs privileged operating system tasks (ARMv4 and above)", REG_OFFSET_SYS, 15, REG_SPSR_sys, 1),
 }
 
+MODE_COUNT = 17
+
+
 PM_LNAME =  0
 PM_SNAME =  1
 PM_DESC =   2
@@ -322,9 +325,6 @@ PM_PRIVLVL  = 6
 PSR_CPSR    = 0
 PSR_SPSR    = 1
 PSR_APSR    = 2
-
-MODE_COUNT = 17
-
 
 
 INST_ENC_DP_IMM = 0 # Data Processing Immediate Shift

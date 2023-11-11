@@ -329,18 +329,26 @@ def branch_misc(va, val, val2):  # bl and misc control
             ##### Other Special Registers (magic encoding)
             R = (op & 1)    # CPSR==0, SPSR==1
             # also handle (seemingly) Thumb-only accesses:
-            R |= (val2 << 2) & 0b1111100
+            xregs = val2 & 0b11111
+            rtype = xregs >> 3
 
-            if R == 0 and priv_mask == 0:   # R == CPSR and mask&3 == 0
-                # MSR(register) p A8-498
-                R = PSR_APSR
+
+            #if R == 0 and priv_mask == 0:   # R == CPSR and mask&3 == 0
+            #    # MSR(register) p A8-498
+            #    R = PSR_APSR
 
             # also op==0111000 and op2==01/10/11 or op==0111001
             # MSR(register) p B9-1968
             # System Level Only...
 
-            opers = (ArmPgmStatRegOper(R, mask),
-                     ArmRegOper(Rn))
+            #if rtype:   # special special regs (Cortex-M)
+            #    opers = (ArmPgmStatRegOper(xregs&7, rtype, mask, priv_mask),
+            #             ArmRegOper(Rn))
+
+            #else:       # traditional PSR
+            opers = (ArmPgmStatRegOper(R, mask, xregs, rtype, priv_mask),
+                         ArmRegOper(Rn))
+
             return COND_AL, None, 'msr', opers, None, 0
 
         elif op == 0b0111010:
@@ -396,14 +404,14 @@ def branch_misc(va, val, val2):  # bl and misc control
             return COND_AL, None, 'sub', opers, IF_PSR_S, 0
 
         elif op == 0b0111110:
-            imm8 = val2 & 0xff
             Rd = (val2 >> 8) & 0xf
             R = (val >> 4) & 1
             # handle special regs:
-            R |= (val2 << 2) & 0b1111100
+            xregs = val2 & 0xff     # per ARMv7-M profile
+            rtype = xregs >> 3
 
             opers = (ArmRegOper(Rd),
-                     ArmPgmStatRegOper(R, mask=0),)
+                     ArmPgmStatRegOper(R, mask=0, xregs=xregs, rtype=rtype),)
             return COND_AL, None, 'mrs', opers, None, 0
 
         elif op == 0b0111111:
@@ -2546,8 +2554,9 @@ thumb2_extension = [
     ('111110000011',        (INS_LDR,  'ldr',  ldr_32,      IF_H | IF_THUMB32)),
     ('111110000100',        (INS_STR,  'str',  ldr_32,      IF_THUMB32)),   # T4 encoding
     ('1111100001011101',    (INS_LDR,  'pop',  popone_32,   IF_THUMB32)),   # T4 encoding
-    ('1111100001011100',       (INS_LDR,  'ldr',  ldr_32,      IF_THUMB32)),   # T4 encoding
+    ('1111100001011100',    (INS_LDR,  'ldr',  ldr_32,      IF_THUMB32)),   # T4 encoding
     ('11111000010110',      (INS_LDR,  'ldr',  ldr_32,      IF_THUMB32)),   # T4 encoding
+    ('111110000101111',     (INS_LDR,  'ldr',  ldr_32,      IF_THUMB32)),   # T4 encoding
     ('1111100001010',       (INS_LDR,  'ldr',  ldr_32,      IF_THUMB32)),   # T4 encoding
     ('111110001000',        (INS_STR,  'str',  ldr_32,     IF_B | IF_THUMB32)),
     ('111110001001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),

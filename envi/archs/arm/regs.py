@@ -1,5 +1,7 @@
-from envi.archs.arm.const import *
+import envi.bits as e_bits
 import envi.registers as e_reg
+
+from envi.archs.arm.const import *
 
 '''
 Strategy:

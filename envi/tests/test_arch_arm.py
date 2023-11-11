@@ -1488,6 +1488,23 @@ class ArmInstructionSet(unittest.TestCase):
     armTestVersion = REV_ARMv7A
     armTestOnce = True
 
+    def test_PSRs(self):
+        am = arm.ArmModule()
+        emu = am.getEmulator()
+        emu.setCPSR(47145)
+        self.assertEqual(emu.getCPSR(), 47145)
+        self.assertEqual(emu.getRegister(REG_CPSR), 47145)
+
+        for x in range(MODE_COUNT):
+            modeval = x | 0b10000
+            if not modeval in proc_modes:
+                continue
+
+            emu.setSPSR(x, 31337 + x)
+            self.assertEqual(emu.getSPSR(x), 31337 + x)
+            regidx = reg_mode_base(modeval) + REG_CPSR
+            self.assertEqual(emu.getRegister(regidx), 31337 + x)
+
     def test_msr(self):
         # test the MSR instruction
         am = arm.ArmModule()
@@ -1742,13 +1759,13 @@ class ArmInstructionSet(unittest.TestCase):
     def test_envi_thumb_assorted_instrs(self):
         self._do_test_envi_instrs(thumb_instrs, 'thumb')
 
-    def _do_test_envi_instrs(self, instrs, arch="arm"):
+    def _do_test_envi_instrs(self, instrs, arch="arm", verbose=False):
         #setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", arch)
         vw.addMemoryMap(0, 7, 'firmware', b'\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', b'\xff' * 16384*1024)
-        # TODO: This doesn't belong here.
+
         emu = vw.getEmulator()
         emu.setMeta('forrealz', True)
         emu._forrealz = True
@@ -1758,13 +1775,17 @@ class ArmInstructionSet(unittest.TestCase):
         goodcount = 0
         goodemu = 0
         bademu = 0
-        for archz, bytez, va, reprOp, iflags, emutests in instrs:
+        for tidx, testinfo in enumerate(instrs):
+            archz, bytez, va, reprOp, iflags, emutests = testinfo
             ranAlready = False  # support for run once only
             #iterate through architectures 
             for key in ARCH_REVS:
                 test_arch = ARCH_REVS[key]
                 if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0):
                     try:
+                        if verbose:
+                            print("%s: %r"% (tidx, testinfo))
+
                         ranAlready = True
                         op = vw.arch.archParseOpcode(unhexlify(bytez), 0, va)
 
@@ -1788,7 +1809,7 @@ class ArmInstructionSet(unittest.TestCase):
 
                         # do the mnemonic comparison
                         if redoprepr != redgoodop:
-                            #print("viv: %r != test: %r" % (redoprepr, redgoodop))
+                            print("viv: %r != test: %r" % (redoprepr, redgoodop))
                             if len(bytez) == 4:
                                 num, = struct.unpack("<H", unhexlify(bytez))
                             else:

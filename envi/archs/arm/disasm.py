@@ -278,7 +278,7 @@ def p_misc(opval, va):
         Rn = (opval) & 0xf
         mask = (opval>>16) & 0xf
         olist = (
-            ArmPgmStatRegOper(r, mask),
+            ArmPgmStatRegOper(r, mask=mask),
             ArmRegOper(Rn, va=va),
         )
 
@@ -832,7 +832,7 @@ def p_mov_imm_stat(opval, va):      # only one instruction: "msr"
             iflags |= IF_SYS_MODE
         
         olist = (
-            ArmPgmStatRegOper(r, mask),
+            ArmPgmStatRegOper(r, mask=mask, priv_mask=True),
             ArmImmOper(immed),
         )
     
@@ -5015,16 +5015,16 @@ class ArmPgmStatRegOper(ArmOperand):
         if emu is None:
             return None
 
-        mode = emu.getProcMode()
-        if self.psrinfo[1] == PSR_SPSR: # SPSR
+        if self.psrinfo[1] == REG_SPSR: # SPSR
+            mode = emu.getProcMode()
             psr = emu.getSPSR(mode)
 
-        elif self.psrinfo[1] == PSR_CPSR:
+        elif self.psrinfo[1] == REG_CPSR:
             psr = emu.getCPSR()
             if self.priv_mask == 0:
                 psr &= 0xf8000000   # APSR
 
-        elif type(self.psrinfo) == tuple:
+        elif type(self.psrinfo[1]) == tuple:    # this is a hybrid definition
             psr = 0
             for ridx, rmask in self.psrinfo:
                 tmp = emu.getRegister(ridx) & rmask
@@ -5039,50 +5039,76 @@ class ArmPgmStatRegOper(ArmOperand):
         if emu is None:
             return None
 
-        mode = emu.getProcMode()
 
+        #FIXME: write here
         mask = expanded_mask[self.mask]
         #SPSR does not work - fails in emu.getSPSR
-        if self.psr == PSR_SPSR:    # SPSR
+        if self.psrinfo[1] == PSR_SPSR:             # SPSR
+            mode = emu.getProcMode()
             psr = emu.getSPSR(mode)
             newpsr = psr & (~mask) | (val & mask)
             emu.setSPSR(mode, newpsr)
 
-        else:           # CPSR (APSR is an alias for CPSR)
+        elif self.psrinfo[1] == PSR_CPSR:          # CPSR (APSR is an alias for CPSR)
             psr = emu.getCPSR()
-            newpsr = psr & (~self.mask) | (val & self.mask)
+            if self.priv_mask == 0:
+                psr &= 0xf8000000   # APSR
+
+            newpsr = psr & (~mask) | (val & mask)
             emu.setCPSR(newpsr)
+
+        elif type(self.psrinfo[1]) == tuple:    # this is a hybrid definition
+            # totally experimental
+            newpsr = val
+            for ridx, rmask in self.psrinfo[1]:
+                tmp = psr & rmask 
+                emu.setRegister(ridx, tmp)
+
+        else:
+            newpsr = val
+            emu.setRegister(self.psrinfo[1], newpsr)
 
         return newpsr
 
     def render(self, mcanv, op, idx):
         # check psrinfo
+        if self.rtype == RT_PSR:
+            if self.psrinfo[1] == REGx_APSR:
+                field = apsr_fields[self.mask]
 
-        if self.psr == PSR_APSR:
-            field = apsr_fields[self.mask]
-        elif self.psr < 4:
-            field = fields[self.mask]
-        else:
-            field = None
+            elif self.psrinfo[1] in (REG_CPSR, REG_SPSR):
+                field = fields[self.mask]
 
-        if field is not None:
-            psrstr = psrs[self.psr] + '_' + field
-        else:
-            psrstr = psrs[self.psr]
+            else:
+                field = None
 
-        mcanv.addNameText(psrstr, typename='registers')
+            rname = self.psrinfo[0]
+            if field is not None:
+                psrstr = rname + '_' + field
+
+            else:
+                psrstr = rname
+
+        else:   #  self.rtype == RT_SP or RT_CONTROL
+            rname = psrstr = self.psrinfo[0]
+
+        mcanv.addNameText(psrstr, name=rname, typename='registers')
 
     def repr(self, op):
-        if self.psr == PSR_APSR:
-            field = apsr_fields[self.mask]
-        elif self.psr < 4:
-            field = fields[self.mask]
-        else:
-            field = None
+        if self.rtype == RT_PSR:
+            if self.psrinfo[1] == PSR_APSR:
+                field = apsr_fields[self.mask]
 
-        if field is not None:
-            return psrs[self.psr] + '_' + field
-        return psrs[self.psr]
+            elif self.psrinfo[1] in (REG_CPSR, REG_SPSR):
+                field = fields[self.mask]
+
+            else:
+                field = None
+
+            if field is not None:
+                return self.psrinfo[0] + '_' + field
+
+        return self.psrinfo[0]
 
     
 class ArmEndianOper(ArmImmOper):
