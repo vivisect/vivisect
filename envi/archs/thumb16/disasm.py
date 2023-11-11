@@ -488,6 +488,7 @@ def branch_misc(va, val, val2):  # bl and misc control
         j2 = not (((val2 >> 11) & 1) ^ s)
 
         imm = (s << 24) | (j1 << 23) | (j2 << 22) | ((val & 0x3ff) << 12) | ((val2 & 0x7ff) << 1)
+        #print("s=%d j1=%d j2=%d imm=%x" % (s, j1, j2, imm))
 
         # sign extend a 25-bit number
         if s:
@@ -526,15 +527,6 @@ def udf_imm8(va, value):  # udf
     return COND_AL, (oper0,), None
 
 
-def ldmia(va, value):
-    rd = shmaskval(value, 8, 0x7)
-    reg_list = value & 0xff
-    oper0 = ArmRegOper(rd, va=va)
-    oper1 = ArmRegListOper(reg_list)
-    oper0.oflags |= OF_W
-    return COND_AL, (oper0, oper1), None
-
-
 def sp_sp_imm7(va, value):
     imm = shmaskval(value, 0, 0x7f)
     o0 = ArmRegOper(REG_SP)
@@ -544,10 +536,11 @@ def sp_sp_imm7(va, value):
 
 def rm_reglist(va, value):
     rm = shmaskval(value, 8, 0x7)
-    reglist = value & 0xff
+    reg_list = value & 0xff
     oper0 = ArmRegOper(rm, va=va)
-    oper1 = ArmRegListOper(reglist)
-    oper0.oflags |= OF_W
+    oper1 = ArmRegListOper(reg_list)
+    if not ((1<<rm) & reg_list):
+        oper0.oflags |= OF_W
     return COND_AL, (oper0, oper1), None
 
 
