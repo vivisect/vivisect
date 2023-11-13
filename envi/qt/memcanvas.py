@@ -29,14 +29,12 @@ class LoggerPage(QWebEnginePage):
 
 class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
-    #syncSignal = QtCore.pyqtSignal()
     def __init__(self, mem, syms=None, parent=None, **kwargs):
         e_memcanvas.MemoryCanvas.__init__(self, mem=mem, syms=syms)
         QWebEngineView.__init__(self, parent=parent, **kwargs)
 
         self._canv_cache = None
         self._canv_curva = None
-        self._canv_rendtagid = '#memcanvas'
         self._canv_rend_middle = False
         self.fname = None
 
@@ -128,14 +126,14 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     def _beginRenderMemory(self, va, size, rend):
         self._canv_cache = ''
 
-    def _endRenderMemory(self, va, size, rend, cb=None):
-        self._appendInside(self._canv_cache, cb)
+    def _endRenderMemory(self, va, size, rend, cb=None, sel=None):
+        self._appendInside(self._canv_cache, cb, sel)
         self._canv_cache = None
 
-    def _beginRenderVa(self, va, cb=None):
+    def _beginRenderVa(self, va, cb=None, sel=None):
         self._add_raw('<a name="viv:0x%.8x" id="a_%.8x">' % (va, va), cb)
 
-    def _endRenderVa(self, va, cb=None):
+    def _endRenderVa(self, va, cb=None, sel=None):
         self._add_raw('</a>', cb)
 
     def _beginUpdateVas(self, valist, cb=None):
@@ -184,11 +182,13 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._canv_cache = ''
         self._canv_ppjump = self._canv_rendvas[0][0]
 
-    def _endRenderPrepend(self, cb=None):
+    def _endRenderPrepend(self, cb=None, sel=None):
+        if sel is None:
+            sel = '#memcanvas'
         selector = 'viv:0x%.8x' % self._canv_ppjump
         self._canv_cache = self._canv_cache.replace('`', r'\`')
         js = f'''
-        var node = document.querySelector("{self._canv_rendtagid}");
+        var node = document.querySelector("{sel}");
         node.innerHTML = `{self._canv_cache}` + node.innerHTML
 
         var snode = document.getElementsByName("{selector}");
@@ -205,11 +205,13 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     def _beginRenderAppend(self):
         self._canv_cache = ''
 
-    def _endRenderAppend(self, cb=None):
+    def _endRenderAppend(self, cb=None, sel=None):
+        if sel is None:
+            sel = '#memcanvas'
         page = self.page()
         self._canv_cache = self._canv_cache.replace('`', r'\`')
         js = f'''
-        document.querySelector("{self._canv_rendtagid}").innerHTML += `{self._canv_cache}`;
+        document.querySelector("{sel}").innerHTML += `{self._canv_cache}`;
         '''
         self._canv_cache = None
         if cb:
@@ -243,24 +245,26 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     # NOTE: doing append / scroll seperately allows render to catch up
     @idlethread
-    def _appendInside(self, text, cb=None):
+    def _appendInside(self, text, cb=None, sel=None):
+        if sel is None:
+            sel = '#memcanvas'
         page = self.page()
         text = text.replace('`', r'\`')
         js = f'''
-        document.querySelector("{self._canv_rendtagid}").innerHTML += `{text}`;
+        document.querySelector("{sel}").innerHTML += `{text}`;
         '''
         if cb:
             page.runJavaScript(js, cb)
         else:
             page.runJavaScript(js)
 
-    def _add_raw(self, text, cb=None):
+    def _add_raw(self, text, cb=None, sel=None):
         # If we are in a call to renderMemory, cache til the end.
         if self._canv_cache is not None:
             self._canv_cache += text
             return
 
-        self._appendInside(text, cb)
+        self._appendInside(text, cb, sel)
 
     def addText(self, text, tag=None, cb=None):
         text = html.escape(text).encode('unicode_escape').decode('utf-8')
@@ -270,10 +274,12 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._add_raw(text, cb)
 
     @idlethreadsync
-    def clearCanvas(self, cb=None):
+    def clearCanvas(self, cb=None, sel=None):
+        if sel is None:
+            sel = '#memcanvas'
         page = self.page()
         js = f'''
-        var node = document.querySelector("{self._canv_rendtagid}");
+        var node = document.querySelector("{sel}");
         if (node != null) {{
             node.innerHTML = "";
         }}

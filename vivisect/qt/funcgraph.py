@@ -30,7 +30,6 @@ from vqt.main import idlethread, eatevents, workthread, vqtevent
 
 from vqt.common import *
 from vivisect.const import *
-from envi.common import MIRE
 
 class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
     paintUp = pyqtSignal()
@@ -98,39 +97,53 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         return e_qt_memcanvas.VQMemoryCanvas.mouseMoveEvent(self, event)
 
     def _renderMemoryFinish(self, cb, data):
-        self._canv_rendtagid = '#memcanvas'
         cb(data)
 
     def _renderMemoryCallback(self, cb, data):
         if not data:
             return
-        va = int(data[0])
-        size = int(data[1])
-        self._canv_rendtagid = '#codeblock_%.8x' % va
-        # DEV: this cannot be partialmethod. It *has* to be callable
-        runner = functools.partial(self._renderMemoryFinish, cb)
-        e_memcanvas.MemoryCanvas.renderMemory(self, va, size, cb=runner)
 
-    def renderMemory(self, va, size, cb=None):
+        for va, size in data[:-1]:
+            va = int(va)
+            size = int(size)
+            sel = '#codeblock_%.8x' % va
+            # DEV: this cannot be partialmethod. It *has* to be callable
+            #runner = functools.partial(self._renderMemoryFinish, cb)
+            e_memcanvas.MemoryCanvas.renderMemory(self, va, size, cb=None, clear=False, sel=sel)
+
+        va, _ = data[-1]
+        va = int(va)
+        size = int(size)
+        sel = '#codeblock_%.8x' % va
+        e_memcanvas.MemoryCanvas.renderMemory(self, va, size, cb=cb, clear=False, sel=sel)
+
+    def renderMemory(self, blocks, cb=None):
         '''
         Funcgraph specific renderMemory() function.
         '''
-        # For the funcgraph canvas, this will be called once per code block
         if not cb:
             cb = self.__nopcb
 
-        selector = 'codeblock_%.8x' % va
-        js = '''var node = document.querySelector("#%s");
-        if (node == null) {
-            canv = document.querySelector("#memcanvas");
-            if (canv != null) {
-                canv.innerHTML += '<div class="codeblock" id="%s"></div>'
+        js = '''var nodes = %s
+        canv = document.querySelector("#memcanvas");
+        if (canv != null) {
+            var addend = ''
+            for (const [va, size] of nodes) {
+                var selector = 'codeblock_' + va.toString(16).padStart(8, '0')
+                var node = document.getElementById("${selector}");
+                if (node == null) {
+                    var elem = document.createElement('div')
+                    elem.id = selector
+                    elem.className = 'codeblock'
+                    canv.appendChild(elem)
+                } else {
+                    node.innerHTML = ''
+                }
             }
         }
-        [%d, %d]
-        ''' % (selector, selector, va, size)
+        nodes
+        ''' % (blocks,)
         runner = functools.partial(self._renderMemoryCallback, cb)
-        logger.log(MIRE, "renderMemory(%r, %r) %r", va, cb, runner)
         self.page().runJavaScript(js, runner)
 
     def __nopcb(self):
@@ -549,7 +562,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         Called from VWE event handlers with updated VA
         '''
         if not self._canHazAutoRefresh():
-            return 
+            return
 
         if self.vw.getFunction(va) == self.fva:
             self.refresh()
@@ -836,7 +849,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         self.mem_canvas.page().runJavaScript(svgjs, self._layoutEdges)
 
-    def _getNodeSizes(self):
+    def _getNodeSizes(self, data):
         '''
         Actually grab all the sizes of the codeblocks that we renderd in the many calls to
         _renderCodeBlock. runJavaScript has some limited ability to return values from
@@ -844,7 +857,9 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         and offsetHeight of each of the codeblocks into a dictionary that _layoutDynadag
         can reach into to get the sizes so it can set them for use in the line layout stuff
         '''
-        js = 'var sizes = {};'
+        js = '''
+        var sizes = {};
+        '''
 
         for nid, nprops in self.graph.getNodes():
             try:
@@ -870,24 +885,26 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         '''
         if len(self.nodes):
             # render codeblock
-            node = self.nodes.pop(0)
-            cbva = node[1].get('cbva')
-            cbsize = node[1].get('cbsize')
-            self.mem_canvas.renderMemory(cbva, cbsize, self._renderCodeBlock)
+            blocks = []
+            for node in self.nodes:
+                cbva = node[1].get('cbva')
+                cbsize = node[1].get('cbsize')
+                blocks.append([cbva, cbsize])  # yes this has to be a list so javascript plays nicely
+                #self.mem_canvas.renderMemory(cbva, cbsize, self._renderCodeBlock)
 
-            # update _xref_cache_bg (made "real" when rendering complete)
-            endva = cbva + cbsize
-            while cbva < endva:
-                for xref in self.vw.getXrefsFrom(cbva):
-                    xrfr, xrto, xrtype, xrflag = xref
-                    self._xref_cache_bg.add(xrto)
-                    #logger.debug("adding 0x%x -> 0x%x to _xref_cache", xrfr, xrto)
+                # update _xref_cache_bg (made "real" when rendering complete)
+                endva = cbva + cbsize
+                while cbva < endva:
+                    for xref in self.vw.getXrefsFrom(cbva):
+                        xrfr, xrto, xrtype, xrflag = xref
+                        self._xref_cache_bg.add(xrto)
 
-                lva, lsz, ltp, ltinfo = self.vw.getLocation(cbva)
-                cbva += lsz
+                    lva, lsz, ltp, ltinfo = self.vw.getLocation(cbva)
+                    cbva += lsz
+            self.mem_canvas.renderMemory(blocks, self._getNodeSizes)
 
         else:
-            self._getNodeSizes()
+            self._getNodeSizes(None)
 
     def renderFunctionGraph(self, fva=None, graph=None):
         '''
