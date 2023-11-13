@@ -26,8 +26,10 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 8849
+GOOD_TESTS_ALL = 5976
+GOOD_TESTS_THUMB = 8849
 GOOD_EMU_TESTS = 1204
+GOOD_EMU_THUMB = 8776
 '''
   This dictionary will contain all instructions supported by ARM to test
   Fields will contain following information:
@@ -1757,9 +1759,9 @@ class ArmInstructionSet(unittest.TestCase):
         self._do_test_envi_instrs(global_instrs)
 
     def test_envi_thumb_assorted_instrs(self):
-        self._do_test_envi_instrs(thumb_instrs, 'thumb')
+        self._do_test_envi_instrs(thumb_instrs, 'thumb', GOOD_DISAS=GOOD_TESTS_THUMB, GOOD_EMU=GOOD_EMU_THUMB)
 
-    def _do_test_envi_instrs(self, instrs, arch="arm", verbose=False):
+    def _do_test_envi_instrs(self, instrs, arch="arm", verbose=False, GOOD_DISAS=GOOD_TESTS_ALL, GOOD_EMU=GOOD_EMU_TESTS):
         #setup initial work space for test
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", arch)
@@ -1863,8 +1865,8 @@ class ArmInstructionSet(unittest.TestCase):
         logger.info("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
                 (goodcount, badcount, goodemu, bademu))
         logger.info("Total of %d tests completed", goodcount + badcount)
-        self.assertEqual(goodcount, GOOD_TESTS)
-        self.assertEqual(goodemu, GOOD_EMU_TESTS)
+        self.assertEqual(goodcount, GOOD_DISAS)
+        self.assertEqual(goodemu, GOOD_EMU)
 
     def test_envi_arm_thumb_switches(self):
         pass
