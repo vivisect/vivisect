@@ -687,6 +687,9 @@ class WorkspaceEmulator:
                 typename, varname = funclocal
                 return varname
 
+        if val < 4096:
+            return str(val)
+
         return '0x%.8x' % val
 
     def _useVirtAddr(self, va):
