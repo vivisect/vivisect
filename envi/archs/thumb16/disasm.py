@@ -953,7 +953,7 @@ parallel_misc_info = (
         0b10000:        (INS_QADD,  'qsub',             IF_THUMB32, 3),
         0b11000:        (INS_QDADD, 'qdsub',            IF_THUMB32, 3),
 
-        0b00001:        (INS_REV,   'rev',              IF_THUMB32, 3),
+        0b00001:        (INS_REV,   'rev',              IF_THUMB32, 2),
         0b01001:        (INS_REV16, 'rev16',            IF_THUMB32, 2),
         # rd, rm
         0b10001:        (INS_RBIT,  'rbit',             IF_THUMB32, 2),
@@ -1293,11 +1293,30 @@ ldrb_instrs = (
     (INS_LDR, 'ldr', IF_B | IF_THUMB32),
     (INS_LDR, 'ldr', IF_B | IF_S | IF_THUMB32),
 )
+
+ldrh_instrs = (
+    (INS_LDR, 'ldr', IF_H | IF_THUMB32),
+    (INS_LDR, 'ldr', IF_H | IF_S | IF_THUMB32),
+)
+
 memh_instrs = (
     (INS_PLD, 'pld', IF_THUMB32),
     (INS_PLI, 'pli', IF_THUMB32),
 )
 
+
+def ldrh_32(va, val1, val2):
+    rn = val1 & 0xf
+    rt = (val2 >> 12) & 0xf
+
+    Sbit = (val1 >> 8) & 1
+
+    # ldrh, ldrsh
+    opcode, mnem, flags = ldrh_instrs[Sbit]
+    imm12 = val2 & 0xfff
+    opers = (ArmRegOper(rt),
+             ArmImmOffsetOper(rn, imm12, va, tsize=1))
+    return COND_AL, opcode, mnem, opers, flags, 0
 
 def ldrb_memhints_32(va, val1, val2):
     op1 = (val1 >> 7) & 3
@@ -2254,19 +2273,19 @@ thumb_base = [
     # SETEND <endian_specifier>
     ('10110110010', (INS_SETEND, 'setend',  sh4_imm1,   0)),
     # CPS<effect> <iflags>
-    ('10110110011', (INS_CPS, 'cps',     cps16, 0)),
+    ('10110110011', (INS_CPS,  'cps',     cps16, 0)),
     ('1011011000',  (INS_PUSH, 'push',    push_reglist,    0)),  # PUSH <reglist>
     ('101101101',   (INS_PUSH, 'push',    push_reglist,    0)),  # PUSH <reglist>
     ('10110111',    (INS_PUSH, 'push',    push_reglist,    0)),  # PUSH <reglist>
     # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
-    ('10110001',    (INS_CBZ, 'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)),
+    ('10110001',    (INS_CBZ,   'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)),
     # CBNZ{<q>} <Rn>, <label>   # label must be positive, even offset from PC
-    ('10111001',    (INS_CBNZ, 'cbnz',    i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)),
+    ('10111001',    (INS_CBNZ,  'cbnz',    i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)),
     # CBZ{<q>} <Rn>, <label>    # label must be positive, even offset from PC
-    ('10110011',    (INS_CBZ, 'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)),
+    ('10110011',    (INS_CBZ,   'cbz',     i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)),
     # CBNZ{<q>} <Rn>, <label>   # label must be positive, even offset from PC
-    ('10111011',    (INS_CBNZ, 'cbnz',    i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)),
-    ('1011101000',  (INS_REV, 'rev',     rn_rdm,     0)),  # REV Rd, Rn
+    ('10111011',    (INS_CBNZ,  'cbnz',    i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)),
+    ('1011101000',  (INS_REV,   'rev',     rm_rdn,     0)),  # REV Rd, Rn
     ('1011101001',  (INS_REV16, 'rev16',   rm_rdn,     0)),  # REV16 Rd, Rn
     ('1011101011',  (INS_REVSH, 'revsh',   rm_rdn,     0)),  # REVSH Rd, Rn
 
@@ -2559,7 +2578,7 @@ thumb2_extension = [
     ('111110001101',        (INS_LDR,  'ldr',  ldr_32,     IF_THUMB32)),  # T3
     ('111110010001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
     ('111110011001',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
-    ('111110011011',        (None, 'ldrb_memhints32', ldrb_memhints_32,  IF_THUMB32)),
+    ('111110011011',        (None, 'ldrh_32', ldrh_32,  IF_H | IF_THUMB32)),
     # see adv simd as well
 
     # data-processing (register)

@@ -26,7 +26,7 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5976
+GOOD_TESTS = 8849
 GOOD_EMU_TESTS = 1204
 '''
   This dictionary will contain all instructions supported by ARM to test

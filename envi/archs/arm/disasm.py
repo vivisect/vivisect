@@ -5470,15 +5470,15 @@ class ArmCPSFlagsOper(ArmOperand):
         self.flags = flags
 
     def repr(self, op):
-        flags = [AIF_FLAGS[x] for x in range(3) if self.flags & (1<<x)]
-        return ','.join(flags)
+        flags = [AIF_FLAGS[x] for x in range(3) if self.flags & (1<<x)][::-1]
+        return ''.join(flags)
 
     def render(self, mcanv, op, idx):
-        flags = [AIF_FLAGS[x] for x in range(3) if self.flags & (1<<x)]
-        mcanv.addNameText(','.join(flags), typename='cpsflags')
+        flags = [AIF_FLAGS[x] for x in range(3) if self.flags & (1<<x)][::-1]
+        mcanv.addNameText(''.join(flags), typename='cpsflags')
 
     def getOperValue(self, idx, emu=None, codeflow=False):
-        return None
+        return self.flags
         
 
 AIF_FLAGS = ('a','i','f')[::-1]
