@@ -20,7 +20,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'vivisect'
-copyright = '2021, Vivisect'
+copyright = '2023, Vivisect'
 author = 'Vivisect'
 
 # The short X.Y version
