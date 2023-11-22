@@ -2643,8 +2643,8 @@ class GdbServerStub(GdbStubBase):
             str: A GDB remote protocol register packet.
         """
         ridx = int(cmd_data, 16)
-        reg_val = self._serverReadRegVal(ridx)
-        reg_pkt = self._encodeGDBVal(reg_val)
+        reg_val, size = self._serverReadRegVal(ridx)
+        reg_pkt = self._encodeGDBVal(reg_val, size)
         return reg_pkt
 
     def _serverReadRegVal(self, ridx):
@@ -3248,21 +3248,19 @@ class GdbBaseEmuServer(GdbServerStub):
             None
         """
         try:
-            envi_idx = self._gdb_to_envi_map[reg_idx][GDB_TO_ENVI_IDX]
-            mask = self._gdb_to_envi_map[reg_idx][GDB_TO_ENVI_MASK]
+            _, size, envi_idx, mask = self._gdb_to_envi_map[reg_idx]
         except IndexError:
             logger.warning("Attempted Bad Register Read: %d", reg_idx)
-            return 0
+            return 0, None
 
         try:
             # Sometimes the register format may specify a bit width that is 
             # smaller than the internal register size, ensure the value 
             # returned is the correct size
-            return self.emu.getRegister(envi_idx) & mask
+            return (self.emu.getRegister(envi_idx) & mask), size
         except IndexError:
             logger.warning("Attempted Bad Register Read: %d -> %d", reg_idx, envi_idx)
-            return 0
-
+            return 0, None
 
     def _serverStepi(self, sig=signal.SIGTRAP):
         """
