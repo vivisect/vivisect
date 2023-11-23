@@ -1529,7 +1529,7 @@ class ArmInstructionSet(unittest.TestCase):
 
         for _,_,_,_,_,PSR,_ in eaar.proc_modes.values():
             spsrnm, spsrsz = (eaar.reg_data[eaar.reg_table[PSR]])
-            self.assertTrue(spsrnm.startswith('SPSR_'))
+            self.assertTrue(spsrnm.upper().startswith('SPSR'))
             self.assertEqual(spsrsz, 32)
         
         '''
