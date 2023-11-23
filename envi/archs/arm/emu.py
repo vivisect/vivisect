@@ -8,6 +8,7 @@ import threading
 
 import envi
 import envi.bits as e_bits
+import envi.archs.arm.regs as a_regs
 from envi.const import *
 from envi.archs.arm.regs import *
 from envi.archs.arm import ArmModule
@@ -375,6 +376,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     def getCPSR(self):
         '''
         return the Current Program Status Register.
+        There can be only one.
         '''
         return self._rctx_vals[REG_CPSR]
 
@@ -408,14 +410,14 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         '''
         get the SPSR for the given ARM processor mode
         '''
-        ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
+        ridx = a_regs._getRegIdx(REG_OFFSET_SPSR, mode)
         return self._rctx_vals[ridx]
 
     def setSPSR(self, mode, psr, mask=0xffffffff):
         '''
         set the SPSR for the given ARM processor mode
         '''
-        ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
+        ridx = a_regs._getRegIdx(REG_OFFSET_SPSR, mode)
         psr = self._rctx_vals[ridx] & (~mask) | (psr & mask)
         self._rctx_vals[ridx] = psr
 

@@ -55,9 +55,46 @@ REG_APSR_MASK = 0xffff0000
 modes = list(proc_modes.keys())
 modes.sort()
 
-reg_table = [ x for x in range(MODE_COUNT * REGS_PER_MODE) ]
+# ARMv7/A32/T32 registers as complicated.  each processor mode accesses a particular set of 
+# registers.  some regs are shared with other modes, and some are unique to a particular mode.
+# to achieve this using high-performance disassembly and emulation, and the power of the Viv
+# RegisterContext model, we've had to get creative.  
+
+# the solution we've chosen is to use a big lookup table and an extra layer to access the actual
+# emulated register data.  the larger list of registers (below, reg_table_data) defines a large 
+# list of registers, grouped into an equal size list of register definitions per processor mode.
+# the smaller list (reg_data) defines a collapsed list of registers, including only the register 
+# definitions which have unique data storage.
+# we use another large list (reg_table) for mapping indexes into 
+# reg_table_data to indexes into reg_data
+
+# so, thats:
+# reg_table is the redirection table between MATH-COUNT-Index and Real Register Index: #index
+# reg_data is that compressed "only what's needed" table of register entries:  ('name', size)
+# reg_table_data is the expanded reg_data completing the all modes, etc:       ('name', size')
+
+# other details:
+# emulator get/setRegister() access the emulator data as per *reg_data*
+# disassembly creates *RegOper*s using indexes into *reg_table_data*
+# the ArmRegisterContext class override get/setRegister() to handle translation
+# as far as the rest of the ArmRegisterContext is concern, there is only reg_data
+# *RegOper* operands only care about the *reg_tables_data* since they only care about render/repr
+#    and the getOperValue() defers to the ArmRegisterContext() for actually accessing the emu data
+
+# this setup allows us to have ranges of "registers" to match the different processor modes
+# where some of those registers are unique to a given mode, and others are shared (banked regs)
+
+# all modes' CPSR's point to the one and only CPSR
+# all modes` SPSR's are their own thing, and should get a copy of the current CPSR's data on 
+#       mode-change.        # NOTE: THIS IS IMPORTANT FOR FULL EMULATION
+
+
+# start off creating the data for the first mode (USR mode)
+# and then pre-populating the reg_table and reg_table_data
 reg_data = [ (reg, sz) for reg,sz in arm_regs_tups ]
+reg_table = [ x for x in range(MODE_COUNT * REGS_PER_MODE) ]
 reg_table_data = [ (None, 32) for x in range(MODE_COUNT * REGS_PER_MODE) ]
+
 for idx,data in enumerate(reg_data):
     reg_table_data[idx] = data
 
@@ -82,18 +119,18 @@ for modenum in modes[1:]:       # skip first since we're already done
 
         reg_table_data[ridx+offset] = (regname, rsz) 
 
-    # PC
+    # PC    - always the original PC
     reg_table[PSR_offset-3] = REG_PC
     reg_table_data[PSR_offset-3] = ('pc_%s' % (msname), 32)
-    # CPSR
+    # CPSR  - always the original CPSR
     reg_table[PSR_offset-2] = REG_CPSR   # SPSR....??
     reg_table_data[PSR_offset-2] = ('CPSR_%s' % (msname), 32) 
     # NIL
     reg_table[PSR_offset-1] = REG_NIL
     reg_table_data[PSR_offset-1] = ('NIL_%s' % (msname), 32) 
     # PSR
-    reg_table[PSR_offset] = len(reg_data)
-    reg_table_data[PSR_offset] = ('SPSR_%s' % (msname), 32) 
+    reg_table[PSR_offset] = len(reg_data)                   # -2 because we want SPSR_foo to point at the CPSR_foo.  i think?
+    reg_table_data[PSR_offset] = ('SPSR_%s' % (msname), 32)
     reg_data.append(("SPSR_"+msname, 32))
 
 # done with banked register translation table
@@ -346,13 +383,26 @@ class ArmRegisterContext(e_reg.RegisterContext):
 
         self._rctx_vals[ridx] = (curval & finalmask) | (value << offset)
 
+
 def _getRegIdx(idx, mode):
     if idx >= REGS_VECTOR_TABLE_IDX:
         return reg_table[idx]
 
+    mode &= 0xf
     ridx = idx + (mode*REGS_PER_MODE)  # account for different banks of registers
     ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
     return ridx
+
+
+def reg_mode_base(mode):
+    '''
+    Get the base register index for a given mode (full-sized table)
+    '''
+    mdata = proc_modes.get(mode)
+    if mdata is None:
+        raise Exception("Invalid Mode access (reg_mode_base): %d" % mode)
+
+    return mdata[3]
 
 
 
