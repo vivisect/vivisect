@@ -42,20 +42,27 @@ REG_PC = len(aarch64_regs)
 aarch64_regs.append(('pc', 64))
 REG_CPSR = len(aarch64_regs)
 aarch64_regs.append(('cpsr', 64))
+REG_XZR = len(aarch64_regs)
+aarch64_regs.append(('xzr', 64))
 
 REG_PSTATE = REG_CPSR
 
-MAX_REGS = 33
+MAX_REGS = len(aarch64_regs) - 1
 
 # metas:   zr is x31.  w* is 32-bit versions of x* regs
 
 # FIXME: linkage.  if no overlapping regs for different modes, just remove and make all references hit aarch64_regs
 reg_data = aarch64_regs
 
-aarch64_metas = [("w%d" % x, x, 0, 32) for x in range(32)]
-aarch64_metas.extend([("h%d" % x, x, 0, 16) for x in range(32)])
-aarch64_metas.extend([("b%d" % x, x, 0, 8) for x in range(32)])
-aarch64_metas.append(("zr", 31, 0, 64))
+# Defining general registers 0 - 30
+aarch64_metas = [("w%d" % x, x, 0, 32) for x in range(31)]          
+aarch64_metas.extend([("h%d" % x, x, 0, 16) for x in range(31)])
+aarch64_metas.extend([("b%d" % x, x, 0, 8) for x in range(31)])
+
+# Adding register 31 context (wzr or xzr) separately
+aarch64_metas.append(("wzr", REG_XZR, 0, 32))
+#aarch64_metas.append(("wzr", REG_SP, 0, 32))
+#aarch64_metas.append(("xzr", REG_SP, 0, 64))
 
 # done with banked register translation table
 
