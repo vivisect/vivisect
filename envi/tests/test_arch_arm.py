@@ -1492,8 +1492,8 @@ class ArmInstructionSet(unittest.TestCase):
 
     def test_PSRs(self):
 
-        self.am = am = arm.ArmModule()
-        self.emu = emu = am.getEmulator()
+        am = arm.ArmModule()
+        emu = am.getEmulator()
 
         # there can be only one CPSR
         emu.setCPSR(47147)
@@ -1505,11 +1505,15 @@ class ArmInstructionSet(unittest.TestCase):
             if not modeval in proc_modes:
                 continue
 
+            #print("Testing Mode %x (%r)" % (modeval, proc_modes.get(modeval)[0]))
+            #print("  SPSR")
             emu.setSPSR(mode, 31337 + mode)
             self.assertEqual(emu.getSPSR(mode), 31337 + mode)
 
             regidx = reg_mode_base(modeval) + REG_CPSR
             ridx = eaar._getRegIdx(regidx, 0)
+            #print("  CPSR(%x): 0x%x -> 0x%x" % (modeval, regidx, ridx))
+            #self.assertEqual(emu._rctx_vals[regidx], 47147)
             self.assertEqual(emu._rctx_vals[ridx], 47147)
             self.assertEqual(emu.getRegister(REG_CPSR, mode=modeval), 47147)
 
@@ -1638,21 +1642,49 @@ class ArmInstructionSet(unittest.TestCase):
 
         emu.setCPSR(0x10000)
         for modeval in proc_modes:
+            #print("\n\nMODE: %r" % (proc_modes[modeval][0]))
             emu.setSPSR(modeval, modeval)
             for reg in range(16):
+                #print("Setting Mode %x (%r) Reg R%d" % (modeval, proc_modes.get(modeval)[0], reg))
                 emu.setRegister(reg, modeval, mode=modeval)
+                #self.assertEqual(emu.getRegister(regidx), 47147)
 
+        #import pprint
+        #pprint.pprint(dict(histo))
+        #pprint.pprint(list(enumerate(emu._rctx_vals[:50])))
 
+        # test CPSR
         self.assertEqual(emu.getCPSR(), 0x10000)
+        # test SPSRs
+        for modeval in proc_modes:
+            self.assertEqual(emu.getSPSR(modeval), modeval)
 
+        # check key registers
         for reg in range(15):
             self.assertEqual(emu._rctx_vals[reg], 0x1f)     # the last proc_mode doesn't use any banked regs
 
-        self.assertEqual(emu._rctx_vals[15], 0x10)     # PC set to 16
-
-        for reg in range(19, 26):
+        for reg in range(19, 27):
             self.assertEqual(emu._rctx_vals[reg], 0x11)     # 17
 
+        for reg in range(27, 30):
+            self.assertEqual(emu._rctx_vals[reg], 0x12)     # 18
+
+        for reg in range(30, 33):
+            self.assertEqual(emu._rctx_vals[reg], 0x13)     # 19
+
+        for reg in range(33, 36):
+            self.assertEqual(emu._rctx_vals[reg], 0x16)     # 22
+
+        for reg in range(36, 39):
+            self.assertEqual(emu._rctx_vals[reg], 0x17)     # 23
+
+        for reg in range(39, 42):
+            self.assertEqual(emu._rctx_vals[reg], 0x1a)     # 26
+
+        for reg in range(42, 45):
+            self.assertEqual(emu._rctx_vals[reg], 0x1b)     # 27
+
+        self.assertEqual(emu._rctx_vals[45], 0x1f)          # 31
 
 
     def test_msr(self):

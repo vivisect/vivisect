@@ -101,6 +101,8 @@ for idx,data in enumerate(reg_data):
 # banked registers for different processor modes
 for modenum in modes[1:]:       # skip first since we're already done
     (mname, msname, desc, offset, mode_reg_count, PSR_offset, priv_level) = proc_modes.get(modenum)
+    #print("Building %s (%x): offset=0x%x   PSR_offset: 0x%x" % (msname, modenum, offset, PSR_offset))
+    #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
     # shared regs
     for ridx in range(mode_reg_count):
         # don't create new entries for this register, use the usr-mode reg
