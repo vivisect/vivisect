@@ -728,8 +728,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _fmcb_Thunk(self, funcva, th, thunkname):
         # If the function being made a thunk is registered
         # in NoReturnApis, update codeflow...
-        if self.getMeta('NoReturnApis').get( thunkname.lower() ):
-            self.cfctx.addNoReturnAddr( funcva )
+        if self.getMeta('NoReturnApis').get(thunkname.lower()):
+            self.cfctx.addNoReturnAddr(funcva)
 
     def _fmcb_CallsFrom(self, funcva, th, callsfrom):
         for va in callsfrom:
@@ -824,7 +824,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         fname = vw.getName( fva )
         if vw.getMeta('NoReturnApis').get( fname.lower() ):
-            self._cf_noret[ fva ] = True
+            self._cf_noret[fva] = True
 
         if len( vw.getFunctionBlocks( fva )) == 1:
             return
@@ -834,7 +834,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             va = lva[0]
             ctup = vw.getCodeBlock(va)
             if ctup and fva == ctup[2] and vw.getFunctionMeta(fva, 'BlockCount', default=0) == 1:
-                self._cf_noret[ fva ] = True
+                self._cf_noret[fva] = True
                 break
 
     def _cb_branchtable(self, tablebase, tableva, destva):
