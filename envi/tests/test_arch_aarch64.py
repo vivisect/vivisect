@@ -4790,7 +4790,7 @@ class A64InstructionSet(unittest.TestCase):
             # Remove extra imm data from comparison
             # Doing this avoids adding  '\t; {data}' into the expected unit test outputs
             if '	;' in redoprepr:
-                redoprepr = redoprepr[:redoprepr.index('	;')]
+                redoprepr = redoprepr[:redoprepr.index('	;')]                
 
             if ';' in redoprender:
                 redoprender = redoprender[:redoprender.index(';')]

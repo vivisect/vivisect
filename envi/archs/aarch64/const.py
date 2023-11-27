@@ -255,8 +255,10 @@ instrnames = [
     'MADD',
     'MSUB',
     'SMADDL',
+    'SMULL',
     'SMSUBL',
     'UMADDL',
+    'UMULL',
     'UMSUBL',
     'SMULH',
     'UMULH',
@@ -296,7 +298,6 @@ instrnames = [
     'FSQRT',
     'FCVT',
     'FRINT',
-
     'CM',
     'SHL',
     'MUL',
@@ -363,7 +364,6 @@ instrnames = [
     'XPACI',
     'XPACD',
     'XPACLRI',
-
 ]
 
 ins_index = 85
