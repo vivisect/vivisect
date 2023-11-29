@@ -30,9 +30,9 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS_ALL = 5976
+GOOD_TESTS_ALL = 5977
 GOOD_TESTS_THUMB = 8849
-GOOD_EMU_TESTS = 1204
+GOOD_EMU_TESTS = 1205
 GOOD_EMU_THUMB = 8776
 '''
   This dictionary will contain all instructions supported by ARM to test
@@ -1381,7 +1381,7 @@ global_instrs = [
         (REV_ALL_ARM, 'aff31a81', 0x4561, 'cps #0x1a', 0, ()),
         (REV_ALL_ARM, 'f6f7e456', 0x456ffff1, 'bl 0x44af6dbc', 0, ()),
         (REV_ALL_ARM, 'D5F6FEEA', 0x2208EBE, 'blx 0x020de4bc', 0, ()),
-        #(REV_ALL_ARM, '33f6e456', 0x4561, 'add.w r6, r3, #0xde4', 0, ()),
+        (REV_ALL_ARM, '33f6e456', 0x4561, 'addw r6, r3, #0xde4', 0, ()),
         (REV_ALL_ARM, '56f6e456', 0x4561, 'movw r6, #0x6de4', 0, ()),
         (REV_ALL_ARM, '53f83450', 0x4561, 'ldr.w r5, [r3, r4, lsl #3]', 0, ()),
 
