@@ -1,3 +1,4 @@
+import re
 import struct
 import logging
 import unittest
@@ -34,20 +35,6 @@ GOOD_TESTS_ALL = 5977
 GOOD_TESTS_THUMB = 8849
 GOOD_EMU_TESTS = 1205
 GOOD_EMU_THUMB = 8776
-'''
-  This dictionary will contain all instructions supported by ARM to test
-  Fields will contain following information:
-  archVersionBitmask, ophex, va, repr, flags, emutests
-'''
-#List of instructions not tested and reason:
-#chka - thumbee
-#cps - thumb
-#cpy - pre ual for mov
-#enterx - go from thumb to thumbee
-#eret - exception return see B9.1980
-#F* (FLDMX, FSTMX)commands per A8.8.50 - pre UAL floating point
-#HB, HBL, HBLP, HBP - thumbee instructions see A9.1125-1127
-#IT - thumb
 
 
 '''
@@ -120,6 +107,21 @@ r3             0x0      0
 cpsr           0x200d0010       537722896
 
 '''
+
+'''
+  This dictionary will contain all instructions supported by ARM to test
+  Fields will contain following information:
+  archVersionBitmask, ophex, va, repr, flags, emutests
+'''
+#List of instructions not tested and reason:
+#chka - thumbee
+#cps - thumb
+#cpy - pre ual for mov
+#enterx - go from thumb to thumbee
+#eret - exception return see B9.1980
+#F* (FLDMX, FSTMX)commands per A8.8.50 - pre UAL floating point
+#HB, HBL, HBLP, HBP - thumbee instructions see A9.1125-1127
+#IT - thumb
 global_instrs = [
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
         (REV_ALL_ARM, '0830bbe5', 0xbfb00000, 'ldr r3, [r11, #0x8]!', 0, ()),
@@ -1495,7 +1497,7 @@ class ArmInstructionSet(unittest.TestCase):
         am = arm.ArmModule()
         emu = am.getEmulator()
 
-        # there can be only one CPSR
+        # there can be only one CPSR.  all proc_modes must point to the one.
         emu.setCPSR(47147)
         self.assertEqual(emu.getCPSR(), 47147)
         self.assertEqual(emu.getRegister(REG_CPSR), 47147)
@@ -1505,15 +1507,14 @@ class ArmInstructionSet(unittest.TestCase):
             if not modeval in proc_modes:
                 continue
 
-            #print("Testing Mode %x (%r)" % (modeval, proc_modes.get(modeval)[0]))
-            #print("  SPSR")
+            logger.info("Testing Mode %x (%r)", modeval, proc_modes.get(modeval)[0])
+            logger.info('  SPSR')
             emu.setSPSR(mode, 31337 + mode)
             self.assertEqual(emu.getSPSR(mode), 31337 + mode)
 
             regidx = reg_mode_base(modeval) + REG_CPSR
             ridx = eaar._getRegIdx(regidx, 0)
-            #print("  CPSR(%x): 0x%x -> 0x%x" % (modeval, regidx, ridx))
-            #self.assertEqual(emu._rctx_vals[regidx], 47147)
+            logger.info("  CPSR(%x): 0x%x -> 0x%x", modeval, regidx, ridx)
             self.assertEqual(emu._rctx_vals[ridx], 47147)
             self.assertEqual(emu.getRegister(REG_CPSR, mode=modeval), 47147)
 
@@ -1529,6 +1530,11 @@ class ArmInstructionSet(unittest.TestCase):
             0xdb 41 ('SPSR_hyp', 32)
             0xef 44 ('SPSR_und', 32)
             0x13f 45 ('SPSR_sys', 32)
+
+        this is a humon-repeatable test for future troubleshooting.
+        this test shows that each outer shell index for the SPSRs reference the inner stored 
+        SPSRs for each level (ie. what's stored in the RegisterContext).  all but the first 
+        one, because proc_mode[0] doesn't have an SPSR.
         '''
 
         for _,_,_,_,_,PSR,_ in eaar.proc_modes.values():
@@ -1538,37 +1544,6 @@ class ArmInstructionSet(unittest.TestCase):
         
         '''
         more posterity:
-        In [87]: for mode in eaar.proc_modes: print(eaar.reg_data[eaar._getRegIdx(eaar.REG_OFFSET_SPSR, mode)])
-            _getRegIdx(13, 0) -> (13)
-            _getRegIdx(13, 0) -> 13
-            ('r8_fiq', 32)
-            _getRegIdx(13, 1) -> (27)
-            _getRegIdx(13, 1) -> 1a
-            ('SPSR_fiq', 32)
-            _getRegIdx(13, 2) -> (3b)
-            _getRegIdx(13, 2) -> 1d
-            ('SPSR_irq', 32)
-            _getRegIdx(13, 3) -> (4f)
-            _getRegIdx(13, 3) -> 20
-            ('SPSR_svc', 32)
-            _getRegIdx(13, 6) -> (8b)
-            _getRegIdx(13, 6) -> 23
-            ('SPSR_mon', 32)
-            _getRegIdx(13, 7) -> (9f)
-            _getRegIdx(13, 7) -> 26
-            ('SPSR_abt', 32)
-            _getRegIdx(13, a) -> (db)
-            _getRegIdx(13, a) -> 29
-            ('SPSR_hyp', 32)
-            _getRegIdx(13, b) -> (ef)
-            _getRegIdx(13, b) -> 2c
-            ('SPSR_und', 32)
-            _getRegIdx(13, f) -> (13f)
-            _getRegIdx(13, f) -> 2d
-            ('SPSR_sys', 32)
-
-
-
         In [107]: for mode in eaar.proc_modes: print(eaar.reg_data[eaar._getRegIdx(eaar.REG_OFFSET_SPSR, mode)])
             _getRegIdx(12, 0) -> (12)
             _getRegIdx(12, 0) -> 12
@@ -1627,7 +1602,9 @@ class ArmInstructionSet(unittest.TestCase):
             _getRegIdx(10, f) -> 10
             ('cpsr', 32)
 
-
+        again, humon-tests which show the SPSR for each level, as well as the CPSR for each level.
+        obviously, all the CPSRs point to the one and only, RegisterContext register index 0x10
+        these have the print statement uncommented for _getRegIdx()
         '''
 
     def test_BankedRegs(self):
@@ -1965,8 +1942,7 @@ class ArmInstructionSet(unittest.TestCase):
                 test_arch = ARCH_REVS[key]
                 if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0):
                     try:
-                        if verbose:
-                            print("%s: %r"% (tidx, testinfo))
+                        logger.info("%s: %r", tidx, testinfo)
 
                         ranAlready = True
                         op = vw.arch.archParseOpcode(unhexlify(bytez), 0, va)
@@ -2039,7 +2015,7 @@ class ArmInstructionSet(unittest.TestCase):
                                     bademu += 1
                                     raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (va, bytez, op))
                     except:
-                        print("FAILURE: %r, 0x%x, %r, %r, %r" % (bytez, va, reprOp, iflags, emutests))
+                        logger.warning("FAILURE: %r, 0x%x, %r, %r, %r", bytez, va, reprOp, iflags, emutests)
                         raise
 
         logger.info("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
@@ -2125,7 +2101,6 @@ class ArmInstructionSet(unittest.TestCase):
 
         return success
 
-import re
 def cvtImmToHex(rep):
     # convert to hex
     rep += " "  # just for now
@@ -2161,32 +2136,6 @@ def cvtImmToHex(rep):
             break
 
     return rep.strip()
-
-"""
-def generateTestInfo(ophexbytez='6e'):
-    '''
-    Helper function to help generate test cases that can easily be copy-pasta
-    '''
-    h8 = e_h8.H8Module()
-    opbytez = ophexbytez
-    op = h8.archParseOpcode(unhexlify(opbytez), 0, 0x4000)
-    #print( "opbytez = '%s'\noprepr = '%s'"%(opbytez,repr(op)) )
-    opvars=vars(op)
-    opers = opvars.pop('opers')
-    #print( "opcheck = ",repr(opvars) )
-
-    opersvars = []
-    for x in range(len(opers)):
-        opervars = vars(opers[x])
-        opervars.pop('_dis_regctx')
-        opersvars.append(opervars)
-
-    #print( "opercheck = %s" % (repr(opersvars)) )
-
-"""
-
-raw_instrs = [
-    ]
 
 
 def genDPArm():
@@ -2408,8 +2357,6 @@ def genAdvSIMDtestBytez():
                         tbytez.append(bytezthumb)
 
     return abytez, tbytez
-# thumb 16bit IT, CNBZ, CBZ
-
 
 def dumpBytes():
     with open('/tmp/armbytez', 'wb') as f:
@@ -2425,4 +2372,4 @@ def dumpBytes():
                     continue    # not ARM
                 f.write(unhexlify(bytez))
 
-dumpBytes()
+#dumpBytes()

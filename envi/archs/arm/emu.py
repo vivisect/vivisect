@@ -376,7 +376,9 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
     def getCPSR(self):
         '''
         return the Current Program Status Register.
-        There can be only one.
+        There can be only one. (CPSR, that is).  Each processor mode has a slot
+        for a CPSR, and they all must point to the one and only CPSR data 
+        in the RegisterContext, where emu values are stored.
         '''
         return self._rctx_vals[REG_CPSR]
 

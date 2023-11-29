@@ -1384,28 +1384,6 @@ def ldrb_memhints_32(va, val1, val2):
 
     return COND_AL, opcode, mnem, opers, flags, 0
 
-"""
-def ldr_shift_32(va, val1, val2):
-    '''
-    this doesn't appear used anymore???  
-    '''
-    #b11 = (val2>>11) & 1
-    # if not b11:
-    #    raise Exception("ldr_shift_32 parsing non-ldrb")
-    bitsbits = (val1 >> 4) & 0x7
-    tsize = (1, 0, 2, 2, 4, 4, 0, 0)[bitsbits]
-
-    rn = val1 & 0xf
-    rm = val2 & 0xf
-    rt = (val2 >> 12) & 0xf
-    imm2 = (val2 >> 4) & 3
-
-    oper0 = ArmRegOper(rt, va=va)
-    oper1 = ArmScaledOffsetOper(rn, rm, S_LSL, imm2, va=va, tsize=tsize)
-
-    opers = (oper0, oper1)
-    return COND_AL, None, None, opers, None, 0
-"""
 
 def ldrex_32(va, val1, val2):
     rn = val1 & 0xf
