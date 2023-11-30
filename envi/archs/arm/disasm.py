@@ -1677,12 +1677,12 @@ def p_vpop(opval, va):
     return INS_VPUSH, 'vpush', opers, 0, simdflags
 
 def p_vdup(opval, va):
-    q = (opva >> 21) & 1
-    b = (opva >> 22) & 1
-    d = ((opva >> 3) & 0x10)
-    vd = (opva >> 16) & 0xf | d
-    rt = (opva >> 12) & 0xf
-    e = (opva >> 5) & 1
+    q = (opval >> 21) & 1
+    b = (opval >> 22) & 1
+    d = ((opval >> 3) & 0x10)
+    vd = (opval >> 16) & 0xf | d
+    rt = (opval >> 12) & 0xf
+    e = (opval >> 5) & 1
 
 
     # q# regs are two d# regs
