@@ -130,6 +130,9 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         if op.opcode == INS_BLX:
             emu.setFlag(PSR_T_bit, self.last_tmode)
 
+        elif op.opcode == INS_MOVT:
+            val = op.getOperValue(0, emu=emu)
+            emu.vw.setSymHint(op.va, OP_SYMHINT_IDX, val)
 
 argnames = {
     0: ('r0', 0),

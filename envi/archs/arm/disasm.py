@@ -772,7 +772,7 @@ def p_dp_movw(opval, va):
     iflags = 0
     imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
     Rd = (opval >> 12) & 0xf
-    opcode = INS_MOV
+    opcode = INS_MOVW
     olist = (
         ArmRegOper(Rd, va=va),
         ArmImmOper(imm),
@@ -783,7 +783,7 @@ def p_dp_movt(opval, va):
     iflags = 0
     imm =  ((opval >>4) &0xf000) + (opval & 0xfff)
     Rd = (opval >> 12) & 0xf
-    opcode = INS_MOV
+    opcode = INS_MOVT
     olist = (
         ArmRegOper(Rd, va=va),
         ArmImmOper(imm),
@@ -4040,6 +4040,14 @@ class ArmOpcode(envi.Opcode):
                 mcanv.addText(",")
         #if self.iflags & IF_W:     # handled in operand.  still keeping flag to indicate this instruction writes back
         #    mcanc.addText(" !")
+        hint = mcanv.syms.getSymHint(self.va, OP_SYMHINT_IDX)
+        if hint:
+            mcanv.addText('    ; ')
+            if type(hint) == int:
+                name = addrToName(mcanv, hint)
+                mcanv.addVaText(name, hint)
+            else:
+                mcanv.addNameText(hint)
 
     def __repr__(self):
         mnem = self.mnem + cond_codes.get(self.prefixes)
@@ -4901,10 +4909,10 @@ class ArmPcOffsetOper(ArmOperand):
 
     def render(self, mcanv, op, idx):
         hint = mcanv.syms.getSymHint(op.va, idx)
+        value = self.getOperValue(op)
         if hint is not None:
             mcanv.addVaText(hint, value)
         else:
-            value = self.getOperValue(op)
             va = value & -2
             if mcanv.mem.isValidPointer(va):
                 name = addrToName(mcanv, va)

@@ -83,6 +83,9 @@ ARCH_REVS['thumb'] = REV_THUMB2
 ARCH_REVS['thumbee'] = REV_THUMBEE
 ARCH_REVSLEN = len(ARCH_REVS)
 
+OP_SYMHINT_IDX = 5
+
+
 # IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
 IF_PSR_S     = 1 << 32    # This DP instruciton can update CPSR  (as in, add vs. adds)
 IF_B         = 1 << 33    # Byte
