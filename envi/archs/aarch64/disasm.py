@@ -198,8 +198,12 @@ def p_addsub_imm(opval, va):
     # Check for cmp opcode 
     if rd == 0x1f and s == 0b1:
         # this is a cmp immediate
-        mnem = 'cmp'
-        opcode = INS_CMP 
+        if op == 1:
+            mnem = 'cmp'
+            opcode = INS_CMP 
+        else:
+            mnem = 'cmn'
+            opcode = INS_CMN
 
         # Resets iflag to remove a previous S flag, which is incorrect for this mnem 
         iflag = 0
@@ -802,8 +806,12 @@ def p_sys(opval, va):
     if relevant & 0b111000_11110000_00011111 == 0b000000_01000000_00011111:
         opcode = INS_MSR
         mnem = 'msr'
+
+        # pstate is determined from op1:op2
+        # FIXME : Logic assumes all Exts are implemented and security checks are passed
+
         olist = (
-            #FIXME pstatefield
+            A64PSTATEfieldOper(op1, op2, crm),
             A64ImmOper(crm, va=va),
         )
         iflag = 0
@@ -897,37 +905,83 @@ def p_sys(opval, va):
         opcode = INS_SYS
         mnem = 'sys'
         if crn == 0b0111 or crn == 0b1000:
-            sysop_concat = op1+crn+crm+op2
+            # sysop_concat = op1:crn:crm:op2
+            sysop_concat = (op1 << 11) | (crn << 7) | (crm << 3) | op2
             for bits, mnemonic, ocode in sys_op_table:
                 if sysop_concat == bits:
                     mnem = mnemonic
                     opcode = ocode
                     break
-        olist = (
-            A64ImmOper(op1, 0, S_LSL, va),
-            A64NameOper(crn),
-            A64NameOper(crm),
-            A64ImmOper(op2, 0, S_LSL, va),
-            A64RegOper(rt, va, size=8), #optional operand
-        )
+        
+            # Modify olist based on mnem
+            if mnem == 'at':                
+                olist = (       # AT <at_op>, <Xt>
+                    A64NameOper(mnem, ((op1 << 4) | ((crm & 0b1) << 3) | op2)),
+                    A64RegOper(rt, va, size=8)
+                )
+
+            elif mnem == 'dc':
+                olist = (       # DC <dc_op>, <Xt>
+                    A64NameOper(mnem, ((op1 << 7) | (crm << 3) | op2)),
+                    A64RegOper(rt, va, size=8)
+                )
+
+            elif (mnem == 'ic'):
+                olist = (       # IC <ic_op>{, <Xt>}
+                    A64NameOper(mnem, ((op1 << 7) | (crm << 3) | op2)),
+                    A64RegOper(rt, va, size=8), #optional operand
+                )
+
+                # Hide reg oper if it is default value
+                if rt == 0b11111:   
+                    olist = olist[:1]
+
+            elif (mnem == 'tlbi'):
+                olist = (       # TLBI <tlbi_op>{, <Xt>}
+                    A64NameOper(mnem, ((op1 << 11) | (crn << 7) | (crm << 3) | op2)),
+                    A64RegOper(rt, va, size=8), #optional operand
+                )
+
+                # Hide reg oper if it is default value
+                if rt == 0b11111:   
+                    olist = olist[:1]
+
+            else:
+                olist = (       # Old default case
+                    A64ImmOper(op1, 0, S_LSL, va),
+                    A64NameOper(mnem, crn),
+                    A64NameOper(mnem, crm),
+                    A64ImmOper(op2, 0, S_LSL, va),
+                    A64RegOper(rt, va, size=8), #optional operand
+                )
+
+                # Hide reg oper if it is default value
+                if rt == 0b11111:   
+                    olist = olist[:1]
+
         iflag = 0
 
     elif (l + op0) & 0b110 == 0b010:
         opcode = INS_MSR
         mnem = 'msr'
-
-        if l == 0b1:
-            mnem = 'mrs'
-            opcode = INS_MRS
-
+        
         # Check for ZR instead of SP
         if rt == 31:
             rt = REG_XZR
 
         olist = (
-            #A64RegOper(opval >> 5 & 0x7fff, va), system register?
+            A64SysRegOper(op0, op1, crn, crm, op2),
             A64RegOper(rt, va, size=8),
         )
+
+        if l == 0b1:
+            mnem = 'mrs'
+            opcode = INS_MRS
+            olist = (           # Flipped olist   
+                A64RegOper(rt, va, size=8),
+                A64SysRegOper(op0, op1, crn, crm, op2),
+            )
+
         iflag = 0
 
     elif (l + op0) & 0b111 == 0b101:
@@ -942,12 +996,12 @@ def p_sys(opval, va):
         )
         iflag = IF_L
 
-    elif (l + op0) & 0b110 == 0b110:
+    elif ((l << 2) | op0) & 0b110 == 0b110:   
         opcode = INS_MRS
         mnem = 'mrs'
-        olist = (
-            A64RegOper(rt, va, size=8),
-            #A64RegOper(opval >> 5 & 0x7fff, va) system register? see msrr
+        olist = (            
+            A64RegOper(rt, va, size=8), 
+            A64SysRegOper(op0, op1, crn, crm, op2)
         )
         iflag = 0
 
@@ -2657,8 +2711,13 @@ def p_addsub_shft_reg(opval, va):
         rm = (REG_WZR, REG_XZR)[sf]
 
     if rd == 0b11111 and s == 0b1:
-        mnem = 'cmp'
-        opcode = INS_CMP
+        if op == 1:
+            mnem = 'cmp'
+            opcode = INS_CMP 
+        else:
+            mnem = 'cmn'
+            opcode = INS_CMN
+
         iflag = 0
 
         # Checking for ZR register in rn
@@ -7520,6 +7579,40 @@ def addrToName(mcanv, va):
         return repr(sym)
     return "0x%.8x" % va
 
+class A64SysRegOper(A64RegOper):
+    '''
+    Subclass of A64RegOper, represents system register
+    '''
+
+    def __init__(self, op0, op1, crn, crm, op2):
+        self.encoding = (1 << 15) | (op0 << 14) | (op1 << 11) | (crn << 7) | (crm << 3) | (op2)
+        self.mnem = getsysregname(self.encoding)
+
+        # Check for non-standard name
+        if self.mnem == 'invalid':
+            self.mnem = 's' + str(op0) + '_' + str(op1) + '_c' + str(crn) + '_c' + str(crm) + '_' + str(op2)
+
+    
+    def repr(self, op):
+        return self.mnem
+        
+    def render(self, mcanv, op, idx):
+        mcanv.addNameText(self.mnem)
+
+
+class A64PSTATEfieldOper(A64Operand):
+    '''
+    Subclass of A64Operand. PSTATEfield class, only used with msr
+    '''
+
+    def __init__(self, op1, op2, crm):
+        self.mnem = getpstatefieldname(op1, op2, crm)
+
+    def repr(self, op):
+        return self.mnem
+    
+    def render(self, mcanv, op, idx):
+        mcanv.addNameText(self.mnem)
 
 class A64ImmOper(A64Operand, envi.ImmedOper):
     '''
@@ -7538,7 +7631,8 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
             if ival >= 4096:
                 return "#0x%.8x" % ival
             return "#" + str(ival)
-        else:
+
+        else:            
             result = ""     # Build result based on val and ival values
             if self.val >= 4096:
                 result += "#0x%.8x" % self.val
@@ -7553,8 +7647,6 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
                 result += "#" + str(ival)
 
             return result
-
-        # return "#" + str(self.val) + ", " + opShifts[self.shtype] + " #" + str(self.shval)
 
     def getOperValue(self, op, emu=None):
         return shifters[self.shtype](self.val, self.shval, self.size, emu)
@@ -7824,8 +7916,36 @@ class A64NameOper(A64Operand):
     '''
     Subclass of A64Operand. Name operand class
     '''
-    def __init__(self, val=0):
+    def __init__(self, instype, val=0):
         self.val = val
+
+        # Grabbing mnem from oper tables based on mnem
+        if instype != 'sys':
+            if instype == 'at':
+                tabind = 0
+            elif instype == 'dc':
+                tabind = 1
+            elif instype == 'ic':
+                tabind = 2
+            elif instype == 'tlbi':
+                tabind = 3 
+            else:
+                raise Exception("Invalid instype in A64NameOper constructor!")
+
+            for encoding, mnem in sys_alias_op_tables[tabind]:
+                    if encoding == val:
+                        self.mnem = mnem                    
+                        break
+            
+        else:
+            self.mnem = 'c' + str(val)
+    
+    def repr(self, op):
+        return self.mnem
+
+    def render(self, mcanv, op, idx):
+        mcanv.addText(self.mnem)
+
 
 class A64PreFetchOper(A64Operand):
     '''
