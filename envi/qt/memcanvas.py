@@ -99,6 +99,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     @idlethread
     def _scrollToVa(self, va, cb=None):
+        # TODO: Does anybody call this?
         page = self.page()
         selector = 'viv:0x%.8x' % va
         js = f'''
@@ -166,7 +167,11 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._canv_cache = self._canv_cache.replace('`', r'\`')
         js = f'''
         var node = document.querySelector('update#updatetmp');
-        node.outerHTML = `{self._canv_cache}` + node.outerHTML;
+        if (node != null) {{
+            node.outerHTML = `{self._canv_cache}` + node.outerHTML;
+        }} else {{
+            console.log("Failed to grab selector of update#updatetmp")
+        }}
         '''
         if cb:
             self.page().runJavaScript(js, cb)
@@ -258,8 +263,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         self._appendInside(text, cb)
 
     def addText(self, text, tag=None, cb=None):
-        text = html.escape(text)
-        #text = text.replace('\n', '<br>')
+        text = html.escape(text).encode('unicode_escape').decode('utf-8')
         if tag is not None:
             otag, ctag = tag
             text = otag + text + ctag
@@ -320,6 +324,8 @@ def getNavTargetNames():
 
 
 def initMemSendtoMenu(expr, menu):
-    for name in set(getNavTargetNames()):
+    navtgts = getNavTargetNames()
+    navtgts.sort()
+    for name in navtgts:
         args = (name, expr, None)
         menu.addAction('sendto: %s' % name, ACT(vqtevent, 'envi:nav:expr', args))

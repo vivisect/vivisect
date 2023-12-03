@@ -4,6 +4,7 @@ import tempfile
 import unittest
 
 import vivisect
+import vivisect.storage.basicfile as vsbf
 from vivisect.const import *
 
 
@@ -65,8 +66,8 @@ class StorageTests(unittest.TestCase):
 
         old = list(vw.exportWorkspace())
         new = list(ovw.exportWorkspace())
-        self.assertEqual(len(old), 35)
-        self.assertEqual(len(new), 36)  # the last event is a setMeta made by loadWorkspace
+        self.assertEqual(len(old), 39)
+        self.assertEqual(len(new), 40)  # the last event is a setMeta made by loadWorkspace
         self.assertEqual(new[-1], (VWE_SETMETA, ('StorageName', self.tmpf.name)))
         for idx in range(len(old)):
             self.assertEqual(old[idx], new[idx])
@@ -96,14 +97,14 @@ class StorageTests(unittest.TestCase):
             mvw._event_list = []
             mvw.loadWorkspace(mpfile.name)
             mevt = list(mvw.exportWorkspace())
-            self.assertEqual(len(mevt), 36)
+            self.assertEqual(len(mevt), 40)
 
             bvw = vivisect.VivWorkspace()
             bvw.setMeta('StorageModule', 'vivisect.storage.basicfile')
             bvw._event_list = []
             bvw.loadWorkspace(basicfile.name)
             bevt = list(bvw.exportWorkspace())
-            self.assertEqual(len(bevt), 36)
+            self.assertEqual(len(bevt), 40)
 
             # the last three events are specific to the different storage modules
             for idx in range(len(mevt) - 3):
@@ -114,3 +115,41 @@ class StorageTests(unittest.TestCase):
             basicfile.close()
             os.unlink(mpfile.name)
             os.unlink(basicfile.name)
+
+    def test_bad_event(self):
+        vw = vivisect.VivWorkspace()
+        with self.assertLogs() as logcap:
+            vw.importWorkspace([(VWE_MAX + 1, (0xabad1dea, 4, 3, 'nope')),
+                                (VWE_ADDFILE, ('VivisectFile', 0x1000, '3bfdad02b9a6522c84e356cf8f69135b'))])
+        files = vw.getFiles()
+        self.assertIn("IndexError: list index out of range", ''.join(logcap.output))
+        self.assertEqual(1, len(files))
+        self.assertEqual('VivisectFile', files[0])
+
+    def test_basicfile_header(self):
+        basicfile = tempfile.NamedTemporaryFile(delete=False)
+        vw = vivisect.VivWorkspace()
+        add_events(vw)
+        vw.setMeta('StorageName', basicfile.name)
+        vw.saveWorkspace(False)
+
+        # test the header was added correctly
+        with open(basicfile.name, 'rb') as f:
+            header = f.read(8)
+            self.assertEqual(header, vsbf.vivsig_cpickle)
+
+        # now add events and make sure we don't add the header unnecessarily
+        vw = vivisect.VivWorkspace()
+        vw.loadWorkspace(basicfile.name)
+        vw.addLocation(0x6100, 3, 5)
+        vw.addLocation(0x6105, 3, 5)
+        vw.addLocation(0x610a, 3, 5)
+        vw.saveWorkspace(False)
+
+        # now load it.  if a VIV\0\0\0\0\0 was added incorrectly, this will blow up
+        vw = vivisect.VivWorkspace()
+        vw.loadWorkspace(basicfile.name)
+        self.assertEqual(vw.getLocation(0x6100), (0x6100, 3, 5, None))
+        self.assertEqual(vw.getLocation(0x6105), (0x6105, 3, 5, None))
+        self.assertEqual(vw.getLocation(0x610a), (0x610a, 3, 5, None))
+

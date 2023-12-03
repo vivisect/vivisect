@@ -19,6 +19,7 @@ regcalls = {
     (e_i386.REG_ECX,):               ('thiscall', 1),
     (e_i386.REG_EAX,):               ('bfastcall', 1),
     (e_i386.REG_EAX, e_i386.REG_EDX): ('bfastcall', 2),
+    (e_i386.REG_EAX, e_i386.REG_ECX): ('bfastcall', 3),
     (e_i386.REG_ECX, e_i386.REG_EDX): ('msfastcall', 2),
     (e_i386.REG_EAX, e_i386.REG_ECX, e_i386.REG_EDX): ('bfastcall', 3),
 }
@@ -107,27 +108,28 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
 
     # if we're callee cleanup, make sure we *actually* clean up our space
     # otherwise, revert us to caller cleanup
+    realcallconv = callconv
     if emumon.endstack:
         stkoff = (emumon.endstack - stkstart) >> 2
         if callconv in argnames:
             # do our stack args line up with what we cleaned up?
             if abs(stkoff) != stackargs:
                 # we're probably caller cleanup then
-                callconv = callconv + '_caller'
+                realcallconv = callconv + '_caller'
 
     if argc > 64:
         callconv = 'unkcall'
         argc = 0
     # Add argument indexes to our argument names
     funcargs = [ argcname(callconv, i) for i in range(argc) ]
-    api = ('int',None,callconv,None,funcargs)
+    api = ('int',None,realcallconv,None,funcargs)
 
     vw.setFunctionApi(fva, api)
     return api
 
 def analyzeFunction(vw, fva):
 
-    emu = vw.getEmulator()
+    emu = vw.getEmulator(va=fva)
     emumon = AnalysisMonitor(vw, fva)
 
     stkstart = emu.getStackCounter()

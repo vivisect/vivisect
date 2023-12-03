@@ -72,7 +72,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             segva, segsize, segname, segfname = seg
             if segva == lva:
                 mcanv.addText(linepre, tag=vatag)
-                mcanv.addText("Segment: %s (%d bytes) FIXME PERMS\n" % (segname, segsize))
+                mcanv.addText("Segment: %s (%d bytes)\n" % (segname, segsize))
 
         if isfunc:
             mcanv.addText(linepre, tag=vatag)
@@ -101,7 +101,12 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             # FIXME color code and get args parsing goin on
             mcanv.addText(" ")
             xrtag = mcanv.getTag("xrefs")
-            mcanv.addText("[%d XREFS]\n" % xrcount, tag=xrtag)
+            mcanv.addText("[%d XREFS] " % xrcount, tag=xrtag)
+
+            if self.vw.getMeta('NoReturnApisVa', {}).get(lva):
+                mcanv.addNameText('NORET', typename='funcflags')
+
+            mcanv.addText('\n')
 
             mcanv.addText(linepre, tag=vatag)
             mcanv.addText('\n')
@@ -132,7 +137,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
             mcanv.addText(linepre, tag=vatag)
             if name is None:
                 name = "loc_%.8x" % lva
-            mcanv.addText(urllib.parse.quote_plus(name), tag=vatag)
+            mcanv.addText(name, tag=vatag)
             mcanv.addText(": ")
             xrtag = mcanv.getTag("xrefs")
             mcanv.addText('[%d XREFS]\n' % xrcount, tag=xrtag)

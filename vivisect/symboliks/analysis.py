@@ -45,8 +45,9 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
     '''
     __width__ = 4 # this *must* be set by extenders if needed!
 
-    def __init__(self, vw):
+    def __init__(self, vw, *args, xlator=None):
         vsym_emulator.SymbolikEmulator.__init__(self, vw)
+        self.__width__ = vw.getPointerSize()
         self.cconvs = {}
         self.cconv = None   # This will be set by setupFunctionCall
 
@@ -448,14 +449,16 @@ class SymbolikAnalysisContext:
         '''
         self.funccb[name] = callback
 
-    def getSymbolikPathsTo(self, fva, tova, args=None, maxpath=1000):
+    def getSymbolikPathsTo(self, fva, tova, args=None, maxpath=1000, graph=None):
         '''
         For each path from the function start to tova, run all symbolik
         effects in an emulator instance and yield emu, effects tuples.
         Differs from getSymbolikPaths() in that it stops at tova rather
         than continuing to a ret or loop path.
         '''
-        graph = self.getSymbolikGraph(fva)
+        if graph is None:
+            graph = self.getSymbolikGraph(fva)
+
         tocb = self.vw.getCodeBlock(tova)
         if tocb is None:
             raise Exception("No codeblock for 'tova': 0x%x" % tova)
@@ -484,11 +487,14 @@ class SymbolikAnalysisContext:
         if graph is None:
             graph = self.getSymbolikGraph(fva)
 
+        xlator = self.getTranslator()
+
         # our callback routine for code path walking
         def codewalker(ppath, edge, path):
+            xlator.clearEffects()
             # first, test for the "entry" case
             if ppath is None and edge is None:
-                emu = self.getFuncEmu(fva)
+                emu = self.getFuncEmu(fva, xlator=xlator)
                 for fname, funccb in self.funccb.items():
                     emu.addFunctionCallback(fname, funccb)
 
@@ -505,7 +511,7 @@ class SymbolikAnalysisContext:
                 return True
 
             # we are now in the "walking" case
-            emu = self.getFuncEmu(fva)
+            emu = self.getFuncEmu(fva, xlator=xlator)
             pemu = vg_pathcore.getNodeProp(ppath, 'pathemu')
 
             emu.setSymSnapshot( pemu.getSymSnapshot() )
@@ -566,6 +572,7 @@ class SymbolikAnalysisContext:
         if paths is None:
             paths = viv_graph.getCodePaths(graph, maxpath=maxpath)
 
+        xlator = self.getTranslator()
         pcnt = 0
         for path in paths:
             if pcnt > maxpath:
@@ -573,7 +580,8 @@ class SymbolikAnalysisContext:
 
             pcnt += 1
             skippath = False
-            emu = self.getFuncEmu(fva, fargs=args)
+            xlator.clearEffects()
+            emu = self.getFuncEmu(fva, fargs=args, xlator=xlator)
 
             for fname, funccb in self.funccb.items():
                 emu.addFunctionCallback(fname, funccb)
@@ -658,7 +666,7 @@ class SymbolikAnalysisContext:
         '''
         return self.__xlator__(self.vw)
 
-    def getFuncEmu(self, fva, fargs=None, args=()):
+    def getFuncEmu(self, fva, fargs=None, args=(), xlator=None):
         '''
         Instantiates a symbolik emulator and if fva is not None, initializes
         the emu for the specified fva.
@@ -671,7 +679,10 @@ class SymbolikAnalysisContext:
             femu = symctx.getFuncEmu(fva, ['arg0', 'arg1', 20])
             femu = symctx.getFuncEmu(None)
         '''
-        emu = self.__emu__(self.vw, *args)
+        if xlator is None:
+            xlator = self.getTranslator()
+
+        emu = self.__emu__(self.vw, *args, xlator=xlator)
         emu._sym_resolve = self._sym_resolve
         if fva is not None:
             emu.setupFunctionCall(fva, args=fargs)

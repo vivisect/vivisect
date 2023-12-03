@@ -353,3 +353,14 @@ def masktest(s):
     def domask(testval):
         return testval & maskin == matchval
     return domask
+
+def align(origsize, alignment):
+    '''
+    Returns an aligned size based on alignment argument
+    '''
+    remainder = origsize % alignment
+    if remainder == 0:
+        return origsize
+    else:
+        return origsize + (alignment - remainder)
+

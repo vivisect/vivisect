@@ -26,17 +26,14 @@ class Amd64Module(e_i386.i386Module):
         envi.ArchitectureModule.__init__(self, "amd64")
         self._arch_dis = Amd64Disasm()
 
+    def initRegGroups(self):
+        envi.ArchitectureModule.initRegGroups(self)
+        self._regGrps.update({'general': ['rax', 'rbx', 'rcx', 'rdx', 'rsi', 'rdi', 'rbp',
+                                'rsp', 'rip', 'r8', 'r9', 'r10', 'r11', 'r12',
+                                'r13', 'r14', 'r15']} )
+
     def archGetRegCtx(self):
         return Amd64RegisterContext()
-
-    def archGetRegisterGroups(self):
-        groups = envi.ArchitectureModule.archGetRegisterGroups(self)
-        general = ('general', ['rax', 'rbx', 'rcx', 'rdx', 'rsi', 'rdi', 'rbp',
-                                'rsp', 'rip', 'r8', 'r9', 'r10', 'r11', 'r12',
-                                'r13', 'r14', 'r15'], )
-
-        groups.append(general)
-        return groups
 
     def getPointerSize(self):
         return 8
@@ -143,6 +140,28 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
         else:
             self.i_pextrb(op, width=4)
 
+    def i_div(self, op):
+        tsize = op.opers[0].tsize
+        if tsize == 8:
+            val = self.getOperValue(op, 0)
+            if val == 0:
+                raise e_exc.DivideByZero(self)
+
+            rax = self.getRegister(REG_RAX)
+            rdx = self.getRegister(REG_RDX)
+            tot = (rdx << 64) + rax
+            quot = int(tot // val)
+            rem = tot % val
+
+            if tot > (2**128)-1:
+                mesg = '0x%.8x: division exception on %s' % (op.va, str(op))
+                raise e_exc.DivideError(self, msg=mesg)
+
+            self.setRegister(REG_RAX, quot)
+            self.setRegister(REG_RDX, rem)
+        else:
+            e_i386.IntelEmulator.i_div(self, op)
+
     def i_idiv(self, op):
         tsize = op.opers[0].tsize
         if tsize == 8:
@@ -152,8 +171,12 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
             d = e_bits.signed(d, 8)
             if d == 0:
                 raise envi.DivideByZero(self)
-            q = val // d
-            r = val % d
+            sign = (val < 0 and d > 0) or (val > 0 and d < 0)
+            q = (abs(val) // abs(d))
+            r = (abs(val) % abs(d))
+            if sign:
+                q = -q
+                r = -r
 
             self.setRegister(REG_RAX, q)
             self.setRegister(REG_RDX, r)

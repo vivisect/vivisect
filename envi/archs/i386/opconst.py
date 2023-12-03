@@ -200,6 +200,12 @@ INS_HALT    = INS_SYSTEM | 0x01 # halt machine
 INS_IN      = INS_SYSTEM | 0x02 # input from port
 INS_OUT     = INS_SYSTEM | 0x03 # output to port
 INS_CPUID   = INS_SYSTEM | 0x04 # iden
+INS_RDTSC   = INS_SYSTEM | 0x05 # read timer
+INS_RDTSCP  = INS_SYSTEM | 0x06 # read timer
+INS_SYSCALL = INS_SYSTEM | 0x07 # system call
+INS_INT     = INS_SYSTEM | 0x08 # system call
+INS_SYSENTER= INS_SYSTEM | 0x09 # system call
+INS_SYSEXIT = INS_SYSTEM | 0x0a # system call
 
 INS_NOP     = INS_OTHER | 0x01
 INS_BCDCONV = INS_OTHER | 0x02  # convert to/from BCD
@@ -265,6 +271,7 @@ cpu_AESNI = 0x0000b000
 cpu_AVX   = 0x0000c000
 cpu_BMI   = 0x0000d000
 cpu_OSPKE = 0x0000e000
+cpu_VIRTUALPC = 0x0000f000
 
 #eventually, change this for your own codes
 #ADDEXP_SCALE_OFFSET= 0 

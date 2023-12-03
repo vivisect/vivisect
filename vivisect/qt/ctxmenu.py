@@ -53,6 +53,39 @@ def printEmuState(vw, fva, va):
 
         vw.vprint(base)
 
+@firethread
+def newMemoryView(vw, xexpr):
+    try:
+        vw.getVivGui().newMemoryView(name="mem:%s" % xexpr, expr=xexpr)
+        
+    except:
+        logger.warning("Failed to create new MemoryView", exc_info=1)
+
+@firethread
+def newFuncGraph(vw, xexpr):
+    try:
+        vw.getVivGui().newFuncGraphView(name="FG:%s" % xexpr, expr=xexpr)
+        
+    except:
+        logger.warning("Failed to create new FunctionGraph", exc_info=1)
+
+
+def initMemSendtoMenu(vw, xexpr, xmenu):
+    e_q_memcanvas.initMemSendtoMenu(xexpr, xmenu)
+    submenu = xmenu.addMenu('sendto: <new>')
+    submenu.addAction('Memory View', ACT(newMemoryView, vw, xexpr))
+
+    # check if it's code
+    tgt = vw.parseExpression(xexpr)
+    if tgt is None:
+        return
+
+    funcva = vw.getFunction(tgt)
+    if funcva is None:
+        return
+    
+    submenu.addAction('FuncGraph View', ACT(newFuncGraph, vw, xexpr))
+
 def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
     '''
     Return (optionally construct) a menu to use for handling a context click
@@ -93,7 +126,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
             xmenu = rtomenu.addMenu(xrepr)
             if nav:
                 xmenu.addAction('(this window)', ACT(nav.enviNavGoto, xexpr))
-            e_q_memcanvas.initMemSendtoMenu(xexpr, xmenu)
+            initMemSendtoMenu(vw, xexpr, xmenu)
 
     if refsfrom:
         rfrmenu = menu.addMenu('xrefs from')
@@ -107,7 +140,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
             xmenu = rfrmenu.addMenu(xrepr)
             if nav:
                 xmenu.addAction('(this window)', ACT(nav.enviNavGoto, xexpr))
-            e_q_memcanvas.initMemSendtoMenu(xexpr, xmenu)
+            initMemSendtoMenu(vw, xexpr, xmenu)
 
     fva = vw.getFunction(va)
     if fva is not None:
@@ -165,7 +198,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         archmenu = makemenu.addMenu('code (archs)')
         prevumenu = menu.addMenu('preview instruction')
 
-        archs = [ (archname,archid) for (archid,archname) in envi.arch_names.items() ]
+        archs = [ (archname,archid) for (archid,archname) in envi.getArchNames().items() ]
         archs.sort()
         for archname,archid in archs:
             if archname == 'default':
@@ -204,10 +237,16 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
                             immmenu.addAction(name, ACT(vw.setSymHint, va, idx, name))
             menu.addAction('make code xref->', ACT(vw.getVivGui().addVaXref, va))
 
+            if vw.getVaSetRow('SwitchCases_TimedOut', va):
+                do_analyze = ACT(vw.getVivGui().reanalyzeSwitchCase, va)
+                do_analyze.setNewThread()
+                menu.addAction('Reanalyze Switchcase (timed out)', do_analyze)
+
+
         menu.addAction('bookmark (B)',   ACT(vw.getVivGui().addBookmark, va))
         menu.addAction('undefine (U)',   ACT(vw.delLocation, va))
 
-    e_q_memcanvas.initMemSendtoMenu(expr, menu)
+    initMemSendtoMenu(vw, expr, menu)
 
     # give any extensions a chance to play
     for extname, exthook in vw._ext_ctxmenu_hooks.items():
