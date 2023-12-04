@@ -9,6 +9,7 @@ import envi.bits as e_bits
 from envi.archs.arm.const import *
 from envi.archs.arm.regs import *
 # symboliks modules imported in defs..
+from vivisect.symboliks.common import Const, Var
 
 logger = logging.getLogger(__name__)
 
@@ -4092,7 +4093,7 @@ class ArmOperand(envi.Operand):
     def getOperAddr(self, op, emu=None):
         return None
 
-    def getOperObj(self, op, xlate=None):
+    def getOperObj(self, op, xlator):
         '''
         Translate the specified operand to a symbol compatible with
         the symbolic translation system.
@@ -4105,19 +4106,19 @@ class ArmOperand(envi.Operand):
                     None by default
         '''
         if self.isReg():
-            return xlate.getRegObj(self.reg)
+            return xlator.getRegObj(self.reg)
 
         elif self.isDeref():
-            addrsym, aftereffs = self.getOperAddrObj(op, idx)
-            return self.effReadMemory(addrsym, Const(self.tsize, xlate._psize))
+            addrsym, aftereffs = self.getOperAddrObj(op, idx, xlator)
+            return xlator.effReadMemory(addrsym, Const(self.tsize, xlator._psize))
 
         elif self.isImmed():
             ret = self.getOperValue(op, self)
-            return Const(ret, xlate._psize)
+            return Const(ret, xlator._psize)
 
         raise Exception('Unknown operand class: %s' % oper.__class__.__name__)
 
-    def getOperAddrObj(self, op, xlater):
+    def getOperAddrObj(self, op, xlator):
         logger.info("ArmOperand: subclass must implement getOperAddrObj, (%r)", self.__class__)
         return None, None
 
@@ -4288,7 +4289,7 @@ class ArmRegScalarOper(ArmRegOper):
     def getOperAddr(self, op, emu=None):
         return None
 
-    #def getOperAddrObj(self, op, xlater):
+    #def getOperAddrObj(self, op, xlator):
         #from vivisect.symboliks.common import Const, Var
         #reg = Var(self._reg_ctx.getRegisterName(oper.reg), oper.tsize)
         #if oper.index == 0:
@@ -4601,18 +4602,18 @@ class ArmScaledOffsetOper(ArmOperand):
 
         return emu.getRegister(self.base_reg)
 
-    def getOperAddrObj(self, op, xlater):
+    def getOperAddrObj(self, op, xlator):
         from vivisect.symboliks.common import Const, Var
         secondary = None
 
-        base_reg = Var(xlater.vw._reg_ctx.getRegisterName(oper.base_reg), oper.tsize)
-        offset_reg = Var(xlater.vw._reg_ctx.getRegisterName(oper.offset_reg), oper.tsize)
+        base_reg = Var(xlator._reg_ctx.getRegisterName(oper.base_reg), oper.tsize)
+        offset_reg = Var(xlator._reg_ctx.getRegisterName(oper.offset_reg), oper.tsize)
 
         pom = (self.pubwl>>3) & 1
 
         #addval = shifters[self.shtype]( emu.getRegister( self.offset_reg ), self.shval )
         if self.shval:
-            addval = shifters[self.shtype]( xlater.getRegObj(self.offset_reg), Const(self.shval, self.tsize))
+            addval = shifters[self.shtype]( xlator.getRegObj(self.offset_reg), Const(self.shval, self.tsize))
 
         # in a symboliks world, don't want to save as much processing time on the front end, 
         # but simplify the output.  unfortunately, that means there are less tricks.
@@ -4748,15 +4749,15 @@ class ArmRegOffsetOper(ArmOperand):
 
         return addr
 
-    def getOperAddrObj(self, op, xlater):
+    def getOperAddrObj(self, op, xlator):
         from vivisect.symboliks.common import Const, Var
         secondary = None
 
         base_reg = Var(self._reg_ctx.getRegisterName(self.base_reg), self.tsize)
-        #base_reg2 = xlater.getRegObj(oper.base_reg)
+        #base_reg2 = xlator.getRegObj(oper.base_reg)
         #print base_reg == base_reg2, base_reg, base_reg2
         offset_reg = Var(self._reg_ctx.getRegisterName(self.offset_reg), self.tsize)
-        #offset_reg2 = xlater.getRegObj(oper.offset_reg)
+        #offset_reg2 = xlator.getRegObj(oper.offset_reg)
         #print offset_reg == offset_reg2, offset_reg, offset_reg2
 
         pom = (self.pubwl>>3) & 1
@@ -4900,19 +4901,19 @@ class ArmImmOffsetOper(ArmOperand):
 
         return addr
 
-    def getOperAddrObj(self, op, xlater):
+    def getOperAddrObj(self, op, idx, xlator):
         from vivisect.symboliks.common import Const, Var
         if self.base_reg == REG_PC:
             base = Const(self.va, self.psize)
         else:
-            base = Var(xlater.vw._reg_ctx.getRegisterName(self.base_reg), self.psize)
+            base = Var(xlator._reg_ctx.getRegisterName(self.base_reg), self.psize)
 
         pubwl = self.pubwl >> 3
         u = pubwl & 1
         if u:
-            addr = (base + self.offset) & e_bits.u_maxes[self.psize]
+            addr = (base + Const(self.offset, self.psize)) & Const(e_bits.u_maxes[self.psize], self.psize)
         else:
-            addr = (base - self.offset) & e_bits.u_maxes[self.psize]
+            addr = (base - Const(self.offset, self.psize)) & Const(e_bits.u_maxes[self.psize], self.psize)
 
 
         if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
@@ -5164,7 +5165,7 @@ class ArmRegListOper(ArmOperand):
                 reglist.append(reg)
         return reglist
 
-    def getOperObj(self, op, xlate=None):
+    def getOperObj(self, op, xlator=None):
         if emu == None:
             return None
         reglist = []

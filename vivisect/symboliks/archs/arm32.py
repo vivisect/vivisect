@@ -380,6 +380,41 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
         return ures
     """
+
+    '''
+
+    Standard Flags:
+    eflags_lt
+    eflags_eq
+    eflags_gt
+    eflags_
+
+    ARM Flags we care about:
+    The Condition flags (APSR):
+    N, bit[31] Negative condition flag. Set to bit[31] of the result of the instruction. If the result is
+        regarded as a two's complement signed integer, then the processor sets N to 1 if the result
+        is negative, and sets N to 0 if it is positive or zero.
+    Z, bit[30] Zero condition flag. Set to 1 if the result of the instruction is zero, and to 0 otherwise. A
+        result of zero often indicates an equal result from a comparison.
+    C, bit[29] Carry condition flag. Set to 1 if the instruction results in a carry condition, for example an
+        unsigned overflow on an addition.
+    V, bit[28] Overflow condition flag. Set to 1 if the instruction results in an overflow condition, for
+        example a signed overflow on an addition.
+
+    The Overflow or saturation flag:
+    Q, bit[27]Set to 1 to indicate overflow or saturation occurred in some instructions, normally related
+        to digital signal processing (DSP). For more information, see Pseudocode details of
+        saturation on page A2-44.
+
+    The Greater than or Equal flags:
+    GE[3:0], bits[19:16]
+        The instructions described in Parallel addition and subtraction instructions on
+        page A4-171 update these flags to indicate the results from individual bytes or halfwords
+        of the operation. These flags can control a later SEL instruction. For more information, see
+        SEL on page A8-602.
+
+    T (thumb)?
+    '''
     def interrupt(self, val):
         '''
         If we run into an interrupt, what do we do?  Handles can be snapped in and used as function calls
@@ -403,8 +438,8 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         res = src1 & src2
 
         if op.iflags & IF_PSR_S:     # FIXME: convert to gt, lt, eq, sf
-            self.setFlag('eflags_lt', Const(0, 1))
-            self.setFlag('eflags_eq', not res)
+            self.setFlag('eflags_lt', Const(0, 1))      # same as arch flag N
+            self.setFlag('eflags_eq', not res)          # same as arch flag Z
             self.setFlag('eflags_c', Const(0, 1))
             self.setFlag('eflags_v', Const(0, 1))
         return res
@@ -418,6 +453,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
        
     def i_orr(self, op):
         tsize = op.opers[0].tsize
+        logger.warning("orr needs to take into account the Immediate encoding and ThumbExpandImm_C for Carry bit setting")
         if len(op.opers) == 3:
             val1 = self.getOperObj(op, 1)
             val2 = self.getOperObj(op, 2)
@@ -433,12 +469,12 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             #self.setFlag('eflags_eq', not val)
             #self.setFlag('eflags_c', e_bits.is_unsigned_carry(val, tsize))
             #self.setFlag('eflags_v', e_bits.is_signed_overflow(val, tsize))
-            self.effSetVariable('eflags_gt', gt(v1, v2))
-            self.effSetVariable('eflags_lt', lt(v1, v2))
-            self.effSetVariable('eflags_of', Const(0, self._psize))
-            self.effSetVariable('eflags_cf', Const(0, self._psize))
+            self.effSetVariable('eflags_gt', gt(val1, val2))
+            self.effSetVariable('eflags_lt', lt(val1, val2))
             self.effSetVariable('eflags_sf', lt(obj, Const(0, self._psize))) # v1 | v2 < 0
             self.effSetVariable('eflags_eq', eq(obj, Const(0, self._psize))) # v1 & v2 == 0
+            self.effSetVariable('eflags_v', Const(0, self._psize))
+            self.effSetVariable('eflags_c', Const(0, self._psize))
             self.setOperObj(op, 0, obj)
        
     def i_stm(self, op):
@@ -461,8 +497,6 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             updatereg = 1
             flags = IF_DAIB_B
 
-        pc = self.getRegister(REG_PC)       # store for later check
-
         addr = self.getRegObj(srcreg)
         numregs = len(regvals)
         for vidx in range(numregs):
@@ -473,14 +507,14 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
                 else:
                     addr -= 4
                     val = regvals[numregs-vidx-1]
-                self.writeMemValue(addr, val, 4)
+                self.writeMemObj(addr, val, 4)
             else:
                 if flags & IF_DAIB_I == IF_DAIB_I:
                     val = regvals[vidx]
                 else:
                     val = regvals[numregs-vidx-1]
 
-                self.writeMemValue(addr, val, 4)
+                self.writeMemObj(addr, val, 4)
 
                 if flags & IF_DAIB_I == IF_DAIB_I:
                     addr += 4
@@ -488,12 +522,9 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
                     addr -= 4
 
         if updatereg:
-            self.setRegister(srcreg,addr)
+            self.setRegObj(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in strex which will be handled in i_strex
         # is the following necessary? 
-        newpc = self.getRegister(REG_PC)    # check whether pc has changed
-        if pc != newpc:
-            return newpc
 
     i_stmia = i_stm
     i_push = i_stmia
@@ -501,24 +532,24 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_vpush(self, op):
         oper = op.opers[0]
         tsize = oper.getRegSize()
-        reglist = oper.getOperObj(op, self)
+        reglist = oper.getOperValue(op, self)
 
+        sp = self.getStackCounter()
         for reg in reglist:
-            sp = self.getRegister(REG_SP)
-            sp -= tsize
-            self.writeMemValue(sp, reg, tsize)
-            self.setRegister(REG_SP, sp)
+            sp -= Const(tsize, 1)
+            self.writeMemObj(sp, reg, tsize)
+            self.setRegObj(REG_SP, sp)
 
     def i_vpop(self, op):
         oper = op.opers[0]
         tsize = oper.getRegSize()
 
         reglist = []
+        sp = self.getStackCounter()
         for ridx in range(oper.getRegCount()):
-            sp = self.getRegister(REG_SP)
-            val = self.readMemValue(sp, 4)
+            val = self.readMemObj(sp, 4)
             reglist.append(val)
-            self.setRegister(REG_SP, sp+4)
+            self.setRegObj(REG_SP, sp+4)
 
         oper.setOperObj(op, reglist, self)
 
@@ -534,33 +565,37 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             addr = self.getStackCounter()
             flags = IF_DAIB_I
 
-        pc = self.getRegister(REG_PC)       # store for later check
-       
         # set up
         reglistoper = op.opers[1]
         count = reglistoper.getRegCount()
         size  = reglistoper.getRegSize()
 
+        writesPC = False
+
         # do multiples based on base and count.  unlike ldm, these must be consecutive
         if flags & IF_DAIB_I == IF_DAIB_I:
-            for reg in xrange(count):
-                regval = self.readMemValue(addr, size)
-                self.setRegister(reg, regval)
-                addr += size
+            for reg in range(count):
+                regval = self.readMemObj(addr, size)
+                self.setRegObj(reg, regval)
+                addr += Const(size, 1)
+                if reg == REG_PC:
+                    writesPC = True
+
         else:
-            for reg in xrange(count-1, -1, -1):
-                addr -= size
-                regval = self.readMemValue(addr, size)
-                self.setRegister(reg, regval)
+            for reg in range(count-1, -1, -1):
+                addr -= Const(size, 1)
+                regval = self.readMemObj(addr, size)
+                self.setRegObj(reg, regval)
+                if reg == REG_PC:
+                    writesPC = True
 
         if updatereg:
-            self.setRegister(srcreg,addr)
+            self.setRegObj(srcreg,addr)
+
         #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
         # is the following necessary? 
-        newpc = self.getRegister(REG_PC)    # check whether pc has changed
-        if pc != newpc:
-            self.setThumbMode(newpc & 1)
-            return newpc
+        if writesPC:
+            self.effSetVariable('eflags_t', Var('pc', self._psize) & Const(1,1))
 
     def i_vmov(self, op):
         if len(op.opers) == 2:
@@ -779,38 +814,40 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
             updatereg = 1
             flags = IF_DAIB_I
 
-        pc = self.getRegister(REG_PC)       # store for later check
+        writesPC = False
 
         if flags & IF_DAIB_I == IF_DAIB_I:
-            for reg in xrange(16):
+            for reg in range(16):
                 if (1<<reg) & regmask:
                     regval = self.readMemValue(addr, 4)
-                    self.setRegister(reg, regval)
+                    self.setRegObj(reg, regval)
                     addr += 4
+                    if reg == REG_PC:
+                        writesPC = True
         else:
-            for reg in xrange(15, -1, -1):
+            for reg in range(15, -1, -1):
                 if (1<<reg) & regmask:
                     addr -= 4
                     regval = self.readMemValue(addr, 4)
-                    self.setRegister(reg, regval)
+                    self.setRegObj(reg, regval)
+                    if reg == REG_PC:
+                        writesPC = True
 
         if updatereg:
-            self.setRegister(srcreg,addr)
+            self.setRegObj(srcreg,addr)
         #FIXME: add "shared memory" functionality?  prolly just in ldrex which will be handled in i_ldrex
         # is t  he following necessary? 
-        newpc = self.getRegister(REG_PC)    # check whether pc has changed
-        if pc != newpc:
-            self.setThumbMode(newpc & 1)
-            return newpc & -2
+        if writesPC:
+            self.effSetVariable('eflags_t', Var('pc', self._psize) & Const(1,1))
 
     i_ldmia = i_ldm
     i_pop = i_ldmia
 
 
-    def setThumbMode(self, thumb=1):
+    def setThumbMode(self, thumb=Const(1,1)):
         self.setFlag('eflags_t', thumb)
 
-    def setArmMode(self, arm=1):
+    def setArmMode(self, arm=Const(1,1)):
         self.setFlag('eflags_t', not arm)
 
     def i_ldr(self, op):
@@ -819,8 +856,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         val = self.getOperObj(op, 1)
         self.setOperObj(op, 0, val)
         if op.opers[0].reg == REG_PC:
-            self.setThumbMode(val & 1)
-            return val & -2
+            self.setThumbMode(val & Const(1,1))
 
     i_ldrb = i_ldr
     i_ldrbt = i_ldr
@@ -876,7 +912,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         else:
             val = self.getOperObj(op, 1)
 
-        self.setRegister(REG_FPSCR, val)
+        self.setRegObj(REG_FPSCR, val)
            
     def i_mrs(self, op):
         val = self.getAPSR()
@@ -1028,7 +1064,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_bl(self, op):
         tmode = self.getFlag(eflags_t_bit)
         retva = (self.getRegister(REG_PC) + len(op)) | tmode
-        self.setRegister(REG_LR, retva)
+        self.setRegObj(REG_LR, retva)
         return self.getOperObj(op, 0)
 
     def i_bx(self, op):
@@ -1039,7 +1075,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
     def i_blx(self, op):
         tmode = self.getFlag(eflags_t_bit)
         retva = (self.getRegister(REG_PC) + len(op)) | tmode
-        self.setRegister(REG_LR, retva)
+        self.setRegObj(REG_LR, retva)
 
         target = self.getOperObj(op, 0)
         self.setFlag('eflags_t', target & 1)
@@ -1539,7 +1575,7 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         idxreg = op.opers[0].offset_reg
         idx = emu.getRegister(idxreg)
         if idx > 0x40000000:
-            emu.setRegister(idxreg, 0) # args handed in can be replaced with index 0
+            emu.setRegObj(idxreg, 0) # args handed in can be replaced with index 0
 
         jmptblbase = op.opers[0]._getOperBase(emu)
         jmptblval = emu.getOperAddrObj(op, 0)
@@ -2332,11 +2368,15 @@ class A32SymbolikTranslator(vsym_trans.SymbolikTranslator):
         di += Const(4, self._psize)
         self.effSetVariable(self.__destp__, di)
 
-class A32ArgDefSymEmu(vsym_emulator.ArgDefSymEmu):
+class A32ArgDefSymEmu(vsym_callconv.ArgDefSymEmu):
     __xlator__ = A32SymbolikTranslator
 
 class A32SymCallingConv(vsym_callconv.SymbolikCallingConvention):
     __argdefemu__ = A32ArgDefSymEmu
+
+    def __init__(self, xlator=None):
+        super().__init__(xlator=xlator)
+
 
 class ArmCall(A32SymCallingConv, e_arm.ArmArchitectureProcedureCall):
     pass
@@ -2345,14 +2385,12 @@ class A32SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
 
     __width__ = 4
 
-    #def __init__(self, vw, initial_sp=0xbfbff000):
-    def __init__(self, vw):
+    def __init__(self, vw, *args, xlator=None):
         vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
         self.setStackBase(0xbfbff000, 16384)
 
-        self.addCallingConvention('armcall', ArmCall())
-        # FIXME possibly decide this by platform/format?
-        self.addCallingConvention(None, ArmCall())
+        self.addCallingConvention('armcall', ArmCall(xlator=xlator))
+        self.addCallingConvention(None, ArmCall(xlator=xlator))
 
         #self.addFunctionCallback('ntdll.eh_prolog', self._eh_prolog)
         #self.addFunctionCallback('ntdll.seh3_prolog', self._seh3_prolog)
