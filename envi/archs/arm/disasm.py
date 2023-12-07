@@ -127,12 +127,43 @@ def sh_rrx(num, shval, size=4, emu=None):
     retval = (half1 | half2 | (oldC << (32-shval))) & e_bits.u_maxes[size]
     return retval
 
+def symsh_lsl(num, shval, size=4, emu=None):
+    return (num& Const(e_bits.u_maxes[size], size)) << shval
+
+def symsh_lsr(num, shval, size=4, emu=None):
+    return (num& Const(e_bits.u_maxes[size], size)) >> shval
+
+def symsh_asr(num, shval, size=4, emu=None):
+    return num >> shval
+
+def symsh_ror(num, shval, size=4, emu=None):
+    return ((num >> shval) | (num << ((8*size)-shval))) & Const(e_bits.u_maxes[size], size)
+
+def symsh_rrx(num, shval, size=4, emu=None):
+    # shval should always be 0
+    newC = num & Const(1, 1)
+    oldC = Var('eflags_c')
+
+    half1 = (num) >> 1
+    half2 = oldC<<(31)
+
+    retval = (half1 | half2 | (oldC << (Const(32,1)-shval)))
+    return retval
+
 shifters = (
     sh_lsl,
     sh_lsr,
     sh_asr,
     sh_ror,
     sh_rrx,
+)
+
+symshifters = (
+    symsh_lsl,
+    symsh_lsr,
+    symsh_asr,
+    symsh_ror,
+    symsh_rrx,
 )
 
 
@@ -4116,7 +4147,7 @@ class ArmOperand(envi.Operand):
             ret = self.getOperValue(op, self)
             return Const(ret, xlator._psize)
 
-        raise Exception('Unknown operand class: %s' % oper.__class__.__name__)
+        raise Exception('Unknown operand class: %s' % self.__class__.__name__)
 
     def getOperAddrObj(self, op, xlator):
         logger.info("ArmOperand: subclass must implement getOperAddrObj, (%r)", self.__class__)
@@ -4392,6 +4423,12 @@ class ArmRegShiftImmOper(ArmOperand):
         if emu is None:
             return None
         return shifters[self.shtype](emu.getRegister(self.reg), self.shimm, emu=emu)
+
+    def getOperObj(self, op, xlator):
+        '''
+        Overridden
+        '''
+        return symshifters[self.shtype](xlator.getRegObj(self.reg), Const(self.shimm, 1), emu=xlator)
 
     def render(self, mcanv, op, idx):
         rname = arm_regs[self.reg]
@@ -5166,13 +5203,11 @@ class ArmRegListOper(ArmOperand):
         return reglist
 
     def getOperObj(self, op, xlator=None):
-        if emu == None:
-            return None
         reglist = []
-        for regidx in xrange(16):
+        for regidx in range(16):
             #FIXME: check processor mode (abort, system, user, etc... use banked registers?)
             if self.val & (1<<regidx):
-                reg = emu.getRegister(regidx)
+                reg = xlator.getRegObj(regidx)
                 reglist.append(reg)
         return reglist
 
