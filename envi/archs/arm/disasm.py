@@ -1768,7 +1768,7 @@ def p_uncond(opval, va, psize = 4):
                     mesg="p_uncond (ontop=0): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
     elif optop == 1:
-        if (opval & 0xfc30f000) == 0xf410f000: #pld/pldw/pli
+        if (opval & 0x0c30f000) == 0x0410f000: #pld/pldw/pli
             pl = (opval>>24)&1
             R = (opval>>22)&1 # For w. Is pldw if R is 1
             U = (opval>>23) & 1
@@ -1791,13 +1791,14 @@ def p_uncond(opval, va, psize = 4):
                 olist = (ArmScaledOffsetOper(Rn, Rm, shtype, shval, va, (U<<3) | 0x10, psize=psize), )
             return (opcode, mnem, olist, 0, 0)
 
-        elif (opval & 0xff000f0) == 0x5700010:
+        elif (opval & 0x0ff000f0) == 0x05700010:
             #clrex
             mnem = "clrex"
             olist =()
             opcode = INS_CLREX
             return (opcode, mnem, olist, 0, 0)
-        elif (opval & 0xff000e0) == 0x5700040:
+
+        elif (opval & 0x0ff000e0) == 0x05700040:
             #dmb/dsb
             option = opval & 0xf
             if (opval & 0x10 )== 0x10:
@@ -1808,17 +1809,24 @@ def p_uncond(opval, va, psize = 4):
                 opcode = INS_DSB
             olist = (ArmBarrierOption(option),)
             return (opcode, mnem, olist, 0, 0)
-        elif (opval & 0xff000f0) == 0x5700060:
+
+        elif (opval & 0x0ff000f0) == 0x05700060:
             #isb
             option = opval & 0xf
             mnem = 'isb'
             olist = (ArmBarrierOption(option),)
             opcode = INS_ISB
             return (opcode, mnem, olist, 0, 0)
+
+        elif (opval & 0x0f100000) == 0x04000000:
+            # Advanced SIMD element or structure load/store
+            return adv_simd_ldst_32(opval, va)
+
         else:
             raise envi.InvalidInstruction(
                     mesg="p_uncond (ontop=1): invalid instruction",
                     bytez=struct.pack("<I", opval), va=va)
+
     elif optop == 2:
         if (opval & 0xfe5f0f00) == 0xf84d0500:
             #save return state (basically, store LR and SPSR to the stack that R13 points to)
