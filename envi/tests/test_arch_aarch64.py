@@ -4787,14 +4787,6 @@ class A64InstructionSet(unittest.TestCase):
                 redoprender = redoprender.replace('0x0','0x')
             redoprender = redoprender.replace('0x','')
 
-            # Remove extra imm data from comparison
-            # Doing this avoids adding  '\t; {data}' into the expected unit test outputs
-            if '	;' in redoprepr:
-                redoprepr = redoprepr[:redoprepr.index('	;')]                
-
-            if ';' in redoprender:
-                redoprender = redoprender[:redoprender.index(';')]
-
             # do the comparison
             if redoprepr != redgoodop or redoprender != redgoodop:
                 num, = struct.unpack("<I", unhexlify(bytez))

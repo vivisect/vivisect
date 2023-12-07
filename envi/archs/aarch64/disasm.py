@@ -914,21 +914,24 @@ def p_sys(opval, va):
                     break
         
             # Modify olist based on mnem
-            if mnem == 'at':                
-                olist = (       # AT <at_op>, <Xt>
-                    A64NameOper(mnem, ((op1 << 4) | ((crm & 0b1) << 3) | op2)),
+            if mnem == 'at':
+                opcode = INS_AT                
+                olist = (       # AT <at_op>, <Xt>                    
+                    A64NameOper(opcode, ((op1 << 4) | ((crm & 0b1) << 3) | op2)),
                     A64RegOper(rt, va, size=8)
                 )
 
             elif mnem == 'dc':
+                opcode = INS_DC
                 olist = (       # DC <dc_op>, <Xt>
-                    A64NameOper(mnem, ((op1 << 7) | (crm << 3) | op2)),
+                    A64NameOper(opcode, ((op1 << 7) | (crm << 3) | op2)),
                     A64RegOper(rt, va, size=8)
                 )
 
             elif (mnem == 'ic'):
+                opcode = INS_IC
                 olist = (       # IC <ic_op>{, <Xt>}
-                    A64NameOper(mnem, ((op1 << 7) | (crm << 3) | op2)),
+                    A64NameOper(opcode, ((op1 << 7) | (crm << 3) | op2)),
                     A64RegOper(rt, va, size=8), #optional operand
                 )
 
@@ -937,8 +940,9 @@ def p_sys(opval, va):
                     olist = olist[:1]
 
             elif (mnem == 'tlbi'):
+                opcode = INS_TLBI
                 olist = (       # TLBI <tlbi_op>{, <Xt>}
-                    A64NameOper(mnem, ((op1 << 11) | (crn << 7) | (crm << 3) | op2)),
+                    A64NameOper(opcode, ((op1 << 11) | (crn << 7) | (crm << 3) | op2)),
                     A64RegOper(rt, va, size=8), #optional operand
                 )
 
@@ -949,8 +953,8 @@ def p_sys(opval, va):
             else:
                 olist = (       # Old default case
                     A64ImmOper(op1, 0, S_LSL, va),
-                    A64NameOper(mnem, crn),
-                    A64NameOper(mnem, crm),
+                    A64NameOper(opcode, crn),
+                    A64NameOper(opcode, crm),
                     A64ImmOper(op2, 0, S_LSL, va),
                     A64RegOper(rt, va, size=8), #optional operand
                 )
@@ -7586,10 +7590,10 @@ class A64SysRegOper(A64RegOper):
 
     def __init__(self, op0, op1, crn, crm, op2):
         self.encoding = (1 << 15) | (op0 << 14) | (op1 << 11) | (crn << 7) | (crm << 3) | (op2)
-        self.mnem = getsysregname(self.encoding)
+        self.mnem = sysregnamedic.get(self.encoding)
 
         # Check for non-standard name
-        if self.mnem == 'invalid':
+        if self.mnem is None:
             self.mnem = 's' + str(op0) + '_' + str(op1) + '_c' + str(crn) + '_c' + str(crm) + '_' + str(op2)
 
     
@@ -7606,7 +7610,7 @@ class A64PSTATEfieldOper(A64Operand):
     '''
 
     def __init__(self, op1, op2, crm):
-        self.mnem = getpstatefieldname(op1, op2, crm)
+        self.mnem = pstatefield_names.get(op1 << 7 | op2 << 4 | crm, 'undefined')
 
     def repr(self, op):
         return self.mnem
@@ -7625,28 +7629,11 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
         self.size = size
 
     def repr(self, op):
-        ival = self.getOperValue(op)    # This shifts the value using shval and shtype - is this what we want?
-
-        if self.shval == 0:       # Case for no shifting                         
-            if ival >= 4096:
-                return "#0x%.8x" % ival
-            return "#" + str(ival)
-
-        else:            
-            result = ""     # Build result based on val and ival values
-            if self.val >= 4096:
-                result += "#0x%.8x" % self.val
-            else:
-                result += '#' + str(self.val)
-            
-            result += ", " + opShifts[self.shtype] + " #" + str(self.shval) + "\t;"
-
-            if ival >= 4096:
-                result += "#0x%.8x" % ival
-            else:
-                result += "#" + str(ival)
-
-            return result
+        ival = self.getOperValue(op)
+                      
+        if ival >= 4096:
+            return "#0x%.8x" % ival
+        else: return "#" + str(ival)
 
     def getOperValue(self, op, emu=None):
         return shifters[self.shtype](self.val, self.shval, self.size, emu)
@@ -7661,50 +7648,17 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
                 mcanv.addNameText(hint)
         
         elif mcanv.mem.isValidPointer(value): 
-            if self.shval == 0:
-                if value >= 4096:
-                    mcanv.addVaText('#0x%.8x' % value, value)
-                else:
-                    mcanv.addVaText('#' + str(value), value)
+            
+            if value >= 4096:
+                mcanv.addVaText('#0x%.8x' % value, value)
             else:
-                result = ""
-
-                if self.val >= 4096:
-                    result += '#0x%.8x' % self.val
-                else:
-                    result += '#' + str(self.val)
-
-                result += ", " + opShifts[self.shtype] + " #" + str(self.shval) + "    ;"
-
-                if value >= 4096:
-                    result += "#0x%.8x" % value
-                else:
-                    result += "#" + str(value)
-
-                mcanv.addVaText(result, value)
+                mcanv.addVaText('#' + str(value), value)
             
         else:
-            if self.shval == 0:                
-                if value >= 4096:
-                    mcanv.addNameText('#0x%.8x' % value)
-                else:
-                    mcanv.addNameText('#' + str(value))
+            if value >= 4096:
+                mcanv.addNameText('#0x%.8x' % value)
             else:
-                result = ""
-                
-                if self.val >= 4096:
-                    result += '#0x%.8x' % self.val
-                else:
-                    result += '#' + str(self.val)
-
-                result += ", " + opShifts[self.shtype] + " #" + str(self.shval) + "    ;"
-
-                if value >= 4096:
-                    result += "#0x%.8x" % value
-                else:
-                    result += "#" + str(value)
-
-                mcanv.addNameText(result)
+                mcanv.addNameText('#' + str(value))
             
 LDST_MODE_POSTIDX = 1
 LDST_MODE_OFFSET = 2
@@ -7920,22 +7874,19 @@ class A64NameOper(A64Operand):
         self.val = val
 
         # Grabbing mnem from oper tables based on mnem
-        if instype != 'sys':
-            if instype == 'at':
+        if instype != INS_SYS:
+            if instype == INS_AT:
                 tabind = 0
-            elif instype == 'dc':
+            elif instype == INS_DC:
                 tabind = 1
-            elif instype == 'ic':
+            elif instype == INS_IC:
                 tabind = 2
-            elif instype == 'tlbi':
-                tabind = 3 
+            elif instype == INS_TLBI:
+                tabind = 3
             else:
                 raise Exception("Invalid instype in A64NameOper constructor!")
 
-            for encoding, mnem in sys_alias_op_tables[tabind]:
-                    if encoding == val:
-                        self.mnem = mnem                    
-                        break
+            self.mnem = sys_alias_op_tables[tabind].get(val, 'undefined')
             
         else:
             self.mnem = 'c' + str(val)
