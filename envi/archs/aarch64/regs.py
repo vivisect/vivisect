@@ -80,8 +80,8 @@ aarch64_metas.append(("wzr", REG_XZR, 0, 32))
 REGS_VECTOR_BASE_IDX = len(reg_data)
 for simdreg in range(VFP_QWORD_REG_COUNT):
     simd_idx = REGS_VECTOR_BASE_IDX + simdreg
-    d = simdreg * 2
-    s = d * 2
+    d = simdreg #* 2
+    s = d #* 2
     reg_data.append(("v%d" % simdreg, 128))
     aarch64_metas.append(("q%d" % (d),   simd_idx, 0, 128))
     aarch64_metas.append(("d%d" % (d),   simd_idx, 0, 64))
