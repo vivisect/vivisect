@@ -2897,93 +2897,290 @@ def _do_adv_simd_ldst_32(val, va, u):
     a = (val >> 23) & 1
     l = (val >> 21) & 1
 
-    optype = (val >> 8) & 0xf
-
     d = (val >> 22) & 1
     rn = (val >> 16) & 0xf
     vd = (val >> 12) & 0xf
     rm = val & 0xf
     dd = vd | (d << 4)
 
-    sflag, size =  ((IFS_8,1), (IFS_16,2), (IFS_32,4), (IFS_64,8))[(val >> 6) & 3]
-    align = (1,8,16,32)[(val >> 4) & 3]
+    wback = (rm != 15)
+    pubwl = PUxWL_DFLT | (wback<<1)
+    iflags = (0, IF_W)[wback]
 
-    simdflags = sflag
-    writeback = (rm != 15)
-    pubwl = PUxWL_DFLT | (writeback<<1)
-    iflags = (0, IF_W)[writeback]
-    opers = ()
+    reg_index = rm not in (0xd, 0xf)
 
     if l == 0:
         # store
         if a == 0:
-            count = (1,2,4,2,3,3,3,1,1,1,2) [ optype ]
+            optype = (val >> 8) & 0xf
+            count = (4,4,4,4,3,3,3,1,2,2,2) [ optype ]
+
+            szidx = (val>>6) & 3    # different location for a=0 and a=1
+            sflag, size =  ((IFS_8,1), (IFS_16,2), (IFS_32,4), (IFS_64,8))[szidx]
+            align = (1,8,16,32)[(val >> 4) & 3]
+
+
 
             # multiple elements
             if optype in (0b0010, 0b0110, 0b0111, 0b1010):
                 # vst1
                 mnem = 'vst1'
-                opers = (
-                        ArmExtRegListOper(dd, count, 1),    # size in this context means use "D#" registers
-                        ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
-                        )
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+
 
             elif optype in (0b0011, 0b1000, 0b1001):
                 # vst2
                 mnem = 'vst2'
+                inc = (1, 2)[optype==9]
+                align= (1, 4)[bool(align)] # FIXME
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),    # size in this context means use "D#" registers
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+
             elif optype in (0b0100, 0b0101):
                 # vst3
                 mnem = 'vst3'
                 inc = 1 + (optype&1)
-                opers = (
-                        ArmExtRegListOper(dd, count, 1, inc),
-                        ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
-                        )
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),    # size in this context means use "D#" registers
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+
 
             elif optype in (0b0000, 0b0001):
                 # vst4
                 mnem = 'vst4'
+                inc = 1 + (optype&1)
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),    # size in this context means use "D#" registers
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+
+
 
         else:
             # single elements
-            index_align = (val >> 4) & 0xf
-            size = (val >> 10) & 3
+            optype = (val >> 8) & 0x3
+            szidx = (val>>10) & 3    # different location for a=0 and a=1
+            sflag, ebytes =  ((IFS_8,1), (IFS_16,2), (IFS_32,4), (None, None))[szidx]
 
-            if optype in (0b0000, 0b0100, 0b1000):
-                # vst1
+            index_align = (val >> 4) & 0xf
+            count = (1,2,3,4,) [ optype ]
+            index = index_align >> (1+szidx)
+
+            # set increment size
+            if (index_align >> szidx) == 0:
+                inc = 1
+            else:
+                inc = (1,2,2)[szidx]
+
+            if optype == 0b00:
+                # vst1  - single 1-element structure from One lane
                 mnem = 'vst1'
-                opers = (
-                        ArmExtRegListOper(dd, count, 1),
-                        ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
-                        )
-            elif optype in (0b0001, 0b0101, 0b1001):
-                # vst2
+                if index_align & 1 == 0:
+                    align = 1
+                else:
+                    align = ebytes
+
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, index=index),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=ebytes, tsize=ebytes, align=align),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, index=index),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=ebytes, tsize=ebytes, align=align),
+                            )
+
+            elif optype == 0b01:
+                # vst2  - single 2-element structure from One lane
+                #TODO:  ALIGN  and AlignedRegisterOper
                 mnem = 'vst2'
-            elif optype in (0b0010, 0b0110, 0b1010):
-                # vst3
+                if index_align & 1 == 0:
+                    align = 1
+                else:
+                    align = (ebytes << 1)
+
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, index=index),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=ebytes, tsize=ebytes, align=align),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, index=index),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=ebytes, tsize=ebytes, align=align),
+                            )
+
+            elif optype == 0b10:
+                # vst3  - single 3-element structure from One lane
                 mnem = 'vst3'
-            elif optype in (0b0011, 0b0111, 0b1011):
-                # vst4
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=ebytes, tsize=ebytes),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=ebytes, tsize=ebytes),
+                            )
+
+            elif optype == 0b11:
+                # vst4  - single 4-element structure from One lane
+                #TODO:  ALIGN  and AlignedRegisterOper
                 mnem = 'vst4'
+                if index_align & 1 == 0:
+                    align = 1
+                else:
+                    align = (ebytes << 2)
+
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=ebytes, tsize=ebytes, align=align),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=ebytes, tsize=ebytes, align=align),
+                            )
+
+
 
     else:
         # load
-        if a:
+        if a == 0:
+            optype = (val >> 8) & 0xf
+            count = (4,4,4,4,3,3,3,1,2,2,2,3,3,3,4,4) [ optype ]
+            align = (1,8,16,32)[(val >> 4) & 3]
+            szidx = (val>>6) & 3    # different location for a=0 and a=1
+            sflag, size =  ((IFS_8,1), (IFS_16,2), (IFS_32,4), (IFS_64,8))[szidx]
+
             # multiple elements
             if optype in (0b0010, 0b0110, 0b0111, 0b1010):
                 # vld1  multiple single element
                 mnem = 'vld1'
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+
             elif optype in (0b0011, 0b1000, 0b1001):
                 # vld2  multiple 2-element structures
                 mnem = 'vld2'
+                inc = (1, 2)[optype==9]
+                align = (1, 4)[bool(align)] # FIXME
+                opers = (
+                        ArmExtRegListOper(dd, count, 1, inc=inc),    # size in this context means use "D#" registers
+                        ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                        )
+
             elif optype in (0b0100, 0b0101):
                 # vld3  multiple 3-element structures
                 mnem = 'vld3'
+                inc = 1 + (optype&1)
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                            )
+
+
             elif optype in (0b0000, 0b0001):
                 # vld4  multiple 4-element structures
                 mnem = 'vld4'
+                inc = 1 + (optype&1)
+                opers = (
+                        ArmExtRegListOper(dd, count, 1, inc=inc),    # size in this context means use "D#" registers
+                        ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                        )
+
 
         else:
+            optype = (val >> 8) & 0x3
+            count = (1,4,3,4,3,3,3,1,2,2,2,1,1,1,1,1,1,) [ optype ]
+            index_align = (val >> 4) & 0xf
+            szidx = (val>>10) & 3    # different location for a=0 and a=1
+            sflag, size =  ((IFS_8,1), (IFS_16,2), (IFS_32,4), (IFS_64,8))[szidx]
+            index = index_align >> (1+szidx)
+
+            # set increment size
+            if (index_align >> szidx) == 0:
+                inc = 1
+            else:
+                inc = (1,2,2)[szidx]
+
             # single elements
             if optype in (0b0000, 0b0100, 0b1000):
                 # vld1  single element to one lane
@@ -3000,12 +3197,41 @@ def _do_adv_simd_ldst_32(val, va, u):
             elif optype in (0b0010, 0b0110, 0b1010):
                 # vld3  single 3-element structure to one lane
                 mnem = 'vld3'
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                            )
+
             elif optype == 0b1110:
                 # vld3  single 3-element structure to all lanes
                 mnem = 'vld3'
             elif optype in (0b0011, 0b0111, 0b1011):
                 # vld4  single 4-element structure to one lane
                 mnem = 'vld4'
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                            )
+
+
             elif optype == 0b1111:
                 # vld4  single 4-element structure to all lanes
                 mnem = 'vld4'
