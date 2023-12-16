@@ -31,7 +31,7 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS_ALL = 5977
+GOOD_TESTS_ALL = 6125
 GOOD_TESTS_THUMB = 8849
 GOOD_EMU_TESTS = 1205
 GOOD_EMU_THUMB = 8776
@@ -1251,48 +1251,48 @@ global_instrs = [
         #(REV_ALL_ARM, '0f0f63f4', 0x4560, ' ', 0, ()),
         (REV_ALL_ARM, '0f0ae3f4', 0x4560, 'vld3.32 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f07e3f4', 0x4560, 'vld4.16 {d16[0],d17[0],d18[0],d19[0]}, [r3]', 0, ()),
-        #(REV_ALL_ARM, '0f0ce3f4', 0x4560, 'vld1.8 {d16[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ce3f4', 0x4560, 'vld1.8 {d16[]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f02e3f4', 0x4560, 'vld3.8 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f03e3f4', 0x4560, 'vld4.8 {d16[0],d17[0],d18[0],d19[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f08e3f4', 0x4560, 'vld1.32 {d16[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f09e3f4', 0x4560, 'vld2.32 {d16[0],d17[0]}, [r3]', 0, ()),
-        #(REV_ALL_ARM, '0f0de3f4', 0x4560, 'vld2.8 {d16[]-d17[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0de3f4', 0x4560, 'vld2.8 {d16[],d17[]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f04e3f4', 0x4560, 'vld1.16 {d16[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f05e3f4', 0x4560, 'vld2.16 {d16[0],d17[0]}, [r3]', 0, ()),
-        #(REV_ALL_ARM, '0f0ee3f4', 0x4560, 'vld3.8 {d16[]-d18[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ee3f4', 0x4560, 'vld3.8 {d16[],d17[],d18[]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f00e3f4', 0x4560, 'vld1.8 {d16[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f01e3f4', 0x4560, 'vld2.8 {d16[0],d17[0]}, [r3]', 0, ()),
-        #(REV_ALL_ARM, '0f0fe3f4', 0x4560, 'vld4.8 {d16[]-d19[]}, [r3]', 0, ()),
-        (REV_ALL_ARM, '0f0a23f4', 0x4560, 'vld1.8 {d0-d1}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0fe3f4', 0x4560, 'vld4.8 {d16[],d17[],d18[],d19[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0a23f4', 0x4560, 'vld1.8 {d0,d1}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f0723f4', 0x4560, 'vld1.8 {d0}, [r3]', 0, ()),
         #(REV_ALL_ARM, '0f0c23f4', 0x4560, ' ', 0, ()),
-        (REV_ALL_ARM, '0f0223f4', 0x4560, 'vld1.8 {d0-d3}, [r3]', 0, ()),
-        (REV_ALL_ARM, '0f0323f4', 0x4560, 'vld2.8 {d0-d3}, [r3]', 0, ()),
-        (REV_ALL_ARM, '0f0823f4', 0x4560, 'vld2.8 {d0-d1}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0223f4', 0x4560, 'vld1.8 {d0,d1,d2,d3}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0323f4', 0x4560, 'vld2.8 {d0,d1,d2,d3}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0823f4', 0x4560, 'vld2.8 {d0,d1}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0923f4', 0x4560, 'vld2.8 {d0,d1,d2}, [r3]', 0, ()),       # OBJDUMP, wrong
         (REV_ALL_ARM, '0f0923f4', 0x4560, 'vld2.8 {d0,d2}, [r3]', 0, ()),
         #(REV_ALL_ARM, '0f0d23f4', 0x4560, ' ', 0, ()),
-        (REV_ALL_ARM, '0f0423f4', 0x4560, 'vld3.8 {d0-d2}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0423f4', 0x4560, 'vld3.8 {d0,d1,d2}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f0523f4', 0x4560, 'vld3.8 {d0,d2,d4}, [r3]', 0, ()),
         #(REV_ALL_ARM, '0f0e23f4', 0x4560, ' ', 0, ()),
-        (REV_ALL_ARM, '0f0023f4', 0x4560, 'vld4.8 {d0-d3}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0023f4', 0x4560, 'vld4.8 {d0,d1,d2,d3}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f0123f4', 0x4560, 'vld4.8 {d0,d2,d4,d6}, [r3]', 0, ()),
         #(REV_ALL_ARM, '0f0f23f4', 0x4560, ' ', 0, ()),
         (REV_ALL_ARM, '0f0aa3f4', 0x4560, 'vld3.32 {d0[0],d1[0],d2[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f07a3f4', 0x4560, 'vld4.16 {d0[0],d1[0],d2[0],d3[0]}, [r3]', 0, ()),
-        #(REV_ALL_ARM, '0f0ca3f4', 0x4560, 'vld1.8 {d0[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ca3f4', 0x4560, 'vld1.8 {d0[]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f02a3f4', 0x4560, 'vld3.8 {d0[0],d1[0],d2[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f03a3f4', 0x4560, 'vld4.8 {d0[0],d1[0],d2[0],d3[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f08a3f4', 0x4560, 'vld1.32 {d0[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f09a3f4', 0x4560, 'vld2.32 {d0[0],d1[0]}, [r3]', 0, ()),
-        #(REV_ALL_ARM, '0f0da3f4', 0x4560, 'vld2.8 {d0[]-d1[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0da3f4', 0x4560, 'vld2.8 {d0[],d1[]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f04a3f4', 0x4560, 'vld1.16 {d0[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f05a3f4', 0x4560, 'vld2.16 {d0[0],d1[0]}, [r3]', 0, ()),
-        #(REV_ALL_ARM, '0f0ea3f4', 0x4560, 'vld3.8 {d0[]-d2[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ea3f4', 0x4560, 'vld3.8 {d0[],d1[],d2[]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f00a3f4', 0x4560, 'vld1.8 {d0[0]}, [r3]', 0, ()),
         (REV_ALL_ARM, '0f01a3f4', 0x4560, 'vld2.8 {d0[0],d1[0]}, [r3]', 0, ()),
-        #(REV_ALL_ARM, '0f0fa3f4', 0x4560, 'vld4.8 {d0[]-d3[]}, [r3]', 0, ()),
-        (REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),
-
+        (REV_ALL_ARM, '0f0fa3f4', 0x4560, 'vld4.8 {d0[],d1[],d2[],d3[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0fa3f4', 0x4560, 'vld4.8 {d0[],d1[],d2[],d3[]}, [r3]', 0, ()),
 
 
         (REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),

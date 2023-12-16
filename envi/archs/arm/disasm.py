@@ -2889,6 +2889,9 @@ adv_simd_2regs_misc = (
 )
 
 
+
+INDEX_ALL = -1
+
 def adv_simd_ldst_32(val, va):
     u = (val>>24) & 1
     return _do_adv_simd_ldst_32(val, va, u)
@@ -3137,6 +3140,20 @@ def _do_adv_simd_ldst_32(val, va, u):
                         ArmExtRegListOper(dd, count, 1, inc=inc),    # size in this context means use "D#" registers
                         ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
                         )
+                if reg_index:
+                    pubwl &= ~0x10
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),
+                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+                else:
+                    if rm == 0xd:
+                        pubwl |= 0x2
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size, align=align),
+                            )
+
 
             elif optype in (0b0100, 0b0101):
                 # vld3  multiple 3-element structures
@@ -3167,75 +3184,161 @@ def _do_adv_simd_ldst_32(val, va, u):
                         )
 
 
-        else:
+        else:   # a==1
             optype = (val >> 8) & 0x3
-            count = (1,4,3,4,3,3,3,1,2,2,2,1,1,1,1,1,1,) [ optype ]
-            index_align = (val >> 4) & 0xf
-            szidx = (val>>10) & 3    # different location for a=0 and a=1
-            sflag, size =  ((IFS_8,1), (IFS_16,2), (IFS_32,4), (IFS_64,8))[szidx]
-            index = index_align >> (1+szidx)
+            pivot = szidx = (val>>10) & 3    # different location for a=0 and a=1
+            if szidx != 0b11:
+                count = (1,2,3,4,3,3,3,1,2,3,2,1,1,1,1,1,1,) [ optype ]
+                index_align = (val >> 4) & 0xf
+                index = index_align >> (1+szidx)
 
-            # set increment size
-            if (index_align >> szidx) == 0:
-                inc = 1
-            else:
-                inc = (1,2,2)[szidx]
+                # set increment size
+                if (index_align >> szidx) == 0:
+                    inc = 1
+                else:
+                    inc = (1,2,2)[szidx]
+
+            else:   #special case for "to all lanes"
+                szidx = (val>>6) & 3
+                ebytes = 1 << szidx
+                t = (val>>5) & 1
+                a = (val>>4) & 1
+                count = optype + 1
+
+            sflag, size =  ((IFS_8,1), (IFS_16,2), (IFS_32,4), (IFS_64,8))[szidx]
 
             # single elements
-            if optype in (0b0000, 0b0100, 0b1000):
-                # vld1  single element to one lane
+            if optype == 0b00:
                 mnem = 'vld1'
-            elif optype == 0b1100:
-                # vld1  single element to all lanes
-                mnem = 'vld1'
-            elif optype in (0b0001, 0b0101, 0b1001):
+
+                if pivot == 0b11:
+                    # vld1  single element to all lanes
+                    count = t+1
+                    if a == 0:
+                        alignment = 1
+                    else:
+                        alignment = ebytes
+
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, index=INDEX_ALL),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                            )
+
+                else:
+                    if reg_index:
+                        # vld1  single element to one lane (register index)
+                        pubwl &= ~0x10
+                        opers = (
+                                ArmExtRegListOper(dd, count, 1, index=index),
+                                ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size),
+                                )
+                    else:
+                        # vld1  single element to one lane (NOT register index)
+                        if rm == 0xd:
+                            pubwl |= 0x2
+                        opers = (
+                                ArmExtRegListOper(dd, count, 1, index=index),
+                                ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                                )
+
+            elif optype == 0b01:
                 # vld2  single 2-element structure to one lane
                 mnem = 'vld2'
-            elif optype == 0b1101:
-                # vld2  single 2-element structure to all lanes
-                mnem = 'vld2'
-            elif optype in (0b0010, 0b0110, 0b1010):
+                if pivot == 0b11:
+                    # vld2  single element to all lanes (special encoding)
+                    inc = t+1
+                    if a == 0:
+                        alignment = 1
+                    else:
+                        alignment = ebytes << 1
+
+                    opers = (
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=INDEX_ALL),
+                            ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size, align=alignment),
+                            )
+
+                else:
+                    if reg_index:
+                        pubwl &= ~0x10
+                        opers = (
+                                ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                                ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size),
+                                )
+                    else:
+                        if rm == 0xd:
+                            pubwl |= 0x2
+                        opers = (
+                                ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                                ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                                )
+
+            elif optype == 0b10:
                 # vld3  single 3-element structure to one lane
                 mnem = 'vld3'
-                if reg_index:
-                    pubwl &= ~0x10
+                if pivot == 0b11:
+                    # vld3  single 3-element structure to all lanes
+                    inc = t+1
                     opers = (
-                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
-                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size),
-                            )
-                else:
-                    if rm == 0xd:
-                        pubwl |= 0x2
-                    opers = (
-                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=INDEX_ALL),
                             ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
                             )
 
-            elif optype == 0b1110:
-                # vld3  single 3-element structure to all lanes
-                mnem = 'vld3'
-            elif optype in (0b0011, 0b0111, 0b1011):
+                else:
+                    if reg_index:
+                        pubwl &= ~0x10
+                        opers = (
+                                ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                                ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size),
+                                )
+                    else:
+                        if rm == 0xd:
+                            pubwl |= 0x2
+                        opers = (
+                                ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                                ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                                )
+
+            elif optype == 0b11:
                 # vld4  single 4-element structure to one lane
                 mnem = 'vld4'
-                if reg_index:
-                    pubwl &= ~0x10
+                if pivot == 0b11:
+                    # vld4  single 4-element structure to all lanes
+                    inc = t+1
+                    if szidx == 0b11:
+                        ebytes = 4
+                        alignment = 16
+                    else:
+                        if a == 0:
+                            alignment = 1
+                        else:
+                            ebytes = 1 << szidx
+                            if szidx == 0b10:
+                                alignement = 8
+                            else:
+                                alignment = ebytes << 2
+
                     opers = (
-                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
-                            ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size),
-                            )
-                else:
-                    if rm == 0xd:
-                        pubwl |= 0x2
-                    opers = (
-                            ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                            ArmExtRegListOper(dd, count, 1, inc=inc, index=INDEX_ALL),
                             ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
                             )
 
+                else:
+                    if reg_index:
+                        pubwl &= ~0x10
+                        opers = (
+                                ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                                ArmRegOffsetOper(rn, rm, va, pubwl=pubwl, psize=size, tsize=size),
+                                )
+                    else:
+                        if rm == 0xd:
+                            pubwl |= 0x2
+                        opers = (
+                                ArmExtRegListOper(dd, count, 1, inc=inc, index=index),
+                                ArmImmOffsetOper(rn, 0, va, pubwl=pubwl, psize=size, tsize=size),
+                                )
 
-            elif optype == 0b1111:
-                # vld4  single 4-element structure to all lanes
-                mnem = 'vld4'
 
+    simdflags = sflag
     return opcode, mnem, opers, iflags, simdflags    # no iflags, only simdflags for this one
 
 def adv_simd_32(val, va):
@@ -4853,11 +4956,12 @@ class ArmScaledOffsetOper(ArmOperand):
 class ArmRegOffsetOper(ArmOperand):
     ''' register offset operand.  see "addressing mode 2 - load and store word or unsigned byte - register *" 
     dereference address mode using the combination of two register values '''
-    def __init__(self, base_reg, offset_reg, va, pubwl=PUxWL_DFLT, psize=4, tsize=None):
+    def __init__(self, base_reg, offset_reg, va, pubwl=PUxWL_DFLT, psize=4, tsize=None, align=None):
         self.base_reg = base_reg
         self.offset_reg = offset_reg
         self.pubwl = pubwl
         self.psize = psize
+        self.align = align
 
         if tsize is None:
             b = (self.pubwl >> 2) & 1
@@ -4876,6 +4980,8 @@ class ArmRegOffsetOper(ArmOperand):
             return False
         if self.psize != oper.psize:
             return False
+        if self.align != oper.align:
+            return False
         return True
 
     def involvesPC(self):
@@ -4885,6 +4991,7 @@ class ArmRegOffsetOper(ArmOperand):
         return True
 
     def setOperValue(self, op, emu=None, val=None):
+        #FIXME: alignment
         if emu is None:
             return None
 
@@ -4892,6 +4999,7 @@ class ArmRegOffsetOper(ArmOperand):
         return emu.writeMemValue(addr, val, self.tsize)
 
     def getOperValue(self, op, emu=None, codeflow=False):
+        #FIXME: alignment
         if emu is None:
             return None
 
@@ -4930,6 +5038,9 @@ class ArmRegOffsetOper(ArmOperand):
             mcanv.addText(', ')
         mcanv.addText(pom)
         mcanv.addNameText(offreg, typename='registers')
+
+        if self.align is not None:
+            mcanv.addNameText("@%d" % self.align)
         if idxing == 0x10:
             mcanv.addText(']')
         elif idxing&0x10 != 0:
@@ -4940,12 +5051,18 @@ class ArmRegOffsetOper(ArmOperand):
         idxing = self.pubwl & 0x12
         basereg = rctx.getRegisterName(self.base_reg)
         offreg = rctx.getRegisterName(self.offset_reg)
+
+        if self.align is None:
+            alignstr = ""
+        else:
+            alignstr = "@%d" % self.align
+
         if (idxing&0x10) == 0:         # post-indexed
             tname = '[%s], %s%s' % (basereg, pom, offreg)
         elif idxing == 0x10:  # offset addressing, not updated
-            tname = '[%s, %s%s]' % (basereg, pom, offreg)
+            tname = '[%s, %s%s%s]' % (basereg, pom, offreg, alignstr)
         else:               # pre-indexed
-            tname = '[%s, %s%s]!' % (basereg, pom, offreg)
+            tname = '[%s, %s%s%s]!' % (basereg, pom, offreg, alignstr)
         return tname
 
 class ArmImmOffsetOper(ArmOperand):
@@ -4956,7 +5073,7 @@ class ArmImmOffsetOper(ArmOperand):
     possibly with indexing, pre/post for faster rolling through arrays and such
     if the base_reg is PC, we'll dig in and hopefully grab the data being referenced.
     '''
-    def __init__(self, base_reg, offset, va, pubwl=PUxWL_DFLT, psize=4, tsize=None):
+    def __init__(self, base_reg, offset, va, pubwl=PUxWL_DFLT, psize=4, tsize=None, align=None):
         '''
         psize is pointer-size, since we want to increment base_reg that size when indexing
         tsize is the target size (4 or 1 bytes)
@@ -4965,6 +5082,7 @@ class ArmImmOffsetOper(ArmOperand):
         self.offset = offset
         self.pubwl = pubwl
         self.psize = psize
+        self.align = align
         self.va = va
 
         if tsize is None:
@@ -4983,6 +5101,8 @@ class ArmImmOffsetOper(ArmOperand):
         if self.pubwl != oper.pubwl:
             return False
         if self.psize != oper.psize:
+            return False
+        if self.align != oper.align:
             return False
         return True
 
@@ -5419,10 +5539,11 @@ class ArmExtRegListOper(ArmOperand):
     '''
     extended register list: Vector/FP registers
     '''
-    def __init__(self, firstreg, count, size, inc=1):
+    def __init__(self, firstreg, count, size, inc=1, index=None):
         self.firstreg = firstreg
         self.count = count
         self.size = size    # 0 or 1, meaning 32bit or 64bit
+        self.index = index
         self.inc = inc
 
     def __eq__(self, oper):
@@ -5433,6 +5554,8 @@ class ArmExtRegListOper(ArmOperand):
         if self.count != oper.count:
             return False
         if self.size != oper.size:
+            return False
+        if self.index != oper.index:
             return False
         if self.inc != oper.inc:
             return False
@@ -5445,9 +5568,17 @@ class ArmExtRegListOper(ArmOperand):
         regbase = ("s%d", "d%d")[self.size]
         mcanv.addText('{')
         top = self.count-1
-        for l in range(0, self.count, self.inc):
-            vreg = self.firstreg + l
-            mcanv.addNameText(regbase % vreg, typename='registers')
+        for l in range(0, self.count):
+            vreg = self.firstreg + (l * self.inc)
+            if self.index is not None:
+                if self.index == INDEX_ALL:
+                    regtext = (regbase % vreg) + '[]'
+                else:
+                    regtext = (regbase % vreg) + '[%d]' % self.index
+                mcanv.addNameText(regtext, typename='registers')
+            else:
+                mcanv.addNameText(regbase % vreg, typename='registers')
+
             if l < top:
                 mcanv.addText(', ')
 
@@ -5460,7 +5591,8 @@ class ArmExtRegListOper(ArmOperand):
         if emu is None:
             return None
         reglist = []
-        for regidx in range(self.firstreg, self.firstreg + self.count):
+        for regidx in range(self.count):
+            regidx = (self.inc*regidx) + firstreg
             reg = emu.getRegister(REGS_VECTOR_TABLE_IDX + regidx)
             reglist.append(reg)
         return reglist
@@ -5473,8 +5605,10 @@ class ArmExtRegListOper(ArmOperand):
             return None
         
         base = REGS_VECTOR_TABLE_IDX + self.firstreg
-        for vidx in range(len(vals)):
-            emu.setRegister(base + vidx, vals[vidx])
+        #for vidx in range(len(vals)):
+        for vidx in range(self.count):
+            ridx = base + (self.inc * vidx)
+            emu.setRegister(ridx, vals[vidx])
 
     def repr(self, op):
         regbase = ("s%d", "d%d")[self.size]
@@ -5482,8 +5616,17 @@ class ArmExtRegListOper(ArmOperand):
         top = self.count - 1
 
         for l in range(self.count):
-            vreg = self.firstreg + l
-            s.append(regbase % vreg)
+            vreg = self.firstreg + (l * self.inc)
+            if self.index is not None:
+                if self.index == INDEX_ALL:
+                    regtext = (regbase % vreg) + '[]'
+                else:
+                    regtext = (regbase % vreg) + '[%d]' % self.index
+            else:
+                regtext = regbase % vreg
+
+            s.append(regtext)
+
             if l < top:
                 s.append(', ')
 
