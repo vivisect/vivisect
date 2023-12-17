@@ -1122,20 +1122,17 @@ def p_ls_excl(opval, va):
                 olist = (
                     A64RegOper(rs, va, size=4),
                     A64RegOper(rt, va, size=4),
-                    A64RegOper(rn, va, size=8),
-                    A64ImmOper(0, va=va),
+                    A64RegImmOffOper(rn, 0, 8, va=va)
                 )
             else: #L == 1
                 olist = (
                     A64RegOper(rt, va, size=4),
-                    A64RegOper(rn, va, size=8),
-                    A64ImmOper(0, va=va),
+                    A64RegImmOffOper(rn, 0, 8, va=va)
                 )
         else: #o2 == 1, or instructions without IF_X set
             olist = (
                 A64RegOper(rt, va, size=4),
-                A64RegOper(rn, va, size=8),
-                A64ImmOper(0, va=va),
+                A64RegImmOffOper(rn, 0, 8, va=va)
             )
     else:  #size == 10 or 11, or instructions without IF_B or IF_H set
         #determines 32 or 64-bit variant
@@ -1149,7 +1146,7 @@ def p_ls_excl(opval, va):
                     olist = (
                         A64RegOper(rs, va, size=4),
                         A64RegOper(rt, va, size=regsize),
-                        A64RegOper(rn, va, size=8),
+                        A64RegImmOffOper(rn, 0, tsize=8, va=va)
                     )                        
                 else: #IF_R not set
                     olist = (
@@ -1167,8 +1164,8 @@ def p_ls_excl(opval, va):
                 else: #o1 == 1x0110 IF_R not set
                     olist = (
                         A64RegOper(rt, va, size=regsize),
-                        A64RegOper(rt2, va, size=regsize),
-                        A64RegOper(rn, va, size=8),
+                        A64RegOper(rt2, va, size=regsize),                
+                        A64RegImmOffOper(rn, 0, 8, va=va)
                     )                                       
         else: #o2 == 1 #IF_X not set
             olist = (
@@ -1267,39 +1264,63 @@ def p_ls_napair_offset(opval, va):
     else:
         mnem = 'ldnp'
         opcode = INS_LDNP
+
+    # SIMD processing
     if v == 0b1:
         if opc == 0b00:
             regsize = 4
             imm = imm7*0b100
+            imm -= int((imm << 1) & 2 << 8)
         elif opc == 0b01:
             regsize = 8
             imm = imm7*0b1000
+            imm -= int((imm << 1) & 2 << 9)
         elif opc == 0b10:
             regsize = 16
             imm = imm7*0b10000
+            imm -= int((imm << 1) & 2 << 10)
+
         else:
             return p_undef(opval, va)
+
+        # Processing for negative imm values
+        
+
         olist = (
-            A64RegOper(rt, va, size=regsize),
-            A64RegOper(rt2, va, size=regsize),                
-            A64RegOper(rn, va, size=8),
-            A64ImmOper(imm, 0, S_LSL, va),
+            A64RegOper(rt + REGS_VECTOR_BASE_IDX, va, size=regsize),
+            A64RegOper(rt2 + REGS_VECTOR_BASE_IDX, va, size=regsize),
+            A64RegImmOffOper(rn, imm, 8, S_LSL, va)
         )
             
     else:
         if opc == 0b00:
             regsize = 4
             imm = imm7*0b100
+
+            # Processing for negative imm values
+            imm -= int((imm << 1) & 2 << 8)
+
+            olist = (
+            A64RegOper(rt, va, size=regsize),
+            A64RegOper(rt2, va, size=regsize),
+            A64RegImmOffOper(rn, imm, regsize, S_LSL, va)
+        )
         elif opc == 0b10:
             regsize = 8
             imm = imm7*0b1000
-        else:
-            return p_undef(opval, va)
-        olist = (
+
+            # Processing for negative imm values
+            imm -= int((imm << 1) & 2 << 9)
+
+            olist = (
             A64RegOper(rt, va, size=regsize),
             A64RegOper(rt2, va, size=regsize),
-            A64ImmOper(imm, 0, S_LSL, va),
+            A64RegImmOffOper(rn, imm, regsize, S_LSL, va)
         )
+
+        else:
+            return p_undef(opval, va)
+        
     return opcode, mnem, olist, 0, 0
 
 
@@ -1345,7 +1366,10 @@ def p_ls_regpair(opval, va):
     elif opc == 0b01:
         # ldpsw and SIMD/FP
         if vl == 0b00:
-            return p_undef(opval, va)
+            mnem = 'stgp'
+            opcode = INS_STGP
+            imm = e_bits.bsigned(imm7 << 4, 63) # Will this properly handle signed values?
+
         elif vl == 0b01:
             mnem = 'ldpsw'
             opcode = INS_LDPSW
@@ -1767,7 +1791,7 @@ def p_ls_reg_offset(opval, va):
         
         olist = (
             A64RegOper(rt, va, size=regsize),
-            A64RegRegOffOper(rn, rm, indsize, va=va, extendtype=option, extendamount=indShift, forceValueDisplay=forceshow)
+            A64RegRegOffOper(rn, rm, indsize, va=va, extendtype=option, extendamount=indShift, forceZeroDisplay=forceshow)
         )
         
     else:
@@ -2698,7 +2722,7 @@ def p_log_shft_reg(opval, va):
 
     elif opc == 0b01:
         # mov alias:
-        if shift == n == 0 and rn == 0x1f:
+        if shift == n == imm6 == 0 and rn == 0x1f:
             mnem = 'mov'
             opcode = INS_MOV
             olist = (
@@ -2725,10 +2749,10 @@ def p_log_shft_reg(opval, va):
     olist = (
         A64RegWithZROper(rd, va, size=size),
         A64RegWithZROper(rn, va, size=size),
-        A64RegWithZROper(rm, va, size=size),
+        A64ShiftOper(rm, shift, imm6, size)
     )
 
-    if mnem == 'tst':
+    if opcode == INS_TST:
         # Removes S flag
         iflag &= ~IF_PSR_S
 
@@ -2736,6 +2760,15 @@ def p_log_shft_reg(opval, va):
             A64RegWithZROper(rn, va, size=size),
             A64ShiftOper(rm, shift, imm6, size)
         )
+
+    # MVN alias case
+    if rn == 0b11111 and opcode == INS_OR and iflag & IF_N == IF_N:
+        mnem = 'mv'
+
+        olist = (
+            A64RegWithZROper(rd, va, size=size),
+            A64ShiftOper(rm, shift, imm6, size)
+    )
 
     return opcode, mnem, olist, iflag, 0
 
@@ -7821,7 +7854,7 @@ class A64RegRegOffOper(A64DerefOperand):
     '''
     Register + Offset Register     [Xn, <Wm|Xm>{, extend {amount}}]
     '''
-    def __init__(self, basereg, offreg, tsize=8, mode=LDST_MODE_OFFSET, extendtype = 0b011, extendamount = 0, va=0, forceValueDisplay=False):
+    def __init__(self, basereg, offreg, tsize=8, mode=LDST_MODE_OFFSET, extendtype = 0b011, extendamount = 0, va=0, forceZeroDisplay=False):
         A64DerefOperand.__init__(self, tsize, mode, va)
         if basereg == 31:
             # make this SP
@@ -7845,7 +7878,7 @@ class A64RegRegOffOper(A64DerefOperand):
             self.ext = 'sxtx'
             
         self.extamt = extendamount
-        self.forcevaldisp = forceValueDisplay
+        self.forcezerodisp = forceZeroDisplay
           
 
     def render(self, mcanv, op, idx):
@@ -7860,7 +7893,7 @@ class A64RegRegOffOper(A64DerefOperand):
             mcanv.addText(', ')
             mcanv.addText(self.ext)
 
-            if not (self.extamt == 0 and not self.forcevaldisp):
+            if not (self.extamt == 0 and not self.forcezerodisp):
                 mcanv.addText(' #')
                 mcanv.addText(str(self.extamt))
 
@@ -7874,7 +7907,7 @@ class A64RegRegOffOper(A64DerefOperand):
         if self.ext == 'lsl' and self.extamt == 0:
             out = [ '[', brname, ', ', orname, ']' ]
         else:
-            if self.extamt == 0 and not self.forcevaldisp:
+            if self.extamt == 0 and not self.forcezerodisp:
                 out = [ '[', brname, ', ', orname, ', ', self.ext, ']' ]
             else:
                 out = [ '[', brname, ', ', orname, ', ', self.ext, ' #', str(self.extamt), ']' ]
@@ -8107,17 +8140,11 @@ class A64Opcode(envi.Opcode):
 
         mnem = self.mnem
 
-        # This works, but doesn't scale. Would work better in loop, any way to get letter from variable name?
+        # This works, but doesn't scale well
         if self.iflags != 0:
             if self.iflags & IF_S:
                 mnem += 's'
-
-            if self.iflags & IF_H:
-                mnem += 'h'
-
-            if self.iflags & IF_B:
-                mnem += 'b'
-
+            
             if self.iflags & IF_L:
                 mnem += 'l'
 
@@ -8135,6 +8162,12 @@ class A64Opcode(envi.Opcode):
 
             if self.iflags & IF_R:
                 mnem += 'r'
+
+            if self.iflags & IF_B:
+                mnem += 'b'
+
+            if self.iflags & IF_H:
+                mnem += 'h'
 
             if self.iflags & IF_Z:
                 mnem += 'z'
@@ -8167,12 +8200,6 @@ class A64Opcode(envi.Opcode):
             if self.iflags & IF_S:
                 mnem += 's'
 
-            if self.iflags & IF_H:
-                mnem += 'h'
-
-            if self.iflags & IF_B:
-                mnem += 'b'
-
             if self.iflags & IF_L:
                 mnem += 'l'
 
@@ -8191,6 +8218,12 @@ class A64Opcode(envi.Opcode):
             if self.iflags & IF_R:
                 mnem += 'r'
             
+            if self.iflags & IF_B:
+                mnem += 'b'
+
+            if self.iflags & IF_H:
+                mnem += 'h'
+
             if self.iflags & IF_Z:
                 mnem += 'z'
 

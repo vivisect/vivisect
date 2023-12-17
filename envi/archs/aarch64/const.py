@@ -228,6 +228,7 @@ instrnames = [
     'PRFM',
     'STNP',
     'LDNP',
+    'STGP',
     'STP',
     'LDP',
     'LDPSW',
