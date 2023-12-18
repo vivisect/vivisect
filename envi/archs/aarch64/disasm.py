@@ -446,18 +446,21 @@ def p_bitfield(opval, va):
             return p_undef(opval, va)
 
         # Alias checking
-        if iflag == IFP_S and ((size == 4 and imms == 0b011111) or (size == 8 and imms == 0b111111)):
+        if opc == 00 and iflag == IFP_S and ((size == 4 and imms == 0b011111) or (size == 8 and imms == 0b111111)):
             iflag = 0
             mnem = 'asr'
+            opcode = INS_ASR
+
             olist = (
                 A64RegOper(rd, va, size=size),
                 A64RegOper(rn, va, size=size),
                 A64ImmOper(immr, va=va),
                 )
 
-        elif iflag == IFP_U and imms + 1 == immr and ((size == 4 and imms != 0b011111) or (size == 8 and imms != 111111)):
+        elif opc == 0b10 and iflag == IFP_U and imms + 1 == immr and ((size == 4 and imms != 0b011111) or (size == 8 and imms != 111111)):
             iflag = 0
             mnem = 'lsl'
+            opcode = INS_LSL
 
             if size == 4:
                 olist = (
@@ -473,9 +476,10 @@ def p_bitfield(opval, va):
                     A64ImmOper((immr * -1) % 64, va=va),
                 )
 
-        elif iflag == IFP_U and ((size == 4 and imms == 0b011111) or (size == 8 and imms == 0b111111)):
+        elif opc == 0b10 and iflag == IFP_U and ((size == 4 and imms == 0b011111) or (size == 8 and imms == 0b111111)):
             iflag = 0
             mnem = 'lsr'
+            opcode = INS_LSR
 
             olist = (
                     A64RegOper(rd, va, size=size),
@@ -484,7 +488,13 @@ def p_bitfield(opval, va):
                 )
 
         elif imms < immr:
-            mnem = 'bfiz'
+            
+            if iflag != 0:
+                mnem = 'bfiz'
+            else:
+                mnem = 'bfi'
+
+            opcode = (INS_SBFIZ, INS_BFI, INS_UBFIZ, None)[opc]
 
             if size == 4:                
                 olist = (
@@ -501,9 +511,11 @@ def p_bitfield(opval, va):
                     A64ImmOper(imms + 1, va=va),
                 )
         
-        elif immr == 0b000000 and imms == 0b000111:
+        elif opc == 0 and immr == 0b000000 and imms == 0b000111:
             mnem = 'xtb'
 
+            opcode = (INS_SXTB, None, INS_UXTB, None)[opc]
+
             if sf == 0 and n == 0:
                 olist = (
                     A64RegOper(rd, va, size=size),
@@ -516,9 +528,11 @@ def p_bitfield(opval, va):
                     A64RegOper(rn, va, size=4),
                 )
 
-        elif immr == 0b000000 and imms == 0b001111:
+        elif opc == 0 and immr == 0b000000 and imms == 0b001111:
             mnem = 'xth'
 
+            opcode = (INS_SXTH, None, INS_UXTH, None)[opc]
+
             if sf == 0 and n == 0:
                 olist = (
                     A64RegOper(rd, va, size=size),
@@ -531,8 +545,10 @@ def p_bitfield(opval, va):
                     A64RegOper(rn, va, size=4),
                 )
 
-        elif immr == 0b000000 and imms == 0b011111:
+        elif opc == 0 and immr == 0b000000 and imms == 0b011111:
             mnem = 'xtw'
+
+            opcode = (INS_SXTW, None, INS_UXTW, None)[opc]
 
             olist = (
                 A64RegOper(rd, va, size=8),
@@ -540,25 +556,20 @@ def p_bitfield(opval, va):
             )
         
         else:
-            mnem = 'bfx'
+            if opc == 0b01:
+                mnem = 'bfxil'
+            else:
+                mnem = 'bfx'
+
+            opcode = (INS_SBFX, INS_BFXIL, INS_UBFX, None)[opc]
 
             olist = (
                 A64RegOper(rd, va, size=size),
                 A64RegOper(rn, va, size=size),
                 A64ImmOper(immr, va=va),
-                A64ImmOper(imms - immr + 1, va=va),     # Hack? Not sure why this works...
+                A64ImmOper(imms - immr + 1, va=va),
             )
 
-        # Old olist
-        '''
-        else:
-            olist = (
-                A64RegOper(rd, va, size=size),
-                A64RegOper(rn, va, size=size),
-                A64ImmOper(immr, va=va),
-                A64ImmOper(imms, va=va),
-            )
-        '''
     else:
         return p_undef(opval, va)
 
