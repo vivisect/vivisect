@@ -136,7 +136,7 @@ def p_pc_addr(opval, va):
     '''
     op = opval >> 31
     rd = opval & 0x1f
-    immhi = opval >> 3 & 0xffffc
+    immhi = opval >> 3 & 0x1FFFFC
     immlo = opval >> 29 & 0x3
 
     #Both instructions share the mnemonic 'adr', but if op == 1
@@ -145,12 +145,17 @@ def p_pc_addr(opval, va):
     iflag = 0
 
     base = va
-    imm = (immhi + immlo)
+    imm = (immhi | immlo)
+
     if op:
         imm <<= 12
         base &= 0xfffff000
 
-    imm = e_bits.sign_extend(imm, 4, 8)
+        imm = e_bits.sign_extend(imm, 4, 8)
+
+    else:
+        imm = e_bits.bsign_extend(imm, 21, 64)
+
 
     olist = (
         A64RegOper(rd, va=va, size=8),
@@ -627,7 +632,7 @@ def p_branch_uncond_imm(opval, va):
     '''
     op = opval >> 31
     imm26 = (opval & 0x3ffffff) << 2
-    imm26 = e_bits.signed(e_bits.bsign_extend(imm26, 28, 64), 8)
+    imm = e_bits.bsign_extend(imm26, 28, 64)    # Value may be negative - identify at oper level
 
     #determines mnemonic
     if op == 0:
@@ -638,7 +643,7 @@ def p_branch_uncond_imm(opval, va):
         opcode = INS_BL
         
     olist = (
-        A64BranchOper(imm26, va=va),
+        A64BranchOper(imm, va=va),
     )
 
     return opcode, mnem, olist, 0, 0
@@ -651,7 +656,7 @@ def p_cmp_branch_imm(opval, va):
     op = opval >> 24 & 0x1
     rt = opval & 0x1f
     imm19 = opval >> 3 & 0x1ffffc
-    imm19 = e_bits.bsign_extend(imm19, 19, 64)
+    imm19 = e_bits.bsign_extend(imm19, 21, 64)
     imm19 = e_bits.signed(imm19, 8)
 
     # ZR Check on RT
@@ -890,7 +895,7 @@ def p_sys(opval, va):
         mnem = 'dsb'
         olist = (
             # A64BarrierOptionOper(crm), # Either/or, may implement later
-            A64ImmOper(crm, va=va),
+            A64NameOper(opcode, val=crm),
         )
         iflag = 0
 
@@ -1022,6 +1027,12 @@ def p_sys(opval, va):
         )
         iflag = 0
 
+    elif op2 == 0b111 and crm == 0:
+        opcode = INS_SB
+        mnem = 'sb'
+        olist = ()
+        iflag = 0
+
     else:
         return p_undef(opval, va)
     
@@ -1057,7 +1068,11 @@ def p_branch_uncond_reg(opval, va):
         elif opc == 0b0010:
             opcode = INS_RET
             mnem = 'ret'
-            olist = () #empty olist
+            if rn != 30:
+                olist = (A64RegOper(rn, va),)
+            else:
+                olist = ()
+
             iflag = envi.IF_RET | envi.IF_NOFALL
 
         elif opc == 0b0100 and rn == 0b11111:
@@ -1281,22 +1296,18 @@ def p_ls_napair_offset(opval, va):
         if opc == 0b00:
             regsize = 4
             imm = imm7*0b100
-            imm -= int((imm << 1) & 2 << 8)
+            imm = e_bits.bsigned(imm, 9)
         elif opc == 0b01:
             regsize = 8
             imm = imm7*0b1000
-            imm -= int((imm << 1) & 2 << 9)
+            imm = e_bits.bsigned(imm, 10)
         elif opc == 0b10:
             regsize = 16
             imm = imm7*0b10000
-            imm -= int((imm << 1) & 2 << 10)
-
+            imm = e_bits.bsigned(imm, 11)
         else:
             return p_undef(opval, va)
-
-        # Processing for negative imm values
         
-
         olist = (
             A64RegOper(rt + REGS_VECTOR_BASE_IDX, va, size=regsize),
             A64RegOper(rt2 + REGS_VECTOR_BASE_IDX, va, size=regsize),
@@ -2803,8 +2814,15 @@ def p_addsub_shft_reg(opval, va):
     else:
         mnem = 'sub'
         opcode = INS_SUB
+
+        if rn == 0b11111:
+            mnem = 'neg'
+            opcode = INS_NEG
+
     if s == 0b1:
         iflag |= IF_PSR_S
+        opcode += 1
+        
     if shift == 0b00:
         shtype = S_LSL
     elif shift == 0b01:
@@ -2845,19 +2863,32 @@ def p_addsub_shft_reg(opval, va):
         )
         
     elif sf == 0b0:
-        olist = (
-            A64RegOper(rd, va, size=4),
-            A64RegOper(rn, va, size=4),
-            # A64RegOper(rm, va, size=4),        # Contained with A64ShiftOper
-            A64ShiftOper(rm, shtype, imm6, regsize=4),
-        )
+
+        if op == 1 and rn == 0b11111:
+            olist = (
+                A64RegOper(rd, va, size=4),
+                A64ShiftOper(rm, shtype, imm6, regsize=4),
+            )
+
+        else:
+            olist = (
+                A64RegOper(rd, va, size=4),
+                A64RegOper(rn, va, size=4),
+                A64ShiftOper(rm, shtype, imm6, regsize=4),
+            )
     else:
-        olist = (
-            A64RegOper(rd, va, size=8),
-            A64RegOper(rn, va, size=8),
-            # A64RegOper(rm, va, size=8),         # Contained with A64ShiftOper
-            A64ShiftOper(rm, shtype, imm6, regsize=8),
-        )
+        if op == 1 and rn == 0b11111:
+            olist = (
+                A64RegOper(rd, va, size=8),
+                A64ShiftOper(rm, shtype, imm6, regsize=8),
+            )
+
+        else:
+            olist = (
+                A64RegOper(rd, va, size=8),
+                A64RegOper(rn, va, size=8),
+                A64ShiftOper(rm, shtype, imm6, regsize=8),
+            )
 
     return opcode, mnem, olist, iflag, 0
 
@@ -3146,7 +3177,14 @@ def p_data_proc_3(opval, va):
         else:
             opcode = INS_MSUB
             mnem = 'msub'
-        
+
+            # mneg alias check
+            if ra == 0b11111:
+                opcode = INS_MNEG
+                mnem = 'mneg'
+
+                olist = olist[:-1]  # Removes RA reg oper from olist
+
     else:
         if op31 & 0b011 == 0b001:
             olist = (
@@ -3168,6 +3206,12 @@ def p_data_proc_3(opval, va):
                 else:
                     mnem = 'smsubl'
                     opcode = INS_SMSUBL
+
+                    if ra == 0b11111:
+                        mnem = 'smnegl'
+                        opcode = INS_SMNEGL
+                        olist = olist[:-1]  # Removes RA reg oper from olist
+
             elif op31 == 0b101:
                 if o0 == 0b0:
                     mnem = 'umaddl'
@@ -3267,7 +3311,7 @@ def p_data_proc_2(opval, va):
             mnem = 'crc32'
             iflag |= IF_X
 
-    return opcode, mnem, olist, 0, 0
+    return opcode, mnem, olist, iflag, 0
 
 def p_data_proc_1(opval, va):
     '''
@@ -7989,6 +8033,8 @@ class A64NameOper(A64Operand):
                 tabind = 2
             elif instype == INS_TLBI:
                 tabind = 3
+            elif instype == INS_DSB:
+                tabind = 4
             else:
                 raise Exception("Invalid instype in A64NameOper constructor!")
 
@@ -8100,20 +8146,23 @@ class A64BranchOper(A64Operand):
         return True
 
     def getOperValue(self, op, emu=None, codeflow=False):
-        return self.va + self.val
+        # Return sum of va with offset, can only be 64 bits long 
+        return (self.va + self.val) & 0xFFFFFFFFFFFFFFFF
 
     def render(self, mcanv, op, idx):
         value = self.getOperValue(op)
         va = value & -2
         if mcanv.mem.isValidPointer(va):
-            name = addrToName(mcanv, va)
+            name = '#' + addrToName(mcanv, va)  # TODO - Gross hack to hash unnamed pointers, valid? 
             mcanv.addVaText(name, va)
         else:
-            mcanv.addVaText('0x%.8x' % va, va)
+            #mcanv.addVaText('0x%.8x' % va, va)
+            mcanv.addVaText("#" + hex(self.getOperValue(op)), va)
 
     def repr(self, op):
         targ = self.getOperValue(op)
-        tname = "0x%.8x" % targ
+        #tname = "0x%.8x" % targ
+        tname = "#" + hex(targ)
         return tname
 
 
@@ -8189,6 +8238,9 @@ class A64Opcode(envi.Opcode):
             if self.iflags & IF_N:
                 mnem += 'n'
 
+            if self.iflags & IF_16:
+                mnem += '16'
+
             if self.iflags & IF_PSR_S:
                 mnem += 's'
 
@@ -8197,7 +8249,7 @@ class A64Opcode(envi.Opcode):
 
             if self.iflags & IFP_U:
                 mnem = 'u' + mnem
-
+            
         return mnem + " " + ", ".join(x)
 
     def render(self, mcanv):
@@ -8243,6 +8295,9 @@ class A64Opcode(envi.Opcode):
 
             if self.iflags & IF_N:
                 mnem += 'n'
+
+            if self.iflags & IF_16:
+                mnem += '16'
 
             if self.iflags & IF_PSR_S:
                 mnem += 's'

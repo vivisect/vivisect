@@ -4753,9 +4753,9 @@ class A64InstructionSet(unittest.TestCase):
             try:
                 self._do_test(emu, va, bytez, reprOp, iflags, emutests, stats, line)
             except Exception as e:
-                # print("Exception: %r" % e)
+                print("Exception: %r" % e)
                 import traceback
-                # traceback.print_exc()
+                traceback.print_exc()
             line += 1
 
         print("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % (stats['goodcount'], stats['badcount'], stats['goodemu'], stats['bademu']))

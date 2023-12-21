@@ -195,6 +195,7 @@ instrnames = [
     'DMB',
     'ISB',
     'SYS',
+    'SB',
     'MRS',
     'BR',
     'BLR',
@@ -256,9 +257,11 @@ instrnames = [
     'CS',
     'MADD',
     'MSUB',
+    'MNEG',
     'SMADDL',
     'SMULL',
     'SMSUBL',
+    'SMNEGL',
     'UMADDL',
     'UMULL',
     'UMSUBL',
@@ -328,6 +331,7 @@ instrnames = [
     'ML',
     'ABS',
     'NEG',
+    'NEGS',
     'XT',
     'CVT',
     'MAX',
@@ -840,11 +844,28 @@ tlbi_op_table = {
     0b11010000111100: 'PAALL'
 }
 
+# DSB assembler symbols encoded as crm
+dsb_cond_table = {
+    0b1111: 'sy',
+    0b1110: 'st',
+    0b1101: 'ld',
+    0b1011: 'ish',
+    0b1010: 'ishst',
+    0b1001: 'ishld',
+    0b0111: 'nsh',
+    0b0110: 'nshst',
+    0b0101: 'nshld',
+    0b0011: 'osh',
+    0b0010: 'oshst',
+    0b0001: 'oshld'
+}
+
 sys_alias_op_tables = (
     at_op_table,
     dc_op_table,
     ic_op_table,
-    tlbi_op_table 
+    tlbi_op_table,
+    dsb_cond_table 
 )
 
 barrier_option_table = (
@@ -869,8 +890,8 @@ barrier_option_table = (
 b_cond_table = (
     ('b.eq', INS_BCC),
     ('b.ne', INS_BCC),
-    ('b.cs', INS_BCC),
-    ('b.cc', INS_BCC),
+    ('b.hs', INS_BCC),
+    ('b.lo', INS_BCC),
     ('b.mi', INS_BCC),
     ('b.pl', INS_BCC),
     ('b.vs', INS_BCC),
