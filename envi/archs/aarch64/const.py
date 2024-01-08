@@ -844,8 +844,8 @@ tlbi_op_table = {
     0b11010000111100: 'PAALL'
 }
 
-# DSB assembler symbols encoded as crm
-dsb_cond_table = {
+# Barrier operation assembler symbols, encoded in crm
+bar_ops_table = {
     0b1111: 'sy',
     0b1110: 'st',
     0b1101: 'ld',
@@ -865,7 +865,7 @@ sys_alias_op_tables = (
     dc_op_table,
     ic_op_table,
     tlbi_op_table,
-    dsb_cond_table 
+    bar_ops_table 
 )
 
 barrier_option_table = (
