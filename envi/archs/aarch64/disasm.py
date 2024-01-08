@@ -8426,7 +8426,7 @@ class A64Disasm:
                 if (opval & mask) == val:
                     enc = penc
                     #print("- found: %r" % enc)
-                    print("penc", penc, iencs[penc])    # Debugging print statement, may need to be commented out
+                    #print("penc", penc, iencs[penc])    # Debugging print statement, may need to be commented out
                     break
 
         # If we don't know the encoding by here, we never will ;)
