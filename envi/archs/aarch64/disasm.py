@@ -710,7 +710,7 @@ def p_test_branch_imm(opval, va):
         imm14 = imm14 | 0xffffffffffffc000
     olist = (
         A64RegOper(rt, va, size=size), 
-        A64ImmOper((b5 * 0b100000) + b40, va=va), # Passes in decimal value
+        A64ImmOper((b5 << 5) + b40, va=va), # Passes in decimal value
         A64ImmOper((imm14*4) + va, va=va), # Passes in decimal value
     )
 
@@ -723,7 +723,7 @@ def p_branch_cond_imm(opval, va):
     Conditional branch (immediate) instruction
     '''
     iflag = envi.IF_COND | envi.IF_BRANCH
-    imm19 = (opval >> 5 & 0x7ffff)    
+    imm19 = (opval >> 5 & 0x7ffff)
     cond = opval & 0xf
     mnem, opcode = b_cond_table[cond]
 
@@ -931,23 +931,20 @@ def p_sys(opval, va):
                     opcode = ocode
                     break
         
-            # Modify olist based on mnem
-            if mnem == 'at':
-                opcode = INS_AT                
+            # Modify olist based on opcode
+            if opcode == INS_AT:
                 olist = (       # AT <at_op>, <Xt>                    
                     A64NameOper(opcode, ((op1 << 4) | ((crm & 0b1) << 3) | op2)),
                     A64RegOper(rt, va, size=8)
                 )
 
-            elif mnem == 'dc':
-                opcode = INS_DC
+            elif opcode == INS_DC:
                 olist = (       # DC <dc_op>, <Xt>
                     A64NameOper(opcode, ((op1 << 7) | (crm << 3) | op2)),
                     A64RegOper(rt, va, size=8)
                 )
 
-            elif (mnem == 'ic'):
-                opcode = INS_IC
+            elif opcode == INS_IC:
                 olist = (       # IC <ic_op>{, <Xt>}
                     A64NameOper(opcode, ((op1 << 7) | (crm << 3) | op2)),
                     A64RegOper(rt, va, size=8), #optional operand
@@ -957,8 +954,7 @@ def p_sys(opval, va):
                 if rt == 0b11111:   
                     olist = olist[:1]
 
-            elif (mnem == 'tlbi'):
-                opcode = INS_TLBI
+            elif opcode == INS_TLBI:
                 olist = (       # TLBI <tlbi_op>{, <Xt>}
                     A64NameOper(opcode, ((op1 << 11) | (crn << 7) | (crm << 3) | op2)),
                     A64RegOper(rt, va, size=8), #optional operand
