@@ -908,12 +908,12 @@ def p_sys(opval, va):
         )
         iflag = 0
 
-    elif relevant & 0b1111111111000011111111 == 0b00001100110000011011111:
+    elif relevant & 0b1111111111000011111111 == 0b00000110011000011011111:
         opcode = INS_ISB
         mnem = 'isb'
         olist = (
-            A64BarrierOptionOper(crm),
-            A64ImmOper(crm, va=va),
+            # Omittable option for oper
+            #A64NameOper(opcode, val=crm),   # Should always be sy, all others are reserved
         )
         iflag = 0
 
@@ -8029,7 +8029,7 @@ class A64NameOper(A64Operand):
                 tabind = 2
             elif instype == INS_TLBI:
                 tabind = 3
-            elif instype == INS_DSB or instype == INS_DMB:
+            elif instype == INS_DSB or instype == INS_DMB or instype == INS_ISB:
                 tabind = 4
             else:
                 raise Exception("Invalid instype in A64NameOper constructor!")
