@@ -876,11 +876,24 @@ def p_sys(opval, va):
                 olist = tuple()
 
         else:
-            opcode = INS_HINT
-            mnem = 'hint'
-            olist = (
-                A64ImmOper(crm + op2, 0, S_LSL, va),
-            )
+            if crm == 0b0010 and op2 == 0b100:
+                opcode = INS_CSDB
+                mnem = 'csdb'
+                olist = ()
+
+            elif crm == 0b0010 and op2 == 0b001:
+                opcode = INS_PSB
+                mnem = 'psb'
+                olist = (
+                    A64NameOper(opcode),
+                )
+
+            else:
+                opcode = INS_HINT
+                mnem = 'hint'
+                olist = (
+                    A64ImmOper(crm << 3 | op2, 0, S_LSL, va),
+                )
         
     elif relevant & 0b111111_11110000_11111111 == 0b000011_00110000_01011111:
         opcode = INS_CLREX
@@ -8031,6 +8044,8 @@ class A64NameOper(A64Operand):
                 tabind = 3
             elif instype == INS_DSB or instype == INS_DMB or instype == INS_ISB:
                 tabind = 4
+            elif instype == INS_PSB:
+                tabind = 5
             else:
                 raise Exception("Invalid instype in A64NameOper constructor!")
 

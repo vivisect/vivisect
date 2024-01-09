@@ -190,6 +190,8 @@ instrnames = [
     'DCPS3',
     'MSR',
     'HINT',
+    'CSDB',
+    'PSB',
     'CLREX',
     'DSB',
     'DMB',
@@ -860,12 +862,18 @@ bar_ops_table = {
     0b0001: 'oshld'
 }
 
+psb_op = {
+    0b0: 'csync'
+}
+
+
 sys_alias_op_tables = (
     at_op_table,
     dc_op_table,
     ic_op_table,
     tlbi_op_table,
-    bar_ops_table 
+    bar_ops_table,
+    psb_op, 
 )
 
 barrier_option_table = (
