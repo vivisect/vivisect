@@ -3127,6 +3127,11 @@ def p_cond_sel(opval, va):
                 mnem = 'cset'
                 cond = condinvert(cond)
                 opcount = 2
+            elif rm == rn:
+                opcode = INS_CINC
+                mnem = 'cinc'
+                cond = condinvert(cond)
+                opcount = 3
             else:
                 opcode = INS_CSINC
                 mnem = 'csinc'

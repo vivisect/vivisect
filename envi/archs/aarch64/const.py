@@ -278,6 +278,7 @@ instrnames = [
     'CCM',
     'CSEL',
     'CSINC',
+    'CINC',
     'CSINV',
     'CINV',
     'CSET',
