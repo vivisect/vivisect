@@ -77,6 +77,28 @@ S_RRX = 4 # FIXME HACK XXX add this
 opShifts = ('lsl', 'lsr', 'asr', 'ror', 'rrx')
 movSuffixes = ('n', '', 'z', 'k')
 
+extrepr = (
+    'UXTB',
+    'UXTH',
+    'UXTW',
+    'UXTX',
+    'SXTB',
+    'SXTH',
+    'SXTW',
+    'SXTX',
+    'LSL',
+)
+
+EXT_UXTB    = 0
+EXT_UXTH    = 1
+EXT_UXTW    = 2
+EXT_UXTX    = 3
+EXT_SXTB    = 4
+EXT_SXTH    = 5
+EXT_SXTW    = 6
+EXT_SXTX    = 7
+EXT_LSL     = 8
+
 ENDIAN_LSB = 0
 ENDIAN_MSB = 1
 

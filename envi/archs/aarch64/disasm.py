@@ -2902,10 +2902,11 @@ def p_addsub_ext_reg(opval, va):
     s = opval >> 29 & 0x1
     opt = opval >> 22 & 0x3
     rm = opval >> 16 & 0x1f
-    option = opval >> 13 & 0x7
+    extoper = opval >> 13 & 0x7
     imm3 = opval >> 10 & 0x7
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
+    size = 4<<sf
     
     if op ==  0b0:
         mnem = 'add'
@@ -2917,45 +2918,22 @@ def p_addsub_ext_reg(opval, va):
     if s == 0b1:
         iflag |= IF_PSR_S
 
-    if option & 0b011 == 0b011:
+    if extoper & 0b011 == 0b011:
         sizeRM = 8
     else:
         sizeRM = 4
 
     if (rd == 0b11111 or rn ==  0b11111)\
-        and option == 0b010:
-            extoper = 'LSL'
-    else:
-        extoper = exttable[option]
+        and extoper == 0b010:
+            extoper = EXT_LSL
 
-    if sf == 0b0:
-        olist = (
-            A64RegOper(rd, va, size=4),
-            A64RegOper(rn, va, size=4),
-            A64RegOper(rm, va, size=4),
-            A64ExtendOper(rm, extoper, imm3),
-        )
-    else:
-        olist = (
-            A64RegOper(rd, va, size=8),
-            A64RegOper(rn, va, size=8),
-            A64RegOper(rm, va, size=sizeRM),
-            
-        )
+    olist = (
+        A64RegOper(rd, va, size=size),
+        A64RegOper(rn, va, size=size),
+        A64RegExtOper(rm, sizeRM, extoper, imm3, va=va),
+    )
 
     return opcode, mnem, olist, iflag, 0
-
-exttable = (
-    'UXTB',
-    'UXTH',
-    'UXTW',
-    'UXTX',
-    'SXTB',
-    'SXTH',
-    'SXTW',
-    'SXTX',
-)
-
 
         
 def p_addsub_carry(opval, va):
@@ -7780,6 +7758,74 @@ class A64RegWithZROper(A64RegOper):
             reg = REG_XZR
 
         A64RegOper.__init__(self, reg, va, oflags, size)
+
+
+def extname(exttype):
+    return extrepr[exttype]
+
+
+class A64RegExtOper(A64RegOper):
+    '''
+    Register Extended     <Wm|Xm>{, extend {amount}}
+    '''
+    def __init__(self, reg, size=8, extendtype = 0b011, extendamount = 0, va=0, oflags=0):
+        A64RegOper.__init__(self, reg, va, oflags, size)
+        #if basereg == 31:
+        #    # make this SP
+        #    basereg = REG_SP
+        self.exttype = extendtype
+        self.extamt = extendamount
+
+        # Processing shift type and amount
+        #### CHANGE THIS TO CONSTANTS.  REPR only when REPRing
+        #if extendtype == 0b011:
+        #    self.ext = 'lsl'       
+        #elif extendtype == 0b010:
+        #    self.ext = 'uxtw'
+        #elif extendtype == 0b110:
+        #    self.ext = 'sxtw'
+        #else:
+        #    self.ext = 'sxtx'
+            
+
+
+    def render(self, mcanv, op, idx):
+        brname = rctx.getRegisterName(self.reg)
+        mcanv.addNameText(brname, typename='registers')
+        
+        if self.exttype != EXT_LSL or (self.exttype == EXT_LSL and self.extamt != 0):
+            mcanv.addText(', ')
+            mcanv.addText(extname(self.exttype))
+
+            if not self.extamt == 0:
+                mcanv.addText(' #')
+                mcanv.addText(str(self.extamt))
+
+    def repr(self, op):
+        brname = rctx.getRegisterName(self.reg)
+
+        # Hiding extension info only when extension is lsl and amount is 0 
+        if self.exttype == EXT_LSL and self.extamt == 0:
+            out = [ brname, ]
+        else:
+            if self.extamt == 0:
+                out = [ brname, ', ', extname(self.exttype)]
+            else:
+                out = [ brname, ', ', extname(self.exttype), ' #', str(self.extamt) ]
+        
+        return "".join(out)
+
+    def getOperValue(self, op, emu=None):
+        if not emu:
+            return None
+
+        val = emu.getRegister(self.reg)
+        val = extend(val, self.exttype, self.extamt)
+        val &= 0xffffffff_ffffffff
+
+
+        return addr
+
 
 
 def addrToName(mcanv, va):
