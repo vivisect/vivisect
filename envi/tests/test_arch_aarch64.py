@@ -4753,7 +4753,7 @@ class A64InstructionSet(unittest.TestCase):
             try:
                 self._do_test(emu, va, bytez, reprOp, iflags, emutests, stats, line)
             except Exception as e:
-                print("Exception: %r" % e)
+                print("Exception while parsing %s (%s): %r" % (bytez, reprOp, e))
                 import traceback
                 traceback.print_exc()
             line += 1

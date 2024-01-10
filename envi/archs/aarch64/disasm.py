@@ -2896,7 +2896,7 @@ def p_addsub_ext_reg(opval, va):
     '''
     Add/sub (extended register)
     '''
-    #FIXME this is unclear and almost certainly wrong
+    iflag = 0
     sf = opval >> 31 & 0x1
     op = opval >> 30 & 0x1
     s = opval >> 29 & 0x1
@@ -2913,14 +2913,17 @@ def p_addsub_ext_reg(opval, va):
     else:
         mnem = 'sub'
         opcode = INS_SUB
+
     if s == 0b1:
         iflag |= IF_PSR_S
+
     if option & 0b011 == 0b011:
         sizeRM = 8
     else:
         sizeRM = 4
-    if rd == 0b11111 or rn ==  0b11111:
-        if option == 0b010:
+
+    if (rd == 0b11111 or rn ==  0b11111)\
+        and option == 0b010:
             extoper = 'LSL'
     else:
         extoper = exttable[option]
@@ -3100,41 +3103,94 @@ def p_cond_cmp_reg(opval, va):
         )
     return opcode, mnem, olist, iflag, 0
 
+
+def condinvert(cond):
+    return inv_cond_table[cond]
+
 def p_cond_sel(opval, va):
     '''
     Conditional select
     '''
     iflag = 0
 
-    opcode = INS_CS
-    mnem = 'cs'
+    sf = (opval >> 31) & 1
+    op = (opval >> 30) & 1
+    op2 = (opval >> 10) & 0b11
+    rd = opval & 0x1f
+    rn = (opval >> 5) & 0x1f
+    rm = (opval >> 16) & 0x1f
+    cond = (opval >> 12) & 0xf
+
+    size = 4 << sf  #(4 if sf==0, 8 if sf==1)
+    opcount = 4
+
+    # sort out which variant of CS instruction we are, and the correct set of operands
     if op == 0b0:
         if op2 == 0b00:
-            iflag |= IF_EL
+            opcode = INS_CSEL
+            mnem = 'csel'
         elif op2 == 0b01:
-            iflag |= IF_INC
+            if rm == rn == 0x1f:    # alias for CSINC
+                opcode = INS_CSET
+                mnem = 'cset'
+                cond = condinvert(cond)
+                opcount = 2
+            else:
+                opcode = INS_CSINC
+                mnem = 'csinc'
         else:
             return p_undef(opval, va)
+
     else:
         if op2 == 0b00:
-            iflag |= IF_INV
+            if rm == rn == 0x1f:    # alias
+                opcode = INS_CSETM
+                mnem = 'csetm'
+                cond = condinvert(cond)
+                opcount = 2
+            else:
+                if rm == rn:
+                    cond = condinvert(cond)
+                    opcode = INS_CINV
+                    mnem = 'cinv'
+                    opcount = 3
+                else:
+                    opcode = INS_CSINV
+                    mnem = 'csinv'
+
         elif op2 == 0b01:
-            iflag |= IF_NEG
+            if rm == rn == 0x1f:    # alias
+                opcode = INS_CNEG
+                mnem = 'cneg'
+                opcount = 3
+            else:
+                opcode = INS_CSNEG
+                mnem = 'csneg'
         else:
             return p_undef(opval, va)
-    #FIXME: cond opers
-    if sf == 0b0:
+
+    # build the operand list
+    if opcount == 2:
         olist = (
-            A64RegOper(rd, va, size=4),
-            A64RegOper(rn, va, size=4),
-            A64RegOper(rm, va, size=4),
+            A64RegOper(rd, va, size=size),
+            A64CondOper(cond),
         )
+
+    elif opcount == 3:
+        olist = (
+            A64RegOper(rd, va, size=size),
+            A64RegWithZROper(rn, va, size=size),
+            A64CondOper(cond),
+        )
+
     else:
         olist = (
-            A64RegOper(rd, va, size=8),
-            A64RegOper(rn, va, size=8),
-            A64RegOper(rm, va, size=8),
+            A64RegOper(rd, va, size=size),
+            A64RegWithZROper(rn, va, size=size),
+            A64RegWithZROper(rm, va, size=size),
+            A64CondOper(cond),
         )
+
     return opcode, mnem, olist, iflag, 0
         
         
@@ -8050,6 +8106,23 @@ class A64NameOper(A64Operand):
         mcanv.addText(self.mnem)
 
 
+prfm_types = (
+        'PLD',
+        'PLI',
+        'PST',
+        )
+
+target_types = (
+        'L1',
+        'L2',
+        'L3',
+        )
+
+policy_types = (
+        'KEEP',
+        'STRM',
+        )
+
 class A64PreFetchOper(A64Operand):
     '''
     Subclass of A64Operand. prfop operand class (pre-fetch operation)
@@ -8060,7 +8133,7 @@ class A64PreFetchOper(A64Operand):
         self.policy = policy
     
     def repr(self, op):                
-        return types[self.type] + targets[self.target] + policy[self.policy]
+        return prfm_types[self.type] + target_types[self.target] + policy_types[self.policy]
 
 
 class A64ShiftOper(A64Operand):
