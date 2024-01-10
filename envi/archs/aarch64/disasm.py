@@ -2908,14 +2908,20 @@ def p_addsub_ext_reg(opval, va):
     rd = opval & 0x1f
     size = 4<<sf
     
+    opcount = 3
     if op ==  0b0:
         mnem = 'add'
         opcode = INS_ADD
     else:
-        mnem = 'sub'
-        opcode = INS_SUB
+        if rd == REG_SP:
+            mnem = 'cmp'
+            opcode = INS_CMP
+            opcount = 2
+        else:
+            mnem = 'sub'
+            opcode = INS_SUB
 
-    if s == 0b1:
+    if s == 0b1 and opcount == 3:    # not used with aliases
         iflag |= IF_PSR_S
 
     if extoper & 0b011 == 0b011:
@@ -2923,15 +2929,23 @@ def p_addsub_ext_reg(opval, va):
     else:
         sizeRM = 4
 
-    if (rd == 0b11111 or rn ==  0b11111)\
-        and extoper == 0b010:
+    if (rd == 0b11111 or rn ==  0b11111):
+        if sizeRM == 4 and extoper == 0b010:
+            extoper = EXT_LSL
+        if sizeRM == 8 and extoper == 0b011:
             extoper = EXT_LSL
 
-    olist = (
-        A64RegOper(rd, va, size=size),
-        A64RegOper(rn, va, size=size),
-        A64RegExtOper(rm, sizeRM, extoper, imm3, va=va),
-    )
+    if opcount == 3:
+        olist = (
+            A64RegOper(rd, va, size=size),
+            A64RegOper(rn, va, size=size),
+            A64RegExtOper(rm, sizeRM, extoper, imm3, va=va),
+        )
+    elif opcount == 2:
+        olist = (
+            A64RegOper(rn, va, size=size),
+            A64RegExtOper(rm, sizeRM, extoper, imm3, va=va),
+        )
 
     return opcode, mnem, olist, iflag, 0
 
@@ -3137,7 +3151,8 @@ def p_cond_sel(opval, va):
                     mnem = 'csinv'
 
         elif op2 == 0b01:
-            if rm == rn == 0x1f:    # alias
+            if rm == rn:    # alias
+                cond = condinvert(cond)
                 opcode = INS_CNEG
                 mnem = 'cneg'
                 opcount = 3
@@ -7775,19 +7790,6 @@ class A64RegExtOper(A64RegOper):
         #    basereg = REG_SP
         self.exttype = extendtype
         self.extamt = extendamount
-
-        # Processing shift type and amount
-        #### CHANGE THIS TO CONSTANTS.  REPR only when REPRing
-        #if extendtype == 0b011:
-        #    self.ext = 'lsl'       
-        #elif extendtype == 0b010:
-        #    self.ext = 'uxtw'
-        #elif extendtype == 0b110:
-        #    self.ext = 'sxtw'
-        #else:
-        #    self.ext = 'sxtx'
-            
-
 
     def render(self, mcanv, op, idx):
         brname = rctx.getRegisterName(self.reg)

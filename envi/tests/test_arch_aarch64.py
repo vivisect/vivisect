@@ -1,7 +1,7 @@
 #this probably needs to be looked over once more to make sure all
 #assembler symbols are correctly represented
 
-GOOD_TESTS = 493447
+GOOD_TESTS = 493782
 GOOD_EMU_TESTS = 494026
 
 import sys
