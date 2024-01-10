@@ -1,8 +1,8 @@
 #this probably needs to be looked over once more to make sure all
 #assembler symbols are correctly represented
 
-GOOD_TESTS = 495709
-GOOD_EMU_TESTS = 1715
+GOOD_TESTS = 493896
+GOOD_EMU_TESTS = 494026
 
 import sys
 import envi
@@ -4753,7 +4753,7 @@ class A64InstructionSet(unittest.TestCase):
             try:
                 self._do_test(emu, va, bytez, reprOp, iflags, emutests, stats, line)
             except Exception as e:
-                print("Exception: %r" % e)
+                print("Exception while parsing %s (%s): %r" % (bytez, reprOp, e))
                 import traceback
                 traceback.print_exc()
             line += 1

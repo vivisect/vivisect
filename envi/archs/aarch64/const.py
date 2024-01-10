@@ -77,6 +77,28 @@ S_RRX = 4 # FIXME HACK XXX add this
 opShifts = ('lsl', 'lsr', 'asr', 'ror', 'rrx')
 movSuffixes = ('n', '', 'z', 'k')
 
+extrepr = (
+    'UXTB',
+    'UXTH',
+    'UXTW',
+    'UXTX',
+    'SXTB',
+    'SXTH',
+    'SXTW',
+    'SXTX',
+    'LSL',
+)
+
+EXT_UXTB    = 0
+EXT_UXTH    = 1
+EXT_UXTW    = 2
+EXT_UXTX    = 3
+EXT_SXTB    = 4
+EXT_SXTH    = 5
+EXT_SXTW    = 6
+EXT_SXTX    = 7
+EXT_LSL     = 8
+
 ENDIAN_LSB = 0
 ENDIAN_MSB = 1
 
@@ -256,7 +278,15 @@ instrnames = [
     'ADC',
     'SBC',
     'CCM',
-    'CS',
+    'CSEL',
+    'CSINC',
+    'CINC',
+    'CSINV',
+    'CINV',
+    'CSET',
+    'CSETM',
+    'CSNEG',
+    'CNEG',
     'MADD',
     'MSUB',
     'MNEG',
@@ -390,6 +420,7 @@ instrnames = [
     'XPACI',
     'XPACD',
     'XPACLRI',
+    'FMINNMP',
 ]
 
 ins_index = 85
@@ -406,10 +437,6 @@ IF_EQ = 1 << 52
 IF_LT = 1 << 51
 IF_GT = 1 << 50
 IF_2 = 1 << 49
-IF_NEG = 1 << 48
-IF_INV = 1 << 47
-IF_INC = 1 << 46
-IF_EL = 1 << 45
 IF_32 = 1 << 44
 IF_16 = 1 << 43
 IF_P = 1 << 42
@@ -432,6 +459,7 @@ IF_M = 1 << 10
 IF_I = 1 << 9
 IF_U = 1 << 8
 
+IFP_UQ = 1 << 62
 IFP_U = 1 << 61
 IFP_S = 1 << 60
 IFP_P = 1 << 59
@@ -932,6 +960,43 @@ cond_table = (
     'AL',
     'NV^b', #FIXME
 )
+
+COND_EQ = 0
+COND_NE = 1
+COND_CS = 2
+COND_CC = 3
+COND_MI = 4
+COND_PL = 5
+COND_VS = 6
+COND_VC = 7
+COND_HI = 8
+COND_LS = 9
+COND_GE = 10
+COND_LT = 11
+COND_GT = 12
+COND_LE = 13
+COND_AL = 14
+COND_NV = 15
+
+inv_cond_table = (
+        COND_NE,
+        COND_EQ,
+        COND_CC,
+        COND_CS,
+        COND_PL,
+        COND_MI,
+        COND_VC,
+        COND_VS,
+        COND_LS,
+        COND_HI,
+        COND_LT,
+        COND_GE,
+        COND_LE,
+        COND_GT,
+        COND_NV,
+        COND_AL,
+)
+
 
 prefetchTypes = ["pld", "pli", "pst"]   
 prefetchTargets = ["l1", "l2", "l3"]

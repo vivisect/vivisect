@@ -2905,63 +2905,58 @@ def p_addsub_ext_reg(opval, va):
     '''
     Add/sub (extended register)
     '''
-    #FIXME this is unclear and almost certainly wrong
+    iflag = 0
     sf = opval >> 31 & 0x1
     op = opval >> 30 & 0x1
     s = opval >> 29 & 0x1
     opt = opval >> 22 & 0x3
     rm = opval >> 16 & 0x1f
-    option = opval >> 13 & 0x7
+    extoper = opval >> 13 & 0x7
     imm3 = opval >> 10 & 0x7
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
+    size = 4<<sf
     
+    opcount = 3
     if op ==  0b0:
         mnem = 'add'
         opcode = INS_ADD
     else:
-        mnem = 'sub'
-        opcode = INS_SUB
-    if s == 0b1:
+        if rd == REG_SP:
+            mnem = 'cmp'
+            opcode = INS_CMP
+            opcount = 2
+        else:
+            mnem = 'sub'
+            opcode = INS_SUB
+
+    if s == 0b1 and opcount == 3:    # not used with aliases
         iflag |= IF_PSR_S
-    if option & 0b011 == 0b011:
+
+    if extoper & 0b011 == 0b011:
         sizeRM = 8
     else:
         sizeRM = 4
-    if rd == 0b11111 or rn ==  0b11111:
-        if option == 0b010:
-            extoper = 'LSL'
-    else:
-        extoper = exttable[option]
 
-    if sf == 0b0:
+    if (rd == 0b11111 or rn ==  0b11111):
+        if sizeRM == 4 and extoper == 0b010:
+            extoper = EXT_LSL
+        if sizeRM == 8 and extoper == 0b011:
+            extoper = EXT_LSL
+
+    if opcount == 3:
         olist = (
-            A64RegOper(rd, va, size=4),
-            A64RegOper(rn, va, size=4),
-            A64RegOper(rm, va, size=4),
-            A64ExtendOper(rm, extoper, imm3),
+            A64RegOper(rd, va, size=size),
+            A64RegOper(rn, va, size=size),
+            A64RegExtOper(rm, sizeRM, extoper, imm3, va=va),
         )
-    else:
+    elif opcount == 2:
         olist = (
-            A64RegOper(rd, va, size=8),
-            A64RegOper(rn, va, size=8),
-            A64RegOper(rm, va, size=sizeRM),
-            
+            A64RegOper(rn, va, size=size),
+            A64RegExtOper(rm, sizeRM, extoper, imm3, va=va),
         )
 
     return opcode, mnem, olist, iflag, 0
-
-exttable = (
-    'UXTB',
-    'UXTH',
-    'UXTW',
-    'UXTX',
-    'SXTB',
-    'SXTH',
-    'SXTW',
-    'SXTX',
-)
-
 
         
 def p_addsub_carry(opval, va):
@@ -3109,41 +3104,100 @@ def p_cond_cmp_reg(opval, va):
         )
     return opcode, mnem, olist, iflag, 0
 
+
+def condinvert(cond):
+    return inv_cond_table[cond]
+
 def p_cond_sel(opval, va):
     '''
     Conditional select
     '''
     iflag = 0
 
-    opcode = INS_CS
-    mnem = 'cs'
+    sf = (opval >> 31) & 1
+    op = (opval >> 30) & 1
+    op2 = (opval >> 10) & 0b11
+    rd = opval & 0x1f
+    rn = (opval >> 5) & 0x1f
+    rm = (opval >> 16) & 0x1f
+    cond = (opval >> 12) & 0xf
+
+    size = 4 << sf  #(4 if sf==0, 8 if sf==1)
+    opcount = 4
+
+    # sort out which variant of CS instruction we are, and the correct set of operands
     if op == 0b0:
         if op2 == 0b00:
-            iflag |= IF_EL
+            opcode = INS_CSEL
+            mnem = 'csel'
         elif op2 == 0b01:
-            iflag |= IF_INC
+            if rm == rn == 0x1f:    # alias for CSINC
+                opcode = INS_CSET
+                mnem = 'cset'
+                cond = condinvert(cond)
+                opcount = 2
+            elif rm == rn:
+                opcode = INS_CINC
+                mnem = 'cinc'
+                cond = condinvert(cond)
+                opcount = 3
+            else:
+                opcode = INS_CSINC
+                mnem = 'csinc'
         else:
             return p_undef(opval, va)
+
     else:
         if op2 == 0b00:
-            iflag |= IF_INV
+            if rm == rn == 0x1f:    # alias
+                opcode = INS_CSETM
+                mnem = 'csetm'
+                cond = condinvert(cond)
+                opcount = 2
+            else:
+                if rm == rn:
+                    cond = condinvert(cond)
+                    opcode = INS_CINV
+                    mnem = 'cinv'
+                    opcount = 3
+                else:
+                    opcode = INS_CSINV
+                    mnem = 'csinv'
+
         elif op2 == 0b01:
-            iflag |= IF_NEG
+            if rm == rn:    # alias
+                cond = condinvert(cond)
+                opcode = INS_CNEG
+                mnem = 'cneg'
+                opcount = 3
+            else:
+                opcode = INS_CSNEG
+                mnem = 'csneg'
         else:
             return p_undef(opval, va)
-    #FIXME: cond opers
-    if sf == 0b0:
+
+    # build the operand list
+    if opcount == 2:
         olist = (
-            A64RegOper(rd, va, size=4),
-            A64RegOper(rn, va, size=4),
-            A64RegOper(rm, va, size=4),
+            A64RegOper(rd, va, size=size),
+            A64CondOper(cond),
         )
+
+    elif opcount == 3:
+        olist = (
+            A64RegOper(rd, va, size=size),
+            A64RegWithZROper(rn, va, size=size),
+            A64CondOper(cond),
+        )
+
     else:
         olist = (
-            A64RegOper(rd, va, size=8),
-            A64RegOper(rn, va, size=8),
-            A64RegOper(rm, va, size=8),
+            A64RegOper(rd, va, size=size),
+            A64RegWithZROper(rn, va, size=size),
+            A64RegWithZROper(rm, va, size=size),
+            A64CondOper(cond),
         )
+
     return opcode, mnem, olist, iflag, 0
         
         
@@ -7735,6 +7789,61 @@ class A64RegWithZROper(A64RegOper):
         A64RegOper.__init__(self, reg, va, oflags, size)
 
 
+def extname(exttype):
+    return extrepr[exttype]
+
+
+class A64RegExtOper(A64RegOper):
+    '''
+    Register Extended     <Wm|Xm>{, extend {amount}}
+    '''
+    def __init__(self, reg, size=8, extendtype = 0b011, extendamount = 0, va=0, oflags=0):
+        A64RegOper.__init__(self, reg, va, oflags, size)
+        #if basereg == 31:
+        #    # make this SP
+        #    basereg = REG_SP
+        self.exttype = extendtype
+        self.extamt = extendamount
+
+    def render(self, mcanv, op, idx):
+        brname = rctx.getRegisterName(self.reg)
+        mcanv.addNameText(brname, typename='registers')
+        
+        if self.exttype != EXT_LSL or (self.exttype == EXT_LSL and self.extamt != 0):
+            mcanv.addText(', ')
+            mcanv.addText(extname(self.exttype))
+
+            if not self.extamt == 0:
+                mcanv.addText(' #')
+                mcanv.addText(str(self.extamt))
+
+    def repr(self, op):
+        brname = rctx.getRegisterName(self.reg)
+
+        # Hiding extension info only when extension is lsl and amount is 0 
+        if self.exttype == EXT_LSL and self.extamt == 0:
+            out = [ brname, ]
+        else:
+            if self.extamt == 0:
+                out = [ brname, ', ', extname(self.exttype)]
+            else:
+                out = [ brname, ', ', extname(self.exttype), ' #', str(self.extamt) ]
+        
+        return "".join(out)
+
+    def getOperValue(self, op, emu=None):
+        if not emu:
+            return None
+
+        val = emu.getRegister(self.reg)
+        val = extend(val, self.exttype, self.extamt)
+        val &= 0xffffffff_ffffffff
+
+
+        return addr
+
+
+
 def addrToName(mcanv, va):
     sym = mcanv.syms.getSymByAddr(va)
     if sym is not None:
@@ -8061,6 +8170,23 @@ class A64NameOper(A64Operand):
         mcanv.addText(self.mnem)
 
 
+prfm_types = (
+        'PLD',
+        'PLI',
+        'PST',
+        )
+
+target_types = (
+        'L1',
+        'L2',
+        'L3',
+        )
+
+policy_types = (
+        'KEEP',
+        'STRM',
+        )
+
 class A64PreFetchOper(A64Operand):
     '''
     Subclass of A64Operand. prfop operand class (pre-fetch operation)
@@ -8071,7 +8197,7 @@ class A64PreFetchOper(A64Operand):
         self.policy = policy
     
     def repr(self, op):                
-        return types[self.type] + targets[self.target] + policy[self.policy]
+        return prfm_types[self.type] + target_types[self.target] + policy_types[self.policy]
 
 
 class A64ShiftOper(A64Operand):
