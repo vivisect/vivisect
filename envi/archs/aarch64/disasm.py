@@ -754,7 +754,7 @@ def p_excp_gen(opval, va):
     #a treeish structure
     if opc == 0b000:
         if ll == 0b01:
-            mnem = 'sbc'
+            mnem = 'svc'
             opcode = INS_SVC
         elif ll == 0b10:
             mnem = 'hvc'
@@ -3003,7 +3003,6 @@ def p_addsub_carry(opval, va):
                 A64RegOper(rd, va, size=8),
                 A64RegOper(rm, va, size=8),
             )
-
 
         elif sf == 0b0:
             olist = (
