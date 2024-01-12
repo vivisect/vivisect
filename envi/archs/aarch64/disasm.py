@@ -13,7 +13,50 @@ import envi.bits as e_bits
 All the various tables inittable references
 '''
 s_0_table = (   # undefined and unallcated
-    (0b10011110000000000000000000000000, 0b10000000000000000000000000000000, IENC_SME),
+    (0b11011110110000000000000000001000, 0b10000000110000000000000000000000, IENC_SME_OUTER_PRODUCT_64_BIT),
+    #(0b10000x11xxxxxxxxxxxxxxxxxx1xxxxx, 0b10000x11xxxxxxxxxxxxxxxxxx1xxxxx, UNALLOCATED.),
+    #(0b1000000x0xxxxxxxxxxxxxxxxxxxxxxx, 0b1000000x0xxxxxxxxxxxxxxxxxxxxxxx, UNALLOCATED.),
+    (0b11111110110000000000000000001100, 0b10000000100000000000000000000000, IENC_SME_FP_OUTER_PRODUCT_32_BIT),
+    # (0b1000000010xxxxxxxxxxxxxxxxxxx1xx, 0b1000000010xxxxxxxxxxxxxxxxxxx1xx, UNALLOCATED.),
+    (0b11111111110000000000000000001100, 0b10000000100000000000000000001000, IENC_SME2_BINARY_OUTER_PRODUCT_32_BIT),
+    #(0b1000000110xxxxxxxxxxxxxxxxxx01xx, 0b1000000110xxxxxxxxxxxxxxxxxx01xx, UNALLOCATED.),
+    (0b11111110110000000000000000000100, 0b10100000100000000000000000000000, IENC_SME_INTEGER_OUTER_PRODUCT_32_BIT),
+    #(0b1010000x10xxxxxxxxxxxxxxxxxxx1xx, 0b1010000x10xxxxxxxxxxxxxxxxxxx1xx, UNALLOCATED.),
+    (0b11111111100000000000000000000000, 0b10100000000000000000000000000000, IENC_SME2_MULTI_VECTOR_MEMORY_CONTIGUOUS),
+    (0b11111111100000000000000000000000, 0b10100001000000000000000000000000, IENC_SME2_MULTI_VECTOR_MEMORY_STRIDED),
+    (0b11111111001110100000000000010000, 0b11000000000000000000000000000000, IENC_SME_MOVE_INTO_ARRAY),
+    #(0b11000000xx000x0xxxxxxxxxxxx1xxxx, 0b11000000xx000x0xxxxxxxxxxxx1xxxx, UNALLOCATED.),
+    (0b11111111001110100000000000000000, 0b11000000000000100000000000000000, IENC_SME_MOVE_FROM_ARRAY),
+    (0b11111111001110000000000000001000, 0b11000000000100000000000000000000, IENC_SME_ADD_VECTOR_TO_ARRAY),
+    #(0b11000000xx010xxxxxxxxxxxxxxx1xxx, 0b11000000xx010xxxxxxxxxxxxxxx1xxx, UNALLOCATED.),
+    #(0b11000000xx011xxxxxxxxxxxxxxxxxxx, 0b11000000xx011xxxxxxxxxxxxxxxxxxx, UNALLOCATED.),
+    #(0b11000000xx1xxxxxxxxxxxxxxxxxxxxx, 0b11000000xx1xxxxxxxxxxxxxxxxxxxxx, UNALLOCATED.),
+    (0b11111111111111000000000000000000, 0b11000000000010000000000000000000,    IENC_SME_ZERO),
+    #(0b11000000000011xxxxxxxxxxxxxxxxxx, 0b11000000000011xxxxxxxxxxxxxxxxxx, UNALLOCATED.),
+    (0b11111111111111000000000000000000, 0b11000000010010000000000000000000,    IENC_SME2_ZERO_LOOKUP_TABLE),
+    (0b11111111111111000000000000000000, 0b11000000010011000000000000000000,    IENC_SME2_MOVE_LOOKUP_TABLE),
+    (0b11111111101110000000000000000000, 0b11000000100010000000000000000000,    IENC_SME2_E0PAND_LOOKUP_TABLE_CONTIGUOUS),
+    (0b11111111001100000000000000000000, 0b11000001000000000000000000000000,    IENC_SME2_MULTI_VECTOR_INDE0ED_ONE_REGISTER),
+    (0b11111111001100001000000000000000, 0b11000001000100000000000000000000,    IENC_SME2_MULTI_VECTOR_INDE0ED_TWO_REGISTERS),
+    (0b11111111001100001000000000000000, 0b11000001000100001000000000000000,    IENC_SME2_MULTI_VECTOR_INDE0ED_FOUR_REGISTERS),
+    (0b11111111001000001110000000000000, 0b11000001001000001000000000000000,    IENC_SME2_MULTI_VECTOR_SVE_SELECT),
+    (0b11111111001000001110000000000000, 0b11000001001000001100000000000000,    IENC_SME2_MULTI_VECTOR_SVE_CONSTRUCTIVE_BINARY),
+    (0b11111111001000001111110000000000, 0b11000001001000001110000000000000,    IENC_SME2_MULTI_VECTOR_SVE_CONSTRUCTIVE_UNARY),
+    #(0b11000001xx1xxxxx111001xxxxxxxxxx, 0b11000001xx1xxxxx111001xxxxxxxxxx, UNALLOCATED.),
+    #(0b11000001xx1xxxxx11101xxxxxxxxxxx, 0b11000001xx1xxxxx11101xxxxxxxxxxx, UNALLOCATED.),
+    (0b11111111001000011111100000000000, 0b11000001001000001011000000000000,    IENC_SME2_MULTI_VECTOR_MULTIPLE_VECTORS_SVE_DESTRUCTIVE_TWO_REGISTERS),
+    (0b11111111001000011111100000000000, 0b11000001001000001011100000000000,    IENC_SME2_MULTI_VECTOR_MULTIPLE_VECTORS_SVE_DESTRUCTIVE_FOUR_REGISTERS),
+    (0b11111111001100001111100000000000, 0b11000001001000001010000000000000,    IENC_SME2_MULTI_VECTOR_MULTIPLE_AND_SINGLE_SVE_DESTRUCTIVE_TWO_REGISTERS),
+    (0b11111111001100001111100000000000, 0b11000001001000001010100000000000,    IENC_SME2_MULTI_VECTOR_MULTIPLE_AND_SINGLE_SVE_DESTRUCTIVE_FOUR_REGISTERS),
+    #(0b11000001xx10xxx01111xxxxxxxxxxxx, 0b11000001xx10xxx01111xxxxxxxxxxxx, Unallocated.),
+    #(0b11000001xx10xxx11x11xxxxxxxxxxxx, 0b11000001xx10xxx11x11xxxxxxxxxxxx, Unallocated.),
+    #(0b11000001xx11xxxx1111xxxxxxxxxxxx, 0b11000001xx11xxxx1111xxxxxxxxxxxx, Unallocated.),
+    #(0b11000001xx11xxx01010xxxxxxxxxxxx, 0b11000001xx11xxx01010xxxxxxxxxxxx, Unallocated.),
+    #(0b11000001xx11xxx1101xxxxxxxxxxxxx, 0b11000001xx11xxx1101xxxxxxxxxxxxx, Unallocated.),
+    (0B11111111101000001000000000000000, 0B11000001001000000000000000000000,    IENC_SME2_MULTI_VECTOR_MULTIPLE_AND_SINGLE_ARRAY_VECTORS),
+    (0B11111111101000011000000000000000, 0B11000001101000000000000000000000,    IENC_SME2_MULTI_VECTOR_MULTIPLE_ARRAY_VECTORS_TWO_REGISTERS),
+    (0B11111111101000011000000000000000, 0B11000001101000010000000000000000,    IENC_SME2_MULTI_VECTOR_MULTIPLE_ARRAY_VECTORS_FOUR_REGISTERS),
+    (0B11111110000000000000000000000000, 0B11100000000000000000000000000000,    IENC_SME_MEMORY),
     (0b10011110000000000000000000000000, 0b00000000000000000000000000000000, IENC_RESERVED),
     (0,0,IENC_UNDEF),#catch-all
 )
@@ -7627,6 +7670,34 @@ def p_crypto_two_sha(opval, va):
     return opcode, mnem, olist, 0, 0
     
 
+def p_sme_outer_product_64_bit(opval, va):  pass
+def p_sme_fp_outer_product_32_bit(opval, va):   pass
+def p_sme2_binary_outer_product_32_bit(opval, va):  pass
+def p_sme_integer_outer_product_32_bit(opval, va):  pass
+def p_sme2_multi_vector_memory_contiguous(opval, va):   pass
+def p_sme2_multi_vector_memory_strided(opval, va):  pass
+def p_sme_move_into_array(opval, va):   pass
+def p_sme_move_from_array(opval, va):   pass
+def p_sme_add_vector_to_array(opval, va):   pass
+def p_sme_zero(opval, va):  pass
+def p_sme2_zero_lookup_table(opval, va):    pass
+def p_sme2_move_lookup_table(opval, va):    pass
+def p_sme2_e0pand_lookup_table_contiguous(opval, va):   pass
+def p_sme2_multi_vector_inde0ed_one_register(opval, va):    pass
+def p_sme2_multi_vector_inde0ed_two_registers(opval, va):   pass
+def p_sme2_multi_vector_inde0ed_four_registers(opval, va):  pass
+def p_sme2_multi_vector_sve_select(opval, va):  pass
+def p_sme2_multi_vector_sve_constructive_binary(opval, va): pass
+def p_sme2_multi_vector_sve_constructive_unary(opval, va):  pass
+def p_sme2_multi_vector_multiple_vectors_sve_destructive_two_registers(opval, va):  pass
+def p_sme2_multi_vector_multiple_vectors_sve_destructive_four_registers(opval, va): pass
+def p_sme2_multi_vector_multiple_and_single_sve_destructive_two_registers(opval, va):   pass
+def p_sme2_multi_vector_multiple_and_single_sve_destructive_four_registers(opval, va):  pass
+def p_sme2_multi_vector_multiple_and_single_array_vectors(opval, va):   pass
+def p_sme2_multi_vector_multiple_array_vectors_two_registers(opval, va):    pass
+def p_sme2_multi_vector_multiple_array_vectors_four_registers(opval, va):   pass
+def p_sme_memory(opval, va):    pass
+
 def p_undef(opval, va):
     '''
     Undefined encoding family
@@ -7719,6 +7790,33 @@ ienc_parsers_tmp[IENC_SIMD_SCALAR_SHIFT_IMM] = p_simd_scalar_shift_imm
 ienc_parsers_tmp[IENC_CRPYTO_AES] = p_crypto_aes
 ienc_parsers_tmp[IENC_CRYPTO_THREE_SHA] = p_crypto_three_sha
 ienc_parsers_tmp[IENC_CRYPTO_TWO_SHA] = p_crypto_two_sha
+ienc_parsers_tmp[ IENC_SME_OUTER_PRODUCT_64_BIT] = p_sme_outer_product_64_bit
+ienc_parsers_tmp[ IENC_SME_FP_OUTER_PRODUCT_32_BIT] = p_sme_fp_outer_product_32_bit
+ienc_parsers_tmp[ IENC_SME2_BINARY_OUTER_PRODUCT_32_BIT] = p_sme2_binary_outer_product_32_bit
+ienc_parsers_tmp[ IENC_SME_INTEGER_OUTER_PRODUCT_32_BIT] = p_sme_integer_outer_product_32_bit
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MEMORY_CONTIGUOUS] = p_sme2_multi_vector_memory_contiguous
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MEMORY_STRIDED] = p_sme2_multi_vector_memory_strided
+ienc_parsers_tmp[ IENC_SME_MOVE_INTO_ARRAY] = p_sme_move_into_array
+ienc_parsers_tmp[ IENC_SME_MOVE_FROM_ARRAY] = p_sme_move_from_array
+ienc_parsers_tmp[ IENC_SME_ADD_VECTOR_TO_ARRAY] = p_sme_add_vector_to_array
+ienc_parsers_tmp[ IENC_SME_ZERO] = p_sme_zero
+ienc_parsers_tmp[ IENC_SME2_ZERO_LOOKUP_TABLE] = p_sme2_zero_lookup_table
+ienc_parsers_tmp[ IENC_SME2_MOVE_LOOKUP_TABLE] = p_sme2_move_lookup_table
+ienc_parsers_tmp[ IENC_SME2_E0PAND_LOOKUP_TABLE_CONTIGUOUS] = p_sme2_e0pand_lookup_table_contiguous
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_INDE0ED_ONE_REGISTER] = p_sme2_multi_vector_inde0ed_one_register
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_INDE0ED_TWO_REGISTERS] = p_sme2_multi_vector_inde0ed_two_registers
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_INDE0ED_FOUR_REGISTERS] = p_sme2_multi_vector_inde0ed_four_registers
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_SVE_SELECT] = p_sme2_multi_vector_sve_select
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_SVE_CONSTRUCTIVE_BINARY] = p_sme2_multi_vector_sve_constructive_binary
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_SVE_CONSTRUCTIVE_UNARY] = p_sme2_multi_vector_sve_constructive_unary
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_VECTORS_SVE_DESTRUCTIVE_TWO_REGISTERS] = p_sme2_multi_vector_multiple_vectors_sve_destructive_two_registers
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_VECTORS_SVE_DESTRUCTIVE_FOUR_REGISTERS] = p_sme2_multi_vector_multiple_vectors_sve_destructive_four_registers
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_AND_SINGLE_SVE_DESTRUCTIVE_TWO_REGISTERS] = p_sme2_multi_vector_multiple_and_single_sve_destructive_two_registers
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_AND_SINGLE_SVE_DESTRUCTIVE_FOUR_REGISTERS] = p_sme2_multi_vector_multiple_and_single_sve_destructive_four_registers
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_AND_SINGLE_ARRAY_VECTORS] = p_sme2_multi_vector_multiple_and_single_array_vectors
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_ARRAY_VECTORS_TWO_REGISTERS] = p_sme2_multi_vector_multiple_array_vectors_two_registers
+ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_ARRAY_VECTORS_FOUR_REGISTERS] = p_sme2_multi_vector_multiple_array_vectors_four_registers
+ienc_parsers_tmp[ IENC_SME_MEMORY] = p_sme_memory
 ienc_parsers_tmp[IENC_UNDEF] = p_undef
 
 
