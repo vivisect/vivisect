@@ -2981,18 +2981,11 @@ def p_addsub_ext_reg(opval, va):
     else:
         sizeRM = 4
 
-    if (opcode != INS_CMP): 
-        if (rd == 0b11111 or rn ==  0b11111):
-            if sizeRM == 4 and extoper == 0b010:
-                extoper = EXT_LSL
-            elif sizeRM == 8 and extoper == 0b011:
-                extoper = EXT_LSL
-    else:       # Extension check for CMP ignores rd
-        if (rn == 0b11111):
-            if sizeRM == 4 and extoper == 0b010:
-                extoper = EXT_LSL
-            elif sizeRM == 8 and extoper == 0b011:
-                extoper = EXT_LSL
+    if (rn == 0b11111 or (rd == 0b11111 and opcode != INS_CMP)):
+        if sizeRM == 4 and extoper == 0b010:
+            extoper = EXT_LSL
+        elif sizeRM == 8 and extoper == 0b011:
+            extoper = EXT_LSL
 
     if opcount == 3:
         olist = (
