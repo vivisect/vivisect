@@ -1813,18 +1813,21 @@ def p_ls_reg_offset(opval, va):
             if size == 0b11 and opc == 0b10:
                 mnem =  'prfm'
                 opcode = INS_PRFM
-                if option & 0b011 == 0b011:
-                    regsize = 4
-                elif option & 0b011 == 0b010:
+
+                if option & 0b1 == 0b1:
                     regsize = 8
+                elif option & 0b1 == 0b0:
+                    regsize = 4
                 else:
                     return p_undef(opval)
+
+                indShift = (0, 3)[s]
+                
                 olist = (
                     A64PreFetchOper(rt>>3, (rt>>1)&3, rt&1),
-                    A64RegOper(rn, va, size=8),
-                    A64RegOper(rm, va, size=regsize),
-                    #FIXME extend
-                    #FIXME amount
+                    #A64RegOper(rn, va, size=8),
+                    #A64RegOper(rm, va, size=regsize),
+                    A64RegRegOffOper(rn, rm, regsize, extendtype=option, extendamount=indShift, va=va)
                 )
                 return opcode, mnem, olist, 0, 0
             else:
