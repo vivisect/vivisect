@@ -446,6 +446,7 @@ instrnames = [
     'XPACD',
     'XPACLRI',
     'FMINNMP',
+    'UQSHL',
 ]
 
 ins_index = 85
