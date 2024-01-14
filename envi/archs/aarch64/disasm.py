@@ -135,6 +135,9 @@ s_ce_table = (  # loads and stores
 
 s_d_table = (   # data processing - registers
     (0b00011111111000000000000000000000, 0b00011010000000000000000000000000, IENC_ADDSUB_CARRY),
+    #(0b00011111111000001111110000000000, 0b00011010000000000000000000000000, IENC_ADDSUB_CARRY),
+    #(0b00011111111000000111110000000000, 0b00011010000000000000100000000000, IENC_ROR_FLAGS),
+    #(0b00011111111000000011110000000000, 0b00011010000000000001000000000000, IENC_EVAL_FLAGS),
     (0b00011111111000000000100000000000, 0b00011010010000000000000000000000, IENC_COND_CMP_REG),
     (0b00011111111000000000100000000000, 0b00011010010000000000100000000000, IENC_COND_CMP_IMM),
     (0b00011111111000000000000000000000, 0b00011010100000000000000000000000, IENC_COND_SEL),
@@ -266,7 +269,7 @@ def p_addsub_imm(opval, va):
         if opval >> 22 & 0x1:
             olist = (
             A64RegOper(rn, va=va, size=size),
-            A64ImmOper(imm, 12, S_LSL, va),
+            A64ImmOper(imm, 12, S_LSL, va=va),
             )
 
         else:
@@ -395,7 +398,7 @@ def p_log_imm(opval, va):
 
                 olist = (
                 A64RegOper(rd, va, size=size),
-                A64ImmOper(imm, 0, S_ROR, va, size),
+                A64ImmOper(imm, 0, S_ROR, va=va, size=size),
                 )    
 
                 return opcode, mnem, olist, iflags, 0
@@ -444,15 +447,19 @@ def p_mov_wide_imm(opval, va):
     if opc == 1:
         return p_undef(opval, va)
 
+
     #sf determines whether the register size corresponds to the 32 or 64-bit variant
     if sf == 0b0:
         size = 4
     else:
         size = 8
+
+    imm = imm16 << (16*hw)
     olist = (
         A64RegOper(rd, va, size=size),
-        A64ImmOper(imm16, hw*0b10000, S_LSL, va),
+        A64ImmOper(imm, size=size, va=va),
     )
+
     #all instrs share the mnem 'mov', but have one of three potential flags set
     #based on opc (00 -> IF_N, 01 -> undefined, 10 -> IF_Z, 11 -> IF_K)
     mnem = 'mov'
@@ -1675,8 +1682,7 @@ def p_ls_reg_unpriv(opval, va):
             regsize = 8
         olist = (
             A64RegOper(rt, va, size=regsize),
-            A64RegOper(rn, va, size=8),
-            A64ImmOper(imm9, va),
+            A64RegImmOffOper(rn, imm9, va=va, tsize=8),
         )
     else:
         return p_undef(opval, va)
@@ -2845,7 +2851,10 @@ def p_addsub_shft_reg(opval, va):
     sf = opval >> 31 & 0x1
     op = opval >> 30 & 0x1
     s = opval >> 29 & 0x1
+    op1 = opval >> 28 & 0x1
+    op2 = opval >> 21 & 0xf
     shift = opval >> 22 & 0x3
+
     rm = opval >> 16 & 0x1f
     imm6 = opval >> 10 & 0x3f
     rn = opval >> 5 & 0x1f
@@ -2932,7 +2941,6 @@ def p_addsub_shft_reg(opval, va):
                 A64RegOper(rn, va, size=8),
                 A64ShiftOper(rm, shtype, imm6, regsize=8),
             )
-
     return opcode, mnem, olist, iflag, 0
 
 def p_addsub_ext_reg(opval, va):
@@ -2956,7 +2964,7 @@ def p_addsub_ext_reg(opval, va):
         mnem = 'add'
         opcode = INS_ADD
     else:
-        if rd == REG_SP:
+        if rd == REG_SP and not rn == REG_SP:
             mnem = 'cmp'
             opcode = INS_CMP
             opcount = 2
@@ -2972,7 +2980,7 @@ def p_addsub_ext_reg(opval, va):
     else:
         sizeRM = 4
 
-    if (rd == 0b11111 or rn ==  0b11111):
+    if rn ==  0b11111:
         if sizeRM == 4 and extoper == 0b010:
             extoper = EXT_LSL
         if sizeRM == 8 and extoper == 0b011:
@@ -3375,6 +3383,7 @@ def p_data_proc_2(opval, va):
                     mnem = 'rorv'
     if opc >> 2 & 0x1 == 0b1:
         iflag |= IF_C
+
     if sf == 0b0:
         #FIXME register shift encoded in rm
         olist = (
@@ -7802,7 +7811,7 @@ ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_AND_SINGLE_ARRAY_VECTORS] = p_
 ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_ARRAY_VECTORS_TWO_REGISTERS] = p_sme2_multi_vector_multiple_array_vectors_two_registers
 ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_ARRAY_VECTORS_FOUR_REGISTERS] = p_sme2_multi_vector_multiple_array_vectors_four_registers
 ienc_parsers_tmp[ IENC_SME_MEMORY] = p_sme_memory
-ienc_parsers_tmp[IENC_UNDEF] = p_undef
+ienc_parsers_tmp[IENC_UNDEF] = p_udf
 
 
 ienc_parsers = tuple(ienc_parsers_tmp)
@@ -7978,7 +7987,8 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
     '''
     Subclass of A64Operand. Immediate operand class
     '''
-    def __init__(self, val=0, shval=0, shtype=S_ROR, va=0, size=4):
+    def __init__(self, val=0, shval=0, shtype=S_ROR, va=0, size=8):
+        #print("A64ImmOper: %r %r %r %r %r" % (val, shval, shtype, va, size))
         self.val = val
         self.shval = shval
         self.shtype = shtype
@@ -8432,6 +8442,9 @@ class A64Opcode(envi.Opcode):
             if self.iflags & IF_L:
                 mnem += 'l'
 
+            if self.iflags & IF_C:
+                mnem += 'c'
+
             if self.iflags & IF_A:
                 mnem += 'a'
 
@@ -8489,6 +8502,9 @@ class A64Opcode(envi.Opcode):
 
             if self.iflags & IF_L:
                 mnem += 'l'
+
+            if self.iflags & IF_C:
+                mnem += 'c'
 
             if self.iflags & IF_A:
                 mnem += 'a'
