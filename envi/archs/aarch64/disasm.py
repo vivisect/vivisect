@@ -130,6 +130,7 @@ s_ce_table = (  # loads and stores
     (0b00111011001000000000110000000000, 0b00111000000000000000100000000000, IENC_LS_REG_UNPRIV),
     (0b00111011001000000000110000000000, 0b00111000000000000000110000000000, IENC_LS_REG_IMM_PREI),
     (0b00111011001000000000110000000000, 0b00111000001000000000100000000000, IENC_LS_REG_OFFSET),
+    (0b00111011011000001111110000000000, 0b00111000011000000110000000000000, IENC_LS_ATOMIC_MEM),
     (0,0,IENC_UNDEF),#catch-all
 )
 
@@ -2003,6 +2004,23 @@ def p_ls_reg_us_imm(opval, va):
         )
 
     return opcode, mnem, olist, iflag, 0
+
+def p_ls_atomic_mem(opval, va):
+    '''
+    Atomic memory load/stores, W.I.P.
+    '''
+    size = opval >> 30 & 0b11
+    v = opval >> 26 & 0b1
+    a = opval >> 23 & 0b1
+    r = opval >> 22 & 0b1
+    rs = opval >> 16 & 0b11111
+    o3 = opval >> 15 & 0b1
+    opc = opval >> 12 & 0b111
+    rn = opval >> 5 & 0b11111
+    rt = opval & 0b11111
+
+    return p_undef(opval, va)
+    # return (opcode, mnem, olist, 0, 0)    #iflags?
 
 def p_simd_ls_multistruct(opval, va):
     '''
@@ -7750,6 +7768,7 @@ ienc_parsers_tmp[IENC_LS_REG_IMM_POSTI] = p_ls_reg_imm
 ienc_parsers_tmp[IENC_LS_REG_UNPRIV] = p_ls_reg_unpriv
 ienc_parsers_tmp[IENC_LS_REG_IMM_PREI] = p_ls_reg_imm
 ienc_parsers_tmp[IENC_LS_REG_OFFSET] = p_ls_reg_offset
+ienc_parsers_tmp[IENC_LS_ATOMIC_MEM] = p_ls_atomic_mem
 ienc_parsers_tmp[IENC_ADDSUB_CARRY] = p_addsub_carry
 ienc_parsers_tmp[IENC_COND_CMP_REG] = p_cond_cmp_reg
 ienc_parsers_tmp[IENC_COND_CMP_IMM] = p_cond_cmp_imm
