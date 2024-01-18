@@ -1,5 +1,7 @@
 import logging
 
+import visgraph.pathcore as vg_path
+
 import vivisect
 import vivisect.exc as v_exc
 import vivisect.impemu.monitor as viv_monitor
@@ -133,6 +135,8 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         elif op.opcode == INS_MOVT:
             val = op.getOperValue(0, emu=emu)
             emu.vw.setSymHint(op.va, OP_SYMHINT_IDX, val)
+            if emu.isValidPointer(val):
+                emu.vw.addXref(op.va, val, vivisect.REF_PTR)
 
 argnames = {
     0: ('r0', 0),
@@ -178,8 +182,33 @@ def buildFunctionApi(vw, fva, emu, emumon):
     return api
 
 
+def getAllReads(emu):
+    # there has to be a more efficient way...
+    allaccess = []
+    for path in vg_path.getAllPaths(emu.path):
+        for node in path:
+            for read in node[2]['readlog']:
+                if read in allaccess:
+                    # skip duplicate
+                    continue
+                allaccess.append(read)
+
+    return allaccess
+
+def getAllWrites(emu):
+    # there has to be a more efficient way...
+    allaccess = []
+    for path in vg_path.getAllPaths(emu.path):
+        for node in path:
+            for write in node[2]['writelog']:
+                if write in allaccess:
+                    # skip duplicate
+                    continue
+                allaccess.append(write)
+    return allaccess
+
 def analyzeFunction(vw, fva):
-    emu = vw.getEmulator(va=fva)
+    emu = vw.getEmulator(va=fva, logread=True, logwrite=True)
     emumon = AnalysisMonitor(vw, fva)
     emu.setEmulationMonitor(emumon)
 
@@ -193,6 +222,31 @@ def analyzeFunction(vw, fva):
         logger.warning("NO LOCATION at FVA: 0x%x", fva)
 
     emu.runFunction(fva, maxhit=1)
+
+
+    # find all xrefs that are read/written to
+    xrefs = []
+    for read in getAllReads(emu):
+        tofrom = read[:2]
+        if tofrom not in xrefs:
+            xrefs.append(tofrom)
+
+    for write in getAllWrites(emu):
+        tofrom = write[:2]
+        if tofrom not in xrefs:
+            xrefs.append(tofrom)
+
+    stackmap = emu.getMemoryMap(emu.getStackCounter())
+
+    # make XREFs for the ones that are interesting/sane
+    for x, y in xrefs:
+        if emu.getVivTaint(y):
+            continue
+
+        if emu.getMemoryMap(y) == stackmap:
+            continue
+
+        vw.addXref(x, y, REF_PTR)
 
     # Do we already have API info in meta?
     # NOTE: do *not* use getFunctionApi here, it will make one!

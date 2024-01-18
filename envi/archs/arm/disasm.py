@@ -2947,7 +2947,7 @@ def _do_adv_simd_ldst_32(val, va, u):
                 # vst2
                 mnem = 'vst2'
                 inc = (1, 2)[optype==9]
-                align= (1, 4)[bool(align)] # FIXME
+                align= (1, 4)[bool(align)]
                 if reg_index:
                     pubwl &= ~0x10
                     opers = (
