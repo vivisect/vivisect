@@ -276,7 +276,7 @@ def p_pc_addr(opval, va):
     #Both instructions share the mnemonic 'adr', but if op == 1
     #then mnemonic becomes 'adrp'
     mnem, opcode = (('adr', INS_ADR), ('adrp', INS_ADRP))[op]
-    iflag = 0
+    iflags = 0
 
     base = va
     imm = (immhi | immlo)
@@ -297,13 +297,13 @@ def p_pc_addr(opval, va):
     )
 
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_addsub_imm(opval, va):
     '''
     Get the A64Opcode parameters for an Add/Subtract (immediate) instruction
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31 & 0x1
     op = opval >> 30 & 0x1
     s = opval >> 29 & 0x1
@@ -321,11 +321,11 @@ def p_addsub_imm(opval, va):
         opcode = INS_SUB
 
 
-    #if the value of s is 1, then the iflag should be set to PSR_S, becoming adds or subs
+    #if the value of s is 1, then the iflags should be set to PSR_S, becoming adds or subs
     if s == 0b0:
-        iflag = 0
+        iflags = 0
     else:
-        iflag |= IF_PSR_S
+        iflags |= IF_PSR_S
 
     #if shift's value is 01, set shift amount to 12. else, shift is either
         #explicitly assigned to 0 (shift = 00) or defaults to 0 (shift = 1x)
@@ -344,8 +344,8 @@ def p_addsub_imm(opval, va):
             mnem = 'cmn'
             opcode = INS_CMN
 
-        # Resets iflag to remove a previous S flag, which is incorrect for this mnem 
-        iflag = 0
+        # Resets iflags to remove a previous S flag, which is incorrect for this mnem 
+        iflags = 0
 
         # Setting size based on sf
         # Must be done here, before rd is changed
@@ -366,7 +366,7 @@ def p_addsub_imm(opval, va):
             A64ImmOper(imm),
             )
         
-        return opcode, mnem, olist, iflag, 0
+        return opcode, mnem, olist, iflags, 0
 
 
     #sf determines whether the register size corresponds to the 32 or 64-bit variant
@@ -387,14 +387,14 @@ def p_addsub_imm(opval, va):
             A64RegOper(rn, va=va, size=size),
         )
 
-        return opcode, mnem, olist, iflag, 0
+        return opcode, mnem, olist, iflags, 0
         
     olist = (
         A64RegOper(rd, va=va, size=size),
         A64RegOper(rn, va=va, size=size),
         A64ImmOper(imm, shiftX, S_LSL, va),
     )        
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
     
 def p_log_imm(opval, va):
     '''
@@ -525,7 +525,7 @@ def p_mov_wide_imm(opval, va):
     '''
     Get the A64Opcode parameters for a Move Wide (immediate) instruction
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31
     opc = (opval >> 29) & 0x3
     hw = (opval >> 21) & 0x3
@@ -552,13 +552,13 @@ def p_mov_wide_imm(opval, va):
     #based on opc (00 -> IF_N, 01 -> undefined, 10 -> IF_Z, 11 -> IF_K)
     mnem = 'mov'
     opcode = INS_MOV
-    iflag = mov_w_flags[opc]
+    iflags = mov_w_flags[opc]
 
     #if opc != 0b10:
         #mnem += movSuffixes[opc]   # Now done in base oper class
-        #iflag = mov_w_flags[opc]    # MOVZ expected outputs are broken
+        #iflags = mov_w_flags[opc]    # MOVZ expected outputs are broken
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 
 def p_bitfield(opval, va):
@@ -575,10 +575,10 @@ def p_bitfield(opval, va):
     #all instrs share mnem 'bfm', but have different 
     mnem = 'bfm'
     opcode = INS_BFM
-    iflag = (IFP_S, 0, IFP_U, None)[opc]
-    #if iflag is none, the instruction is undefined. Otherwise, determine variant
+    iflags = (IFP_S, 0, IFP_U, None)[opc]
+    #if iflags is none, the instruction is undefined. Otherwise, determine variant
     #based on sf and n and assign olist
-    if iflag != None:
+    if iflags != None:
         if sf == 0b0 and n == 0b0:
             size = 4
             rd += meta_reg_bases[size]
@@ -589,8 +589,8 @@ def p_bitfield(opval, va):
             return p_undef(opval, va)
 
         # Alias checking
-        if opc == 00 and iflag == IFP_S and ((size == 4 and imms == 0b011111) or (size == 8 and imms == 0b111111)):
-            iflag = 0
+        if opc == 00 and iflags == IFP_S and ((size == 4 and imms == 0b011111) or (size == 8 and imms == 0b111111)):
+            iflags = 0
             mnem = 'asr'
             opcode = INS_ASR
 
@@ -600,8 +600,8 @@ def p_bitfield(opval, va):
                 A64ImmOper(immr, va=va),
                 )
 
-        elif opc == 0b10 and iflag == IFP_U and imms + 1 == immr and ((size == 4 and imms != 0b011111) or (size == 8 and imms != 111111)):
-            iflag = 0
+        elif opc == 0b10 and iflags == IFP_U and imms + 1 == immr and ((size == 4 and imms != 0b011111) or (size == 8 and imms != 111111)):
+            iflags = 0
             mnem = 'lsl'
             opcode = INS_LSL
 
@@ -619,8 +619,8 @@ def p_bitfield(opval, va):
                     A64ImmOper((immr * -1) % 64, va=va),
                 )
 
-        elif opc == 0b10 and iflag == IFP_U and ((size == 4 and imms == 0b011111) or (size == 8 and imms == 0b111111)):
-            iflag = 0
+        elif opc == 0b10 and iflags == IFP_U and ((size == 4 and imms == 0b011111) or (size == 8 and imms == 0b111111)):
+            iflags = 0
             mnem = 'lsr'
             opcode = INS_LSR
 
@@ -632,7 +632,7 @@ def p_bitfield(opval, va):
 
         elif imms < immr:
             
-            if iflag != 0:
+            if iflags != 0:
                 mnem = 'bfiz'
             else:
                 mnem = 'bfi'
@@ -716,7 +716,7 @@ def p_bitfield(opval, va):
     else:
         return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 
 
@@ -776,15 +776,17 @@ def p_branch_uncond_imm(opval, va):
     if op == 0:
         mnem = 'b'
         opcode = INS_B
+        iflags = envi.IF_BRANCH|envi.IF_NOFALL
     else:
         mnem = 'bl'
         opcode = INS_BL
+        iflags = envi.IF_CALL
         
     olist = (
         A64BranchOper(imm, va=va),
     )
 
-    return opcode, mnem, olist, 0, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_cmp_branch_imm(opval, va):
     '''
@@ -796,6 +798,7 @@ def p_cmp_branch_imm(opval, va):
     imm19 = opval >> 3 & 0x1ffffc
     imm19 = e_bits.bsign_extend(imm19, 21, 64)
     imm19 = e_bits.signed(imm19, 8)
+    iflags = envi.IF_BRANCH | envi.IF_COND
 
     # ZR Check on RT
     if rt == 31:
@@ -820,7 +823,7 @@ def p_cmp_branch_imm(opval, va):
         A64BranchOper(imm19, va),
     )
 
-    return opcode, mnem, olist, 0, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_test_branch_imm(opval, va):
     '''
@@ -831,6 +834,7 @@ def p_test_branch_imm(opval, va):
     b40 = opval >> 19 & 0x1f
     imm14 = opval >> 5 & 0x3fff
     rt = opval & 0x1f
+    iflags = envi.IF_COND | envi.IF_BRANCH
 
     #mnem is determined based on op, size is based on b5
     if op == 0b0:
@@ -854,13 +858,13 @@ def p_test_branch_imm(opval, va):
 
     
 
-    return opcode, mnem, olist, 0, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_branch_cond_imm(opval, va):
     '''
     Conditional branch (immediate) instruction
     '''
-    iflag = envi.IF_COND | envi.IF_BRANCH
+    iflags = envi.IF_COND | envi.IF_BRANCH
     imm19 = (opval >> 5 & 0x7ffff)    
     cond = opval & 0xf
     mnem, opcode = b_cond_table[cond]
@@ -871,7 +875,7 @@ def p_branch_cond_imm(opval, va):
     olist = (
         A64ImmOper(label, va=va, size=8),
     )
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_excp_gen(opval, va):
     '''
@@ -938,7 +942,7 @@ def p_sme(opval, va):
     rt = opval & 0x1f
     raise envi.InvalidInstruction(mesg="No encoding found! (unimplemented) (SME)",
             bytez=struct.pack("<I", opval), va=va)
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_sys(opval, va):
     '''
@@ -968,10 +972,10 @@ def p_sys(opval, va):
             A64PSTATEfieldOper(op1, op2, crm),
             A64ImmOper(crm, va=va),
         )
-        iflag = 0
+        iflags = 0
         
     elif relevant & 0b111111_11110000_00011111 == 0b000011_00100000_00011111:
-        iflag = 0
+        iflags = 0
         if crm == 0:
             if op2 == 0:
                 opcode = INS_NOP
@@ -1026,7 +1030,7 @@ def p_sys(opval, va):
         olist = (
             A64ImmOper(crm, 0, S_LSL, va),
         )
-        iflag = 0
+        iflags = 0
         
     elif relevant & 0b1111111111000011111111 == 0b00000110011000010011111:
         opcode = INS_DSB
@@ -1035,7 +1039,7 @@ def p_sys(opval, va):
             # A64BarrierOptionOper(crm), # Either/or, may implement later
             A64NameOper(opcode, val=crm),
         )
-        iflag = 0
+        iflags = 0
 
     elif relevant & 0b1111111111000011111111 == 0b00001100110000010111111:
         opcode = INS_DMB
@@ -1044,7 +1048,7 @@ def p_sys(opval, va):
             A64BarrierOptionOper(crm),
             A64ImmOper(crm, va=va),
         )
-        iflag = 0
+        iflags = 0
 
     elif relevant & 0b1111111111000011111111 == 0b00001100110000011011111:
         opcode = INS_ISB
@@ -1053,7 +1057,7 @@ def p_sys(opval, va):
             A64BarrierOptionOper(crm),
             A64ImmOper(crm, va=va),
         )
-        iflag = 0
+        iflags = 0
 
     elif (l + op0) == 0x001:
         opcode = INS_SYS
@@ -1119,7 +1123,7 @@ def p_sys(opval, va):
                 if rt == 0b11111:   
                     olist = olist[:1]
 
-        iflag = 0
+        iflags = 0
 
     elif (l + op0) & 0b110 == 0b010:
         opcode = INS_MSR
@@ -1142,7 +1146,7 @@ def p_sys(opval, va):
                 A64SysRegOper(op0, op1, crn, crm, op2),
             )
 
-        iflag = 0
+        iflags = 0
 
     elif (l + op0) & 0b111 == 0b101:
         opcode = INS_SYS
@@ -1154,7 +1158,7 @@ def p_sys(opval, va):
             A64NameOper(crm),
             A64ImmOper(op2, 0, S_LSL, va),
         )
-        iflag = IF_L
+        iflags = IF_L
 
     elif ((l << 2) | op0) & 0b110 == 0b110:   
         opcode = INS_MRS
@@ -1163,18 +1167,18 @@ def p_sys(opval, va):
             A64RegOper(rt, va, size=8), 
             A64SysRegOper(op0, op1, crn, crm, op2)
         )
-        iflag = 0
+        iflags = 0
 
     elif op2 == 0b111 and crm == 0:
         opcode = INS_SB
         mnem = 'sb'
         olist = ()
-        iflag = 0
+        iflags = 0
 
     else:
         return p_undef(opval, va)
     
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_branch_uncond_reg(opval, va):
     '''
@@ -1196,12 +1200,12 @@ def p_branch_uncond_reg(opval, va):
         if opc == 0b0000:
             opcode = INS_BR
             mnem = 'br'
-            iflag = envi.IF_BRANCH
+            iflags = envi.IF_BRANCH | envi.IF_NOFALL
 
         elif opc == 0b0001:
             opcode = INS_BLR
             mnem = 'blr'
-            iflag = envi.IF_CALL
+            iflags = envi.IF_CALL
 
         elif opc == 0b0010:
             opcode = INS_RET
@@ -1211,31 +1215,31 @@ def p_branch_uncond_reg(opval, va):
             else:
                 olist = ()
 
-            iflag = envi.IF_RET | envi.IF_NOFALL
+            iflags = envi.IF_RET | envi.IF_NOFALL
 
         elif opc == 0b0100 and rn == 0b11111:
             opcode = INS_ERET
             mnem = 'eret'
             olist = () #empty olist
-            iflag = envi.IF_RET | envi.IF_NOFALL
+            iflags = envi.IF_RET | envi.IF_NOFALL
 
         elif opc == 0b0101 and rn == 0b11111:
             opcode = INS_DRPS
             mnem = 'drps'
             olist = () #empty olist
-            iflag = envi.IF_NOFALL
+            iflags = envi.IF_NOFALL
         else:
             return p_undef(opval, va)          
     else:
         return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0   
+    return opcode, mnem, olist, iflags, 0   
 
 def p_ls_excl(opval, va):
     '''
     Load/store exclusive instruction
     '''
-    iflag = 0
+    iflags = 0
     size = opval >> 30 & 0x3
     o2 = opval >> 23 & 0x1
     l = opval >> 22 & 0x1
@@ -1249,36 +1253,36 @@ def p_ls_excl(opval, va):
     # FIXME: sort this out to reduce string concat and clarify INS_* values
 
     #all mnemonics are some variation on 'st' or 'ld'
-    #if l is 0, mnemonic is 'st' and it's possible the IF_L iflag could be assigned
-    #otherwise, mnemonic is 'ld' and it's possible the IF_A iflag could be assigned
+    #if l is 0, mnemonic is 'st' and it's possible the IF_L iflags could be assigned
+    #otherwise, mnemonic is 'ld' and it's possible the IF_A iflags could be assigned
     if l == 0b0:
         mnem = 'st'
         opcode = INS_ST
-        optional_iflag = IF_L
+        optional_iflags = IF_L
     else:
         mnem = 'ld'
         opcode = INS_LD
-        optional_iflag = IF_A
-    #all instructions with o0 equal to 1 have the optional iflag added to the mnem
+        optional_iflags = IF_A
+    #all instructions with o0 equal to 1 have the optional iflags added to the mnem
     if o0 == 0b1:
-        iflag |= optional_iflag
+        iflags |= optional_iflags
     #all instructions with o2 equal to 0 have an X added to the mnem
     if o2 == 0b0:
-        iflag |= IF_X
+        iflags |= IF_X
     #all instructions with o1 equal to 0 have an R added to the mnem
     #otherwise, p is added to the mnem
     if o1 == 0b0:
-        iflag |= IF_R
+        iflags |= IF_R
     else:
-        iflag |= IF_P
+        iflags |= IF_P
 
     #all instructions with size equal to 0 have a B added to the mnem,
     #otherwise, all instructions with size equal to 1 have a H added to mnem
     #otherwise, nothing
     if size == 0b00:
-        iflag |= IF_B
+        iflags |= IF_B
     elif size == 0b01:
-        iflag |= IF_H
+        iflags |= IF_H
     
     if size == 0b00 or size == 0b01: #instructions with IF_B or IF_H set
         if o2 == 0b0: #instructions with IF_X set
@@ -1337,13 +1341,13 @@ def p_ls_excl(opval, va):
                 A64RegImmOffOper(rn, 0, 8, va=va)
             )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_load_reg_lit(opval, va):
     '''
     Load register (literal) instruction
     '''
-    iflag = 0
+    iflags = 0
     opc = opval >> 30 & 0x3
     v = opval >> 26 & 0x1       # 1 for SIMD&FP regs  
     imm19 = opval >> 5 & 0x7ffff
@@ -1379,7 +1383,7 @@ def p_load_reg_lit(opval, va):
 
     elif opc == 0b10: #128-bit SIMD variant, and the unique 'ldrsw'
         if v == 0b0:
-            iflag = IF_SW
+            iflags = IF_SW
             regsize = 8
 
             olist = (
@@ -1407,7 +1411,7 @@ def p_load_reg_lit(opval, va):
         else:
             return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 
 def p_ls_napair_offset(opval, va):
@@ -1607,7 +1611,7 @@ def p_ls_reg_unsc_imm(opval, va):
     '''
     Load/store register (unscaled immediate)
     '''
-    iflag = 0
+    iflags = 0
     size = opval >> 30 & 0x3
     v = opval >> 26 & 0x1
     opc = opval >> 22 & 0x3
@@ -1631,9 +1635,9 @@ def p_ls_reg_unsc_imm(opval, va):
             else:
                 regsize = 4
                 if size == 0b00:
-                    iflag |= IF_B
+                    iflags |= IF_B
                 elif size == 0b01:
-                    iflag |= IF_H
+                    iflags |= IF_H
             
             if rt == 31:
                 if regsize <= 4:
@@ -1728,21 +1732,21 @@ def p_ls_reg_unsc_imm(opval, va):
                 )
                 mnem = 'ldur'
                 opcode = INS_LDUR
-                iflag |= IF_S
+                iflags |= IF_S
                 if size == 0b00:
-                    iflag |= IF_B
+                    iflags |= IF_B
                 elif size == 0b01:
-                    iflag |= IF_H
+                    iflags |= IF_H
                 elif size == 0b10:
-                    iflag |= IF_W
+                    iflags |= IF_W
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_ls_reg_unpriv(opval, va):
     '''
     Load/store register (unprivileged)
     '''
-    iflag = 0
+    iflags = 0
     size = opval >> 30 & 0x3
     v = opval >> 26 & 0x1
     opc = opval >> 22 & 0x3
@@ -1757,13 +1761,13 @@ def p_ls_reg_unpriv(opval, va):
             mnem = 'ldtr'
             opcode = INS_LDTR
             if opc == 0b10 or opc == 0b11:
-                iflag |= IF_S
+                iflags |= IF_S
                 if size == 10:
-                    iflag |= IF_W
+                    iflags |= IF_W
         if size == 0b00:
-            iflag |= IF_B
+            iflags |= IF_B
         elif size == 0b01:
-            iflag |= IF_H
+            iflags |= IF_H
         if size != 0b11 and opc != 0b10:
             regsize = 4
         else:
@@ -1775,13 +1779,13 @@ def p_ls_reg_unpriv(opval, va):
     else:
         return p_undef(opval, va)
         
-    return (opcode, mnem, olist, iflag, 0)        
+    return (opcode, mnem, olist, iflags, 0)        
             
 def p_ls_reg_imm(opval, va):
     '''
     Load/store register (immediate post and pre-indexed)
     '''
-    iflag = 0
+    iflags = 0
     size = opval >> 30 & 0x3
     v = opval >> 26 & 0x1
     opc = opval >> 22 & 0x3
@@ -1808,18 +1812,18 @@ def p_ls_reg_imm(opval, va):
             opcode = INS_LDR
 
         if opc == 0b10 or opc == 0b11:
-            iflag |= IF_S
+            iflags |= IF_S
             if size == 0b10:
-                iflag |= IF_W
+                iflags |= IF_W
 
         if size == 0b00:
-            iflag |= IF_B
+            iflags |= IF_B
             regsize = 1     ### DOES THIS BREAK THINGS?
 
 
 
         elif size == 0b01:
-            iflag |= IF_H
+            iflags |= IF_H
             regsize = 2
 
         if opc == 0b10 or size == 0b11:
@@ -1827,7 +1831,7 @@ def p_ls_reg_imm(opval, va):
 
         else:
             regsize = 4
-        #print("va=%x: v=0, mnem=%r, iflag=0x%x, regsize=%d, size=%d, mode=0x%x" % (va, mnem, iflag, regsize, size, mode))
+        #print("va=%x: v=0, mnem=%r, iflags=0x%x, regsize=%d, size=%d, mode=0x%x" % (va, mnem, iflags, regsize, size, mode))
 
     else:
         if opc in (0b00, 0b10):
@@ -1851,7 +1855,7 @@ def p_ls_reg_imm(opval, va):
 
         else:
             regsize = 8
-        #print("va=%x: v=1, mnem=%r, iflag=0x%x, regsize=%d, size=%d, mode=0x%x" % (va, mnem, iflag, regsize, size, mode))
+        #print("va=%x: v=1, mnem=%r, iflags=0x%x, regsize=%d, size=%d, mode=0x%x" % (va, mnem, iflags, regsize, size, mode))
 
 
     if rt == 31:
@@ -1867,7 +1871,7 @@ def p_ls_reg_imm(opval, va):
         A64RegImmOffOper(rn, imm9, tsize=8, mode=mode, va=va), # mode?
     )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 
 
@@ -1875,7 +1879,7 @@ def p_ls_reg_offset(opval, va):
     '''
     Load/store register (register offset)
     '''
-    iflag = 0
+    iflags = 0
     size = opval >> 30 & 0x3
     v = opval >> 26 & 0x1
     opc = opval >> 22 & 0x3
@@ -1915,13 +1919,13 @@ def p_ls_reg_offset(opval, va):
                 mnem = 'ldr'
                 opcode = INS_LDR
         if opc == 0b10 or opc == 0b11:
-            iflag |= IF_S
+            iflags |= IF_S
             if size == 0b10:
-                iflag |= IF_W
+                iflags |= IF_W
         if size == 0b00:
-            iflag |= IF_B
+            iflags |= IF_B
         elif size == 0b01:
-            iflag |= IF_H
+            iflags |= IF_H
         if opc == 0b10 or size == 0b11:
             regsize = 8
         else:
@@ -1976,13 +1980,13 @@ def p_ls_reg_offset(opval, va):
             #FIXME rm, extend, amount
         )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_ls_reg_us_imm(opval, va):
     '''
     Load/store register (unsigned immediate)
     '''
-    iflag = 0
+    iflags = 0
     size = opval >> 30 & 0x3
     v = opval >> 26 & 0x1
     opc = opval >> 22 & 0x3
@@ -2017,15 +2021,15 @@ def p_ls_reg_us_imm(opval, va):
                 opcode = INS_LDR
 
         if opc == 0b10 or opc == 0b11:
-            iflag |= IF_S
+            iflags |= IF_S
             if size == 0b10:
-                iflag |= IF_W
+                iflags |= IF_W
                 tsize = 4
         if size == 0b00:
-            iflag |= IF_B
+            iflags |= IF_B
             tsize = 1
         elif size == 0b01:
-            iflag |= IF_H
+            iflags |= IF_H
             tsize = 2
 
         if opc == 0b10 or size == 0b11:
@@ -2042,7 +2046,7 @@ def p_ls_reg_us_imm(opval, va):
                 rt = REG_XZR
                 regsize = 8
 
-        #print("va=%x: v=0, mnem=%r, iflag=0x%x, regsize=%d, size=%d, mode=0x%x" % (va, mnem, iflag, regsize, size, mode))
+        #print("va=%x: v=0, mnem=%r, iflags=0x%x, regsize=%d, size=%d, mode=0x%x" % (va, mnem, iflags, regsize, size, mode))
         olist = (
             A64RegOper(rt, va, size=regsize),
             A64RegImmOffOper(rn, imm12 << size, tsize=tsize, mode=mode, va=va),
@@ -2077,13 +2081,13 @@ def p_ls_reg_us_imm(opval, va):
             imm = imm12 << 3
 
         #print("imm=%x   imm12=%x" % (imm, imm12))
-        #print("va=%x: v=1, mnem=%r, iflag=0x%x, regsize=%d, size=%d, mode=0x%x" % (va, mnem, iflag, regsize, size, mode))
+        #print("va=%x: v=1, mnem=%r, iflags=0x%x, regsize=%d, size=%d, mode=0x%x" % (va, mnem, iflags, regsize, size, mode))
         olist = (
             A64RegOper(rt, va, size=regsize),
             A64RegImmOffOper(rn, imm, tsize=tsize, mode=mode, va=va),
         )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_simd_ls_multistruct(opval, va):
     '''
@@ -2219,7 +2223,7 @@ def p_simd_ls_multistruct_posti(opval, va):
     '''
     AdvSIMD load/store multiple structures (post-indexed)
     '''
-    iflag = 0
+    iflags = 0
     #FIXME olists
     q = opval >> 30 & 0x1
     l = opval >> 22 & 0x1
@@ -2469,7 +2473,7 @@ def p_simd_ls_onestruct(opval, va):
                         A64RegOper(rn, va, size=8),
                     )
                 else:
-                    iflag |= IF_R
+                    iflags |= IF_R
                     olist = (
                         A64RegOper(rt, va, size=unreserved_t_table[size+q]),
                         A64RegOper(rn, va, size=8),
@@ -2499,7 +2503,7 @@ def p_simd_ls_onestruct(opval, va):
                         A64RegOper(rn, va, size=8),
                     )
                 else:
-                    iflag |= IF_R
+                    iflags |= IF_R
                     simdOper = unreserved_t_table[size+q]
                     olist = (
                         A64RegOper(rt, va, size=simdOper),
@@ -2533,7 +2537,7 @@ def p_simd_ls_onestruct(opval, va):
                         A64RegOper(rn, va, size=8),
                     )
                 else:
-                    iflag |= IF_R
+                    iflags |= IF_R
                     simdOper = onestruct_t_table[size+q]
                     olist = (
                         A64RegOper(rt, va, size=simdOper),
@@ -2566,7 +2570,7 @@ def p_simd_ls_onestruct(opval, va):
                         A64RegOper(rn, va, size=8),
                     )
                 else:
-                    iflag |= IF_R
+                    iflags |= IF_R
                     simdOper = unreserved_t_table[size+q]
                     olist = (
                         A64RegOper(rt, va, size=simdOper),
@@ -2576,14 +2580,14 @@ def p_simd_ls_onestruct(opval, va):
                         A64RegOper(rn, va, size=8),
                     )
                     
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
     
 
 def p_simd_ls_onestruct_posti(opval, va):
     '''
     AdvSIMD load/store one structure (post-indexed)
     '''
-    iflag = 0
+    iflags = 0
     q = opval >> 30 & 0x1
     l = opval >> 22 & 0x1
     r = opval >> 21 & 0x1
@@ -2620,7 +2624,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                 if l == 0b0:
                     return p_undef(opval, va)
                 else:
-                    iflag |= IF_R
+                    iflags |= IF_R
                     if rm != 0b11111:
                         olist = (
                             A64RegOper(rt, va, size=unreserved_t_table[size+q]),
@@ -2634,7 +2638,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                             ('#1', '#2', '#4', '#8')[size] #FIXME
                         )
 
-                return opcode, mnem, olist, iflag, 0
+                return opcode, mnem, olist, iflags, 0
             if rm != 0b11111:
                 olist = (
                     A64RegOper(rt, va, size=regsize),
@@ -2669,7 +2673,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                 if l == 0b0:
                     return p_undef(opval, va)
                 else:
-                    iflag |= IF_R
+                    iflags |= IF_R
                     if rm != 0b11111:
                         olist = (
                             A64RegOper(rt, va, size=unreserved_t_table[size+q]),
@@ -2687,7 +2691,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                             ('#3', '#6', '#12', '#24')[size] #FIXME
                         )
 
-                return opcode, mnem, olist, iflag, 0    
+                return opcode, mnem, olist, iflags, 0    
             if rm != 0b11111:
                 olist = (
                     A64RegOper(rt, va, size=regsize),
@@ -2727,7 +2731,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                 if l == 0b0:
                     return p_undef(opval, va)
                 else:
-                    iflag |= IF_R
+                    iflags |= IF_R
                     if rm != 0b11111:
                         olist = (
                             A64RegOper(rt, va, size=unreserved_t_table[size+q]),
@@ -2778,7 +2782,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                 if opcode == INS_ST4:
                     return p_undef(opval, va)
                 else:   
-                    iflag |= IF_R
+                    iflags |= IF_R
                     if rm != 0b11111:
                         olist = (
                             A64RegOper(rt, va, size=unreserved_t_table[size+q]),
@@ -2798,7 +2802,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                             ('#4', '#8', '#16', '#32')[size] #FIXME
                         )
 
-                    return opcode, mnem, olist, iflag, 0
+                    return opcode, mnem, olist, iflags, 0
         if rm != 0b11111:
             olist = (
                 A64RegOper(rt, va, size=regsize),
@@ -2829,7 +2833,7 @@ def p_simd_ls_onestruct_posti(opval, va):
                 var #FIXME
             )
                         
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 unreserved_t_table = (
     IFS_8B,
@@ -2846,7 +2850,7 @@ def p_log_shft_reg(opval, va):
     '''
     Logical (shifted register)
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31 & 0x1
     opc = opval >> 29 & 0x3
     shift = opval >> 22 & 0x3
@@ -2876,7 +2880,7 @@ def p_log_shft_reg(opval, va):
             mnem = 'bic'
             opcode = INS_BIC
         if opc == 0b11:
-            iflag |= IF_PSR_S
+            iflags |= IF_PSR_S
 
     elif opc == 0b01:
         # mov alias:
@@ -2887,22 +2891,22 @@ def p_log_shft_reg(opval, va):
                 A64RegOper(rd, va, size=size),
                 A64RegOper(rm, va, size=size),
             )
-            return opcode, mnem, olist, iflag, 0
+            return opcode, mnem, olist, iflags, 0
 
         mnem = 'or'            #FIXME!!!!!  this should be a table, not dividing orr/orn/etc with flags...  this is not a bad idea, and i give them full credit for creativity, but let's simplify this a bit.
         opcode = INS_OR
         if n == 0b0:
-            iflag |= IF_R
+            iflags |= IF_R
         else:
-            iflag |= IF_N
+            iflags |= IF_N
 
     else:
         mnem = 'eo'
         opcode = INS_EO
         if n == 0b0:
-            iflag |= IF_R
+            iflags |= IF_R
         else:
-            iflag |= IF_N
+            iflags |= IF_N
 
     olist = (
         A64RegWithZROper(rd, va, size=size),
@@ -2912,7 +2916,7 @@ def p_log_shft_reg(opval, va):
 
     if opcode == INS_TST:
         # Removes S flag
-        iflag &= ~IF_PSR_S
+        iflags &= ~IF_PSR_S
 
         olist = (
             A64RegWithZROper(rn, va, size=size),
@@ -2920,7 +2924,7 @@ def p_log_shft_reg(opval, va):
         )
 
     # MVN alias case
-    if rn == 0b11111 and opcode == INS_OR and iflag & IF_N == IF_N:
+    if rn == 0b11111 and opcode == INS_OR and iflags & IF_N == IF_N:
         mnem = 'mv'
 
         olist = (
@@ -2928,13 +2932,13 @@ def p_log_shft_reg(opval, va):
             A64ShiftOper(rm, shift, imm6, size)
     )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_addsub_shft_reg(opval, va):
     '''
     Add/sub (shifted register)
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31 & 0x1
     op = opval >> 30 & 0x1
     s = opval >> 29 & 0x1
@@ -2959,7 +2963,7 @@ def p_addsub_shft_reg(opval, va):
             opcode = INS_NEG
 
     if s == 0b1:
-        iflag |= IF_PSR_S
+        iflags |= IF_PSR_S
         opcode += 1
         
     if shift == 0b00:
@@ -2984,7 +2988,7 @@ def p_addsub_shft_reg(opval, va):
             mnem = 'cmn'
             opcode = INS_CMN
 
-        iflag = 0
+        iflags = 0
 
         # Checking for ZR register in rn
         if rn == 0b11111:
@@ -3028,13 +3032,13 @@ def p_addsub_shft_reg(opval, va):
                 A64RegOper(rn, va, size=8),
                 A64ShiftOper(rm, shtype, imm6, regsize=8),
             )
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_addsub_ext_reg(opval, va):
     '''
     Add/sub (extended register)
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31 & 0x1
     op = opval >> 30 & 0x1
     s = opval >> 29 & 0x1
@@ -3060,7 +3064,7 @@ def p_addsub_ext_reg(opval, va):
             opcode = INS_SUB
 
     if s == 0b1 and opcount == 3:    # not used with aliases
-        iflag |= IF_PSR_S
+        iflags |= IF_PSR_S
 
     if extoper & 0b011 == 0b011:
         sizeRM = 8
@@ -3085,14 +3089,14 @@ def p_addsub_ext_reg(opval, va):
             A64RegExtOper(rm, sizeRM, extoper, imm3, va=va),
         )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
         
 def p_addsub_carry(opval, va):
     '''
     Add/sub (with carry)
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31 & 0x1
     op = opval >> 30 & 0x1
     s = opval >> 29 & 0x1
@@ -3116,7 +3120,7 @@ def p_addsub_carry(opval, va):
             mnem = 'sbc'
             opcode = INS_SBC
         if s == 0b1:
-            iflag |= IF_PSR_S
+            iflags |= IF_PSR_S
 
         # Check for NGC alias
         if rn == 31:
@@ -3150,13 +3154,13 @@ def p_addsub_carry(opval, va):
         return p_undef(opval, va)
 
         
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_cond_cmp_imm(opval, va):
     '''
     Conditional compare (immediate)
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31 & 0x1
     op = opval >> 30 & 0x1
     s = opval >> 29 & 0x1
@@ -3170,9 +3174,9 @@ def p_cond_cmp_imm(opval, va):
     mnem = 'ccm'
     opcode = INS_CCM
     if op == 0b0:
-        iflag |= IF_N
+        iflags |= IF_N
     else:
-        iflag |= IF_P
+        iflags |= IF_P
 
     if sf == 0b0:
         olist = (
@@ -3189,13 +3193,13 @@ def p_cond_cmp_imm(opval, va):
             A64CondOper(cond),
         )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_cond_cmp_reg(opval, va):
     '''
     Conditional compare (register)
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31 & 0x1
     op = opval >> 30 & 0x1
     s = opval >> 29 & 0x1
@@ -3209,9 +3213,9 @@ def p_cond_cmp_reg(opval, va):
     mnem = 'ccm'
     opcode = INS_CCM
     if op == 0b0:
-        iflag |= IF_N
+        iflags |= IF_N
     else:
-        iflag |= IF_P
+        iflags |= IF_P
 
     # Check for ZR register
     if rm == 31:
@@ -3231,7 +3235,7 @@ def p_cond_cmp_reg(opval, va):
             A64nzcvOper(nzcv),
             A64CondOper(cond),
         )
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 
 def condinvert(cond):
@@ -3241,7 +3245,7 @@ def p_cond_sel(opval, va):
     '''
     Conditional select
     '''
-    iflag = 0
+    iflags = 0
 
     sf = (opval >> 31) & 1
     op = (opval >> 30) & 1
@@ -3327,7 +3331,7 @@ def p_cond_sel(opval, va):
             A64CondOper(cond),
         )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
         
         
     
@@ -3437,7 +3441,7 @@ def p_data_proc_2(opval, va):
     '''
     Data processing (2 source)
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31 & 0x1
     s = opval >> 29 & 0x1
     rm = opval >> 16 & 0x1f
@@ -3469,7 +3473,7 @@ def p_data_proc_2(opval, va):
                     opcode = INS_RORV
                     mnem = 'rorv'
     if opc >> 2 & 0x1 == 0b1:
-        iflag |= IF_C
+        iflags |= IF_C
 
     if sf == 0b0:
         #FIXME register shift encoded in rm
@@ -3482,11 +3486,11 @@ def p_data_proc_2(opval, va):
             opcode = INS_CRC32
             mnem = 'crc32'
             if opc & 0x3 == 0b00:
-                iflag |= IF_B
+                iflags |= IF_B
             elif opc & 0x3 == 0b01:
-                iflag |= IF_H
+                iflags |= IF_H
             elif opc & 0x3 == 0b10:
-                iflag |= IF_W
+                iflags |= IF_W
     else:
         if opc >> 4 & 0b1 == 0b0:
             olist = (
@@ -3502,15 +3506,15 @@ def p_data_proc_2(opval, va):
             )
             opcode = INS_CRC32
             mnem = 'crc32'
-            iflag |= IF_X
+            iflags |= IF_X
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_data_proc_1(opval, va):
     '''
     Data processing (1 source)
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31 & 0x1
     s = opval >> 29 & 0x1
     opcode2 = opval >> 16 & 0x1f
@@ -3520,7 +3524,7 @@ def p_data_proc_1(opval, va):
 
     if sf == 0b0:
         if opc & 0b111000 == 0b000000:
-            opcode, mnem, iflag = data_proc_1_table_a[opc]
+            opcode, mnem, iflags = data_proc_1_table_a[opc]
             if opcode != IENC_UNDEF:
                 olist = (
                     A64RegOper(rd, va, size=4),
@@ -3534,7 +3538,7 @@ def p_data_proc_1(opval, va):
             return p_undef(opval, va)
     else:
         if opc & 0b111000 == 0b000000:
-            opcode, mnem, iflag = data_proc_1_table_b[opc]
+            opcode, mnem, iflags = data_proc_1_table_b[opc]
             if opcode != IENC_UNDEF:
                 olist = (
                     A64RegOper(rd, va, size=8),
@@ -3546,7 +3550,7 @@ def p_data_proc_1(opval, va):
                 )
         else:
             return p_undef(opval, va)
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 
 data_proc_1_table_a = (
@@ -3678,7 +3682,7 @@ def p_fp_cond_compare(opval, va):
     '''
     Floating-point conditional compare
     '''
-    iflag = 0
+    iflags = 0
     m = opval >> 31 & 0x1
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -3977,7 +3981,7 @@ def p_fp_int_conv(opval, va):
     '''
     Floating-point<->integer conversions
     '''
-    iflag = 0
+    iflags = 0
     sf = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -4098,7 +4102,7 @@ def p_fp_dp3(opval, va):
     '''
     Floating-point data processing (3 source)
     '''
-    iflag = 0
+    iflags = 0
     m = opval >> 31
     s = opval >> 29 & 0x1
     typ = opval >> 22 & 0x3
@@ -4708,7 +4712,7 @@ def p_simd_three_diff(opval, va):
     return opcode, mnem, olist, iflags, 0
 
 def p_simd_tworeg_misc(opval, va):
-    iflag = 0
+    iflags = 0
     q = opval >> 30 & 0x1
     u = opval >> 29 & 0x1
     size = opval >> 22 & 0x3
@@ -4767,8 +4771,8 @@ def p_simd_tworeg_misc(opval, va):
                 tb = IFS_4S
             opcode = INS_ADDL
             mnem = 'addl'
-            iflag |= IFP_S
-            iflag |= IF_P
+            iflags |= IFP_S
+            iflags |= IF_P
             olist = (
                 A64RegOper(rd, oflags=ta),
                 A64RegOper(rn, oflags=tb),
@@ -4790,7 +4794,7 @@ def p_simd_tworeg_misc(opval, va):
                 t = IFS_4S
             elif size == 0b11 and q == 1:
                 t = IFS_2D
-            iflag |= IFP_S
+            iflags |= IFP_S
             olist = (
                 A64RegOper(rd, oflags=t),
                 A64RegOper(rn, oflags=t),
@@ -4846,9 +4850,9 @@ def p_simd_tworeg_misc(opval, va):
             elif size == 0b10 and q == 1:
                 ta = IFS_2D
                 tb = IFS_4S
-            iflag |= IF_P
-            iflag |= IF_L
-            iflag |= IFP_S
+            iflags |= IF_P
+            iflags |= IF_L
+            iflags |= IFP_S
             olist = (
                 A64RegOper(rd, oflags=ta),
                 A64RegOper(rn, oflags=tb),
@@ -4870,7 +4874,7 @@ def p_simd_tworeg_misc(opval, va):
                 t = IFS_4S
             elif size == 0b11 and q == 1:
                 t = IFS_2D
-            iflag |= IFP_S
+            iflags |= IFP_S
             olist = (
                 A64RegOper(rd, oflags=t),
                 A64RegOper(rn, oflags=t),
@@ -4964,7 +4968,7 @@ def p_simd_tworeg_misc(opval, va):
             )
         elif opc == 0b10010: #5
             if q == 1:
-                iflag |= IF_2
+                iflags |= IF_2
             opcode = INS_XTN
             mnem = 'xtn'
             if size == 0b00 and q == 0:
@@ -4991,8 +4995,8 @@ def p_simd_tworeg_misc(opval, va):
             )
         elif opc == 0b10100: #5
             if q == 1:
-                iflag |= IF_2
-            iflag |= IFP_S
+                iflags |= IF_2
+            iflags |= IFP_S
             opcode = INS_QXTN
             mnem = 'qxtn'
             if size == 0b00 and q == 0:
@@ -5020,9 +5024,9 @@ def p_simd_tworeg_misc(opval, va):
         elif size == 0b00 or size == 0b01: 
             if opc == 0b10110: #6
                 if q == 1:
-                    iflag |= IF_2
-                iflag |= IF_N
-                iflag |= IFP_F
+                    iflags |= IF_2
+                iflags |= IF_N
+                iflags |= IFP_F
                 opcode = INS_CVT
                 mnem = 'cvt'
                 if size == 0b00 and q == 0:
@@ -5043,11 +5047,11 @@ def p_simd_tworeg_misc(opval, va):
                 )
             elif opc == 0b10111: #6
                 if q == 1:
-                    iflag |= IF_2
-                iflag |= IFP_F
+                    iflags |= IF_2
+                iflags |= IFP_F
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IF_L
+                iflags |= IF_L
                 if size == 0b00 and q == 0:
                     ta = IFS_4S
                     tb = IFS_4H
@@ -5067,8 +5071,8 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11000: #7
                 opcode = INS_RINT
                 mnem = 'rint'
-                iflag |= IFP_F
-                iflag |= IF_N
+                iflags |= IFP_F
+                iflags |= IF_N
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5082,8 +5086,8 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11001: #7
                 opcode = INS_RINT
                 mnem = 'rint'
-                iflag |= IFP_F
-                iflag |= IF_M
+                iflags |= IFP_F
+                iflags |= IF_M
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5097,9 +5101,9 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11010: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_N
-                iflag |= IF_S
+                iflags |= IFP_F
+                iflags |= IF_N
+                iflags |= IF_S
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5113,9 +5117,9 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11011: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_M
-                iflag |= IF_S
+                iflags |= IFP_F
+                iflags |= IF_M
+                iflags |= IF_S
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5129,9 +5133,9 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11100: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_A
-                iflag |= IF_S
+                iflags |= IFP_F
+                iflags |= IF_A
+                iflags |= IF_S
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5145,8 +5149,8 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11101: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IF_F
-                iflag |= IFP_S
+                iflags |= IF_F
+                iflags |= IFP_S
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5161,7 +5165,7 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b01100: #7
                 opcode = INS_CMGT
                 mnem = 'cmgt'
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5176,7 +5180,7 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b01101: #7
                 opcode = INS_CMEQ
                 mnem = 'cmeq'
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5191,7 +5195,7 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b01110: #7
                 opcode = INS_CMLT
                 mnem = 'cmlt'
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5206,7 +5210,7 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b01111: #7
                 opcode = INS_ABS
                 mnem = 'abs'
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5220,8 +5224,8 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11000: #7
                 opcode = INS_RINT
                 mnem = 'rint'
-                iflag |= IFP_F
-                iflag |= IF_P
+                iflags |= IFP_F
+                iflags |= IF_P
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5235,8 +5239,8 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11001: #7
                 opcode = INS_RINT
                 mnem = 'rint'
-                iflag |= IFP_F
-                iflag |= IF_Z
+                iflags |= IFP_F
+                iflags |= IF_Z
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5250,9 +5254,9 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11010: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_P
-                iflag |= IF_S
+                iflags |= IFP_F
+                iflags |= IF_P
+                iflags |= IF_S
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5266,9 +5270,9 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11011: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_P
-                iflag |= IF_S
+                iflags |= IFP_F
+                iflags |= IF_P
+                iflags |= IF_S
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5282,7 +5286,7 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b11100: #8
                 opcode = INS_RECPE
                 mnem = 'recpe'
-                iflag |= IFP_U
+                iflags |= IFP_U
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5294,7 +5298,7 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b11101: #7
                 opcode = INS_RECPE
                 mnem = 'recpe'
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5324,8 +5328,8 @@ def p_simd_tworeg_misc(opval, va):
         elif opc == 0b00010: #3
             opcode = INS_ADDL
             mnem = 'addl'
-            iflag |= IFP_U
-            iflag |= IF_P
+            iflags |= IFP_U
+            iflags |= IF_P
             if size == 0b00 and q == 0:
                 ta = IFS_4H
                 tb = IFS_8B
@@ -5365,7 +5369,7 @@ def p_simd_tworeg_misc(opval, va):
                 t = IFS_4S
             elif size == 0b11 and q == 1:
                 t = IFS_2D
-            iflag |= IFP_U
+            iflags |= IFP_U
             olist = (
                 A64RegOper(rd, oflags=t),
                 A64RegOper(rn, oflags=t),
@@ -5385,7 +5389,7 @@ def p_simd_tworeg_misc(opval, va):
                 t = IFS_2S
             elif size == 0b10 and q == 1:
                 t = IFS_4S
-            iflag |= IFP_U
+            iflags |= IFP_U
             olist = (
                 A64RegOper(rd, oflags=t),
                 A64RegOper(rn, oflags=t),
@@ -5393,8 +5397,8 @@ def p_simd_tworeg_misc(opval, va):
         elif opc == 0b00110: #3
             opcode = INS_ADAL
             mnem = 'adal'
-            iflag |= IFP_U
-            iflag |= IF_P
+            iflags |= IFP_U
+            iflags |= IF_P
             if size == 0b00 and q == 0:
                 ta = IFS_4H
                 tb = IFS_8B
@@ -5507,8 +5511,8 @@ def p_simd_tworeg_misc(opval, va):
             opcode = INS_QXTUN
             mnem = 'qxtun'
             if q == 1:
-                iflag |= IF_2
-            iflag |= IFP_S
+                iflags |= IF_2
+            iflags |= IFP_S
             if size == 0b00 and q == 0:
                 ta = IFS_8H
                 tb = IFS_8B
@@ -5535,8 +5539,8 @@ def p_simd_tworeg_misc(opval, va):
             opcode = INS_SHL
             mnem = 'shl'
             if q == 1:
-                iflag |= IF_2
-            iflag |= IF_L
+                iflags |= IF_2
+            iflags |= IF_L
             if size == 0b00 and q == 0:
                 ta = IFS_8H
                 tb = IFS_8B
@@ -5570,8 +5574,8 @@ def p_simd_tworeg_misc(opval, va):
             opcode = INS_QXTN
             mnem = 'qxtn'
             if q == 1:
-                iflag |= IF_2
-            iflag |= IFP_U
+                iflags |= IF_2
+            iflags |= IFP_U
             if size == 0b00 and q == 0:
                 ta = IFS_8H
                 tb = IFS_8B
@@ -5599,10 +5603,10 @@ def p_simd_tworeg_misc(opval, va):
                 opcode = INS_CVT
                 mnem = 'cvt'
                 if q == 1:
-                    iflag |= IF_2
-                iflag |= IFP_F
-                iflag |= IF_X
-                iflag |= IF_N
+                    iflags |= IF_2
+                iflags |= IFP_F
+                iflags |= IF_X
+                iflags |= IF_N
                 if size == 0b01 and q == 0:
                     tb = IFS_2S
                     ta = IFS_2D
@@ -5616,8 +5620,8 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11000: #7
                 opcode = INS_RINT
                 mnem = 'rint'
-                iflag |= IFP_F
-                iflag |= IF_A
+                iflags |= IFP_F
+                iflags |= IF_A
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5631,8 +5635,8 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11001: #7
                 opcode = INS_RINT
                 mnem = 'rint'
-                iflag |= IFP_F
-                iflag |= IF_X
+                iflags |= IFP_F
+                iflags |= IF_X
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5646,9 +5650,9 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11010: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_N
-                iflag |= IF_U
+                iflags |= IFP_F
+                iflags |= IF_N
+                iflags |= IF_U
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5662,9 +5666,9 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11011: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_M
-                iflag |= IF_U
+                iflags |= IFP_F
+                iflags |= IF_M
+                iflags |= IF_U
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5678,9 +5682,9 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11100: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_A
-                iflag |= IF_U
+                iflags |= IFP_F
+                iflags |= IF_A
+                iflags |= IF_U
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5694,8 +5698,8 @@ def p_simd_tworeg_misc(opval, va):
             elif opc == 0b11101: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_U
-                iflag |= IF_F
+                iflags |= IFP_U
+                iflags |= IF_F
                 if size == 0b00 and q == 0:
                     t = IFS_2S
                 elif size == 0b00 and q == 1:
@@ -5732,7 +5736,7 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b01100: #7
                 opcode = INS_CMGE
                 mnem = 'cmge'
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5747,7 +5751,7 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b01101: #7
                 opcode = INS_CMLE
                 mnem = 'cmle'
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5762,7 +5766,7 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b01111: #7
                 opcode = INS_NEG
                 mnem = 'neg'
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5776,8 +5780,8 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b11001: #7
                 opcode = INS_RINT
                 mnem = 'rint'
-                iflag |= IFP_F
-                iflag |= IF_I
+                iflags |= IFP_F
+                iflags |= IF_I
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5791,9 +5795,9 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b11010: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_P
-                iflag |= IF_U
+                iflags |= IFP_F
+                iflags |= IF_P
+                iflags |= IF_U
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5807,9 +5811,9 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b11011: #7
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_Z
-                iflag |= IF_U
+                iflags |= IFP_F
+                iflags |= IF_Z
+                iflags |= IF_U
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5823,9 +5827,9 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b11100: #11
                 opcode = INS_SQRT
                 mnem = 'sqrt'
-                iflag |= IFP_U
-                iflag |= IFP_R
-                iflag |= IF_E
+                iflags |= IFP_U
+                iflags |= IFP_R
+                iflags |= IF_E
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5837,9 +5841,9 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b11101: #7
                 opcode = INS_SQRT
                 mnem = 'sqrt'
-                iflag |= IFP_F
-                iflag |= IFP_R
-                iflag |= IF_E
+                iflags |= IFP_F
+                iflags |= IFP_R
+                iflags |= IF_E
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5853,7 +5857,7 @@ def p_simd_tworeg_misc(opval, va):
             if opc == 0b11111: #7
                 opcode = INS_SQRT
                 mnem = 'sqrt'
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if size == 0b10 and q == 0:
                     t = IFS_2S
                 elif size == 0b10 and q == 1:
@@ -5864,10 +5868,10 @@ def p_simd_tworeg_misc(opval, va):
                     A64RegOper(rd, oflags=t),
                     A64RegOper(rn, oflags=t),
                 )
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_simd_across_lanes(opval, va):
-    iflag = 0
+    iflags = 0
     q = opval >> 30 & 0x1
     u = opval >> 29 & 0x1
     size = opval >> 22 & 0x3
@@ -5878,10 +5882,10 @@ def p_simd_across_lanes(opval, va):
         opcode = INS_ADDL
         mnem = 'addl'
         if u == 0:
-            iflag |= IFP_S
+            iflags |= IFP_S
         else:
-            iflag |= IFP_U
-        iflag |= IF_V
+            iflags |= IFP_U
+        iflags |= IF_V
         if size == 0b00 and q == 0:
             t = IFS_8B
         elif size == 0b00 and q == 1:
@@ -5900,10 +5904,10 @@ def p_simd_across_lanes(opval, va):
         opcode = INS_MAX
         mnem = 'max'
         if u == 0:
-            iflag |= IFP_S
+            iflags |= IFP_S
         else:
-            iflag |= IFP_U
-        iflag |= IF_V
+            iflags |= IFP_U
+        iflags |= IF_V
         if size == 0b00 and q == 0:
             t = IFS_8B
         elif size == 0b00 and q == 1:
@@ -5922,10 +5926,10 @@ def p_simd_across_lanes(opval, va):
         opcode = INS_MIN
         mnem = 'min'
         if u == 0:
-            iflag |= IFP_S
+            iflags |= IFP_S
         else:
-            iflag |= IFP_U
-        iflag |= IF_V
+            iflags |= IFP_U
+        iflags |= IF_V
         if size == 0b00 and q == 0:
             t = IFS_8B
         elif size == 0b00 and q == 1:
@@ -5943,7 +5947,7 @@ def p_simd_across_lanes(opval, va):
     elif opc == 0b11011:
         opcode = INS_ADD
         mnem = 'add'
-        iflag |= IF_V
+        iflags |= IF_V
         if size == 0b00 and q == 0:
             t = IFS_8B
         elif size == 0b00 and q == 1:
@@ -5965,10 +5969,10 @@ def p_simd_across_lanes(opval, va):
         else:
             opcocde = INS_MIN
             mnem = 'min'
-        iflag |= IFP_F
-        iflag |= IF_N
-        iflag |= IF_M
-        iflag |= IF_V
+        iflags |= IFP_F
+        iflags |= IF_N
+        iflags |= IF_M
+        iflags |= IF_V
         if size >> 1 & 0x1f == 0 and q == 1:
             t = IFS_4S
         else:
@@ -5984,8 +5988,8 @@ def p_simd_across_lanes(opval, va):
         else:
             opcocde = INS_MIN
             mnem = 'min'
-        iflag |= IFP_F
-        iflag |= IF_V
+        iflags |= IFP_F
+        iflags |= IF_V
         if size >> 1 & 0x1f == 0 and q == 1:
             t = IFS_4S
         else:
@@ -5994,13 +5998,13 @@ def p_simd_across_lanes(opval, va):
             #FIXME <V><d>
             A64RegOper(rn, oflags=t),
         )
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_simd_copy(opval, va):
     '''
     AdvSIMD copy
     '''
-    iflag = 0
+    iflags = 0
 
     q = opval >> 30 & 0x1
     op = opval >> 29 & 0x1
@@ -6088,7 +6092,7 @@ def p_simd_copy(opval, va):
             mnem = 'mov'
             opcode = INS_MOV
             if imm4 & 0b0010 == 0b0000:
-                iflag |= IFP_S
+                iflags |= IFP_S
                 index32 = imm5 & 0x3
                 index64 = imm5 & 0x7
                 if q == 0b0:
@@ -6120,7 +6124,7 @@ def p_simd_copy(opval, va):
                         width_spec = 'B'
                         index = imm5[4:1]
             else:
-                iflag |= IFP_U
+                iflags |= IFP_U
                 index32 = imm5 & 0x7
                 if q == 0b0:
                     regsize = 4
@@ -6180,7 +6184,7 @@ def p_simd_copy(opval, va):
             A64ImmOper(index2, va=va),
         )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 dup_table = (
     ( 'B', 'W'),
@@ -6205,7 +6209,7 @@ def p_simd_vector_ie(opval, va):
     rd = opval & 0x1f
     
     if opc & 0b0010 == 0b0010: #any instruction with IF_L at the end (long flag)
-        iflag |= IF_L
+        iflags |= IF_L
         if size == 0b00:
             ta = 'RESERVED'
             tb = 'RESERVED'
@@ -6274,7 +6278,7 @@ def p_simd_vector_ie(opval, va):
             if size & 0b10 == 0b00:
                 return p_undef(opval, va)
             if u == 0b1:
-                iflag |= IF_X
+                iflags |= IF_X
             vm = m+rm
             if size == 0b00:
                 t = IFS_2S
@@ -6306,24 +6310,24 @@ def p_simd_vector_ie(opval, va):
         )
     if opc & 0x3 == 0b10:
         if u == 0b0:
-            iflag |= IFP_S
+            iflags |= IFP_S
         else:
-            iflag |= IFP_U
+            iflags |= IFP_U
     if u == 0b0 and opc & 0x3 == 0b11:
-        iflag |= IFP_SQ
-        iflag |= IFP_D
+        iflags |= IFP_SQ
+        iflags |= IFP_D
     if opc & 0b1000 == 0b1000:
         #all instructions with opc beginning with 1 have an opcode of MUL
         mnem = 'mul'
         opcode = INS_MUL
         if opc & 0b0100 == 0b0100:
-            iflag |= IFP_SQ
-            iflag |= IFP_D
-            iflag |= IF_H
+            iflags |= IFP_SQ
+            iflags |= IFP_D
+            iflags |= IF_H
             if opc & 0b0010 == 0b0010 or u == 0b1:
                 return p_undef(opval, va)
             if opc & 0x1 == 0b0001:
-                iflag |= IFP_R
+                iflags |= IFP_R
     elif opc & 0b0100 == 0b0100:
         #all other instructions with the second bit opc as 1 have an opcode of MLS
         mnem = 'mls'
@@ -6333,7 +6337,7 @@ def p_simd_vector_ie(opval, va):
         mnem = 'mla'
         opcode = INS_MLA
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 def p_simd_mod_shift_imm(opval, va):
     '''
@@ -6384,14 +6388,14 @@ def p_simd_mod_imm(opval, va):
                 #shift equal to mod_imm_table[shift] LSL
             )
             if cmode & 0x1 == 0b0:
-                iflag |= IF_I
+                iflags |= IF_I
                 if op == 0b0:
                     mnem = 'mov'
                     opcode = INS_MOV
                 else:
                     mnem = 'mv'
                     opcode = INS_MV
-                    iflag |= IF_N                   
+                    iflags |= IF_N                   
             else:
                 if op == 0b0:
                     mnem = 'orr'
@@ -6400,14 +6404,14 @@ def p_simd_mod_imm(opval, va):
                     mnem = 'bic'
                     opcode = INS_BIC
         elif cmode & 0b0010 == 0b0000:
-            iflag |= IF_I
+            iflags |= IF_I
             if op == 0b0:
                 mnem = 'mov'
                 opcode = INS_MOV
             else:
                 mnem = 'mv'
                 opcode = INS_MV
-                iflag |= IF_N
+                iflags |= IF_N
             shift = (8,16)[cmode[0]]
             if q == 0b0:
                 width_spec = IFS_2S              
@@ -6421,7 +6425,7 @@ def p_simd_mod_imm(opval, va):
         elif cmode == 0b1111:
             mnem = 'mov'
             opcode = INS_MOV
-            iflag |= IFP_F
+            iflags |= IFP_F
             if op == 0b0:
                 width_spec = (IFS_4S, IFS_2S)[q]
             elif q == 0b1:
@@ -6435,7 +6439,7 @@ def p_simd_mod_imm(opval, va):
         else:
             mnem = 'mov'
             opcode = INS_MOV
-            iflag |= IF_I
+            iflags |= IF_I
             if op == 0b0:
                 olist = (
                     A64RegOper(rd, va, oflags=(IFS_8B,IFS_16B)[q]),
@@ -6456,7 +6460,7 @@ def p_simd_mod_imm(opval, va):
     else:
         return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 mod_imm_table = (
     0, 8, 16, 24,
@@ -6467,7 +6471,7 @@ def p_simd_shift_imm(opval, va):
     '''
     AdvSIMD shift by immediate
     '''
-    iflag = 0
+    iflags = 0
 
     q = opval >> 30 & 0x1
     u = opval >> 29 & 0x1
@@ -6511,9 +6515,9 @@ def p_simd_shift_imm(opval, va):
             #FIXME shift = variable shift specified above
         )
         if u == 0b0:
-            iflag |= IFP_S
+            iflags |= IFP_S
         else:
-            iflag |= IFP_U
+            iflags |= IFP_U
         if opc & 0b00011== 0b00000:
             mnem = 'shr'
             opcode = INS_SHR
@@ -6521,7 +6525,7 @@ def p_simd_shift_imm(opval, va):
             mnem = 'sra'
             opcode = INS_SRA
         if opcode & 0b00100 == 0b00100:
-            iflag |= IFP_R
+            iflags |= IFP_R
         
     elif opc & 0b11000 == 0b01000:
         if opc == 0b01000:
@@ -6543,15 +6547,15 @@ def p_simd_shift_imm(opval, va):
             else:
                 mnem = 'shl'
                 opcode = INS_SHL
-                iflag |= IF_U
-                iflag |= IFP_SQ
+                iflags |= IF_U
+                iflags |= IFP_SQ
         elif opc == 0b01110:
             mnem = 'shl'
             opcode = INS_SHL
             if u == 0b0:
-                iflag |= IFP_SQ
+                iflags |= IFP_SQ
             else:
-                iflag |= IFP_UQ
+                iflags |= IFP_UQ
         else:
             return p_undef(opval, va)
         if immh & 0b1000 == 0b1000:
@@ -6644,18 +6648,18 @@ def p_simd_shift_imm(opval, va):
             )
             mnem = 'shr'
             opcode = INS_SHR
-            iflag |= IF_N
+            iflags |= IF_N
             if opc & 0x1 == 0b1:
-                iflag |= IFP_R
+                iflags |= IFP_R
             if u == 0b0:
                 if opc & 0x2 == 0b00010:
-                    iflag |= IFP_SQ
+                    iflags |= IFP_SQ
             else:
                 if opc & 0x2 == 0b00010:
-                    iflag |= IFP_UQ
+                    iflags |= IFP_UQ
                 else:
-                    iflag |= IFP_SQ
-                    iflag |= IF_U
+                    iflags |= IFP_SQ
+                    iflags |= IF_U
         else:
             olist = (
                 A64RegOper(rd, va, oflags=width_spec2),
@@ -6664,11 +6668,11 @@ def p_simd_shift_imm(opval, va):
             )
             mnem = 'shl'
             opcode = INS_SHL
-            iflag |= IF_L
+            iflags |= IF_L
             if u == 0b0:
-                iflag |= IFP_S
+                iflags |= IFP_S
             else:
-                iflag |= IFP_U
+                iflags |= IFP_U
     else:
         mnem = 'cvt'
         opcode = INS_CVT
@@ -6697,22 +6701,22 @@ def p_simd_shift_imm(opval, va):
             #FIXME fractional bits?
         )
         if opc & 0x7 == 0b100:
-            iflag |= IF_F
+            iflags |= IF_F
             if u == 0b0:
-                iflag |= IFP_S
+                iflags |= IFP_S
             else:
-                iflag |= IFP_U
+                iflags |= IFP_U
         elif opc & 0x7 == 0b111:
-            iflag |= IFP_F
-            iflag |= IF_Z
+            iflags |= IFP_F
+            iflags |= IF_Z
             if u == 0b0:
-                iflag |= IF_S
+                iflags |= IF_S
             else:
-                iflag |= IF_U
+                iflags |= IF_U
         else:
             return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
         
 
 def p_simd_tbl_tbx(opval, va):
@@ -6823,7 +6827,7 @@ def p_simd_ext(opval, va):
     imm4 = opval >> 11 & 0xf
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
-    iflag = 0
+    iflags = 0
 
     if op2 == 0b00:
         if q == 0b0:
@@ -6847,14 +6851,14 @@ def p_simd_ext(opval, va):
     else:
         return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 
 def p_simd_scalar_three_same(opval, va):
     '''
     AdvSIMD scalar three same
     '''
-    iflag = 0
+    iflags = 0
     u = opval >> 29 & 0x1
     size = opval >> 22 & 0x3
     rm = opval >> 16 & 0x1f
@@ -6873,14 +6877,14 @@ def p_simd_scalar_three_same(opval, va):
                 mnem = 'sub'
                 opcode = INS_SUB
             if u == 0b0:
-                iflag |= IFP_SQ
+                iflags |= IFP_SQ
             else:
-                iflag |= IFP_UQ
+                iflags |= IFP_UQ
             width_spec = bhsd_table[size]
         else:
             mnem = 'cm'
             opcode = INS_CM
-            iflag |= three_same_cm_table[opval & 0x1][u]
+            iflags |= three_same_cm_table[opval & 0x1][u]
             if size == 0b11:
                 width_spec = 'D'
             else:
@@ -6896,17 +6900,17 @@ def p_simd_scalar_three_same(opval, va):
             else:
                 width_spec = 'RESERVED'                
             if u == 0b0:
-                iflag |= IFP_S
+                iflags |= IFP_S
             else:
-                iflag |= IFP_U
+                iflags |= IFP_U
         else:
             width_spec = bhsd_table[size]
             if u == 0b0:
-                iflag |= IFP_SQ
+                iflags |= IFP_SQ
             else:
-                iflag |= IFP_UQ
+                iflags |= IFP_UQ
         if opc & 0x2 == 0b10:
-            iflag |= IFP_R
+            iflags |= IFP_R
     elif subopc == 0b10000:
         if opc & 0x7 == 0b00000:
             if u == 0b0:
@@ -6923,9 +6927,9 @@ def p_simd_scalar_three_same(opval, va):
             mnem = 'cm'
             opcode = INS_CM
             if u == 0b0:
-                iflag |= IF_TST
+                iflags |= IF_TST
             else:
-                iflag |= IF_EQ
+                iflags |= IF_EQ
             if size == 0b11:
                 width_spec = 'D'
             else:
@@ -6933,16 +6937,16 @@ def p_simd_scalar_three_same(opval, va):
         elif opc & 0x7 == 0b00110:
             opcode = INS_MUL
             mnem = 'mul'
-            iflag |= IFP_SQ
+            iflags |= IFP_SQ
             if u == 0b1:
-                iflag |= IFP_R
-            iflag |= IFP_D
-            iflag |= IF_H
+                iflags |= IFP_R
+            iflags |= IFP_D
+            iflags |= IF_H
             width_spec = three_diff_table[size][1]
         else:
             return p_undef(opval, va)
     else:
-        iflag |= IFP_F
+        iflags |= IFP_F
         if size & 0b01 == 0b00:
             width_spec = 'S'
         else:
@@ -6956,14 +6960,14 @@ def p_simd_scalar_three_same(opval, va):
                 opcode = INS_AC
             if size & 0b10 == 0b00:
                 if u == 0b0:
-                    iflag |= IF_EQ
+                    iflags |= IF_EQ
                 else:
-                    iflag |= IF_GE
+                    iflags |= IF_GE
             else:
                 if u == 0b0:
                     return p_undef(opval, va)
                 else:
-                    iflag |= IF_GT
+                    iflags |= IF_GT
         elif u == 0b1:
             if size & 0b10 == 0b10 and opc & 0x7 == 0b010:
                 mnem = 'abd'
@@ -6972,19 +6976,19 @@ def p_simd_scalar_three_same(opval, va):
                 return p_undef(opval, va)
         else:
             if opc & 0x7 == 0b00111:
-                iflag |= IF_S
+                iflags |= IF_S
                 if size & 0b10 == 0b00:
                     mnem = 'recp'
                     opcode = INS_RECP
                 else:
-                    iflag |= IFP_R
+                    iflags |= IFP_R
                     mnem = 'sqrt'
                     opcode = INS_SQRT
             elif opc & 0x7 == 0b00011:
                 if size & 0b10 == 0b00:
                     mnem = 'mul'
                     opcode = INS_MUL
-                    iflag |= IF_X
+                    iflags |= IF_X
                 else:
                     return p_undef(opval, va)
             else:
@@ -6995,7 +6999,7 @@ def p_simd_scalar_three_same(opval, va):
         A64RegOper(rm, va, size=width_spec),
     )
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 three_same_cm_table = (
     (IF_GT, IF_HI),
@@ -7012,12 +7016,12 @@ def p_simd_scalar_three_diff(opval, va):
     opc = opval >> 12 & 0xf
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
-    iflag = 0
+    iflags = 0
     
     if u == 0b0:
-        iflag |= IFP_SQ
-        iflag |= IFP_D
-        iflag |= IF_L
+        iflags |= IFP_SQ
+        iflags |= IFP_D
+        iflags |= IF_L
         width_spec = three_diff_table[size][0]
         width_spec1 = three_diff_table[size][1]
         olist = (
@@ -7028,11 +7032,11 @@ def p_simd_scalar_three_diff(opval, va):
         if opc == 0b1001:
             opcode = INS_ML
             mnem = 'ml'
-            iflag |= IF_A
+            iflags |= IF_A
         elif opc == 0b1011:
             opcode = INS_ML
             mnem = 'ml'
-            iflag |= IF_S            
+            iflags |= IF_S            
         elif opc == 0b1101:
             opcode = INS_MUL
             mnem = 'mul'
@@ -7041,7 +7045,7 @@ def p_simd_scalar_three_diff(opval, va):
     else:
         return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 
 three_diff_table = (
@@ -7056,7 +7060,7 @@ def p_simd_scalar_tworeg_misc(opval, va):
     AdvSIMD scalar two-reg misc
     '''
 
-    iflag = 0
+    iflags = 0
     u = opval >> 29 & 0x1
     size = opval >> 22 & 0x3
     opc = opval >> 12 & 0x1f
@@ -7068,9 +7072,9 @@ def p_simd_scalar_tworeg_misc(opval, va):
         opcode = INS_ADD
         #FIXME unsigned and signed clash
         if u == 0b0:
-            iflag |= IFP_SUQ
+            iflags |= IFP_SUQ
         else:
-            iflag |= IFP_USQ
+            iflags |= IFP_USQ
     elif opc & 0x3 == 0b11 and opc & 0b10000 == 0b00000:
         if u == 0b0:
             opcode = INS_ABS
@@ -7079,7 +7083,7 @@ def p_simd_scalar_tworeg_misc(opval, va):
             opcode = INS_NEG
             mnem = 'neg'
         if opc & 0b01100 == 0b00100:
-            iflag |= IFP_SQ
+            iflags |= IFP_SQ
             olist = (
                 A64RegOper(rd, va, size=bhsd_table[size]),
                 A64RegOper(rn, va, size=bhsd_table[size]),
@@ -7099,7 +7103,7 @@ def p_simd_scalar_tworeg_misc(opval, va):
         opcode = INS_CM
         mnem = 'cm'
         if opc & 0b00100 == 0b00100:
-            iflag |= IFP_F
+            iflags |= IFP_F
             if size & 0b01 == 0b00:
                 width_spec = 'S'
             else:
@@ -7109,7 +7113,7 @@ def p_simd_scalar_tworeg_misc(opval, va):
                 width_spec = 'D'
             else:
                 width_spec = 'RESERVED'
-        iflag |= cm_table[opval & 0x3][u]
+        iflags |= cm_table[opval & 0x3][u]
         olist = (
             A64RegOper(rd, va, size=width_spec),
             A64RegOper(rn, va, size=width_spec),
@@ -7117,29 +7121,29 @@ def p_simd_scalar_tworeg_misc(opval, va):
         )
     elif opc & 0b11000 == 0b10000:
         subcode = opc & 0b00111
-        iflag |= IF_N
+        iflags |= IF_N
         if u == 0b0:
             if subcode == 0b00100:
                 mnem = 'xt'
                 opcode = INS_XT
-                iflag |= IFP_SQ
+                iflags |= IFP_SQ
             else:
                 return p_undef(opval, va)
         else:
             if subcode == 0b00010:
                 mnem = 'xt'
                 opcode = INS_XT
-                iflag |= IFP_SQ
-                iflag |= IF_U
+                iflags |= IFP_SQ
+                iflags |= IF_U
             elif subcode == 0b00100:
                 mnem = 'xt'
                 opcode = INS_XT
-                iflag |= IFP_UQ
+                iflags |= IFP_UQ
             elif subcode == 0b00110:
                 opcode = INS_CVT
                 mnem = 'cvt'
-                iflag |= IFP_F
-                iflag |= IF_X
+                iflags |= IFP_F
+                iflags |= IF_X
             else:
                 return p_undef(opval, va)
         if subcode == 0b00010 or 0b00100:
@@ -7171,23 +7175,23 @@ def p_simd_scalar_tworeg_misc(opval, va):
             mnem = 'cvt'
             opcode = INS_CVT
             if opc != 0b11101:
-                iflag |= IFP_F
+                iflags |= IFP_F
                 if u == 0b0:
-                    iflag |= IF_S
+                    iflags |= IF_S
                 else:
-                    iflag |= IF_U
+                    iflags |= IF_U
             else:
-                iflag |= IF_F
+                iflags |= IF_F
                 if u == 0b0:
-                    iflag |= IFP_S
+                    iflags |= IFP_S
                 else:
-                    iflag |= IFP_U
+                    iflags |= IFP_U
             if opc & 0x3 == 0b00010:
-                iflag |= IF_N
+                iflags |= IF_N
             elif opc & 0x3 == 0b00011:
-                iflag |= IF_M
+                iflags |= IF_M
             elif opc & 0x3 == 0b00100:
-                iflag |= IF_A
+                iflags |= IF_A
         else:
             if size & 0b01 == 0b01:
                 width_spec = 'S'
@@ -7197,36 +7201,36 @@ def p_simd_scalar_tworeg_misc(opval, va):
                 A64RegOper(rd, va, size=width_spec),
                 A64RegOper(rn, va, size=width_spec),
             )
-            iflag |= IFP_F
+            iflags |= IFP_F
             if opc & 0b00100 == 0b00000:
                 mnem = 'cvt'
                 opcode = INS_CVT
                 if u == 0b0:
-                    iflag |= IF_S
+                    iflags |= IF_S
                 else:
-                    iflag |= IF_U
+                    iflags |= IF_U
                 if opc & 0x3 == 0b10:
-                    iflag |= IF_P
+                    iflags |= IF_P
                 elif opc & 0x3 == 0b11:
-                    iflag |= IF_Z
+                    iflags |= IF_Z
                 else:
                     return p_undef(opval, va)
             else:
                 if opc & 0x3 == 0b01:
-                    iflag |= IF_E
+                    iflags |= IF_E
                 if u == 0b0:
                     mnem = 'recp'
                     opcode = INS_RECP
                     if opc & 0x3 == 0b11:
-                        iflag |= IF_X
+                        iflags |= IF_X
                     elif opc & 0x3 != 0b01:
                         return p_undef(opval, va)                   
                 else:
-                    iflag |= IFP_R
+                    iflags |= IFP_R
                     mnem = 'sqrt'
                     opcode = INS_SQRT
                     
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 bhsd_table = (
     'B',
@@ -7254,7 +7258,7 @@ def p_simd_scalar_pairwise(opval, va):
     rn = opval >> 5 & 0x1f
     rd = opval & 0x1f
 
-    iflag = IF_P
+    iflags = IF_P
     if u == 0b0:
         if opc == 0b11011:
             mnem = 'add'
@@ -7272,7 +7276,7 @@ def p_simd_scalar_pairwise(opval, va):
         else:
             return p_undef(opval, va)
     else:
-        iflag |= IFP_F
+        iflags |= IFP_F
         if opc & 0b11100 == 0b01100:
             if size & 0x1 == 0b0:
                 width_spec = 'S'
@@ -7288,7 +7292,7 @@ def p_simd_scalar_pairwise(opval, va):
                 if opc & 0x3 == 0b00000:
                     mnem = 'max'
                     opcode = INS_MAX
-                    iflag |= IF_NM
+                    iflags |= IF_NM
                 elif opc & 0x3 == 0b00001:
                     mnem = 'add'
                     opcode = INS_ADD
@@ -7301,13 +7305,13 @@ def p_simd_scalar_pairwise(opval, va):
                 mnem = 'min'
                 opcode = INS_MIN
                 if opc & 0x3 == 0b00000:
-                    iflag |= IF_NM
+                    iflags |= IF_NM
                 elif opc & 0x3 != 0b00011:
                     return p_undef(opval, va)
         else:
             return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
 
 def p_simd_scalar_copy(opval, va):
@@ -7354,7 +7358,7 @@ def p_simd_scalar_ie(opval, va):
     '''
     AdvSIMD scalar x indexed element
     '''
-    iflag = 0
+    iflags = 0
     u = opval >> 29 & 0x1
     size = opval >> 22 & 0x3
     l = opval >> 21 & 0x1
@@ -7413,11 +7417,11 @@ def p_simd_scalar_ie(opval, va):
         subopc = opc & 0b1100
         if subopc != 0b1100:
             if opc & 0x3 == 0b01:
-                iflag |= IFP_F
+                iflags |= IFP_F
             elif opc & 0x3 == 0b11:
-                iflag |= IFP_SQ
-                iflag |= IFP_D
-                iflag |= IF_L
+                iflags |= IFP_SQ
+                iflags |= IFP_D
+                iflags |= IF_L
             else:
                 return p_undef(opval, va)
         if subopc == 0b0000:
@@ -7432,27 +7436,27 @@ def p_simd_scalar_ie(opval, va):
         else:
             mnem = 'mul'
             opcode = INS_MUL
-            iflag |= IFP_SQ
-            iflag |= IFP_D
-            iflag |= IF_H
+            iflags |= IFP_SQ
+            iflags |= IFP_D
+            iflags |= IF_H
             if opc & 0x3 == 0b01:
-                iflag |= IFP_R
+                iflags |= IFP_R
     else:
         if opc == 0b1001 and size & 0b10 == 0b10:
-            iflag |= IF_X
-            iflag |= IFP_F
+            iflags |= IF_X
+            iflags |= IFP_F
             opcode = INS_MUL
         else:
             return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
 
         
 def p_simd_scalar_shift_imm(opval, va):
     '''
     AdvSIMD scalar shift by immediate
     '''
-    iflag = 0
+    iflags = 0
     u = opval >> 29 & 0x1
     immh = opval >> 19 & 0xf
     immb = opval >> 16 & 0x7
@@ -7476,9 +7480,9 @@ def p_simd_scalar_shift_imm(opval, va):
             #FIXME shift = variable shift specified above
         )
         if u == 0b0:
-            iflag |= IFP_S
+            iflags |= IFP_S
         else:
-            iflag |= IFP_U
+            iflags |= IFP_U
         if opc & 0b00011== 0b00000:
             mnem = 'shr'
             opcode = INS_SHR
@@ -7486,7 +7490,7 @@ def p_simd_scalar_shift_imm(opval, va):
             mnem = 'sra'
             opcode = INS_SRA
         if opcode & 0b00100 == 0b00100:
-            iflag |= IFP_R
+            iflags |= IFP_R
         
     elif opc & 0b11000 == 0b01000:
         if opc == 0b01000:
@@ -7520,8 +7524,8 @@ def p_simd_scalar_shift_imm(opval, va):
             else:
                 mnem = 'shl'
                 opcode = INS_SHL
-                iflag |= IF_U
-                iflag |= IFP_SQ
+                iflags |= IF_U
+                iflags |= IFP_SQ
                 if immh & 0b1000 == 0b1000:
                     width_spec = 'D'
                     shift = (immh+immb)-64
@@ -7541,9 +7545,9 @@ def p_simd_scalar_shift_imm(opval, va):
             mnem = 'shl'
             opcode = INS_SHL
             if u == 0b0:
-                iflag |= IFP_SQ
+                iflags |= IFP_SQ
             else:
-                iflag |= IFP_UQ
+                iflags |= IFP_UQ
             if immh & 0b1000 == 0b1000:
                 width_spec = 'D'
                 shift = (immh+immb)-64
@@ -7595,17 +7599,17 @@ def p_simd_scalar_shift_imm(opval, va):
         )
         mnem = 'shr'
         opcode = INS_SHR
-        iflag |= IF_N
+        iflags |= IF_N
         if opc & 0b1 == 0b1:
-            iflag |= IFP_R
+            iflags |= IFP_R
         if opval >> 1 & 0b1 == 0b0:
-            iflag |= IF_U
-            iflag |= IFP_SQ
+            iflags |= IF_U
+            iflags |= IFP_SQ
         else:
             if u == 0b0:
-                iflag |= IFP_SQ
+                iflags |= IFP_SQ
             else:
-                iflag |= IFP_UQ
+                iflags |= IFP_UQ
     else:
         mnem = 'cvt'            # FIXME: NEEDS WORK
         opcode = INS_CVT
@@ -7625,22 +7629,22 @@ def p_simd_scalar_shift_imm(opval, va):
             #FIXME fractional bits?
         )
         if opc & 0x7 == 0b100:
-            iflag |= IF_F
+            iflags |= IF_F
             if u == 0b0:
-                iflag |= IFP_S
+                iflags |= IFP_S
             else:
-                iflag |= IFP_U
+                iflags |= IFP_U
         elif opc & 0x7 == 0b111:
-            iflag |= IFP_F
-            iflag |= IF_Z
+            iflags |= IFP_F
+            iflags |= IF_Z
             if u == 0b0:
-                iflag |= IF_S
+                iflags |= IF_S
             else:
-                iflag |= IF_U
+                iflags |= IF_U
         else:
             return p_undef(opval, va)
 
-    return opcode, mnem, olist, iflag, 0
+    return opcode, mnem, olist, iflags, 0
             
         
 def p_crypto_aes(opval, va):
@@ -8424,6 +8428,14 @@ class A64ShiftOper(A64Operand):
         if self.shval != 0:      # Add shift data only if there is a shift value
             mcanv.addText(',' + opShifts[self.shtype] + " #" + str(self.shval))
 
+    def getOperValue(self, op, emu=None, codeflow=False):
+        if not emu:
+            return None
+
+        val = emu.getRegister(self.reg)
+        return shifters[self.shtype](val, self.shval, self.size, emu)
+
+
 
 class A64ExtendOper(A64Operand):
     '''
@@ -8666,8 +8678,8 @@ class A64Opcode(envi.Opcode):
 
         flags = 0
 
-        if self.iflags & envi.IF_COND:
-            flags |= envi.BR_COND
+        #if self.iflags & envi.IF_COND:
+        #    flags |= envi.BR_COND
 
         if self.iflags & (envi.IF_BRANCH | envi.IF_CALL):
             oper = self.opers[-1]

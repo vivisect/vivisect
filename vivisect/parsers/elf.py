@@ -810,16 +810,16 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                         logger.warning(r.tree())
 
 
-            if arch in ('arm', 'thumb', 'thumb16'):
-                # ARM REL entries require an addend that could be stored as a 
+            if arch in ('arm', 'thumb', 'thumb16', 'a64', 'aarch64'):
+                # ARM REL entries require an addend that could be stored as a
                 # number or an instruction!
                 import envi.archs.arm.const as eaac
-                if r.vsHasField('addend'):
+                if r.vsHasField('r_addend'):
                     # this is a RELA object, bringing its own addend field!
-                    addend = r.addend
+                    addend = r.r_addend
                 else:
                     # otherwise, we have to check the stored value for number or instruction
-                    # if it's an instruction, we have to use the immediate value and then 
+                    # if it's an instruction, we have to use the immediate value and then
                     # figure out if it's negative based on the instruction!
                     try:
                         temp = vw.readMemoryPtr(rlva)

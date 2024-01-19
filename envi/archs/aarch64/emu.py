@@ -500,6 +500,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 '''
     i_msr = i_mov
     i_adr = i_mov
+    i_adrp = i_mov
 
     def i_str(self, op):
         # hint: covers str, strb, strbt, strd, strh, strsh, strsb, strt   (any instr where the syntax is str{condition}stuff)
