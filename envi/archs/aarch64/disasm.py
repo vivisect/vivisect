@@ -8311,6 +8311,8 @@ class A64nzcvOper(A64Operand):
     def render(self, mcanv, op, idx):
         mcanv.addText('#' + str(self.val))
 
+    def getOperValue(self, op, emu=None, codeflow=False):
+        pass
 
 class A64CondOper(A64Operand):
     '''
@@ -8325,6 +8327,9 @@ class A64CondOper(A64Operand):
 
     def render(self, mcanv, op, idx):
         mcanv.addText(self.mnem.lower())
+
+    def getOperValue(self, op, emu=None, codeflow=False):
+        pass
 
 class A64NameOper(A64Operand):
     '''
