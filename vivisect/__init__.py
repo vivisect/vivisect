@@ -21,8 +21,9 @@ import collections
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
-import envi.common as e_common
 import envi.memory as e_mem
+import envi.const as e_const
+import envi.common as e_common
 import envi.config as e_config
 import envi.bytesig as e_bytesig
 import envi.symstore.resolver as e_resolv
@@ -182,7 +183,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
         self.addVaSet('thunk_reg', ( ('fva', VASET_ADDRESS), ('reg', VASET_STRING), ('tgtval', VASET_INTEGER)) )
-        self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING), 
+        self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING),
                 ('resolved address', VASET_ADDRESS)))
 
     def vprint(self, msg):
@@ -634,14 +635,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         uname = self.config.user.name
         self.server = remotevw
         self.rchan = remotevw.createEventChannel()
+        logger.debug("initWorkspaceClient() -> Event Channel: %r", self.rchan)
 
         self.server.vprint('%s connecting...' % uname)
 
         self.leaders.update(self.server.getLeaderSessions())
         self.leaderloc.update(self.server.getLeaderLocations())
+        logger.debug("initWorkspaceClient() -> leaders updated")
 
-        wsevents = self.server.exportWorkspace()
-        self.importWorkspace(wsevents)
         self.server.vprint('%s connection complete!' % uname)
 
         thr = threading.Thread(target=self._clientThread, daemon=True)
@@ -650,6 +651,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         timeout = self.config.viv.remote.wait_for_plat_arch
         self._load_event.wait(timeout=timeout)
         self._snapInAnalysisModules()
+        logger.debug("initWorkspaceClient() -> Complete")
 
     def _clientThread(self):
         """
@@ -962,6 +964,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         size = self.psize
 
         for mva, msize, mperm, mname in self.getMemoryMaps():
+
+            if mperm & e_const.MM_UNINIT:
+                continue
 
             offset, bytes = self.getByteDef(mva)
             maxsize = len(bytes) - size
@@ -1512,6 +1517,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         except InvalidFunction:
             return False
 
+    def isFunctionThunkReg(self, fva):
+        '''
+        Returns True if fva is a thunk we've identified as being
+        something of the form of __x86.get_pc_thunk.bx
+        '''
+        return self.getVaSetRow('thunk_reg', fva) is not None
+
     def getFunctions(self):
         """
         Return a list of the function virtual addresses
@@ -1726,7 +1738,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         If basename is provided, that name is used to create the Vivisect name for the thunk.
         If basename is not provided, thname is chopped and used for the Vivisect name.
-        This difference allows, for example, the Elf loader to make PLT functions named "plt_<foo>" 
+        This difference allows, for example, the Elf loader to make PLT functions named "plt_<foo>"
         but still use the official thunk name "*.<foo>".  This thunk name is used to look up
         the import api.  These "*.<foo>" thunk names are also used in the addNoReturnApi().
 
@@ -3202,6 +3214,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         Add a prefix to the given name paying attention to the filename prefix, and
         any VA suffix which may exist.
+
+        This is used by multiple analysis modules.
+        Uses _getNameParts.
         '''
         fpart, npart, vapart = self._getNameParts(name, va)
         if fpart is None and vapart is None:
@@ -3284,6 +3299,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 1, 0)
+version = (1, 1, 1)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

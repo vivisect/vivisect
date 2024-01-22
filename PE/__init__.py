@@ -1410,6 +1410,44 @@ class PE(object):
 
         return certs
 
+    def __repr__(self, verbose=False):
+        out = []
+        out.append("PE Binary:")
+        dllName = self.getDllName()
+        out.append("DllName: %r" % dllName)
+
+        out.append(self.IMAGE_DOS_HEADER.tree())
+        out.append(self.IMAGE_NT_HEADERS.tree())
+        out.append('\nSections')
+        for sec in self.getSections():
+            out.append(sec.tree())
+
+        try:
+            rscs = self.getResources()
+            if len(rscs):
+                out.append('\nResources')
+                for rsc in rscs:
+                    out.append(rsc.tree())
+        except:
+            pass
+
+        out.append("\nPDB Path: %r" % self.getPdbPath())
+
+        if verbose:
+            out.append('\nImports:')
+            for imp in self.getImports():
+                out.append(imp.tree())
+
+            out.append('\nDelayedImports:')
+            for imp in self.getDelayImports():
+                out.append(imp.tree())
+
+            out.append('\nExports:')
+            for exp in self.getExports():
+                out.append(exp.tree())
+
+        return '\n'.join(out)
+
     def __getattr__(self, name):
         """
         Use a getattr over-ride to allow "on demand" parsing of particular sections.
