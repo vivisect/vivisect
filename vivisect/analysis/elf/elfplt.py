@@ -300,7 +300,7 @@ def analyzeFunction(vw, funcva):
     plts = getPLTs(vw)
     isplt = False
     for pltva, pltsz in plts:
-        if pltva <= funcva <= (pltva + pltsz):
+        if pltva <= funcva < (pltva + pltsz):
             isplt = True
             segva = pltva
             segsize = pltsz
