@@ -214,11 +214,10 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         # NOTE: If an opcode method returns
         #       other than None, that is the new eip
         x = None
-        if op.prefixes >= 0xe or conditionals[op.prefixes](self.getRegister(REG_FLAGS)>>28):
-            meth = self.op_methods.get(op.mnem, None)
-            if meth == None:
-                raise envi.UnsupportedInstruction(self, op)
-            x = meth(op)
+        meth = self.op_methods.get(op.mnem, None)
+        if meth == None:
+            raise envi.UnsupportedInstruction(self, op)
+        x = meth(op)
 
         if x == None:
             pc = self.getProgramCounter()
@@ -487,6 +486,10 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
             return val
 
     def i_mov(self, op):
+        val = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, val)
+
+    def i_movi(self, op):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
 

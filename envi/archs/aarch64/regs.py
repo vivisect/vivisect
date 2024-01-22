@@ -34,25 +34,26 @@ meta_reg_bases = (0,
         META_Q_BASE,
 )
 
-aarch64_regs = [('x%d'%x, 64) for x in range(31)]  # x31 is zero register
+aarch64_regs_tups = [('x%d'%x, 64) for x in range(31)]  # x31 is zero register
 
-REG_SP = len(aarch64_regs)
-aarch64_regs.append(('sp', 64))
-REG_PC = len(aarch64_regs)
-aarch64_regs.append(('pc', 64))
-REG_CPSR = len(aarch64_regs)
-aarch64_regs.append(('cpsr', 64))
-REG_XZR = len(aarch64_regs)
-aarch64_regs.append(('xzr', 64))
+REG_SP = len(aarch64_regs_tups)
+aarch64_regs_tups.append(('sp', 64))
+REG_PC = len(aarch64_regs_tups)
+aarch64_regs_tups.append(('pc', 64))
+REG_CPSR = len(aarch64_regs_tups)
+aarch64_regs_tups.append(('cpsr', 64))
+REG_XZR = len(aarch64_regs_tups)
+aarch64_regs_tups.append(('xzr', 64))
 
 REG_PSTATE = REG_CPSR
 
-MAX_REGS = len(aarch64_regs) - 1
+MAX_REGS = len(aarch64_regs_tups) - 1
 
 # metas:   zr is x31.  w* is 32-bit versions of x* regs
 
-# FIXME: linkage.  if no overlapping regs for different modes, just remove and make all references hit aarch64_regs
-reg_data = aarch64_regs
+# FIXME: linkage.  if no overlapping regs for different modes, just remove and make all references hit aarch64_regs_tups
+reg_data = aarch64_regs_tups
+aarch64_regs = [r for r,sz in aarch64_regs_tups]
 
 # Defining general registers 0 - 30
 aarch64_metas = [("w%d" % x, x, 0, 32) for x in range(31)]          
@@ -94,7 +95,7 @@ reg_data.append(('fpcr', 32))
 reg_data.append(('fpsr', 32))
 
 l = locals()
-e_reg.addLocalEnums(l, aarch64_regs)
+e_reg.addLocalEnums(l, aarch64_regs_tups)
 
 
 

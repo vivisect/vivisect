@@ -1,6 +1,9 @@
 '''
 A disasm file for the AArch64 Architecture, ARMv8.
 '''
+import logging
+logger = logging.getLogger(__name__)
+
 from envi.archs.aarch64.const import *
 from envi.archs.aarch64.regs import *
 import envi
@@ -1618,6 +1621,7 @@ def p_ls_reg_unsc_imm(opval, va):
     imm9 = opval >> 12 & 0x1ff
     rn = opval >> 5 & 0x1f
     rt = opval & 0x1f
+    regsize = 8 
 
     # Processing negative imm9 values
     imm9 = imm9 - int((imm9 << 1) & 2**9)
@@ -1630,9 +1634,7 @@ def p_ls_reg_unsc_imm(opval, va):
             opcode = INS_STUR
             mnem = 'stur'
         if v == 0b0:
-            if size == 0b11:
-                regsize = 8
-            else:
+            if size != 0b11:
                 regsize = 4
                 if size == 0b00:
                     iflags |= IF_B
@@ -1645,7 +1647,6 @@ def p_ls_reg_unsc_imm(opval, va):
                     regsize = 4
                 else:
                     rt = REG_XZR
-                    regsize = 8 
 
             olist = (
                 A64RegOper(rt, va, size=regsize),
@@ -1654,14 +1655,10 @@ def p_ls_reg_unsc_imm(opval, va):
                 A64RegImmOffOper(rn, imm9, size, va=va)
             )
         else:
-            if size == 0b00:
-                regsize = 8
-            elif size == 0b01:
+            if size == 0b01:
                 regsize = 16
             elif size == 0b10:
                 regsize = 4
-            else:
-                regsize = 8
 
             if rt == 31:
                 if regsize <= 4:
@@ -1669,7 +1666,6 @@ def p_ls_reg_unsc_imm(opval, va):
                     regsize = 4
                 else:
                     rt = REG_XZR
-                    regsize = 8 
 
             olist = (
                 A64RegOper(rt, va, size=regsize),
@@ -1692,7 +1688,6 @@ def p_ls_reg_unsc_imm(opval, va):
                     regsize = 4
                 else:
                     rt = REG_XZR
-                    regsize = 8 
 
             olist = (
                 A64RegOper(rt, va, size=regsize),
@@ -1711,9 +1706,7 @@ def p_ls_reg_unsc_imm(opval, va):
                     A64RegImmOffOper(rn, imm9, tsize=8, va=va)
                 )
             else:
-                if opc == 0b10:
-                    regsize = 8
-                else:
+                if opc != 0b10:
                     regsize = 4
 
                 if rt == 31:
@@ -1722,7 +1715,6 @@ def p_ls_reg_unsc_imm(opval, va):
                         regsize = 4
                     else:
                         rt = REG_XZR
-                        regsize = 8 
 
                 olist = (
                     A64RegOper(rt, va, size=regsize),
@@ -6354,6 +6346,7 @@ def p_simd_mod_imm(opval, va):
     '''
     AdvSIMD modified immediate
     '''
+    iflags = 0
     q = opval >> 30 & 0x1
     op = opval >> 29 & 0x1
     a = opval >> 18 & 0x1
@@ -6371,20 +6364,20 @@ def p_simd_mod_imm(opval, va):
     if o2 == 0b0:
         if cmode & 0b1000 == 0b0000 or cmode & 0b0100 == 0b0000:
             if cmode & 0b1000 == 0b0000:
-                shift = cmode[2:1]
+                shift = (cmode>>1 & 3)
                 if q == 0b0:
                     width_spec = IFS_2S              
                 else:
                     width_spec = IFS_4S
             else:
-                shift = cmode[1]
+                shift = (cmode>>1 & 1)
                 if q == 0b0:
                     width_spec = IFS_4H              
                 else:
                     width_spec = IFS_8H
             olist = (
                 A64RegOper(rd, va, oflags=width_spec),
-                A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                A64SimdExpImmOper(a,b,c,d,e,f,g,h, va=va),
                 #shift equal to mod_imm_table[shift] LSL
             )
             if cmode & 0x1 == 0b0:
@@ -6412,14 +6405,14 @@ def p_simd_mod_imm(opval, va):
                 mnem = 'mv'
                 opcode = INS_MV
                 iflags |= IF_N
-            shift = (8,16)[cmode[0]]
+            shift = (8,16)[(cmode&1)]
             if q == 0b0:
                 width_spec = IFS_2S              
             else:
                 width_spec = IFS_4S
             olist = (
                 A64RegOper(rd, va, oflags=width_spec),
-                A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                A64SimdExpImmOper(a,b,c,d,e,f,g,h, va=va),
                 #shift amount MSL
             )
         elif cmode == 0b1111:
@@ -6434,7 +6427,7 @@ def p_simd_mod_imm(opval, va):
                 return p_undef(opval, va)
             olist = (
                 A64RegOper(rd, va, size=width_spec),
-                A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                A64SimdExpImmOper(a,b,c,d,e,f,g,h, va=va),
             )
         else:
             mnem = 'mov'
@@ -6443,19 +6436,19 @@ def p_simd_mod_imm(opval, va):
             if op == 0b0:
                 olist = (
                     A64RegOper(rd, va, oflags=(IFS_8B,IFS_16B)[q]),
-                    A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                    A64SimdExpImmOper(a,b,c,d,e,f,g,h, va=va),
                     #FIXME shift == 0x0
                 )
             else:
                 if q == 0b0:
                     olist = (
                         A64RegOper(rd, va, size=8),
-                        A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                        A64SimdExpImmOper(a,b,c,d,e,f,g,h, va=va),
                     )
                 else:
                     olist = (
                         A64RegOper(rd, va, oflags=IFS_2D),
-                        A64ImmOper(a+b+c+d+e+f+g+h, va=va),
+                        A64SimdExpImmOper(a,b,c,d,e,f,g,h, va=va),
                     ) 
     else:
         return p_undef(opval, va)
@@ -8118,7 +8111,22 @@ class A64ImmOper(A64Operand, envi.ImmedOper):
                 mcanv.addNameText('#0x%.8x' % value)
             else:
                 mcanv.addNameText('#' + str(value))
-            
+
+exp_bits = (0, 0b11111111)
+
+class A64SimdExpImmOper(A64ImmOper):
+    def __init__(self, a, b, c, d, e, f, g, h, va=0):
+        imm = exp_bits[a]
+        imm = (imm << 8) | exp_bits[b]
+        imm = (imm << 8) | exp_bits[c]
+        imm = (imm << 8) | exp_bits[d]
+        imm = (imm << 8) | exp_bits[e]
+        imm = (imm << 8) | exp_bits[f]
+        imm = (imm << 8) | exp_bits[g]
+        imm = (imm << 8) | exp_bits[h]
+        A64ImmOper.__init__(self, imm, va=va)
+
+
 LDST_MODE_POSTIDX = 1
 LDST_MODE_OFFSET = 2
 LDST_MODE_PREIDX = 3

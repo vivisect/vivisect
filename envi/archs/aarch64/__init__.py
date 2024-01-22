@@ -52,6 +52,10 @@ class A64Module(envi.ArchitectureModule):
     def archModifyXrefAddr(self, tova, reftype, rflags):
         return tova, reftype, rflags
 
+    def initRegGroups(self):
+        envi.ArchitectureModule.initRegGroups(self)
+        self._regGrps.update({'general': aarch64_regs})
+
 
 
 
