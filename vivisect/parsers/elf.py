@@ -757,6 +757,9 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     else:
                         logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                         logger.info(r.tree())
+                        vw.makeName(rlva, dmglname, makeuniq=True)
+                        if name != dmglname:
+                            vw.setComment(rlva, name)
 
                 else:
                     if rtype == Elf.R_386_RELATIVE: # R_X86_64_RELATIVE is the same number
@@ -931,7 +934,8 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
                     if len(name):
                         vw.makeName(rlva, dmglname, makeuniq=True)
-                        vw.setComment(rlva, name)
+                        if name != dmglname:
+                            vw.setComment(rlva, name)
 
                 elif rtype == Elf.R_ARM_COPY:
                     pass
@@ -939,6 +943,11 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                 else:
                     logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                     logger.info(r.tree())
+                    if name:
+                        vw.makeName(rlva, dmglname, makeuniq=True)
+                        if name != dmglname:
+                            vw.setComment(rlva, name)
+
 
         except vivisect.InvalidLocation as e:
             logger.warning("NOTE\t%r", e)
