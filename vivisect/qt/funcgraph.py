@@ -849,7 +849,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         self.mem_canvas.page().runJavaScript(svgjs, self._layoutEdges)
 
-    def _getNodeSizes(self, data):
+    def _getNodeSizes(self):
         '''
         Actually grab all the sizes of the codeblocks that we renderd in the many calls to
         _renderCodeBlock. runJavaScript has some limited ability to return values from
@@ -890,7 +890,6 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
                 cbva = node[1].get('cbva')
                 cbsize = node[1].get('cbsize')
                 blocks.append([cbva, cbsize])  # yes this has to be a list so javascript plays nicely
-                #self.mem_canvas.renderMemory(cbva, cbsize, self._renderCodeBlock)
 
                 # update _xref_cache_bg (made "real" when rendering complete)
                 endva = cbva + cbsize
