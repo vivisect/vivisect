@@ -4,13 +4,13 @@ from binascii import unhexlify
 logger = logging.getLogger(__name__)
 
 thunk_lookup = {
-        unhexlify('8b0424c3'): 'eax',
-        unhexlify('8b0c24c3'): 'ecx',
-        unhexlify('8b1424c3'): 'edx',
-        unhexlify('8b1c24c3'): 'ebx',
-        unhexlify('8b3424c3'): 'esi',
-        unhexlify('8b3c24c3'): 'edi',
-        unhexlify('8b2c24c3'): 'ebp',
+    unhexlify('8b0424c3'): 'eax',
+    unhexlify('8b0c24c3'): 'ecx',
+    unhexlify('8b1424c3'): 'edx',
+    unhexlify('8b1c24c3'): 'ebx',
+    unhexlify('8b3424c3'): 'esi',
+    unhexlify('8b3c24c3'): 'edi',
+    unhexlify('8b2c24c3'): 'ebp',
 }
 
 def analyzeFunction(vw, fva):
@@ -33,9 +33,8 @@ def analyzeFunction(vw, fva):
     if sigreg is not None:
         # have we already recorded this thunk_reg?
         if vw.getVaSetRow('thunk_reg', fva) is not None:
-            logger.info("Ditching thunk_reg 0x%x", fva)
+            logger.info("Not overriding thunk_reg 0x%x", fva)
             return
-
 
         # determine where reg ends up pointing to
         # this requires checking the calling function's next instruction
@@ -54,7 +53,7 @@ def analyzeFunction(vw, fva):
         addt = op2.opers[1].getOperValue(op2)
         tgtval = op2.va + addt
 
-        logger.debug("__x86.get_pc_thunk.bx: %s", hex(tgtval))
+        logger.debug("__x86.get_pc_thunk.%s: %s", sigreg[1:], hex(tgtval))
         curname = vw.getName(fva)
         if curname is None or curname == "sub_%.8x" % fva:
             vw.makeName(fva, "thunk_%s_%.8x" % (sigreg, fva))
