@@ -2007,7 +2007,7 @@ def p_ls_reg_us_imm(opval, va):
 
 def p_ls_atomic_mem(opval, va):
     '''
-    Atomic memory load/stores, W.I.P.
+    Atomic Memory or Compare and Swap operations
     '''
     size = opval >> 30 & 0b11
     v = opval >> 26 & 0b1
@@ -2018,9 +2018,40 @@ def p_ls_atomic_mem(opval, va):
     opc = opval >> 12 & 0b111
     rn = opval >> 5 & 0b11111
     rt = opval & 0b11111
+    cmpswp = opval >> 28 & 0b11
+
+    #             31 30    26       23      22       15     14 13 12 
+    tabInd = size << 7 | v << 6 | a << 5 | r << 4 | o3 << 3 | opc
+    
+    regsize = (4, 4, 4, 8)[size]
+    
+    if rt == 0b11111 and a == 0:          # ST aliases
+        mnem, opcode = ls_atomic_mem_alias_table.get(tabInd, ['undefined', 0])
+
+        if opcode != 0:         # Only return if value was found in table
+            olist = (
+                A64RegOper(rs, va, size=regsize),            
+                A64RegImmOffOper(rn, 0),
+            )
+            return (opcode, mnem, olist, 0, 0)
+
+        else:
+            return p_undef(opval, va)
+
+    if cmpswp == 0b00:
+        mnem, opcode = ls_comp_swap_table.get(tabInd, ['undefined', 0])
+    else:
+        mnem, opcode = ls_atomic_mem_table.get(tabInd, ['undefined', 0])
+
+    if opcode != 0:             # Only return if value was found in table
+        olist = (
+            A64RegOper(rs, va, size=regsize),
+            A64RegOper(rt, va, size=regsize),
+            A64RegImmOffOper(rn, 0, va=va),
+        )
+        return (opcode, mnem, olist, 0, 0)
 
     return p_undef(opval, va)
-    # return (opcode, mnem, olist, 0, 0)    #iflags?
 
 def p_simd_ls_multistruct(opval, va):
     '''
