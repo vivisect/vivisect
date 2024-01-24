@@ -620,12 +620,11 @@ class EnviCli(Cmd):
         fname = argv[0]
         command = ' '.join(argv[1:])
 
-        strcanvas = e_canvas.StringMemoryCanvas(self.canvas.mem)
+        strcanvas = e_canvas.FileBackedMemoryCanvas(fname, self.canvas.mem)
         with e_canvas.TeeCanvas(self, (self.canvas, strcanvas)) as tc:
             self.onecmd(command)
 
-            with open(fname, 'wb') as f:
-                f.write(str(strcanvas).encode('utf-8'))
+        strcanvas.flush()
 
     def do_search(self, line):
         '''

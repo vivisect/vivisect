@@ -9,3 +9,4 @@
 .DS_Store
 coverage_html_report*
 *~
+_build

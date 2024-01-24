@@ -743,6 +743,11 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0, 'unknown')
 
+        if self.getSection('.comment'):
+            sec = self.getSection('.comment')
+            if b'FreeBSD' in self.readAtOffset(sec.sh_offset, sec.sh_size):
+                return 'freebsd'
+
         if self.getSection('QNX_info'):
             return 'qnx'
 
@@ -786,11 +791,29 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             return True
         return False
 
+    def hasInterpreter(self):
+        '''
+        Returns true if the Elf binary has an PT_INTERP program header.
+        '''
+        for phdr in self.getPheaders():
+            if phdr.p_type == PT_INTERP:
+                return True
+
+        return False
+
     def isExecutable(self):
         '''
         Returns true if the given Elf binary is an executable file type.
+        Either the Elf header specifies e_type of ET_EXEC or 
+        e_type == ET_DYN and has an interpreter designated in the pheaders.
         '''
-        return self.e_type == ET_EXEC
+        if self.e_type == ET_EXEC:
+            return True
+
+        if self.e_type == ET_DYN and self.hasInterpreter():
+            return True
+
+        return False
 
     def isRelocatable(self):
         '''

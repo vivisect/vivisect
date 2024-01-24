@@ -44,12 +44,18 @@ ARCH_MIPS64      = 22 << 16
 
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
+
 arch_defs = {
     ARCH_I386:      {
         'name':     'i386',
         'aliases':  ('i486', 'i586', 'i686', 'x86'),
         'modpath':  ('envi', 'archs', 'i386', ),
         'clsname':  'i386Module',
+        'version':  (1,0,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':True,
+        'has_unittests':True,
         },
     
     ARCH_AMD64:     {
@@ -57,45 +63,81 @@ arch_defs = {
         'aliases':  ('x86_64',),
         'modpath':  ('envi', 'archs', 'amd64'),
         'clsname':  'Amd64Module',
+        'version':  (1,0,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':True,
+        'has_unittests':True,
         },
     
     ARCH_ARMV7:     {
         'name':     'arm',
-        'aliases':  ('armv6l', 'armv7l', 'a32'),
+        'aliases':  ('armv6l', 'armv7l', 'a32', 'leg', 'leg32'),
         'modpath':  ('envi', 'archs', 'arm'),
         'clsname':  'ArmModule',
+        'version':  (1,0,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_THUMB16:   {
         'name':     'thumb16',
         'modpath':  ('envi', 'archs', 'thumb16'),
         'clsname':  'Thumb16Module',
+        'version':  (1,0,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_THUMB:     {
         'name':     'thumb',
-        'aliases':  ('t32', 'thumb2'),
+        'aliases':  ('t32', 'thumb2', 'toe', 'toe2', 'toe32'),
         'modpath':  ('envi', 'archs', 'thumb16'),
         'clsname':  'ThumbModule',
+        'version':  (1,0,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_A64:       {
         'name':     'a64',
-        'aliases':  ('aarch64',),
+        'aliases':  ('aarch64', 'leg64', 'legv8'),
         'modpath':  ('envi', 'archs', 'aarch64'),
         'clsname':  'A64Module',
+        'disabled': True,
+        'version':  (0,2,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_MSP430:    {
         'name':     'msp430',
         'modpath':  ('envi', 'archs', 'msp430'),
         'clsname':  'Msp430Module',
+        'version':  (1,0,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_H8:        {
         'name':     'h8',
         'modpath':  ('envi', 'archs', 'h8'),
         'clsname':  'H8Module',
+        'version':  (0,5,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_MCS51:     {
@@ -104,6 +146,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'mcs51'),
         'clsname':  'Mcs51Module',
         'disabled': True,
+        'version':  (0,5,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_RISCV32:   {
@@ -112,6 +159,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'rv32'),
         'clsname':  'Rv32Module',
         'disabled': True,
+        'version':  (0,5,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_RISCV64:   {
@@ -119,6 +171,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'rv64'),
         'clsname':  'Rv64Module',
         'disabled': True,
+        'version':  (0,5,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_PPC_E32:   {
@@ -127,6 +184,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc32EmbeddedModule',
         'disabled': True,
+        'version':  (1,0,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':True,
+        'has_unittests':True,
         },
     
     ARCH_PPC_E64:   {
@@ -135,6 +197,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc64EmbeddedModule',
         'disabled': True,
+        'version':  (1,0,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':True,
+        'has_unittests':True,
         },
     
     ARCH_PPC_S32:   {
@@ -143,6 +210,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc32ServerModule',
         'disabled': True,
+        'version':  (0,9,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':True,
+        'has_unittests':True,
         },
     
     ARCH_PPC_S64:   {
@@ -151,6 +223,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc64ServerModule',
         'disabled': True,
+        'version':  (0,9,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':True,
+        'has_unittests':True,
         },
     
     ARCH_PPCVLE:    {
@@ -159,6 +236,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'PpcVleModule',
         'disabled': True,
+        'version':  (1,0,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':True,
+        'has_unittests':True,
         },
     
     ARCH_PPC_D:     {
@@ -166,6 +248,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'PpcDesktopModule',
         'disabled': True,
+        'version':  (0,5,0),
+        'has_disasm':   True,
+        'has_emu':      True,
+        'has_symboliks':True,
+        'has_unittests':True,
         },
     
     ARCH_RXV2:      {
@@ -174,6 +261,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'rxv2'),
         'clsname':  'RxModule',
         'disabled': True,
+        'version':  (0,5,0),
+        'has_disasm':   True,
+        'has_emu':      False,
+        'has_symboliks':False,
+        'has_unittests':True,
         },
     
     ARCH_SPARC:     {
@@ -181,6 +273,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'sparc'),
         'clsname':  'SparcModule',
         'disabled': True,
+        'version':  (0,1,0),
+        'has_disasm':   True,
+        'has_emu':      False,
+        'has_symboliks':False,
+        'has_unittests':False,
         },
     
     ARCH_SPARC64:   {
@@ -188,6 +285,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'sparc64'),
         'clsname':  'Sparc64Module',
         'disabled': True,
+        'version':  (0,1,0),
+        'has_disasm':   True,
+        'has_emu':      False,
+        'has_symboliks':False,
+        'has_unittests':False,
         },
     
     ARCH_MIPS32:    {
@@ -196,6 +298,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'mips32'),
         'clsname':  'Mips32Module',
         'disabled': True,
+        'version':  (0,1,0),
+        'has_disasm':   True,
+        'has_emu':      False,
+        'has_symboliks':False,
+        'has_unittests':False,
         },
     
     ARCH_MIPS64:    {
@@ -203,6 +310,11 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'mips64'),
         'clsname':  'Mips64Module',
         'disabled': True,
+        'version':  (0,1,0),
+        'has_disasm':   True,
+        'has_emu':      False,
+        'has_symboliks':False,
+        'has_unittests':False,
         },
 }
 

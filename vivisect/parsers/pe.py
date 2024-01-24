@@ -286,6 +286,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             mapflags |= e_const.MM_EXEC
         if chars & PE.IMAGE_SCN_CNT_CODE:
             mapflags |= e_const.MM_EXEC
+        if chars & PE.IMAGE_SCN_CNT_UNINITIALIZED_DATA:
+            mapflags |= e_const.MM_UNINIT
 
         secrva = sec.VirtualAddress
         secvsize = sec.VirtualSize
@@ -614,7 +616,7 @@ def getMemBaseAndSize(vw, pe, baseaddr=None):
     size = topmem - baseaddr
 
     if baseaddr == 0:
-        baseaddr = vw.config.viv.parsers.pe.baseoffset
+        baseaddr = vw.config.viv.parsers.pe.baseaddr
 
     if savebase:
         # if we provided a baseaddr, override what the file wants

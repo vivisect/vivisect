@@ -294,7 +294,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # Base addr is earliest section address rounded to pagesize
     # Some ELF's require adding the baseaddr to most/all later addresses
     addbase, baseoff, baseaddr = getAddBaseAddr(elf, baseaddr)
-    logger.warning("addbase: %r, baseoff: 0x%x, baseaddr: 0x%x", addbase, baseoff, baseaddr)
+    logger.debug("Loading ELF into workspace: addbase: %r, baseoff: 0x%x, baseaddr: 0x%x", addbase, baseoff, baseaddr)
 
     elf.fd.seek(0)
     md5hash = v_parsers.md5Bytes(byts)
@@ -757,6 +757,9 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     else:
                         logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                         logger.info(r.tree())
+                        vw.makeName(rlva, dmglname, makeuniq=True)
+                        if name != dmglname:
+                            vw.setComment(rlva, name)
 
                 else:
                     if rtype == Elf.R_386_RELATIVE: # R_X86_64_RELATIVE is the same number
@@ -810,16 +813,16 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                         logger.warning(r.tree())
 
 
-            if arch in ('arm', 'thumb', 'thumb16'):
-                # ARM REL entries require an addend that could be stored as a 
+            if arch in ('arm', 'thumb', 'thumb16', 'a64', 'aarch64'):
+                # ARM REL entries require an addend that could be stored as a
                 # number or an instruction!
                 import envi.archs.arm.const as eaac
-                if r.vsHasField('addend'):
+                if r.vsHasField('r_addend'):
                     # this is a RELA object, bringing its own addend field!
-                    addend = r.addend
+                    addend = r.r_addend
                 else:
                     # otherwise, we have to check the stored value for number or instruction
-                    # if it's an instruction, we have to use the immediate value and then 
+                    # if it's an instruction, we have to use the immediate value and then
                     # figure out if it's negative based on the instruction!
                     try:
                         temp = vw.readMemoryPtr(rlva)
@@ -931,7 +934,8 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
                     if len(name):
                         vw.makeName(rlva, dmglname, makeuniq=True)
-                        vw.setComment(rlva, name)
+                        if name != dmglname:
+                            vw.setComment(rlva, name)
 
                 elif rtype == Elf.R_ARM_COPY:
                     pass
@@ -939,6 +943,11 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                 else:
                     logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
                     logger.info(r.tree())
+                    if name:
+                        vw.makeName(rlva, dmglname, makeuniq=True)
+                        if name != dmglname:
+                            vw.setComment(rlva, name)
+
 
         except vivisect.InvalidLocation as e:
             logger.warning("NOTE\t%r", e)
