@@ -868,13 +868,8 @@ def p_branch_cond_imm(opval, va):
     '''
     Conditional branch (immediate) instruction
     '''
-#<<<<<<< HEAD
-    iflag = envi.IF_COND | envi.IF_BRANCH
-    imm19 = (opval >> 5 & 0x7ffff)
-#=======
     iflags = envi.IF_COND | envi.IF_BRANCH
-    imm19 = (opval >> 5 & 0x7ffff)    
-#>>>>>>> 3994ea8607d75d77e9d05419925e022889c52ffa
+    imm19 = (opval >> 5 & 0x7ffff)
     cond = opval & 0xf
     mnem, opcode = b_cond_table[cond]
 
@@ -1921,15 +1916,9 @@ def p_ls_reg_offset(opval, va):
                 
                 olist = (
                     A64PreFetchOper(rt>>3, (rt>>1)&3, rt&1),
-#<<<<<<< HEAD
                     #A64RegOper(rn, va, size=8),
                     #A64RegOper(rm, va, size=regsize),
                     A64RegRegOffOper(rn, rm, regsize, extendtype=option, extendamount=indShift, va=va),
-#=======
-                    A64RegRegOffOper(rn, rm, va=va, tsize=8),
-                    #FIXME extend
-                    #FIXME amount
-#>>>>>>> 3994ea8607d75d77e9d05419925e022889c52ffa
                 )
                 return opcode, mnem, olist, 0, 0
             else:
@@ -3120,11 +3109,7 @@ def p_addsub_ext_reg(opval, va):
         mnem = 'add'
         opcode = INS_ADD
     else:
-#<<<<<<< HEAD
-        if rd == REG_SP and s == 0b1:
-#=======
         if rd == REG_SP and not rn == REG_SP:
-#>>>>>>> 3994ea8607d75d77e9d05419925e022889c52ffa
             mnem = 'cmp'
             opcode = INS_CMP
             opcount = 2
@@ -3140,11 +3125,7 @@ def p_addsub_ext_reg(opval, va):
     else:
         sizeRM = 4
 
-#<<<<<<< HEAD
     if (rn == 0b11111 or (rd == 0b11111 and opcode != INS_CMP)):
-#=======
-    if rn ==  0b11111:
-#>>>>>>> 3994ea8607d75d77e9d05419925e022889c52ffa
         if sizeRM == 4 and extoper == 0b010:
             extoper = EXT_LSL
         elif sizeRM == 8 and extoper == 0b011:
