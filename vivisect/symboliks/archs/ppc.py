@@ -244,23 +244,40 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
 
     # conditional branches....
-    def _cond_jmp(self, op, aa=0, lk=0, tgtreg=None):
-        # get the conditional...
-        bi = op.getOperObj(1)
-        condflag = conds[bi]
+    def _cond_jmp(self, op, aa=0, lk=0, tgtreg=None, tgtsym=None, cond=None):
+        '''
+        Handles the "conditional" part of the conditional branch.
+        With the newer bcc mode (each instruction mnem having the 
+        condition, not using BO/BI, a "cond" object should be
+        handed in.  eg.
+
         cond = Var(condflag, 1)
+
+        or with more specificity:
+
+        cond = Var("cr0.lt", 1)
+        '''
+        tgtidx = 0
+        if cond is None:
+            # get the conditional...
+            bi = op.getOperObj(1)
+            condflag = conds[bi]
+            cond = Var(condflag, 1)
+            tgtidx += 2
 
         # setup the target symbol
         if tgtreg is None:
-            # target is the bd * 4
-            bd = op.getOperObj(2) << 2
+            if tgtsym is None:
+                # target is the bd * 4
+                #bd = op.getOperObj(tgtidx) << Const(2)  # this should probably be Const(getOperValue(tgtidx) <<2, self._psize)
+                bd = op.getOperValue(tgtidx) << 2
 
-            # if not "absolute", add cur va
-            if aa == 0:
-                bd += op.va
+                # if not "absolute", add cur va
+                if aa == 0:
+                    bd += op.va
 
-            # tgtsym is a constant
-            tgtsym = Const(bd, self._psize)
+                # tgtsym is a constant
+                tgtsym = Const(bd, self._psize)
 
         else:
             # tgtsym is a Reg:
@@ -274,6 +291,12 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
                 ( tgtsym, cond ),
                 ( Const(op.va + len(op), self._psize), cnot(cond)), 
                )
+
+    def getCr(self, crnum, flag=None):
+        if flag is None:
+            return Var("cr%d" % crnum, 1)
+        else:
+            return Var("cr%d.%s" % (crnum, flag), 1)
 
     def i_bc(self, op, aa=0, lk=0):
         return self._cond_jmp(op, aa=0, lk=0)
@@ -292,6 +315,256 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_bcctr(self, op):
         return self._cond_jmp(op, aa=1, lk=1, tgtreg='ctr')
+
+    def i_beq(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperObj(op, 0) & Const(FLAGS_EQ, 1))
+            tgt = self.getOperObj(op, 1)
+        else:
+            cond = self.getCr(0, 'eq')
+            tgt = self.getOperObj(op, 0)
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+
+    def i_beql(self, op):
+        return self.i_beq(op, True)
+
+    def i_beqctr(self, op, lk=False):
+        tgt = 'CTR'
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_EQ
+        else:
+            cond = self.getCr(0, 'eq')
+        return self._bc_simplified_cond_only(op, cond, tgt, lk)
+
+    def i_beqctrl(self, op):
+        return self.i_beqctr(op, True)
+
+    def i_beqlr(self, op, lk=False):
+        tgt = 'LR'
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_EQ
+        else:
+            cond = self.getCr(0, 'eq')
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_beqlrl(self, op):
+        return self.i_beqlr(op, True)
+
+    def i_bne(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = (self.getOperObj(op, 0) & Const(FLAGS_EQ, 1)) == 0
+            tgt = self.getOperObj(op, 1)
+        else:
+            cond = cnot(self.getCr(0, 'eq'))
+            tgt = self.getOperObj(op, 0)
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bnel(self, op):
+        return self.i_bne(op, True)
+
+    def i_bnectr(self, op, lk=False):
+        tgt = 'CTR'
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_EQ) == 0
+        else:
+            cond = cnot(self.getCr(0, 'eq'))
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bnectrl(self, op):
+        return self.i_bnectr(op, True)
+
+    def i_bnelr(self, op, lk=False):
+        tgt = 'LR'
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_EQ) == 0   # this needs some reworking... how do we tell what the condition is so we can make a Var?
+            cond = cnot(self.getCr(0, 'eq'))    #FIXME need CR number
+        else:
+            cond = cnot(self.getCr(0, 'eq'))
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bnelrl(self, op):
+        return self.i_bnelr(op, True)
+
+    ## NS ##
+    # For BNS check if the SO flag is _not_ set
+
+    def i_bns(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = cnot(self.getCr(0, 'so'))
+            tgt = Const(self.getOperValue(op, 1), self._psize)
+        else:
+            cond = cnot(self.getCr(0, 'so'))
+            tgt = Const(self.getOperValue(op, 0), self._psize)
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bnsl(self, op):
+        return self.i_bns(op, True)
+
+    def i_bnsctr(self, op, lk=False):
+        tgt = self.getRegObj(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_SO) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_SO) == 0
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bnsctrl(self, op):
+        return self.i_bnsctr(op, True)
+
+    def i_bnslr(self, op, lk=False):
+        tgt = self.getRegObj(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = (self.getOperValue(op, 0) & FLAGS_SO) == 0
+        else:
+            cond = (self.getCr(0) & FLAGS_SO) == 0
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bnslrl(self, op):
+        return self.i_bnslr(op, True)
+
+    ## SO ##
+
+    def i_bso(self, op, lk=False):
+        # If there are two operands then the first is the CR field to use
+        if len(op.opers) == 2:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+            tgt = self.getOperValue(op, 1)
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+            tgt = self.getOperValue(op, 0)
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bsol(self, op):
+        return self.i_bso(op, True)
+
+    def i_bsoctr(self, op, lk=False):
+        tgt = self.getRegObj(REG_CTR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bsoctrl(self, op):
+        return self.i_bsoctr(op, True)
+
+    def i_bsolr(self, op, lk=False):
+        tgt = self.getRegObj(REG_LR)
+
+        # If there is an operands then it is the CR field to use
+        if len(op.opers) == 1:
+            cond = self.getOperValue(op, 0) & FLAGS_SO
+        else:
+            cond = self.getCr(0) & FLAGS_SO
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bsolrl(self, op):
+        return self.i_bsolr(op, True)
+
+    ####### CTR decrementing-only branches #######
+    # There are no bcctr instructions of this form because CTR cannot be the
+    # branch target when it is being modified.
+
+    def _bc_simplified_ctr_only(self, op, ctr_nz, tgt, lk=False):
+        ctr = self.getRegObj(REG_CTR) - Const(1, 8)
+        self.setRegister(REG_CTR, ctr)
+
+        # always update LR, regardless of the conditions.  odd.
+        if lk:
+            nextva = op.va + op.size
+            self.setRegister(REG_LR, nextva)
+
+        # If ctr_nz is True then branch if CTR is not zero
+        # If ctr_nz is False then branch if CTR is zero
+        if bool(ctr) == ctr_nz:
+            return tgt
+        else:
+            return None
+
+    # target is BD (first operand)
+
+    def i_bdz(self, op, lk=False):
+        tgt = self.getOperValue(op, 0)
+        ctr = self.getRegObj(REG_CTR)
+        ctr = ctr - Const(1,1)
+        cond = ctr == Const(0,0)
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bdzl(self, op):
+        return self.i_bdz(op, True)
+
+    def i_bdnz(self, op, lk=False):
+        tgt = self.getOperValue(op, 0)
+        ctr = self.getRegObj(REG_CTR)
+        ctr = ctr - Const(1,1)
+        cond = ctr != Const(0,0)
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bdnzl(self, op):
+        return self.i_bdnz(op, lk)
+
+    ## target is LR
+
+    def i_bdzlr(self, op, lk=False):
+        tgt = self.getRegObj(REG_LR)
+        ctr = self.getRegObj(REG_CTR)
+        ctr = ctr - Const(1,1)
+        cond = ctr == Const(0,0)
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bdzlrl(self, op):
+        return self.i_bdzlr(op, True)
+
+    def i_bdnzlr(self, op):
+        tgt = self.getRegObj(REG_LR)
+        ctr = self.getRegObj(REG_CTR)
+        ctr = ctr - Const(1,1)
+        cond = ctr != Const(0,0)
+        return self._cond_jmp(op, cond=cond, tgtsym=tgt, lk=lk)
+
+    def i_bdnzlrl(self, op):
+        return self.i_bdnzlr(op, True)
+
+    ####### CTR decrementing and CR condition branches #######
+    # There are no bcctr instructions of this form because CTR cannot be the
+    # branch target when it is being modified.
+
+    def _bc_simplified_ctr_and_cond(self, op, ctr_nz, cond, tgt, lk=False):
+        ctr = self.getRegObj(REG_CTR) - Const(1, 1)
+        self.setRegister(REG_CTR, ctr)
+
+        # always update LR, regardless of the conditions.  odd.
+        if lk:
+            nextva = op.va + op.size
+            self.setRegister(REG_LR, nextva)
+
+        # branch if ctr_nz is True and CTR is not zero OR the condition is met
+        # branch if ctr_nz is False and CTR is zero OR the condition is met
+        if bool(ctr) == ctr_nz or cond:
+            return tgt
+        else:
+            return None
+
+    ## EQ and CTR == 0 ##
+
 
     def i_bdnzf(self, op):
         ctr = self.getRegObj(REG_CTR)
@@ -1874,8 +2147,8 @@ class PpcSymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
     __width__ = None
     __cconv__ = None
 
-    def __init__(self, vw):
-        vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
+    def __init__(self, vw, *args, xlator=None):
+        vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw, *args, xlator=xlator)
         self.setStackBase(0xbfbff000, 16384)
 
         self.addCallingConvention('ppccall', self.__cconv__)
