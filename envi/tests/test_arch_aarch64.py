@@ -263,7 +263,10 @@ instrs_bigend = [
     
     # Load/store register pair (post-indexed)
     
-    ('28b1a5c3', 'stp w3, w9, [x14], #18c', 0, ()),
+    ('28b1a5c3', 'stp w3, w9, [x14], #18c', 0, (
+            {'setup':(('x14',0x41414000),(0x4141418c,0x40), (0x4141418e,0x41),(0x41414190,0x42),(0x41414192,0x43), ),
+                'tests':(('x3',0x410040),('x9',0x440042),) },
+        )),
     ('28f1a5c3', 'ldp w3, w9, [x14], #18c', 0, ()),
     ('2cb1a5c3', 'stp s3, s9, [x14], #18c', 0, ()),
     ('2cf1a5c3', 'ldp s3, s9, [x14], #18c', 0, ()),
@@ -4723,8 +4726,8 @@ class A64InstructionSet(unittest.TestCase):
         vw = vivisect.VivWorkspace()
         vw.setMeta("Architecture", "a64")
         vw.setEndian(envi.ENDIAN_LSB)
-        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
-        vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
+        vw.addMemoryMap(0, 7, 'firmware', b'\xff' * 16384*1024)
+        vw.addMemoryMap(0x400000, 7, 'firmware', b'\xff' * 16384*1024)
         emu = vw.getEmulator()
         emu.setMeta('forrealz', True)
         emu._forrealz = True
