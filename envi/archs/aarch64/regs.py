@@ -1,4 +1,5 @@
 from envi.archs.aarch64.const import *
+from envi.archs.aarch64.regs_sys import *
 import envi.registers as e_reg
 
 '''
@@ -94,8 +95,12 @@ REG_FPSCR = len(reg_data)
 reg_data.append(('fpcr', 32))
 reg_data.append(('fpsr', 32))
 
+REGS_SYSTEM_REGS = len(reg_data)
+reg_data.extend(sys_regs)
+
 l = locals()
 e_reg.addLocalEnums(l, aarch64_regs_tups)
+REG_LR = REG_X30
 
 
 

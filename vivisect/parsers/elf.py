@@ -182,6 +182,12 @@ def makeRelocTable(vw, va, maxva, baseoff, addend=False):
 def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseoff=0):
     logger.debug('makeFunctionTable(tbladdr=0x%x, size=0x%x, tblname=%r,  baseoff=0x%x)', tbladdr, size, tblname, baseoff)
     psize = vw.getPointerSize()
+
+    # If the provided buffer is shorter than the standard pointer size, use the
+    # buffer length
+    if size < psize:
+        psize = size
+
     fmtgrps = e_bits.fmt_chars[vw.getEndian()]
     pfmt = fmtgrps[psize]
     secbytes = elf.readAtRva(tbladdr, size)
@@ -260,8 +266,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
 
     arch = arch_names.get(elf.e_machine)
+    if isinstance(arch, dict):
+        arch = arch.get(elf.bits)
     if arch is None:
-       raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
+        raise Exception("Unsupported Architecture: %d (%d bits)\n" % (elf.e_machine, elf.bits))
 
     platform = elf.getPlatform()
 
@@ -295,6 +303,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # Some ELF's require adding the baseaddr to most/all later addresses
     addbase, baseoff, baseaddr = getAddBaseAddr(elf, baseaddr)
     logger.debug("Loading ELF into workspace: addbase: %r, baseoff: 0x%x, baseaddr: 0x%x", addbase, baseoff, baseaddr)
+
+    # Keep track of if a LOAD happens for file offset 0
+    elfHdrAtOffset0 = False
 
     elf.fd.seek(0)
     md5hash = v_parsers.md5Bytes(byts)
@@ -383,7 +394,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     f_preinita = elf.dyns.get(Elf.DT_PREINIT_ARRAY)
     if f_preinita is not None:
-        f_preinitasz = elf.dyns.get(Elf.DT_PREINIT_ARRAY)
+        f_preinitasz = elf.dyns.get(Elf.DT_PREINIT_ARRAYSZ)
         makeFunctionTable(elf, vw, f_preinita, f_preinitasz, 'preinit_array', new_functions, new_pointers, baseoff)
 
     # dynamic table
@@ -687,12 +698,18 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         vw.addExport(eentry, EXP_FUNCTION, '__entry', fname)
         new_functions.append(("ELF Entry", eentry))
 
-    if vw.isValidPointer(baseaddr):
+    if elfHdrAtOffset0 and vw.isValidPointer(baseaddr):
         sname = 'elf.Elf%d' % (vw.getPointerSize() * 8)
         vw.makeStructure(baseaddr, sname)
 
     # mark all the entry points for analysis later
     for cmnt, fva in new_functions:
+        # If the address of the potential new function is the ELF base address
+        # (therefore something that had an offset of 0, and points to the ELF
+        # header itself), skip it
+        if fva == baseaddr:
+            continue
+
         logger.info('adding function from ELF metadata: 0x%x (%s)', fva, cmnt)
         vw.addEntryPoint(fva)   # addEntryPoint queue's code analysis for later in the analysis pass
 

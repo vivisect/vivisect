@@ -178,25 +178,25 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
         if size == 1:
-            return struct.unpack("B", bytes)[0]
+            return struct.unpack(b"B", bytes)[0]
         elif size == 2:
-            return struct.unpack("<H", bytes)[0]
+            return struct.unpack(b"<H", bytes)[0]
         elif size == 4:
-            return struct.unpack("<I", bytes)[0]
+            return struct.unpack(b"<I", bytes)[0]
         elif size == 8:
-            return struct.unpack("<Q", bytes)[0]
+            return struct.unpack(b"<Q", bytes)[0]
 
     def writeMemValue(self, addr, value, size):
         #FIXME change this (and all uses of it) to passing in format...
         #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
         if size == 1:
-            bytes = struct.pack("B",value & 0xff)
+            bytes = struct.pack(b"B",value & 0xff)
         elif size == 2:
-            bytes = struct.pack("<H",value & 0xffff)
+            bytes = struct.pack(b"<H",value & 0xffff)
         elif size == 4:
-            bytes = struct.pack("<I", value & 0xffffffff)
+            bytes = struct.pack(b"<I", value & 0xffffffff)
         elif size == 8:
-            bytes = struct.pack("<Q", value & 0xffffffffffffffff)
+            bytes = struct.pack(b"<Q", value & 0xffffffffffffffff)
         self.writeMemory(addr, bytes)
 
     def readMemSignedValue(self, addr, size):
@@ -205,11 +205,11 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         if bytes == None:
             return None
         if size == 1:
-            return struct.unpack("b", bytes)[0]
+            return struct.unpack(b"b", bytes)[0]
         elif size == 2:
-            return struct.unpack("<h", bytes)[0]
+            return struct.unpack(b"<h", bytes)[0]
         elif size == 4:
-            return struct.unpack("<l", bytes)[0]
+            return struct.unpack(b"<l", bytes)[0]
 
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns
@@ -451,6 +451,14 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
     i_msr = i_mov
     i_adr = i_mov
     i_adrp = i_mov
+    # confirm these next ones are ok
+    i_movk = i_mov
+    i_movz = i_mov
+
+    def i_rev(self, op):
+        # rev
+        val = self.getOperValue(op, 0)
+        self.setOperValue(op, 1, val)
 
     def i_str(self, op):
         # hint: covers str, strb, strbt, strd, strh, strsh, strsb, strt   (any instr where the syntax is str{condition}stuff)

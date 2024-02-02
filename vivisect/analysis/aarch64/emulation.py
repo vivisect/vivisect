@@ -10,8 +10,8 @@ import vivisect.analysis.generic.codeblocks as viv_cb
 import envi
 import envi.archs.aarch64 as e_a64
 
-from envi.archs.arm.regs import *
-from envi.archs.arm.const import *
+from envi.archs.aarch64.regs import *
+from envi.archs.aarch64.const import *
 
 from vivisect.const import *
 
@@ -139,10 +139,14 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                 emu.vw.addXref(op.va, val, vivisect.REF_PTR)
 
 argnames = {
-    0: ('r0', 0),
-    1: ('r1', 1),
-    2: ('r2', 2),
-    3: ('r3', 3),
+    0: ('x0', 0),
+    1: ('x1', 1),
+    2: ('x2', 2),
+    3: ('x3', 3),
+    4: ('x4', 4),
+    5: ('x5', 5),
+    6: ('x6', 6),
+    7: ('x7', 7),
 }
 
 
@@ -167,7 +171,7 @@ def buildFunctionApi(vw, fva, emu, emumon):
             argc = argnum
             break
 
-    if callconv == 'armcall':
+    if callconv == 'a64call':
         if emumon.stackmax > 0:
             targc = (emumon.stackmax >> 3) + 6
             if targc > 40:
