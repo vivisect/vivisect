@@ -44,6 +44,7 @@ import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.common as e_cmn
+import vstruct.defs.gdb as vs_gdb
 import vtrace.platforms.gdb_exc as gdb_exc
 
 from vtrace.platforms import signals
@@ -91,6 +92,28 @@ GDB_TO_ENVI_MASK = 3
 # packet
 REG_PKT_SIZE     = 0
 REG_PKT_NUM_REGS = 1
+
+# File Open Flags
+O_RDONLY =      0x0
+O_WRONLY =      0x1
+O_RDWR =        0x2
+O_APPEND =      0x8
+O_CREAT =     0x200
+O_TRUNC =     0x400
+O_EXCL =      0x800
+
+# File Open Mode settings
+S_IFREG =     0o100000
+S_IFDIR =      0o40000
+S_IRUSR =        0o400
+S_IWUSR =        0o200
+S_IXUSR =        0o100
+S_IRGRP =         0o40
+S_IWGRP =         0o20
+S_IXGRP =         0o10
+S_IROTH =          0o4
+S_IWOTH =          0o2
+S_IXOTH =          0o1
 
 # Generators for encoding register packets
 def _pack_8bit(val):
@@ -1095,6 +1118,131 @@ class GdbClientStub(GdbStubBase):
         # Symbols take a long time to retrieve from the vivisect GDB server, 
         # don't ask for them by default.
         #self.gdbGetSymbol(b'main')
+
+
+    def gdbvFile_open(self, filename, flags=O_RDONLY, mode=0):
+        '''
+        Open a file at filename and return a file descriptor for it, or return -1 if an error occurs. The filename is a string, flags is an integer indicating a mask of open flags (see Open Flags), and mode is an integer indicating a mask of mode bits to use if the file is created (see mode_t Values). See open, for details of the open flags and mode values.
+
+        NOTE: on failure, may return a tuple, with (-1, reasoncode).  Should this raise an exception instead?
+        '''
+        filename = hexlify(filename)
+        res = self._msgExchange(b'vFile:open:%s,%x,%o' % (filename, flags, mode))
+        
+        print("res: %r" % res)
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b',' in res:
+            res, info = res.split(b',', 1)
+            return (int(res[1:], 16), int(info, 16))
+
+        # correct response
+        fd = int(res[1:], 16)
+
+        return fd
+
+    def gdbvFile_close(self, fd):
+        '''
+        Close the open file corresponding to fd and return 0, or -1 if an error occurs.
+        '''
+        res = self._msgExchange(b'vFile:close:%x' % fd)
+
+        print("res: %r" % res)
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b',' in res:
+            res, info = res.split(b',', 1)
+            return (int(res[1:], 16), int(info, 16))
+
+        retval = int(res[1:], 16)
+        return retval
+
+    def gdbvFile_pread(self, fd, count, offset):
+        '''
+        Read data from the open file corresponding to fd. Up to count bytes will be read from the file, starting at offset relative to the start of the file. The target may read fewer bytes; common reasons include packet size limits and an end-of-file condition. The number of bytes read is returned. Zero should only be returned for a successful read at the end of the file, or if count was zero.
+
+        The data read should be returned as a binary attachment on success. If zero bytes were read, the response should include an empty binary attachment (i.e. a trailing semicolon). The return value is the number of target bytes read; the binary attachment may be longer if some characters were escaped.
+        '''
+        res = self._msgExchange(b'vFile:pread:%x,%x,%x' % (fd, count, offset))
+        
+        print("res: %r" % res)
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b';' in res:
+            res, info = res.split(b';', 1)
+
+        # correct response
+        reslen = int(res[1:], 16)
+        if reslen != len(info):
+            print("WHAT?  reslen (%d != len(data) (%d)" % (reslen, len(info)))
+
+        return info
+
+    def gdbvFile_pwrite(self, fd, offset, data):
+        '''
+        Write data (a binary buffer) to the open file corresponding to fd. Start the write at offset from the start of the file. Unlike many write system calls, there is no separate count argument; the length of data in the packet is used. ‘vFile:pwrite’ returns the number of bytes written, which may be shorter than the length of data, or -1 if an error occurred.
+        '''
+        res = self._msgExchange(b'vFile:pwrite:%x,%x,%s' % (fd, offset, data))
+        
+        print("res: %r" % res)
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b',' in res:
+            res, info = res.split(b',', 1)
+            return (int(res[1:], 16), int(info, 16))
+
+
+        # correct response
+        reslen = int(res[1:], 16)
+        return reslen
+
+    def gdbvFile_fstat(self, fd):
+        '''
+        Get information about the open file corresponding to fd. On success the information is returned as a binary attachment and the return value is the size of this attachment in bytes. If an error occurs the return value is -1. The format of the returned binary attachment is as described in struct stat.
+        '''
+        res = self._msgExchange(b'vFile:fstat:%x' % (fd,))
+        
+        print("res: %r" % res)
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b';' in res:
+            res, info = res.split(b';', 1)
+
+        # correct response
+        reslen = int(res[1:], 16)
+        struct = vs_gdb.Fstat(bigend=True)
+        struct.vsParse(info)
+
+        return struct
+
+    def gdbvFile_setFs(self, pid=None):
+        '''
+        Select the filesystem on which vFile operations with filename arguments will operate. This is required for GDB to be able to access files on remote targets where the remote stub does not share a common filesystem with the inferior(s).
+
+        If pid is nonzero, select the filesystem as seen by process pid. If pid is zero, select the filesystem as seen by the remote stub. Return 0 on success, or -1 if an error occurs. If vFile:setfs: indicates success, the selected filesystem remains selected until the next successful vFile:setfs: operation.
+        '''
+        if pid is None:
+            pid = 0
+
+        res = self._msgExchange(b'vFile:setfs:%d' % pid)
+
+        print("res: %r" % res)
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        retval = int(res[1:], 16)
+        return retval
 
     def qSupported(self, options=None):
         supported_cmd = 'qSupported'
