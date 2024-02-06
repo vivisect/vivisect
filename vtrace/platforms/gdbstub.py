@@ -255,7 +255,43 @@ class GdbStubBase:
             b'qXfer:exec-file:read': None,
             b'qXfer:threads:read': None,
             b'QStartNoAckMode': None,
-            b'multiprocess': None
+            b'multiprocess': None,
+            b'QProgramSignals':  None,
+            b'QStartupWithShell':        None,
+            b'QEnvironmentHexEncoded':   None,
+            b'QEnvironmentReset':        None,
+            b'QEnvironmentUnset':        None,
+            b'QSetWorkingDir':   None,
+            b'QCatchSyscalls':   None,
+            b'qXfer:libraries-svr4:read':        None,
+            b'augmented-libraries-svr4-read':    None,
+            b'qXfer:auxv:read':  None,
+            b'qXfer:siginfo:read':       None,
+            b'qXfer:siginfo:write':      None,
+            b'qXfer:osdata:read':        None,
+            b'fork-events':      None,
+            b'vfork-events':     None,
+            b'exec-events':      None,
+            b'QNonStop': None,
+            b'QDisableRandomization':    None,
+            b'qXfer:threads:read':       None,
+            b'ConditionalBreakpoints':   None,
+            b'BreakpointCommands':       None,
+            b'QAgent':   None,
+            b'Qbtrace:bts':      None,
+            b'Qbtrace-conf:bts:size':    None,
+            b'Qbtrace:pt':       None,
+            b'Qbtrace-conf:pt:size':     None,
+            b'Qbtrace:off':      None,
+            b'qXfer:btrace:read':        None,
+            b'qXfer:btrace-conf:read':   None,
+            b'swbreak':  None,
+            b'hwbreak':  None,
+            b'qXfer:exec-file:read':     None,
+            b'vContSupported':   None,
+            b'QThreadEvents':    None,
+            b'no-resumed':       None,
+
         }
 
         self._settings = {}
@@ -1645,6 +1681,35 @@ class GdbClientStub(GdbStubBase):
         cmd = b'k'
         res = self._msgExchange(cmd)
         return res
+
+    def gdbGetProcessInfo(self):
+        return self._msgExchange(b'qC')
+
+    def getPid(self):
+        '''
+        Get Target Process ID.
+
+        uses gdbGetProcessInfo()
+        '''
+        res = self.gdbGetProcessInfo()
+
+        if res.startswith(b'QC'):
+            pid = int(res[2:], 16)
+            return pid
+
+        elif res[0:1] == b'E':
+            raise Exception('Error code %s received getting PID' %
+                (res[1:3]))
+        else:
+            raise Exception('Unexpected response getting PID: %s' % res)
+
+    def getPids(self):
+        '''
+        Get Target Process/Thread IDs (potentially multiple)
+
+        uses gdbGetThreadInfo()
+        '''
+        return self.gdbGetThreadInfo()
 
     def gdbGetThreadInfo(self):
         out = []

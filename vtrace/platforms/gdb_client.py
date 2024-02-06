@@ -41,13 +41,18 @@ class GdbStubMixin(gdbstub.GdbClientStub):
         """
         This needs to be updatable after gdbAttach()
         """
+        logger.debug("arch=%r\tserver=%r", arch, server)
         reg_fmt = None
         if server == 'qemu':
             if arch == 'amd64':
                 reg_fmt = gdb_reg_fmts.QEMU_X86_64_REG
             elif arch == 'ppc32':
                 reg_fmt = gdb_reg_fmts.QEMU_PPC64_REG
+            elif arch in ('arm', 'armv7', 'arm32', 'a32'):
+                reg_fmt = gdb_reg_fmts.GDBSERVER_A32_REG
             else:
+                logger.warning('Debugging %s with %s not currently supported' % 
+                        (arch, server))
                 raise Exception('Debugging %s with %s not currently supported' % 
                         (arch, server))
 
@@ -56,7 +61,11 @@ class GdbStubMixin(gdbstub.GdbClientStub):
                 reg_fmt = gdb_reg_fmts.GDB_USER_X86_64_REG
             elif arch in ('ppc32', 'ppc64'):
                 reg_fmt = gdb_reg_fmts.QEMU_PPC64_REG
+            elif arch in ('arm', 'armv7', 'arm32', 'a32'):
+                reg_fmt = gdb_reg_fmts.GDBSERVER_A32_REG
             else:
+                logger.warning('Debugging %s with %s not currently supported' % 
+                        (arch, server))
                 raise Exception('Debugging %s with %s not currently supported' % 
                         (arch, server))
 
@@ -65,11 +74,16 @@ class GdbStubMixin(gdbstub.GdbClientStub):
                 reg_fmt = gdb_reg_fmts.GDB_USER_X86_64_REG
             elif arch in ('ppc32', 'ppc64'):
                 reg_fmt = gdb_reg_fmts.QEMU_PPC64_REG
+            elif arch in ('arm', 'armv7', 'arm32', 'a32'):
+                reg_fmt = gdb_reg_fmts.GDBSERVER_A32_REG
             else:
+                logger.warning('Debugging %s with %s not currently supported' % 
+                        (arch, server))
                 raise Exception('Debugging %s with %s not currently supported' % 
                         (arch, server))
 
         else:
+            logger.warning("Unknown GDB server type: %s" % server)
             raise Exception('Unknown GDB server type: %s' % server)
 
         return reg_fmt
