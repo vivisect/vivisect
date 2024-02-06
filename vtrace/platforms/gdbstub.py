@@ -3316,10 +3316,10 @@ class GdbBaseEmuServer(GdbServerStub):
             off = int(offstr, 16)
             sz = int(szstr, 16)
 
-            logger.debug("_serverQXfer(%r) => %r", cmd_data, res[off:off+sz])
-            if (off+sz) >= len(res):
-                return b'l' + res[off:off+sz]
-            return b'm' + res[off:off+sz]
+            logger.debug("_serverQXfer(%r) => %r", cmd_data, res[off:off+sz+1])
+            if (off+sz+1) >= len(res):
+                return b'l' + res[off:off+sz+1]
+            return b'm' + res[off:off+sz+1]
         else:
             logger.warning("Unsupported action for query: %r", fields)
             return b'E00'
