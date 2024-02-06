@@ -1120,13 +1120,14 @@ class GdbClientStub(GdbStubBase):
         #self.gdbGetSymbol(b'main')
 
 
-    def gdbvFile_open(self, filename, flags=O_RDONLY, mode=0):
+    def gdbvFile_open(self, filename, flags=O_RDONLY, mode=0, tohex=True):
         '''
         Open a file at filename and return a file descriptor for it, or return -1 if an error occurs. The filename is a string, flags is an integer indicating a mask of open flags (see Open Flags), and mode is an integer indicating a mask of mode bits to use if the file is created (see mode_t Values). See open, for details of the open flags and mode values.
 
         NOTE: on failure, may return a tuple, with (-1, reasoncode).  Should this raise an exception instead?
         '''
-        filename = hexlify(filename)
+        if tohex:
+            filename = hexlify(filename)
         res = self._msgExchange(b'vFile:open:%s,%x,%o' % (filename, flags, mode))
         
         print("res: %r" % res)
@@ -1224,6 +1225,53 @@ class GdbClientStub(GdbStubBase):
         struct.vsParse(info)
 
         return struct
+
+    def gdbvFile_unlink(self, filename, tohex=True):
+        '''
+        Delete the file at filename on the target. Return 0, or -1 if an error occurs. The filename is a string.
+        '''
+        if tohex:
+            filename = hexlify(filename)
+        res = self._msgExchange(b'vFile:unlink:%s' % (filename,))
+        
+        print("res: %r" % res)
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        # correct response
+        res = int(res[1:], 16)
+        return res
+
+    def gdbvFile_readlink(self, filename, tohex=True):
+        '''
+        Read value of symbolic link filename on the target. Return the number of bytes read, or -1 if an error occurs.
+
+        The data read should be returned as a binary attachment on success. If zero bytes were read, the response should include an empty binary attachment (i.e. a trailing semicolon). The return value is the number of target bytes read; the binary attachment may be longer if some characters were escaped.
+        '''
+        if tohex:
+            filename = hexlify(filename)
+        res = self._msgExchange(b'vFile:readlink:%s' % (filename))
+        
+        print("res: %r" % res)
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        # check for errors
+        if b',' in res:
+            res, info = res.split(b',', 1)
+            return (int(res[1:], 16), int(info, 16))
+
+
+        # split result and data
+        if b';' in res:
+            res, info = res.split(b';', 1)
+
+        # correct response
+        res = int(res[1:], 16)
+
+        return info
 
     def gdbvFile_setFs(self, pid=None):
         '''
