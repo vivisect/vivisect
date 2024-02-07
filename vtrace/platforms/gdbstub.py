@@ -115,6 +115,17 @@ S_IROTH =          0o4
 S_IWOTH =          0o2
 S_IXOTH =          0o1
 
+perms = {
+        b'---': 0,
+        b'--x': 1,
+        b'-w-': 2,
+        b'-wx': 3,
+        b'r--': 4,
+        b'r-x': 5,
+        b'rw-': 6,
+        b'rwx': 7,
+        }
+
 # Generators for encoding register packets
 def _pack_8bit(val):
     return val & 0xFF,
@@ -1081,6 +1092,7 @@ class GdbClientStub(GdbStubBase):
         halt_data = self._parseStopReplyPkt(res)
         halt_reason = halt_data[0]
         if halt_reason == b'W':
+            # NEED TO DO SOMETHING ELSE WITH THIS?
             raise Exception('Debugged process exited')
         elif halt_reason == b'X':
             raise Exception('Debugged process terminated')
@@ -1111,13 +1123,26 @@ class GdbClientStub(GdbStubBase):
         #
         # TODO: make these functional and configurable
         self._msgExchange(b'Hc0')
-        self._msgExchange(b'qC')
+        self.gdbGetProcessInfo()
         self._msgExchange(b'Hg0')
         self.gdbGetOffsets()
 
         # Symbols take a long time to retrieve from the vivisect GDB server, 
         # don't ask for them by default.
         #self.gdbGetSymbol(b'main')
+
+    def GetProcFilename(self, pid=None):
+        return gdbReadExecFile(pid)
+
+    def gdbReadExecFile(self, pid=None):
+        name = ''
+        if pid:
+            name = "%x" % pid
+
+        return self.qXfer(b'exec-file', name=name)
+
+    def gdbReadAuxv(self):
+        return self.qXfer(b'auxv', name=b'')
 
 
     def gdbvFile_open(self, filename, flags=O_RDONLY, mode=0, tohex=True):
@@ -1498,6 +1523,23 @@ class GdbClientStub(GdbStubBase):
 
                 maps.append((qoff, off, 7, b'offmap-%s' % offname))
                 # TODO: scour large amount of address space looking for maps?
+
+        if not len(maps):
+            self.gdbvFile_setFs(0)
+            pid = self.getPid()
+            fd = self.gdbvFile_open(b'/proc/%d/maps' % pid)
+            data = self.gdbvFile_pread(fd, 2000,0)
+            lines = data.split(b'\n')
+            for line in lines:
+                parts = line.split(b" ")
+                print(parts)
+                start,end = parts[0].split(b'-')
+                start = int(start, 16)
+                end = int(end, 16)
+                size = end - start
+
+                perm = perms.get(parts[1][:3])
+                maps.append((start, size, perm, parts[-1]))
 
         return maps
 
