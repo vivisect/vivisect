@@ -783,10 +783,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
 
         elif ltype == LOC_STRING:
+            logger.debug("followPointer->makeString(0x%x)", va)
             self.makeString(va)
             return True
 
         elif ltype == LOC_UNI:
+            logger.debug("followPointer->makeUnicode(0x%x)", va)
             self.makeUnicode(va)
             return True
 
@@ -988,11 +990,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         offset &= -align
                     continue
 
-                x = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
-                if self.isValidPointer(x):
-                    ret.append((va, x))
-                    offset += size
-                    continue
+                ptrva = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
+                if self.isValidPointer(ptrva):
+                    if self.isLikelyPointer(va, ptrva):
+                        ret.append((va, ptrva))
+                        offset += size
+                        continue
 
                 offset += align
                 offset &= -align
@@ -1001,6 +1004,49 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.setTransMeta('findPointers', ret)
 
         return ret
+
+    def isLikelyPointer(self, va, ptrva, thresh=0):
+        '''
+        This identifies and ranks the likelihood that a valid address discovered
+        in memory is actually a pointer.
+        '''
+        heur = 0.0
+
+        # if it points to something common, like < 0x200, it's suspect.
+        if ptrva < 0x200:
+            heur -= ((0x200 - ptrva)/0x200)
+
+
+        # if surrounded by pointers, it's more likely one
+        mmva, mmsz, mmperms, mmname = self.getMemoryMap(va)
+        # let's check the area around va
+        teststart = max(mmva, va - (self.psize * 10))
+        teststop  = min(mmva+mmsz, va + (self.psize * 11))
+
+        testva = teststart
+        data = collections.defaultdict(int)
+        while testva < teststop:
+            loc = self.getLocation(testva)
+            if loc is None:
+                testva += 1
+                continue
+
+            lva, lsz, ltype, ltinfo = loc
+            data[ltype] += 1
+            testva += lsz
+
+        if not data:
+            logger.debug("isLikelyPointer(0x%x, 0x%x): %f  (no other locations nearby)", va, ptrva, heur)
+            return (heur >= thresh)
+
+        ltypes = [(count, ltype) for ltype, count in data.items()]
+        ltypes.sort()
+        topdog = ltypes[-1]
+        if topdog[1] == LOC_POINTER and topdog[0] > 1:
+            heur += 1
+
+        logger.debug("isLikelyPointer(0x%x, 0x%x): %f", va, ptrva, heur)
+        return (heur >= thresh)
 
     def detectString(self, va):
         '''
@@ -1031,7 +1077,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         if bytez[offset+count] != 0:
                             # we probably hit a case where the string at the lower va is
                             # technically the start of the full string, but the binary does
-                            # some optimizations and just ref's inside the full string to save 
+                            # some optimizations and just ref's inside the full string to save
                             # some space
                             return count + loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
@@ -1066,12 +1112,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         # FIXME this does not detect Unicode...
 
-        offset, bytes = self.getByteDef(va)
-        maxlen = len(bytes) - offset
+        offset, bytez = self.getByteDef(va)
+        maxlen = len(bytez) - offset
         count = 0
         if maxlen < 2:
             return -1
-        charset = bytes[offset + 1]
+        charset = bytez[offset + 1]
         while count < maxlen:
             # If we hit another thing, then probably not.
             # Ignore when count==0 so detection can check something
@@ -1082,17 +1128,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                     if loc[L_LTYPE] == LOC_UNI:
                         if loc[L_VA] == va:
                             return loc[L_SIZE]
-                        if bytes[offset+count] != 0:
+                        if bytez[offset+count] != 0:
                             # same thing as in the string case, a binary can ref into a string
                             # only part of the full string.
                             return count + loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
                     return -1
 
-            c0 = bytes[offset+count]
-            if offset + count+1 >= len(bytes):
+            c0 = bytez[offset+count]
+            if offset + count+1 >= len(bytez):
                 return -1
-            c1 = bytes[offset+count+1]
+            c1 = bytez[offset+count+1]
 
             # If we find our null terminator after more
             # than 4 chars, we're probably a real string
@@ -1388,6 +1434,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.addXref(va, tova, REF_DATA)
                 ptrdest = None
                 if self.getLocation(tova) is None:
+                    logger.debug('makeOpcode(0x%x)->makePointer(0x%x)', va, tova)
                     ptrdest = self.makePointer(tova, follow=False)
 
                 # If the actual dest is executable, make a code ref fixup
