@@ -2118,14 +2118,6 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if follow and self.isValidPointer(tova):
             self.followPointer(tova)
 
-        # Get type of target and hand into addXref()
-        rflags = 0
-        toloc = self.getLocation(tova)
-        if toloc and toloc[L_LTYPE] == LOC_OP:
-            rflags = envi.BR_PROC
-
-        self.addXref(va, tova, REF_PTR, rflags)
-
         return ploc
 
     def makePointerArray(self, startva, stopva=None, count=None, break_on_bad=True):
