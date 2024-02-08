@@ -2111,7 +2111,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if tova is None:
             tova = self.castPointer(va)
 
-        self.addXref(va, tova, REF_PTR)
+        self.addXref(va, tova, REF_PTR, rflags=0)
 
         ploc = self.addLocation(va, psize, LOC_POINTER)
 
@@ -2128,12 +2128,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         return ploc
 
-    def makePointerArray(self, startva, stopva=0, count=0, break_on_bad=True):
+    def makePointerArray(self, startva, stopva=None, count=None, break_on_bad=True):
         '''
         Create a group of sequential pointers in the workspace (and follow/analyze)
         Continues to create pointers until:
-        * if count != 0, ends when we reach the correct number of pointers
-        * or if stopva != 0, ends when we reach endva (not including it as a pointer)
+        * if count != None, ends when we reach the correct number of pointers
+        * or if stopva != None, ends when we reach endva (not including it as a pointer)
         * if we run into another location, quit
         * if we run into an invalid pointer, bad
 
@@ -2142,6 +2142,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         psize = self.psize
         if count:
             stopva = startva + (psize * count)
+
+        if stopva is None:
+            stopva = 0
 
         for tva in range(startva, stopva, psize):
             try:
