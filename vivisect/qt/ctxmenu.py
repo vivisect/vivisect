@@ -190,6 +190,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
         makemenu.addAction('pointer (p)', ACT(vw.makePointer, va))
         makemenu.addAction('unicode (u)', ACT(vw.makeUnicode, va))
         makemenu.addAction('structure (S)', ACT(vw.getVivGui().makeStruct, va))
+        makemenu.addAction('pointer array (P)', ACT(vw.getVivGui().makePtrArray, va))
 
         nummenu = makemenu.addMenu('number')
         for size in (1, 2, 4, 8):
