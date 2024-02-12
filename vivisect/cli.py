@@ -27,6 +27,7 @@ import vtrace.lockstep as vt_lockstep
 
 import vdb
 
+import envi.exc as e_exc
 import envi.cli as e_cli
 import envi.common as e_common
 import envi.memory as e_memory

@@ -157,7 +157,7 @@ class MemoryCanvas(object):
     def _beginRenderMemory(self, va, size, rend):
         pass
 
-    def _endRenderMemory(self, va, size, rend, cb=None):
+    def _endRenderMemory(self, va, size, rend, cb=None, sel=None):
         if cb is not None:
             cb(None)
 
