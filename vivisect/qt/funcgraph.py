@@ -111,7 +111,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             #runner = functools.partial(self._renderMemoryFinish, cb)
             e_memcanvas.MemoryCanvas.renderMemory(self, va, size, cb=None, clear=False, sel=sel)
 
-        va, _ = data[-1]
+        va, size = data[-1]
         va = int(va)
         size = int(size)
         sel = '#codeblock_%.8x' % va
@@ -849,13 +849,16 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         self.mem_canvas.page().runJavaScript(svgjs, self._layoutEdges)
 
-    def _getNodeSizes(self):
+    def _getNodeSizes(self, data):
         '''
         Actually grab all the sizes of the codeblocks that we renderd in the many calls to
         _renderCodeBlock. runJavaScript has some limited ability to return values from
         javascript land to python town, so in this case, we're shoving the offsetWidth
         and offsetHeight of each of the codeblocks into a dictionary that _layoutDynadag
         can reach into to get the sizes so it can set them for use in the line layout stuff
+
+        As with a couple other of these functions, the data param exists to make PyQt5's function
+        call ing happy. We don't do anything with it.
         '''
         js = '''
         var sizes = {};
@@ -882,6 +885,8 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
         One day we'll optimize this to be one big blob of JS. But not today. But this could use
         some safety rails if the user switches functions in the middle of rendering
+
+        Side note: the data param is unused. It exists to shut PyQt5 up.
         '''
         if len(self.nodes):
             # render codeblock
