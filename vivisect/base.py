@@ -459,7 +459,11 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self.comments[va] = comment
 
     def _handleENDIAN(self, einfo):
-        self._doSetEndian(einfo)
+        self.bigend = einfo
+        for arch in self.imem_archs:
+            if not arch:
+                continue
+            arch.setEndian(self.bigend)
 
     def _handleADDFILE(self, einfo):
         normname, imagebase, md5sum = einfo
@@ -676,13 +680,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def getEndian(self):
         return self.bigend
 
-    def _doSetEndian(self, endian):
-        self.bigend = endian
-        for arch in self.imem_archs:
-            if not arch:
-                continue
-            arch.setEndian(self.bigend)
-
 
 #################################################################
 #
@@ -695,7 +692,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # are still in progress
             self.setMemArchitecture(archid)
         except IndexError:
-            raise Exception("Architecture Module not defined for %s yet!" % value)
+            raise ArchModDefException(value)
 
         # This is for legacy stuff...
         #self.arch = envi.getArchModule(value)
