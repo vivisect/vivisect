@@ -2364,7 +2364,7 @@ class GdbServerStub(GdbStubBase):
                                 self._halt_reason != self.last_reason:
                             # send the halt reason to the client (since they 
                             # should be waiting for it...
-                            self._doServerResponse(self._handleEndCont())
+                            self.transmitHaltInfo()
 
                         self.last_reason = self._halt_reason
 
@@ -2507,8 +2507,10 @@ class GdbServerStub(GdbStubBase):
             self._msgExchange(b'E' + self._encodeGDBVal(errno.EPERM))
             raise
 
-        #logger.log(e_cmn.MIRE, "Server Response (pre-enc): %r", res)
-        self._doServerResponse(res, expect_res=expect_res, ack=ack)
+        # Only send a response if one has been returned
+        if res is not None:
+            #logger.log(e_cmn.MIRE, "Server Response (pre-enc): %r", res)
+            self._doServerResponse(res, expect_res=expect_res, ack=ack)
 
     def _doServerResponse(self, res, expect_res=False, ack=None):
         '''
@@ -2561,13 +2563,13 @@ class GdbServerStub(GdbStubBase):
         raise Exception('Server translation layer must implement this function')
 
     def _parsePID(self, data):
-        # PID format: pPID.TID, TID is optional
+        # PID format: pPID.TID, TID is optional, no 
         if b'.' in data:
             pid, tid = data[1:].split(b'.')
             return self._decodeGDBVal(pid), self._decodeGDBVal(tid)
         else:
             # only the pid has been supplied
-            return self._decodeGDBVal(data[1:]), None
+            return self._decodeGDBVal(data[1:]), -1
 
     def _serverVCont(self, cmd_data):
         """
@@ -2592,38 +2594,61 @@ class GdbServerStub(GdbStubBase):
             return b'vCont;c;C;s;S'
 
         elif cmd_data.startswith(b';'):
-            responses = []
+            # Track the process/thread that a particular action applied to 
+            # because only the left-most action is the one that should apply in 
+            # a command like:
+            #   vCont;s:p1.1;c:p1.-1
+            affected_threads = set()
+
+            current_thread = (self.pid, self.tid)
 
             # Parse the supported commands
             for cmd in cmd_data[1:].split(b';'):
                 if cmd.startswith(b'c:'):
                     pid, tid = self._parsePID(cmd[2:])
-                    if pid in self.processes and tid != -1:
-                        logger.debug('continuing %d.%d (%r)', pid, tid, cmd)
-                        responses.append(self._handleCont())
-
                 elif cmd.startswith(b'C'):
                     sig = self._decodeGDB(cmd[1:3])
                     pid, tid = self._parsePID(cmd[4:])
-                    if pid in self.processes and tid != -1:
-                        logger.debug('continuing %d.%d with signal %d (%r)', pid, tid, sig, cmd)
-                        responses.append(self._handleCont(sig))
-
                 elif cmd.startswith(b's:'):
                     pid, tid = self._parsePID(cmd[2:])
-                    if pid in self.processes and tid != -1:
-                        logger.debug('stepping %d.%d (%r)', pid, tid, cmd)
-                        responses.append(self._handleStepi())
-
                 elif cmd.startswith(b'S'):
                     sig = self._decodeGDB(cmd[1:3])
                     pid, tid = self._parsePID(cmd[4:])
-                    if pid in self.processes and tid != -1:
-                        logger.debug('stepping %d.%d with signal %d (%r)', pid, tid, sig, cmd)
-                        responses.append(self._handleStepi(sig))
+                else:
+                    raise Exception('Unsupported vCont command: %s (in %s)' % (cmd, cmd_data))
 
-            # Return the responses joined with ';'
-            return b';'.join(responses)
+                if current_thread not in affected_threads and \
+                        ((pid == self.pid and tid == self.tid) or \
+                        (pid == self.pid and tid == -1) or \
+                        pid == -1):
+
+                    # TODO: support multiprocessing in the following functions:
+                    #   _handleCont
+                    #   _handleStepi
+
+                    if cmd.startswith(b'c:'):
+                        logger.debug('continuing %d.%d (%r)', pid, tid, cmd)
+                        self._handleCont()
+                    elif cmd.startswith(b'C'):
+                        logger.debug('continuing %d.%d with signal %d (%r)', pid, tid, sig, cmd)
+                        self._handleCont(sig)
+                    elif cmd.startswith(b's:'):
+                        logger.debug('stepping %d.%d (%r)', pid, tid, cmd)
+                        self._handleStepi()
+                    elif cmd.startswith(b'S'):
+                        logger.debug('stepping %d.%d with signal %d (%r)', pid, tid, sig, cmd)
+                        self._handleStepi(sig)
+
+                    handled.add(current_thread)
+                else:
+                    logger.log(e_cmn.MIRE, 'no thread affectd by vCont command %s (%s)', cmd, cmd_data)
+
+            # If at least one process/thread was not impacted by the command 
+            # report an error.
+            if not affected_threads:
+                raise Exception('No valid process or thread targeted by vCont command: %s' % cmd_data)
+
+            return None
 
         else:
             # Something we don't support
@@ -2773,18 +2798,22 @@ class GdbServerStub(GdbStubBase):
             for regidx, regval in regdict.items():
                 extrainfo.append(self._encodeGDBVal(regidx) + b':' + self._encodeGDBVal(regval))
 
-        # TODO: get the thread and core info if both the server and client 
-        # support the "multiprocess" feature?
-        extrainfo.append(b'thread:' + self._serverGetThread())
-        extrainfo.append(b';core:' + self._serverGetCore())
+            # TODO: get the thread and core info if both the server and client 
+            # support the "multiprocess" feature?
+            extrainfo.append(b'thread:' + self._serverGetThread())
+            extrainfo.append(b';core:' + self._serverGetCore())
 
-        res += b';'.join(extrainfo)
+            res += b' ' + b';'.join(extrainfo)
 
-        # TODO: properly handle the different types of possible response 
-        # situations described in:
-        # https://sourceware.org/gdb/onlinedocs/gdb/Stop-Reply-Packets.html#Stop-Reply-Packets
+            # TODO: properly handle the different types of possible response 
+            # situations described in:
+            # https://sourceware.org/gdb/onlinedocs/gdb/Stop-Reply-Packets.html#Stop-Reply-Packets
 
         return res
+
+    def transmitHaltInfo(self):
+        res = self._handleHaltInfo()
+        self._doServerResponse(res)
 
     def _serverGetHaltSignal(self):
         """
@@ -2995,9 +3024,7 @@ class GdbServerStub(GdbStubBase):
         """
         # After every step the current signal information should be provided (it 
         # will likely be SIGTRAP)
-        sig = self._serverStepi(sig)
-        res = b'S' + self._encodeGDBVal(sig)
-        return res
+        self._serverStepi(sig)
 
     def _serverStepi(self, sig=signal.SIGTRAP):
         """
@@ -3052,16 +3079,9 @@ class GdbServerStub(GdbStubBase):
         Returns:
             int: The reason for the next halt.
         """
-        sig = self._serverCont(sig)
-        res = b'S' + self._encodeGDBVal(sig)
-        return res
+        self._halt_reason = sig
 
-    def _handleEndCont(self):
-        '''
-        We are no longer running.  Send the response to the client.
-        '''
-        res = b'S' + self._encodeGDBVal(self._halt_reason)
-        return res
+        self._serverCont(sig)
 
     def _serverCont(self, sig=0):
         """
@@ -3077,6 +3097,13 @@ class GdbServerStub(GdbStubBase):
         """
         raise Exception('Server translation layer must implement this function')
 
+    def _handleEndCont(self):
+        '''
+        We are no longer running.  Send the response to the client.
+        '''
+        res = b'S' + self._encodeGDBVal(self._halt_reason)
+        self._doServerResponse(res)
+
     def _handleBreak(self, sig=signal.SIGTRAP):
         """
         Sends a BREAK signal to the execution engine
@@ -3087,8 +3114,8 @@ class GdbServerStub(GdbStubBase):
         Returns:
             None
         """
-        signal = self._serverBreak(sig)
-        res = b'S' + self._encodeGDBVal(signal)
+        self._halt_reason = sig
+        res = self._serverBreak(sig)
         return res
 
     def _serverBreak(self, sig=signal.SIGTRAP):
@@ -3252,14 +3279,9 @@ class GdbBaseEmuServer(GdbServerStub):
         self._gdb_target_xml = None
         self._gdb_memory_map_xml = None
         self._gdb_reg_fmt = None
+        self._haltregs = []
 
-        # registers to send to the client automatically whenever a halt occurs
-        if haltregs is None:
-            self._haltregs = []
-        else:
-            self._haltregs = haltregs
-
-        self.getTargetXml(reggrps)
+        self.getTargetXml(reggrps, haltregs)
 
         self.runthread = None
         self.connstate = STATE_CONN_DISCONNECTED
@@ -3342,7 +3364,7 @@ class GdbBaseEmuServer(GdbServerStub):
             1: {0: None, 1: None, 2: None},
         }
 
-    def getTargetXml(self, reggrps=None):
+    def getTargetXml(self, reggrps=None, haltregs=None):
         '''
         Takes in a RegisterContext.
         Saves a XML file as described in the gdb-remote spec
@@ -3385,7 +3407,7 @@ class GdbBaseEmuServer(GdbServerStub):
                 reggrps.append(rgps)
 
         # registers to send to the client automatically whenever a halt occurs
-        haltregs = []
+        gdbhaltregs = []
 
         # For servers the registers sent in the register packet should be just 
         # the first group of registers, so clear it now.
@@ -3430,7 +3452,7 @@ class GdbBaseEmuServer(GdbServerStub):
                         'regnum': str(reg_idx),
                     }
 
-                    if not self._haltregs and envi_idx in (pcindex, spindex):
+                    if not haltregs and envi_idx in (pcindex, spindex):
                         # If haltregs have not yet been defined, use the PC and 
                         # SP defined in the architecture.
                         if envi_idx == pcindex:
@@ -3439,9 +3461,9 @@ class GdbBaseEmuServer(GdbServerStub):
                             elem['type'] = 'data_ptr'
 
                         # Also add these to the "haltregs'
-                        haltregs.append(reg_idx)
+                        self._haltregs.append(reg_idx)
 
-                    elif not self._haltregs and envi_idx in self._haltregs:
+                    elif envi_idx in haltregs or reg_name in haltregs:
                         # Otherwise we make an assumption that the halt 
                         # registers are code pointers (if it is defined as the 
                         # PC), or a data pointer.
@@ -3449,6 +3471,9 @@ class GdbBaseEmuServer(GdbServerStub):
                             elem['type'] = 'code_ptr'
                         else:
                             elem['type'] = 'data_ptr'
+
+                        # Also add these to the "haltregs'
+                        self._haltregs.append(reg_idx)
 
                     ET.SubElement(feat, 'reg', elem)
 
@@ -3467,11 +3492,6 @@ class GdbBaseEmuServer(GdbServerStub):
         ET.indent(target, space='  ', level=0)
         out+= ET.tostring(target)
         self._gdb_target_xml = out
-
-
-        # Only set the halt registers if they have not yet been set.
-        if not self._haltregs:
-            self._haltregs = haltregs
 
         # Statically gather the information necessary to efficiently pack and 
         # unpack register packets.
@@ -3596,11 +3616,9 @@ class GdbBaseEmuServer(GdbServerStub):
         Returns:
             None
         """
-        self.emu.stepi()
-
-        # Return the trap signal
         self._halt_reason = sig
-        return self._halt_reason
+        self.emu.stepi()
+        self.transmitHaltInfo()
 
     def _serverDetach(self):
         """
@@ -3748,8 +3766,7 @@ class GdbBaseEmuServer(GdbServerStub):
         # registers
         reginfo = {}
         for reg_idx in self._haltregs:
-            envi_idx = self._gdb_to_envi_map[reg_idx][GDB_TO_ENVI_IDX]
-            mask = self._gdb_to_envi_map[reg_idx][GDB_TO_ENVI_MASK]
+            _, _, envi_idx, mask = self._gdb_to_envi_map[reg_idx]
             reginfo[reg_idx] = self.emu.getRegister(envi_idx) & mask
 
         if reginfo:
