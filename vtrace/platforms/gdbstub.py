@@ -21,6 +21,7 @@ Consuming the client and server stubs should be done via inheritance.
 """
 
 import os
+import re
 import time
 import errno
 import base64
@@ -44,6 +45,7 @@ import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.common as e_cmn
+import vstruct.defs.gdb as vs_gdb
 import vtrace.platforms.gdb_exc as gdb_exc
 
 from vtrace.platforms import signals
@@ -91,6 +93,39 @@ GDB_TO_ENVI_MASK = 3
 # packet
 REG_PKT_SIZE     = 0
 REG_PKT_NUM_REGS = 1
+
+# File Open Flags
+O_RDONLY =      0x0
+O_WRONLY =      0x1
+O_RDWR =        0x2
+O_APPEND =      0x8
+O_CREAT =     0x200
+O_TRUNC =     0x400
+O_EXCL =      0x800
+
+# File Open Mode settings
+S_IFREG =     0o100000
+S_IFDIR =      0o40000
+S_IRUSR =        0o400
+S_IWUSR =        0o200
+S_IXUSR =        0o100
+S_IRGRP =         0o40
+S_IWGRP =         0o20
+S_IXGRP =         0o10
+S_IROTH =          0o4
+S_IWOTH =          0o2
+S_IXOTH =          0o1
+
+perms = {
+        b'---': 0,
+        b'--x': 1,
+        b'-w-': 2,
+        b'-wx': 3,
+        b'r--': 4,
+        b'r-x': 5,
+        b'rw-': 6,
+        b'rwx': 7,
+        }
 
 # Generators for encoding register packets
 def _pack_8bit(val):
@@ -255,7 +290,43 @@ class GdbStubBase:
             b'qXfer:exec-file:read': None,
             b'qXfer:threads:read': None,
             b'QStartNoAckMode': None,
-            b'multiprocess': None
+            b'multiprocess': None,
+            b'QProgramSignals':  None,
+            b'QStartupWithShell':        None,
+            b'QEnvironmentHexEncoded':   None,
+            b'QEnvironmentReset':        None,
+            b'QEnvironmentUnset':        None,
+            b'QSetWorkingDir':   None,
+            b'QCatchSyscalls':   None,
+            b'qXfer:libraries-svr4:read':        None,
+            b'augmented-libraries-svr4-read':    None,
+            b'qXfer:auxv:read':  None,
+            b'qXfer:siginfo:read':       None,
+            b'qXfer:siginfo:write':      None,
+            b'qXfer:osdata:read':        None,
+            b'fork-events':      None,
+            b'vfork-events':     None,
+            b'exec-events':      None,
+            b'QNonStop': None,
+            b'QDisableRandomization':    None,
+            b'qXfer:threads:read':       None,
+            b'ConditionalBreakpoints':   None,
+            b'BreakpointCommands':       None,
+            b'QAgent':   None,
+            b'Qbtrace:bts':      None,
+            b'Qbtrace-conf:bts:size':    None,
+            b'Qbtrace:pt':       None,
+            b'Qbtrace-conf:pt:size':     None,
+            b'Qbtrace:off':      None,
+            b'qXfer:btrace:read':        None,
+            b'qXfer:btrace-conf:read':   None,
+            b'swbreak':  None,
+            b'hwbreak':  None,
+            b'qXfer:exec-file:read':     None,
+            b'vContSupported':   None,
+            b'QThreadEvents':    None,
+            b'no-resumed':       None,
+
         }
 
         self._settings = {}
@@ -921,6 +992,7 @@ class GdbClientStub(GdbStubBase):
         self._gdb_host = host
         self._gdb_servertype = servertype
         self._offsets = None
+        self._mapcache = None
 
         self._xml = {}
         self._symbols = {}
@@ -1022,6 +1094,7 @@ class GdbClientStub(GdbStubBase):
         halt_data = self._parseStopReplyPkt(res)
         halt_reason = halt_data[0]
         if halt_reason == b'W':
+            # NEED TO DO SOMETHING ELSE WITH THIS?
             raise Exception('Debugged process exited')
         elif halt_reason == b'X':
             raise Exception('Debugged process terminated')
@@ -1052,13 +1125,191 @@ class GdbClientStub(GdbStubBase):
         #
         # TODO: make these functional and configurable
         self._msgExchange(b'Hc0')
-        self._msgExchange(b'qC')
+        self.gdbGetProcessInfo()
         self._msgExchange(b'Hg0')
         self.gdbGetOffsets()
 
         # Symbols take a long time to retrieve from the vivisect GDB server, 
         # don't ask for them by default.
         #self.gdbGetSymbol(b'main')
+
+    def GetProcFilename(self, pid=None):
+        return gdbReadExecFile(pid)
+
+    def gdbReadExecFile(self, pid=None):
+        name = ''
+        if pid:
+            name = "%x" % pid
+
+        return self.qXfer(b'exec-file', name=name)
+
+    def gdbReadAuxv(self):
+        return self.qXfer(b'auxv', name=b'')
+
+
+    def gdbvFile_open(self, filename, flags=O_RDONLY, mode=0, tohex=True):
+        '''
+        Open a file at filename and return a file descriptor for it, or return -1 if an error occurs. The filename is a string, flags is an integer indicating a mask of open flags (see Open Flags), and mode is an integer indicating a mask of mode bits to use if the file is created (see mode_t Values). See open, for details of the open flags and mode values.
+
+        NOTE: on failure, may return a tuple, with (-1, reasoncode).  Should this raise an exception instead?
+        '''
+        if tohex:
+            filename = hexlify(filename)
+        res = self._msgExchange(b'vFile:open:%s,%x,%o' % (filename, flags, mode))
+        
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b',' in res:
+            res, info = res.split(b',', 1)
+            return (int(res[1:], 16), int(info, 16))
+
+        # correct response
+        fd = int(res[1:], 16)
+
+        return fd
+
+    def gdbvFile_close(self, fd):
+        '''
+        Close the open file corresponding to fd and return 0, or -1 if an error occurs.
+        '''
+        res = self._msgExchange(b'vFile:close:%x' % fd)
+
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b',' in res:
+            res, info = res.split(b',', 1)
+            return (int(res[1:], 16), int(info, 16))
+
+        retval = int(res[1:], 16)
+        return retval
+
+    def gdbvFile_pread(self, fd, count, offset):
+        '''
+        Read data from the open file corresponding to fd. Up to count bytes will be read from the file, starting at offset relative to the start of the file. The target may read fewer bytes; common reasons include packet size limits and an end-of-file condition. The number of bytes read is returned. Zero should only be returned for a successful read at the end of the file, or if count was zero.
+
+        The data read should be returned as a binary attachment on success. If zero bytes were read, the response should include an empty binary attachment (i.e. a trailing semicolon). The return value is the number of target bytes read; the binary attachment may be longer if some characters were escaped.
+        '''
+        res = self._msgExchange(b'vFile:pread:%x,%x,%x' % (fd, count, offset))
+        
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b';' in res:
+            res, info = res.split(b';', 1)
+
+        # correct response
+        reslen = int(res[1:], 16)
+        if reslen != len(info):
+            logger.warning("WHAT?  reslen (%d != len(data) (%d)", reslen, len(info))
+
+        return info
+
+    def gdbvFile_pwrite(self, fd, offset, data):
+        '''
+        Write data (a binary buffer) to the open file corresponding to fd. Start the write at offset from the start of the file. Unlike many write system calls, there is no separate count argument; the length of data in the packet is used. ‘vFile:pwrite’ returns the number of bytes written, which may be shorter than the length of data, or -1 if an error occurred.
+        '''
+        res = self._msgExchange(b'vFile:pwrite:%x,%x,%s' % (fd, offset, data))
+        
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b',' in res:
+            res, info = res.split(b',', 1)
+            return (int(res[1:], 16), int(info, 16))
+
+
+        # correct response
+        reslen = int(res[1:], 16)
+        return reslen
+
+    def gdbvFile_fstat(self, fd):
+        '''
+        Get information about the open file corresponding to fd. On success the information is returned as a binary attachment and the return value is the size of this attachment in bytes. If an error occurs the return value is -1. The format of the returned binary attachment is as described in struct stat.
+        '''
+        res = self._msgExchange(b'vFile:fstat:%x' % (fd,))
+        
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        if b';' in res:
+            res, info = res.split(b';', 1)
+
+        # correct response
+        reslen = int(res[1:], 16)
+        struct = vs_gdb.Fstat(bigend=True)
+        struct.vsParse(info)
+
+        return struct
+
+    def gdbvFile_unlink(self, filename, tohex=True):
+        '''
+        Delete the file at filename on the target. Return 0, or -1 if an error occurs. The filename is a string.
+        '''
+        if tohex:
+            filename = hexlify(filename)
+        res = self._msgExchange(b'vFile:unlink:%s' % (filename,))
+        
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        # correct response
+        res = int(res[1:], 16)
+        return res
+
+    def gdbvFile_readlink(self, filename, tohex=True):
+        '''
+        Read value of symbolic link filename on the target. Return the number of bytes read, or -1 if an error occurs.
+
+        The data read should be returned as a binary attachment on success. If zero bytes were read, the response should include an empty binary attachment (i.e. a trailing semicolon). The return value is the number of target bytes read; the binary attachment may be longer if some characters were escaped.
+        '''
+        if tohex:
+            filename = hexlify(filename)
+        res = self._msgExchange(b'vFile:readlink:%s' % (filename))
+        
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        # check for errors
+        if b',' in res:
+            res, info = res.split(b',', 1)
+            return (int(res[1:], 16), int(info, 16))
+
+
+        # split result and data
+        if b';' in res:
+            res, info = res.split(b';', 1)
+
+        # correct response
+        res = int(res[1:], 16)
+
+        return info
+
+    def gdbvFile_setFs(self, pid=None):
+        '''
+        Select the filesystem on which vFile operations with filename arguments will operate. This is required for GDB to be able to access files on remote targets where the remote stub does not share a common filesystem with the inferior(s).
+
+        If pid is nonzero, select the filesystem as seen by process pid. If pid is zero, select the filesystem as seen by the remote stub. Return 0 on success, or -1 if an error occurs. If vFile:setfs: indicates success, the selected filesystem remains selected until the next successful vFile:setfs: operation.
+        '''
+        if pid is None:
+            pid = 0
+
+        res = self._msgExchange(b'vFile:setfs:%d' % pid)
+
+        if not len(res) or not res.startswith(b'F'):
+            # issues with the response
+            raise Exception("Unsupported File Operation!")
+
+        retval = int(res[1:], 16)
+        return retval
 
     def qSupported(self, options=None):
         supported_cmd = 'qSupported'
@@ -1219,7 +1470,7 @@ class GdbClientStub(GdbStubBase):
         xml = xmlET.fromstring(mmapbytes)
         return xml
 
-    def getMemoryMaps(self, pgsize=4096):
+    def getMemoryMaps(self, pgsize=4096, cached=True):
         '''
         Build and return a list of memory map definitions using the best
         available metadata.
@@ -1227,7 +1478,12 @@ class GdbClientStub(GdbStubBase):
         This will start with a qXfer:memory-map:read, if supported.
         Then it will fall back to qOffsets if possible, with some ugly magic
         fairy-dust.
+        If all else fails, it will attempt to read /proc/<PID>/maps on the target
+        (hopeing it is some *NIX that understands such things)
         '''
+        if cached and self._mapcache:
+            return self._mapcache
+
         maps = []
 
         # start off attempting to qXfer:memory-map:read, even if it doesn't list it.
@@ -1266,6 +1522,45 @@ class GdbClientStub(GdbStubBase):
 
                 maps.append((qoff, off, 7, b'offmap-%s' % offname))
                 # TODO: scour large amount of address space looking for maps?
+
+        if not len(maps):
+            # don't need all the fields
+            maps = [(m[0], m[1], m[2], m[6]) for m in self.gdbReadAndParseProcMaps()] 
+
+        # update cache
+        self._mapcache = maps
+        return maps
+
+    def gdbReadAndParseProcMaps(self):
+        maps = []
+
+        self.gdbvFile_setFs(0)
+        pid = self.getPid()
+        fd = self.gdbvFile_open(b'/proc/%d/maps' % pid)
+        data = self.gdbvFile_pread(fd, 20000,0)
+        lines = data.split(b'\n')
+        for line in lines:
+            if not len(line):
+                # skip blank line, typically at the end
+                continue
+
+            parts = re.split(b'\s+', line)
+            logger.debug(parts)
+            if len(parts) == 6:
+                startend, permstr, offstr, dev, inode, fname = parts
+            elif len(parts) == 5:
+                startend, permstr, offstr, dev, inode = parts
+                fname = b''
+
+            start,end = startend.split(b'-')
+            start = int(start, 16)
+            end = int(end, 16)
+            size = end - start
+
+            perm = perms.get(permstr[:3])
+            fileoff = int(offstr, 16)
+
+            maps.append((start, size, perm, fileoff, dev, inode, fname))
 
         return maps
 
@@ -1645,6 +1940,35 @@ class GdbClientStub(GdbStubBase):
         cmd = b'k'
         res = self._msgExchange(cmd)
         return res
+
+    def gdbGetProcessInfo(self):
+        return self._msgExchange(b'qC')
+
+    def getPid(self):
+        '''
+        Get Target Process ID.
+
+        uses gdbGetProcessInfo()
+        '''
+        res = self.gdbGetProcessInfo()
+
+        if res.startswith(b'QC'):
+            pid = int(res[2:], 16)
+            return pid
+
+        elif res[0:1] == b'E':
+            raise Exception('Error code %s received getting PID' %
+                (res[1:3]))
+        else:
+            raise Exception('Unexpected response getting PID: %s' % res)
+
+    def getPids(self):
+        '''
+        Get Target Process/Thread IDs (potentially multiple)
+
+        uses gdbGetThreadInfo()
+        '''
+        return self.gdbGetThreadInfo()
 
     def gdbGetThreadInfo(self):
         out = []
