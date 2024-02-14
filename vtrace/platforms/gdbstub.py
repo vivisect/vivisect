@@ -2367,7 +2367,7 @@ class GdbServerStub(GdbStubBase):
                                 self._halt_reason != self.last_reason:
                             # send the halt reason to the client (since they 
                             # should be waiting for it...
-                            self.transmitHaltInfo()
+                            self._doServerResponse(self._handleHaltInfo())
 
                         self.last_reason = self._halt_reason
 
@@ -2576,12 +2576,13 @@ class GdbServerStub(GdbStubBase):
         raise Exception('Server translation layer must implement this function')
 
     def _parsePID(self, data):
-        # PID format: pPID.TID, TID is optional, no 
+        # PID format: pPID.TID, TID is optional
         if b'.' in data:
             pid, tid = data[1:].split(b'.')
             return self._decodeGDBVal(pid), self._decodeGDBVal(tid)
         else:
-            # only the pid has been supplied
+            # only the pid has been supplied, return -1 for the tid to
+            # indicate all threads
             return self._decodeGDBVal(data[1:]), -1
 
     def _serverVCont(self, cmd_data):
@@ -2824,10 +2825,6 @@ class GdbServerStub(GdbStubBase):
 
         return res
 
-    def transmitHaltInfo(self):
-        res = self._handleHaltInfo()
-        self._doServerResponse(res)
-
     def _serverGetHaltSignal(self):
         """
         Returns the signal number responsible for the current halt.
@@ -3033,10 +3030,8 @@ class GdbServerStub(GdbStubBase):
         Returns:
             None
         """
-        # After every step the current signal information should be provided (it 
-        # will likely be SIGTRAP)
-        self._serverStepi(sig)
-        return None
+        res = self._serverStepi(sig)
+        return res
 
     def _serverStepi(self, sig=signal.SIGTRAP):
         """
@@ -3620,13 +3615,12 @@ class GdbBaseEmuServer(GdbServerStub):
         Returns:
             None
         """
-        self._halt_reason = sig
-        self.emu.stepi()
 
-        # Because this doesn't go through a full halt reason state change the 
-        # main thread won't be transmitting the updated halt status, so do it 
-        # here.
-        self.transmitHaltInfo()
+        self.emu.stepi()
+        self._halt_reason = sig
+
+        res = self._handleHaltInfo()
+        return res
 
     def _serverDetach(self):
         """
