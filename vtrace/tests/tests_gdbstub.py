@@ -596,8 +596,7 @@ class TestGdbClientStub(unittest.TestCase):
             #
             # (this can change slightly depending on the amount of memory 
             # consumed by the GDB stub class)
-            self.assertIn(registers['rsp'],
-                          (0x40007ffa50, 0x40007ffa60, 0x40007ffaa0))
+            self.assertIn(registers['rsp'], range(0x40007ff930, 0x40007ffab0, 0x10))
 
             # CR0 registers only available over QEMU
             self.assertEqual(registers['cr0'], 0x80010001)

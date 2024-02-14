@@ -3378,6 +3378,9 @@ class GdbBaseEmuServer(GdbServerStub):
         if reggrps is None:
             reggrps = [('general', 'org.gnu.gdb.i386.core')]
 
+        if haltregs is None:
+            haltregs = []
+
         # TODO: Support custom register index numbers?
         # TODO: handle custom types such as those used by vector registers
 
