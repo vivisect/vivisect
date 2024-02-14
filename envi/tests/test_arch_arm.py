@@ -1790,9 +1790,6 @@ class ArmInstructionSet(unittest.TestCase):
                 emu.setRegister(reg, modeval, mode=modeval)
                 #self.assertEqual(emu.getRegister(regidx), 47147)
 
-        #import pprint
-        #pprint.pprint(dict(histo))
-        #pprint.pprint(list(enumerate(emu._rctx_vals[:50])))
 
         # test CPSR
         self.assertEqual(emu.getCPSR(), 0x10000)
@@ -2131,7 +2128,7 @@ class ArmInstructionSet(unittest.TestCase):
 
                         # do the mnemonic comparison
                         if redoprepr != redgoodop:
-                            print("viv: %r != test: %r" % (redoprepr, redgoodop))
+                            log.warning("viv: %r != test: %r", redoprepr, redgoodop)
                             if len(bytez) == 4:
                                 num, = struct.unpack("<H", unhexlify(bytez))
                             else:

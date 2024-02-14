@@ -191,7 +191,7 @@ def getAllReads(emu):
                 if read in allaccess:
                     # skip duplicate
                     continue
-                allaccess.append(read)
+                yield (read)
 
     return allaccess
 
@@ -204,7 +204,7 @@ def getAllWrites(emu):
                 if write in allaccess:
                     # skip duplicate
                     continue
-                allaccess.append(write)
+                yield (write)
     return allaccess
 
 def analyzeFunction(vw, fva):
