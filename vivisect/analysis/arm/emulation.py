@@ -183,7 +183,11 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
 
 def getAllReads(emu):
-    # there has to be a more efficient way...
+    '''
+    Sort through the emulator's Path structure and grab all Reads
+    Yield generator
+    Skips duplicates
+    '''
     allaccess = []
     for path in vg_path.getAllPaths(emu.path):
         for node in path:
@@ -196,7 +200,11 @@ def getAllReads(emu):
     return allaccess
 
 def getAllWrites(emu):
-    # there has to be a more efficient way...
+    '''
+    Sort through the emulator's Path structure and grab all Writes
+    Yield generator
+    Skips duplicates
+    '''
     allaccess = []
     for path in vg_path.getAllPaths(emu.path):
         for node in path:
