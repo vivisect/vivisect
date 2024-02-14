@@ -21,6 +21,7 @@ Consuming the client and server stubs should be done via inheritance.
 """
 
 import os
+import re
 import time
 import errno
 import base64
@@ -991,6 +992,7 @@ class GdbClientStub(GdbStubBase):
         self._gdb_host = host
         self._gdb_servertype = servertype
         self._offsets = None
+        self._mapcache = None
 
         self._xml = {}
         self._symbols = {}
@@ -1476,7 +1478,7 @@ class GdbClientStub(GdbStubBase):
         xml = xmlET.fromstring(mmapbytes)
         return xml
 
-    def getMemoryMaps(self, pgsize=4096):
+    def getMemoryMaps(self, pgsize=4096, cached=True):
         '''
         Build and return a list of memory map definitions using the best
         available metadata.
@@ -1484,7 +1486,12 @@ class GdbClientStub(GdbStubBase):
         This will start with a qXfer:memory-map:read, if supported.
         Then it will fall back to qOffsets if possible, with some ugly magic
         fairy-dust.
+        If all else fails, it will attempt to read /proc/<PID>/maps on the target
+        (hopeing it is some *NIX that understands such things)
         '''
+        if cached and self._mapcache:
+            return self._mapcache
+
         maps = []
 
         # start off attempting to qXfer:memory-map:read, even if it doesn't list it.
@@ -1525,21 +1532,43 @@ class GdbClientStub(GdbStubBase):
                 # TODO: scour large amount of address space looking for maps?
 
         if not len(maps):
-            self.gdbvFile_setFs(0)
-            pid = self.getPid()
-            fd = self.gdbvFile_open(b'/proc/%d/maps' % pid)
-            data = self.gdbvFile_pread(fd, 2000,0)
-            lines = data.split(b'\n')
-            for line in lines:
-                parts = line.split(b" ")
-                print(parts)
-                start,end = parts[0].split(b'-')
-                start = int(start, 16)
-                end = int(end, 16)
-                size = end - start
+            # don't need all the fields
+            maps = [(m[0], m[1], m[2], m[6]) for m in self.gdbReadAndParseProcMaps()] 
 
-                perm = perms.get(parts[1][:3])
-                maps.append((start, size, perm, parts[-1]))
+        # update cache
+        self._mapcache = maps
+        return maps
+
+    def gdbReadAndParseProcMaps(self):
+        maps = []
+
+        self.gdbvFile_setFs(0)
+        pid = self.getPid()
+        fd = self.gdbvFile_open(b'/proc/%d/maps' % pid)
+        data = self.gdbvFile_pread(fd, 20000,0)
+        lines = data.split(b'\n')
+        for line in lines:
+            if not len(line):
+                # skip blank line, typically at the end
+                continue
+
+            parts = re.split(b'\s+', line)
+            print(parts)
+            if len(parts) == 6:
+                startend, permstr, offstr, dev, inode, fname = parts
+            elif len(parts) == 5:
+                startend, permstr, offstr, dev, inode = parts
+                fname = b''
+
+            start,end = startend.split(b'-')
+            start = int(start, 16)
+            end = int(end, 16)
+            size = end - start
+
+            perm = perms.get(permstr[:3])
+            fileoff = int(offstr, 16)
+
+            maps.append((start, size, perm, fileoff, dev, inode, fname))
 
         return maps
 
