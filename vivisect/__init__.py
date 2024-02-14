@@ -2117,7 +2117,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if tova is None:
             tova = self.castPointer(va)
 
-        self.addXref(va, tova, REF_PTR)
+        self.addXref(va, tova, REF_PTR, rflags=0)
 
         ploc = self.addLocation(va, psize, LOC_POINTER)
 
@@ -2125,6 +2125,52 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.followPointer(tova)
 
         return ploc
+
+    def makePointerArray(self, startva, stopva=None, count=None, break_on_bad=True):
+        '''
+        Create a group of sequential pointers in the workspace (and follow/analyze)
+        Continues to create pointers until:
+        * if count != None, ends when we reach the correct number of pointers
+        * or if stopva != None, ends when we reach endva (not including it as a pointer)
+        * if we run into another location, quit
+        * if we run into an invalid pointer, bad
+
+        if "bad", and break_on_bad==True, stop
+        '''
+        psize = self.psize
+        if count:
+            stopva = startva + (psize * count)
+
+        if stopva is None:
+            stopva = 0
+
+        for tva in range(startva, stopva, psize):
+            try:
+                bad = False
+                ptr = self.readMemoryPtr(tva)
+
+                if not self.isValidPointer(ptr):
+                    bad = True
+
+                for x in range(psize):
+                    if self.getLocation(tva + x) is not None:
+                        bad = True
+                        break
+
+                if bad:
+                    self.vprint("bad: 0x%x  -> 0x%x" % (tva, ptr))
+                    if break_on_bad:
+                        break
+                    continue
+
+                self.vprint("pointer: 0x%x  -> 0x%x" % (tva, ptr))
+                self.makePointer(tva)
+
+            except:
+                logger.warning("Exception analyzing pointer: 0x%x", tva, exc_info=1)
+
+        return count
+
 
     def makePad(self, va, size):
         """
