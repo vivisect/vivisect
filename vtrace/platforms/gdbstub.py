@@ -466,6 +466,10 @@ class GdbStubBase:
 
         return val_str
 
+    def _encodeRegVal(self, ridx):
+        reg_val, size = self._serverReadRegVal(ridx)
+        return self._encodeGDBVal(reg_val, size)
+
     def _gdbCSum(self, cmd):
         """
         Generates a GDB-compliant checksum for a command
@@ -2360,7 +2364,7 @@ class GdbServerStub(GdbStubBase):
                 while self.connstate == STATE_CONN_CONNECTED:
                     try:
                         # Check and handle the processor breaking.
-                        if self._halt_reason != 0 and \
+                        if self._halt_reason != SIGNAL_NONE and \
                                 self._halt_reason != self.last_reason:
                             # send the halt reason to the client (since they 
                             # should be waiting for it...
@@ -2395,6 +2399,7 @@ class GdbServerStub(GdbStubBase):
                     except BrokenPipeError:
                         logger.info("BrokenPipeError:  Client disconnected.")
                         self.connstate = STATE_CONN_DISCONNECTED
+                        self._gdb_sock = None
 
             except Exception as e:
                 logger.critical("runServer exception!", exc_info=1)
@@ -2639,7 +2644,7 @@ class GdbServerStub(GdbStubBase):
                         logger.debug('stepping %d.%d with signal %d (%r)', pid, tid, sig, cmd)
                         self._handleStepi(sig)
 
-                    handled.add(current_thread)
+                    affected_threads.add(current_thread)
                 else:
                     logger.log(e_cmn.MIRE, 'no thread affectd by vCont command %s (%s)', cmd, cmd_data)
 
@@ -2796,14 +2801,14 @@ class GdbServerStub(GdbStubBase):
             signal, regdict = signal
             res = b'T' + self._encodeGDBVal(signal)
             for regidx, regval in regdict.items():
-                extrainfo.append(self._encodeGDBVal(regidx) + b':' + self._encodeGDBVal(regval))
+                extrainfo.append(self._encodeGDBVal(regidx) + b':' + regval)
 
             # TODO: get the thread and core info if both the server and client 
             # support the "multiprocess" feature?
             extrainfo.append(b'thread:' + self._serverGetThread())
-            extrainfo.append(b';core:' + self._serverGetCore())
+            extrainfo.append(b'core:' + self._serverGetCore())
 
-            res += b' ' + b';'.join(extrainfo)
+            res += b';'.join(extrainfo) + b';'
 
             # TODO: properly handle the different types of possible response 
             # situations described in:
@@ -2996,9 +3001,7 @@ class GdbServerStub(GdbStubBase):
             str: A GDB remote protocol register packet.
         """
         ridx = int(cmd_data, 16)
-        reg_val, size = self._serverReadRegVal(ridx)
-        reg_pkt = self._encodeGDBVal(reg_val, size)
-        return reg_pkt
+        return self._encodeRegVal(ridx)
 
     def _serverReadRegVal(self, ridx):
         """
@@ -3766,8 +3769,7 @@ class GdbBaseEmuServer(GdbServerStub):
         # registers
         reginfo = {}
         for reg_idx in self._haltregs:
-            _, _, envi_idx, mask = self._gdb_to_envi_map[reg_idx]
-            reginfo[reg_idx] = self.emu.getRegister(envi_idx) & mask
+            reginfo[reg_idx] = self._encodeRegVal(reg_idx)
 
         if reginfo:
             return self._halt_reason, reginfo
