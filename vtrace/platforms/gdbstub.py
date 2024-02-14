@@ -1157,7 +1157,6 @@ class GdbClientStub(GdbStubBase):
             filename = hexlify(filename)
         res = self._msgExchange(b'vFile:open:%s,%x,%o' % (filename, flags, mode))
         
-        print("res: %r" % res)
         if not len(res) or not res.startswith(b'F'):
             # issues with the response
             raise Exception("Unsupported File Operation!")
@@ -1177,7 +1176,6 @@ class GdbClientStub(GdbStubBase):
         '''
         res = self._msgExchange(b'vFile:close:%x' % fd)
 
-        print("res: %r" % res)
         if not len(res) or not res.startswith(b'F'):
             # issues with the response
             raise Exception("Unsupported File Operation!")
@@ -1197,7 +1195,6 @@ class GdbClientStub(GdbStubBase):
         '''
         res = self._msgExchange(b'vFile:pread:%x,%x,%x' % (fd, count, offset))
         
-        print("res: %r" % res)
         if not len(res) or not res.startswith(b'F'):
             # issues with the response
             raise Exception("Unsupported File Operation!")
@@ -1208,7 +1205,7 @@ class GdbClientStub(GdbStubBase):
         # correct response
         reslen = int(res[1:], 16)
         if reslen != len(info):
-            print("WHAT?  reslen (%d != len(data) (%d)" % (reslen, len(info)))
+            logger.warning("WHAT?  reslen (%d != len(data) (%d)", reslen, len(info))
 
         return info
 
@@ -1218,7 +1215,6 @@ class GdbClientStub(GdbStubBase):
         '''
         res = self._msgExchange(b'vFile:pwrite:%x,%x,%s' % (fd, offset, data))
         
-        print("res: %r" % res)
         if not len(res) or not res.startswith(b'F'):
             # issues with the response
             raise Exception("Unsupported File Operation!")
@@ -1238,7 +1234,6 @@ class GdbClientStub(GdbStubBase):
         '''
         res = self._msgExchange(b'vFile:fstat:%x' % (fd,))
         
-        print("res: %r" % res)
         if not len(res) or not res.startswith(b'F'):
             # issues with the response
             raise Exception("Unsupported File Operation!")
@@ -1261,7 +1256,6 @@ class GdbClientStub(GdbStubBase):
             filename = hexlify(filename)
         res = self._msgExchange(b'vFile:unlink:%s' % (filename,))
         
-        print("res: %r" % res)
         if not len(res) or not res.startswith(b'F'):
             # issues with the response
             raise Exception("Unsupported File Operation!")
@@ -1280,7 +1274,6 @@ class GdbClientStub(GdbStubBase):
             filename = hexlify(filename)
         res = self._msgExchange(b'vFile:readlink:%s' % (filename))
         
-        print("res: %r" % res)
         if not len(res) or not res.startswith(b'F'):
             # issues with the response
             raise Exception("Unsupported File Operation!")
@@ -1311,7 +1304,6 @@ class GdbClientStub(GdbStubBase):
 
         res = self._msgExchange(b'vFile:setfs:%d' % pid)
 
-        print("res: %r" % res)
         if not len(res) or not res.startswith(b'F'):
             # issues with the response
             raise Exception("Unsupported File Operation!")
@@ -1553,7 +1545,7 @@ class GdbClientStub(GdbStubBase):
                 continue
 
             parts = re.split(b'\s+', line)
-            print(parts)
+            logger.debug(parts)
             if len(parts) == 6:
                 startend, permstr, offstr, dev, inode, fname = parts
             elif len(parts) == 5:
