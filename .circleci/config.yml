@@ -4,7 +4,6 @@
 #
 version: 2.1
 
-
 commands:
 
   do_python_setup:
@@ -34,12 +33,12 @@ commands:
           name: checkout vivtest files repo
           command: |
             git clone https://github.com/vivisect/vivtestfiles.git $VIVTESTFILES
-
       - run:
           name: install deps
           command: |
+            sudo dpkg --add-architecture i386
             sudo apt-get update
-            sudo apt-get -qq install libfreetype6-dev liblcms2-dev ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick
+            sudo apt-get -qq install libc6:i386 libncurses5:i386 libstdc++6:i386
 
       - do_python_setup
 
@@ -47,26 +46,13 @@ commands:
 
 jobs:
 
-  python38:
+  python311:
     parallelism: 1
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.11.4
         environment:
           VIVTESTFILES: /tmp/vivtestfiles
-          PYVERS: 3.8
-
-    working_directory: ~/repo
-
-    steps:
-      - test_steps_python
-
-  python39:
-    parallelism: 1
-    docker:
-      - image: circleci/python:3.9
-        environment:
-          VIVTESTFILES: /tmp/vivtestfiles
-          PYVERS: 3.9
+          PYVERS: 3.11
 
     working_directory: ~/repo
 
@@ -78,27 +64,9 @@ workflows:
   run_tests:
     jobs:
 
-      - python39:
+      - python311:
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
-
-      - python38:
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-
-#  weekly:
-#    triggers:
-#      - schedule:
-#          cron: "0 12 1 * *"
-#          filters:
-#            branches:
-#              only:
-#                - master
-#    jobs:
-#      - python39

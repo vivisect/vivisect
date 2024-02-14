@@ -3,12 +3,16 @@
 Some glue code to do workspace related things based on visgraph
 '''
 import time
-import envi
 import logging
-import vivisect
 import collections
+
+import envi
+import envi.const as e_const
+
 import visgraph.pathcore as vg_pathcore
 import visgraph.graphcore as vg_graphcore
+
+import vivisect
 
 xrskip = envi.BR_PROC | envi.BR_DEREF
 
@@ -474,6 +478,12 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             # or indirects.
             if xrflags & xrskip:
                 continue
+
+            mmap = vw.getMemoryMap(xrto)
+            if mmap:
+                mva, msize, mperm, mname = mmap
+                if mperm & e_const.MM_UNINIT:
+                    continue
 
             if not g.hasNode(xrto):
                 cblock = vw.getCodeBlock(xrto)

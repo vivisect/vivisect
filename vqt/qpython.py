@@ -15,8 +15,7 @@ from vqt.common import scripterr
 class ScriptThread(Thread):
 
     def __init__(self, cobj, locals):
-        Thread.__init__(self)
-        self.setDaemon(True)
+        Thread.__init__(self, daemon=True)
         self.cobj = cobj
         self.locals = locals
 

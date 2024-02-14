@@ -23,7 +23,7 @@ import vivisect.tools.graphutil as v_t_graph
 
 import visgraph.pathcore as vg_path
 
-import vtrace.envitools as vt_envitools
+import vtrace.lockstep as vt_lockstep
 
 import vdb
 
@@ -636,7 +636,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         addr = self.parseExpression(line)
         emu = self.getEmulator(va=addr)
 
-        trace = vt_envitools.TraceEmulator(emu)
+        trace = vt_lockstep.TraceEmulator(emu)
 
         db = vdb.Vdb(trace=trace)
         db.cmdloop()

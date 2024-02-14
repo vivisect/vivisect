@@ -9,11 +9,13 @@ defconfig = {
 
         'parsers':{
             'pe':{
+                'baseaddr': 0x200000,
                 'loadresources':False,
                 'carvepes':True,
                 'nx':False,
             },
             'elf':{
+                'baseaddr': 0x200000,
             },
             'blob':{
                 'arch':'',
@@ -67,11 +69,13 @@ docconfig = {
 
         'parsers':{
             'pe':{
+                'baseaddr': 'Address used to relocate PE files if base-address is 0 and PE is relocatable',
                 'loadresources':'Should we load resource segments?',
                 'carvepes':'Should we carve pes?',
                 'nx':'Should we truly treat sections that dont execute as non executable?'
             },
             'elf':{
+                'baseaddr': 'Address used to relocate ELF files if base-address is 0 and ELF is relocatable',
             },
             'blob':{
                 'arch':'What architecture is the blob?',

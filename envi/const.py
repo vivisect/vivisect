@@ -18,18 +18,19 @@ MM_READ = 0x4
 MM_WRITE = 0x2
 MM_EXEC = 0x1
 MM_SHARED = 0x08
+MM_UNINIT = 0x10
 
 MM_READ_WRITE = MM_READ | MM_WRITE
 MM_READ_EXEC = MM_READ | MM_EXEC
 MM_RWX = MM_READ | MM_WRITE | MM_EXEC
 
 pnames = [
-        'No Access', 
-        'Execute', 
-        'Write', 
-        'Write/Exec', 
-        'Read', 
-        'Read/Exec', 
+        'No Access',
+        'Execute',
+        'Write',
+        'Write/Exec',
+        'Read',
+        'Read/Exec',
         'Read/Write',
         'RWE',
         ]
@@ -37,8 +38,6 @@ pnames = [
 for idx in range(8):
     pnames.append('Shared: ' + pnames[idx])
 
-
 PAGE_SIZE = 1 << 12
 PAGE_NMASK = PAGE_SIZE - 1
 PAGE_MASK = ~PAGE_NMASK
-

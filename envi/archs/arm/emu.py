@@ -33,6 +33,23 @@ class ArmArchitectureProcedureCall(envi.CallingConvention):
     align = 8
     pad = 0
 
+    def getReturnAddress(self, emu):
+        '''
+        Returns the return address.
+
+        Expects to be called at the function entrypoint.
+
+        Customized for ARM/THhumb, since ARM return values may be odd/even and i
+        it matters in an architecturally-specific fashion
+        '''
+        rtype, rvalue = self.retaddr_def
+        ra = emu.getRegister(rvalue)
+        emu.setThumbMode(thumb=(ra&1))
+        ra &=0xfffffffe
+
+        return ra
+
+
 aapcs = ArmArchitectureProcedureCall()
 
 class CoProcEmulator:       # useful for prototyping, but should be subclassed

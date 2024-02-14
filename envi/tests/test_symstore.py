@@ -36,8 +36,9 @@ class SymResolverTests(unittest.TestCase):
         secsym = e_sym_resolv.SectionSymbol('TestFooSectionSym', 0x123456, size=400, fname=fname)
         self.symres.addSymbol(secsym)
 
+        self.assertIn(fname, self.symres.symobjsbyname)
         self.symres.delSymbol(fnsym)
-        self.assertNotIn(fnsym, self.symres.symobjsbyname)
+        self.assertNotIn(fname, self.symres.symobjsbyname)
 
     def test_getSymByAddr_exact_false(self):
         '''

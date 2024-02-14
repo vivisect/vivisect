@@ -7,6 +7,7 @@ import argparse
 import cProfile
 import importlib.util
 
+import envi
 import envi.exc as e_exc
 import envi.common as e_common
 import envi.threads as e_threads
@@ -44,6 +45,11 @@ def main():
                         help='Path to a directory to use for config data')
     parser.add_argument('-a', '--autosave', dest='autosave', default=False, action='store_true',
                         help='Autosave configuration data')
+    parser.add_argument('-o', '--outfile', default=None,
+                        help='Name of VivWorkspace file to create (useful for loading multiple binaries into one workspace)')
+    parser.add_argument('-m', '--archmaturity', default=False, action='store_true',
+                        help="List Architectures and their version/maturity")
+
     parser.add_argument('file', nargs='*')
     args = parser.parse_args()
 
@@ -54,6 +60,27 @@ def main():
     level = e_common.LOG_LEVELS[vw.verbose]
     e_common.initLogging(logger, level=level)
 
+    if args.outfile:
+        vw.setMeta('StorageName', args.outfile)
+
+
+    if args.archmaturity:
+        # This is it.  Nothing happens beyond this point :)
+
+        # make sure we are at least at debug level INFO
+        if level > logging.INFO:
+            logger.setLevel(logging.INFO)
+
+        logger.info("Supported Architectures, Version, and Features")
+        logger.info("==============================================")
+        for arch, m in envi.arch_defs.items():
+            logger.info("%20s  ver: v%d.%d.%d  aliases: %s", m['name'], *m['version'], m.get('aliases'))
+            logger.debug("\t\t\tdisasm: %5s   emu: %5s   symboliks: %5s   unittests: %5s\n", 
+                    m['has_disasm'],
+                    m['has_emu'],
+                    m['has_symboliks'],
+                    m['has_unittests'])
+        sys.exit(-1)
 
     # do things
     if args.option is not None:

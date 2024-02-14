@@ -5,7 +5,8 @@ import tempfile
 import unittest
 
 import envi
-import envi.memory as e_memory
+import envi.exc as e_exc
+import envi.const as e_const
 import envi.memcanvas as e_mcanvas
 
 import vivisect
@@ -191,7 +192,7 @@ class VivisectTest(v_t_utils.VivTest):
         self.chgrp_vw.do_filemeta('chgrp')
         output = self.chgrp_vw.canvas.strval
         self.assertIn("'DT_INIT': 134516068", output)
-        self.assertIn("'addbase': False,\n 'canaries': False,\n 'imagebase': 134512640", output)
+        self.assertIn("'canaries': False,\n 'imagebase': 134512640", output)
         self.chgrp_vw.canvas.clearCanvas()
 
     def test_cli_fscope(self):
@@ -371,7 +372,6 @@ class VivisectTest(v_t_utils.VivTest):
         output = self.chgrp_vw.canvas.strval
         self.assertIn("From: 0x0804fe94, To: 0x080490d0, Type: Code, Flags: 0x00010001\n", output)
         self.chgrp_vw.canvas.clearCanvas()
-
 
     def test_loc_types(self):
         '''
@@ -758,7 +758,7 @@ class VivisectTest(v_t_utils.VivTest):
         '''
         vw = self.firefox_vw
         self.assertIsNotNone(vw.parsedbin)
-        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut', 'thunk_reg']), set(vw.getVaSetNames()))
+        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut', 'thunk_reg', 'ResolvedImports']), set(vw.getVaSetNames()))
 
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60, adjacent=True))
@@ -1086,15 +1086,11 @@ class VivisectTest(v_t_utils.VivTest):
 
         for va, size, ltyp, name in exports:
             loc = vw.getLocation(va)
-            try:
-                self.assertIsNotNone(loc)
-                self.assertEqual(loc[v_const.L_VA], va)
-                self.assertEqual(loc[v_const.L_SIZE], size)
-                self.assertEqual(loc[v_const.L_LTYPE], ltyp)
-                self.assertEqual(vw.getName(loc[v_const.L_VA]), name)
-            except:
-                breakpoint()
-                print('wat')
+            self.assertIsNotNone(loc)
+            self.assertEqual(loc[v_const.L_VA], va)
+            self.assertEqual(loc[v_const.L_SIZE], size)
+            self.assertEqual(loc[v_const.L_LTYPE], ltyp)
+            self.assertEqual(vw.getName(loc[v_const.L_VA]), name)
 
     def test_libfunc_meta_equality(self):
         '''
@@ -1472,15 +1468,15 @@ class VivisectTest(v_t_utils.VivTest):
     def test_firefox_segments(self):
         vw = self.firefox_vw
         ans = {
-            'PE_Header': (0x140000000, 0x1000, e_memory.MM_READ),
-            '.text': (0x140001000, 0x49000, e_memory.MM_READ | e_memory.MM_EXEC),
-            '.rdata': (0x14004a000, 0xc000, e_memory.MM_READ),
-            '.data': (0x140056000, 0x2a00, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.pdata': (0x140059000, 0x3000, e_memory.MM_READ),
-            '.00cfg': (0x14005c000, 0x200, e_memory.MM_READ),
-            '.freestd': (0x14005d000, 0x200, e_memory.MM_READ),
-            '.tls': (0x14005e000, 0x200, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.reloc': (0x140092000, 0x400, e_memory.MM_READ),
+            'PE_Header': (0x140000000, 0x1000, e_const.MM_READ),
+            '.text': (0x140001000, 0x49000, e_const.MM_READ | e_const.MM_EXEC),
+            '.rdata': (0x14004a000, 0xc000, e_const.MM_READ),
+            '.data': (0x140056000, 0x2a00, e_const.MM_READ | e_const.MM_WRITE),
+            '.pdata': (0x140059000, 0x3000, e_const.MM_READ),
+            '.00cfg': (0x14005c000, 0x200, e_const.MM_READ),
+            '.freestd': (0x14005d000, 0x200, e_const.MM_READ),
+            '.tls': (0x14005e000, 0x200, e_const.MM_READ | e_const.MM_WRITE),
+            '.reloc': (0x140092000, 0x400, e_const.MM_READ),
         }
         for sva, ssize, sname, sfname in vw.getSegments():
             self.assertEqual(ans[sname][0], sva)
@@ -1527,7 +1523,8 @@ class VivisectTest(v_t_utils.VivTest):
                     0x140049770, 0x140049bf0, 0x140049b80, 0x140049780, 0x140049a00, 0x140049900, 0x140049700,
                     0x140049800, 0x140049880, 0x140049c00, 0x140049b00, 0x140049a10, 0x140049790, 0x140049810,
                     0x140049a90, 0x140049710, 0x14001ef10, 0x140049890, 0x140049910, 0x140049b90, 0x140049c10,
-                    0x140049b40, 0x140049aa0, 0x1400497a0, 0x140049720, 0x140049820, 0x140049a20, 0x140048a10]
+                    0x140049b40, 0x140049aa0, 0x1400497a0, 0x140049720, 0x140049820, 0x140049a20, 0x140048a10,
+                    0x140048a80]
 
         self.assertEqual(thunks, set(impthunk))
 
@@ -1610,3 +1607,27 @@ class VivisectTest(v_t_utils.VivTest):
 
         # since it's assigned, the result from "vw.getVivGuid()" should be the same
         self.assertEqual(newguid, vw.getVivGuid())
+
+    def test_write_fail(self):
+        with self.snap(self.chown_vw) as vw:
+            base = vw.getFileMeta('chown', 'imagebase')
+
+            oldmem = vw.readMemory(base, 10)
+
+            with self.assertRaises(e_exc.SegmentationViolation):
+                vw.writeMemory(base, b"testing...")
+
+            self.assertEqual(oldmem, vw.readMemory(base, 10))
+
+            with vw.getAdminRights():
+                vw.writeMemory(base, b"testing...")
+
+            self.assertEqual(b'testing...', vw.readMemory(base, 10))
+
+            with self.assertRaises(e_exc.SegmentationViolation):
+                vw.writeMemory(base, b"FOOBARBAZ.")
+
+            self.assertEqual(b'testing...', vw.readMemory(base, 10))
+
+            with vw.getAdminRights():
+                vw.writeMemory(base, oldmem)

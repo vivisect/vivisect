@@ -144,7 +144,7 @@ class i386Mixin(e_i386.i386Module, e_i386.i386RegisterContext, i386WatchMixin):
                 ebp, eip = struct.unpack("<LL", buf)
                 if frames[-1] == (ebp, eip):
                     break
-                frames.append((ebp, eip))
+                frames.append((eip, ebp))
                 current += 1
             except:
                 break

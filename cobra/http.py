@@ -17,7 +17,7 @@ import BaseHTTPServer
 
 import cobra as c_cobra
 
-from threading import currentThread,Thread,RLock
+from threading import current_thread,Thread,RLock
 from SocketServer import ThreadingTCPServer
 
 logger = logging.getLogger(__name__)
@@ -296,8 +296,7 @@ class CobraHttpDaemon(ThreadingTCPServer):
         #ThreadingTCPServer.__init__(self, (host, port), CobraHttpConnectionHandler)
         ThreadingTCPServer.__init__(self, (host, port), CobraHttpRequestHandler)
 
-        t = Thread(target=self._timeoutSessions)
-        t.setDaemon(1)
+        t = Thread(target=self._timeoutSessions, daemon=True)
         t.start()
 
         if port == 0:
@@ -314,8 +313,7 @@ class CobraHttpDaemon(ThreadingTCPServer):
                     self.sessions.pop(key)
 
     def fireThread(self):
-        thr = Thread(target=self.serve_forever)
-        thr.setDaemon(True)
+        thr = Thread(target=self.serve_forever, daemon=True)
         thr.start()
 
     def setAuthModule(self, authmod):
@@ -409,7 +407,7 @@ class CobraHttpProxy:
         self._cobra_methods = data
 
     def _cobra_http_getsock(self):
-        thr = currentThread()
+        thr = current_thread()
         tsocks = getattr(thr, 'cobrahttpsocks', None)
         if tsocks is None:
             tsocks = {}

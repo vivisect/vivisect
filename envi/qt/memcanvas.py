@@ -324,6 +324,8 @@ def getNavTargetNames():
 
 
 def initMemSendtoMenu(expr, menu):
-    for name in set(getNavTargetNames()):
+    navtgts = getNavTargetNames()
+    navtgts.sort()
+    for name in navtgts:
         args = (name, expr, None)
         menu.addAction('sendto: %s' % name, ACT(vqtevent, 'envi:nav:expr', args))

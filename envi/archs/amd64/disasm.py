@@ -225,7 +225,7 @@ class Amd64Disasm(e_i386.i386Disasm):
 
         return sizelist[mode]
 
-    def disasm(self, bytez, offset, va):
+    def disasm(self, bytez, offset, va, extra=None):
         '''
         The main amd64 decoder function. The inital steps it takes are determining what
         potential prefixes are attached to the instruction. By "potential", we mean that at

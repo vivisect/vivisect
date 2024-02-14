@@ -49,6 +49,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('ctrl+p', 'viv:preview:instr')
         self.addHotKey('B', 'viv:bookmark')
         self.addHotKey('ctrl+meta+J', 'viv:javascript')
+        self.addHotKey('P', 'viv:make:ptr:array')
 
         self.addHotKey('ctrl+1', 'viv:make:number:one')
         self.addHotKey('ctrl+2', 'viv:make:number:two')
@@ -58,6 +59,8 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
         self.addHotKey('down', 'viv:nav:nextva')
         self.addHotKey('up', 'viv:nav:prevva')
+        self.addHotKey('pgdown', 'viv:nav:nextpage')
+        self.addHotKey('pgup', 'viv:nav:prevpage')
         self.addHotKey('ctrl+down', 'viv:nav:nextundef')
         self.addHotKey('ctrl+up', 'viv:nav:prevundef')
 
@@ -113,6 +116,22 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
             loc = (self._canv_curva - 1, 1, None, None)
 
         self._selectVa(loc[0])
+
+    @vq_hotkey.hotkey('viv:nav:nextpage')
+    def _hotkey_nav_nextpage(self):
+        if self._canv_curva is None:
+            return
+
+        self.scrollEvent()
+        return False
+
+    @vq_hotkey.hotkey('viv:nav:prevpage')
+    def _hotkey_nav_prevpage(self):
+        if self._canv_curva is None:
+            return
+
+        self.scrollEvent()
+        return False
 
     @vq_hotkey.hotkey('viv:nav:nextundef')
     def _hotkey_nav_nextundef(self):
@@ -205,6 +224,16 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
                 return
 
             self.vw.makePointer(self._canv_curva)
+
+    @vq_hotkey.hotkey('viv:make:ptr:array')
+    def _hotkey_make_pointer_array(self):
+        if self._canv_curva is not None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                self.vw.vprint("Failed to make pointer array (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
+                return
+
+            self.vw.getVivGui().makePtrArray(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:unicode')
     def _hotkey_make_unicode(self):
@@ -328,7 +357,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
 class VQVivMemoryCanvas(VivCanvasBase):
 
-    def _wheelEventCallback(self, data):
+    def _scrollEventCallback(self, data):
         '''
         Ugh. Yes. I know this sucks.
         But we have to do this because QtWebEngine does't natively let you get the max scroll size.
@@ -358,7 +387,7 @@ class VQVivMemoryCanvas(VivCanvasBase):
             if sizeremain:
                 self.renderMemoryPrepend(min(sizeremain, 128))
 
-    def wheelEvent(self, event):
+    def scrollEvent(self):
         page = self.page()
         page.runJavaScript('''
         var pcur = window.innerHeight + window.pageYOffset
@@ -368,8 +397,10 @@ class VQVivMemoryCanvas(VivCanvasBase):
             document.body.clientHeight, document.documentElement.clientHeight,
         );
         [window.innerHeight, pcur, scrollMaxY];
-        ''', self._wheelEventCallback)
+        ''', self._scrollEventCallback)
 
+    def wheelEvent(self, event):
+        self.scrollEvent()
         return e_mem_canvas.VQMemoryCanvas.wheelEvent(self, event)
 
     def _clearColorMap(self):

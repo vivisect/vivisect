@@ -3,7 +3,6 @@ import base64
 import logging
 import traceback
 import threading
-import contextlib
 import collections
 
 import envi
@@ -208,12 +207,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         '''
         self._event_saved = len(self._event_list)
 
-    @contextlib.contextmanager
-    def getAdminRights(self):
-        self._supervisor = True
-        yield
-        self._supervisor = False
-
     def _handleADDLOCATION(self, loc):
         lva, lsize, ltype, linfo = loc
         self.locmap.setMapLookup(lva, lsize, loc)
@@ -223,7 +216,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if ltype == LOC_IMPORT:
             # Check if the import is registered in NoReturnApis
             if self.getMeta('NoReturnApis', {}).get(linfo.lower()):
-                self.cfctx.addNoReturnAddr( lva )
+                self.cfctx.addNoReturnAddr(lva)
 
     def _handleDELLOCATION(self, loc):
         # FIXME delete xrefs
@@ -439,6 +432,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.locmap.delMapLookup(mapva)
         self.blockmap.delMapLookup(mapva)
 
+        # wipe the opcode cache in case we have cached deleted locations
+        self.clearOpcache()
+
     def _handleADDEXPORT(self, einfo):
         va, etype, name, filename = einfo
         self.exports.append(einfo)
@@ -537,6 +533,15 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         '''
         pass
 
+    def _handleWRITEMEM(self, einfo):
+        '''
+        Handle permanent writes to a memory map after initialization
+        (fname, off, bytez, supv) where supv is supervisor mode...
+        '''
+        va, bytez, oldbytes = einfo
+        with self.getAdminRights():
+            e_mem.MemoryObject.writeMemory(self, va, bytez)
+
     def _initEventHandlers(self):
         self.ehand = [None for x in range(VWE_MAX)]
         self.ehand[VWE_ADDLOCATION] = self._handleADDLOCATION
@@ -580,6 +585,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_CHAT]     = self._handleCHAT
         self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
+        self.ehand[VWE_WRITEMEM] = self._handleWRITEMEM
 
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
@@ -722,8 +728,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _fmcb_Thunk(self, funcva, th, thunkname):
         # If the function being made a thunk is registered
         # in NoReturnApis, update codeflow...
-        if self.getMeta('NoReturnApis').get( thunkname.lower() ):
-            self.cfctx.addNoReturnAddr( funcva )
+        if self.getMeta('NoReturnApis').get(thunkname.lower()):
+            self.cfctx.addNoReturnAddr(funcva)
 
     def _fmcb_CallsFrom(self, funcva, th, callsfrom):
         for va in callsfrom:
@@ -786,11 +792,13 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
             self._mem.makeOpcode(op.va, op=op)
             # TODO: future home of makeOpcode branch/xref analysis
-            return branches
+            if not self._mem.isNoReturnVa(op.va):
+                return branches
 
         elif loc[L_LTYPE] != LOC_OP:
             locrepr = self._mem.reprLocation(loc)
             logger.warning("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
+
         return ()
 
     def _cb_function(self, fva, fmeta):
@@ -815,7 +823,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         fname = vw.getName( fva )
         if vw.getMeta('NoReturnApis').get( fname.lower() ):
-            self._cf_noret[ fva ] = True
+            self._cf_noret[fva] = True
 
         if len( vw.getFunctionBlocks( fva )) == 1:
             return
@@ -825,7 +833,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             va = lva[0]
             ctup = vw.getCodeBlock(va)
             if ctup and fva == ctup[2] and vw.getFunctionMeta(fva, 'BlockCount', default=0) == 1:
-                self._cf_noret[ fva ] = True
+                self._cf_noret[fva] = True
                 break
 
     def _cb_branchtable(self, tablebase, tableva, destva):
