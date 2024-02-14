@@ -3100,13 +3100,6 @@ class GdbServerStub(GdbStubBase):
         """
         raise Exception('Server translation layer must implement this function')
 
-    def _handleEndCont(self):
-        '''
-        We are no longer running.  Send the response to the client.
-        '''
-        res = b'S' + self._encodeGDBVal(self._halt_reason)
-        self._doServerResponse(res)
-
     def _handleBreak(self, sig=signal.SIGTRAP):
         """
         Sends a BREAK signal to the execution engine
@@ -3117,9 +3110,10 @@ class GdbServerStub(GdbStubBase):
         Returns:
             None
         """
-        self._halt_reason = sig
-        res = self._serverBreak(sig)
-        return res
+        self._serverBreak(sig)
+
+        # response should come from the main thread when execution state changes
+        return None
 
     def _serverBreak(self, sig=signal.SIGTRAP):
         """
@@ -3621,6 +3615,10 @@ class GdbBaseEmuServer(GdbServerStub):
         """
         self._halt_reason = sig
         self.emu.stepi()
+
+        # Because this doesn't go through a full halt reason state change the 
+        # main thread won't be transmitting the updated halt status, so do it 
+        # here.
         self.transmitHaltInfo()
 
     def _serverDetach(self):
