@@ -2349,8 +2349,7 @@ class GdbServerStub(GdbStubBase):
         logger.info("runServer listening on port %d", self._gdb_port)
 
         self.gdb_server_state = STATE_SVR_STARTUP
-
-        while self.gdb_server_state in (STATE_SVR_RUNNING, STATE_SVR_RUNSTART, STATE_SVR_STARTUP):
+        while self.gdb_server_state != STATE_SVR_SHUTDOWN:
             try:
                 self.gdb_server_state = STATE_SVR_RUNSTART
                 self._gdb_sock, addr = self._server_sock.accept()
@@ -2395,6 +2394,7 @@ class GdbServerStub(GdbStubBase):
                     except gdb_exc.GdbBreakException as e:
                         logger.info("Received BREAK signal: %r", e)
                         data = b'\x03'
+                        self._cmdHandler(data)
 
                     except BrokenPipeError:
                         logger.info("BrokenPipeError:  Client disconnected.")
@@ -2557,6 +2557,14 @@ class GdbServerStub(GdbStubBase):
         elif cmd_data.startswith(b'Cont'):
             #logger.debug("Operation: Cont!")
             res = self._serverVCont(cmd_data[4:])
+        elif cmd_data.startswith(b'CtrlC'):
+            #logger.debug("Operation: CtrlC!")
+
+            # When _handleBreak() is called because a '\x03' packet has been 
+            # received no response is necessary, but when it's called in a 
+            # vCtrlC context an OK msg should be returned
+            self._handleBreak()
+            res = b'OK'
         else:
             # Unrecognized 'v' commands should be replied to with an empty 
             # string
@@ -3028,6 +3036,7 @@ class GdbServerStub(GdbStubBase):
         # After every step the current signal information should be provided (it 
         # will likely be SIGTRAP)
         self._serverStepi(sig)
+        return None
 
     def _serverStepi(self, sig=signal.SIGTRAP):
         """
@@ -3111,8 +3120,6 @@ class GdbServerStub(GdbStubBase):
             None
         """
         self._serverBreak(sig)
-
-        # response should come from the main thread when execution state changes
         return None
 
     def _serverBreak(self, sig=signal.SIGTRAP):
@@ -3402,9 +3409,6 @@ class GdbBaseEmuServer(GdbServerStub):
         if not reggrps:
             for rgps in archmod.archGetRegisterGroups():
                 reggrps.append(rgps)
-
-        # registers to send to the client automatically whenever a halt occurs
-        gdbhaltregs = []
 
         # For servers the registers sent in the register packet should be just 
         # the first group of registers, so clear it now.
