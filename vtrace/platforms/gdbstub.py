@@ -2317,6 +2317,25 @@ class GdbServerStub(GdbStubBase):
 
         return data
 
+    def shutdownServer(self):
+        # Disconnect the client
+        if self.connstate == STATE_CONN_CONNECTED:
+            self.connstate = STATE_CONN_DISCONNECTED
+            self._gdb_sock.close()
+            self._gdb_sock = None
+
+        # Wait for the GDB server thread to exit
+        if self.runthread:
+            self.gdb_server_state = STATE_SVR_SHUTDOWN
+            # Give the thread a little while before it exits
+            self.runthread.join(0.5)
+
+            if self.runthread.is_alive():
+                logger.error("server thread failed to exit!")
+                del self.runthread
+
+            self._server_sock = None
+            self.runthread = None
 
     def runServer(self, oneshot=False):
         """
@@ -2335,6 +2354,7 @@ class GdbServerStub(GdbStubBase):
         self._server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._server_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self._server_sock.settimeout(0.1)
         while True:
             try:
                 self._server_sock.bind(('localhost', self._gdb_port))
@@ -2352,7 +2372,11 @@ class GdbServerStub(GdbStubBase):
         while self.gdb_server_state != STATE_SVR_SHUTDOWN:
             try:
                 self.gdb_server_state = STATE_SVR_RUNSTART
-                self._gdb_sock, addr = self._server_sock.accept()
+                try:
+                    self._gdb_sock, addr = self._server_sock.accept()
+                except socket.timeout:
+                    continue
+
                 self._gdb_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 self.connstate = STATE_CONN_CONNECTED
                 logger.info("runServer: Received Connection from %r", addr)
