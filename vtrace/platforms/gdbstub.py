@@ -2503,6 +2503,8 @@ class GdbServerStub(GdbStubBase):
             elif cmd == b'M':
                 #logger.info('_handleWriteMem(%r)', cmd_data)
                 res = self._handleWriteMem(cmd_data)
+            elif cmd == b'X':
+                res = self._handleWriteMemBinary(cmd_data)
             elif cmd == b's':
                 #logger.info('_handleStepi(%r)', cmd_data)
                 res = self._handleStepi()
@@ -2917,6 +2919,28 @@ class GdbServerStub(GdbStubBase):
         val = unhexlify(val)
 
         return self._serverWriteMem(addr, val)
+
+    def _handleWriteMemBinary(self, cmd_data):
+        """
+        Handles memory write events that are encoded like:
+            X40000000,4:\x124Vx
+
+        Args:
+            cmd_data (str): The body of the command from the client.
+
+        Returns:
+            str: The GDB status update.
+        """
+        addr_str, value_data = cmd_data.split(b',')
+        addr = self._atoi(addr_str)
+
+        size_data, val_data = value_data.split(b':')
+        size = int(size_data)
+        if size:
+            val = val_data[:size]
+            self._serverWriteMem(addr, val)
+
+        return b'OK'
 
     def _serverWriteMem(self, addr, val):
         """
