@@ -163,14 +163,14 @@ class MemoryCanvas(object):
     def render(self, va, size, rend=None):
         raise Exception('Deprecated!  use renderMemory!')
 
-    def clearCanvas(self, cb=None):
+    def clearCanvas(self, cb=None, sel=None):
         if cb is not None:
             cb(None)
 
     def _beginRenderMemory(self, va, size, rend):
         pass
 
-    def _endRenderMemory(self, va, size, rend, cb=None):
+    def _endRenderMemory(self, va, size, rend, cb=None, sel=None):
         if cb is not None:
             cb(None)
 
@@ -334,7 +334,7 @@ class MemoryCanvas(object):
 
         self._endRenderAppend(cb)
 
-    def _canvasCleared(self, cb, data):
+    def _canvasCleared(self, cb, sel, data):
         va = self._canv_beginva
         maxva = self._canv_endva
         size = maxva - va
@@ -361,9 +361,11 @@ class MemoryCanvas(object):
             self.addText("\nException At %s: %s\n" % (hex(va), str(e)))
 
         # Canvas callback for render completion (or error...)
-        self._endRenderMemory(va, size, rend, cb)
+        self._endRenderMemory(va, size, rend, cb, sel)
 
-    def renderMemory(self, va, size, rend=None, cb=None):
+    def renderMemory(self, va, size, rend=None, cb=None, clear=True, sel=None):
+        if sel is None:
+            sel = '#memcanvas'
         # Set our canvas render tracking variables.
         self._canv_beginva = va
         self._canv_endva = va + size
@@ -372,10 +374,10 @@ class MemoryCanvas(object):
             rend = self.currend
         self.currend = rend
 
-        clearcb = functools.partial(self._canvasCleared, cb)
+        clearcb = functools.partial(self._canvasCleared, cb, sel)
         # if this is not a "scrolled" canvas, clear it.
-        if not self._canv_scrolled:
-            self.clearCanvas(clearcb)
+        if not self._canv_scrolled and clear:
+            self.clearCanvas(clearcb, sel)
         else:
             clearcb(None)
 
@@ -390,7 +392,7 @@ class StringMemoryCanvas(MemoryCanvas):
         # we don't want it cleared every renderMemory call.
         self.setScrolledCanvas(True)
 
-    def clearCanvas(self, cb=None):
+    def clearCanvas(self, cb=None, sel=None):
         self.strval = ''
 
     def addText(self, text, tag=None):

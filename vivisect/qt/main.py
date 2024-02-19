@@ -118,7 +118,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
         self.addHotKey('ctrl+m', 'view:memory')
-        self.addHotKey('ctrl+f', 'view:funcgraph')
+        self.addHotKey('ctrl+g', 'view:funcgraph')
 
     def vprint(self, msg, addnl=True):
         # ripped and modded from envi/cli.py
@@ -145,7 +145,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         curname = self.vw.getName(va)
         if curname is None:
-            curname = ''
+            curname = 'loc_%.8x' % va
 
         name, ok = QInputDialog.getText(parent, 'Enter...', 'Name', text=curname)
         if ok:
@@ -234,6 +234,19 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if sname is not None:
             self.vw.makeStructure(va, sname)
         return sname
+
+    def makePtrArray(self, va, break_on_bad=True, parent=None):
+        if parent is None:
+            parent = self
+        # starting address
+        # address after last element
+        # count (alternate)
+        ok, results = selectArrayBounds(va, va, 0, parent=parent)
+
+        if ok:
+            startva, stopva, count = results
+            self.vw.makePointerArray(startva, stopva, count, break_on_bad)
+            
 
     def addBookmark(self, va, parent=None):
         if parent is None:
@@ -723,6 +736,29 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     @vq_main.idlethread
     def _ve_fireEvent(self, event, edata):
         return viv_base.VivEventDist._ve_fireEvent(self, event, edata)
+
+def selectArrayBounds(startva, stopva, count=0, parent=None):
+    if not stopva:
+        stopva = startva
+
+    dynd = DynamicDialog('Pointer Array Dialog', parent=parent)
+
+    try:
+        dynd.addIntHexField('startva', dflt=hex(startva), title='Start Address')
+        dynd.addIntHexField('stopva', dflt=hex(stopva), title='Stop Address ')
+        dynd.addIntHexField('count', dflt=0, title='Count (if nonzero, ignore stop address)')
+    except Exception as e:
+        logger.warning("ERROR BUILDING DIALOG!", exc_info=1)
+
+    results = dynd.prompt()
+
+    ok =  len(results) != 0
+    if ok:
+        startva = results.get('startva')
+        stopva = results.get('stopva')
+        count = results.get('count')
+        return ok, (startva, stopva, count)
+    return False, None
 
 @vq_main.idlethread
 def runqt(vw, closeme=None):

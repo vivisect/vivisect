@@ -373,7 +373,6 @@ class VivisectTest(v_t_utils.VivTest):
         self.assertIn("From: 0x0804fe94, To: 0x080490d0, Type: Code, Flags: 0x00010001\n", output)
         self.chgrp_vw.canvas.clearCanvas()
 
-
     def test_loc_types(self):
         '''
         Test that we have data consistency in locations

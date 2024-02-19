@@ -820,7 +820,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def isRelocatable(self):
         '''
         Returns true if the given Elf binary is marked as a relocatable file.
-        isRelocatable() helps determine if this ELF is a Kernel Module (.ko) 
+        isRelocatable() helps determine if this ELF is a Kernel Module (.ko)
         or Object file (.o), *not* a Shared Object (.so) or executable.
         '''
         return self.e_type == ET_REL
@@ -828,7 +828,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
     def __repr__(self, verbose=False):
         """
         Returns a string summary of this ELF.
-        If (verbose) the summary will include Symbols, Relocs, Dynamics and Dynamic Symbol tables
         """
         mystr = 'Elf Binary:'
         mystr+= "\n= Intimate Details:"

@@ -136,6 +136,9 @@ class IHexFile(vstruct.VArray):
             if ctype == IHEX_REC_EOF:
                 break
 
+            if ctype == IHEX_REC_STARTLINADDR:
+                continue
+
             raise Exception('Unhandled IHEX chunk: %s' % chunk.recordtype)
 
         memparts.sort()
