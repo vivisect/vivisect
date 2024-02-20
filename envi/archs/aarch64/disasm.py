@@ -220,6 +220,7 @@ s_ce_table = (  # loads and stores
     (0b00111011001000000000110000000000, 0b00111000000000000000100000000000, IENC_LS_REG_UNPRIV),
     (0b00111011001000000000110000000000, 0b00111000000000000000110000000000, IENC_LS_REG_IMM_PREI),
     (0b00111011001000000000110000000000, 0b00111000001000000000100000000000, IENC_LS_REG_OFFSET),
+    (0b00111011011000001111110000000000, 0b00111000011000000110000000000000, IENC_LS_ATOMIC_MEM),
     (0,0,IENC_UNDEF),#catch-all
 )
 
@@ -855,7 +856,7 @@ def p_test_branch_imm(opval, va):
         imm14 = imm14 | 0xffffffffffffc000
     olist = (
         A64RegOper(rt, va, size=size), 
-        A64ImmOper((b5 * 0b100000) + b40, va=va), # Passes in decimal value
+        A64ImmOper((b5 << 5) + b40, va=va), # Passes in decimal value
         A64ImmOper((imm14*4) + va, va=va), # Passes in decimal value
     )
 
@@ -868,7 +869,7 @@ def p_branch_cond_imm(opval, va):
     Conditional branch (immediate) instruction
     '''
     iflags = envi.IF_COND | envi.IF_BRANCH
-    imm19 = (opval >> 5 & 0x7ffff)    
+    imm19 = (opval >> 5 & 0x7ffff)
     cond = opval & 0xf
     mnem, opcode = b_cond_table[cond]
 
@@ -1021,11 +1022,24 @@ def p_sys(opval, va):
                 olist = tuple()
 
         else:
-            opcode = INS_HINT
-            mnem = 'hint'
-            olist = (
-                A64ImmOper(crm + op2, 0, S_LSL, va),
-            )
+            if crm == 0b0010 and op2 == 0b100:
+                opcode = INS_CSDB
+                mnem = 'csdb'
+                olist = ()
+
+            elif crm == 0b0010 and op2 == 0b001:
+                opcode = INS_PSB
+                mnem = 'psb'
+                olist = (
+                    A64NameOper(opcode),
+                )
+
+            else:
+                opcode = INS_HINT
+                mnem = 'hint'
+                olist = (
+                    A64ImmOper(crm << 3 | op2, 0, S_LSL, va),
+                )
         
     elif relevant & 0b111111_11110000_11111111 == 0b000011_00110000_01011111:
         opcode = INS_CLREX
@@ -1044,21 +1058,21 @@ def p_sys(opval, va):
         )
         iflags = 0
 
-    elif relevant & 0b1111111111000011111111 == 0b00001100110000010111111:
+    elif relevant & 0b1111111111000011111111 == 0b00000110011000010111111:
         opcode = INS_DMB
         mnem = 'dmb'
         olist = (
-            A64BarrierOptionOper(crm),
-            A64ImmOper(crm, va=va),
+            #A64BarrierOptionOper(crm),
+            A64NameOper(opcode, val=crm),
         )
         iflags = 0
 
-    elif relevant & 0b1111111111000011111111 == 0b00001100110000011011111:
+    elif relevant & 0b1111111111000011111111 == 0b00000110011000011011111:
         opcode = INS_ISB
         mnem = 'isb'
         olist = (
-            A64BarrierOptionOper(crm),
-            A64ImmOper(crm, va=va),
+            # Omittable option for oper
+            #A64NameOper(opcode, val=crm),   # Should always be sy, all others are reserved
         )
         iflags = 0
 
@@ -1076,23 +1090,20 @@ def p_sys(opval, va):
                     opcode = ocode
                     break
         
-            # Modify olist based on mnem
-            if mnem == 'at':
-                opcode = INS_AT                
+            # Modify olist based on opcode
+            if opcode == INS_AT:
                 olist = (       # AT <at_op>, <Xt>                    
                     A64NameOper(opcode, ((op1 << 4) | ((crm & 0b1) << 3) | op2)),
                     A64RegOper(rt, va, size=8)
                 )
 
-            elif mnem == 'dc':
-                opcode = INS_DC
+            elif opcode == INS_DC:
                 olist = (       # DC <dc_op>, <Xt>
                     A64NameOper(opcode, ((op1 << 7) | (crm << 3) | op2)),
                     A64RegOper(rt, va, size=8)
                 )
 
-            elif (mnem == 'ic'):
-                opcode = INS_IC
+            elif opcode == INS_IC:
                 olist = (       # IC <ic_op>{, <Xt>}
                     A64NameOper(opcode, ((op1 << 7) | (crm << 3) | op2)),
                     A64RegOper(rt, va, size=8), #optional operand
@@ -1102,8 +1113,7 @@ def p_sys(opval, va):
                 if rt == 0b11111:   
                     olist = olist[:1]
 
-            elif (mnem == 'tlbi'):
-                opcode = INS_TLBI
+            elif opcode == INS_TLBI:
                 olist = (       # TLBI <tlbi_op>{, <Xt>}
                     A64NameOper(opcode, ((op1 << 11) | (crn << 7) | (crm << 3) | op2)),
                     A64RegOper(rt, va, size=8), #optional operand
@@ -1894,17 +1904,21 @@ def p_ls_reg_offset(opval, va):
             if size == 0b11 and opc == 0b10:
                 mnem =  'prfm'
                 opcode = INS_PRFM
-                if option & 0b011 == 0b011:
-                    regsize = 4
-                elif option & 0b011 == 0b010:
+
+                if option & 0b1 == 0b1:
                     regsize = 8
+                elif option & 0b1 == 0b0:
+                    regsize = 4
                 else:
                     return p_undef(opval)
+
+                indShift = (0, 3)[s]
+                
                 olist = (
                     A64PreFetchOper(rt>>3, (rt>>1)&3, rt&1),
-                    A64RegRegOffOper(rn, rm, va=va, tsize=8),
-                    #FIXME extend
-                    #FIXME amount
+                    #A64RegOper(rn, va, size=8),
+                    #A64RegOper(rm, va, size=regsize),
+                    A64RegRegOffOper(rn, rm, regsize, extendtype=option, extendamount=indShift, va=va),
                 )
                 return opcode, mnem, olist, 0, 0
             else:
@@ -2080,6 +2094,54 @@ def p_ls_reg_us_imm(opval, va):
         )
 
     return opcode, mnem, olist, iflags, 0
+
+def p_ls_atomic_mem(opval, va):
+    '''
+    Atomic Memory or Compare and Swap operations
+    '''
+    size = opval >> 30 & 0b11
+    v = opval >> 26 & 0b1
+    a = opval >> 23 & 0b1
+    r = opval >> 22 & 0b1
+    rs = opval >> 16 & 0b11111
+    o3 = opval >> 15 & 0b1
+    opc = opval >> 12 & 0b111
+    rn = opval >> 5 & 0b11111
+    rt = opval & 0b11111
+    cmpswp = opval >> 28 & 0b11
+
+    #             31 30    26       23      22       15     14 13 12 
+    tabInd = size << 7 | v << 6 | a << 5 | r << 4 | o3 << 3 | opc
+    
+    regsize = (4, 4, 4, 8)[size]
+    
+    if rt == 0b11111 and a == 0:          # ST aliases
+        mnem, opcode = ls_atomic_mem_alias_table.get(tabInd, ['undefined', 0])
+
+        if opcode != 0:         # Only return if value was found in table
+            olist = (
+                A64RegOper(rs, va, size=regsize),            
+                A64RegImmOffOper(rn, 0),
+            )
+            return (opcode, mnem, olist, 0, 0)
+
+        else:
+            return p_undef(opval, va)
+
+    if cmpswp == 0b00:
+        mnem, opcode = ls_comp_swap_table.get(tabInd, ['undefined', 0])
+    else:
+        mnem, opcode = ls_atomic_mem_table.get(tabInd, ['undefined', 0])
+
+    if opcode != 0:             # Only return if value was found in table
+        olist = (
+            A64RegOper(rs, va, size=regsize),
+            A64RegOper(rt, va, size=regsize),
+            A64RegImmOffOper(rn, 0, va=va),
+        )
+        return (opcode, mnem, olist, 0, 0)
+
+    return p_undef(opval, va)
 
 def p_simd_ls_multistruct(opval, va):
     '''
@@ -3063,10 +3125,10 @@ def p_addsub_ext_reg(opval, va):
     else:
         sizeRM = 4
 
-    if rn ==  0b11111:
+    if (rn == 0b11111 or (rd == 0b11111 and opcode != INS_CMP)):
         if sizeRM == 4 and extoper == 0b010:
             extoper = EXT_LSL
-        if sizeRM == 8 and extoper == 0b011:
+        elif sizeRM == 8 and extoper == 0b011:
             extoper = EXT_LSL
 
     if opcount == 3:
@@ -3128,7 +3190,6 @@ def p_addsub_carry(opval, va):
                 A64RegOper(rd, va, size=8),
                 A64RegOper(rm, va, size=8),
             )
-
 
         elif sf == 0b0:
             olist = (
@@ -7832,6 +7893,7 @@ ienc_parsers_tmp[IENC_LS_REG_IMM_POSTI] = p_ls_reg_imm
 ienc_parsers_tmp[IENC_LS_REG_UNPRIV] = p_ls_reg_unpriv
 ienc_parsers_tmp[IENC_LS_REG_IMM_PREI] = p_ls_reg_imm
 ienc_parsers_tmp[IENC_LS_REG_OFFSET] = p_ls_reg_offset
+ienc_parsers_tmp[IENC_LS_ATOMIC_MEM] = p_ls_atomic_mem
 ienc_parsers_tmp[IENC_ADDSUB_CARRY] = p_addsub_carry
 ienc_parsers_tmp[IENC_COND_CMP_REG] = p_cond_cmp_reg
 ienc_parsers_tmp[IENC_COND_CMP_IMM] = p_cond_cmp_imm
@@ -8377,8 +8439,10 @@ class A64NameOper(A64Operand):
                 tabind = 2
             elif instype == INS_TLBI:
                 tabind = 3
-            elif instype == INS_DSB:
+            elif instype == INS_DSB or instype == INS_DMB or instype == INS_ISB:
                 tabind = 4
+            elif instype == INS_PSB:
+                tabind = 5
             else:
                 raise Exception("Invalid instype in A64NameOper constructor!")
 
