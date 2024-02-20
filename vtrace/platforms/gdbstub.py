@@ -2642,6 +2642,9 @@ class GdbServerStub(GdbStubBase):
 
             current_thread = (self.pid, self.tid)
 
+            # Only stepi commands should cause a response to be returned
+            res = None
+
             # Parse the supported commands
             for cmd in cmd_data[1:].split(b';'):
                 if cmd.startswith(b'c:'):
@@ -2674,10 +2677,16 @@ class GdbServerStub(GdbStubBase):
                         self._handleCont(sig)
                     elif cmd.startswith(b's:'):
                         logger.debug('stepping %d.%d (%r)', pid, tid, cmd)
-                        self._handleStepi()
+
+                        # A stepi command should have a status returned 
+                        # immediately.
+                        res = self._handleStepi()
                     elif cmd.startswith(b'S'):
                         logger.debug('stepping %d.%d with signal %d (%r)', pid, tid, sig, cmd)
-                        self._handleStepi(sig)
+
+                        # A stepi command should have a status returned 
+                        # immediately.
+                        res = self._handleStepi(sig)
 
                     affected_threads.add(current_thread)
                 else:
@@ -2688,7 +2697,7 @@ class GdbServerStub(GdbStubBase):
             if not affected_threads:
                 raise Exception('No valid process or thread targeted by vCont command: %s' % cmd_data)
 
-            return None
+            return res
 
         else:
             # Something we don't support
