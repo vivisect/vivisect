@@ -2678,10 +2678,14 @@ class GdbServerStub(GdbStubBase):
                     elif cmd.startswith(b's:'):
                         logger.debug('stepping %d.%d (%r)', pid, tid, cmd)
 
-                        # If the 
+                        # A stepi command should have a status returned 
+                        # immediately.
                         res = self._handleStepi()
                     elif cmd.startswith(b'S'):
                         logger.debug('stepping %d.%d with signal %d (%r)', pid, tid, sig, cmd)
+
+                        # A stepi command should have a status returned 
+                        # immediately.
                         res = self._handleStepi(sig)
 
                     affected_threads.add(current_thread)
