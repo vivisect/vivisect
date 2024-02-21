@@ -194,9 +194,11 @@ class CobraSocket:
                 raise Exception('Missing "msgpack" python module ( http://visi.kenshoto.com/viki/Msgpack )')
 
             def msgpackloads(b):
+                logger.debug("<< %r  (%r)", b, loadargs)
                 return msgpack.loads(b, **loadargs)
 
             def msgpackdumps(b):
+                logger.debug(">> %r  (%r)", b, dumpargs)
                 return msgpack.dumps(b, **dumpargs)
 
             self.dumps = msgpackdumps
@@ -1158,25 +1160,96 @@ def initSocketBuilder(host,port):
         socket_builders[ (host,port) ] = builder
     return builder
 
-def startCobraServer(host="", port=COBRA_PORT):
-    global daemon
-    if daemon is None:
-        daemon = CobraDaemon(host,port)
-        daemon.fireThread()
-    return daemon
+def getCobraDaemon(host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True, create=True, wait=False):
+    '''
+    getCobraDaemon starts a CobraDaemon with the provided arguments and 
+    launches it in a separate thread.  The CobraDaemon object is returned
+    to the caller.
 
-def runCobraServer(host='', port=COBRA_PORT):
-    daemon = CobraDaemon(host,port)
-    daemon.serve_forever()
+    If there's already an existing CobraDaemon running for this host/port, 
+    that is returned instead.
+
+    This command replaces startCobraServer
+    '''
+    return daemon_manager.getCobraDaemon(host, port, sslca, sslcrt, sslkey, msgpack)
+
+def startCobraServer(host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True):
+    '''
+    DEPRECATED.  See getCobraDaemon instead.
+
+    startCobraServer starts a CobraDaemon with the provided arguments and 
+    launches it in a separate thread.  The CobraDaemon object is returned
+    to the caller.
+
+    This API remains for backward compatability only, and duplicates
+    getCobraDaemon() functionality
+    '''
+    return daemon_manager.getCobraDaemon(host, port, sslca, sslcrt, sslkey, msgpack)
+
+
+class DaemonManager:
+    def __init__(self):
+        self.daemons = {}
+
+    def get(self, host, port):
+        '''
+        Simple accessor for the DaemonManager's daemons dict
+        Returns None if no daemon is already registered for that host/port
+        '''
+        return self.daemons.get((host, port))
+
+    def registerCobraDaemon(self, daemon):
+        '''
+        Registers the given CobraDaemon using the (host, port) combination
+        '''
+        key = (daemon.host, daemon.port)
+        if key in self.daemons:
+            raise Exception("Daemon already exists on host %r port %d.  Please deregister that port first." % key)
+
+        self.daemons[key] = daemon
+
+    def deregisterCobraDaemon(self, host, port):
+        '''
+        Deregisters the CobraDaemon registered for (host, port)
+        '''
+        if (host, port) in self.daemons:
+            self.daemons.pop((host, port))
+
+        else:
+            logger.warning("Attempted to deregister a CobraDaemon on a daemon that isn't registered: %r:%d", host, port)
+
+
+    def getCobraDaemon(self, host="", port=COBRA_PORT, sslca=None, sslcrt=None, sslkey=None, msgpack=True, create=True, wait=False):
+        '''
+        Returns a registered CobraDaemon for the given parameters.  First checks if
+        one is already running for the current host/port and returns that.
+        Otherwise, a new CobraDaemon is started and registered
+        The CobraDaemon is returned.
+        '''
+        daemon = self.get(host, port)
+        if daemon is None and create:
+            daemon = CobraDaemon(host, port, sslca=sslca, sslcrt=sslcrt, sslkey=sslkey, msgpack=msgpack)
+            self.registerCobraDaemon(daemon)
+
+            if wait:
+                # never returns
+                daemon.serve_forever()
+
+        if wait:
+            # daemon already exists, join it (still never returns)
+            daemon.thr.join()
+        else:
+            daemon.fireThread()
+
+        return daemon
+
 
 def shareObject(obj, name=None, doref=False):
     """
     If shareObject is called before startCobraServer
     or startCobraSslServer, it will call startCobraServer
     """
-    global daemon
-    if daemon is None:
-        startCobraServer()
+    daemon = getCobraDaemon()
     return daemon.shareObject(obj, name, doref=doref)
 
 def unshareObject(name):
@@ -1200,3 +1273,4 @@ def requireMsgpack():
     except ImportError:
         raise Exception('Missing "msgpack" python module ( http://visi.kenshoto.com/viki/Msgpack )')
 
+daemon_manager = DaemonManager()

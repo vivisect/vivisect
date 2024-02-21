@@ -2,6 +2,39 @@
 Vivisect Changelog
 ******************
 
+V1.1.1 - 2023-04-07
+===================
+Features
+--------
+- More test resiliency for our remote server tests.
+  (`#584 <https://github.com/vivisect/vivisect/pull/584>`_)
+- Document ``getBranches`` API.
+  (`#589 <https://github.com/vivisect/vivisect/pull/589>`_)
+- Add "stepo" functionality as an option for "stepi" in VDB.
+  (`#591 <https://github.com/vivisect/vivisect/pull/591>`_)
+- Migrate away from some deprecated functions.
+  (`#593 <https://github.com/vivisect/vivisect/pull/593>`_)
+- GUI scroll improvements.
+  (`#599 <https://github.com/vivisect/vivisect/pull/599>`_)
+- Envi config get by string.
+  (`#604 <https://github.com/vivisect/vivisect/pull/604>`_)
+
+Fixes
+-----
+- Fix 64-bit emulation of intel's ``div`` instruction.
+  (`#575 <https://github.com/vivisect/vivisect/pull/575>`_)
+- Do dynamic imports in our envi module via importlib.import_module.
+  (`#587 <https://github.com/vivisect/vivisect/pull/587>`_)
+- Make our ELF module more resilient to failures.
+  (`#592 <https://github.com/vivisect/vivisect/pull/592>`_)
+- Fix a regex that uses an invalid escape sequence.
+  (`#596 <https://github.com/vivisect/vivisect/pull/596>`_)
+- Fix PE parser config option usage.
+  (`#605 <https://github.com/vivisect/vivisect/pull/605>`_)
+- Fix ``envi.interactive`` flag.
+  (`#606 <https://github.com/vivisect/vivisect/pull/606>`_)
+
+
 V1.1.0 - 2023-02-18
 ===================
 Features

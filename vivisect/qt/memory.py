@@ -49,6 +49,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('ctrl+p', 'viv:preview:instr')
         self.addHotKey('B', 'viv:bookmark')
         self.addHotKey('ctrl+meta+J', 'viv:javascript')
+        self.addHotKey('P', 'viv:make:ptr:array')
 
         self.addHotKey('ctrl+1', 'viv:make:number:one')
         self.addHotKey('ctrl+2', 'viv:make:number:two')
@@ -117,7 +118,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self._selectVa(loc[0])
 
     @vq_hotkey.hotkey('viv:nav:nextpage')
-    def _hotkey_nav_nextva(self):
+    def _hotkey_nav_nextpage(self):
         if self._canv_curva is None:
             return
 
@@ -125,7 +126,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         return False
 
     @vq_hotkey.hotkey('viv:nav:prevpage')
-    def _hotkey_nav_prevva(self):
+    def _hotkey_nav_prevpage(self):
         if self._canv_curva is None:
             return
 
@@ -223,6 +224,16 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
                 return
 
             self.vw.makePointer(self._canv_curva)
+
+    @vq_hotkey.hotkey('viv:make:ptr:array')
+    def _hotkey_make_pointer_array(self):
+        if self._canv_curva is not None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                self.vw.vprint("Failed to make pointer array (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
+                return
+
+            self.vw.getVivGui().makePtrArray(self._canv_curva)
 
     @vq_hotkey.hotkey('viv:make:unicode')
     def _hotkey_make_unicode(self):

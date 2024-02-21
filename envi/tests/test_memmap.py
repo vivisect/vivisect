@@ -2,11 +2,11 @@ import unittest
 
 import envi.exc as e_exc
 import envi.const as e_const
-import envi.memory as e_memory
+import envi.memory as e_mem
 
 class Memory(unittest.TestCase):
     def setUp(self):
-        self.mem = e_memory.MemoryObject()
+        self.mem = e_mem.MemoryObject()
 
     def test_getMaxReadSize(self):
         mmaps = [(0,  e_const.MM_READ, None, 0x1000 * b'\x41'),
@@ -39,6 +39,12 @@ class Memory(unittest.TestCase):
             size = self.mem.getMaxReadSize(va)
 
             self.assertEqual(answer, size)
+
+    def test_MapNotFoundException(self):
+        with self.assertRaises(e_exc.MapNotFoundException):
+            self.mem.delMemoryMap(0xfffffff)
+            self.assertEqual("MapNotFoundException worked properly", False, \
+                    msg="Failed to catch delMemoryMap on nonexistent map!")
 
     def test_cohesive_mmaps(self):
         mmaps = [

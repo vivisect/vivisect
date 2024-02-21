@@ -13,7 +13,6 @@ A module containing memory utilities and the definition of the
 memory access API used by all vtoys trace/emulators/workspaces.
 """
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -725,11 +724,12 @@ class MemoryObject(IMemory):
         off, b = self.getByteDef(va)
         return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
 
-    def readMemString(self, va, maxlen=0xfffffff):
+    def readMemString(self, va, maxlen=0xfffffff, wide=False):
         '''
         Returns a C-style string from memory.  Stops at Memory Map boundaries, or the first NULL (\x00) byte.
         '''
 
+        terminator = (b'\0', b'\0\0')[bool(wide)]
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
@@ -738,7 +738,7 @@ class MemoryObject(IMemory):
                 offset = va - mva
 
                 # now find the end of the string based on either \x00, maxlen, or end of map
-                end = mbytes.find(b'\x00', offset)
+                end = mbytes.find(terminator, offset)
 
                 left = end - offset
                 if end == -1:
