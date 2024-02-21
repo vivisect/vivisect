@@ -684,7 +684,7 @@ class GdbStubBase:
         """
         if self._gdb_sock is not None:
             try:
-                self._gdb_sock.shutdown(2)
+                self._gdb_sock.shutdown(socket.SHUT_RDWR)
             except OSError as e:
                 if e.errno == errno.ENOTCONN:
                     pass
@@ -1039,10 +1039,11 @@ class GdbClientStub(GdbStubBase):
             None
         """
         if self._gdb_sock is not None:
-            self._gdb_sock.shutdown(2)
+            self._gdb_sock.shutdown(socket.SHUT_RDWR)
 
         self._gdb_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._gdb_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        logger.info("connecting to %s:%s", self._gdb_host, self._gdb_port)
         self._gdb_sock.connect((self._gdb_host, self._gdb_port))
         self._gdb_sock.settimeout(None)
 
@@ -2321,12 +2322,18 @@ class GdbServerStub(GdbStubBase):
         # Disconnect the client
         if self.connstate == STATE_CONN_CONNECTED:
             self.connstate = STATE_CONN_DISCONNECTED
+
+        if self._gdb_sock:
+            try:
+                self._gdb_sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
             self._gdb_sock.close()
             self._gdb_sock = None
 
         # Wait for the GDB server thread to exit
+        self.gdb_server_state = STATE_SVR_SHUTDOWN
         if self.runthread:
-            self.gdb_server_state = STATE_SVR_SHUTDOWN
             # Give the thread a little while before it exits
             self.runthread.join(0.5)
 
@@ -2334,8 +2341,16 @@ class GdbServerStub(GdbStubBase):
                 logger.error("server thread failed to exit!")
                 del self.runthread
 
-            self._server_sock = None
             self.runthread = None
+
+        if self._server_sock:
+
+            try:
+                self._server_sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            self._server_sock.close()
+            self._server_sock = None
 
     def runServer(self, oneshot=False):
         """
@@ -2363,7 +2378,6 @@ class GdbServerStub(GdbStubBase):
             except OSError as e:
                 if not self._gdb_find_port:
                     raise e
-
 
         self._server_sock.listen(1)
         logger.info("runServer listening on port %d", self._gdb_port)
@@ -2407,8 +2421,7 @@ class GdbServerStub(GdbStubBase):
                     except (gdb_exc.GdbClientDetachedException,
                             ConnectionResetError) as e:
                         logger.debug("Client disconnected: %r", e)
-                        res = self._handleDetach()
-                        break
+                        self._handleDetach()
 
                     except gdb_exc.InvalidGdbPacketException as e:
                         logger.warning("Invalid Packet Exception!  %r", e)
@@ -2422,22 +2435,31 @@ class GdbServerStub(GdbStubBase):
 
                     except BrokenPipeError:
                         logger.info("BrokenPipeError:  Client disconnected.")
-                        self.connstate = STATE_CONN_DISCONNECTED
-                        self._gdb_sock = None
+                        self._handleDetach()
+
+                    if self.connstate == STATE_CONN_DISCONNECTED:
+                        if self._gdb_sock:
+                            try:
+                                self._gdb_sock.shutdown(socket.SHUT_RDWR)
+                            except OSError:
+                                pass
+                            self._gdb_sock.close()
+                            self._gdb_sock = None
+
+                        if oneshot:
+                            logger.info("'oneshot' enabled, shutting down GDB Server")
+                            self.gdb_server_state = STATE_SVR_SHUTDOWN
 
             except Exception as e:
                 logger.critical("runServer exception!", exc_info=1)
 
-            finally:
-                if oneshot:
-                    logger.info("'oneshot' enabled, shutting down GDB Server")
-                    self.gdb_server_state = STATE_SVR_SHUTDOWN
-
-                if self._gdb_sock:
-                    self._gdb_sock.close()
-
         logger.info("GDB Server shutting down server socket")
+        try:
+            self._server_sock.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
         self._server_sock.close()
+        self._server_sock = None
         logger.info("GDB Server Shutdown Complete")
 
     def _postClientAttach(self, addr):

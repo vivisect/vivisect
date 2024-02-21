@@ -257,10 +257,23 @@ class TestGdbServerStub(unittest.TestCase):
         """
         logger.warning("\n\nTestGdbServerStub: tearDown()")
         self.client.gdbDetach()
-        self.server_thread.join()
-        self.client = None  # server teardown
-        time.sleep(1)
+        # wait a moment for detach to complete
+        time.sleep(0.1)
+
+        del self.client
+        self.client = None
+
+        self.server.shutdownServer()
+
+        self.server_thread.join(1)
+
+        if self.server_thread.is_alive():
+            logger.warning('server_thread not cleaned up!')
+            del self.server_thread
         self.server_thread = None
+
+        del self.server
+        self.server = None
 
     def test_GetRegisterVal(self):
         """
