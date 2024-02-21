@@ -110,7 +110,7 @@ arch_defs = {
         'aliases':  ('aarch64', 'leg64', 'legv8'),
         'modpath':  ('envi', 'archs', 'aarch64'),
         'clsname':  'A64Module',
-        'disabled': True,
+        'disabled': False,
         'version':  (0,2,0),
         'has_disasm':   True,
         'has_emu':      True,
