@@ -9,6 +9,7 @@ import vqt.cli as vq_cli
 import vqt.main as vq_main
 import vqt.colors as vq_colors
 import vqt.qpython as vq_python
+import vqt.hotkeys as vq_hotkey
 import vqt.application as vq_app
 
 import vivisect.cli as viv_cli
@@ -31,6 +32,7 @@ from PyQt5.QtWidgets import QInputDialog
 
 from vqt.common import *
 from vivisect.const import *
+from envi.threads import firethread
 from vqt.main import getOpenFileName, getSaveFileName
 from vqt.saveable import compat_isNone
 
@@ -115,6 +117,8 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.addHotKeyTarget('file:connecttoserver', self._menuShareConnectServer)
         self.addHotKey('ctrl+w', 'file:quit')
         self.addHotKeyTarget('file:quit', self.close)
+        self.addHotKey('ctrl+m', 'view:memory')
+        self.addHotKey('ctrl+g', 'view:funcgraph')
 
     def vprint(self, msg, addnl=True):
         # ripped and modded from envi/cli.py
@@ -141,7 +145,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         curname = self.vw.getName(va)
         if curname is None:
-            curname = ''
+            curname = 'loc_%.8x' % va
 
         name, ok = QInputDialog.getText(parent, 'Enter...', 'Name', text=curname)
         if ok:
@@ -230,6 +234,19 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if sname is not None:
             self.vw.makeStructure(va, sname)
         return sname
+
+    def makePtrArray(self, va, break_on_bad=True, parent=None):
+        if parent is None:
+            parent = self
+        # starting address
+        # address after last element
+        # count (alternate)
+        ok, results = selectArrayBounds(va, va, 0, parent=parent)
+
+        if ok:
+            startva, stopva, count = results
+            self.vw.makePointerArray(startva, stopva, count, break_on_bad)
+            
 
     def addBookmark(self, va, parent=None):
         if parent is None:
@@ -633,10 +650,17 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.newFunctionsView()
     def _menuViewNames(self):
         self.newNamesView()
+
+    @firethread
+    @vq_hotkey.hotkey('view:memory')
     def _menuViewMemory(self):
         self.newMemoryView()
+
+    @firethread
+    @vq_hotkey.hotkey('view:funcgraph')
     def _menuViewFuncGraph(self):
         self.newFuncGraphView()
+
     def _menuViewSymboliks(self):
         self.newSymbolikFuncView()
 
@@ -673,15 +697,19 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqBuildDockWidget('VQVivNamesView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
 
     @idlethread
-    def newMemoryView(self, name='viv', floating=False):
+    def newMemoryView(self, name='viv', floating=False, expr=None):
         dock, widget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
         widget.setMemWindowName(name)
+        if expr is not None:
+            widget.enviNavGoto(expr)
 
     @idlethread
-    def newFuncGraphView(self, name=None, floating=False):
+    def newFuncGraphView(self, name=None, floating=False, expr=None):
         dock, widget = self.vqBuildDockWidget('VQVivFuncgraphView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
         if name is not None:
             widget.setMemWindowName(name)
+        if expr is not None:
+            widget.enviNavGoto(expr)
 
     @idlethread
     def newSymbolikFuncView(self, floating=False):
@@ -708,6 +736,29 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     @vq_main.idlethread
     def _ve_fireEvent(self, event, edata):
         return viv_base.VivEventDist._ve_fireEvent(self, event, edata)
+
+def selectArrayBounds(startva, stopva, count=0, parent=None):
+    if not stopva:
+        stopva = startva
+
+    dynd = DynamicDialog('Pointer Array Dialog', parent=parent)
+
+    try:
+        dynd.addIntHexField('startva', dflt=hex(startva), title='Start Address')
+        dynd.addIntHexField('stopva', dflt=hex(stopva), title='Stop Address ')
+        dynd.addIntHexField('count', dflt=0, title='Count (if nonzero, ignore stop address)')
+    except Exception as e:
+        logger.warning("ERROR BUILDING DIALOG!", exc_info=1)
+
+    results = dynd.prompt()
+
+    ok =  len(results) != 0
+    if ok:
+        startva = results.get('startva')
+        stopva = results.get('stopva')
+        count = results.get('count')
+        return ok, (startva, stopva, count)
+    return False, None
 
 @vq_main.idlethread
 def runqt(vw, closeme=None):
