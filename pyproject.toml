@@ -6,7 +6,7 @@ build-backend = 'setuptools.build_meta'
 name = 'vivisect'
 version = '1.1.1'
 authors = [
-    { name =  'The Vivisect Peeps', email = ''}
+    { name =  'The Vivisect Peeps', email = 'vivdevs@r4780y.com'}
 ]
 description = 'Pure python disassembler, debugger, emulator, and static analysis framework'
 readme = 'README.rst'
@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = ''
+Homepage = 'https://vivisect.readthedocs.io/en/latest/'
 Documentation = 'https://vivisect.readthedocs.io/en/latest/'
 Repository = 'https://github.com/vivisect/vivisect'
 Changelog = 'https://vivisect.readthedocs.io/en/latest/vivisect/changelog.html'
