@@ -688,7 +688,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _mcb_Architecture(self, name, value):
         archid = envi.getArchByName(value)
         try:
-            # Some of the ENVI archs defined may not architecture modules that 
+            # Some of the ENVI archs defined may have architecture modules that 
             # are still in progress
             self.setMemArchitecture(archid)
         except IndexError:
