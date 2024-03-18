@@ -692,7 +692,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # are still in progress
             self.setMemArchitecture(archid)
         except IndexError:
-            raise ArchModDefException(value)
+            raise ArchModDefException(value) from None
 
         # This is for legacy stuff...
         #self.arch = envi.getArchModule(value)
