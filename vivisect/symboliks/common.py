@@ -391,12 +391,13 @@ class SymbolikBase:
             newb = cb(path, cur, ctx)
             path.pop()          # clean up, since our algorithm doesn't expect cur on the top...
 
+            done.add(cur._sym_id)
+
+            # exit if we're the top node
             if not path:
                 if newb:
                     return newb
                 return cur
-
-            done.add(cur._sym_id)
 
             # pop back up a level
             cur = path.pop()

@@ -85,6 +85,19 @@ class MemoryCanvas(object):
         '''
         self._canv_navcallback = callback
 
+    def getEndian(self):
+        '''
+        returns the endianness setting of the mem object
+        '''
+        return self.mem.getEndian()
+
+    def setEndian(self, bigend):
+        '''
+        envi.ENDIAN_LSB or envi.ENDIAN_MSB
+        passes the value to the mem.setEndian() accessor
+        '''
+        self.mem.setEndian(bigend)
+
     def addRenderer(self, name, rend):
         self.renderers[name] = rend
         self.currend = rend
@@ -236,6 +249,10 @@ class MemoryCanvas(object):
 
         # We must actually start rendering from the beginning
         # of the first updated VA index
+        if not len(updatedvas):
+            print("returning because no updatedvas: %x/%x" % (va, size))
+            return self.renderMemory(va, size)
+
         startva = updatedvas[0][0]
         endva = self._canv_endva
         if saved_last:

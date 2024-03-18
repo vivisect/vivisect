@@ -117,6 +117,12 @@ class VQStructNamespacesView(vq_tree.VQTreeView):
         osx  = model.append(('osx', ''))
         osx_macho = model.append(('', 'macho'), parent=osx)
 
+        arch = model.append(('arch',''))
+        arch_ppc = model.append(('PowerPC', ''), parent=arch)
+        arch_ppc_krnl = model.append(('PowerPC Kernel', ''), parent=arch_ppc)
+        arch_ppc_krnl.modinfo = ('ppc', 'vstruct.defs.ppc')
+
+
         self.setModel(model)
 
 class VQStructNamespaceDialog(QDialog):

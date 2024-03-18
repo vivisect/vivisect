@@ -3641,6 +3641,7 @@ libc_data = {
     ],
 
     'names': [
+        (0x2160000, 'libc_2_13.bss_temp'),
         (0x2016b88, 'libc_2_13.plt_calloc'),
         (0x2016b98, 'libc_2_13.plt_realloc'),
         (0x2016ba8, 'libc_2_13.plt_feof'),

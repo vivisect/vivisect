@@ -72,8 +72,9 @@ VWE_SYMHINT         = 41 # (va, idx, hint)
 VWE_AUTOANALFIN     = 42 # (starttime, endtime)
 
 VWE_WRITEMEM        = 43 # (va, bytes, oldbytes)
+VWE_ENDIAN          = 44 # endian
 
-VWE_MAX             = 44
+VWE_MAX             = 45
 
 # Constants for vivisect "transient" events which flow through
 # the event subsystem but are not recorded to the workspace.
@@ -234,3 +235,21 @@ SYMT_CON_LT         = SYMT_CON | 5
 SYMT_CON_LE         = SYMT_CON | 6
 SYMT_CON_UNK        = SYMT_CON | 7
 SYMT_CON_NOTUNK     = SYMT_CON | 8
+
+# FIXME: make ArchModules specify the default calling convention based on Architecture settings (which must be handed in)
+archcalls = {
+    'i386': 'cdecl',
+    'amd64': 'sysvamd64call',
+    'arm': 'armcall',
+    'thumb': 'armcall',
+    'thumb16': 'armcall',
+
+    'vle': 'ppccall',
+    'ppc': 'ppccall',
+    'ppc64': 'ppccall',
+    'ppc-server': 'ppccall',
+    'ppc-embedded': 'ppccall',
+    'ppc32-server': 'ppccall',
+    'ppc32-embedded': 'ppccall',
+}
+
