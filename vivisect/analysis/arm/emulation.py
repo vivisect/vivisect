@@ -195,9 +195,8 @@ def getAllReads(emu):
                 if read in allaccess:
                     # skip duplicate
                     continue
-                yield (read)
+                yield read
 
-    return allaccess
 
 def getAllWrites(emu):
     '''
@@ -212,8 +211,7 @@ def getAllWrites(emu):
                 if write in allaccess:
                     # skip duplicate
                     continue
-                yield (write)
-    return allaccess
+                yield write
 
 def analyzeFunction(vw, fva):
     emu = vw.getEmulator(va=fva, logread=True, logwrite=True)
