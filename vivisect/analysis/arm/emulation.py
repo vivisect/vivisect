@@ -8,6 +8,7 @@ import vivisect.impemu.monitor as viv_monitor
 import vivisect.analysis.generic.codeblocks as viv_cb
 
 import envi
+import envi.common as e_cmn
 import envi.archs.arm as e_arm
 
 from envi.archs.arm.regs import *
@@ -184,33 +185,61 @@ def buildFunctionApi(vw, fva, emu, emumon):
 
 def getAllReads(emu):
     '''
-    Sort through the emulator's Path structure and grab all Reads
+    WorkspaceEmulators optionally track paths through all code emulated.  While called a "path",
+    this data is actually stored in a graph-like object where nodes are able to store properties.
+
+    Read/Write logs are stored in these nodes.
+
+    This function sorts through the emulator's Path structure and grab all Reads.  It uses
+    getAllPaths() for the graph-like Path, which flattens out all paths and returns them as a 
+    list of paths, each path being a list of codeblock nodes.
+
+    The details are hidden with an accessor API, but the nodes are tuple of:
+        (parent, [children], {properties})
+
     Yield generator
     Skips duplicates
     '''
-    allaccess = []
+    allaccess = set()
     for path in vg_path.getAllPaths(emu.path):
         for node in path:
-            for read in node[2]['readlog']:
+            for read in vg_path.getNodeProp(node, 'readlog'):
                 if read in allaccess:
                     # skip duplicate
                     continue
+
+                allaccess.add(read)
+                logger.log(e_cmn.SHITE, "getAllReads() => %r" % repr(read))
                 yield read
 
 
 def getAllWrites(emu):
     '''
-    Sort through the emulator's Path structure and grab all Writes
+    WorkspaceEmulators optionally track paths through all code emulated.  While called a "path",
+    this data is actually stored in a graph-like object where nodes are able to store properties.
+
+    Read/Write logs are stored in these nodes.
+
+    This function sorts through the emulator's Path structure and grab all Writes.  It uses
+    getAllPaths() for the graph-like Path, which flattens out all paths and returns them as a 
+    list of paths, each path being a list of codeblock nodes.
+
+    The details are hidden with an accessor API, but the nodes are tuple of:
+        (parent, [children], {properties})
+
     Yield generator
     Skips duplicates
     '''
-    allaccess = []
+    allaccess = set()
     for path in vg_path.getAllPaths(emu.path):
         for node in path:
-            for write in node[2]['writelog']:
+            for write in vg_path.getNodeProp(node, 'writelog'):
                 if write in allaccess:
                     # skip duplicate
                     continue
+
+                allaccess.add(write)
+                logger.log(e_cmn.SHITE, "getAllWrites() => %r" % repr(write))
                 yield write
 
 def analyzeFunction(vw, fva):
