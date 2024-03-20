@@ -5401,10 +5401,7 @@ class ArmPgmStatRegOper(ArmOperand):
         if emu is None:
             return None
 
-
-        #FIXME: write here
         mask = expanded_mask[self.mask]
-        #SPSR does not work - fails in emu.getSPSR
         if self.psrinfo[1] == PSR_SPSR:             # SPSR
             mode = emu.getProcMode()
             psr = emu.getSPSR(mode)

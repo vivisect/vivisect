@@ -209,7 +209,7 @@ def getAllReads(emu):
                     continue
 
                 allaccess.add(read)
-                logger.log(e_cmn.SHITE, "getAllReads() => %r" % repr(read))
+                logger.log(e_cmn.SHITE, "getAllReads() => %r", repr(read))
                 yield read
 
 
@@ -239,7 +239,7 @@ def getAllWrites(emu):
                     continue
 
                 allaccess.add(write)
-                logger.log(e_cmn.SHITE, "getAllWrites() => %r" % repr(write))
+                logger.log(e_cmn.SHITE, "getAllWrites() => %r", repr(write))
                 yield write
 
 def analyzeFunction(vw, fva):
