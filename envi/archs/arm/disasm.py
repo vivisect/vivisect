@@ -3041,7 +3041,6 @@ def _do_adv_simd_ldst_32(val, va, u):
 
             elif optype == 0b01:
                 # vst2  - single 2-element structure from One lane
-                #TODO:  ALIGN  and AlignedRegisterOper
                 mnem = 'vst2'
                 if index_align & 1 == 0:
                     align = 1
@@ -3081,7 +3080,6 @@ def _do_adv_simd_ldst_32(val, va, u):
 
             elif optype == 0b11:
                 # vst4  - single 4-element structure from One lane
-                #TODO:  ALIGN  and AlignedRegisterOper
                 mnem = 'vst4'
                 if index_align & 1 == 0:
                     align = 1
@@ -4489,7 +4487,6 @@ class ArmRegOper(ArmOperand):
         if elmtsz is None:
             elmtsz = self.getWidth()
 
-        # TODO: signed?
         ifmt = e_bits.getFormat(elmtsz, big_endian=emu.getEndian()==ENDIAN_MSB)
         ffmt = e_bits.getFloatFormat(elmntsz, big_endian=emu.getEndian()==ENDIAN_MSB)
 
