@@ -83,6 +83,9 @@ ARCH_REVS['thumb'] = REV_THUMB2
 ARCH_REVS['thumbee'] = REV_THUMBEE
 ARCH_REVSLEN = len(ARCH_REVS)
 
+OP_SYMHINT_IDX = 5
+
+
 # IFLAGS - keep bottom 8-bits for cross-platform flags like envi.IF_NOFALL and envi.IF_BRFALL
 IF_PSR_S     = 1 << 32    # This DP instruciton can update CPSR  (as in, add vs. adds)
 IF_B         = 1 << 33    # Byte
@@ -100,6 +103,7 @@ IF_ID        = 1 << 44    # Interrupt Disable flag (used for CPS instruction)
 IF_THUMB32   = 1 << 50    # thumb32
 IF_ADV_SIMD  = 1 << 51    # Advanced SIMD instructions...  it matters
 IF_SYS_MODE  = 1 << 52
+IF_WIDE      = 1 << 53
 
 IF_DAIB_SHFT = 56         # shift-bits to get DAIB bits down to 0.  this chops off the "is DAIB present" bit that the following store.
 IF_DAIB_MASK = 7 << (IF_DAIB_SHFT - 1)
@@ -260,7 +264,7 @@ PM_hyp = 0b11010
 PM_und = 0b11011
 PM_sys = 0b11111
 
-REGS_PER_MODE = 18
+REGS_PER_MODE = 19
 
 # reg stuff stolen from regs.py to support proc_modes
 # these are in context of reg_table, not reg_data.  
@@ -274,18 +278,19 @@ REG_OFFSET_ABT = REGS_PER_MODE * (PM_abt&0xf)
 REG_OFFSET_HYP = REGS_PER_MODE * (PM_hyp&0xf)
 REG_OFFSET_UND = REGS_PER_MODE * (PM_und&0xf)
 REG_OFFSET_SYS = REGS_PER_MODE * (PM_sys&0xf)
-#REG_OFFSET_CPSR = REGS_PER_MODE * 16
-REG_OFFSET_CPSR = 16                    # CPSR is available in every mode, and PM_usr and PM_sys don't have an SPSR.
 
-REG_SPSR_usr = REG_OFFSET_USR + REGS_PER_MODE
-REG_SPSR_fiq = REG_OFFSET_FIQ + REGS_PER_MODE
-REG_SPSR_irq = REG_OFFSET_IRQ + REGS_PER_MODE
-REG_SPSR_svc = REG_OFFSET_SVC + REGS_PER_MODE
-REG_SPSR_mon = REG_OFFSET_MON + REGS_PER_MODE
-REG_SPSR_abt = REG_OFFSET_ABT + REGS_PER_MODE
-REG_SPSR_hyp = REG_OFFSET_HYP + REGS_PER_MODE
-REG_SPSR_und = REG_OFFSET_UND + REGS_PER_MODE
-REG_SPSR_sys = REG_OFFSET_SYS + REGS_PER_MODE
+REG_OFFSET_CPSR = 16                    # CPSR is available in every mode, and PM_usr and PM_sys don't have an SPSR.
+REG_OFFSET_SPSR = 18
+
+REG_SPSR_usr = REG_OFFSET_USR + REG_OFFSET_SPSR
+REG_SPSR_fiq = REG_OFFSET_FIQ + REG_OFFSET_SPSR
+REG_SPSR_irq = REG_OFFSET_IRQ + REG_OFFSET_SPSR
+REG_SPSR_svc = REG_OFFSET_SVC + REG_OFFSET_SPSR
+REG_SPSR_mon = REG_OFFSET_MON + REG_OFFSET_SPSR
+REG_SPSR_abt = REG_OFFSET_ABT + REG_OFFSET_SPSR
+REG_SPSR_hyp = REG_OFFSET_HYP + REG_OFFSET_SPSR
+REG_SPSR_und = REG_OFFSET_UND + REG_OFFSET_SPSR
+REG_SPSR_sys = REG_OFFSET_SYS + REG_OFFSET_SPSR
 
 REG_PC = 0xf
 REG_LR = 0xe
@@ -310,6 +315,9 @@ proc_modes = { # mode_name, short_name, description, offset, mode_reg_count, PSR
     PM_sys: ("System Processor Mode", "sys", "Runs privileged operating system tasks (ARMv4 and above)", REG_OFFSET_SYS, 15, REG_SPSR_sys, 1),
 }
 
+MODE_COUNT = 17
+
+
 PM_LNAME =  0
 PM_SNAME =  1
 PM_DESC =   2
@@ -318,9 +326,10 @@ PM_REGCNT = 4
 PM_PSROFF   = 5
 PM_PRIVLVL  = 6
 
-PSR_APSR    = 2
-PSR_SPSR    = 1
 PSR_CPSR    = 0
+PSR_SPSR    = 1
+PSR_APSR    = 2
+
 
 INST_ENC_DP_IMM = 0 # Data Processing Immediate Shift
 INST_ENC_MISC   = 1 # Misc Instructions
