@@ -244,11 +244,11 @@ def analyzePLT(vw, ssva, ssize):
                             if loc is None:
                                 realplt = False
 
-                            # if target is in the ELF Section with a name starting with ".got" 
+                            # if target is in the ELF Section with a name starting with ".got"
                             # OR that the target address is after the DT_PLTGOT entry (
                             elif tgt_seg is not None:
                                 tsegva, tsegsz, tsegname, tsegfile = tgt_seg
-                                # see if the target address segment is GOT, but 
+                                # see if the target address segment is GOT, but
                                 # also don't let it be the first entry, which is the LazyLoader
                                 if not (tsegname.startswith('.got') and tsegva != lva):
                                     logger.debug("0x%x: tbrref not in GOT (segment)", tbrref)
@@ -300,7 +300,7 @@ def analyzeFunction(vw, funcva):
     plts = getPLTs(vw)
     isplt = False
     for pltva, pltsz in plts:
-        if pltva <= funcva <= (pltva + pltsz):
+        if pltva <= funcva < (pltva + pltsz):
             isplt = True
             segva = pltva
             segsize = pltsz

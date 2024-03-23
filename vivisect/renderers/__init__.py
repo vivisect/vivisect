@@ -207,14 +207,20 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
         elif ltype == LOC_POINTER:
 
-            fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0]  # FIXME hardcoded one
+            xrefs = self.vw.getXrefsFrom(lva)
 
             mcanv.addText(linepre, tag=vatag)
             mcanv.addNameText("ptr: ")
+            if not len(xrefs):
+                mcanv.addText("ERROR: No From references\n")
+                tova = lva
+                pstr = "ERROR"
+                
+            else:
+                fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0]  # FIXME hardcoded one
+                pstr = self.vw.arch.pointerString(tova)
 
             totag = mcanv.getVaTag(tova)
-            pstr = self.vw.arch.pointerString(tova)
-
             mcanv.addText(pstr, tag=totag)
 
             name = self.vw.getName(tova)
