@@ -5,151 +5,151 @@ from vstruct.bitfield import *
 from vstruct.primitives import *
 
 '''
-0 End 
-1 ShowFrame 
-2 DefineShape 
-4 PlaceObject 
-5 RemoveObject 
-6 DefineBits 
-7 DefineButton 
-8 JPEGTables 
-9 SetBackgroundColor 
-10 DefineFont 
-11 DefineText 
-12 DoAction 
-13 DefineFontInfo 
-14 DefineSound 
-15 StartSound 
-17 DefineButtonSound 
-18 SoundStreamHead 
-19 SoundStreamBlock 
-20 DefineBitsLossless 
-21 DefineBitsJPEG2 
-22 DefineShape2 
+0 End
+1 ShowFrame
+2 DefineShape
+4 PlaceObject
+5 RemoveObject
+6 DefineBits
+7 DefineButton
+8 JPEGTables
+9 SetBackgroundColor
+10 DefineFont
+11 DefineText
+12 DoAction
+13 DefineFontInfo
+14 DefineSound
+15 StartSound
+17 DefineButtonSound
+18 SoundStreamHead
+19 SoundStreamBlock
+20 DefineBitsLossless
+21 DefineBitsJPEG2
+22 DefineShape2
 23 DefineButtonCxform
 24 Protect
-26 PlaceObject2 
-28 RemoveObject2 
-32 DefineShape3 
-33 DefineText2 
-34 DefineButton2 
-35 DefineBitsJPEG3 
-36 DefineBitsLossless2 
-37 DefineEditText 
-39 DefineSprite 
-43 FrameLabel 
-45 SoundStreamHead2 
-46 DefineMorphShape 
-48 DefineFont2 
-56 ExportAssets 
-57 ImportAssets 
-58 EnableDebugger 
-59 DoInitAction 
-60 DefineVideoStream 
-61 VideoFrame 
-62 DefineFontInfo2 
-64 EnableDebugger2 
-65 ScriptLimits 
-66 SetTabIndex 
+26 PlaceObject2
+28 RemoveObject2
+32 DefineShape3
+33 DefineText2
+34 DefineButton2
+35 DefineBitsJPEG3
+36 DefineBitsLossless2
+37 DefineEditText
+39 DefineSprite
+43 FrameLabel
+45 SoundStreamHead2
+46 DefineMorphShape
+48 DefineFont2
+56 ExportAssets
+57 ImportAssets
+58 EnableDebugger
+59 DoInitAction
+60 DefineVideoStream
+61 VideoFrame
+62 DefineFontInfo2
+64 EnableDebugger2
+65 ScriptLimits
+66 SetTabIndex
 69 FileAttributes
 70 PlaceObject3
-71 ImportAssets2 
-73 DefineFontAlignZones 
-74 CSMTextSettings 
-75 DefineFont3 
-76 SymbolClass 
-77 Metadata 
-78 DefineScalingGrid 
-82 DoABC 
-83 DefineShape4 
-84 DefineMorphShape2 
-86 DefineSceneAndFrameLabelData 
-87 DefineBinaryData 
-88 DefineFontName 
-89 StartSound2 
-90 DefineBitsJPEG4 
-91 DefineFont4 
-93 EnableTelemetry 
+71 ImportAssets2
+73 DefineFontAlignZones
+74 CSMTextSettings
+75 DefineFont3
+76 SymbolClass
+77 Metadata
+78 DefineScalingGrid
+82 DoABC
+83 DefineShape4
+84 DefineMorphShape2
+86 DefineSceneAndFrameLabelData
+87 DefineBinaryData
+88 DefineFontName
+89 StartSound2
+90 DefineBitsJPEG4
+91 DefineFont4
+93 EnableTelemetry
 '''
 
 swftags = {
-    0:'End',
-    1:'ShowFrame',
-    2:'DefineShape',
-    4:'PlaceObject',
-    5:'RemoveObject',
-    6:'DefineBits',
-    7:'DefineButton',
-    8:'JPEGTables',
-    9:'SetBackgroundColor',
-    10:'DefineFont',
-    11:'DefineText',
-    12:'DoAction',
-    13:'DefineFontInfo',
-    14:'DefineSound',
-    15:'StartSound',
-    17:'DefineButtonSound',
-    18:'SoundStreamHead',
-    19:'SoundStreamBlock',
-    20:'DefineBitsLossless',
-    21:'DefineBitsJPEG2',
-    22:'DefineShape2',
-    23:'DefineButtonCxform',
-    24:'Protect',
-    26:'PlaceObject2',
-    28:'RemoveObject2',
-    32:'DefineShape3',
-    33:'DefineText2',
-    34:'DefineButton2',
-    35:'DefineBitsJPEG3',
-    36:'DefineBitsLossless2',
-    37:'DefineEditText',
-    39:'DefineSprite',
-    41:'SerialNumber',
-    43:'FrameLabel',
-    45:'SoundStreamHead2',
-    46:'DefineMorphShape',
-    48:'DefineFont2',
-    56:'ExportAssets',
-    57:'ImportAssets',
-    58:'EnableDebugger',
-    59:'DoInitAction',
-    60:'DefineVideoStream',
-    61:'VideoFrame',
-    62:'DefineFontInfo2',
-    64:'EnableDebugger2',
-    65:'ScriptLimits',
-    66:'SetTabIndex',
-    69:'FileAttributes',
-    70:'PlaceObject3',
-    71:'ImportAssets2',
-    73:'DefineFontAlignZones',
-    74:'CSMTextSettings',
-    75:'DefineFont3',
-    76:'SymbolClass',
-    77:'Metadata',
-    78:'DefineScalingGrid',
-    82:'DoABC',
-    83:'DefineShape4',
-    84:'DefineMorphShape2',
-    86:'DefineSceneAndFrameLabelData',
-    87:'DefineBinaryData',
-    88:'DefineFontName',
-    89:'StartSound2',
-    90:'DefineBitsJPEG4',
-    91:'DefineFont4',
-    93:'EnableTelemetry',
+    0: 'End',
+    1: 'ShowFrame',
+    2: 'DefineShape',
+    4: 'PlaceObject',
+    5: 'RemoveObject',
+    6: 'DefineBits',
+    7: 'DefineButton',
+    8: 'JPEGTables',
+    9: 'SetBackgroundColor',
+    10: 'DefineFont',
+    11: 'DefineText',
+    12: 'DoAction',
+    13: 'DefineFontInfo',
+    14: 'DefineSound',
+    15: 'StartSound',
+    17: 'DefineButtonSound',
+    18: 'SoundStreamHead',
+    19: 'SoundStreamBlock',
+    20: 'DefineBitsLossless',
+    21: 'DefineBitsJPEG2',
+    22: 'DefineShape2',
+    23: 'DefineButtonCxform',
+    24: 'Protect',
+    26: 'PlaceObject2',
+    28: 'RemoveObject2',
+    32: 'DefineShape3',
+    33: 'DefineText2',
+    34: 'DefineButton2',
+    35: 'DefineBitsJPEG3',
+    36: 'DefineBitsLossless2',
+    37: 'DefineEditText',
+    39: 'DefineSprite',
+    41: 'SerialNumber',
+    43: 'FrameLabel',
+    45: 'SoundStreamHead2',
+    46: 'DefineMorphShape',
+    48: 'DefineFont2',
+    56: 'ExportAssets',
+    57: 'ImportAssets',
+    58: 'EnableDebugger',
+    59: 'DoInitAction',
+    60: 'DefineVideoStream',
+    61: 'VideoFrame',
+    62: 'DefineFontInfo2',
+    64: 'EnableDebugger2',
+    65: 'ScriptLimits',
+    66: 'SetTabIndex',
+    69: 'FileAttributes',
+    70: 'PlaceObject3',
+    71: 'ImportAssets2',
+    73: 'DefineFontAlignZones',
+    74: 'CSMTextSettings',
+    75: 'DefineFont3',
+    76: 'SymbolClass',
+    77: 'Metadata',
+    78: 'DefineScalingGrid',
+    82: 'DoABC',
+    83: 'DefineShape4',
+    84: 'DefineMorphShape2',
+    86: 'DefineSceneAndFrameLabelData',
+    87: 'DefineBinaryData',
+    88: 'DefineFontName',
+    89: 'StartSound2',
+    90: 'DefineBitsJPEG4',
+    91: 'DefineFont4',
+    93: 'EnableTelemetry',
 }
 
 
 class RECT(VBitField):
     def __init__(self):
         VBitField.__init__(self)
-        self.Nbits  = v_bits(5)
-        self.Xmin   = v_bits(1)
-        self.Xmax   = v_bits(1)
-        self.Ymin   = v_bits(1)
-        self.Ymax   = v_bits(1)
+        self.Nbits = v_bits(5)
+        self.Xmin = v_bits(1)
+        self.Xmax = v_bits(1)
+        self.Ymin = v_bits(1)
+        self.Ymax = v_bits(1)
 
     def pcb_Nbits(self):
         bitwidth = self.Nbits
@@ -167,7 +167,7 @@ class EncodedU32(v_number):
     def vsParse(self, bytez, offset=0):
         self._vs_value = 0
         # this shit is *not* my fault... ;)
-        for i in xrange(5):
+        for i in range(5):
             b = ord(bytez[offset + i])
             self._vs_value |= (b & 0x7f) << (7 * i)
             if not b & 0x80:
@@ -260,7 +260,7 @@ class GRADIENT(VStruct):
 
     def pcb_BitFields(self):
         gcount = self.BitFields.NumGradients
-        for i in xrange(gcount):
+        for i in range(gcount):
             g = GRADRECORD(shape=self._swf_shape)
             self.GradientRecords.vsAddElement(g)
 
@@ -322,7 +322,7 @@ class FILLSTYLEARRAY(VStruct):
         self.swfAddFillStyles(self.FillStyleCountEx)
 
     def swfAddFillStyles(self, count):
-        for i in xrange(count):
+        for i in range(count):
             elem = FILLSTYLE(shape=self._swf_shape)
             self.FillStyles.vsAddElement(elem)
 
@@ -353,7 +353,7 @@ class LINESTYLEARRAY(VStruct):
         self.swfAddLineStyles(self.LineStyleCountEx)
 
     def swfAddLineStyles(self, count):
-        for i in xrange(count):
+        for i in range(count):
             elem = LINESTYLE(shape=self._swf_shape)
             self.LineStyles.vsAddElement(elem)
 
@@ -546,7 +546,6 @@ class SwfFile(VStruct):
             bytez = bytez[:8] + zlib.decompress(bytez[8:])
 
         offset = self.Header.vsParse(bytez, offset=offset)
-        print('Header Says: %d Bytes Are: %d' %  (self.Header.FileLength,len(bytez)))
         i = 0
         while offset < len(bytez):
             swftag = SwfTag()

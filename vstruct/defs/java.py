@@ -1,4 +1,3 @@
-
 import vstruct
 
 from vstruct.primitives import *
@@ -75,8 +74,8 @@ class ConstPoolInfo(vstruct.VStruct):
         self.data   = vstruct.VStruct()
 
     def pcb_tag(self):
-        cls = tag_classes.get( self.tag )
-        if cls == None:
+        cls = tag_classes.get(self.tag)
+        if cls is None:
             raise Exception('Unknown ConstPoolInfo Tag: %s' % self.tag )
         self.data.tagval = cls()
 
@@ -148,7 +147,7 @@ class JavaClass(vstruct.VStruct):
         self.const_pool.vsAddElements( self.const_pool_cnt - 1, ConstPoolInfo )
 
     def pcb_interface_cnt(self):
-        for i in xrange( self.interface_cnt ):
+        for i in range( self.interface_cnt ):
             self.interfaces.vsAddElement( v_uint16( bigend=True ) )
 
     def pcb_fields_cnt(self):
@@ -202,34 +201,3 @@ class JavaClass(vstruct.VStruct):
             attrname = self.const_pool[ attrinfo.attribute_name_index - 1 ].data.tagval.strbytes
             attrs[ attrname ] = attrinfo.attribute
         return attrs
-
-if __name__ == '__main__':
-    import sys
-    import traceback
-
-    for fname in sys.argv[1:]:
-        fbytes = file(fname,'rb').read()
-        c = JavaClass()
-        try:
-            c.vsParse( fbytes )
-            print c.tree()
-
-            cname = c.getClassName() 
-            sname = c.getSuperClassName()
-            print('Java Class: %s (inherits: %s)' % ( cname, sname ))
-
-            for fname,descname,attrs in c.getClassFields():
-                print('Field: %s (%s) (attrs: %r)' % ( fname, descname, attrs.keys()) )
-
-            for methname,attrs in c.getClassMethods():
-                print('Method: %s (attrs: %r)' % (methname, attrs.keys()))
-
-            print('Constants:')
-            for fname,const in c.const_pool:
-                print const.tag,const.data.tree()
-
-            print c.getClassAttributes().keys()
-
-        except Exception, e:
-            print c.tree()
-            traceback.print_exc()

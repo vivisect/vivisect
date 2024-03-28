@@ -1,6 +1,4 @@
-
-# Import all local structure modules
-import elf
-import pe
-import win32
-
+# Import all local structure modules for resolve()
+import vstruct.defs.elf
+import vstruct.defs.pe
+import vstruct.defs.win32

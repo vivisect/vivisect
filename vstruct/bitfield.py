@@ -1,19 +1,19 @@
-import envi.bits as e_bits
+import binascii
+
 from vstruct import VStruct
 from vstruct.primitives import *
-from binascii import unhexlify
 
 class v_bits(v_number):
 
     def __init__(self, width):
         v_number.__init__(self)
-        self._vs_bitwidth = width
+        self._vs_bitwidth = int(width)
 
     def vsSetValue(self, value):
         '''
         override base because we are not using the min or max val.
         '''
-        self._vs_value = long(value)
+        self._vs_value = value
 
     def vsSetBitWidth(self, width):
         self._vs_bitwidth = width
@@ -75,10 +75,9 @@ class VBitField(VStruct):
 
             # adjust forward from last fields bits % 8
             startbyte,startbit = divmod(bitoff,8)
-            #print 'BYTE BIT OFF',byteoff,bitoff,(
             #offset += bittobyte
 
-            endbyte,endbit = divmod(bitoff + field._vs_bitwidth,8)
+            endbyte,endbit = divmod(bitoff + field._vs_bitwidth, 8)
             # if we have an endbit remainder, we need to grab
             # an additional byte...
             endround = 0
@@ -88,7 +87,7 @@ class VBitField(VStruct):
                 endround = 1
 
             fieldbytes = bytez[offset + startbyte:offset+endbyte+endround]
-            rawint = int( fieldbytes.encode('hex'), 16)
+            rawint = int(binascii.hexlify(fieldbytes), 16)
             if endshift:
             #if bitshift:
                 rawint >>= endshift
@@ -119,4 +118,4 @@ class VBitField(VStruct):
             bytelen += 1
             valu <<= ( 8 - bitrem )
 
-        return unhexlify(('%.' + str(bytelen*2) + 'x') % valu)
+        return binascii.unhexlify(('%.' + str(bytelen*2) + 'x') % valu)

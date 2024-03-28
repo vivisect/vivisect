@@ -2,6 +2,8 @@
 Some utilities for dealing with COFF .LIB files
 '''
 
+import binascii
+
 import vstruct
 from vstruct.defs.pe import *
 from vstruct.primitives import *
@@ -56,10 +58,8 @@ class IMAGE_ARCHIVE_LINKER1(IMAGE_ARCHIVE_MEMBER):
 
     def pcb_NumberOfSymbols(self):
         c = self.NumberOfSymbols
-        print self.MemberHeader.tree()
-        print 'SYMBOLS',c
-        self.SymbolOffsets = vstruct.VArray( elems=[ v_uint32(bigend=True) for i in xrange(c) ])
-        self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in xrange(c) ])
+        self.SymbolOffsets = vstruct.VArray( elems=[ v_uint32(bigend=True) for i in range(c) ])
+        self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in range(c) ])
 
 class IMAGE_ARCHIVE_LINKER2(IMAGE_ARCHIVE_MEMBER):
 
@@ -73,17 +73,17 @@ class IMAGE_ARCHIVE_LINKER2(IMAGE_ARCHIVE_MEMBER):
 
     def pcb_NumberOfMembers(self):
         c = self.NumberOfMembers
-        self.MemberOffsets = vstruct.VArray( elems=[ v_uint32() for i in xrange(c) ] )
+        self.MemberOffsets = vstruct.VArray( elems=[ v_uint32() for i in range(c) ] )
 
     def pcb_NumberOfSymbols(self):
         c = self.NumberOfSymbols
-        self.SymbolIndexes = vstruct.VArray( elems=[ v_uint16() for i in xrange(c) ])
-        self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in xrange(c) ])
+        self.SymbolIndexes = vstruct.VArray( elems=[ v_uint16() for i in range(c) ])
+        self.SymbolNames = vstruct.VArray( elems=[ v_zstr() for i in range(c) ])
 
-IMPORT_SIG      = '0000ffff'.decode('hex')
-IMPORT_CODE     = 0 #Executable code.
-IMPORT_DATA     = 1 #Data.
-IMPORT_CONST    = 2 #Specified as CONST in the .def file.
+IMPORT_SIG      = binascii.unhexlify('0000ffff')
+IMPORT_CODE     = 0 # Executable code.
+IMPORT_DATA     = 1 # Data.
+IMPORT_CONST    = 2 # Specified as CONST in the .def file.
 
 class IMAGE_ARCHIVE_IMPORT(IMAGE_ARCHIVE_MEMBER):
 
@@ -120,7 +120,7 @@ class IMAGE_COFF_SYMBOL(vstruct.VStruct):
 
     def pcb_NumberOfAuxSymbols(self):
         a = self.NumberOfAuxSymbols
-        self.AuxSymbols = vstruct.VArray(elems=[ v_bytes(size=18) for i in xrange(a) ])
+        self.AuxSymbols = vstruct.VArray(elems=[ v_bytes(size=18) for i in range(a) ])
 
 class IMAGE_ARCHIVE_COFF(IMAGE_ARCHIVE_MEMBER):
 
@@ -133,14 +133,14 @@ class IMAGE_ARCHIVE_COFF(IMAGE_ARCHIVE_MEMBER):
 
     def pcb_FileHeader(self):
         c = self.FileHeader.NumberOfSections
-        self.SectionHeaders = vstruct.VArray(elems=[ IMAGE_SECTION_HEADER() for i in xrange(c) ])
+        self.SectionHeaders = vstruct.VArray(elems=[ IMAGE_SECTION_HEADER() for i in range(c) ])
         p = self.FileHeader.PointerToSymbolTable
         if p != 0:
             s = self.FileHeader.NumberOfSymbols
             p -= len(self.FileHeader)
             p -= len(self.SectionHeaders)
             self.vsGetField('SectionData').vsSetLength(p)
-            self.SymbolTable = vstruct.VArray(elems=[IMAGE_COFF_SYMBOL() for i in xrange(s)])
+            self.SymbolTable = vstruct.VArray(elems=[IMAGE_COFF_SYMBOL() for i in range(s)])
 
 class IMAGE_ARCHIVE(vstruct.VStruct):
 
@@ -172,29 +172,6 @@ class IMAGE_ARCHIVE(vstruct.VStruct):
                 memb = IMAGE_ARCHIVE_COFF()
 
             offset = memb.vsParse(bytes, offset=offset)
-            if isinstance(memb, IMAGE_ARCHIVE_COFF): print memb.tree()
             self.ImageArchiveMembers.vsAddElement(memb)
 
         return offset
-
-def foo(a, b, idx):
-    print 'NAME',a.ImageArchiveMembers[1].SymbolNames[idx]
-    i = a.ImageArchiveMembers[1].SymbolIndexes[idx]
-    print 'INDEX',i
-    o = a.ImageArchiveMembers[1].MemberOffsets[i]
-    print 'OFFSET',o
-    print 'BYTES',repr(b[o:o+10])
-
-if __name__ == '__main__':
-
-    import sys
-    b = file(sys.argv[1], 'rb').read()
-
-    import code
-    a = IMAGE_ARCHIVE()
-    #print a.tree()
-    a.vsParse(b)
-    print a.tree()
-    code.interact(local=locals())
-
-

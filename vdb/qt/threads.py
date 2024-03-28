@@ -1,7 +1,4 @@
-try:
-    from PyQt5.QtWidgets import QVBoxLayout
-except:
-    from PyQt4.QtGui import QVBoxLayout
+from PyQt5.QtWidgets import QVBoxLayout
 
 import vtrace.qt
 import vdb.qt.base

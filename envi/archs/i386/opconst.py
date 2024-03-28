@@ -2,8 +2,8 @@
 # The opcode tables were taken from Mammon_'s Guide to Writing Disassemblers in Perl, You Morons!"
 # and the bastard project. http://www.eccentrix.com/members/mammon/
 
-INSTR_PREFIX = 0xF0000000L
-ADDRMETH_MASK = 0x00FF0000L
+INSTR_PREFIX = 0xF0000000
+ADDRMETH_MASK = 0x00FF0000
 ADDRMETH_A = 0x00010000    # Direct address with segment prefix
 ADDRMETH_B = 0x00020000    # VEX.vvvv field selects general purpose register
 ADDRMETH_C = 0x00030000    # MODRM reg field defines control register
@@ -14,7 +14,7 @@ ADDRMETH_G = 0x00070000    # MODRM byte defines general-purpose reg
 ADDRMETH_H = 0x00080000    # VEX.vvvv field selects 128bit XMM or 256bit YMM register
 ADDRMETH_I = 0x00090000    # Immediate data follows
 ADDRMETH_J = 0x000A0000    # Immediate value is relative to EIP
-ADDRMETH_L = 0x000B0000
+ADDRMETH_L = 0x000B0000    # An immediate value follows, but bits[7:4] signifies an xmm register
 ADDRMETH_M = 0x000C0000    # MODRM mod field can refer only to memory
 ADDRMETH_N = 0x000D0000    # R/M field of MODRM selects a packed-quadword, MMX register
 ADDRMETH_O = 0x000E0000    # Displacement follows (without modrm/sib)
@@ -22,13 +22,15 @@ ADDRMETH_P = 0x000F0000    # MODRM reg field defines MMX register
 ADDRMETH_Q = 0x00100000    # MODRM defines MMX register or memory
 ADDRMETH_R = 0x00110000    # MODRM mod field can only refer to register
 ADDRMETH_S = 0x00120000    # MODRM reg field defines segment register
-ADDRMETH_U = 0x00130000    # MODRM reg field defines test register
+ADDRMETH_U = 0x00130000    # MODRM R/M field defines XMM register
 ADDRMETH_V = 0x00140000    # MODRM reg field defines XMM register
 ADDRMETH_W = 0x00150000    # MODRM defines XMM register or memory
 ADDRMETH_X = 0x00160000    # Memory addressed by DS:rSI
 ADDRMETH_Y = 0x00170000    # Memory addressd by ES:rDI
-ADDRMETH_Z = 0x00180000    # R/M field of MODRM defines XMM register, reg is used as an ext
-ADDRMETH_LAST = ADDRMETH_Z
+ADDRMETH_VEXH = 0x00180000  # Maybe Ignore the VEX.vvvv field based on what the ModRM bytes are
+ADDRMETH_LAST = ADDRMETH_VEXH
+
+ADDRMETH_VEXSKIP = 0x00800000  # This operand should be skipped if we're not in VEX mode
 
 OPTYPE_a = 0x01000000     # 2/4   two one-word operands in memory or two double-word operands in memory (operand-size attribute)   
 OPTYPE_b = 0x02000000     # 1     always 1 byte
@@ -63,7 +65,7 @@ OPTYPE_fv = 0x18000000
 
 OPERSIZE = {
     0: (2, 4, 8),           # We will only end up here on regs embedded in opcodes
-    OPTYPE_a: (2, 4, 4),
+    OPTYPE_a: (4, 8, 8),
     OPTYPE_b: (1, 1, 1),
     OPTYPE_c: (1, 2, 2),           # 1/2   byte or word, depending on operand
     OPTYPE_d: (4, 4, 4),           # 4     double-word
@@ -91,6 +93,9 @@ OPERSIZE = {
     OPTYPE_fv: (14, 14, 28),
 }
 
+INS_NOPREF = 0x10000  # This instruction diallows prefixes, and if it does, it's a different insttruction
+INS_VEXREQ = 0x20000  # This instructions requires VEX
+INS_VEXNOPREF = 0x40000  # This instruction doesn't get the "v" prefix common to VEX instructions
 
 INS_EXEC = 0x1000
 INS_ARITH = 0x2000
@@ -123,6 +128,7 @@ INS_SHL = INS_ARITH | 0x07
 INS_SHR = INS_ARITH | 0x08
 INS_ROL = INS_ARITH | 0x09
 INS_ROR = INS_ARITH | 0x0A
+INS_ABS = INS_ARITH | 0x0B
 
 INS_AND = INS_LOGIC | 0x01
 INS_OR = INS_LOGIC | 0x02
@@ -190,21 +196,51 @@ INS_INVALIDOP = INS_TRAPS | 0x07    # gen invalid instruction
 INS_OFLOW = INS_TRAPS | 0x08       # gen overflow trap
 
 #/* INS_SYSTEM */
-INS_HALT    =            INS_SYSTEM | 0x01 #               /* halt machine */
-INS_IN      =    INS_SYSTEM | 0x02         #      /* input form port */
-INS_OUT     =    INS_SYSTEM | 0x03         #      /* output to port */
-INS_CPUID   =            INS_SYSTEM | 0x04 #              /* iden
+INS_HALT    = INS_SYSTEM | 0x01 # halt machine
+INS_IN      = INS_SYSTEM | 0x02 # input from port
+INS_OUT     = INS_SYSTEM | 0x03 # output to port
+INS_CPUID   = INS_SYSTEM | 0x04 # iden
+INS_RDTSC   = INS_SYSTEM | 0x05 # read timer
+INS_RDTSCP  = INS_SYSTEM | 0x06 # read timer
+INS_SYSCALL = INS_SYSTEM | 0x07 # system call
+INS_INT     = INS_SYSTEM | 0x08 # system call
+INS_SYSENTER= INS_SYSTEM | 0x09 # system call
+INS_SYSEXIT = INS_SYSTEM | 0x0a # system call
 
-INS_NOP     =    INS_OTHER | 0x01
-INS_BCDCONV =    INS_OTHER | 0x02        #/* convert to/from BCD */
-INS_SZCONV  =    INS_OTHER | 0x03        #/* convert size of operand */
-INS_CRYPT   = INS_OTHER | 0x4  # AES-NI instruction support
+INS_NOP     = INS_OTHER | 0x01
+INS_BCDCONV = INS_OTHER | 0x02  # convert to/from BCD
+INS_SZCONV  = INS_OTHER | 0x03  # convert size of operand
+INS_CRYPT   = INS_OTHER | 0x04  # AES-NI instruction support
 
+# string instructions that support REP prefix
+REP_OPCODES = (
+    INS_IN,       # INS
+    INS_OUT,      # OUTS
+    INS_STRMOV,   # MOVS
+    INS_STRLOAD,  # LODS
+    INS_STRSTOR,  # STOS
+    INS_STRCMP    # CMPS, SCAS
+    )
 
 OP_R = 0x001
 OP_W = 0x002
 OP_X = 0x004
-OP_64AUTO = 0x008 # operand is in 64bit mode with amd64!
+OP_64AUTO = 0x008  # operand is in 64bit mode with amd64!
+# So these this exists is because in the opcode mappings intel puts out, they very 
+# *specifically* call out things like pmovsx* using U/M for their operand mappings,
+# but *not* W. The reason for this being there
+# is a size difference between the U and M portions, whereas W uses a uniform size for both
+OP_MEM_B = 0x010  # force only *memory* to be 8 bit.
+OP_MEM_W = 0x020  # force only *memory* to be 16 bit.
+OP_MEM_D = 0x030  # force only *memory* to be 32 bit.
+OP_MEM_Q = 0x040  # force only *memory* to be 64 bit.
+OP_MEM_DQ = 0x050  # force only *memory* to be 128 bit.
+OP_MEM_QQ = 0x060  # force only *memory* to be 256 bit.
+OP_MEMMASK = 0x070  # this forces the memory to be a different size than the register. Reaches into OP_EXTRA_MEMSIZES
+
+OP_NOVEXL = 0x080  # don't apply VEX.L here (even though it's set). TLDR: always 128/xmm reg
+
+OP_EXTRA_MEMSIZES = [None, 1, 2, 4, 8, 16, 32]
 
 OP_UNK = 0x000
 OP_REG = 0x100
@@ -218,6 +254,7 @@ OP_OFF = 0x700
 OP_SIGNED = 0x001000
 OP_STRING = 0x002000
 OP_CONST = 0x004000
+OP_NOREX = 0x008000
 
 ARG_NONE = 0
 cpu_8086 = 0x00001000
@@ -231,9 +268,10 @@ cpu_PENTMMX = 0x00008000
 cpu_PENTIUM2 = 0x00009000
 cpu_AMD64 = 0x0000a000
 cpu_AESNI = 0x0000b000
-
-#import envi.archs.i386.regs as e_i386_regs
-# Relative import priority...
+cpu_AVX   = 0x0000c000
+cpu_BMI   = 0x0000d000
+cpu_OSPKE = 0x0000e000
+cpu_VIRTUALPC = 0x0000f000
 
 #eventually, change this for your own codes
 #ADDEXP_SCALE_OFFSET= 0 
@@ -246,3 +284,17 @@ ADDRMETH_MASK = 0x00FF0000
 OPTYPE_MASK = 0xFF000000
 OPFLAGS_MASK = 0x0000FFFF
 
+# NOTE: some notes from the intel manual...
+# REX.W overrides 66, but alternate registers (via REX.B etc..) can have 66 to be 16 bit..
+# REX.R only modifies reg for GPR/SSE(SIMD)/ctrl/debug addressing modes.
+# REX.X only modifies the SIB index value
+# REX.B modifies modrm r/m field, or SIB base (if SIB present), or opcode reg.
+# We inherit all the regular intel prefixes...
+# VEX replaces REX, and mixing them is invalid
+PREFIX_REX   = 0x100000  # Shows that the rex prefix is present
+PREFIX_REX_B = 0x010000  # Bit 0 in REX prefix (0x41) means ModR/M r/m field, SIB base, or opcode reg
+PREFIX_REX_X = 0x020000  # Bit 1 in REX prefix (0x42) means SIB index extension
+PREFIX_REX_R = 0x040000  # Bit 2 in REX prefix (0x44) means ModR/M reg extention
+PREFIX_REX_W = 0x080000  # Bit 3 in REX prefix (0x48) means 64 bit operand
+PREFIX_REX_MASK = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_W | PREFIX_REX_R
+PREFIX_REX_RXB  = PREFIX_REX_B | PREFIX_REX_X | PREFIX_REX_R

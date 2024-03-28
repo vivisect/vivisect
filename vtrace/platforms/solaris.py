@@ -7,38 +7,38 @@ import struct
 import array
 
 # Control codes (long values) for messages written to ctl and lwpctl files.
-PCNULL   = 0L# null request, advance to next message */
-PCSTOP   = 1L# direct process or lwp to stop and wait for stop */
-PCDSTOP  = 2L# direct process or lwp to stop */
-PCWSTOP  = 3L# wait for process or lwp to stop, no timeout */
-PCTWSTOP = 4L# wait for stop, with long millisecond timeout arg */
-PCRUN    = 5L# make process/lwp runnable, w/ long flags argument */
-PCCSIG   = 6L# clear current signal from lwp */
-PCCFAULT = 7L# clear current fault from lwp */
-PCSSIG   = 8L# set current signal from siginfo_t argument */
-PCKILL   = 9L# post a signal to process/lwp, long argument */
-PCUNKILL = 10L# delete a pending signal from process/lwp, long arg */
-PCSHOLD  = 11L# set lwp signal mask from sigset_t argument */
-PCSTRACE = 12L# set traced signal set from sigset_t argument */
-PCSFAULT = 13L# set traced fault set from fltset_t argument */
-PCSENTRY = 14L# set traced syscall entry set from sysset_t arg */
-PCSEXIT  = 15L# set traced syscall exit set from sysset_t arg */
-PCSET    = 16L# set modes from long argument */
-PCUNSET  = 17L# unset modes from long argument */
-PCSREG   = 18L# set lwp general registers from prgregset_t arg */
-PCSFPREG = 19L# set lwp floating-point registers from prfpregset_t */
-PCSXREG  = 20L# set lwp extra registers from prxregset_t arg */
-PCNICE   = 21L# set nice priority from long argument */
-PCSVADDR = 22L# set %pc virtual address from long argument */
-PCWATCH  = 23L# set/unset watched memory area from prwatch_t arg */
-PCAGENT  = 24L# create agent lwp with regs from prgregset_t arg */
-PCREAD   = 25L# read from the address space via priovec_t arg */
-PCWRITE  = 26L# write to the address space via priovec_t arg */
-PCSCRED  = 27L# set process credentials from prcred_t argument */
-PCSASRS  = 28L# set ancillary state registers from asrset_t arg */
-PCSPRIV  = 29L# set process privileges from prpriv_t argument */
-PCSZONE  = 30L# set zoneid from zoneid_t argument */
-PCSCREDX = 31L# as PCSCRED but with supplemental groups */
+PCNULL   = 0  # null request, advance to next message */
+PCSTOP   = 1  # direct process or lwp to stop and wait for stop */
+PCDSTOP  = 2  # direct process or lwp to stop */
+PCWSTOP  = 3  # wait for process or lwp to stop, no timeout */
+PCTWSTOP = 4  # wait for stop, with long millisecond timeout arg */
+PCRUN    = 5  # make process/lwp runnable, w/ long flags argument */
+PCCSIG   = 6  # clear current signal from lwp */
+PCCFAULT = 7  # clear current fault from lwp */
+PCSSIG   = 8  # set current signal from siginfo_t argument */
+PCKILL   = 9  # post a signal to process/lwp, long argument */
+PCUNKILL = 10 # delete a pending signal from process/lwp, long arg */
+PCSHOLD  = 11 # set lwp signal mask from sigset_t argument */
+PCSTRACE = 12 # set traced signal set from sigset_t argument */
+PCSFAULT = 13 # set traced fault set from fltset_t argument */
+PCSENTRY = 14 # set traced syscall entry set from sysset_t arg */
+PCSEXIT  = 15 # set traced syscall exit set from sysset_t arg */
+PCSET    = 16 # set modes from long argument */
+PCUNSET  = 17 # unset modes from long argument */
+PCSREG   = 18 # set lwp general registers from prgregset_t arg */
+PCSFPREG = 19 # set lwp floating-point registers from prfpregset_t */
+PCSXREG  = 20 # set lwp extra registers from prxregset_t arg */
+PCNICE   = 21 # set nice priority from long argument */
+PCSVADDR = 22 # set %pc virtual address from long argument */
+PCWATCH  = 23 # set/unset watched memory area from prwatch_t arg */
+PCAGENT  = 24 # create agent lwp with regs from prgregset_t arg */
+PCREAD   = 25 # read from the address space via priovec_t arg */
+PCWRITE  = 26 # write to the address space via priovec_t arg */
+PCSCRED  = 27 # set process credentials from prcred_t argument */
+PCSASRS  = 28 # set ancillary state registers from asrset_t arg */
+PCSPRIV  = 29 # set process privileges from prpriv_t argument */
+PCSZONE  = 30 # set zoneid from zoneid_t argument */
+PCSCREDX = 31 # as PCSCRED but with supplemental groups */
 
 # PCRUN long operand flags.
 PRCSIG   = 0x01# clear current signal, if any */
@@ -101,7 +101,8 @@ class SolarisMixin:
         #return ret
 
     def platformAttach(self, pid):
-        self.ctl = file("/proc/%d/ctl" % pid, "ab")
+        # TODO: uck. make a context handler pls
+        self.ctl = open("/proc/%d/ctl" % pid, "ab")
         self.ctl.write(struct.pack("<L", PRSTOP))
 
     def platformContinue(self):
@@ -115,14 +116,13 @@ class SolarisMixin:
         wait for the process to do someting "interesting"
         """
         self.writeCtl(struct.pack("<L", PCWSTOP))
-        bytes = file("/proc/%d/psinfo" % self.pid, "rb").read()
-        return bytes
+        with open("/proc/%d/psinfo" % self.pid, "rb") as f:
+            return f.read()
 
     def writeCtl(self, bytes):
         os.write(self.ctl.fileno(), bytes)
 
     def platformDetach(self):
-        print "SOLARIS DETACH"
         self.ctl.close()
         self.ctl = None
 
@@ -140,7 +140,6 @@ class SolarisIntelMixin:
         a = array.array('c',"\x00" * size)
         baddr, blen = a.buffer_info()
         priovec = struct.pack("<4L",PCREAD, baddr, blen, addr)
-        print repr(priovec)
         self.writeCtl(priovec)
         return a.tostring()
 
@@ -153,12 +152,13 @@ class SolarisIntelMixin:
     def platformGetMaps(self):
         ret = []
         pid = self.getPid()
-        mapdata = file("/proc/%d/map" % pid, "rb").read()
-        while mapdata:
-            addr,size = struct.unpack("<LL", mapdata[:8])
-            perms, = struct.unpack("<L", mapdata[80:84])
-            perms = perms & 0x7
-            ret.append((addr,size, perms, ""))
-            mapdata = mapdata[96:]
-        return ret
+        with open("/proc/%d/map" % pid, "rb") as f:
+            mapdata = f.read()
+            while mapdata:
+                addr,size = struct.unpack("<LL", mapdata[:8])
+                perms, = struct.unpack("<L", mapdata[80:84])
+                perms = perms & 0x7
+                ret.append((addr,size, perms, ""))
+                mapdata = mapdata[96:]
+            return ret
 

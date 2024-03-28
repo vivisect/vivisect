@@ -13,9 +13,18 @@ address of runtime_main(); this module attempts all observed sequences.
 '''
 
 import envi
-import envi.archs.amd64.disasm
 import envi.archs.i386.disasm
+import envi.archs.amd64.disasm
+from vivisect.analysis.i386.golang import golang_collect_opcodes, find_golang_bblock
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Opcode sequence, where element [-6] is the important one.
+_GOLANG_AMD64_INSTRS = ['cld', 'call', 'mov', 'mov', 'mov', 'mov', 'call',
+                        'call', 'call', 'lea', 'push', 'push', 'call',
+                        'pop', 'pop']
 
 def analyze(vw):
     '''
@@ -44,6 +53,7 @@ def analyze(vw):
 
     # Invoke codeflow on runtime_main().
     vw.addEntryPoint(runtime_va)
+    logger.debug('discovered runtime function: 0x%x', runtime_va)
     vw.makeFunction(runtime_va)
 
     # Also mark the ptr_va as a pointer to runtime_va.
@@ -171,7 +181,7 @@ def extract_golang_mainmain(vw, basic_blocks, filename):
     The push instruction -6 from the end will load the contents of a memory
     address, and those contents are the runtime_main() address.
     '''
-    op = find_golang_bblock(vw, basic_blocks, filename)
+    op = find_golang_bblock(vw, basic_blocks, _GOLANG_AMD64_INSTRS, 6)
     if op is None:
         op = find_golang_bblock_via_ind_jmp(vw, filename)
         if op is None:
@@ -181,47 +191,6 @@ def extract_golang_mainmain(vw, basic_blocks, filename):
     # the GO function runtime_mainPC (aka runtime_main).
     ptr_va, runtime_va = parse_lea_raxriprel(vw, op, filename, get_content=True)
     return ptr_va, runtime_va
-
-
-# Opcode sequence, where element [-6] is the important one.
-_GOLANG_AMD64_INSTRS = ['cld', 'call', 'mov', 'mov', 'mov', 'mov', 'call',
-                        'call', 'call', 'lea', 'push', 'push', 'call',
-                        'pop', 'pop']
-
-def find_golang_bblock(vw, basic_blocks, filename):
-    '''
-    Find the basic block of interest and return the opcode where
-    the special sequence of opcodes begins.  Return None if not found.
-
-    For this case, Vivisect interprets the entry as one large function
-    (IDA Pro may break it into 2 or 3 functions linked by jmp instructions).
-    The basic block of interest is in this function.
-    '''
-    the_bblock = None
-    for bblock in basic_blocks:
-        next_va = bblock[0]
-        instrs = []
-        while next_va < bblock[0] + bblock[1]:
-            try:
-                op = vw.parseOpcode(next_va)
-            except envi.InvalidInstruction:
-                op = None
-            if op is None:
-                return None
-            if (len(instrs) > 0) or (op.mnem == _GOLANG_AMD64_INSTRS[0]):
-                # Record instructions from the first opcode match.
-                instrs.append(op)
-            next_va += op.size
-        if len(instrs) >= len(_GOLANG_AMD64_INSTRS):
-            the_bblock = bblock
-            break
-    if the_bblock is None:
-        return None
-
-    for k in range(len(_GOLANG_AMD64_INSTRS)):
-        if instrs[k].mnem != _GOLANG_AMD64_INSTRS[k]:
-            return None
-    return instrs[len(_GOLANG_AMD64_INSTRS) - 6]
 
 
 def find_golang_bblock_via_ind_jmp(vw, filename):
@@ -253,6 +222,7 @@ def find_golang_bblock_via_ind_jmp(vw, filename):
 
     # Analyze the function at the pointer if necessary.
     if not vw.isFunction(ptr_va):
+        logger.debug('discovered new function (ptr): 0x%x', ptr_va)
         vw.makeFunction(ptr_va)
 
     # Expect a function with one BB, ending with an indirect jump
@@ -272,7 +242,7 @@ def find_golang_bblock_via_ind_jmp(vw, filename):
 
     # This function should contain the special basic block.
     basic_blocks = vw.getFunctionBlocks(ptr_va)
-    return find_golang_bblock(vw, basic_blocks, filename)
+    return find_golang_bblock(vw, basic_blocks, _GOLANG_AMD64_INSTRS, 6)
 
 
 def parse_lea_raxriprel(vw, opcode, filename, get_content=False):
@@ -299,20 +269,3 @@ def parse_lea_raxriprel(vw, opcode, filename, get_content=False):
         return ptr_va, runtime_va
     except Exception as e:
         return None, None
-
-
-def golang_collect_opcodes(vw, basic_block):
-    '''
-    Return a list of opcodes in a basic block.
-    Return an empty list of an opcode could not be parsed.
-    '''
-    next_va = basic_block[0]
-    opcodes = []
-    while next_va < basic_block[0] + basic_block[1]:
-        try:
-            op = vw.parseOpcode(next_va)
-        except envi.InvalidInstruction:
-            return []
-        opcodes.append(op)
-        next_va += op.size
-    return opcodes

@@ -13,7 +13,7 @@ class CobraCacheTest(unittest.TestCase):
 
     def test_cobra_cache_basic(self):
         cache = c_cache.FixedDepthCache( 5 )
-        for i in xrange(10):
+        for i in range(10):
             cache.put(i, 'I: %d' % i)
 
         self.assertEqual( cache.get(0), None)
@@ -30,7 +30,7 @@ class CobraCacheTest(unittest.TestCase):
     def test_cobra_cache_size(self):
 
         cache = c_cache.FixedDepthCache( 5 )
-        for i in xrange(10):
+        for i in range(10):
             cache.put(i, 'I: %d' % i)
 
         self.assertEqual( len(cache), 5 )

@@ -452,7 +452,7 @@ class IO_RESOURCE_DESCRIPTOR(vstruct.VStruct):
 class EX_PUSH_LOCK_CACHE_AWARE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Locks = vstruct.VArray([ v_ptr32() for i in xrange(1) ])
+        self.Locks = vstruct.VArray([ v_ptr32() for i in range(1) ])
 
 
 class EX_PUSH_LOCK(vstruct.VStruct):
@@ -507,7 +507,7 @@ class IMAGE_OPTIONAL_HEADER(vstruct.VStruct):
         self.SizeOfHeapCommit = v_uint32()
         self.LoaderFlags = v_uint32()
         self.NumberOfRvaAndSizes = v_uint32()
-        self.DataDirectory = vstruct.VArray([ IMAGE_DATA_DIRECTORY() for i in xrange(16) ])
+        self.DataDirectory = vstruct.VArray([ IMAGE_DATA_DIRECTORY() for i in range(16) ])
 
 
 class OWNER_ENTRY(vstruct.VStruct):
@@ -589,7 +589,7 @@ class CM_PARTIAL_RESOURCE_LIST(vstruct.VStruct):
         self.Version = v_uint16()
         self.Revision = v_uint16()
         self.Count = v_uint32()
-        self.PartialDescriptors = vstruct.VArray([ CM_PARTIAL_RESOURCE_DESCRIPTOR() for i in xrange(1) ])
+        self.PartialDescriptors = vstruct.VArray([ CM_PARTIAL_RESOURCE_DESCRIPTOR() for i in range(1) ])
 
 
 class IO_SECURITY_CONTEXT(vstruct.VStruct):
@@ -627,7 +627,7 @@ class DEVICE_CAPABILITIES(vstruct.VStruct):
         self.DeviceD1 = v_uint32()
         self.Address = v_uint32()
         self.UINumber = v_uint32()
-        self.DeviceState = vstruct.VArray([ DEVICE_POWER_STATE() for i in xrange(7) ])
+        self.DeviceState = vstruct.VArray([ DEVICE_POWER_STATE() for i in range(7) ])
         self.SystemWake = v_uint32()
         self.DeviceWake = v_uint32()
         self.D1Latency = v_uint32()
@@ -718,7 +718,7 @@ class ERESOURCE(vstruct.VStruct):
         self.Flag = v_uint16()
         self.SharedWaiters = v_ptr32()
         self.ExclusiveWaiters = v_ptr32()
-        self.OwnerThreads = vstruct.VArray([ OWNER_ENTRY() for i in xrange(2) ])
+        self.OwnerThreads = vstruct.VArray([ OWNER_ENTRY() for i in range(2) ])
         self.ContentionCount = v_uint32()
         self.NumberOfSharedWaiters = v_uint16()
         self.NumberOfExclusiveWaiters = v_uint16()
@@ -782,7 +782,7 @@ class INITIAL_PRIVILEGE_SET(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.PrivilegeCount = v_uint32()
         self.Control = v_uint32()
-        self.Privilege = vstruct.VArray([ LUID_AND_ATTRIBUTES() for i in xrange(3) ])
+        self.Privilege = vstruct.VArray([ LUID_AND_ATTRIBUTES() for i in range(3) ])
 
 
 class GENERAL_LOOKASIDE(vstruct.VStruct):
@@ -803,7 +803,7 @@ class GENERAL_LOOKASIDE(vstruct.VStruct):
         self.ListEntry = LIST_ENTRY()
         self.LastTotalAllocates = v_uint32()
         self.LastAllocateMisses = v_uint32()
-        self.Future = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.Future = vstruct.VArray([ v_uint32() for i in range(2) ])
 
 
 class ULARGE_INTEGER(vstruct.VStruct):
@@ -828,7 +828,7 @@ class CM_PARTIAL_RESOURCE_DESCRIPTOR(vstruct.VStruct):
 class OBJECT_DIRECTORY(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.HashBuckets = vstruct.VArray([ v_ptr32() for i in xrange(37) ])
+        self.HashBuckets = vstruct.VArray([ v_ptr32() for i in range(37) ])
         self.Lock = EX_PUSH_LOCK()
         self.DeviceMap = v_ptr32()
         self.SessionId = v_uint32()
@@ -1052,7 +1052,7 @@ class OBJECT_TYPE(vstruct.VStruct):
         self.HighWaterNumberOfHandles = v_uint32()
         self.TypeInfo = OBJECT_TYPE_INITIALIZER()
         self.Key = v_uint32()
-        self.ObjectLocks = vstruct.VArray([ ERESOURCE() for i in xrange(4) ])
+        self.ObjectLocks = vstruct.VArray([ ERESOURCE() for i in range(4) ])
 
 
 class DEVICE_OBJECT(vstruct.VStruct):
@@ -1208,7 +1208,7 @@ class COMPRESSED_DATA_INFO(vstruct.VStruct):
         self.ClusterShift = v_uint8()
         self.Reserved = v_uint8()
         self.NumberOfChunks = v_uint16()
-        self.CompressedChunkSizes = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.CompressedChunkSizes = vstruct.VArray([ v_uint32() for i in range(1) ])
 
 
 class BASEOBJECT(vstruct.VStruct):
@@ -1272,7 +1272,7 @@ class tagPOOLRECORD(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.ExtraData = v_ptr32()
         self.size = v_uint32()
-        self.trace = vstruct.VArray([ v_ptr32() for i in xrange(6) ])
+        self.trace = vstruct.VArray([ v_ptr32() for i in range(6) ])
 
 
 class QUAD(vstruct.VStruct):
@@ -1287,7 +1287,7 @@ class GUID(vstruct.VStruct):
         self.Data1 = v_uint32()
         self.Data2 = v_uint16()
         self.Data3 = v_uint16()
-        self.Data4 = vstruct.VArray([ v_uint8() for i in xrange(8) ])
+        self.Data4 = vstruct.VArray([ v_uint8() for i in range(8) ])
 
 
 class OBJECT_DUMP_CONTROL(vstruct.VStruct):
@@ -1352,7 +1352,7 @@ class VPB(vstruct.VStruct):
         self.RealDevice = v_ptr32()
         self.SerialNumber = v_uint32()
         self.ReferenceCount = v_uint32()
-        self.VolumeLabel = vstruct.VArray([ v_uint16() for i in xrange(32) ])
+        self.VolumeLabel = vstruct.VArray([ v_uint16() for i in range(32) ])
 
 
 class ERESOURCE(vstruct.VStruct):
@@ -1430,7 +1430,7 @@ class IO_RESOURCE_LIST(vstruct.VStruct):
         self.Version = v_uint16()
         self.Revision = v_uint16()
         self.Count = v_uint32()
-        self.Descriptors = vstruct.VArray([ IO_RESOURCE_DESCRIPTOR() for i in xrange(1) ])
+        self.Descriptors = vstruct.VArray([ IO_RESOURCE_DESCRIPTOR() for i in range(1) ])
 
 
 class DRIVER_OBJECT(vstruct.VStruct):
@@ -1450,7 +1450,7 @@ class DRIVER_OBJECT(vstruct.VStruct):
         self.DriverInit = v_ptr32()
         self.DriverStartIo = v_ptr32()
         self.DriverUnload = v_ptr32()
-        self.MajorFunction = vstruct.VArray([ v_ptr32() for i in xrange(28) ])
+        self.MajorFunction = vstruct.VArray([ v_ptr32() for i in range(28) ])
 
 
 class IO_STATUS_BLOCK(vstruct.VStruct):
@@ -1465,14 +1465,14 @@ class PRIVILEGE_SET(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.PrivilegeCount = v_uint32()
         self.Control = v_uint32()
-        self.Privilege = vstruct.VArray([ LUID_AND_ATTRIBUTES() for i in xrange(1) ])
+        self.Privilege = vstruct.VArray([ LUID_AND_ATTRIBUTES() for i in range(1) ])
 
 
 class CM_RESOURCE_LIST(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Count = v_uint32()
-        self.List = vstruct.VArray([ CM_FULL_RESOURCE_DESCRIPTOR() for i in xrange(1) ])
+        self.List = vstruct.VArray([ CM_FULL_RESOURCE_DESCRIPTOR() for i in range(1) ])
 
 
 class EPROCESS(vstruct.VStruct):
@@ -1557,9 +1557,9 @@ class IO_RESOURCE_REQUIREMENTS_LIST(vstruct.VStruct):
         self.InterfaceType = v_uint32()
         self.BusNumber = v_uint32()
         self.SlotNumber = v_uint32()
-        self.Reserved = vstruct.VArray([ v_uint32() for i in xrange(3) ])
+        self.Reserved = vstruct.VArray([ v_uint32() for i in range(3) ])
         self.AlternativeLists = v_uint32()
-        self.List = vstruct.VArray([ IO_RESOURCE_LIST() for i in xrange(1) ])
+        self.List = vstruct.VArray([ IO_RESOURCE_LIST() for i in range(1) ])
 
 
 class SLIST_HEADER(vstruct.VStruct):

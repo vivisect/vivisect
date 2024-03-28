@@ -3,12 +3,9 @@ Some utils for QT code which uses vstruct...
 '''
 import vqt.tree as vq_tree
 
-try:
-    from PyQt5.QtWidgets import *
-except:
-    from PyQt4.QtGui import *
+from PyQt5.QtWidgets import *
 
-from vqt.main import idlethread, idlethreadsync
+from vqt.main import idlethreadsync
 
 class VQStructNamespacesView(vq_tree.VQTreeView):
 
@@ -116,6 +113,9 @@ class VQStructNamespacesView(vq_tree.VQTreeView):
         pos = model.append(('posix',''))
         pos_elf = model.append(('', 'Elf'), parent=pos)
         pos_elf.modinfo = ('elf', 'vstruct.defs.elf')
+
+        osx  = model.append(('osx', ''))
+        osx_macho = model.append(('', 'macho'), parent=osx)
 
         self.setModel(model)
 

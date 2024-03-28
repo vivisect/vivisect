@@ -18,3 +18,12 @@ class fat_arch(vstruct.VStruct):
         self.size       = v_uint32(bigend=True)  # size of this object file */
         self.align      = v_uint32(bigend=True)  # alignment as a power of 2 */
 
+class fat_arch_64(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.cputype    = v_uint32(bigend=True)  # cpu specifier (int) */
+        self.cpusubtype = v_uint32(bigend=True)  # machine specifier (int) */
+        self.offset     = v_uint64(bigend=True)  # file offset to this object file */
+        self.size       = v_uint64(bigend=True)  # size of this object file */
+        self.align      = v_uint32(bigend=True)  # alignment as a power of 2 */
+        self.reserved   = v_uint32(bigend=True)

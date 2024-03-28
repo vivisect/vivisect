@@ -1521,7 +1521,7 @@ class IOV_FORCED_PENDING_TRACE(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.Irp = v_ptr64()
         self.Thread = v_ptr64()
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(62) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(62) ])
 
 
 class SEGMENT_OBJECT(vstruct.VStruct):
@@ -1560,7 +1560,7 @@ class SID(vstruct.VStruct):
         self.Revision = v_uint8()
         self.SubAuthorityCount = v_uint8()
         self.IdentifierAuthority = SID_IDENTIFIER_AUTHORITY()
-        self.SubAuthority = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.SubAuthority = vstruct.VArray([ v_uint32() for i in range(1) ])
 
 
 class MMPTE_HARDWARE(vstruct.VStruct):
@@ -1602,7 +1602,7 @@ class GROUP_AFFINITY(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.Mask = v_uint64()
         self.Group = v_uint16()
-        self.Reserved = vstruct.VArray([ v_uint16() for i in xrange(3) ])
+        self.Reserved = vstruct.VArray([ v_uint16() for i in range(3) ])
 
 
 class UMS_CONTROL_BLOCK(vstruct.VStruct):
@@ -1629,7 +1629,7 @@ class VI_VERIFIER_ISSUE(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.IssueType = v_uint64()
         self.Address = v_ptr64()
-        self.Parameters = vstruct.VArray([ v_uint64() for i in xrange(2) ])
+        self.Parameters = vstruct.VArray([ v_uint64() for i in range(2) ])
 
 
 class DBGKD_LOAD_SYMBOLS32(vstruct.VStruct):
@@ -1711,14 +1711,14 @@ class KALPC_SECTION(vstruct.VStruct):
 class KREQUEST_PACKET(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.CurrentPacket = vstruct.VArray([ v_ptr64() for i in xrange(3) ])
+        self.CurrentPacket = vstruct.VArray([ v_ptr64() for i in range(3) ])
         self.WorkerRoutine = v_ptr64()
 
 
 class PERFINFO_GROUPMASK(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Masks = vstruct.VArray([ v_uint32() for i in xrange(8) ])
+        self.Masks = vstruct.VArray([ v_uint32() for i in range(8) ])
 
 
 class HARDWARE_PTE(vstruct.VStruct):
@@ -1792,7 +1792,7 @@ class WHEA_ERROR_RECORD_SECTION_DESCRIPTOR(vstruct.VStruct):
         self.SectionType = GUID()
         self.FRUId = GUID()
         self.SectionSeverity = v_uint32()
-        self.FRUText = vstruct.VArray([ v_uint8() for i in xrange(20) ])
+        self.FRUText = vstruct.VArray([ v_uint8() for i in range(20) ])
 
 
 class AUX_ACCESS_DATA(vstruct.VStruct):
@@ -1866,7 +1866,7 @@ class PS_CPU_QUOTA_BLOCK(vstruct.VStruct):
         self.CpuCyclePercent = v_uint32()
         self.CyclesFinishedForCurrentGeneration = v_uint8()
         self._pad0080 = v_bytes(size=47)
-        self.Cpu = vstruct.VArray([ PS_PER_CPU_QUOTA_CACHE_AWARE() for i in xrange(256) ])
+        self.Cpu = vstruct.VArray([ PS_PER_CPU_QUOTA_CACHE_AWARE() for i in range(256) ])
 
 
 class _unnamed_29494(vstruct.VStruct):
@@ -1882,7 +1882,7 @@ class CM_PARTIAL_RESOURCE_LIST(vstruct.VStruct):
         self.Version = v_uint16()
         self.Revision = v_uint16()
         self.Count = v_uint32()
-        self.PartialDescriptors = vstruct.VArray([ CM_PARTIAL_RESOURCE_DESCRIPTOR() for i in xrange(1) ])
+        self.PartialDescriptors = vstruct.VArray([ CM_PARTIAL_RESOURCE_DESCRIPTOR() for i in range(1) ])
 
 
 class DBGKD_RESTORE_BREAKPOINT(vstruct.VStruct):
@@ -1905,7 +1905,7 @@ class DEVICE_CAPABILITIES(vstruct.VStruct):
         self.DeviceD1 = v_uint32()
         self.Address = v_uint32()
         self.UINumber = v_uint32()
-        self.DeviceState = vstruct.VArray([ DEVICE_POWER_STATE() for i in xrange(7) ])
+        self.DeviceState = vstruct.VArray([ DEVICE_POWER_STATE() for i in range(7) ])
         self.SystemWake = v_uint32()
         self.DeviceWake = v_uint32()
         self.D1Latency = v_uint32()
@@ -1918,7 +1918,7 @@ class IOP_FILE_OBJECT_EXTENSION(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.FoExtFlags = v_uint32()
         self._pad0008 = v_bytes(size=4)
-        self.FoExtPerTypeExtension = vstruct.VArray([ v_ptr64() for i in xrange(7) ])
+        self.FoExtPerTypeExtension = vstruct.VArray([ v_ptr64() for i in range(7) ])
         self.FoIoPriorityHint = v_uint32()
         self._pad0048 = v_bytes(size=4)
 
@@ -1934,20 +1934,20 @@ class _unnamed_26924(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.ClassGuid = GUID()
-        self.SymbolicLinkName = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.SymbolicLinkName = vstruct.VArray([ v_uint16() for i in range(1) ])
         self._pad0014 = v_bytes(size=2)
 
 
 class _unnamed_26927(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.DeviceIds = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.DeviceIds = vstruct.VArray([ v_uint16() for i in range(1) ])
 
 
 class TOKEN_AUDIT_POLICY(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.PerUserPolicy = vstruct.VArray([ v_uint8() for i in xrange(27) ])
+        self.PerUserPolicy = vstruct.VArray([ v_uint8() for i in range(27) ])
 
 
 class PCW_INSTANCE(vstruct.VStruct):
@@ -1964,7 +1964,7 @@ class DUAL(vstruct.VStruct):
         self.SmallDir = v_ptr64()
         self.Guard = v_uint32()
         self._pad0020 = v_bytes(size=4)
-        self.FreeDisplay = vstruct.VArray([ FREE_DISPLAY() for i in xrange(24) ])
+        self.FreeDisplay = vstruct.VArray([ FREE_DISPLAY() for i in range(24) ])
         self.FreeSummary = v_uint32()
         self._pad0268 = v_bytes(size=4)
         self.FreeBins = LIST_ENTRY()
@@ -2012,7 +2012,7 @@ class EXCEPTION_RECORD64(vstruct.VStruct):
         self.ExceptionAddress = v_uint64()
         self.NumberParameters = v_uint32()
         self.unusedAlignment = v_uint32()
-        self.ExceptionInformation = vstruct.VArray([ v_uint64() for i in xrange(15) ])
+        self.ExceptionInformation = vstruct.VArray([ v_uint64() for i in range(15) ])
 
 
 class KPROCESS(vstruct.VStruct):
@@ -2032,8 +2032,8 @@ class KPROCESS(vstruct.VStruct):
         self.QuantumReset = v_uint8()
         self.Visited = v_uint8()
         self.Unused3 = v_uint8()
-        self.ThreadSeed = vstruct.VArray([ v_uint32() for i in xrange(4) ])
-        self.IdealNode = vstruct.VArray([ v_uint16() for i in xrange(4) ])
+        self.ThreadSeed = vstruct.VArray([ v_uint32() for i in range(4) ])
+        self.IdealNode = vstruct.VArray([ v_uint16() for i in range(4) ])
         self.IdealGlobalNode = v_uint16()
         self.Flags = KEXECUTE_OPTIONS()
         self.Unused1 = v_uint8()
@@ -2111,7 +2111,7 @@ class HEAP_TAG_ENTRY(vstruct.VStruct):
         self.Size = v_uint64()
         self.TagIndex = v_uint16()
         self.CreatorBackTraceIndex = v_uint16()
-        self.TagName = vstruct.VArray([ v_uint16() for i in xrange(24) ])
+        self.TagName = vstruct.VArray([ v_uint16() for i in range(24) ])
         self._pad0048 = v_bytes(size=4)
 
 
@@ -2232,7 +2232,7 @@ class XSTATE_CONFIGURATION(vstruct.VStruct):
         self.EnabledFeatures = v_uint64()
         self.Size = v_uint32()
         self.OptimizedSave = v_uint32()
-        self.Features = vstruct.VArray([ XSTATE_FEATURE() for i in xrange(64) ])
+        self.Features = vstruct.VArray([ XSTATE_FEATURE() for i in range(64) ])
 
 
 class PS_CLIENT_SECURITY_CONTEXT(vstruct.VStruct):
@@ -2279,7 +2279,7 @@ class PNP_ASSIGN_RESOURCES_CONTEXT(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.IncludeFailedDevices = v_uint32()
         self.DeviceCount = v_uint32()
-        self.DeviceList = vstruct.VArray([ v_ptr64() for i in xrange(1) ])
+        self.DeviceList = vstruct.VArray([ v_ptr64() for i in range(1) ])
 
 
 class _unnamed_27302(vstruct.VStruct):
@@ -2647,8 +2647,8 @@ class PROC_IDLE_ACCOUNTING(vstruct.VStruct):
         self.ResetCount = v_uint32()
         self._pad0010 = v_bytes(size=4)
         self.StartTime = v_uint64()
-        self.BucketLimits = vstruct.VArray([ v_uint64() for i in xrange(16) ])
-        self.State = vstruct.VArray([ PROC_IDLE_STATE_ACCOUNTING() for i in xrange(1) ])
+        self.BucketLimits = vstruct.VArray([ v_uint64() for i in range(16) ])
+        self.State = vstruct.VArray([ PROC_IDLE_STATE_ACCOUNTING() for i in range(1) ])
 
 
 class _unnamed_19929(vstruct.VStruct):
@@ -2664,7 +2664,7 @@ class GDI_TEB_BATCH(vstruct.VStruct):
         self.Offset = v_uint32()
         self._pad0008 = v_bytes(size=4)
         self.HDC = v_uint64()
-        self.Buffer = vstruct.VArray([ v_uint32() for i in xrange(310) ])
+        self.Buffer = vstruct.VArray([ v_uint32() for i in range(310) ])
 
 
 class DBGKD_SET_SPECIAL_CALL32(vstruct.VStruct):
@@ -2677,7 +2677,7 @@ class SYSTEM_POWER_LEVEL(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Enable = v_uint8()
-        self.Spare = vstruct.VArray([ v_uint8() for i in xrange(3) ])
+        self.Spare = vstruct.VArray([ v_uint8() for i in range(3) ])
         self.BatteryLevel = v_uint32()
         self.PowerPolicy = POWER_ACTION_POLICY()
         self.MinSystemState = v_uint32()
@@ -2739,12 +2739,12 @@ class PEB32(vstruct.VStruct):
         self.IFEOKey = v_uint32()
         self.CrossProcessFlags = v_uint32()
         self.KernelCallbackTable = v_uint32()
-        self.SystemReserved = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.SystemReserved = vstruct.VArray([ v_uint32() for i in range(1) ])
         self.AtlThunkSListPtr32 = v_uint32()
         self.ApiSetMap = v_uint32()
         self.TlsExpansionCounter = v_uint32()
         self.TlsBitmap = v_uint32()
-        self.TlsBitmapBits = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.TlsBitmapBits = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.ReadOnlySharedMemoryBase = v_uint32()
         self.HotpatchInformation = v_uint32()
         self.ReadOnlyStaticServerData = v_uint32()
@@ -2775,10 +2775,10 @@ class PEB32(vstruct.VStruct):
         self.ImageSubsystemMajorVersion = v_uint32()
         self.ImageSubsystemMinorVersion = v_uint32()
         self.ActiveProcessAffinityMask = v_uint32()
-        self.GdiHandleBuffer = vstruct.VArray([ v_uint32() for i in xrange(34) ])
+        self.GdiHandleBuffer = vstruct.VArray([ v_uint32() for i in range(34) ])
         self.PostProcessInitRoutine = v_uint32()
         self.TlsExpansionBitmap = v_uint32()
-        self.TlsExpansionBitmapBits = vstruct.VArray([ v_uint32() for i in xrange(32) ])
+        self.TlsExpansionBitmapBits = vstruct.VArray([ v_uint32() for i in range(32) ])
         self.SessionId = v_uint32()
         self.AppCompatFlags = ULARGE_INTEGER()
         self.AppCompatFlagsUser = ULARGE_INTEGER()
@@ -2793,7 +2793,7 @@ class PEB32(vstruct.VStruct):
         self.FlsCallback = v_uint32()
         self.FlsListHead = LIST_ENTRY32()
         self.FlsBitmap = v_uint32()
-        self.FlsBitmapBits = vstruct.VArray([ v_uint32() for i in xrange(4) ])
+        self.FlsBitmapBits = vstruct.VArray([ v_uint32() for i in range(4) ])
         self.FlsHighIndex = v_uint32()
         self.WerRegistrationData = v_uint32()
         self.WerShipAssertPtr = v_uint32()
@@ -2896,7 +2896,7 @@ class KTRAP_FRAME(vstruct.VStruct):
         self.SegCs = v_uint16()
         self.Fill0 = v_uint8()
         self.Logging = v_uint8()
-        self.Fill1 = vstruct.VArray([ v_uint16() for i in xrange(2) ])
+        self.Fill1 = vstruct.VArray([ v_uint16() for i in range(2) ])
         self.EFlags = v_uint32()
         self.Fill2 = v_uint32()
         self.Rsp = v_uint64()
@@ -2909,7 +2909,7 @@ class CM_INDEX_HINT_BLOCK(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Count = v_uint32()
-        self.HashKey = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.HashKey = vstruct.VArray([ v_uint32() for i in range(1) ])
 
 
 class PRIVATE_CACHE_MAP(vstruct.VStruct):
@@ -2999,7 +2999,7 @@ class EVENT_FILTER_HEADER(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.Id = v_uint16()
         self.Version = v_uint8()
-        self.Reserved = vstruct.VArray([ v_uint8() for i in xrange(5) ])
+        self.Reserved = vstruct.VArray([ v_uint8() for i in range(5) ])
         self.InstanceId = v_uint64()
         self.Size = v_uint32()
         self.NextOffset = v_uint32()
@@ -3050,7 +3050,7 @@ class _unnamed_22477(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Mdl = MDL()
-        self.Page = vstruct.VArray([ v_uint64() for i in xrange(1) ])
+        self.Page = vstruct.VArray([ v_uint64() for i in range(1) ])
 
 
 class PCW_PROCESSOR_INFO(vstruct.VStruct):
@@ -3182,9 +3182,9 @@ class VI_DEADLOCK_RESOURCE(vstruct.VStruct):
         self.ThreadOwner = v_ptr64()
         self.ResourceList = LIST_ENTRY()
         self.HashChainList = LIST_ENTRY()
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(8) ])
-        self.LastAcquireTrace = vstruct.VArray([ v_ptr64() for i in xrange(8) ])
-        self.LastReleaseTrace = vstruct.VArray([ v_ptr64() for i in xrange(8) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(8) ])
+        self.LastAcquireTrace = vstruct.VArray([ v_ptr64() for i in range(8) ])
+        self.LastReleaseTrace = vstruct.VArray([ v_ptr64() for i in range(8) ])
 
 
 class UNEXPECTED_INTERRUPT(vstruct.VStruct):
@@ -3275,7 +3275,7 @@ class CM_TRANS(vstruct.VStruct):
         self.StartLsn = v_uint64()
         self.TransState = v_uint32()
         self.HiveCount = v_uint32()
-        self.HiveArray = vstruct.VArray([ v_ptr64() for i in xrange(7) ])
+        self.HiveArray = vstruct.VArray([ v_ptr64() for i in range(7) ])
 
 
 class POP_POWER_ACTION(vstruct.VStruct):
@@ -3434,7 +3434,7 @@ class HBIN(vstruct.VStruct):
         self.Signature = v_uint32()
         self.FileOffset = v_uint32()
         self.Size = v_uint32()
-        self.Reserved1 = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.Reserved1 = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.TimeStamp = LARGE_INTEGER()
         self.Spare = v_uint32()
 
@@ -3533,7 +3533,7 @@ class VPB(vstruct.VStruct):
         self.RealDevice = v_ptr64()
         self.SerialNumber = v_uint32()
         self.ReferenceCount = v_uint32()
-        self.VolumeLabel = vstruct.VArray([ v_uint16() for i in xrange(32) ])
+        self.VolumeLabel = vstruct.VArray([ v_uint16() for i in range(32) ])
 
 
 class OBP_LOOKUP_CONTEXT(vstruct.VStruct):
@@ -3622,23 +3622,23 @@ class KUSER_SHARED_DATA(vstruct.VStruct):
         self.TimeZoneBias = KSYSTEM_TIME()
         self.ImageNumberLow = v_uint16()
         self.ImageNumberHigh = v_uint16()
-        self.NtSystemRoot = vstruct.VArray([ v_uint16() for i in xrange(260) ])
+        self.NtSystemRoot = vstruct.VArray([ v_uint16() for i in range(260) ])
         self.MaxStackTraceDepth = v_uint32()
         self.CryptoExponent = v_uint32()
         self.TimeZoneId = v_uint32()
         self.LargePageMinimum = v_uint32()
-        self.Reserved2 = vstruct.VArray([ v_uint32() for i in xrange(7) ])
+        self.Reserved2 = vstruct.VArray([ v_uint32() for i in range(7) ])
         self.NtProductType = v_uint32()
         self.ProductTypeIsValid = v_uint8()
         self._pad026c = v_bytes(size=3)
         self.NtMajorVersion = v_uint32()
         self.NtMinorVersion = v_uint32()
-        self.ProcessorFeatures = vstruct.VArray([ v_uint8() for i in xrange(64) ])
+        self.ProcessorFeatures = vstruct.VArray([ v_uint8() for i in range(64) ])
         self.Reserved1 = v_uint32()
         self.Reserved3 = v_uint32()
         self.TimeSlip = v_uint32()
         self.AlternativeArchitecture = v_uint32()
-        self.AltArchitecturePad = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.AltArchitecturePad = vstruct.VArray([ v_uint32() for i in range(1) ])
         self.SystemExpirationDate = LARGE_INTEGER()
         self.SuiteMask = v_uint32()
         self.KdDebuggerEnabled = v_uint8()
@@ -3651,20 +3651,20 @@ class KUSER_SHARED_DATA(vstruct.VStruct):
         self.NumberOfPhysicalPages = v_uint32()
         self.SafeBootMode = v_uint8()
         self.TscQpcData = v_uint8()
-        self.TscQpcPad = vstruct.VArray([ v_uint8() for i in xrange(2) ])
+        self.TscQpcPad = vstruct.VArray([ v_uint8() for i in range(2) ])
         self.SharedDataFlags = v_uint32()
-        self.DataFlagsPad = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.DataFlagsPad = vstruct.VArray([ v_uint32() for i in range(1) ])
         self.TestRetInstruction = v_uint64()
         self.SystemCall = v_uint32()
         self.SystemCallReturn = v_uint32()
-        self.SystemCallPad = vstruct.VArray([ v_uint64() for i in xrange(3) ])
+        self.SystemCallPad = vstruct.VArray([ v_uint64() for i in range(3) ])
         self.TickCount = KSYSTEM_TIME()
-        self.TickCountPad = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.TickCountPad = vstruct.VArray([ v_uint32() for i in range(1) ])
         self.Cookie = v_uint32()
-        self.CookiePad = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.CookiePad = vstruct.VArray([ v_uint32() for i in range(1) ])
         self.ConsoleSessionForegroundProcessId = v_uint64()
-        self.Wow64SharedInformation = vstruct.VArray([ v_uint32() for i in xrange(16) ])
-        self.UserModeGlobalLogger = vstruct.VArray([ v_uint16() for i in xrange(16) ])
+        self.Wow64SharedInformation = vstruct.VArray([ v_uint32() for i in range(16) ])
+        self.UserModeGlobalLogger = vstruct.VArray([ v_uint16() for i in range(16) ])
         self.ImageFileExecutionOptions = v_uint32()
         self.LangGenerationCount = v_uint32()
         self.Reserved5 = v_uint64()
@@ -3677,7 +3677,7 @@ class KUSER_SHARED_DATA(vstruct.VStruct):
         self.AppCompatFlag = v_uint32()
         self.SystemDllNativeRelocation = v_uint64()
         self.SystemDllWowRelocation = v_uint32()
-        self.XStatePad = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.XStatePad = vstruct.VArray([ v_uint32() for i in range(1) ])
         self.XState = XSTATE_CONFIGURATION()
 
 
@@ -3809,17 +3809,17 @@ class TEB64(vstruct.VStruct):
         self.CountOfOwnedCriticalSections = v_uint32()
         self.CsrClientThread = v_uint64()
         self.Win32ThreadInfo = v_uint64()
-        self.User32Reserved = vstruct.VArray([ v_uint32() for i in xrange(26) ])
-        self.UserReserved = vstruct.VArray([ v_uint32() for i in xrange(5) ])
+        self.User32Reserved = vstruct.VArray([ v_uint32() for i in range(26) ])
+        self.UserReserved = vstruct.VArray([ v_uint32() for i in range(5) ])
         self._pad0100 = v_bytes(size=4)
         self.WOW32Reserved = v_uint64()
         self.CurrentLocale = v_uint32()
         self.FpSoftwareStatusRegister = v_uint32()
-        self.SystemReserved1 = vstruct.VArray([ v_uint64() for i in xrange(54) ])
+        self.SystemReserved1 = vstruct.VArray([ v_uint64() for i in range(54) ])
         self.ExceptionCode = v_uint32()
         self._pad02c8 = v_bytes(size=4)
         self.ActivationContextStackPointer = v_uint64()
-        self.SpareBytes = vstruct.VArray([ v_uint8() for i in xrange(24) ])
+        self.SpareBytes = vstruct.VArray([ v_uint8() for i in range(24) ])
         self.TxFsContext = v_uint32()
         self._pad02f0 = v_bytes(size=4)
         self.GdiTebBatch = GDI_TEB_BATCH64()
@@ -3828,9 +3828,9 @@ class TEB64(vstruct.VStruct):
         self.GdiClientPID = v_uint32()
         self.GdiClientTID = v_uint32()
         self.GdiThreadLocalInfo = v_uint64()
-        self.Win32ClientInfo = vstruct.VArray([ v_uint64() for i in xrange(62) ])
-        self.glDispatchTable = vstruct.VArray([ v_uint64() for i in xrange(233) ])
-        self.glReserved1 = vstruct.VArray([ v_uint64() for i in xrange(29) ])
+        self.Win32ClientInfo = vstruct.VArray([ v_uint64() for i in range(62) ])
+        self.glDispatchTable = vstruct.VArray([ v_uint64() for i in range(233) ])
+        self.glReserved1 = vstruct.VArray([ v_uint64() for i in range(29) ])
         self.glReserved2 = v_uint64()
         self.glSectionInfo = v_uint64()
         self.glSection = v_uint64()
@@ -3840,17 +3840,17 @@ class TEB64(vstruct.VStruct):
         self.LastStatusValue = v_uint32()
         self._pad1258 = v_bytes(size=4)
         self.StaticUnicodeString = STRING64()
-        self.StaticUnicodeBuffer = vstruct.VArray([ v_uint16() for i in xrange(261) ])
+        self.StaticUnicodeBuffer = vstruct.VArray([ v_uint16() for i in range(261) ])
         self._pad1478 = v_bytes(size=6)
         self.DeallocationStack = v_uint64()
-        self.TlsSlots = vstruct.VArray([ v_uint64() for i in xrange(64) ])
+        self.TlsSlots = vstruct.VArray([ v_uint64() for i in range(64) ])
         self.TlsLinks = LIST_ENTRY64()
         self.Vdm = v_uint64()
         self.ReservedForNtRpc = v_uint64()
-        self.DbgSsReserved = vstruct.VArray([ v_uint64() for i in xrange(2) ])
+        self.DbgSsReserved = vstruct.VArray([ v_uint64() for i in range(2) ])
         self.HardErrorMode = v_uint32()
         self._pad16b8 = v_bytes(size=4)
-        self.Instrumentation = vstruct.VArray([ v_uint64() for i in xrange(11) ])
+        self.Instrumentation = vstruct.VArray([ v_uint64() for i in range(11) ])
         self.ActivityId = GUID()
         self.SubProcessTag = v_uint64()
         self.EtwLocalData = v_uint64()
@@ -3912,7 +3912,7 @@ class CM_RESOURCE_LIST(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Count = v_uint32()
-        self.List = vstruct.VArray([ CM_FULL_RESOURCE_DESCRIPTOR() for i in xrange(1) ])
+        self.List = vstruct.VArray([ CM_FULL_RESOURCE_DESCRIPTOR() for i in range(1) ])
 
 
 class EPROCESS(vstruct.VStruct):
@@ -3925,8 +3925,8 @@ class EPROCESS(vstruct.VStruct):
         self.RundownProtect = EX_RUNDOWN_REF()
         self.UniqueProcessId = v_ptr64()
         self.ActiveProcessLinks = LIST_ENTRY()
-        self.ProcessQuotaUsage = vstruct.VArray([ v_uint64() for i in xrange(2) ])
-        self.ProcessQuotaPeak = vstruct.VArray([ v_uint64() for i in xrange(2) ])
+        self.ProcessQuotaUsage = vstruct.VArray([ v_uint64() for i in range(2) ])
+        self.ProcessQuotaPeak = vstruct.VArray([ v_uint64() for i in range(2) ])
         self.CommitCharge = v_uint64()
         self.QuotaBlock = v_ptr64()
         self.CpuQuotaBlock = v_ptr64()
@@ -3964,7 +3964,7 @@ class EPROCESS(vstruct.VStruct):
         self.FreeUmsTebHint = v_ptr64()
         self.PageDirectoryPte = HARDWARE_PTE()
         self.Session = v_ptr64()
-        self.ImageFileName = vstruct.VArray([ v_uint8() for i in xrange(15) ])
+        self.ImageFileName = vstruct.VArray([ v_uint8() for i in range(15) ])
         self.PriorityClass = v_uint8()
         self.JobLinks = LIST_ENTRY()
         self.LockedPagesList = v_ptr64()
@@ -4245,7 +4245,7 @@ class DBGKD_GET_VERSION64(vstruct.VStruct):
         self.MaxStateChange = v_uint8()
         self.MaxManipulate = v_uint8()
         self.Simulation = v_uint8()
-        self.Unused = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.Unused = vstruct.VArray([ v_uint16() for i in range(1) ])
         self.KernBase = v_uint64()
         self.PsLoadedModuleList = v_uint64()
         self.DebuggerDataList = v_uint64()
@@ -4254,8 +4254,8 @@ class DBGKD_GET_VERSION64(vstruct.VStruct):
 class KTIMER_TABLE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.TimerExpiry = vstruct.VArray([ v_ptr64() for i in xrange(64) ])
-        self.TimerEntries = vstruct.VArray([ KTIMER_TABLE_ENTRY() for i in xrange(256) ])
+        self.TimerExpiry = vstruct.VArray([ v_ptr64() for i in range(64) ])
+        self.TimerEntries = vstruct.VArray([ KTIMER_TABLE_ENTRY() for i in range(256) ])
 
 
 class _unnamed_27299(vstruct.VStruct):
@@ -4332,7 +4332,7 @@ class CM_KEY_CONTROL_BLOCK(vstruct.VStruct):
         self.ValueCache = CACHED_CHILD_LIST()
         self.IndexHint = v_ptr64()
         self.KeyBodyListHead = LIST_ENTRY()
-        self.KeyBodyArray = vstruct.VArray([ v_ptr64() for i in xrange(4) ])
+        self.KeyBodyArray = vstruct.VArray([ v_ptr64() for i in range(4) ])
         self.KcbLastWriteTime = LARGE_INTEGER()
         self.KcbMaxNameLen = v_uint16()
         self.KcbMaxValueNameLen = v_uint16()
@@ -4394,10 +4394,10 @@ class MMWSL(vstruct.VStruct):
         self.CommittedPageTables = v_ptr64()
         self.NumberOfCommittedPageDirectories = v_uint32()
         self._pad0078 = v_bytes(size=4)
-        self.CommittedPageDirectories = vstruct.VArray([ v_uint64() for i in xrange(128) ])
+        self.CommittedPageDirectories = vstruct.VArray([ v_uint64() for i in range(128) ])
         self.NumberOfCommittedPageDirectoryParents = v_uint32()
         self._pad0480 = v_bytes(size=4)
-        self.CommittedPageDirectoryParents = vstruct.VArray([ v_uint64() for i in xrange(1) ])
+        self.CommittedPageDirectoryParents = vstruct.VArray([ v_uint64() for i in range(1) ])
 
 
 class KTMOBJECT_NAMESPACE_LINK(vstruct.VStruct):
@@ -4454,7 +4454,7 @@ class PROC_IDLE_STATE_ACCOUNTING(vstruct.VStruct):
         self._pad0018 = v_bytes(size=4)
         self.MinTime = v_uint64()
         self.MaxTime = v_uint64()
-        self.IdleTimeBuckets = vstruct.VArray([ PROC_IDLE_STATE_BUCKET() for i in xrange(16) ])
+        self.IdleTimeBuckets = vstruct.VArray([ PROC_IDLE_STATE_BUCKET() for i in range(16) ])
 
 
 class _unnamed_28314(vstruct.VStruct):
@@ -4485,7 +4485,7 @@ class _unnamed_21392(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.InPath = v_uint8()
-        self.Reserved = vstruct.VArray([ v_uint8() for i in xrange(3) ])
+        self.Reserved = vstruct.VArray([ v_uint8() for i in range(3) ])
         self._pad0008 = v_bytes(size=4)
         self.Type = v_uint32()
         self._pad0010 = v_bytes(size=4)
@@ -4610,7 +4610,7 @@ class ACL(vstruct.VStruct):
 class _unnamed_26929(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.DeviceId = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.DeviceId = vstruct.VArray([ v_uint16() for i in range(1) ])
 
 
 class KQUEUE(vstruct.VStruct):
@@ -4666,7 +4666,7 @@ class SEGMENT(vstruct.VStruct):
         self.u1 = _unnamed_22243()
         self.u2 = _unnamed_22244()
         self.PrototypePte = v_ptr64()
-        self.ThePtes = vstruct.VArray([ MMPTE() for i in xrange(1) ])
+        self.ThePtes = vstruct.VArray([ MMPTE() for i in range(1) ])
 
 
 class LUID_AND_ATTRIBUTES(vstruct.VStruct):
@@ -4748,7 +4748,7 @@ class MMMOD_WRITER_MDL_ENTRY(vstruct.VStruct):
         self.IssueTime = LARGE_INTEGER()
         self.PointerMdl = v_ptr64()
         self.Mdl = MDL()
-        self.Page = vstruct.VArray([ v_uint64() for i in xrange(1) ])
+        self.Page = vstruct.VArray([ v_uint64() for i in range(1) ])
 
 
 class CACHED_CHILD_LIST(vstruct.VStruct):
@@ -4783,7 +4783,7 @@ class KTHREAD(vstruct.VStruct):
         self.ThreadLock = v_uint64()
         self.WaitRegister = KWAIT_STATUS_REGISTER()
         self.Running = v_uint8()
-        self.Alerted = vstruct.VArray([ v_uint8() for i in xrange(2) ])
+        self.Alerted = vstruct.VArray([ v_uint8() for i in range(2) ])
         self.KernelStackResident = v_uint32()
         self.ApcState = KAPC_STATE()
         self.DeferredProcessor = v_uint32()
@@ -4797,7 +4797,7 @@ class KTHREAD(vstruct.VStruct):
         self.Timer = KTIMER()
         self.AutoAlignment = v_uint32()
         self.Spare0 = v_uint32()
-        self.WaitBlock = vstruct.VArray([ KWAIT_BLOCK() for i in xrange(4) ])
+        self.WaitBlock = vstruct.VArray([ KWAIT_BLOCK() for i in range(4) ])
         self.QueueListEntry = LIST_ENTRY()
         self.TrapFrame = v_ptr64()
         self.FirstArgument = v_ptr64()
@@ -4817,7 +4817,7 @@ class KTHREAD(vstruct.VStruct):
         self.Affinity = GROUP_AFFINITY()
         self.IdealProcessor = v_uint32()
         self.UserIdealProcessor = v_uint32()
-        self.ApcStatePointer = vstruct.VArray([ v_ptr64() for i in xrange(2) ])
+        self.ApcStatePointer = vstruct.VArray([ v_ptr64() for i in range(2) ])
         self.SavedApcState = KAPC_STATE()
         self.Win32Thread = v_ptr64()
         self.StackBase = v_ptr64()
@@ -4972,7 +4972,7 @@ class CONTEXT(vstruct.VStruct):
         self.R15 = v_uint64()
         self.Rip = v_uint64()
         self.FltSave = XSAVE_FORMAT()
-        self.VectorRegister = vstruct.VArray([ M128A() for i in xrange(26) ])
+        self.VectorRegister = vstruct.VArray([ M128A() for i in range(26) ])
         self.VectorControl = v_uint64()
         self.DebugControl = v_uint64()
         self.LastBranchToRip = v_uint64()
@@ -5053,7 +5053,7 @@ class KTRANSACTION(vstruct.VStruct):
         self._pad0200 = v_bytes(size=4)
         self.Tm = v_ptr64()
         self.CommitReservation = v_uint64()
-        self.TransactionHistory = vstruct.VArray([ KTRANSACTION_HISTORY() for i in xrange(10) ])
+        self.TransactionHistory = vstruct.VArray([ KTRANSACTION_HISTORY() for i in range(10) ])
         self.TransactionHistoryCount = v_uint32()
         self._pad0268 = v_bytes(size=4)
         self.DTCPrivateInformation = v_ptr64()
@@ -5092,7 +5092,7 @@ class DEVICE_NODE(vstruct.VStruct):
         self.PoIrpManager = PO_IRP_MANAGER()
         self.State = v_uint32()
         self.PreviousState = v_uint32()
-        self.StateHistory = vstruct.VArray([ PNP_DEVNODE_STATE() for i in xrange(20) ])
+        self.StateHistory = vstruct.VArray([ PNP_DEVNODE_STATE() for i in range(20) ])
         self.StateHistoryEntry = v_uint32()
         self.CompletionStatus = v_uint32()
         self.Flags = v_uint32()
@@ -5201,7 +5201,7 @@ class IO_RESOURCE_LIST(vstruct.VStruct):
         self.Version = v_uint16()
         self.Revision = v_uint16()
         self.Count = v_uint32()
-        self.Descriptors = vstruct.VArray([ IO_RESOURCE_DESCRIPTOR() for i in xrange(1) ])
+        self.Descriptors = vstruct.VArray([ IO_RESOURCE_DESCRIPTOR() for i in range(1) ])
 
 
 class STACK_TABLE(vstruct.VStruct):
@@ -5210,8 +5210,8 @@ class STACK_TABLE(vstruct.VStruct):
         self.NumStackTraces = v_uint16()
         self.TraceCapacity = v_uint16()
         self._pad0008 = v_bytes(size=4)
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(16) ])
-        self.StackTableHash = vstruct.VArray([ v_uint16() for i in xrange(16381) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(16) ])
+        self.StackTableHash = vstruct.VArray([ v_uint16() for i in range(16381) ])
         self._pad8088 = v_bytes(size=6)
 
 
@@ -5220,10 +5220,10 @@ class OBJECT_REF_INFO(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.ObjectHeader = v_ptr64()
         self.NextRef = v_ptr64()
-        self.ImageFileName = vstruct.VArray([ v_uint8() for i in xrange(16) ])
+        self.ImageFileName = vstruct.VArray([ v_uint8() for i in range(16) ])
         self.NextPos = v_uint16()
         self.MaxStacks = v_uint16()
-        self.StackInfo = vstruct.VArray([ OBJECT_REF_STACK_INFO() for i in xrange(0) ])
+        self.StackInfo = vstruct.VArray([ OBJECT_REF_STACK_INFO() for i in range(0) ])
         self._pad0028 = v_bytes(size=4)
 
 
@@ -5254,7 +5254,7 @@ class IMAGE_ROM_OPTIONAL_HEADER(vstruct.VStruct):
         self.BaseOfData = v_uint32()
         self.BaseOfBss = v_uint32()
         self.GprMask = v_uint32()
-        self.CprMask = vstruct.VArray([ v_uint32() for i in xrange(4) ])
+        self.CprMask = vstruct.VArray([ v_uint32() for i in range(4) ])
         self.GpValue = v_uint32()
 
 
@@ -5393,7 +5393,7 @@ class PO_MEMORY_IMAGE(vstruct.VStruct):
         self.InterruptTime = v_uint64()
         self.FeatureFlags = v_uint32()
         self.HiberFlags = v_uint8()
-        self.spare = vstruct.VArray([ v_uint8() for i in xrange(3) ])
+        self.spare = vstruct.VArray([ v_uint8() for i in range(3) ])
         self.NoHiberPtes = v_uint32()
         self._pad0040 = v_bytes(size=4)
         self.HiberVa = v_uint64()
@@ -5406,10 +5406,10 @@ class PO_MEMORY_IMAGE(vstruct.VStruct):
         self.PerfInfo = PO_HIBER_PERF()
         self.FirmwareRuntimeInformationPages = v_uint32()
         self._pad00c8 = v_bytes(size=4)
-        self.FirmwareRuntimeInformation = vstruct.VArray([ v_uint64() for i in xrange(1) ])
+        self.FirmwareRuntimeInformation = vstruct.VArray([ v_uint64() for i in range(1) ])
         self.NoBootLoaderLogPages = v_uint32()
         self._pad00d8 = v_bytes(size=4)
-        self.BootLoaderLogPages = vstruct.VArray([ v_uint64() for i in xrange(8) ])
+        self.BootLoaderLogPages = vstruct.VArray([ v_uint64() for i in range(8) ])
         self.NotUsed = v_uint32()
         self.ResumeContextCheck = v_uint32()
         self.ResumeContextPages = v_uint32()
@@ -5465,11 +5465,11 @@ class HHIVE(vstruct.VStruct):
         self.CmUsedCellsUse = v_uint32()
         self.HiveFlags = v_uint32()
         self.CurrentLog = v_uint32()
-        self.LogSize = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.LogSize = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.RefreshCount = v_uint32()
         self.StorageTypeCount = v_uint32()
         self.Version = v_uint32()
-        self.Storage = vstruct.VArray([ DUAL() for i in xrange(2) ])
+        self.Storage = vstruct.VArray([ DUAL() for i in range(2) ])
 
 
 class VF_AVL_TREE_NODE(vstruct.VStruct):
@@ -5502,17 +5502,17 @@ class TEB(vstruct.VStruct):
         self.CountOfOwnedCriticalSections = v_uint32()
         self.CsrClientThread = v_ptr64()
         self.Win32ThreadInfo = v_ptr64()
-        self.User32Reserved = vstruct.VArray([ v_uint32() for i in xrange(26) ])
-        self.UserReserved = vstruct.VArray([ v_uint32() for i in xrange(5) ])
+        self.User32Reserved = vstruct.VArray([ v_uint32() for i in range(26) ])
+        self.UserReserved = vstruct.VArray([ v_uint32() for i in range(5) ])
         self._pad0100 = v_bytes(size=4)
         self.WOW32Reserved = v_ptr64()
         self.CurrentLocale = v_uint32()
         self.FpSoftwareStatusRegister = v_uint32()
-        self.SystemReserved1 = vstruct.VArray([ v_ptr64() for i in xrange(54) ])
+        self.SystemReserved1 = vstruct.VArray([ v_ptr64() for i in range(54) ])
         self.ExceptionCode = v_uint32()
         self._pad02c8 = v_bytes(size=4)
         self.ActivationContextStackPointer = v_ptr64()
-        self.SpareBytes = vstruct.VArray([ v_uint8() for i in xrange(24) ])
+        self.SpareBytes = vstruct.VArray([ v_uint8() for i in range(24) ])
         self.TxFsContext = v_uint32()
         self._pad02f0 = v_bytes(size=4)
         self.GdiTebBatch = GDI_TEB_BATCH()
@@ -5521,9 +5521,9 @@ class TEB(vstruct.VStruct):
         self.GdiClientPID = v_uint32()
         self.GdiClientTID = v_uint32()
         self.GdiThreadLocalInfo = v_ptr64()
-        self.Win32ClientInfo = vstruct.VArray([ v_uint64() for i in xrange(62) ])
-        self.glDispatchTable = vstruct.VArray([ v_ptr64() for i in xrange(233) ])
-        self.glReserved1 = vstruct.VArray([ v_uint64() for i in xrange(29) ])
+        self.Win32ClientInfo = vstruct.VArray([ v_uint64() for i in range(62) ])
+        self.glDispatchTable = vstruct.VArray([ v_ptr64() for i in range(233) ])
+        self.glReserved1 = vstruct.VArray([ v_uint64() for i in range(29) ])
         self.glReserved2 = v_ptr64()
         self.glSectionInfo = v_ptr64()
         self.glSection = v_ptr64()
@@ -5533,17 +5533,17 @@ class TEB(vstruct.VStruct):
         self.LastStatusValue = v_uint32()
         self._pad1258 = v_bytes(size=4)
         self.StaticUnicodeString = UNICODE_STRING()
-        self.StaticUnicodeBuffer = vstruct.VArray([ v_uint16() for i in xrange(261) ])
+        self.StaticUnicodeBuffer = vstruct.VArray([ v_uint16() for i in range(261) ])
         self._pad1478 = v_bytes(size=6)
         self.DeallocationStack = v_ptr64()
-        self.TlsSlots = vstruct.VArray([ v_ptr64() for i in xrange(64) ])
+        self.TlsSlots = vstruct.VArray([ v_ptr64() for i in range(64) ])
         self.TlsLinks = LIST_ENTRY()
         self.Vdm = v_ptr64()
         self.ReservedForNtRpc = v_ptr64()
-        self.DbgSsReserved = vstruct.VArray([ v_ptr64() for i in xrange(2) ])
+        self.DbgSsReserved = vstruct.VArray([ v_ptr64() for i in range(2) ])
         self.HardErrorMode = v_uint32()
         self._pad16b8 = v_bytes(size=4)
-        self.Instrumentation = vstruct.VArray([ v_ptr64() for i in xrange(11) ])
+        self.Instrumentation = vstruct.VArray([ v_ptr64() for i in range(11) ])
         self.ActivityId = GUID()
         self.SubProcessTag = v_ptr64()
         self.EtwLocalData = v_ptr64()
@@ -5727,7 +5727,7 @@ class PROCESSOR_IDLESTATE_INFO(vstruct.VStruct):
         self.TimeCheck = v_uint32()
         self.DemotePercent = v_uint8()
         self.PromotePercent = v_uint8()
-        self.Spare = vstruct.VArray([ v_uint8() for i in xrange(2) ])
+        self.Spare = vstruct.VArray([ v_uint8() for i in range(2) ])
 
 
 class EFI_FIRMWARE_INFORMATION(vstruct.VStruct):
@@ -5777,7 +5777,7 @@ class HANDLE_TRACE_DEBUG_INFO(vstruct.VStruct):
         self.CloseCompactionLock = FAST_MUTEX()
         self.CurrentStackIndex = v_uint32()
         self._pad0050 = v_bytes(size=4)
-        self.TraceDb = vstruct.VArray([ HANDLE_TRACE_DB_ENTRY() for i in xrange(1) ])
+        self.TraceDb = vstruct.VArray([ HANDLE_TRACE_DB_ENTRY() for i in range(1) ])
 
 
 class _unnamed_27317(vstruct.VStruct):
@@ -5866,7 +5866,7 @@ class _unnamed_21130(vstruct.VStruct):
 class SID_IDENTIFIER_AUTHORITY(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Value = vstruct.VArray([ v_uint8() for i in xrange(6) ])
+        self.Value = vstruct.VArray([ v_uint8() for i in range(6) ])
 
 
 class RTL_RANGE_LIST(vstruct.VStruct):
@@ -5905,7 +5905,7 @@ class DRIVER_OBJECT(vstruct.VStruct):
         self.DriverInit = v_ptr64()
         self.DriverStartIo = v_ptr64()
         self.DriverUnload = v_ptr64()
-        self.MajorFunction = vstruct.VArray([ v_ptr64() for i in xrange(28) ])
+        self.MajorFunction = vstruct.VArray([ v_ptr64() for i in range(28) ])
 
 
 class VI_POOL_ENTRY(vstruct.VStruct):
@@ -5934,7 +5934,7 @@ class SHARED_CACHE_MAP(vstruct.VStruct):
         self.SectionSize = LARGE_INTEGER()
         self.ValidDataLength = LARGE_INTEGER()
         self.ValidDataGoal = LARGE_INTEGER()
-        self.InitialVacbs = vstruct.VArray([ v_ptr64() for i in xrange(4) ])
+        self.InitialVacbs = vstruct.VArray([ v_ptr64() for i in range(4) ])
         self.Vacbs = v_ptr64()
         self.FileObjectFastRef = EX_FAST_REF()
         self.VacbLock = EX_PUSH_LOCK()
@@ -5988,9 +5988,9 @@ class XSAVE_FORMAT(vstruct.VStruct):
         self.Reserved3 = v_uint16()
         self.MxCsr = v_uint32()
         self.MxCsr_Mask = v_uint32()
-        self.FloatRegisters = vstruct.VArray([ M128A() for i in xrange(8) ])
-        self.XmmRegisters = vstruct.VArray([ M128A() for i in xrange(16) ])
-        self.Reserved4 = vstruct.VArray([ v_uint8() for i in xrange(96) ])
+        self.FloatRegisters = vstruct.VArray([ M128A() for i in range(8) ])
+        self.XmmRegisters = vstruct.VArray([ M128A() for i in range(16) ])
+        self.Reserved4 = vstruct.VArray([ v_uint8() for i in range(96) ])
 
 
 class REMOTE_PORT_VIEW(vstruct.VStruct):
@@ -6266,7 +6266,7 @@ class PROCESSOR_IDLESTATE_POLICY(vstruct.VStruct):
         self.Revision = v_uint16()
         self.Flags = _unnamed_28582()
         self.PolicyCount = v_uint32()
-        self.Policy = vstruct.VArray([ PROCESSOR_IDLESTATE_INFO() for i in xrange(3) ])
+        self.Policy = vstruct.VArray([ PROCESSOR_IDLESTATE_INFO() for i in range(3) ])
 
 
 class _unnamed_26681(vstruct.VStruct):
@@ -6379,7 +6379,7 @@ class SID_AND_ATTRIBUTES_HASH(vstruct.VStruct):
         self.SidCount = v_uint32()
         self._pad0008 = v_bytes(size=4)
         self.SidAttr = v_ptr64()
-        self.Hash = vstruct.VArray([ v_uint64() for i in xrange(32) ])
+        self.Hash = vstruct.VArray([ v_uint64() for i in range(32) ])
 
 
 class DBGKD_MANIPULATE_STATE64(vstruct.VStruct):
@@ -6416,7 +6416,7 @@ class PHYSICAL_MEMORY_DESCRIPTOR(vstruct.VStruct):
         self.NumberOfRuns = v_uint32()
         self._pad0008 = v_bytes(size=4)
         self.NumberOfPages = v_uint64()
-        self.Run = vstruct.VArray([ PHYSICAL_MEMORY_RUN() for i in xrange(1) ])
+        self.Run = vstruct.VArray([ PHYSICAL_MEMORY_RUN() for i in range(1) ])
 
 
 class MMWSLE_FREE_ENTRY(vstruct.VStruct):
@@ -6435,7 +6435,7 @@ class MMBANKED_SECTION(vstruct.VStruct):
         self.BankedRoutine = v_ptr64()
         self.Context = v_ptr64()
         self.CurrentMappedPte = v_ptr64()
-        self.BankTemplate = vstruct.VArray([ MMPTE() for i in xrange(1) ])
+        self.BankTemplate = vstruct.VArray([ MMPTE() for i in range(1) ])
 
 
 class JOB_ACCESS_STATE(vstruct.VStruct):
@@ -6491,7 +6491,7 @@ class WHEA_ERROR_RECORD(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Header = WHEA_ERROR_RECORD_HEADER()
-        self.SectionDescriptor = vstruct.VArray([ WHEA_ERROR_RECORD_SECTION_DESCRIPTOR() for i in xrange(1) ])
+        self.SectionDescriptor = vstruct.VArray([ WHEA_ERROR_RECORD_SECTION_DESCRIPTOR() for i in range(1) ])
 
 
 class _unnamed_21040(vstruct.VStruct):
@@ -6653,7 +6653,7 @@ class IMAGE_OPTIONAL_HEADER64(vstruct.VStruct):
         self.SizeOfHeapCommit = v_uint64()
         self.LoaderFlags = v_uint32()
         self.NumberOfRvaAndSizes = v_uint32()
-        self.DataDirectory = vstruct.VArray([ IMAGE_DATA_DIRECTORY() for i in xrange(16) ])
+        self.DataDirectory = vstruct.VArray([ IMAGE_DATA_DIRECTORY() for i in range(16) ])
 
 
 class _unnamed_23643(vstruct.VStruct):
@@ -6707,7 +6707,7 @@ class HANDLE_TRACE_DB_ENTRY(vstruct.VStruct):
         self.Handle = v_ptr64()
         self.Type = v_uint32()
         self._pad0020 = v_bytes(size=4)
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(16) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(16) ])
 
 
 class CPU_INFO(vstruct.VStruct):
@@ -6746,7 +6746,7 @@ class GENERAL_LOOKASIDE_POOL(vstruct.VStruct):
         self.ListEntry = LIST_ENTRY()
         self.LastTotalAllocates = v_uint32()
         self.LastAllocateMisses = v_uint32()
-        self.Future = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.Future = vstruct.VArray([ v_uint32() for i in range(2) ])
 
 
 class _unnamed_22858(vstruct.VStruct):
@@ -6807,7 +6807,7 @@ class MMPAGING_FILE(vstruct.VStruct):
         self.PeakUsage = v_uint64()
         self.HighestPage = v_uint64()
         self.File = v_ptr64()
-        self.Entry = vstruct.VArray([ v_ptr64() for i in xrange(2) ])
+        self.Entry = vstruct.VArray([ v_ptr64() for i in range(2) ])
         self.PageFileName = UNICODE_STRING()
         self.Bitmap = v_ptr64()
         self.EvictStoreBitmap = v_ptr64()
@@ -6869,7 +6869,7 @@ class CM_KEY_VALUE(vstruct.VStruct):
         self.Type = v_uint32()
         self.Flags = v_uint16()
         self.Spare = v_uint16()
-        self.Name = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.Name = vstruct.VArray([ v_uint16() for i in range(1) ])
         self._pad0018 = v_bytes(size=2)
 
 
@@ -6889,7 +6889,7 @@ class LIST_ENTRY32(vstruct.VStruct):
 class KDESCRIPTOR(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Pad = vstruct.VArray([ v_uint16() for i in xrange(3) ])
+        self.Pad = vstruct.VArray([ v_uint16() for i in range(3) ])
         self.Limit = v_uint16()
         self.Base = v_ptr64()
 
@@ -7011,7 +7011,7 @@ class ALPC_HANDLE_ENTRY(vstruct.VStruct):
 class HMAP_DIRECTORY(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Directory = vstruct.VArray([ v_ptr64() for i in xrange(1024) ])
+        self.Directory = vstruct.VArray([ v_ptr64() for i in range(1024) ])
 
 
 class TPM_BOOT_ENTROPY_LDR_RESULT(vstruct.VStruct):
@@ -7022,7 +7022,7 @@ class TPM_BOOT_ENTROPY_LDR_RESULT(vstruct.VStruct):
         self.ResultStatus = v_uint32()
         self.Time = v_uint64()
         self.EntropyLength = v_uint32()
-        self.EntropyData = vstruct.VArray([ v_uint8() for i in xrange(40) ])
+        self.EntropyData = vstruct.VArray([ v_uint8() for i in range(40) ])
         self._pad0048 = v_bytes(size=4)
 
 
@@ -7051,7 +7051,7 @@ class PERFINFO_TRACE_HEADER(vstruct.VStruct):
         self.Marker = v_uint32()
         self.Header = v_uint32()
         self.TS = v_uint64()
-        self.Data = vstruct.VArray([ v_uint8() for i in xrange(1) ])
+        self.Data = vstruct.VArray([ v_uint8() for i in range(1) ])
         self._pad0018 = v_bytes(size=7)
 
 
@@ -7137,13 +7137,13 @@ class PEB64(vstruct.VStruct):
         self.CrossProcessFlags = v_uint32()
         self._pad0058 = v_bytes(size=4)
         self.KernelCallbackTable = v_uint64()
-        self.SystemReserved = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.SystemReserved = vstruct.VArray([ v_uint32() for i in range(1) ])
         self.AtlThunkSListPtr32 = v_uint32()
         self.ApiSetMap = v_uint64()
         self.TlsExpansionCounter = v_uint32()
         self._pad0078 = v_bytes(size=4)
         self.TlsBitmap = v_uint64()
-        self.TlsBitmapBits = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.TlsBitmapBits = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.ReadOnlySharedMemoryBase = v_uint64()
         self.HotpatchInformation = v_uint64()
         self.ReadOnlyStaticServerData = v_uint64()
@@ -7175,10 +7175,10 @@ class PEB64(vstruct.VStruct):
         self.ImageSubsystemMinorVersion = v_uint32()
         self._pad0138 = v_bytes(size=4)
         self.ActiveProcessAffinityMask = v_uint64()
-        self.GdiHandleBuffer = vstruct.VArray([ v_uint32() for i in xrange(60) ])
+        self.GdiHandleBuffer = vstruct.VArray([ v_uint32() for i in range(60) ])
         self.PostProcessInitRoutine = v_uint64()
         self.TlsExpansionBitmap = v_uint64()
-        self.TlsExpansionBitmapBits = vstruct.VArray([ v_uint32() for i in xrange(32) ])
+        self.TlsExpansionBitmapBits = vstruct.VArray([ v_uint32() for i in range(32) ])
         self.SessionId = v_uint32()
         self._pad02c8 = v_bytes(size=4)
         self.AppCompatFlags = ULARGE_INTEGER()
@@ -7194,7 +7194,7 @@ class PEB64(vstruct.VStruct):
         self.FlsCallback = v_uint64()
         self.FlsListHead = LIST_ENTRY64()
         self.FlsBitmap = v_uint64()
-        self.FlsBitmapBits = vstruct.VArray([ v_uint32() for i in xrange(4) ])
+        self.FlsBitmapBits = vstruct.VArray([ v_uint32() for i in range(4) ])
         self.FlsHighIndex = v_uint32()
         self._pad0358 = v_bytes(size=4)
         self.WerRegistrationData = v_uint64()
@@ -7215,7 +7215,7 @@ class ARBITER_ALTERNATIVE(vstruct.VStruct):
         self.Priority = v_uint32()
         self.Flags = v_uint32()
         self.Descriptor = v_ptr64()
-        self.Reserved = vstruct.VArray([ v_uint32() for i in xrange(3) ])
+        self.Reserved = vstruct.VArray([ v_uint32() for i in range(3) ])
         self._pad0040 = v_bytes(size=4)
 
 
@@ -7231,7 +7231,7 @@ class HEAP_LOOKASIDE(vstruct.VStruct):
         self.FreeMisses = v_uint32()
         self.LastTotalAllocates = v_uint32()
         self.LastAllocateMisses = v_uint32()
-        self.Counters = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.Counters = vstruct.VArray([ v_uint32() for i in range(2) ])
         self._pad0040 = v_bytes(size=12)
 
 
@@ -7258,7 +7258,7 @@ class INTERLOCK_SEQ(vstruct.VStruct):
 class HMAP_TABLE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Table = vstruct.VArray([ HMAP_ENTRY() for i in xrange(512) ])
+        self.Table = vstruct.VArray([ HMAP_ENTRY() for i in range(512) ])
 
 
 class PNP_RESOURCE_REQUEST(vstruct.VStruct):
@@ -7293,10 +7293,10 @@ class VI_DEADLOCK_GLOBALS(vstruct.VStruct):
         self.TimeRelease = v_uint64()
         self.ResourceDatabase = v_ptr64()
         self.ResourceDatabaseCount = v_uint64()
-        self.ResourceAddressRange = vstruct.VArray([ VF_ADDRESS_RANGE() for i in xrange(1023) ])
+        self.ResourceAddressRange = vstruct.VArray([ VF_ADDRESS_RANGE() for i in range(1023) ])
         self.ThreadDatabase = v_ptr64()
         self.ThreadDatabaseCount = v_uint64()
-        self.ThreadAddressRange = vstruct.VArray([ VF_ADDRESS_RANGE() for i in xrange(1023) ])
+        self.ThreadAddressRange = vstruct.VArray([ VF_ADDRESS_RANGE() for i in range(1023) ])
         self.AllocationFailures = v_uint32()
         self.NodesTrimmedBasedOnAge = v_uint32()
         self.NodesTrimmedBasedOnCount = v_uint32()
@@ -7316,7 +7316,7 @@ class VI_DEADLOCK_GLOBALS(vstruct.VStruct):
         self.Instigator = v_ptr64()
         self.NumberOfParticipants = v_uint32()
         self._pad8060 = v_bytes(size=4)
-        self.Participant = vstruct.VArray([ v_ptr64() for i in xrange(32) ])
+        self.Participant = vstruct.VArray([ v_ptr64() for i in range(32) ])
         self.ChildrenCountWatermark = v_uint32()
         self._pad8168 = v_bytes(size=4)
 
@@ -7393,7 +7393,7 @@ class IO_RESOURCE_DESCRIPTOR(vstruct.VStruct):
 class EX_PUSH_LOCK_CACHE_AWARE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Locks = vstruct.VArray([ v_ptr64() for i in xrange(32) ])
+        self.Locks = vstruct.VArray([ v_ptr64() for i in range(32) ])
 
 
 class _unnamed_29543(vstruct.VStruct):
@@ -7578,7 +7578,7 @@ class MM_SESSION_SPACE(vstruct.VStruct):
         self.SessionObject = v_ptr64()
         self.SessionObjectHandle = v_ptr64()
         self.ResidentProcessCount = v_uint32()
-        self.SessionPoolAllocationFailures = vstruct.VArray([ v_uint32() for i in xrange(4) ])
+        self.SessionPoolAllocationFailures = vstruct.VArray([ v_uint32() for i in range(4) ])
         self._pad0078 = v_bytes(size=4)
         self.ImageList = LIST_ENTRY()
         self.LocaleId = v_uint32()
@@ -7586,7 +7586,7 @@ class MM_SESSION_SPACE(vstruct.VStruct):
         self.AttachGate = KGATE()
         self.WsListEntry = LIST_ENTRY()
         self._pad00c0 = v_bytes(size=8)
-        self.Lookaside = vstruct.VArray([ GENERAL_LOOKASIDE() for i in xrange(21) ])
+        self.Lookaside = vstruct.VArray([ GENERAL_LOOKASIDE() for i in range(21) ])
         self.Session = MMSESSION()
         self.PagedPoolInfo = MM_PAGED_POOL_INFO()
         self.Vm = MMSUPPORT()
@@ -7752,7 +7752,7 @@ class SYSTEM_POWER_POLICY(vstruct.VStruct):
         self.IdleTimeout = v_uint32()
         self.IdleSensitivity = v_uint8()
         self.DynamicThrottle = v_uint8()
-        self.Spare2 = vstruct.VArray([ v_uint8() for i in xrange(2) ])
+        self.Spare2 = vstruct.VArray([ v_uint8() for i in range(2) ])
         self.MinSleep = v_uint32()
         self.MaxSleep = v_uint32()
         self.ReducedLatencySleep = v_uint32()
@@ -7760,11 +7760,11 @@ class SYSTEM_POWER_POLICY(vstruct.VStruct):
         self.Spare3 = v_uint32()
         self.DozeS4Timeout = v_uint32()
         self.BroadcastCapacityResolution = v_uint32()
-        self.DischargePolicy = vstruct.VArray([ SYSTEM_POWER_LEVEL() for i in xrange(4) ])
+        self.DischargePolicy = vstruct.VArray([ SYSTEM_POWER_LEVEL() for i in range(4) ])
         self.VideoTimeout = v_uint32()
         self.VideoDimDisplay = v_uint8()
         self._pad00c8 = v_bytes(size=3)
-        self.VideoReserved = vstruct.VArray([ v_uint32() for i in xrange(3) ])
+        self.VideoReserved = vstruct.VArray([ v_uint32() for i in range(3) ])
         self.SpindownTimeout = v_uint32()
         self.OptimizeForPower = v_uint8()
         self.FanThrottleTolerance = v_uint8()
@@ -7801,7 +7801,7 @@ class INITIAL_PRIVILEGE_SET(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.PrivilegeCount = v_uint32()
         self.Control = v_uint32()
-        self.Privilege = vstruct.VArray([ LUID_AND_ATTRIBUTES() for i in xrange(3) ])
+        self.Privilege = vstruct.VArray([ LUID_AND_ATTRIBUTES() for i in range(3) ])
 
 
 class _unnamed_27934(vstruct.VStruct):
@@ -7832,7 +7832,7 @@ class GENERAL_LOOKASIDE(vstruct.VStruct):
         self.ListEntry = LIST_ENTRY()
         self.LastTotalAllocates = v_uint32()
         self.LastAllocateMisses = v_uint32()
-        self.Future = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.Future = vstruct.VArray([ v_uint32() for i in range(2) ])
         self._pad0080 = v_bytes(size=32)
 
 
@@ -7864,7 +7864,7 @@ class POOL_DESCRIPTOR(vstruct.VStruct):
         self.PendingFrees = v_ptr64()
         self.PendingFreeDepth = v_uint32()
         self._pad0140 = v_bytes(size=52)
-        self.ListHeads = vstruct.VArray([ LIST_ENTRY() for i in xrange(256) ])
+        self.ListHeads = vstruct.VArray([ LIST_ENTRY() for i in range(256) ])
 
 
 class GDI_TEB_BATCH64(vstruct.VStruct):
@@ -7873,7 +7873,7 @@ class GDI_TEB_BATCH64(vstruct.VStruct):
         self.Offset = v_uint32()
         self._pad0008 = v_bytes(size=4)
         self.HDC = v_uint64()
-        self.Buffer = vstruct.VArray([ v_uint32() for i in xrange(310) ])
+        self.Buffer = vstruct.VArray([ v_uint32() for i in range(310) ])
 
 
 class CM_RM(vstruct.VStruct):
@@ -8031,7 +8031,7 @@ class RTL_HANDLE_TABLE(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.MaximumNumberOfHandles = v_uint32()
         self.SizeOfHandleTableEntry = v_uint32()
-        self.Reserved = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.Reserved = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.FreeHandles = v_ptr64()
         self.CommittedHandles = v_ptr64()
         self.UnCommittedHandles = v_ptr64()
@@ -8481,7 +8481,7 @@ class DUMMY_FILE_OBJECT(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.ObjectHeader = OBJECT_HEADER()
-        self.FileObjectBody = vstruct.VArray([ v_uint8() for i in xrange(216) ])
+        self.FileObjectBody = vstruct.VArray([ v_uint8() for i in range(216) ])
 
 
 class _unnamed_25428(vstruct.VStruct):
@@ -8593,7 +8593,7 @@ class _unnamed_22223(vstruct.VStruct):
 class ACCESS_REASONS(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Data = vstruct.VArray([ v_uint32() for i in xrange(32) ])
+        self.Data = vstruct.VArray([ v_uint32() for i in range(32) ])
 
 
 class DOCK_INTERFACE(vstruct.VStruct):
@@ -8622,7 +8622,7 @@ class MMSUPPORT(vstruct.VStruct):
         self.ExitGate = v_ptr64()
         self.AccessLog = v_ptr64()
         self.WorkingSetExpansionLinks = LIST_ENTRY()
-        self.AgeDistribution = vstruct.VArray([ v_uint32() for i in xrange(7) ])
+        self.AgeDistribution = vstruct.VArray([ v_uint32() for i in range(7) ])
         self.MinimumWorkingSetSize = v_uint32()
         self.WorkingSetSize = v_uint32()
         self.WorkingSetPrivateSize = v_uint32()
@@ -8637,7 +8637,7 @@ class MMSUPPORT(vstruct.VStruct):
         self.LastTrimStamp = v_uint16()
         self.PageFaultCount = v_uint32()
         self.RepurposeCount = v_uint32()
-        self.Spare = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.Spare = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.Flags = MMSUPPORT_FLAGS()
 
 
@@ -8655,15 +8655,15 @@ class HBASE_BLOCK(vstruct.VStruct):
         self.RootCell = v_uint32()
         self.Length = v_uint32()
         self.Cluster = v_uint32()
-        self.FileName = vstruct.VArray([ v_uint8() for i in xrange(64) ])
+        self.FileName = vstruct.VArray([ v_uint8() for i in range(64) ])
         self.RmId = GUID()
         self.LogId = GUID()
         self.Flags = v_uint32()
         self.TmId = GUID()
         self.GuidSignature = v_uint32()
-        self.Reserved1 = vstruct.VArray([ v_uint32() for i in xrange(85) ])
+        self.Reserved1 = vstruct.VArray([ v_uint32() for i in range(85) ])
         self.CheckSum = v_uint32()
-        self.Reserved2 = vstruct.VArray([ v_uint32() for i in xrange(882) ])
+        self.Reserved2 = vstruct.VArray([ v_uint32() for i in range(882) ])
         self.ThawTmId = GUID()
         self.ThawRmId = GUID()
         self.ThawLogId = GUID()
@@ -8688,7 +8688,7 @@ class CMHIVE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Hive = HHIVE()
-        self.FileHandles = vstruct.VArray([ v_ptr64() for i in xrange(6) ])
+        self.FileHandles = vstruct.VArray([ v_ptr64() for i in range(6) ])
         self.NotifyList = LIST_ENTRY()
         self.HiveList = LIST_ENTRY()
         self.PreloadedHiveList = LIST_ENTRY()
@@ -8730,7 +8730,7 @@ class CMHIVE(vstruct.VStruct):
         self.SecurityHitHint = v_uint32()
         self._pad0718 = v_bytes(size=4)
         self.SecurityCache = v_ptr64()
-        self.SecurityHash = vstruct.VArray([ LIST_ENTRY() for i in xrange(64) ])
+        self.SecurityHash = vstruct.VArray([ LIST_ENTRY() for i in range(64) ])
         self.UnloadEventCount = v_uint32()
         self._pad0b28 = v_bytes(size=4)
         self.UnloadEventArray = v_ptr64()
@@ -8950,7 +8950,7 @@ class RELATION_LIST_ENTRY(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.Count = v_uint32()
         self.MaxCount = v_uint32()
-        self.Devices = vstruct.VArray([ v_ptr64() for i in xrange(1) ])
+        self.Devices = vstruct.VArray([ v_ptr64() for i in range(1) ])
 
 
 class DBGKD_SET_INTERNAL_BREAKPOINT32(vstruct.VStruct):
@@ -8974,7 +8974,7 @@ class THERMAL_INFORMATION_EX(vstruct.VStruct):
         self.CriticalTripPoint = v_uint32()
         self.ActiveTripPointCount = v_uint8()
         self._pad004c = v_bytes(size=3)
-        self.ActiveTripPoint = vstruct.VArray([ v_uint32() for i in xrange(10) ])
+        self.ActiveTripPoint = vstruct.VArray([ v_uint32() for i in range(10) ])
         self.S4TransitionTripPoint = v_uint32()
 
 
@@ -9007,7 +9007,7 @@ class POOL_HACKER(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Header = POOL_HEADER()
-        self.Contents = vstruct.VArray([ v_uint32() for i in xrange(8) ])
+        self.Contents = vstruct.VArray([ v_uint32() for i in range(8) ])
 
 
 class COMPRESSED_DATA_INFO(vstruct.VStruct):
@@ -9019,7 +9019,7 @@ class COMPRESSED_DATA_INFO(vstruct.VStruct):
         self.ClusterShift = v_uint8()
         self.Reserved = v_uint8()
         self.NumberOfChunks = v_uint16()
-        self.CompressedChunkSizes = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.CompressedChunkSizes = vstruct.VArray([ v_uint32() for i in range(1) ])
 
 
 class HANDLE_TABLE(vstruct.VStruct):
@@ -9158,9 +9158,9 @@ class ARBITER_INSTANCE(vstruct.VStruct):
         self.BusDeviceObject = v_ptr64()
         self.ConflictCallbackContext = v_ptr64()
         self.ConflictCallback = v_ptr64()
-        self.PdoDescriptionString = vstruct.VArray([ v_uint16() for i in xrange(336) ])
-        self.PdoSymbolicNameString = vstruct.VArray([ v_uint8() for i in xrange(672) ])
-        self.PdoAddressString = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.PdoDescriptionString = vstruct.VArray([ v_uint16() for i in range(336) ])
+        self.PdoSymbolicNameString = vstruct.VArray([ v_uint8() for i in range(672) ])
+        self.PdoAddressString = vstruct.VArray([ v_uint16() for i in range(1) ])
         self._pad0698 = v_bytes(size=6)
 
 
@@ -9376,7 +9376,7 @@ class DEVICE_MAP(vstruct.VStruct):
         self.DosDevicesDirectoryHandle = v_ptr64()
         self.ReferenceCount = v_uint32()
         self.DriveMap = v_uint32()
-        self.DriveType = vstruct.VArray([ v_uint8() for i in xrange(32) ])
+        self.DriveType = vstruct.VArray([ v_uint8() for i in range(32) ])
 
 
 class DBGKD_READ_WRITE_IO_EXTENDED32(vstruct.VStruct):
@@ -9422,7 +9422,7 @@ class CONTROL_AREA(vstruct.VStruct):
 class _unnamed_26691(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Data = vstruct.VArray([ v_uint32() for i in xrange(3) ])
+        self.Data = vstruct.VArray([ v_uint32() for i in range(3) ])
 
 
 class KERNEL_STACK_CONTROL(vstruct.VStruct):
@@ -9440,7 +9440,7 @@ class VI_TRACK_IRQL(vstruct.VStruct):
         self.NewIrql = v_uint8()
         self.Processor = v_uint16()
         self.TickCount = v_uint32()
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(5) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(5) ])
 
 
 class GUID(vstruct.VStruct):
@@ -9449,7 +9449,7 @@ class GUID(vstruct.VStruct):
         self.Data1 = v_uint32()
         self.Data2 = v_uint16()
         self.Data3 = v_uint16()
-        self.Data4 = vstruct.VArray([ v_uint8() for i in xrange(8) ])
+        self.Data4 = vstruct.VArray([ v_uint8() for i in range(8) ])
 
 
 class HEAP_UCR_DESCRIPTOR(vstruct.VStruct):
@@ -9510,7 +9510,7 @@ class POP_SYSTEM_IDLE(vstruct.VStruct):
 class KAPC_STATE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.ApcListHead = vstruct.VArray([ LIST_ENTRY() for i in xrange(2) ])
+        self.ApcListHead = vstruct.VArray([ LIST_ENTRY() for i in range(2) ])
         self.Process = v_ptr64()
         self.KernelApcInProgress = v_uint8()
         self.KernelApcPending = v_uint8()
@@ -9676,7 +9676,7 @@ class KTHREAD_COUNTERS(vstruct.VStruct):
         self.ContextSwitches = v_uint32()
         self.CycleTimeBias = v_uint64()
         self.HardwareCounters = v_uint64()
-        self.HwCounter = vstruct.VArray([ COUNTER_READING() for i in xrange(16) ])
+        self.HwCounter = vstruct.VArray([ COUNTER_READING() for i in range(16) ])
 
 
 class _unnamed_24437(vstruct.VStruct):
@@ -9701,7 +9701,7 @@ class _unnamed_21850(vstruct.VStruct):
 class OBJECT_REF_TRACE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(16) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(16) ])
 
 
 class KALPC_RESERVE(vstruct.VStruct):
@@ -9739,7 +9739,7 @@ class KINTERRUPT(vstruct.VStruct):
         self.Connected = v_uint8()
         self.Number = v_uint32()
         self.ShareVector = v_uint8()
-        self.Pad = vstruct.VArray([ v_uint8() for i in xrange(3) ])
+        self.Pad = vstruct.VArray([ v_uint8() for i in range(3) ])
         self.Mode = v_uint32()
         self.Polarity = v_uint32()
         self.ServiceCount = v_uint32()
@@ -9747,7 +9747,7 @@ class KINTERRUPT(vstruct.VStruct):
         self.Rsvd1 = v_uint64()
         self.TrapFrame = v_ptr64()
         self.Reserved = v_ptr64()
-        self.DispatchCode = vstruct.VArray([ v_uint32() for i in xrange(4) ])
+        self.DispatchCode = vstruct.VArray([ v_uint32() for i in range(4) ])
 
 
 class SECURITY_DESCRIPTOR_RELATIVE(vstruct.VStruct):
@@ -9768,8 +9768,8 @@ class DUMP_INITIALIZATION_CONTEXT(vstruct.VStruct):
         self.Length = v_uint32()
         self.Reserved = v_uint32()
         self.MemoryBlock = v_ptr64()
-        self.CommonBuffer = vstruct.VArray([ v_ptr64() for i in xrange(2) ])
-        self.PhysicalAddress = vstruct.VArray([ LARGE_INTEGER() for i in xrange(2) ])
+        self.CommonBuffer = vstruct.VArray([ v_ptr64() for i in range(2) ])
+        self.PhysicalAddress = vstruct.VArray([ LARGE_INTEGER() for i in range(2) ])
         self.StallRoutine = v_ptr64()
         self.OpenRoutine = v_ptr64()
         self.WriteRoutine = v_ptr64()
@@ -9871,7 +9871,7 @@ class _unnamed_26946(vstruct.VStruct):
         self.Flags = v_uint32()
         self.SessionId = v_uint32()
         self.DataLength = v_uint32()
-        self.Data = vstruct.VArray([ v_uint8() for i in xrange(1) ])
+        self.Data = vstruct.VArray([ v_uint8() for i in range(1) ])
         self._pad0020 = v_bytes(size=3)
 
 
@@ -9883,7 +9883,7 @@ class PCW_REGISTRATION(vstruct.VStruct):
 class _unnamed_26944(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.ParentId = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.ParentId = vstruct.VArray([ v_uint16() for i in range(1) ])
 
 
 class PO_IRP_QUEUE(vstruct.VStruct):
@@ -9897,7 +9897,7 @@ class TP_NBQ_GUARD(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.GuardLinks = LIST_ENTRY()
-        self.Guards = vstruct.VArray([ v_ptr64() for i in xrange(2) ])
+        self.Guards = vstruct.VArray([ v_ptr64() for i in range(2) ])
 
 
 class _unnamed_21457(vstruct.VStruct):
@@ -9953,7 +9953,7 @@ class ALPC_COMPLETION_PACKET_LOOKASIDE(vstruct.VStruct):
         self.FreeListHead = SINGLE_LIST_ENTRY()
         self.CompletionPort = v_ptr64()
         self.CompletionKey = v_ptr64()
-        self.Entry = vstruct.VArray([ ALPC_COMPLETION_PACKET_LOOKASIDE_ENTRY() for i in xrange(1) ])
+        self.Entry = vstruct.VArray([ ALPC_COMPLETION_PACKET_LOOKASIDE_ENTRY() for i in range(1) ])
 
 
 class WHEA_PERSISTENCE_INFO(vstruct.VStruct):
@@ -10020,7 +10020,7 @@ class PPM_PERF_STATES(vstruct.VStruct):
         self.TStateContext = v_uint64()
         self.FeedbackHandler = v_ptr64()
         self.GetFFHThrottleState = v_ptr64()
-        self.State = vstruct.VArray([ PPM_PERF_STATE() for i in xrange(1) ])
+        self.State = vstruct.VArray([ PPM_PERF_STATE() for i in range(1) ])
 
 
 class _unnamed_24097(vstruct.VStruct):
@@ -10034,7 +10034,7 @@ class GDI_TEB_BATCH32(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.Offset = v_uint32()
         self.HDC = v_uint32()
-        self.Buffer = vstruct.VArray([ v_uint32() for i in xrange(310) ])
+        self.Buffer = vstruct.VArray([ v_uint32() for i in range(310) ])
 
 
 class ARBITER_PARAMETERS(vstruct.VStruct):
@@ -10052,7 +10052,7 @@ class EXCEPTION_RECORD(vstruct.VStruct):
         self.ExceptionAddress = v_ptr64()
         self.NumberParameters = v_uint32()
         self._pad0020 = v_bytes(size=4)
-        self.ExceptionInformation = vstruct.VArray([ v_uint64() for i in xrange(15) ])
+        self.ExceptionInformation = vstruct.VArray([ v_uint64() for i in range(15) ])
 
 
 class _unnamed_23699(vstruct.VStruct):
@@ -10078,8 +10078,8 @@ class VI_DEADLOCK_NODE(vstruct.VStruct):
         self.ThreadEntry = v_ptr64()
         self.u1 = _unnamed_28937()
         self.ChildrenCount = v_uint32()
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(8) ])
-        self.ParentStackTrace = vstruct.VArray([ v_ptr64() for i in xrange(8) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(8) ])
+        self.ParentStackTrace = vstruct.VArray([ v_ptr64() for i in range(8) ])
 
 
 class PROC_IDLE_STATE_BUCKET(vstruct.VStruct):
@@ -10118,24 +10118,24 @@ class KPCR(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.NtTib = NT_TIB()
         self.IdtBase = v_ptr64()
-        self.Unused = vstruct.VArray([ v_uint64() for i in xrange(2) ])
+        self.Unused = vstruct.VArray([ v_uint64() for i in range(2) ])
         self.Irql = v_uint8()
         self.SecondLevelCacheAssociativity = v_uint8()
         self.ObsoleteNumber = v_uint8()
         self.Fill0 = v_uint8()
-        self.Unused0 = vstruct.VArray([ v_uint32() for i in xrange(3) ])
+        self.Unused0 = vstruct.VArray([ v_uint32() for i in range(3) ])
         self.MajorVersion = v_uint16()
         self.MinorVersion = v_uint16()
         self.StallScaleFactor = v_uint32()
-        self.Unused1 = vstruct.VArray([ v_ptr64() for i in xrange(3) ])
-        self.KernelReserved = vstruct.VArray([ v_uint32() for i in xrange(15) ])
+        self.Unused1 = vstruct.VArray([ v_ptr64() for i in range(3) ])
+        self.KernelReserved = vstruct.VArray([ v_uint32() for i in range(15) ])
         self.SecondLevelCacheSize = v_uint32()
-        self.HalReserved = vstruct.VArray([ v_uint32() for i in xrange(16) ])
+        self.HalReserved = vstruct.VArray([ v_uint32() for i in range(16) ])
         self.Unused2 = v_uint32()
         self._pad0108 = v_bytes(size=4)
         self.KdVersionBlock = v_ptr64()
         self.Unused3 = v_ptr64()
-        self.PcrAlign1 = vstruct.VArray([ v_uint32() for i in xrange(24) ])
+        self.PcrAlign1 = vstruct.VArray([ v_uint32() for i in range(24) ])
         self._pad0180 = v_bytes(size=8)
         self.Prcb = KPRCB()
 
@@ -10157,7 +10157,7 @@ class CM_KEY_INDEX(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.Signature = v_uint16()
         self.Count = v_uint16()
-        self.List = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.List = vstruct.VArray([ v_uint32() for i in range(1) ])
 
 
 class FILE_STANDARD_INFORMATION(vstruct.VStruct):
@@ -10178,7 +10178,7 @@ class RELATION_LIST(vstruct.VStruct):
         self.TagCount = v_uint32()
         self.FirstLevel = v_uint32()
         self.MaxLevel = v_uint32()
-        self.Entries = vstruct.VArray([ v_ptr64() for i in xrange(1) ])
+        self.Entries = vstruct.VArray([ v_ptr64() for i in range(1) ])
 
 
 class PI_RESOURCE_ARBITER_ENTRY(vstruct.VStruct):
@@ -10202,7 +10202,7 @@ class _unnamed_26939(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.VetoType = v_uint32()
-        self.DeviceIdVetoNameBuffer = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.DeviceIdVetoNameBuffer = vstruct.VArray([ v_uint16() for i in range(1) ])
         self._pad0008 = v_bytes(size=2)
 
 
@@ -10228,7 +10228,7 @@ class _unnamed_26934(vstruct.VStruct):
 class TOKEN_SOURCE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.SourceName = vstruct.VArray([ v_uint8() for i in xrange(8) ])
+        self.SourceName = vstruct.VArray([ v_uint8() for i in range(8) ])
         self.SourceIdentifier = LUID()
 
 
@@ -10251,7 +10251,7 @@ class _unnamed_26931(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.NotificationStructure = v_ptr64()
-        self.DeviceIds = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.DeviceIds = vstruct.VArray([ v_uint16() for i in range(1) ])
         self._pad0010 = v_bytes(size=6)
 
 
@@ -10408,7 +10408,7 @@ class DEVICE_RELATIONS(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.Count = v_uint32()
         self._pad0008 = v_bytes(size=4)
-        self.Objects = vstruct.VArray([ v_ptr64() for i in xrange(1) ])
+        self.Objects = vstruct.VArray([ v_ptr64() for i in range(1) ])
 
 
 class ETW_PROVIDER_TABLE_ENTRY(vstruct.VStruct):
@@ -10539,7 +10539,7 @@ class THREAD_PERFORMANCE_DATA(vstruct.VStruct):
         self.WaitReasonBitMap = v_uint64()
         self.HardwareCounters = v_uint64()
         self.CycleTime = COUNTER_READING()
-        self.HwCounters = vstruct.VArray([ COUNTER_READING() for i in xrange(16) ])
+        self.HwCounters = vstruct.VArray([ COUNTER_READING() for i in range(16) ])
 
 
 class IO_STACK_LOCATION(vstruct.VStruct):
@@ -10635,7 +10635,7 @@ class PPM_IDLE_STATES(vstruct.VStruct):
         self.OldState = v_uint32()
         self._pad0018 = v_bytes(size=4)
         self.TargetProcessors = KAFFINITY_EX()
-        self.State = vstruct.VArray([ PPM_IDLE_STATE() for i in xrange(1) ])
+        self.State = vstruct.VArray([ PPM_IDLE_STATE() for i in range(1) ])
 
 
 class MMWSLE_HASH(vstruct.VStruct):
@@ -10704,7 +10704,7 @@ class KENLISTMENT(vstruct.VStruct):
         self.CrmEnlistmentTmId = GUID()
         self.CrmEnlistmentRmId = GUID()
         self.NextHistory = v_uint32()
-        self.History = vstruct.VArray([ KENLISTMENT_HISTORY() for i in xrange(20) ])
+        self.History = vstruct.VArray([ KENLISTMENT_HISTORY() for i in range(20) ])
         self._pad01e0 = v_bytes(size=4)
 
 
@@ -10851,15 +10851,15 @@ class TEB32(vstruct.VStruct):
         self.CountOfOwnedCriticalSections = v_uint32()
         self.CsrClientThread = v_uint32()
         self.Win32ThreadInfo = v_uint32()
-        self.User32Reserved = vstruct.VArray([ v_uint32() for i in xrange(26) ])
-        self.UserReserved = vstruct.VArray([ v_uint32() for i in xrange(5) ])
+        self.User32Reserved = vstruct.VArray([ v_uint32() for i in range(26) ])
+        self.UserReserved = vstruct.VArray([ v_uint32() for i in range(5) ])
         self.WOW32Reserved = v_uint32()
         self.CurrentLocale = v_uint32()
         self.FpSoftwareStatusRegister = v_uint32()
-        self.SystemReserved1 = vstruct.VArray([ v_uint32() for i in xrange(54) ])
+        self.SystemReserved1 = vstruct.VArray([ v_uint32() for i in range(54) ])
         self.ExceptionCode = v_uint32()
         self.ActivationContextStackPointer = v_uint32()
-        self.SpareBytes = vstruct.VArray([ v_uint8() for i in xrange(36) ])
+        self.SpareBytes = vstruct.VArray([ v_uint8() for i in range(36) ])
         self.TxFsContext = v_uint32()
         self.GdiTebBatch = GDI_TEB_BATCH32()
         self.RealClientId = CLIENT_ID32()
@@ -10867,9 +10867,9 @@ class TEB32(vstruct.VStruct):
         self.GdiClientPID = v_uint32()
         self.GdiClientTID = v_uint32()
         self.GdiThreadLocalInfo = v_uint32()
-        self.Win32ClientInfo = vstruct.VArray([ v_uint32() for i in xrange(62) ])
-        self.glDispatchTable = vstruct.VArray([ v_uint32() for i in xrange(233) ])
-        self.glReserved1 = vstruct.VArray([ v_uint32() for i in xrange(29) ])
+        self.Win32ClientInfo = vstruct.VArray([ v_uint32() for i in range(62) ])
+        self.glDispatchTable = vstruct.VArray([ v_uint32() for i in range(233) ])
+        self.glReserved1 = vstruct.VArray([ v_uint32() for i in range(29) ])
         self.glReserved2 = v_uint32()
         self.glSectionInfo = v_uint32()
         self.glSection = v_uint32()
@@ -10878,16 +10878,16 @@ class TEB32(vstruct.VStruct):
         self.glContext = v_uint32()
         self.LastStatusValue = v_uint32()
         self.StaticUnicodeString = STRING32()
-        self.StaticUnicodeBuffer = vstruct.VArray([ v_uint16() for i in xrange(261) ])
+        self.StaticUnicodeBuffer = vstruct.VArray([ v_uint16() for i in range(261) ])
         self._pad0e0c = v_bytes(size=2)
         self.DeallocationStack = v_uint32()
-        self.TlsSlots = vstruct.VArray([ v_uint32() for i in xrange(64) ])
+        self.TlsSlots = vstruct.VArray([ v_uint32() for i in range(64) ])
         self.TlsLinks = LIST_ENTRY32()
         self.Vdm = v_uint32()
         self.ReservedForNtRpc = v_uint32()
-        self.DbgSsReserved = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.DbgSsReserved = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.HardErrorMode = v_uint32()
-        self.Instrumentation = vstruct.VArray([ v_uint32() for i in xrange(9) ])
+        self.Instrumentation = vstruct.VArray([ v_uint32() for i in range(9) ])
         self.ActivityId = GUID()
         self.SubProcessTag = v_uint32()
         self.EtwLocalData = v_uint32()
@@ -10945,13 +10945,13 @@ class PEB(vstruct.VStruct):
         self.CrossProcessFlags = v_uint32()
         self._pad0058 = v_bytes(size=4)
         self.KernelCallbackTable = v_ptr64()
-        self.SystemReserved = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.SystemReserved = vstruct.VArray([ v_uint32() for i in range(1) ])
         self.AtlThunkSListPtr32 = v_uint32()
         self.ApiSetMap = v_ptr64()
         self.TlsExpansionCounter = v_uint32()
         self._pad0078 = v_bytes(size=4)
         self.TlsBitmap = v_ptr64()
-        self.TlsBitmapBits = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.TlsBitmapBits = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.ReadOnlySharedMemoryBase = v_ptr64()
         self.HotpatchInformation = v_ptr64()
         self.ReadOnlyStaticServerData = v_ptr64()
@@ -10983,10 +10983,10 @@ class PEB(vstruct.VStruct):
         self.ImageSubsystemMinorVersion = v_uint32()
         self._pad0138 = v_bytes(size=4)
         self.ActiveProcessAffinityMask = v_uint64()
-        self.GdiHandleBuffer = vstruct.VArray([ v_uint32() for i in xrange(60) ])
+        self.GdiHandleBuffer = vstruct.VArray([ v_uint32() for i in range(60) ])
         self.PostProcessInitRoutine = v_ptr64()
         self.TlsExpansionBitmap = v_ptr64()
-        self.TlsExpansionBitmapBits = vstruct.VArray([ v_uint32() for i in xrange(32) ])
+        self.TlsExpansionBitmapBits = vstruct.VArray([ v_uint32() for i in range(32) ])
         self.SessionId = v_uint32()
         self._pad02c8 = v_bytes(size=4)
         self.AppCompatFlags = ULARGE_INTEGER()
@@ -11002,7 +11002,7 @@ class PEB(vstruct.VStruct):
         self.FlsCallback = v_ptr64()
         self.FlsListHead = LIST_ENTRY()
         self.FlsBitmap = v_ptr64()
-        self.FlsBitmapBits = vstruct.VArray([ v_uint32() for i in xrange(4) ])
+        self.FlsBitmapBits = vstruct.VArray([ v_uint32() for i in range(4) ])
         self.FlsHighIndex = v_uint32()
         self._pad0358 = v_bytes(size=4)
         self.WerRegistrationData = v_ptr64()
@@ -11034,7 +11034,7 @@ class RTL_BALANCED_LINKS(vstruct.VStruct):
         self.LeftChild = v_ptr64()
         self.RightChild = v_ptr64()
         self.Balance = v_uint8()
-        self.Reserved = vstruct.VArray([ v_uint8() for i in xrange(3) ])
+        self.Reserved = vstruct.VArray([ v_uint8() for i in range(3) ])
         self._pad0020 = v_bytes(size=4)
 
 
@@ -11091,7 +11091,7 @@ class MI_SECTION_CREATION_GATE(vstruct.VStruct):
 class OBJECT_DIRECTORY(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.HashBuckets = vstruct.VArray([ v_ptr64() for i in xrange(37) ])
+        self.HashBuckets = vstruct.VArray([ v_ptr64() for i in range(37) ])
         self.Lock = EX_PUSH_LOCK()
         self.DeviceMap = v_ptr64()
         self.SessionId = v_uint32()
@@ -11168,7 +11168,7 @@ class XSAVE_AREA_HEADER(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Mask = v_uint64()
-        self.Reserved = vstruct.VArray([ v_uint64() for i in xrange(7) ])
+        self.Reserved = vstruct.VArray([ v_uint64() for i in range(7) ])
 
 
 class _unnamed_21365(vstruct.VStruct):
@@ -11241,7 +11241,7 @@ class WHEA_ERROR_RECORD_HEADER(vstruct.VStruct):
         self.RecordId = v_uint64()
         self.Flags = WHEA_ERROR_RECORD_HEADER_FLAGS()
         self.PersistenceInfo = WHEA_PERSISTENCE_INFO()
-        self.Reserved = vstruct.VArray([ v_uint8() for i in xrange(12) ])
+        self.Reserved = vstruct.VArray([ v_uint8() for i in range(12) ])
 
 
 class EVENT_DESCRIPTOR(vstruct.VStruct):
@@ -11281,7 +11281,7 @@ class PSP_CPU_SHARE_CAPTURED_WEIGHT_DATA(vstruct.VStruct):
 class IMAGE_SECTION_HEADER(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Name = vstruct.VArray([ v_uint8() for i in xrange(8) ])
+        self.Name = vstruct.VArray([ v_uint8() for i in range(8) ])
         self.Misc = _unnamed_27347()
         self.VirtualAddress = v_uint32()
         self.SizeOfRawData = v_uint32()
@@ -11299,7 +11299,7 @@ class PO_DEVICE_NOTIFY_ORDER(vstruct.VStruct):
         self.Locked = v_uint8()
         self._pad0008 = v_bytes(size=7)
         self.WarmEjectPdoPointer = v_ptr64()
-        self.OrderLevel = vstruct.VArray([ PO_NOTIFY_ORDER_LEVEL() for i in xrange(9) ])
+        self.OrderLevel = vstruct.VArray([ PO_NOTIFY_ORDER_LEVEL() for i in range(9) ])
 
 
 class RTL_ATOM_TABLE(vstruct.VStruct):
@@ -11311,7 +11311,7 @@ class RTL_ATOM_TABLE(vstruct.VStruct):
         self.RtlHandleTable = RTL_HANDLE_TABLE()
         self.NumberOfBuckets = v_uint32()
         self._pad0068 = v_bytes(size=4)
-        self.Buckets = vstruct.VArray([ v_ptr64() for i in xrange(1) ])
+        self.Buckets = vstruct.VArray([ v_ptr64() for i in range(1) ])
 
 
 class MMSECURE_FLAGS(vstruct.VStruct):
@@ -11372,8 +11372,8 @@ class CM_KEY_NODE(vstruct.VStruct):
         self.LastWriteTime = LARGE_INTEGER()
         self.Spare = v_uint32()
         self.Parent = v_uint32()
-        self.SubKeyCounts = vstruct.VArray([ v_uint32() for i in xrange(2) ])
-        self.SubKeyLists = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.SubKeyCounts = vstruct.VArray([ v_uint32() for i in range(2) ])
+        self.SubKeyLists = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.ValueList = CHILD_LIST()
         self.Security = v_uint32()
         self.Class = v_uint32()
@@ -11384,7 +11384,7 @@ class CM_KEY_NODE(vstruct.VStruct):
         self.WorkVar = v_uint32()
         self.NameLength = v_uint16()
         self.ClassLength = v_uint16()
-        self.Name = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.Name = vstruct.VArray([ v_uint16() for i in range(1) ])
         self._pad0050 = v_bytes(size=2)
 
 
@@ -11539,7 +11539,7 @@ class PO_DIAG_STACK_RECORD(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.StackDepth = v_uint32()
         self._pad0008 = v_bytes(size=4)
-        self.Stack = vstruct.VArray([ v_ptr64() for i in xrange(1) ])
+        self.Stack = vstruct.VArray([ v_ptr64() for i in range(1) ])
 
 
 class _unnamed_22395(vstruct.VStruct):
@@ -11565,10 +11565,10 @@ class IMAGE_DOS_HEADER(vstruct.VStruct):
         self.e_cs = v_uint16()
         self.e_lfarlc = v_uint16()
         self.e_ovno = v_uint16()
-        self.e_res = vstruct.VArray([ v_uint16() for i in xrange(4) ])
+        self.e_res = vstruct.VArray([ v_uint16() for i in range(4) ])
         self.e_oemid = v_uint16()
         self.e_oeminfo = v_uint16()
-        self.e_res2 = vstruct.VArray([ v_uint16() for i in xrange(10) ])
+        self.e_res2 = vstruct.VArray([ v_uint16() for i in range(10) ])
         self.e_lfanew = v_uint32()
 
 
@@ -11667,7 +11667,7 @@ class EXCEPTION_RECORD32(vstruct.VStruct):
         self.ExceptionRecord = v_uint32()
         self.ExceptionAddress = v_uint32()
         self.NumberParameters = v_uint32()
-        self.ExceptionInformation = vstruct.VArray([ v_uint32() for i in xrange(15) ])
+        self.ExceptionInformation = vstruct.VArray([ v_uint32() for i in range(15) ])
 
 
 class ETW_GUID_ENTRY(vstruct.VStruct):
@@ -11681,8 +11681,8 @@ class ETW_GUID_ENTRY(vstruct.VStruct):
         self.SecurityDescriptor = v_ptr64()
         self.LastEnable = ETW_LAST_ENABLE_INFO()
         self.ProviderEnableInfo = TRACE_ENABLE_INFO()
-        self.EnableInfo = vstruct.VArray([ TRACE_ENABLE_INFO() for i in xrange(8) ])
-        self.FilterData = vstruct.VArray([ v_ptr64() for i in xrange(8) ])
+        self.EnableInfo = vstruct.VArray([ TRACE_ENABLE_INFO() for i in range(8) ])
+        self.FilterData = vstruct.VArray([ v_ptr64() for i in range(8) ])
 
 
 class WMI_BUFFER_HEADER(vstruct.VStruct):
@@ -11694,13 +11694,13 @@ class WMI_BUFFER_HEADER(vstruct.VStruct):
         self.ReferenceCount = v_uint32()
         self.TimeStamp = LARGE_INTEGER()
         self.SequenceNumber = v_uint64()
-        self.Padding0 = vstruct.VArray([ v_uint32() for i in xrange(2) ])
+        self.Padding0 = vstruct.VArray([ v_uint32() for i in range(2) ])
         self.ClientContext = ETW_BUFFER_CONTEXT()
         self.State = v_uint32()
         self.Offset = v_uint32()
         self.BufferFlag = v_uint16()
         self.BufferType = v_uint16()
-        self.Padding1 = vstruct.VArray([ v_uint32() for i in xrange(4) ])
+        self.Padding1 = vstruct.VArray([ v_uint32() for i in range(4) ])
 
 
 class QUAD(vstruct.VStruct):
@@ -11714,14 +11714,14 @@ class OBJECT_HANDLE_COUNT_DATABASE(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.CountEntries = v_uint32()
         self._pad0008 = v_bytes(size=4)
-        self.HandleCountEntries = vstruct.VArray([ OBJECT_HANDLE_COUNT_ENTRY() for i in xrange(1) ])
+        self.HandleCountEntries = vstruct.VArray([ OBJECT_HANDLE_COUNT_ENTRY() for i in range(1) ])
 
 
 class VF_KE_CRITICAL_REGION_TRACE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Thread = v_ptr64()
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(7) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(7) ])
 
 
 class TIME_FIELDS(vstruct.VStruct):
@@ -11772,7 +11772,7 @@ class CALL_PERFORMANCE_DATA(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.SpinLock = v_uint64()
-        self.HashTable = vstruct.VArray([ LIST_ENTRY() for i in xrange(64) ])
+        self.HashTable = vstruct.VArray([ LIST_ENTRY() for i in range(64) ])
 
 
 class KPRCB(vstruct.VStruct):
@@ -11787,7 +11787,7 @@ class KPRCB(vstruct.VStruct):
         self.NextThread = v_ptr64()
         self.IdleThread = v_ptr64()
         self.NestingLevel = v_uint8()
-        self.PrcbPad00 = vstruct.VArray([ v_uint8() for i in xrange(3) ])
+        self.PrcbPad00 = vstruct.VArray([ v_uint8() for i in range(3) ])
         self.Number = v_uint32()
         self.RspBase = v_uint64()
         self.PrcbLock = v_uint64()
@@ -11797,7 +11797,7 @@ class KPRCB(vstruct.VStruct):
         self.CpuID = v_uint8()
         self.CpuStep = v_uint16()
         self.MHz = v_uint32()
-        self.HalReserved = vstruct.VArray([ v_uint64() for i in xrange(8) ])
+        self.HalReserved = vstruct.VArray([ v_uint64() for i in range(8) ])
         self.MinorVersion = v_uint16()
         self.MajorVersion = v_uint16()
         self.BuildType = v_uint8()
@@ -11814,10 +11814,10 @@ class KPRCB(vstruct.VStruct):
         self.GroupSetMember = v_uint64()
         self.GroupIndex = v_uint8()
         self._pad0670 = v_bytes(size=7)
-        self.LockQueue = vstruct.VArray([ KSPIN_LOCK_QUEUE() for i in xrange(17) ])
-        self.PPLookasideList = vstruct.VArray([ PP_LOOKASIDE_LIST() for i in xrange(16) ])
-        self.PPNPagedLookasideList = vstruct.VArray([ GENERAL_LOOKASIDE_POOL() for i in xrange(32) ])
-        self.PPPagedLookasideList = vstruct.VArray([ GENERAL_LOOKASIDE_POOL() for i in xrange(32) ])
+        self.LockQueue = vstruct.VArray([ KSPIN_LOCK_QUEUE() for i in range(17) ])
+        self.PPLookasideList = vstruct.VArray([ PP_LOOKASIDE_LIST() for i in range(16) ])
+        self.PPNPagedLookasideList = vstruct.VArray([ GENERAL_LOOKASIDE_POOL() for i in range(32) ])
+        self.PPPagedLookasideList = vstruct.VArray([ GENERAL_LOOKASIDE_POOL() for i in range(32) ])
         self.PacketBarrier = v_uint32()
         self._pad2088 = v_bytes(size=4)
         self.DeferredReadyListHead = SINGLE_LIST_ENTRY()
@@ -11849,7 +11849,7 @@ class KPRCB(vstruct.VStruct):
         self.TargetCount = v_uint32()
         self.IpiFrozen = v_uint32()
         self._pad2180 = v_bytes(size=120)
-        self.DpcData = vstruct.VArray([ KDPC_DATA() for i in xrange(2) ])
+        self.DpcData = vstruct.VArray([ KDPC_DATA() for i in range(2) ])
         self.DpcStack = v_ptr64()
         self.MaximumDpcQueueDepth = v_uint32()
         self.DpcRequestRate = v_uint32()
@@ -11864,7 +11864,7 @@ class KPRCB(vstruct.VStruct):
         self.MasterOffset = v_uint32()
         self.LastTick = v_uint32()
         self.UnusedPad = v_uint32()
-        self.PrcbPad50 = vstruct.VArray([ v_uint64() for i in xrange(2) ])
+        self.PrcbPad50 = vstruct.VArray([ v_uint64() for i in range(2) ])
         self.TimerTable = KTIMER_TABLE()
         self.DpcGate = KGATE()
         self.PrcbPad52 = v_ptr64()
@@ -11883,8 +11883,8 @@ class KPRCB(vstruct.VStruct):
         self.ReadySummary = v_uint32()
         self.QueueIndex = v_uint32()
         self.TimerExpirationDpc = KDPC()
-        self.PrcbPad72 = vstruct.VArray([ v_uint64() for i in xrange(4) ])
-        self.DispatcherReadyListHead = vstruct.VArray([ LIST_ENTRY() for i in xrange(32) ])
+        self.PrcbPad72 = vstruct.VArray([ v_uint64() for i in range(4) ])
+        self.DispatcherReadyListHead = vstruct.VArray([ LIST_ENTRY() for i in range(32) ])
         self.InterruptCount = v_uint32()
         self.KernelTime = v_uint32()
         self.UserTime = v_uint32()
@@ -11892,7 +11892,7 @@ class KPRCB(vstruct.VStruct):
         self.InterruptTime = v_uint32()
         self.AdjustDpcThreshold = v_uint32()
         self.DebuggerSavedIRQL = v_uint8()
-        self.PrcbPad80 = vstruct.VArray([ v_uint8() for i in xrange(7) ])
+        self.PrcbPad80 = vstruct.VArray([ v_uint8() for i in range(7) ])
         self.DpcTimeCount = v_uint32()
         self.DpcTimeLimit = v_uint32()
         self.PeriodicCount = v_uint32()
@@ -11901,7 +11901,7 @@ class KPRCB(vstruct.VStruct):
         self.KeExceptionDispatchCount = v_uint32()
         self.ParentNode = v_ptr64()
         self.StartCycles = v_uint64()
-        self.PrcbPad82 = vstruct.VArray([ v_uint64() for i in xrange(3) ])
+        self.PrcbPad82 = vstruct.VArray([ v_uint64() for i in range(3) ])
         self.MmSpinLockOrdering = v_uint32()
         self.PageColor = v_uint32()
         self.NodeColor = v_uint32()
@@ -11938,15 +11938,15 @@ class KPRCB(vstruct.VStruct):
         self.MmCacheTransitionCount = v_uint32()
         self.MmCacheReadCount = v_uint32()
         self.MmCacheIoCount = v_uint32()
-        self.PrcbPad91 = vstruct.VArray([ v_uint32() for i in xrange(1) ])
+        self.PrcbPad91 = vstruct.VArray([ v_uint32() for i in range(1) ])
         self.RuntimeAccumulation = v_uint64()
         self.PowerState = PROCESSOR_POWER_STATE()
-        self.PrcbPad92 = vstruct.VArray([ v_uint8() for i in xrange(16) ])
+        self.PrcbPad92 = vstruct.VArray([ v_uint8() for i in range(16) ])
         self.KeAlignmentFixupCount = v_uint32()
         self._pad4918 = v_bytes(size=4)
         self.DpcWatchdogDpc = KDPC()
         self.DpcWatchdogTimer = KTIMER()
-        self.Cache = vstruct.VArray([ CACHE_DESCRIPTOR() for i in xrange(5) ])
+        self.Cache = vstruct.VArray([ CACHE_DESCRIPTOR() for i in range(5) ])
         self.CacheCount = v_uint32()
         self.CachedCommit = v_uint32()
         self.CachedResidentAvailable = v_uint32()
@@ -11960,11 +11960,11 @@ class KPRCB(vstruct.VStruct):
         self.VirtualApicAssist = v_ptr64()
         self.StatisticsPage = v_ptr64()
         self.RateControl = v_ptr64()
-        self.CacheProcessorMask = vstruct.VArray([ v_uint64() for i in xrange(5) ])
+        self.CacheProcessorMask = vstruct.VArray([ v_uint64() for i in range(5) ])
         self.PackageProcessorSet = KAFFINITY_EX()
         self.CoreProcessorSet = v_uint64()
         self.PebsIndexAddress = v_ptr64()
-        self.PrcbPad93 = vstruct.VArray([ v_uint64() for i in xrange(12) ])
+        self.PrcbPad93 = vstruct.VArray([ v_uint64() for i in range(12) ])
         self.SpinLockAcquireCount = v_uint32()
         self.SpinLockContentionCount = v_uint32()
         self.SpinLockSpinCount = v_uint32()
@@ -12011,8 +12011,8 @@ class KPRCB(vstruct.VStruct):
         self.ExBoostSharedOwners = v_uint32()
         self.ExEtwSynchTrackingNotificationsCount = v_uint32()
         self.ExEtwSynchTrackingNotificationsAccountedCount = v_uint32()
-        self.VendorString = vstruct.VArray([ v_uint8() for i in xrange(13) ])
-        self.PrcbPad10 = vstruct.VArray([ v_uint8() for i in xrange(3) ])
+        self.VendorString = vstruct.VArray([ v_uint8() for i in range(13) ])
+        self.PrcbPad10 = vstruct.VArray([ v_uint8() for i in range(3) ])
         self.FeatureBits = v_uint32()
         self._pad4bd0 = v_bytes(size=4)
         self.UpdateSignature = LARGE_INTEGER()
@@ -12023,7 +12023,7 @@ class KPRCB(vstruct.VStruct):
         self._pad4c00 = v_bytes(size=16)
         self.Mailbox = v_ptr64()
         self._pad4c80 = v_bytes(size=120)
-        self.RequestMailbox = vstruct.VArray([ REQUEST_MAILBOX() for i in xrange(1) ])
+        self.RequestMailbox = vstruct.VArray([ REQUEST_MAILBOX() for i in range(1) ])
         self._pad4d00 = v_bytes(size=64)
 
 
@@ -12089,7 +12089,7 @@ class KAFFINITY_EX(vstruct.VStruct):
         self.Count = v_uint16()
         self.Size = v_uint16()
         self.Reserved = v_uint32()
-        self.Bitmap = vstruct.VArray([ v_uint64() for i in xrange(4) ])
+        self.Bitmap = vstruct.VArray([ v_uint64() for i in range(4) ])
 
 
 class ETW_WMITRACE_WORK(vstruct.VStruct):
@@ -12097,8 +12097,8 @@ class ETW_WMITRACE_WORK(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.LoggerId = v_uint32()
         self._pad0008 = v_bytes(size=4)
-        self.LoggerName = vstruct.VArray([ v_uint8() for i in xrange(65) ])
-        self.FileName = vstruct.VArray([ v_uint8() for i in xrange(129) ])
+        self.LoggerName = vstruct.VArray([ v_uint8() for i in range(65) ])
+        self.FileName = vstruct.VArray([ v_uint8() for i in range(129) ])
         self._pad00cc = v_bytes(size=2)
         self.MaximumFileSize = v_uint32()
         self.MinBuffers = v_uint32()
@@ -12180,7 +12180,7 @@ class CM_NAME_HASH(vstruct.VStruct):
         self._pad0008 = v_bytes(size=4)
         self.NextHash = v_ptr64()
         self.NameLength = v_uint16()
-        self.Name = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.Name = vstruct.VArray([ v_uint16() for i in range(1) ])
         self._pad0018 = v_bytes(size=4)
 
 
@@ -12191,7 +12191,7 @@ class KTSS64(vstruct.VStruct):
         self.Rsp0 = v_uint64()
         self.Rsp1 = v_uint64()
         self.Rsp2 = v_uint64()
-        self.Ist = vstruct.VArray([ v_uint64() for i in xrange(8) ])
+        self.Ist = vstruct.VArray([ v_uint64() for i in range(8) ])
         self.Reserved1 = v_uint64()
         self.Reserved2 = v_uint16()
         self.IoMapBase = v_uint16()
@@ -12237,7 +12237,7 @@ class VF_POOL_TRACE(vstruct.VStruct):
         self.Address = v_ptr64()
         self.Size = v_uint64()
         self.Thread = v_ptr64()
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(13) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(13) ])
 
 
 class SECTION_IMAGE_INFORMATION(vstruct.VStruct):
@@ -12268,8 +12268,8 @@ class HIVE_LOAD_FAILURE(vstruct.VStruct):
         self.Hive = v_ptr64()
         self.Index = v_uint32()
         self.RecoverableIndex = v_uint32()
-        self.Locations = vstruct.VArray([ _unnamed_22851() for i in xrange(8) ])
-        self.RecoverableLocations = vstruct.VArray([ _unnamed_22851() for i in xrange(8) ])
+        self.Locations = vstruct.VArray([ _unnamed_22851() for i in range(8) ])
+        self.RecoverableLocations = vstruct.VArray([ _unnamed_22851() for i in range(8) ])
         self.RegistryIO = _unnamed_22852()
         self.CheckRegistry2 = _unnamed_22853()
         self.CheckKey = _unnamed_22854()
@@ -12367,7 +12367,7 @@ class KNODE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.PagedPoolSListHead = SLIST_HEADER()
-        self.NonPagedPoolSListHead = vstruct.VArray([ SLIST_HEADER() for i in xrange(3) ])
+        self.NonPagedPoolSListHead = vstruct.VArray([ SLIST_HEADER() for i in range(3) ])
         self.Affinity = GROUP_AFFINITY()
         self.ProximityId = v_uint32()
         self.NodeNumber = v_uint16()
@@ -12379,7 +12379,7 @@ class KNODE(vstruct.VStruct):
         self.Seed = v_uint32()
         self.MmShiftedColor = v_uint32()
         self._pad0068 = v_bytes(size=4)
-        self.FreeCount = vstruct.VArray([ v_uint64() for i in xrange(2) ])
+        self.FreeCount = vstruct.VArray([ v_uint64() for i in range(2) ])
         self.Right = v_uint32()
         self.Left = v_uint32()
         self.CachedKernelStacks = CACHED_KSTACK_LIST()
@@ -12393,7 +12393,7 @@ class PRIVILEGE_SET(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.PrivilegeCount = v_uint32()
         self.Control = v_uint32()
-        self.Privilege = vstruct.VArray([ LUID_AND_ATTRIBUTES() for i in xrange(1) ])
+        self.Privilege = vstruct.VArray([ LUID_AND_ATTRIBUTES() for i in range(1) ])
 
 
 class ALPC_HANDLE_TABLE(vstruct.VStruct):
@@ -12453,12 +12453,12 @@ class SYSTEM_POWER_CAPABILITIES(vstruct.VStruct):
         self.ProcessorMinThrottle = v_uint8()
         self.ProcessorMaxThrottle = v_uint8()
         self.FastSystemS4 = v_uint8()
-        self.spare2 = vstruct.VArray([ v_uint8() for i in xrange(3) ])
+        self.spare2 = vstruct.VArray([ v_uint8() for i in range(3) ])
         self.DiskSpinDown = v_uint8()
-        self.spare3 = vstruct.VArray([ v_uint8() for i in xrange(8) ])
+        self.spare3 = vstruct.VArray([ v_uint8() for i in range(8) ])
         self.SystemBatteriesPresent = v_uint8()
         self.BatteriesAreShortTerm = v_uint8()
-        self.BatteryScale = vstruct.VArray([ BATTERY_REPORTING_SCALE() for i in xrange(3) ])
+        self.BatteryScale = vstruct.VArray([ BATTERY_REPORTING_SCALE() for i in range(3) ])
         self.AcOnLineWake = v_uint32()
         self.SoftLidWake = v_uint32()
         self.RtcWake = v_uint32()
@@ -12480,7 +12480,7 @@ class THERMAL_INFORMATION(vstruct.VStruct):
         self.CriticalTripPoint = v_uint32()
         self.ActiveTripPointCount = v_uint8()
         self._pad002c = v_bytes(size=3)
-        self.ActiveTripPoint = vstruct.VArray([ v_uint32() for i in xrange(10) ])
+        self.ActiveTripPoint = vstruct.VArray([ v_uint32() for i in range(10) ])
         self._pad0058 = v_bytes(size=4)
 
 
@@ -12532,7 +12532,7 @@ class RTL_USER_PROCESS_PARAMETERS(vstruct.VStruct):
         self.DesktopInfo = UNICODE_STRING()
         self.ShellInfo = UNICODE_STRING()
         self.RuntimeData = UNICODE_STRING()
-        self.CurrentDirectores = vstruct.VArray([ RTL_DRIVE_LETTER_CURDIR() for i in xrange(32) ])
+        self.CurrentDirectores = vstruct.VArray([ RTL_DRIVE_LETTER_CURDIR() for i in range(32) ])
         self.EnvironmentSize = v_uint64()
         self.EnvironmentVersion = v_uint64()
 
@@ -12621,7 +12621,7 @@ class VI_FAULT_TRACE(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.Thread = v_ptr64()
-        self.StackTrace = vstruct.VArray([ v_ptr64() for i in xrange(8) ])
+        self.StackTrace = vstruct.VArray([ v_ptr64() for i in range(8) ])
 
 
 class IO_RESOURCE_REQUIREMENTS_LIST(vstruct.VStruct):
@@ -12631,9 +12631,9 @@ class IO_RESOURCE_REQUIREMENTS_LIST(vstruct.VStruct):
         self.InterfaceType = v_uint32()
         self.BusNumber = v_uint32()
         self.SlotNumber = v_uint32()
-        self.Reserved = vstruct.VArray([ v_uint32() for i in xrange(3) ])
+        self.Reserved = vstruct.VArray([ v_uint32() for i in range(3) ])
         self.AlternativeLists = v_uint32()
-        self.List = vstruct.VArray([ IO_RESOURCE_LIST() for i in xrange(1) ])
+        self.List = vstruct.VArray([ IO_RESOURCE_LIST() for i in range(1) ])
 
 
 class _unnamed_26616(vstruct.VStruct):
@@ -12670,7 +12670,7 @@ class RTL_ATOM_TABLE_ENTRY(vstruct.VStruct):
         self.ReferenceCount = v_uint16()
         self.Flags = v_uint8()
         self.NameLength = v_uint8()
-        self.Name = vstruct.VArray([ v_uint16() for i in xrange(1) ])
+        self.Name = vstruct.VArray([ v_uint16() for i in range(1) ])
         self._pad0018 = v_bytes(size=6)
 
 

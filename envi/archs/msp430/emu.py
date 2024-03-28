@@ -54,7 +54,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
     def readMemValue(self, addr, size):
         bytez = self.readMemory(addr, size)
-        if bytez == None:
+        if bytez is None:
             return None
 
         if len(bytez) != size:
@@ -79,11 +79,11 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
 
     def executeOpcode(self, op):
         meth = self.op_methods.get(op.mnem, None)
-        if meth == None:
+        if meth is None:
             raise envi.UnsupportedInstruction(self, op)
 
         newpc = meth(op)
-        if newpc != None:
+        if newpc is not None:
             self.setProgramCounter(newpc)
             return
 

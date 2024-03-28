@@ -8,11 +8,9 @@ amd64regs = [
     # The amd64 extended GP regs
     ("r8",64),("r9",64),("r10",64),("r11",64),("r12",64),("r13",64),("r14",64),("r15",64),
 
-    ("mm0",64),("mm1",64), ("mm2",64), ("mm3",64), ("mm4",64), ("mm5",64), ("mm6",64), ("mm7",64),
-
     # SIMD registers
     ("ymm0",256),("ymm1",256),("ymm2",256),("ymm3",256),("ymm4",256),("ymm5",256),("ymm6",256),("ymm7",256),
-    # The amd64 eytended SIMD regs...
+    # The amd64 extended SIMD regs...
     ("ymm8",256),("ymm9",256),("ymm10",256),("ymm11",256),("ymm12",256),("ymm13",256),("ymm14",256),("ymm15",256),
 
     #("xmm0",128),("xmm1",128),("xmm2",128),("xmm3",128),("xmm4",128),("xmm5",128),("xmm6",128),("xmm7",128),
@@ -34,11 +32,11 @@ amd64regs = [
     # Segment registers
     ("es", 16),("cs",16),("ss",16),("ds",16),("fs",16),("gs",16),
     # FPU Registers
-    ("st0", 128),("st1", 128),("st2", 128),("st3", 128),("st4", 128),("st5", 128),("st6", 128),("st7", 128),
+    ("st0", 80),("st1", 80),("st2", 80),("st3", 80),("st4", 80),("st5", 80),("st6", 80),("st7", 80),
 
     # Leftovers ;)
     # MS doesn't support rflags in Context structure
-    ("eflags", 32), ("rip", 64),
+    ("eflags", 32), ("rip", 64), ("fpsr", 16), ("fpcr", 16),
 ]
 
 # Build up a set of accessable constants
@@ -46,6 +44,15 @@ l = locals()
 e_reg.addLocalEnums(l, amd64regs)
 
 amd64meta = [
+    ("mm0", REG_ST0, 0, 64),
+    ("mm1", REG_ST1, 0, 64),
+    ("mm2", REG_ST2, 0, 64),
+    ("mm3", REG_ST3, 0, 64),
+    ("mm4", REG_ST4, 0, 64),
+    ("mm5", REG_ST5, 0, 64),
+    ("mm6", REG_ST6, 0, 64),
+    ("mm7", REG_ST7, 0, 64),
+
     ("eax", REG_RAX, 0, 32),
     ("ecx", REG_RCX, 0, 32),
     ("edx", REG_RDX, 0, 32),

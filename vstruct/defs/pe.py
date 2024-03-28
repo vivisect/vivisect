@@ -1,3 +1,4 @@
+import binascii
 
 import vstruct
 from vstruct.primitives import *
@@ -96,6 +97,19 @@ class IMAGE_IMPORT_DIRECTORY(vstruct.VStruct):
         self.ForwarderChain     = v_uint32()
         self.Name               = v_uint32()
         self.FirstThunk         = v_uint32()
+
+# https://docs.microsoft.com/en-us/cpp/build/reference/structure-and-constant-definitions?view=vs-2019
+class IMAGE_DELAY_IMPORT_DIRECTORY(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self)
+        self.grAttrs      = v_uint32()
+        self.rvaDLLName   = v_uint32()
+        self.rvaHmod      = v_uint32()
+        self.rvaIAT       = v_uint32()
+        self.rvaINT       = v_uint32()
+        self.rvaBoundIAT  = v_uint32()
+        self.rvaUnloadIAT = v_uint32()
+        self.dwTimeStamp  = v_uint32()
 
 class IMAGE_IMPORT_BY_NAME(vstruct.VStruct):
     def __init__(self, namelen=128):
@@ -251,11 +265,43 @@ class VS_FIXEDFILEINFO(vstruct.VStruct):
         self.FileDateMS         = v_uint32()
         self.FileDateLS         = v_uint32()
 
+class v_name(v_bytes):
+    '''
+    Specifically for things that *should* be utf-8 strings, but aren't really enforced as such
+    '''
+    def __repr__(self):
+        try:
+            name = self._vs_value.decode('utf-8')
+            return name
+        except UnicodeDecodeError:
+            return binascii.hexlify(self._vs_value).decode('utf-8')
+
+    __str__ = __repr__
+
+    def vsGetValue(self):
+        '''
+        Get the type specific value for this field.
+        (Used by the structure dereference method to return
+        a python native for the field by name)
+        '''
+        try:
+            name = self._vs_value.decode('utf-8')
+            return name
+        except UnicodeDecodeError:
+            return "[invalid name] %r" % self._vs_value
+
+    def isValid(self):
+        try:
+            self._vs_value.decode('utf-8')
+            return True
+        except UnicodeDecodeError:
+            return False
+
 class IMAGE_SECTION_HEADER(vstruct.VStruct):
 
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.Name                 = v_str(8)
+        self.Name                 = v_name(8)
         self.VirtualSize          = v_uint32()
         self.VirtualAddress       = v_uint32()
         self.SizeOfRawData        = v_uint32()
@@ -266,6 +312,10 @@ class IMAGE_SECTION_HEADER(vstruct.VStruct):
         self.NumberOfLineNumbers  = v_uint16()
         self.Characteristics      = v_uint32()
 
+    def isNameValid(self):
+        # we've gotta bypass
+        name = self.vsGetField('Name')
+        return name.isValid()
 
 class IMAGE_RUNTIME_FUNCTION_ENTRY(vstruct.VStruct):
     """

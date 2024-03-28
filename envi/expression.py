@@ -23,7 +23,7 @@ def evaluate(pycode, locvars):
     except Exception:
         try:
             # check through the keys for anything we might want to replace
-            keys = locvars.keys()
+            keys = list(locvars.keys())
 
             # sort the keys in reverse order so that longer matching strings take priority
             keys.sort(reverse=True)
@@ -69,16 +69,13 @@ class ExpressionLocals(dict):
             for va, name in self.symobj.getNames():
                 yield name
 
-        dict.__iter__(self)
+        yield from dict.__iter__(self)
 
     def keys(self):
         return [key for key in self]
 
     def __contains__(self, key):
         return self.__getitem__(key) is not None
-
-    has_key = __contains__
-
 
 class MemoryExpressionLocals(ExpressionLocals):
 
@@ -100,7 +97,7 @@ class MemoryExpressionLocals(ExpressionLocals):
 
         Example x = sym('kernel32.??2@$$FYAPAXI@Z')
         '''
-        return long(evaluate(symstr, self))
+        return int(evaluate(symstr, self))
 
     def mapbase(self, address):
         """

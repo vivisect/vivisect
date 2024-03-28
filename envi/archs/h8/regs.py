@@ -28,10 +28,16 @@ REG_CCR_Z = 2
 REG_CCR_V = 1
 REG_CCR_C = 0
 
-ccr_fields = [None for x in range(8)]
-for k,v in locals().items():
-    if k.startswith('REG_CCR_'):
-        ccr_fields[v] = k
+ccr_fields = [
+    REG_CCR_C,
+    REG_CCR_V,
+    REG_CCR_Z,
+    REG_CCR_N,
+    REG_CCR_U0,
+    REG_CCR_H,
+    REG_CCR_U1,
+    REG_CCR_T,
+]
 
 H8StatMeta = tuple([
     ("N", h8_const.REG_FLAGS, REG_CCR_N, 1, 'Negative'),
@@ -43,6 +49,7 @@ H8StatMeta = tuple([
     ("T", h8_const.REG_FLAGS, REG_CCR_T, 1, 'T'),
     ("H", h8_const.REG_FLAGS, REG_CCR_H, 1, 'Half Carry'),
     ])
+
 
 H8Meta = [
     ('r0', REG_ER0, 0, 16),

@@ -1,9 +1,12 @@
 import math
 import random
+import logging
 import itertools
 import traceback
 
 import visgraph.layouts as vg_layouts
+
+logger = logging.getLogger(__name__)
 
 # coulomb's constant approximation
 ke = 8.98755
@@ -24,16 +27,13 @@ class vector:
         '''
         Update the vector by adding the given force/angle.
         '''
-        #print 'FORCEANGLE',force,angle
         # Use head-to-tail addition
         dx = math.cos(self.angle) * self.force + math.cos(angle) * force
         dy = math.sin(self.angle) * self.force + math.sin(angle) * force
-        #print 'XY',dx,dy
         self.force = math.hypot(dx,dy)
         self.angle = math.atan2(dy, dx)
 
     def getMovement(self, x, y, maxmov=None):
-        #print 'FINAL FORCE',self.force, self.angle
         dx = math.cos(self.angle) * self.force
         dy = math.sin(self.angle) * self.force
         if maxmov:
@@ -103,7 +103,6 @@ class ForceLayout(vg_layouts.GraphLayout):
                 for i in itertools.count():
 
                     totforce = self._tickPhysicsEngine(graph)
-                    #print('TICK: %d (gc: %d)' % (i,len(nodes)))
 
                     # If the system's overall energy is less than minforce, done!
                     #if totforce < self._f_minforce:
@@ -113,15 +112,15 @@ class ForceLayout(vg_layouts.GraphLayout):
                     if self._f_imax and i >= self._f_imax:
                         break
 
-            except Exception, e:
-                traceback.print_exc()
+            except Exception:
+                logger.error(traceback.format_exc())
 
         # Now, in order from largest to smallest, shift them back toward 0,0
         cgraphs.sort( cmp=lambda x,y: cmp(y.getNodeCount(), x.getNodeCount()) )
 
         offset = 0
         for graph in cgraphs:
-            x,y,xmax,ymax = self._getLayoutGeom( graph )
+            x,y,xmax,ymax = self._getLayoutGeom(graph)
             self._shiftGraphLayout( graph, 0 - x, offset - y )
             offset += ( ymax - y )
             #self._shiftGraphLayout( graph, offset - x, 0 - y )
@@ -177,11 +176,10 @@ class ForceLayout(vg_layouts.GraphLayout):
 
                 totforce = self._tickPhysicsEngine(graph)
                 if totforce / len(nodes) > self._f_minavgforce:
-                    #print('AVGFORCE: %s' % ((totforce / len(nodes))))
                     needmore = True
 
-            except Exception, e:
-                traceback.print_exc()
+            except Exception as e:
+                logger.error(traceback.format_exc())
 
         # Now, in order from largest to smallest, shift them back toward 0,0
         cgraphs.sort( cmp=lambda x,y: cmp(y.getNodeCount(), x.getNodeCount()) )
@@ -237,7 +235,7 @@ class ForceLayout(vg_layouts.GraphLayout):
             # All repulsive forces are added to this node's vect
             # time to add some drag....
             drag = nprops.get('drag')
-            if drag == None:
+            if drag is None:
                 drag = self._f_drag
             vect.addDrag( drag )
             # FIXME allow the graph to specify drag per node

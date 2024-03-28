@@ -3,6 +3,8 @@ import logging
 import vstruct
 from vstruct.primitives import *
 
+logger = logging.getLogger(__name__)
+
 class MiniDumpString(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
@@ -37,7 +39,7 @@ class MiniDumpLocationDescriptor(vstruct.VStruct):
 class MiniDumpMemoryDescriptor(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.StartOfMemoryPage = v_uint64()
+        self.StartOfMemoryRange = v_uint64()
         self.Memory = MiniDumpLocationDescriptor()
 
 class MiniDumpMemoryDescriptor64(vstruct.VStruct):
@@ -484,7 +486,9 @@ class MiniDumpThreadListStream(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.NumberOfThreads = v_uint32()
-        self.Threads = MiniDumpThread()
+
+    def pcb_NumberOfThreads(self):
+        self.Threads = vstruct.VArray([MiniDumpThread() for i in range(self.NumberOfThreads)])
 
 class MiniDumpReservedStream1(vstruct.VStruct):
     '''
@@ -570,7 +574,7 @@ class MiniDump(object):
                 stream = vars(self)[sclass.__name__] = sclass()
                 stream.vsParse(bytez, offset=soffset)
             else:
-                logging.info('unknown stream type')
+                logger.info('Unknown stream type of %d', header.StreamType)
 
     def tree(self):
         txt = []
@@ -598,7 +602,7 @@ class MiniDump(object):
 
         for idx, entry in self.MiniDumpMemoryInfoListStream.Entries:
             mname =  self.getModuleNameByAddr(entry.AllocationBase)
-            if mname == None:
+            if mname is None:
                 mname = 'Module Name Not Found'
 
             maps.append((entry.BaseAddress, entry.RegionSize, entry.Protect, mname))

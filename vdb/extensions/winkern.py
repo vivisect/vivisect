@@ -90,7 +90,7 @@ def bugcheck(db, line):
     sp = trace.getStackCounter()
     pc = trace.getProgramCounter()
     sym = trace.getSymByAddr(pc)
-    if sym == None:
+    if sym is None:
         db.vprint('Not currently at known bugcheck entry: 0x%.8x' % pc)
         return
 
@@ -146,8 +146,8 @@ def bugcheck(db, line):
                 framestr = '0x%.8x [0x%.8x] %s' % (eip,ebp,argstr)
 
                 sym = trace.getSymByAddr(eip, exact=False)
-                if sym != None:
-                    framestr += ' (%s + %d)' % (sym,eip-long(sym))
+                if sym is not None:
+                    framestr += ' (%s + %d)' % (sym, eip - int(sym))
 
                 db.vprint(framestr)
 
@@ -162,7 +162,7 @@ def bugcheck(db, line):
             sym = trace.getSymByAddr(exaddr, exact=False)
             db.vprint('')
             db.vprint('Exception Trap: 0x%.8x' % extrap)
-            db.vprint('Exception Addr: 0x%.8x (%s + %d)' % (exaddr, sym, exaddr-long(sym)))
+            db.vprint('Exception Addr: 0x%.8x (%s + %d)' % (exaddr, sym, exaddr-int(sym)))
             db.vprint('Exception Code: 0x%.8x' % excode)
             db.vprint('Exception Inst: %r' % trace.parseOpcode(exaddr))
 

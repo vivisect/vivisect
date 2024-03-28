@@ -12,6 +12,7 @@ def int_to_bcd(val):
         res += mult * (val % 10)
         mult *= 16
         val /= 10
+        val = int(val)
 
     return res
 

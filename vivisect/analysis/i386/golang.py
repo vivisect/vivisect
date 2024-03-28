@@ -12,9 +12,16 @@ Samples have been found with different instruction sequences for reaching the
 address of runtime_main(); this module attempts all observed sequences.
 '''
 
+import logging
+
 import envi
 import envi.archs.i386.disasm
 
+logger = logging.getLogger(__name__)
+
+# Opcode sequence, where element [-5] is the important one.
+_GOLANG_I386_INSTRS = ['cld', 'call', 'mov', 'mov', 'mov', 'mov', 'call',
+                       'call', 'call', 'push', 'push', 'call', 'pop', 'pop']
 
 def analyze(vw):
     '''
@@ -50,6 +57,7 @@ def analyze(vw):
 
     # Invoke codeflow on runtime_main().
     vw.addEntryPoint(runtime_va)
+    logger.debug('discovered runtime function: 0x%x', runtime_va)
     vw.makeFunction(runtime_va)
 
     # Also mark the ptr_va as a pointer to runtime_va.
@@ -65,7 +73,7 @@ def extract_golang_mainmain(vw, basic_blocks, filename):
     The push instruction -5 from the end will load the contents of a memory
     address, and those contents are the runtime_main() address.
     '''
-    op = find_golang_bblock(vw, basic_blocks, filename)
+    op = find_golang_bblock(vw, basic_blocks, _GOLANG_I386_INSTRS, 5)
     if op is None:
         op = find_golang_bblock_via_stack(vw, filename)
         if op is None:
@@ -77,12 +85,7 @@ def extract_golang_mainmain(vw, basic_blocks, filename):
     return ptr_va, runtime_va
 
 
-# Opcode sequence, where element [-5] is the important one.
-_GOLANG_I386_INSTRS = ['cld', 'call', 'mov', 'mov', 'mov', 'mov', 'call',
-                       'call', 'call', 'push', 'push', 'call', 'pop', 'pop']
-
-
-def find_golang_bblock(vw, basic_blocks, filename):
+def find_golang_bblock(vw, basic_blocks, match, idx):
     '''
     Find the basic block of interest and return the opcode where
     the special sequence of opcodes begins.  Return None if not found.
@@ -102,20 +105,20 @@ def find_golang_bblock(vw, basic_blocks, filename):
                 op = None
             if op is None:
                 return None
-            if (len(instrs) > 0) or (op.mnem == _GOLANG_I386_INSTRS[0]):
+            if (len(instrs) > 0) or (op.mnem == match[0]):
                 # Record instructions from the first opcode match.
                 instrs.append(op)
             next_va += op.size
-        if len(instrs) >= len(_GOLANG_I386_INSTRS):
+        if len(instrs) >= len(match):
             the_bblock = bblock
             break
     if the_bblock is None:
         return None
 
-    for k in range(len(_GOLANG_I386_INSTRS)):
-        if instrs[k].mnem != _GOLANG_I386_INSTRS[k]:
+    for k in range(len(match)):
+        if instrs[k].mnem != match[k]:
             return None
-    return instrs[len(_GOLANG_I386_INSTRS) - 5]
+    return instrs[len(match) - idx]
 
 
 def find_golang_bblock_via_stack(vw, filename):
@@ -147,11 +150,12 @@ def find_golang_bblock_via_stack(vw, filename):
 
     # Analyze the function at the pointer if necessary.
     if not vw.isFunction(ptr_va):
+        logger.debug('discovered new function(ptr): 0x%x', ptr_va)
         vw.makeFunction(ptr_va)
 
     # This function should contain the special basic block.
     basic_blocks = vw.getFunctionBlocks(ptr_va)
-    return find_golang_bblock(vw, basic_blocks, filename)
+    return find_golang_bblock(vw, basic_blocks, _GOLANG_I386_INSTRS, 5)
 
 
 def parse_push_imm(vw, opcode, filename, get_content=False):

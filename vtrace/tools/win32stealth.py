@@ -37,7 +37,7 @@ class StealthBreak(vtrace.Breakpoint):
             self.bpid = None
 
     def notify(self, event, trace):
-        if self.impapi != None:
+        if self.impapi is not None:
             # cached
             return
 

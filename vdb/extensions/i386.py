@@ -14,7 +14,7 @@ def eflags(vdb, line):
 
     if len(argv) > 0:
         flag = argv[0].upper()
-        valid_flags = trace.getStatusFlags().keys()
+        valid_flags = trace.getStatusFlags()
         if flag not in valid_flags:
             raise Exception('invalid flag: %s, valid flags %s' % (flag, valid_flags))
         value = trace.getRegisterByName(flag)
@@ -35,12 +35,12 @@ def eflags(vdb, line):
     vdb.vprint('%16s: %s' % ('Direction', bool(ef & e_i386.EFLAGS_DF)))
     vdb.vprint('%16s: %s' % ('Overflow', bool(ef & e_i386.EFLAGS_OF)))
 
-def vdbExtension(vdb, trace):
-    vdb.addCmdAlias('db','mem -F bytes')
-    vdb.addCmdAlias('dw','mem -F u_int_16')
-    vdb.addCmdAlias('dd','mem -F u_int_32')
-    vdb.addCmdAlias('dq','mem -F u_int_64')
-    vdb.addCmdAlias('dr','mem -F "Deref View"')
-    vdb.addCmdAlias('ds','mem -F "Symbols View"')
-    vdb.registerCmdExtension(eflags)
 
+def vdbExtension(vdb, trace):
+    vdb.addCmdAlias('db', 'mem -F bytes')
+    vdb.addCmdAlias('dw', 'mem -F u_int_16')
+    vdb.addCmdAlias('dd', 'mem -F u_int_32')
+    vdb.addCmdAlias('dq', 'mem -F u_int_64')
+    vdb.addCmdAlias('dr', 'mem -F "Deref View"')
+    vdb.addCmdAlias('ds', 'mem -F "Symbols View"')
+    vdb.registerCmdExtension(eflags)

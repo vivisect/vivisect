@@ -110,7 +110,7 @@ class TestConstraints(unittest.TestCase):
         if len(order) != len(correct):
             self.fail('test_walktree, visit produced unexpected results')
 
-        for i in xrange(len(order)):
+        for i in range(len(order)):
             self.assertTrue(str(order[i]) == correct[i])
 
     def test_update(self):

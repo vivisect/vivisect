@@ -4,6 +4,7 @@ Home of the newer, cleaner iterators (yield based generators...)
 import envi
 import vivisect
 
+
 def iterOps(vw, va):
     '''
     Iterate over the virtual addresses of all the code blocks from the
@@ -20,7 +21,7 @@ def iterOps(vw, va):
             continue
         fdone[fva] = True
 
-        for cbva,cbsize,fva in vw.getFunctionBlocks(fva):
+        for cbva, cbsize, fva in vw.getFunctionBlocks(fva):
 
             cbend = cbva + cbsize
             while cbva < cbend:
@@ -29,7 +30,7 @@ def iterOps(vw, va):
 
                 # Go through the locations in this code block
                 lva, lsize, ltype, linfo = vw.getLocation(cbva)
-                for xrfrom,xrto,rtype,rflags in vw.getXrefsFrom(lva):
+                for xrfrom, xrto, rtype, rflags in vw.getXrefsFrom(lva):
                     if rtype != vivisect.REF_CODE:
                         continue
 
@@ -55,6 +56,7 @@ def iterOps(vw, va):
                 # round and round!
                 cbva += lsize
 
+
 def getImportCalls(vw, va):
     '''
     Get all the import calls which happen from the given function
@@ -66,7 +68,7 @@ def getImportCalls(vw, va):
     ret = []
     for lva in iterOps(vw, va):
 
-        for xrfrom,xrto,rtype,rflags in vw.getXrefsFrom(lva):
+        for xrfrom, xrto, rtype, rflags in vw.getXrefsFrom(lva):
             if rtype != vivisect.REF_CODE:
                 continue
 
@@ -77,11 +79,12 @@ def getImportCalls(vw, va):
             # This may be an actual import call!
             if rflags & envi.BR_DEREF:
                 loc = vw.getLocation(xrto)
-                if loc != None:
-                    drva,drsize,drtype,drinfo = loc
+                if loc is not None:
+                    drva, drsize, drtype, drinfo = loc
                     if drtype == vivisect.LOC_IMPORT:
                         ret.append((lva, drinfo))
     return ret
+
 
 def getStringRefs(vw, va):
     '''
@@ -93,13 +96,12 @@ def getStringRefs(vw, va):
     '''
     ret = []
     for lva in iterOps(vw, va):
-
-        for xrfrom,xrto,rtype,rflags in vw.getXrefsFrom(lva):
+        for xrfrom, xrto, rtype, rflags in vw.getXrefsFrom(lva):
             if rtype != vivisect.REF_PTR:
                 continue
 
             ploc = vw.getLocation(xrto)
-            if ploc == None:
+            if ploc is None:
                 continue
 
             plva, plsize, pltype, plinfo = ploc
@@ -111,4 +113,3 @@ def getStringRefs(vw, va):
                 ret.append((lva, plva, r))
 
     return ret
-

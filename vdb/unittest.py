@@ -2,7 +2,6 @@ import sys
 import struct
 import traceback
 
-import envi
 import vdb.testmods
 import vdb.testmods.hookbptest as v_t_hookbptest
 import vdb.testmods.callingconventions as v_t_callingconventions
@@ -74,9 +73,9 @@ def runTests(tests):
             stage = 'clean'
             test.cleanTest()
             print('Test Success: %s' % test.__class__.__name__)
-        except vdb.testmods.SkipTest, e:
+        except vdb.testmods.SkipTest as e:
             print('Test Skipped: %s (in %s) %s' % (testname, stage, e))
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
             print('Test Failure: %s (in %s) %s' % (testname, stage, e))
 
@@ -97,6 +96,7 @@ def main():
     print('running platform specific tests')
     if 'win' in sys.platform.lower():
         runTests(windows)
+
 
 if __name__ == '__main__':
     sys.exit(main())

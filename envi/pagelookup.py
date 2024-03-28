@@ -4,6 +4,7 @@ python object which implements a similar lookup mechanism
 to the i386 page table lookups...
 '''
 import collections
+import envi.exc as e_exc
 
 # FIXME move functions in here too so there is procedural "speed" way
 # and objecty pythonic way...
@@ -18,12 +19,11 @@ class PageLookup:
     '''
 
     def __init__(self):
-        #self._page_dict = {}
         self._page_dict = pagedict()
 
     def getPageLookup(self, va):
         page = self._page_dict.get( va >> 16 )
-        if page == None:
+        if page is None:
             return None
         return page[ va & 0xffff ]
 
@@ -59,7 +59,7 @@ class MapLookup:
                 off = va - mva
                 marray[off:off+size] = [obj] * size
                 return
-        raise Exception('Address (0x%.8x) not in maps!' % va)
+        raise e_exc.MapNotFoundException(va)
 
     def getMapLookup(self, va):
         for mva, mvamax, marray in self._maps_list:
@@ -67,6 +67,14 @@ class MapLookup:
                 return marray[ va - mva ]
         return None
 
-    def __getslice__(self, start, end):
-        print 'GET SLICE'
+    def delMapLookup(self, va):
+        for midx in range(len(self._maps_list)):
+            mva, mvamax, marray = self._maps_list[midx]
+            if va >= mva and va < mvamax:
+                return self._maps_list.pop(midx)
 
+        raise e_exc.MapNotFoundException(va=va)
+
+
+    def __getslice__(self, start, end):
+        raise NotImplementedError("__getslice__ on MapLookup needs implementing")

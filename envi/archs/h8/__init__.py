@@ -24,11 +24,11 @@ class H8Module(envi.ArchitectureModule):
         return h8_regs.H8RegisterContext()
 
     def archGetBreakInstr(self):
+        # TODO: Mop this up. Make a more specific exception or encode the complex instruction
         raise Exception("weird... what are you trying to do here?  h8 has a complex breakpoint instruction")
-        return
 
     def archGetNopInstr(self):
-        return '\x00\x00'
+        return b'\x00\x00'
 
     def getPointerSize(self):
         return 4    # 24 bits encoded in the 3 LSB of 32bit.  addresses must be even
@@ -36,7 +36,7 @@ class H8Module(envi.ArchitectureModule):
     def pointerString(self, va):
         return "0x%.8x" % va
 
-    def archParseOpcode(self, bytes, offset=0, va=0):
+    def archParseOpcode(self, bytes, offset=0, va=0, extra=None):
         """
         Parse a sequence of bytes out into an envi.Opcode instance.
         """

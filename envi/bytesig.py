@@ -1,4 +1,3 @@
-
 """
 A byte and mask based decision engine for creating byte
 sequences (and potential comparison masks) for general purpose
@@ -6,6 +5,7 @@ signature matching.
 
 Currently used by vivisect function entry sig db and others.
 """
+
 
 class SignatureTree:
     """
@@ -25,7 +25,7 @@ class SignatureTree:
         # each node in the tree is a tuple consisting of the depth we're at,
         # the signatures in this particular subtree, and the list of subtree nodes
         self.basenode = (0, [], [None] * 256, [])
-        self.sigs = {} # track duplicates
+        self.sigs = {}  # track duplicates
 
     def _addChoice(self, siginfo, node):
 
@@ -65,7 +65,7 @@ class SignatureTree:
     def _getNode(self, depth, choices, choice):
         # Chose, (and or initialize) a sub node
         nnode = choices[choice]
-        if nnode == None:
+        if nnode is None:
             nnode = (depth+1, [], [None] * 256, [])
             choices[choice] = nnode
         return nnode
@@ -79,27 +79,24 @@ class SignatureTree:
         getSignature().
         """
         # FIXME perhaps make masks None on all ff's
-        if masks == None:
-            masks = "\xff" * len(bytes)
+        if masks is None:
+            masks = b'\xff' * len(bytes)
 
-        if val == None:
+        if val is None:
             val = True
 
         # Detect and skip duplicate additions...
         bytekey = bytes + masks
-        if self.sigs.get(bytekey) != None:
+        if self.sigs.get(bytekey) is not None:
             return
 
         self.sigs[bytekey] = True
 
-        byteord = [ord(c) for c in bytes]
-        maskord = [ord(c) for c in masks]
-
-        siginfo = (byteord, maskord, val)
+        siginfo = (bytes, masks, val)
         self._addChoice(siginfo, self.basenode)
 
     def isSignature(self, bytes, offset=0):
-        return self.getSignature(bytes, offset=offset) != None
+        return self.getSignature(bytes, offset=offset) is not None
 
     def getSignature(self, bytes, offset=0):
         matches = []
@@ -112,13 +109,13 @@ class SignatureTree:
             if len(sigs) == 1:
                 sbytes, smasks, sobj = sigs[0]
                 is_match = True
-                for i in xrange(depth, len(sbytes)):
+                for i in range(depth, len(sbytes)):
                     realoff = offset + i
                     # we still have pieces of the signature left to match, but bytes wasn't long enough
                     if realoff >= len(bytes):
                         is_match = False
                         break
-                    masked = ord(bytes[realoff]) & smasks[i]
+                    masked = bytes[realoff] & smasks[i]
                     if masked != sbytes[i]:
                         is_match = False
                         break
@@ -133,14 +130,14 @@ class SignatureTree:
                 if offset+depth >= len(bytes):
                     continue
                 # we've reached the end of this signature, so we're just going to mask the rest
-                masked = ord(bytes[offset+depth]) & smasks[depth]
+                masked = bytes[offset+depth] & smasks[depth]
                 if sbytes[depth] == masked: # We have a winner!
                     # FIXME find the *best* winner! (because of masking)
                     node = choices[masked]
                     break
 
             # We failed to make our next choice
-            if node == None:
+            if node is None:
                 break
         if len(matches) == 0:
             return None

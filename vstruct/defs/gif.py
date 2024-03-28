@@ -61,7 +61,7 @@ class GIF8XA(vstruct.VStruct):
         if self.header.flags & GIF_F_HAS_CMAP:
             bits_per_pixel = (self.header.flags & GIF_F_BPP_MASK) + 1
             self.gct = vstruct.VStruct()
-            for i in xrange(2**bits_per_pixel):
+            for i in range(2**bits_per_pixel):
                 self.gct.vsAddField('color%d' % i, RGB())
 
             offset = self.gct.vsParse(bytes, offset)
@@ -79,7 +79,7 @@ class GIF8XA(vstruct.VStruct):
                 bits_per_pixel = (img.descriptor.flags & GIF_F_BPP_MASK) + 1
                 img.cmap = vstruct.VStruct()
 
-                for i in xrange(2**bits_per_pixel):
+                for i in range(2**bits_per_pixel):
                     img.cmap.vsAddField('color%d' % i, RGB())
 
                 offset = img.cmap.vsParse(bytes, offset)
