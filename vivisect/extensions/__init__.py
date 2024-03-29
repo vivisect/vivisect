@@ -25,6 +25,15 @@ def loadExtensions(vw, vwgui):
     if extdir is None:
         # if user hasn't overridden the Extension Path, use the built-in default
         extdir = os.sep.join([vw.vivhome, 'plugins'])
+        if not os.path.isdir(extdir):
+            if vw.config.viv.extensions.autocreatedir:
+                vw.vprint('Creating default extension directory: %s' % extdir)
+                try:
+                    os.mkdir(extdir)
+
+                except Exception as e:
+                    vw.vprint("... failed: %r" % e)
+
 
     for dirname in extdir.split(os.pathsep):
 
