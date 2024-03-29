@@ -4,6 +4,9 @@ import getpass
 
 defconfig = {
     'viv':{
+        'extensions':{
+            'autocreatedir': True,
+        },
 
         'SymbolCacheSave':True,
 
