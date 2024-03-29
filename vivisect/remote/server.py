@@ -11,6 +11,7 @@ import cobra.dcode
 import envi.common as e_common
 import envi.threads as e_threads
 
+import vivisect
 import vivisect.cli as v_cli
 import vivisect.parsers as v_parsers
 import vivisect.storage.basicfile as viv_basicfile
@@ -25,7 +26,7 @@ viv_s_ip = '224.56.56.56'
 viv_s_port = 26998
 
 timeo_wait = 10
-timeo_sock = 30
+timeo_sock = 50
 timeo_aban = 120   # 2 minute timeout for abandon
 
 # This should *only* rev when they're truly incompatible
@@ -210,7 +211,7 @@ class VivServer:
                     logger.debug('loaded: %s', wsname)
                     self.wsdict[wsname] = wsinfo
 
-    def getNextEvents(self, chan):
+    def getNextEvents(self, chan, maxevts=None):
         chaninfo = self.chandict.get(chan)
         if chaninfo is None:
             raise Exception('Invalid Channel: %s' % chan)
@@ -283,13 +284,15 @@ class VivServer:
         wsinfo = self._req_wsinfo(wsname)
         chan = e_common.hexify(os.urandom(16))
 
+        # Load up the queue with events from the file, and current events
         lock, fpath, pevents, users, leaders, leaderloc = wsinfo
         with lock:
             events = []
+            # TODO FUTURE: handle initial load directly from file reads?
             events.extend(viv_basicfile.vivEventsFromFile(fpath))
             events.extend(pevents)
             # These must reference the same actual list object...
-            queue = e_threads.ChunkQueue(items=events)
+            queue = VivChunkQueue(items=events, chunksize=100000)
             users[chan] = queue
             chanleaders = []
             self.chandict[chan] = [wsinfo, queue, chanleaders]
@@ -324,6 +327,31 @@ class VivServer:
 
         # Remove from our chandict
         self.chandict.pop(chan, None)
+
+
+class VivChunkQueue(e_threads.ChunkQueue):
+    def _get_items(self):
+        if self.chunksize is not None:
+            ret = self.items[:self.chunksize]
+            for idx, (evtype, evtdata) in enumerate(ret):
+                if evtype == vivisect.VWE_ADDMMAP:
+                    ret = self.items[:idx+1]
+                    break
+
+            self.items = self.items[len(ret):]
+            logger.debug("_get_items() - returning %d items (%d remaining)", len(ret), len(self.items))
+        else:
+            ret = self.items
+            for idx, (evtype, evtdata) in enumerate(ret):
+                if evtype == vivisect.VWE_ADDMMAP:
+                    ret = self.items[:idx+1]
+                    break
+
+            self.items = self.items[len(ret):]
+            #self.items = []
+            logger.debug("_get_items() - returning %d items (%d remaining)", len(ret), len(self.items))
+        return ret
+
 
 
 def getServerWorkspace(server, wsname):

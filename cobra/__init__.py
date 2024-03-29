@@ -19,6 +19,7 @@ import struct
 import logging
 import traceback
 import urllib.parse
+import envi.common as e_cmn
 
 from threading import current_thread, Thread, RLock, Timer, Lock
 from socketserver import ThreadingTCPServer, BaseRequestHandler
@@ -194,11 +195,11 @@ class CobraSocket:
                 raise Exception('Missing "msgpack" python module ( http://visi.kenshoto.com/viki/Msgpack )')
 
             def msgpackloads(b):
-                logger.debug("<< %r  (%r)", b, loadargs)
+                logger.log(e_cmn.MIRE, "<< %r  (%r)", b, loadargs)
                 return msgpack.loads(b, **loadargs)
 
             def msgpackdumps(b):
-                logger.debug(">> %r  (%r)", b, dumpargs)
+                logger.log(e_cmn.MIRE, ">> %r  (%r)", b, dumpargs)
                 return msgpack.dumps(b, **dumpargs)
 
             self.dumps = msgpackdumps
@@ -972,7 +973,7 @@ class CobraProxy:
             self._cobra_sockpool = queue.Queue()
             # timeout reqeuired for pool usage
             if not self._cobra_timeout:
-                self._cobra_timeout = 60
+                self._cobra_timeout = 120
             # retry max required on pooling
             if not self._cobra_retrymax:
                 self._cobra_retrymax = 3
