@@ -68,6 +68,10 @@ docconfig = {
 
     'viv':{
 
+        'extensions':{
+            'autocreatedir': "Automatically create the default Vivisect Extensions directory if it does not exist, and if the VIV_EXT_PATH environment variable is not set",
+        },
+
         'SymbolCacheSave':'Save vivisect names to the vdb configured symbol cache?',
 
         'parsers':{
