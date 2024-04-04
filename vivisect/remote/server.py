@@ -297,30 +297,18 @@ class VivServer:
 
         # Load up the queue with events from the file, and current events
         lock, fpath, pevents, users, leaders, leaderloc = wsinfo
+
         with lock:
-            events = []
-            # TODO FUTURE: handle initial load directly from file reads?
-
-            #### TODO:  MASSAGE THIS, GETTING WORKING, then Wrap it in a function in VivChunkQueue
-            #events.extend(viv_basicfile.vivEventsFromFile(fpath))
-            fileevts = viv_basicfile.vivEventsFromFile(fpath)
-            # FIXME!  THIS IS GOING TO SEND ALL THE MEMORY MAPS IN ONE HUGE CHUNK!
-            #events = [fileevts[x:x+chunksize] for x in range(0, len(fileevts), chunksize)]
-
-            fileevts.extend(pevents)
-            import time
-            time.sleep(10)
-            import pprint
-            pprint.pprint("======================= END OF FILEEVTS =============================")
-            pprint.pprint(fileevts[-10:])
-
             # These must reference the same actual list object...
-            queue = VivChunkQueue(items=events, chunksize=chunksize)
+            queue = VivChunkQueue(chunksize=chunksize)
             users[chan] = queue
             chanleaders = []
             self.chandict[chan] = [wsinfo, queue, chanleaders]
 
-            # add events after the channel is created.  That way the client can start pulling event groups immediately
+            # add events after the channel is created.  that way the client can start pulling event groups immediately
+            fileevts = viv_basicfile.vivEventsFromFile(fpath)
+            fileevts.extend(pevents)
+            # use this firethread function to add events while we return the channel
             queue.asyncAddLargeEventList(fileevts)
 
         return chan
@@ -354,18 +342,8 @@ class VivServer:
         # Remove from our chandict
         self.chandict.pop(chan, None)
 
-'''
-TODO:
-    Make Queue store Tuples of Events.
-    Split events into Tuples of CHUNKSIZE load *load*
-    Just send the damn things when getNextEvents() is called.
+# TODO: queue events to a list...  after a few ms (or CHUNKSIZE reached), convert to a Dict/List and send it?
 
-    We can then do a Check for a List when adding new events?  And after a few ms (or CHUNKSIZE reached), convert to a Tuple and queue it?
-
-    Currentl solution seems to give us about 8sec/1000 events (small events).  If we drop to 100 chunk size, it's .8secs per chunk  10/.08secs.
-
-
-'''
 class VivChunkQueue(e_threads.ChunkQueue):
     def _get_items(self):
         '''
@@ -378,44 +356,52 @@ class VivChunkQueue(e_threads.ChunkQueue):
         # we're looking for groupings of events.  but each event is a tuple.
         #    so we want to look for a tuple of tuples or lists
         if type(self.items[0]) == dict:
-            group = self.items.pop(0)
-            evts = group[0]
+            evtgroup = self.items.pop(0)
+            evts = evtgroup[0]
             logger.debug("_get_items: STORED EVENT GROUP of size %d (queue remaining: %d)", len(evts), len(self.items))
             return evts
-
-
 
         # probably revamp this to simply do event at a time.
         if self.chunksize is not None:
             logger.debug('_get_items(): chunksize: %d', self.chunksize)
+
             # search for ADDMMAPs so we don't group two in one transmission
-            idx = 0
+            # RAM and CPU utilization make larger workspaces time out otherwise
+            # especially if there are multiple large memory maps (eg. multi-lib
+            # workspaces)
+            idx = None
             for idx in range(self.chunksize-1):
                 evtitem = self.items[idx]
+
+                # search for Event Groups
                 if type(evtitem) == dict:
-                    # don't include this in the list!
+                    # don't include this in the list!  kick out and let the
+                    # "event group" section (above) handle this one
                     idx -= 1
                     break
 
                 evtype, evtdata = evtitem
-
+                # search for ADDMMAP events
                 if evtype == vivisect.VWE_ADDMMAP:
                     break
 
+                # break if we reach the end of the event list
                 if idx > len(self.items):
                     break
 
 
+            # idx+1 to grabs the last item identified (except for Event Groups)
             ret = self.items[:idx+1]
 
             numEaten = len(ret)
-            # just rebuild the list - tried many options, this still won out
+            # just rebuild the list - tried several options, this still won out
             self.items = self.items[numEaten:]
 
             numLeft = len(self.items)
             logger.debug('_get_items() - returning (%d eaten / %d left)', numEaten, numLeft)
 
         else:
+            # if chunksize is 0 or None, go old-school and just shove it all in
             ret = self.items
             for idx, (evtype, evtdata) in enumerate(ret):
                 # still want to only send one memory map at a time
