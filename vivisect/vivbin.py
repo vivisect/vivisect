@@ -73,8 +73,6 @@ def main():
             print("Server mode requires directory name as last argument")
             sys.exit(-1)
 
-        print("args.file: %r" % repr(args.file))
-        print("file: %r" % repr(file))
         if args.server_port is None:
             vr_server.runMainServer(dirname=file)
         else:

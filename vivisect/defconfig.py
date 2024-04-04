@@ -50,6 +50,9 @@ defconfig = {
         'remote':{
             'wait_for_plat_arch': 10,
         },
+        'server':{
+            'queue_chunksize': 70000,  # average small packets add up to ~1400 bytes
+        },
     },
     'cli':vdb.defconfig.get('cli'), # FIXME make our own...
     'vdb':vdb.defconfig.get('vdb'),
@@ -101,12 +104,15 @@ docconfig = {
         },
         'remote':{
             'wait_for_plat_arch':'How many secs to wait for the remote server/workspace to provide a Platform or Architecture before moving on.',
-        }
+        },
 
+        'server':{
+            'queue_chunksize':"VivServer Queue Chunk Size, the largest chunk of events the server will send at a time.  This affects queue time and overall efficiency of serving large workspaces",
+        },
     },
 
     'vdb':vdb.docconfig.get('vdb'),
     'user':{
         'name': 'Username.  When not set, defaults to current system user.',
-        }
+    }
 }

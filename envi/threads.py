@@ -127,6 +127,7 @@ class ChunkQueue:
             # Clear the event so we can wait...
             self.event.clear()
 
+        logger.log(e_cmn.MIRE, "self.event.wait(%d)", timeout)
         self.event.wait(timeout=timeout)
         if self.shut:
             raise e_exc.QueueShutdown()
@@ -214,6 +215,7 @@ class EnviQueue:
 
         while True:
             if self.shut:
+                logger.debug("get() SHUTDOWN")
                 raise e_exc.QueueShutdown()
 
             with self.lock:

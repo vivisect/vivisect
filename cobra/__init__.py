@@ -795,6 +795,7 @@ class CobraConnectionHandler:
                 handler(csock, name, obj, data)
             except Exception as e:
                 logger.warning("cobra handler hit exception: %s" % str(e))
+                logger.debug("", exc_info=1)
                 try:
                     csock.sendMessage(COBRA_ERROR, name, e)
                 except TypeError as typee:
