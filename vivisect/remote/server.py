@@ -349,7 +349,7 @@ class VivServer:
 class VivChunkQueue(e_threads.ChunkQueue):
     '''
     Vivisect Event specific version of the ChunkQueue
-    This ChunkQueue implements a form of ChunkQueue specifically designed to
+    This ChunkQueue implements ChunkQueue helpers specifically designed to
     handle VivServer requirements, namely:
     1) Chunking Around VWE_ADDMMAP events to reduce delays between request to
         response
