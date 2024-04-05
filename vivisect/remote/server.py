@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import cobra
 import queue
 import logging
@@ -59,6 +60,7 @@ class VivServerClient:
                     count += 1
                     self.q.put(event)
             logger.debug("Workspace Event Processing run Complete. (%d events processed)", count)
+            time.sleep(.01)
 
     def vprint(self, msg):
         return self.server.vprint(msg)
@@ -373,6 +375,10 @@ class VivChunkQueue(e_threads.ChunkQueue):
             # workspaces)
             idx = None
             for idx in range(self.chunksize-1):
+                # break if we reach the end of the event list
+                if idx >= len(self.items):
+                    break
+
                 evtitem = self.items[idx]
 
                 # search for Event Groups
@@ -385,10 +391,6 @@ class VivChunkQueue(e_threads.ChunkQueue):
                 evtype, evtdata = evtitem
                 # search for ADDMMAP events
                 if evtype == vivisect.VWE_ADDMMAP:
-                    break
-
-                # break if we reach the end of the event list
-                if idx > len(self.items):
                     break
 
 

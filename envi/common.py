@@ -1,3 +1,4 @@
+import os
 import logging
 import binascii
 
@@ -19,10 +20,25 @@ LOG_LEVELS = (
     MIRE,
 )
 
+def getLogLevelFromString(loglvlstr):
+    '''
+    Translate a string to a Logging constant
+    '''
+    if hasattr(logging, loglvlstr):
+        return getattr(logging, loglvlstr)
+    return globals().get(loglvlstr)
+
+
 def initLogging(logger, level=None, fmt=LOG_FORMAT):
     '''
     Setup logging and log levels
     '''
+    if level is None:
+        level = os.environ.get('LOGLEVEL')
+
+    if type(level) == str:
+        level = getLogLevelFromString(level)
+
     if level:
         if level not in LOG_LEVELS:
             raise ValueError('Invalid log level of %r' % level)
