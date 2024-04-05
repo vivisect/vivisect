@@ -16,6 +16,7 @@ import envi.qt.jquery as e_q_jquery
 qt_horizontal = 1
 qt_vertical = 2
 
+from binascii import *
 from vqt.main import *
 from vqt.common import *
 
@@ -35,6 +36,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
         self._canv_cache = None
         self._canv_curva = None
+        self._canv_curtag = None
         self._canv_rend_middle = False
         self.fname = None
 
@@ -243,6 +245,11 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     def _jsSetCurVa(self, vastr):
         self._canv_curva = int(str(vastr), 0)
 
+    @QtCore.pyqtSlot(str, str)
+    def _jsSetCurTag(self, tagname, tagval):
+        print("_jsSetCurTag(%r, %r)" % (tagname, tagval))
+        self._canv_curtag = (str(tagname), unhexlify(str(tagval)))
+
     # NOTE: doing append / scroll seperately allows render to catch up
     @idlethread
     def _appendInside(self, text, cb=None, sel=None):
@@ -291,16 +298,17 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
 
     def contextMenuEvent(self, event):
         va = self._canv_curva
+        tag = self._canv_curtag
         menu = QMenu()
         if self._canv_curva is not None:
-            self.initMemWindowMenu(va, menu)
+            self.initMemWindowMenu(va, tag, menu)
 
         viewmenu = menu.addMenu('view   ')
         viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
 
         menu.exec_(event.globalPos())
 
-    def initMemWindowMenu(self, va, menu):
+    def initMemWindowMenu(self, va, tag, menu):
         initMemSendtoMenu('0x%.8x' % va, menu)
 
     def dumpHtml(self, data):

@@ -411,9 +411,9 @@ class VQVivMemoryCanvas(VivCanvasBase):
         if self._canv_navcallback:
             self._canv_navcallback(expr)
 
-    def initMemWindowMenu(self, va, menu):
+    def initMemWindowMenu(self, va, tag, menu):
         nav = self.parent()  # our parent is always a VQVivMemoryWindow (nav target)
-        viv_q_ctxmenu.buildContextMenu(self.vw, va=va, menu=menu, nav=nav)
+        viv_q_ctxmenu.buildContextMenu(self.vw, va=va, menu=menu, nav=nav, tag=tag)
 
     def _loc_helper(self, va):
         '''
