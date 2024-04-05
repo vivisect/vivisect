@@ -222,7 +222,7 @@ class VivServer:
                     logger.debug('loaded: %s', wsname)
                     self.wsdict[wsname] = wsinfo
 
-    def getNextEvents(self, chan, maxevts=None):
+    def getNextEvents(self, chan):
         chaninfo = self.chandict.get(chan)
         if chaninfo is None:
             raise Exception('Invalid Channel: %s' % chan)
