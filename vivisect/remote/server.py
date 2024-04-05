@@ -353,15 +353,17 @@ class VivChunkQueue(e_threads.ChunkQueue):
             return []
 
         # watch for event groups
-        # we're looking for groupings of events.  but each event is a tuple.
-        #    so we want to look for a tuple of tuples or lists
+        # "event groups" are a dict with a list stored at key 0.  this list is
+        # then able to be shoved over the Cobra channel immediately, front-loading
+        # any preparation, and drastically speeding up initial message glut on
+        # workspace loading.
         if type(self.items[0]) == dict:
             evtgroup = self.items.pop(0)
             evts = evtgroup[0]
             logger.debug("_get_items: STORED EVENT GROUP of size %d (queue remaining: %d)", len(evts), len(self.items))
             return evts
 
-        # probably revamp this to simply do event at a time.
+        # handle events in "chunks"
         if self.chunksize is not None:
             logger.debug('_get_items(): chunksize: %d', self.chunksize)
 
