@@ -347,6 +347,20 @@ class VivServer:
 # TODO: queue events to a list...  after a few ms (or CHUNKSIZE reached), convert to a Dict/List and send it?
 
 class VivChunkQueue(e_threads.ChunkQueue):
+    '''
+    Vivisect Event specific version of the ChunkQueue
+    This ChunkQueue implements a form of ChunkQueue specifically designed to
+    handle VivServer requirements, namely:
+    1) Chunking Around VWE_ADDMMAP events to reduce delays between request to
+        response
+    2) Front-loading chunking of the initial file VivServer download. Again,
+        this helps avoid timeouts while processing large workspaces.  With
+        the addition of multi-library VivWorkspaces, this can be a *real*
+        problem.  VivChunkQueue helps solve those problems
+    3) Introduction of the Event Group, enabling the functionality required
+        to do #2 efficiently.  Front-loading pre-analyzed groups of events
+        speeds up loading dramatically
+    '''
     def _get_items(self):
         '''
         Already has self.lock when called.
