@@ -433,6 +433,12 @@ class VivChunkQueue(e_threads.ChunkQueue):
 
     @e_threads.firethread
     def asyncAddLargeEventList(self, evts):
+        '''
+        Break up a large list of events into appropriately pre-sized chunks,
+        allowing for high efficiency in serving them.  This is a @firethread
+        function, meaning that it runs in its own thread, making it "fire-and-
+        forget".
+        '''
         evtcount = len(evts)
         idx = 0
         logger.debug("... adding %d events to the Queue", evtcount)
