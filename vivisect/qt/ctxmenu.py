@@ -86,7 +86,7 @@ def initMemSendtoMenu(vw, xexpr, xmenu):
     
     submenu.addAction('FuncGraph View', ACT(newFuncGraph, vw, xexpr))
 
-def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
+def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None, tag=None):
     '''
     Return (optionally construct) a menu to use for handling a context click
     at the given virtual address or envi expression.
@@ -252,6 +252,6 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None):
     # give any extensions a chance to play
     for extname, exthook in vw._ext_ctxmenu_hooks.items():
         logger.info('exthook: %r', exthook)
-        exthook(vw, va, expr, menu, parent, nav)
+        exthook(vw, va, expr, menu, parent, nav, tag)
 
     return menu
