@@ -335,3 +335,4 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         if rendname:
             index = self.rend_select.findText(rendname)
             self.rend_select.setCurrentIndex(index)
+        self._renderMemory()
