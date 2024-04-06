@@ -32,7 +32,7 @@ def loadExtensions(vw, vwgui):
                     os.mkdir(extdir)
 
                 except Exception as e:
-                    vw.vprint("... failed: %r" % e)
+                    vw.vprint("Failed to create directory (%r): %r" % (extdir, e))
 
 
     for dirname in extdir.split(os.pathsep):
