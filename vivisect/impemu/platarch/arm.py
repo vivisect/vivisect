@@ -151,7 +151,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                 elif armthumb < 0:
                     self.setFlag(PSR_T_bit, 1)
                     logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is THUMB:  0x%x", funcva)
-                    
+
                 else:
                     self.setFlag(PSR_T_bit, 0)
                     logger.debug("ArmWorkspaceEmulator: Heuristically Determined funcva is ARM:  0x%x", funcva)

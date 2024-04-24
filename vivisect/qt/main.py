@@ -76,6 +76,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddMenuField('&View.&Layouts.&Set Default', self._menuViewLayoutsSetDefault)
         self.vqAddMenuField('&View.&Layouts.&Save', self._menuViewLayoutsSave)
         self.vqAddMenuField('&View.&Layouts.&Load', self._menuViewLayoutsLoad)
+        self.vqAddMenuField('&View.&Layouts.Load &Base Default', self._menuViewLayoutsLoadBase)
 
         self.vqAddMenuField('&Share.Share Workspace', self._menuShareWorkspace)
         self.vqAddMenuField('&Share.Connect to Shared Workspace', self._menuShareConnect)
@@ -101,7 +102,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             self.vw.vprint('\n')
             #self.vw.vprint('&#10;')
             self.vw.vprint('Looks like you have an empty layout!')
-            self.vw.vprint('Use View->Layouts->Load and select vivisect/qt/default.lyt')
+            self.vw.vprint('Use View->Layouts->Load Base Default')
 
         fname = os.path.basename(self.vw.getMeta('StorageName', 'Unknown'))
         self.setWindowTitle('Vivisect: %s' % fname)
@@ -234,6 +235,19 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if sname is not None:
             self.vw.makeStructure(va, sname)
         return sname
+
+    def makePtrArray(self, va, break_on_bad=True, parent=None):
+        if parent is None:
+            parent = self
+        # starting address
+        # address after last element
+        # count (alternate)
+        ok, results = selectArrayBounds(va, va, 0, parent=parent)
+
+        if ok:
+            startva, stopva, count = results
+            self.vw.makePointerArray(startva, stopva, count, break_on_bad)
+            
 
     def addBookmark(self, va, parent=None):
         if parent is None:
@@ -564,6 +578,12 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def _menuFileSaveServer(self):
         viv_q_remote.saveToServer(self.vw, parent=self)
 
+    def _menuViewLayoutsLoadBase(self):
+        dirname = os.path.dirname(viv_q_views.__file__) 
+        fname = os.sep.join([dirname, "default.lyt"])
+        settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
+        self.vqRestoreGuiSettings(settings)
+
     def _menuViewLayoutsLoad(self):
         fname = getOpenFileName(self, 'Load Layout')
         if fname is None:
@@ -723,6 +743,29 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     @vq_main.idlethread
     def _ve_fireEvent(self, event, edata):
         return viv_base.VivEventDist._ve_fireEvent(self, event, edata)
+
+def selectArrayBounds(startva, stopva, count=0, parent=None):
+    if not stopva:
+        stopva = startva
+
+    dynd = DynamicDialog('Pointer Array Dialog', parent=parent)
+
+    try:
+        dynd.addIntHexField('startva', dflt=hex(startva), title='Start Address')
+        dynd.addIntHexField('stopva', dflt=hex(stopva), title='Stop Address ')
+        dynd.addIntHexField('count', dflt=0, title='Count (if nonzero, ignore stop address)')
+    except Exception as e:
+        logger.warning("ERROR BUILDING DIALOG!", exc_info=1)
+
+    results = dynd.prompt()
+
+    ok =  len(results) != 0
+    if ok:
+        startva = results.get('startva')
+        stopva = results.get('stopva')
+        count = results.get('count')
+        return ok, (startva, stopva, count)
+    return False, None
 
 @vq_main.idlethread
 def runqt(vw, closeme=None):
