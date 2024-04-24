@@ -49,6 +49,10 @@ class VivServerClient:
         self._processlock = threading.Lock()
         self.eoffset = 0
         self.q = queue.Queue()  # The actual local Q we deliver to
+        self._qtime = time.time()
+        self._qcount = 0
+        self._qcountfull = 0
+        self._starttime = time.time()
 
     @e_threads.firethread
     def _eatServerEvents(self):
@@ -70,6 +74,7 @@ class VivServerClient:
 
     def createEventChannel(self):
         self.chan = self.server.createEventChannel(self.wsname)
+        self._monitorEventQueuePerf()
         logger.debug("VivServerClient: Event Channel created, firing _eatServerEvents() in separate thread")
         self._eatServerEvents()
         logger.debug("Waiting for initial Workspace Events to finish processing")
@@ -93,8 +98,41 @@ class VivServerClient:
         # Retrieve the big initial list of viv events
         return self.server.getNextEvents(self.chan)
 
+    @e_threads.firethread
+    def _monitorEventQueuePerf(self):
+        self._starttime = time.time()
+        while True:
+            qlen = -1
+            try:
+                time.sleep(1)
+                q = self.q
+
+                if q:
+                    qlen = q.qsize()
+                    if qlen % 100 == 1:
+                        logger.debug("qlen: %d (%d/%d)", qlen, self._qcount, self._qcountfull)
+
+                curtime = time.time()
+                delta = curtime - self._qtime
+                if delta > 1 and self._qcount:
+                    self._qtime = curtime
+
+                    self._qrate = self._qcount / delta
+                    logger.info("Event Queue Rate: %d/sec (%d / %d)", self._qrate, delta, (self._qtime-self._starttime))
+                    logger.debug("      qlen: %d (%d/%d)", qlen, self._qcount, self._qcountfull)
+
+                    # reset counter
+                    self._qcount = 0
+            except:
+                logger.warning("Problem in Monitor Thread", exc_info=1)
+
+
     def waitForEvent(self, chan, timeout=None):
-        return self.q.get(timeout=timeout)
+        q = self.q
+        qitem = q.get(timeout=timeout)
+        self._qcount += 1
+        self._qcountfull += 1
+        return qitem
 
     def getLeaderLocations(self):
         try:
@@ -474,10 +512,13 @@ class VivChunkQueue(e_threads.ChunkQueue):
 
 
 
-def getServerWorkspace(server, wsname):
+def getServerWorkspace(server, wsname, block=True):
     vw = v_cli.VivCli()
+    logger.debug("Starting:  VivServerClient(%r, %r)", server, wsname)
     cliproxy = VivServerClient(vw, server, wsname)
+    logger.debug("Starting:  vw.initWorkspaceClient()")
     vw.initWorkspaceClient(cliproxy)
+    logger.debug("Complete:  vw.initWorkspaceClient()")
     return vw
 
 
