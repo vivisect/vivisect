@@ -1,3 +1,4 @@
+import json
 import time
 import threading
 import functools
@@ -657,9 +658,13 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
             self.enviNavGoto(expr)
 
     def vqGetSaveState(self):
-        return { 'expr':str(self.addr_entry.text()), }
+        return { 'expr':str(self.addr_entry.text()), 'hist':json.dumps(list(self.history))}
 
     def vqSetSaveState(self, state):
+        hist = state.get('hist')
+        if hist:
+            self.history = collections.deque(json.loads(hist), maxlen=100)
+
         expr = state.get('expr','')
         self.enviNavGoto(expr)
 

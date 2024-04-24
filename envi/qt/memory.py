@@ -1,3 +1,4 @@
+import json
 import uuid
 from collections import deque
 
@@ -323,10 +324,14 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         state['addr_entry'] = str(self.addr_entry.text())
         state['rend_select'] = str(self.rend_select.currentText())
         state['size_entry'] = str(self.size_entry.text())
+        state['hist'] = json.dumps(list(self.mem_history))
         state['name'] = self.mwname
         return state
 
     def vqSetSaveState(self, state):
+        hist = state.get('hist')
+        if hist:
+            self.mem_history = json.loads(hist)
         self.addr_entry.setText(state.get('addr_entry',''))
         self.size_entry.setText(state.get('size_entry',''))
         self.setMemWindowName( str(state.get('name','mem')) )
