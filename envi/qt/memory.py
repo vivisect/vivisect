@@ -5,6 +5,7 @@ from collections import deque
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
 
+import envi.expression as e_expr
 import envi.qt.memcanvas as e_memcanvas_qt
 import envi.memcanvas.renderers as e_render
 
@@ -228,11 +229,14 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
         for hinfo in self.mem_history:
             addrexpr, sizeexpr, rendname = hinfo
-            addr = self._mem_obj.parseExpression(addrexpr)
-            menustr = '0x%.8x' % addr
-            sym = self._mem_obj.getSymByAddr(addr)
-            if sym is not None:
-                menustr += ' - %s' % repr(sym)
+            try:
+                addr = self._mem_obj.parseExpression(addrexpr)
+                menustr = '0x%.8x' % addr
+                sym = self._mem_obj.getSymByAddr(addr)
+                if sym is not None:
+                    menustr += ' - %s' % repr(sym)
+            except e_expr.ExpressionFail:
+                menustr = "UNKNOWN-Exception (%r)" % expr
 
             self.histmenu.addAction(menustr, ACT(self._histSelected, hinfo))
 
@@ -331,7 +335,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
     def vqSetSaveState(self, state):
         hist = state.get('hist')
         if hist:
-            self.mem_history = json.loads(hist)
+            self.mem_history = deque(json.loads(hist))
         self.addr_entry.setText(state.get('addr_entry',''))
         self.size_entry.setText(state.get('size_entry',''))
         self.setMemWindowName( str(state.get('name','mem')) )
