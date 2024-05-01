@@ -20,6 +20,7 @@ import logging
 import traceback
 import urllib.parse
 import envi.common as e_cmn
+import envi.config as e_config
 
 from threading import current_thread, Thread, RLock, Timer, Lock
 from socketserver import ThreadingTCPServer, BaseRequestHandler
@@ -38,6 +39,20 @@ except ImportError:
     msgpack = None
 
 logger = logging.getLogger(__name__)
+
+defconfig = {
+
+    'cobra':{
+        'base_timeout': 120,
+    },
+
+}
+
+docconfig = {
+    'cobra':{
+        'base_timeout': "Default timeout for cobra connections",
+    }
+}
 
 daemon = None
 version = "Cobra2"
@@ -457,7 +472,7 @@ class CobraClientSocket(CobraSocket):
 
 class CobraDaemon(ThreadingTCPServer):
 
-    def __init__(self, host="", port=COBRA_PORT, sslcrt=None, sslkey=None, sslca=None, msgpack=False, json=False):
+    def __init__(self, host="", port=COBRA_PORT, sslcrt=None, sslkey=None, sslca=None, msgpack=False, json=False, config=None):
         '''
         Construct a cobra daemon object.
 
@@ -471,6 +486,11 @@ class CobraDaemon(ThreadingTCPServer):
         sslca               - Specify an SSL CA key to use validating client certs
 
         '''
+        if config is None:
+            # If we don't provide a config, grab a default
+            config = e_config.loadConfig(defconfig, docconfig)
+
+        self.config = config
         self.thr = None
         self.run = True
         self.shared = {}
@@ -944,6 +964,12 @@ class CobraProxy:
         self._cobra_spoolcnt = int(urlparams.get('sockpool', 0))
         self._cobra_sockpool = None
 
+        self._cobra_config = kwargs.get('config')
+        if self._cobra_config is None:
+            # If we don't provide a config, grab a default
+            self._cobra_config = e_config.loadConfig(defconfig, docconfig)
+
+
         if self._cobra_timeout is not None:
             self._cobra_timeout = int(self._cobra_timeout)
 
@@ -974,7 +1000,7 @@ class CobraProxy:
             self._cobra_sockpool = queue.Queue()
             # timeout reqeuired for pool usage
             if not self._cobra_timeout:
-                self._cobra_timeout = 120
+                self._cobra_timeout = self._cobra_config.cobra.base_timeout
             # retry max required on pooling
             if not self._cobra_retrymax:
                 self._cobra_retrymax = 3

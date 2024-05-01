@@ -34,7 +34,7 @@ def initLogging(logger, level=None, fmt=LOG_FORMAT):
     Setup logging and log levels
     '''
     if level is None:
-        level = os.environ.get('LOGLEVEL')
+        level = os.environ.get('VIV_LOGLEVEL')
 
     if type(level) == str:
         level = getLogLevelFromString(level)

@@ -28,6 +28,7 @@ viv_port = 0x4074
 viv_s_ip = '224.56.56.56'
 viv_s_port = 26998
 
+# DEFAULTS for non-configured use
 timeo_wait = 10
 timeo_sock = 50
 timeo_aban = 120   # 2 minute timeout for abandon
@@ -161,6 +162,9 @@ class VivServer:
             self.vivhome = e_config.gethomedir(".viv", makedir=True)
         cfgpath = os.path.join(self.vivhome, 'viv.json')
         self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig, autosave=True)
+
+        self.timeo_wait = self.config.viv.remote.timeo_wait
+        self.timeo_aban = self.config.viv.remote.timeo_aban
         self.wsdict = {}
         self.chandict = {}
         self.wslock = threading.Lock()
@@ -185,7 +189,7 @@ class VivServer:
                 continue
 
             wsinfo, queue, chanleaders = chaninfo
-            if queue.abandoned(timeo_aban):
+            if queue.abandoned(self.timeo_aban):
                 self.cleanupChannel(chan)
 
     @e_threads.maintthread(30)
@@ -265,7 +269,7 @@ class VivServer:
         if chaninfo is None:
             raise Exception('Invalid Channel: %s' % chan)
         logger.debug("getNextEvents(%r)", repr(chaninfo))
-        return chaninfo[1].get(timeout=timeo_wait)
+        return chaninfo[1].get(timeout=self.timeo_wait)
 
     # All APIs from here down are basically mirrors of the workspace APIs
     # used with remote workspaces, with a prepended chan first argument
