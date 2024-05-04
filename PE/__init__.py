@@ -161,7 +161,7 @@ UNW_FLAG_EHANDLER   = 0x1
 UNW_FLAG_UHANDLER   = 0x2
 UNW_FLAG_CHAININFO  = 0x4
 
-# Resource Types
+# Resource Types (https://learn.microsoft.com/en-us/windows/win32/menurc/resource-types)
 RT_CURSOR           = 1
 RT_BITMAP           = 2
 RT_ICON             = 3
@@ -183,6 +183,30 @@ RT_ANICURSOR        = 21
 RT_ANIICON          = 22
 RT_HTML             = 23
 RT_MANIFEST         = 24
+
+RT_DESC = {
+    RT_CURSOR: 'Hardware-dependent cursor resource',
+    RT_BITMAP: 'Bitmap resource',
+    RT_ICON: 'Hardware-dependent icon resource',
+    RT_MENU: 'Menu resource',
+    RT_DIALOG: 'Dialog box',
+    RT_STRING: 'String-table entry',
+    RT_FONTDIR: 'Font directory resource',
+    RT_FONT: 'Font resource',
+    RT_ACCELERATOR: 'Accelerator table',
+    RT_RCDATA: 'Application-defined resource (raw data)',
+    RT_MESSAGETABLE: 'Message-table entry',
+    RT_GROUP_CURSOR: 'Hardware-independent cursor resource',
+    RT_GROUP_ICON: 'Hardware-independent icon resource',
+    RT_VERSION: 'Version resource',
+    RT_DLGINCLUDE: 'Associate string with .rc file',
+    RT_PLUGPLAY: 'Plug and Play resource',
+    RT_VXD: 'VXD',
+    RT_ANICURSOR: 'Animated cursor',
+    RT_ANIICON: 'Animated icon',
+    RT_HTML: 'HTML resource',
+    RT_MANIFEST: 'Side-by-Side Assembly Manifest',
+}
 
 logger = logging.getLogger('vivisect')
 
@@ -588,9 +612,9 @@ class PE(object):
         resource in the PE.
         '''
         ret = []
-        for rtype,subdir in self.ResourceRoot._rsrc_subdirs.items():
+        for rtype, subdir in self.ResourceRoot._rsrc_subdirs.items():
             for nameid, subsubdir in subdir._rsrc_subdirs.items():
-                ret.append( (rtype, nameid, subsubdir._rsrc_data[0]) )
+                ret.append((rtype, nameid, subsubdir._rsrc_data[0]))
         return ret
 
     def readResource(self, rtype, name_id):
@@ -749,7 +773,7 @@ class PE(object):
     def readAtVa(self, va, size, shortok=False):
         offset = self.vaToOffset(va)
         return self.readAtOffset(offset, size, shortok)
-         
+
     def readAtRva(self, rva, size, shortok=False):
         offset = self.rvaToOffset(rva)
         return self.readAtOffset(offset, size, shortok)
@@ -1411,6 +1435,7 @@ class PE(object):
         return certs
 
     def __repr__(self, verbose=False):
+        # leave verbose for now but deprecate it
         out = []
         out.append("PE Binary:")
         dllName = self.getDllName()
@@ -1422,29 +1447,38 @@ class PE(object):
         for sec in self.getSections():
             out.append(sec.tree())
 
-        try:
-            rscs = self.getResources()
-            if len(rscs):
-                out.append('\nResources')
-                for rsc in rscs:
-                    out.append(rsc.tree())
-        except:
-            pass
+        rscs = self.getResources()
+        if rscs:
+            out.append('\nResources:')
+            for rtype, nameid, (rva, size, (codepage, langid, sublangid)) in rscs:
+                out.append('\n0x%.8x (Type: %s)' % (rva, RT_DESC.get(rtype, str(rtype))))
+                out.append('  Name ID: %d' % nameid)
+                out.append('  Size: %d' % size)
+                out.append('  CodePage: %d' % codepage)
+                out.append('  Lang ID: %d' % langid)
+                out.append('  Sublang ID: %d' % sublangid)
 
-        out.append("\nPDB Path: %r" % self.getPdbPath())
+        pdbpath = self.getPdbPath()
+        if pdbpath:
+            out.append("\nPDB Path: %r" % pdbpath)
 
-        if verbose:
+        imps = self.getImports()
+        if imps:
             out.append('\nImports:')
-            for imp in self.getImports():
-                out.append(imp.tree())
+            for imp in imps:
+                out.append('0x%.8x %s\t%s' % imp)
 
-            out.append('\nDelayedImports:')
-            for imp in self.getDelayImports():
-                out.append(imp.tree())
+        imps = self.getDelayImports()
+        if imps:
+            out.append('\nDelayed Imports:')
+            for imp in imps:
+                out.append('0x%.8x %s\t%s' % imp)
 
+        exps = self.getExports()
+        if exps:
             out.append('\nExports:')
             for exp in self.getExports():
-                out.append(exp.tree())
+                out.append('0x%.8x %s\t%s' % exp)
 
         return '\n'.join(out)
 

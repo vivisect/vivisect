@@ -27,6 +27,7 @@ import vtrace.lockstep as vt_lockstep
 
 import vdb
 
+import envi.exc as e_exc
 import envi.cli as e_cli
 import envi.common as e_common
 import envi.memory as e_memory
@@ -392,7 +393,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                     self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
 
                 self.canvas.addText('\n')
-            except envi.SegmentationViolation as e:
+            except e_exc.SegmentationViolation as e:
                 logger.debug("segv at 0x%x", va)
 
         self.vprint('done (%d results).' % len(res))
