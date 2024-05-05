@@ -409,6 +409,9 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         self.setFlag(PSR_V_bit, 0)
         return res
 
+    def i_nop(self, op):
+        return
+        
     def i_and(self, op):
         res = self.logicalAnd(op)
         self.setOperValue(op, 0, res)
@@ -506,6 +509,8 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         conditional branches (eg. bne) will be handled here
         '''
         return self.getOperValue(op, 0)
+
+    i_br = i_b
 
     def i_bl(self, op):
         self.setRegister(REG_LR, self.getRegister(REG_PC))

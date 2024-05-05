@@ -306,7 +306,7 @@ def analyzeFunction(vw, funcva):
             segsize = pltsz
             break
 
-    # if we're not 
+    # if we're not
     if not isplt:
         logger.log(e_cmn.SHITE, '0x%x: not part of a .plt section', funcva)
         return
@@ -402,6 +402,8 @@ def analyzeFunction(vw, funcva):
                 lva, lsz, ltype, ltinfo = loctup
                 funcname = ltinfo
                 logger.debug('0x%x: LOC_IMPORT (emu-taint): 0x%x:  %r', opva, lva, funcname)
+                if not vw.getXrefsFrom(opva):
+                    vw.addXref(opva, lva, vivisect.REF_DATA)
 
             else:
                 # instead of a taint (which *should* indicate an IMPORT), we have real pointer.
@@ -474,7 +476,7 @@ def analyzeFunction(vw, funcva):
         funcname = funcname[:-9]
 
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
-    vw.makeFunctionThunk(funcva, "*." + funcname, addVa=False, filelocal=True, 
+    vw.makeFunctionThunk(funcva, "*." + funcname, addVa=False, filelocal=True,
             basename="plt_" + funcname)
 
 '''
@@ -518,7 +520,7 @@ linux/ie86/chgrp:
 0x8048dbb:                          e9d0ffffff  jmp 0x08048d90
 .plt.got
 0x80491d0:                        ff25fc3f0508  jmp dword [0x08053ffc]
-0x80491d6:                                6690  nop 
+0x80491d6:                                6690  nop
 0x80491d8:                                0000  add byte [eax],al
 0x80491da:                                0000  add byte [eax],al
 

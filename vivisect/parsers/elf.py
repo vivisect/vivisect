@@ -830,7 +830,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                         logger.warning(r.tree())
 
 
-            if arch in ('arm', 'thumb', 'thumb16', 'a64', 'aarch64'):
+            if arch in ('arm', 'thumb', 'thumb16',):
                 # ARM REL entries require an addend that could be stored as a
                 # number or an instruction!
                 import envi.archs.arm.const as eaac
@@ -955,6 +955,141 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                             vw.setComment(rlva, name)
 
                 elif rtype == Elf.R_ARM_COPY:
+                    pass
+
+                else:
+                    logger.warning('unknown reloc type: %d %s (at %s)', rtype, name, hex(rlva))
+                    logger.info(r.tree())
+                    if name:
+                        vw.makeName(rlva, dmglname, makeuniq=True)
+                        if name != dmglname:
+                            vw.setComment(rlva, name)
+
+            if arch in ('a64', 'aarch64'):
+                # ARM REL entries require an addend that could be stored as a
+                # number or an instruction!
+                import envi.archs.arm.const as eaac
+                if r.vsHasField('r_addend'):
+                    # this is a RELA object, bringing its own addend field!
+                    addend = r.r_addend
+                else:
+                    # otherwise, we have to check the stored value for number or instruction
+                    # if it's an instruction, we have to use the immediate value and then
+                    # figure out if it's negative based on the instruction!
+                    try:
+                        temp = vw.readMemoryPtr(rlva)
+                        if rtype in Elf.r_armclasses[Elf.R_ARMCLASS_DATA] or rtype in Elf.r_armclasses[Elf.R_ARMCLASS_MISC]:
+                            # relocation points to a DATA or MISCELLANEOUS location
+                            addend = temp
+                        else:
+                            # relocation points to a CODE location (ARM, THUMB16, THUMB32)
+                            op = vw.parseOpcode(rlva)
+                            for oper in op.opers:
+                                if hasattr(oper, 'val'):
+                                    addend = oper.val
+                                    break
+
+                                elif hasattr(oper, 'offset'):
+                                    addend = oper.offset
+                                    break
+
+                            lastoper = op.opers[-1]
+                            if op.mnem.startswith('sub') or \
+                                    op.mnem in ('ldr', 'str') and \
+                                    hasattr(lastoper, 'pubwl') and \
+                                    not (lastoper.pubwl & eaac.PUxWL_ADD):
+                                        addend = -addend
+                    except Exception as e:
+                        logger.exception("ELF: Reloc Addend determination: %s", e)
+                        addend = temp
+
+                logger.debug('addend: 0x%x', addend)
+
+                if rtype == Elf.R_AARCH64_JUMP_SLOT:
+                    symidx = r.getSymTabIndex()
+                    sym = elf.getDynSymbol(symidx)
+                    ptr = sym.st_value
+
+                    # quick check to make sure we don't provide this symbol
+                    # some toolchains like to point the GOT back at it's PLT entry
+                    # that does *not* mean it's not an IMPORT
+                    if ptr and not isPLT(vw, ptr):
+                        logger.info('R_AARCH64_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
+                        # even if addRelocation fails, still make the name, same thing down in GLOB_DAT
+                        if addbase:
+                            vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        else:
+                            vw.addRelocation(rlva, vivisect.RTYPE_BASERELOC, ptr)
+                        pname = "ptr_%s_%.8x" % (name, rlva)
+                        if vw.vaByName(pname) is None:
+                            vw.makeName(rlva, pname)
+
+                        # name the target as well
+                        ptr += baseoff
+                        # normalize thumb addresses
+                        ptr &= -2
+                        vw.makeName(ptr, name)
+                        vw.setComment(ptr, dmglname)
+
+                    else:
+                        logger.info('R_AARCH64_JUMP_SLOT: adding Import 0x%x (%s) ', rlva, dmglname)
+                        vw.makeImport(rlva, "*", dmglname)
+                        vw.setComment(rlva, name)
+
+                elif rtype == Elf.R_AARCH64_GLOB_DAT:
+                    symidx = r.getSymTabIndex()
+                    sym = elf.getDynSymbol(symidx)
+                    ptr = sym.st_value
+
+                    if ptr:
+                        logger.info('R_AARCH64_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
+                        if addbase:
+                            vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        else:
+                            vw.addRelocation(rlva, vivisect.RTYPE_BASERELOC, ptr)
+                        pname = "ptr_%s" % name
+
+                        if vw.vaByName(pname) is None:
+                            vw.makeName(rlva, pname)
+
+                        ptr += baseoff
+                        vw.makeImport(ptr, "*", dmglname)
+                        vw.setComment(ptr, name)
+
+                    else:
+                        logger.info('R_AARCH64_GLOB_DAT: adding Import 0x%x (%s) ', rlva, dmglname)
+                        vw.makeImport(rlva, "*", dmglname)
+                        vw.setComment(rlva, name)
+
+                elif rtype == Elf.R_AARCH64_ABS64:
+                    symidx = r.getSymTabIndex()
+                    sym = elf.getDynSymbol(symidx)
+                    ptr = sym.st_value
+
+                    if ptr:
+                        logger.info('R_AARCH64_ABS64: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
+                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        pname = "ptr_%s" % name
+                        if vw.vaByName(pname) is None and len(name):
+                            vw.makeName(rlva, pname)
+
+                    else:
+                        logger.info('R_AARCH64_ABS64: adding Import 0x%x (%s) ', rlva, dmglname)
+                        vw.makeImport(rlva, "*", dmglname)
+                        vw.setComment(rlva, name)
+
+                    vw.setComment(rlva, dmglname)
+
+                elif rtype == Elf.R_AARCH64_RELATIVE:   # Adjust locations for the rebasing
+                    ptr = vw.readMemoryPtr(rlva)
+                    logger.info('R_AARCH64_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
+                    vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                    if len(name):
+                        vw.makeName(rlva, dmglname, makeuniq=True)
+                        if name != dmglname:
+                            vw.setComment(rlva, name)
+
+                elif rtype == Elf.R_AARCH64_COPY:
                     pass
 
                 else:
