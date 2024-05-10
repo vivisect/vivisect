@@ -445,15 +445,19 @@ class Lnk:
                 # it's a seriesi of SerializedPropertyStorage (yes those are different) structures
                 # and you know to stop when the last has a size of 0, like a few of the other structures
                 # in this LNK file
-                propStores = vstruct.VArray()
-                step = len(item)
-                while True:
-                    ps = PropertyStorage()
-                    ps.vsParse(byts[offset+step:])
-                    propStores.vsAddElement(ps)
-                    step += ps.size
-                    if ps.size == 0:
-                        break
+                try:
+                    propStore = vstruct.VArray()
+                    step = len(item)
+                    while True:
+                        ps = PropertyStorage()
+                        ps.vsParse(byts[offset+step:])
+                        propStore.vsAddElement(ps)
+                        step += ps.size
+                        if ps.size == 0:
+                            break
+                    self.propStore = propStore
+                except Exception as exc:
+                    logger.warning('PropertyStore failed to parse: %r', exc)
                 offset += item.blocksize
                 # offset += self.propStore.size + 8  # This gets us to some kinda alignment I think?
                 continue
@@ -526,6 +530,7 @@ class Lnk:
             items.append(item)
 
         return items, offset
+
 
 def parseFromBytes(byts):
     return Lnk(byts)

@@ -369,7 +369,7 @@ class PropertyStorage(vstruct.VStruct):
                     unicode = True
 
             self.propvalues.vsAddElement(elem)
-            step += len(elem)
+            step += elem.size
             if elem.size == 0:
                 break
 
