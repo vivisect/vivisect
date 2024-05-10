@@ -10,11 +10,14 @@ import logging
 
 import vstruct
 
-from enum import Enum, IntFlag, auto
+from enum import IntFlag, IntEnum, auto
 
-from vstruct.primitives import *
+from vstruct.primitives import v_uint32, v_uint16, v_uint8, v_zstr, v_zwstr, GUID, v_uint64, v_wstr, v_str, v_bytes
+
+from vstruct.defs.mspropstore import PropertyStorage
 
 logger = logging.getLogger(__name__)
+
 
 class LinkFlags(IntFlag):
     HasLinkTargetIDList = auto()
@@ -27,12 +30,12 @@ class LinkFlags(IntFlag):
     IsUnicode = auto()
     ForceNoLinkInfo = auto()
     HasExpString = auto()
-    RunInSeparateProcess= auto()
+    RunInSeparateProcess = auto()
     Unused1 = auto()
     HasDawinID = auto()
     RunAsUser = auto()
     HasExpIcon = auto()
-    NoPidAlias= auto()
+    NoPidAlias = auto()
     Unused2 = auto()
     RunWithShimLayer = auto()
     ForceNoLinkTrack = auto()
@@ -45,11 +48,13 @@ class LinkFlags(IntFlag):
     PreferEnvironmentPath = auto()
     KeepLocalIDListForUNCTarget = auto()
 
+
 class LinkInfoFlags(IntFlag):
     VolumeIDAndLocalBasePath = auto()
     CommonNetworkRelativeLinkAndPathSuffix = auto()
 
-class DriveTypes(Enum):
+
+class DriveTypes(IntEnum):
     Unknown = auto()
     NoRootDir = auto()
     Removable = auto()
@@ -58,7 +63,8 @@ class DriveTypes(Enum):
     Cdrom = auto()
     Ramdisk = auto()
 
-class ExtraDataSigs(Enum):
+
+class ExtraDataSigs(IntEnum):
     Console = 0xA0000002
     ConsoleFE = 0xA0000004
     Darwin = 0xA0000006
@@ -71,13 +77,14 @@ class ExtraDataSigs(Enum):
     Tracker = 0xA0000003
     VistaAndAboveIDList = 0xA000000C
 
+
 # <Header> [<Link target Id LIST>] [<LinkInfo>] [<String data>] [<extra data>]
 class LnkShellLinkHeader(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
 
         self.headersize = v_uint32()
-        self.linkclsid = v_bytes(16)
+        self.linkclsid = GUID()
         self.linkflags = v_uint32()
         self.fileattrs = v_uint32()
 
@@ -95,6 +102,7 @@ class LnkShellLinkHeader(vstruct.VStruct):
         self.reserved2 = v_uint32()
         self.reserved3 = v_uint32()
 
+
 class VolumeID(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
@@ -110,6 +118,7 @@ class VolumeID(vstruct.VStruct):
         else:
             self.data = v_zstr()
 
+
 class ItemBase(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
@@ -117,11 +126,13 @@ class ItemBase(vstruct.VStruct):
         self.size = v_uint16()
         self.iden = v_uint8()
 
+
 class ExtraDataBlock(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.blocksize = v_uint32()
         self.blocksig = v_uint32()
+
 
 class ConsoleBlock(ExtraDataBlock):
     def __init__(self):
@@ -146,7 +157,7 @@ class ConsoleBlock(ExtraDataBlock):
         self.fontFamily = v_uint32()
         self.fontWeight = v_uint32()
 
-        self.faceName = v_wstr(size=32) # unicode, 64 bytes
+        self.faceName = v_wstr(size=32)  # unicode, 64 bytes
 
         self.cursorSize = v_uint32()
         self.fullScreen = v_uint32()
@@ -157,7 +168,8 @@ class ConsoleBlock(ExtraDataBlock):
         self.historyBufferSize = v_uint32()
         self.numberofHistoryBuffers = v_uint32()
         self.historyNoDup = v_uint32()
-        self.colorTable = VArray([v_uint32() for i in range(16)])
+        self.colorTable = vstruct.VArray([v_uint32() for i in range(16)])
+
 
 class ConsoleFEBlock(ExtraDataBlock):
     def __init__(self):
@@ -165,11 +177,13 @@ class ConsoleFEBlock(ExtraDataBlock):
 
         self.codepage = v_uint32()
 
+
 class TargetBlock(ExtraDataBlock):
     def __init__(self):
         ExtraDataBlock.__init__(self)
         self.targetAnsi = v_str(size=260)
         self.targetUnicode = v_wstr(size=520)
+
 
 class FolderBlock(ExtraDataBlock):
     def __init__(self):
@@ -177,10 +191,12 @@ class FolderBlock(ExtraDataBlock):
         self.folderid = GUID()
         self.offset = v_uint32()
 
+
 class ShimBlock(ExtraDataBlock):
     def __init__(self):
         ExtraDataBlock.__init__(self)
         self.layername = v_zwstr()
+
 
 class TrackerBlock(ExtraDataBlock):
     # See: https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-DLTW/%5bMS-DLTW%5d.pdf
@@ -196,6 +212,7 @@ class TrackerBlock(ExtraDataBlock):
         self.droibirthfile = GUID()
         self.droibirthvolume = GUID()
 
+
 class RootFolderItem(ItemBase):
     def __init__(self):
         ItemBase.__init__(self)
@@ -206,6 +223,7 @@ class RootFolderItem(ItemBase):
         # TODO: There's a pair of possible extension items here, but they're undocumented
         # even through extensive research by others. Skip for now.
 
+
 class VolumeItem(ItemBase):
     def __init__(self):
         ItemBase.__init__(self)
@@ -214,6 +232,7 @@ class VolumeItem(ItemBase):
         if self.iden & 0x1 == 0:
             self.flags = v_uint8()
         self.volume = v_str()
+
 
 class FileEntryItem(ItemBase):
     def __init__(self, unicode=True):
@@ -225,7 +244,6 @@ class FileEntryItem(ItemBase):
 
         self.fileattrs = v_uint16()
 
-        # TODO: there's a flag that makes this utf-16le....somewhere? Should be in link flags iirc
         if unicode:
             self.primary_name = v_zstr()
             self.secondary_name = v_zstr()
@@ -269,6 +287,7 @@ class FileEntryItem(ItemBase):
         if self.extver >= 3:
             self.firstextoffset = v_uint16()
 
+
 class CommonNetworkRelativeLink(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
@@ -290,6 +309,7 @@ class CommonNetworkRelativeLink(vstruct.VStruct):
 
         self.netnameunicode = v_wstr()
         self.devicenameunicode = v_wstr()
+
 
 class LinkInfo(vstruct.VStruct):
     def __init__(self):
@@ -322,6 +342,7 @@ class LinkInfo(vstruct.VStruct):
             self.LocalBasePathUnicode = v_zwstr()
             self.CommonPathSuffixUnicode = v_zwstr()
 
+
 class StringDataItem(vstruct.VStruct):
     def __init__(self, unicode=False):
         vstruct.VStruct.__init__(self)
@@ -335,6 +356,7 @@ class StringDataItem(vstruct.VStruct):
             self.data = v_bytes(size=self.count*2)
         else:
             self.data = v_bytes(size=self.count)
+
 
 class Lnk:
     def __init__(self, byts):
@@ -362,46 +384,16 @@ class Lnk:
         self.trackerData = None
         self.vistaIDList = None
 
+        self.leftovers = None
+
         offset += len(self.header)
         unicode = self.header.linkflags & LinkFlags.IsUnicode != 0
 
         if self.header.linkflags & LinkFlags.HasLinkTargetIDList:
-            self.items = []
-            self.idlistsize = v_uint16()
-            self.idlistsize.vsParse(byts[offset:])
-            offset += len(self.idlistsize)
-            while True:
-                base = ItemBase()
-                base.vsParse(byts[offset:])
-
-                size = base.size
-                iden = base.iden
-                if size == 0:
-                    offset += 2
-                    break
-                elif base.iden == 0x1f:
-                    item = RootFolderItem()
-                    item.vsParse(byts[offset:])
-                    offset += item.size
-                elif base.iden & 0x70 == 0x20:
-                    item = VolumeItem()
-                    item.vsParse(byts[offset:])
-                    offset += item.size
-                elif base.iden & 0x70 == 0x30:
-                    item = FileEntryItem(unicode=unicode)
-                    item.vsParse(byts[offset:])
-                    offset += item.size
-                else:
-                    logger.warning(f'Got unhandled iden of {hex(base.iden)}?')
-                    offset += size
-                    continue
-
-                self.items.append(item)
+            self.items, offset = self._parseItemID(byts, offset, unicode)
 
         if self.header.linkflags & LinkFlags.HasLinkInfo:
             # LinkInfo
-            #size = v_uint32()
-            #size.vsParse(byts[offset:])
             self.linkinfo = LinkInfo()
             self.linkinfo.vsParse(byts[offset:])
 
@@ -436,51 +428,108 @@ class Lnk:
 
         # ExtraData
         while True:
+            if offset >= len(byts) - 3:
+                break
+
             size = v_uint32()
             size.vsParse(byts[offset:])
             if size < 0x4:
+                # Terminal "block"
+                offset += 4
                 break
 
             item = ExtraDataBlock()
             item.vsParse(byts[offset:])
-            if item.blocksig == ExtraDataSigs.PropertyStore.value:
-                logger.warning('PropertyStore is TODO')
+            if item.blocksig == ExtraDataSigs.PropertyStore:
+                # The spec doesn't mention this at all, but this isn't a SerializedPropertyStore
+                # it's a seriesi of SerializedPropertyStorage (yes those are different) structures
+                # and you know to stop when the last has a size of 0, like a few of the other structures
+                # in this LNK file
+                propStores = vstruct.VArray()
+                step = len(item)
+                while True:
+                    ps = PropertyStorage()
+                    ps.vsParse(byts[offset+step:])
+                    propStores.vsAddElement(ps)
+                    step += ps.size
+                    if ps.size == 0:
+                        break
                 offset += item.blocksize
+                # offset += self.propStore.size + 8  # This gets us to some kinda alignment I think?
                 continue
-            elif item.blocksig == ExtraDataSigs.VistaAndAboveIDList.value:
-                logger.warning('vista todo')
-                offset += item.blocksize
+            elif item.blocksig == ExtraDataSigs.VistaAndAboveIDList:
+                self.vistaIDList, offset = self._parseItemID(byts, offset, unicode)
                 continue
-            elif item.blocksig == ExtraDataSigs.Console.value:
+            elif item.blocksig == ExtraDataSigs.Console:
                 self.console = block = ConsoleBlock()
-            elif item.blocksig == ExtraDataSigs.ConsoleFE.value:
+            elif item.blocksig == ExtraDataSigs.ConsoleFE:
                 self.consolefe = block = ConsoleFEBlock()
-            elif item.blocksig == ExtraDataSigs.Darwin.value:
+            elif item.blocksig == ExtraDataSigs.Darwin:
                 self.darwin = block = TargetBlock()
-            elif item.blocksig == ExtraDataSigs.Environment.value:
+            elif item.blocksig == ExtraDataSigs.Environment:
                 self.envVar = block = TargetBlock()
-            elif item.blocksig == ExtraDataSigs.IconEnvironment.value:
+            elif item.blocksig == ExtraDataSigs.IconEnvironment:
                 self.iconEnvData = block = TargetBlock()
-            elif item.blocksig == ExtraDataSigs.KnownFolder.value:
+            elif item.blocksig == ExtraDataSigs.KnownFolder:
                 self.knownFolder = block = FolderBlock()
-            elif item.blocksig == ExtraDataSigs.Shim.value:
+            elif item.blocksig == ExtraDataSigs.Shim:
                 self.shimData = block = ShimBlock()
-            elif item.blocksig == ExtraDataSigs.SpecialFolder.value:
+            elif item.blocksig == ExtraDataSigs.SpecialFolder:
                 self.specialFolder = block = FolderBlock()
-            elif item.blocksig == ExtraDataSigs.Tracker.value:
+            elif item.blocksig == ExtraDataSigs.Tracker:
                 self.trackerData = block = TrackerBlock()
             else:
                 # More malicious ones will stash things here that aren't valid blocks, so
                 # we can't really go any further if the block is invalid
-                logger.warning(f'Unhandled ExtraData block with Signature {hex(item.blocksig)} of size {item.blocksize}')
+                logger.warning(f'Unhandled ExtraData with Signature {hex(item.blocksig)} of size {item.blocksize}')
                 offset += item.blocksize
-                break
+                continue
 
             block.vsParse(byts[offset:])
             offset += item.blocksize
 
+        if offset < len(byts):
+            self.leftovers = byts[offset:]
+
+    def _parseItemID(self, byts, offset, unicode):
+        items = []
+        idlistsize = v_uint16()
+        idlistsize.vsParse(byts[offset:])
+        offset += len(idlistsize)
+
+        while True:
+            base = ItemBase()
+            base.vsParse(byts[offset:])
+
+            size = base.size
+            iden = base.iden
+            if size == 0:
+                offset += 2
+                break
+            elif iden == 0x1f:
+                item = RootFolderItem()
+                item.vsParse(byts[offset:])
+                offset += item.size
+            elif iden & 0x70 == 0x20:
+                item = VolumeItem()
+                item.vsParse(byts[offset:])
+                offset += item.size
+            elif iden & 0x70 == 0x30:
+                item = FileEntryItem(unicode=unicode)
+                item.vsParse(byts[offset:])
+                offset += item.size
+            else:
+                logger.warning(f'ItemID: Got unhandled iden of {hex(iden)}?')
+                offset += size
+                continue
+
+            items.append(item)
+
+        return items, offset
+
 def parseFromBytes(byts):
     return Lnk(byts)
+
 
 if __name__ == '__main__':
     import sys
