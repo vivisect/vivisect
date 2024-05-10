@@ -357,6 +357,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return []
         return list(dl)
 
+    def setEndian(self, endian):
+        '''
+        Set the Endianness for the workspace from this point on.
+        '''
+        self._fireEvent(VWE_ENDIAN, endian)
+
     def setComment(self, va, comment, check=False):
         '''
         Set the humon readable comment for a given virtual.
@@ -783,10 +789,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
 
         elif ltype == LOC_STRING:
+            logger.debug("followPointer->makeString(0x%x)", va)
             self.makeString(va)
             return True
 
         elif ltype == LOC_UNI:
+            logger.debug("followPointer->makeUnicode(0x%x)", va)
             self.makeUnicode(va)
             return True
 
@@ -1388,6 +1396,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.addXref(va, tova, REF_DATA)
                 ptrdest = None
                 if self.getLocation(tova) is None:
+                    logger.debug('makeOpcode(0x%x)->makePointer(0x%x)', va, tova)
                     ptrdest = self.makePointer(tova, follow=False)
 
                 # If the actual dest is executable, make a code ref fixup
@@ -3245,10 +3254,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         fname = self.getFileByVa(va)
         vastr = '_%.8x' % va
 
-        if name.startswith(fname + '.'):
-            fpart, npart = name.split('.', 1)
-        elif name.startswith('*.'):
-            skip, npart = name.split('.', 1)
+        if fname is not None:
+            if name.startswith(fname + '.'):
+                fpart, npart = name.split('.', 1)
+            elif name.startswith('*.'):
+                skip, npart = name.split('.', 1)
+        else:
+            logger.warning("_getNameParts(%r): fname is None (and shouldn't be)", name)
 
         if npart.endswith(vastr) and not npart == 'sub' + vastr:
             npart, vapart = npart.rsplit('_', 1)
