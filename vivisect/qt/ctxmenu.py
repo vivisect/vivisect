@@ -107,7 +107,7 @@ def buildContextMenu(vw, va=None, expr=None, menu=None, parent=None, nav=None, t
     if menu is None:
         menu = QMenu(parent=parent)
 
-    menu.addAction('rename (n)', ACT(vw.getVivGui().setVaName, va))
+    menu.addAction('rename (n)', ACT(vw.getVivGui().setName, va, tag))
     menu.addAction('comment (;)', ACT(vw.getVivGui().setVaComment, va))
     menu.addAction('print location', ACT(vw.getVivGui().getLocation, va))
 

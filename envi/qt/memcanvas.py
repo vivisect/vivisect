@@ -244,6 +244,9 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     @QtCore.pyqtSlot(str)
     def _jsSetCurVa(self, vastr):
         self._canv_curva = int(str(vastr), 0)
+        # if we click on a VA, we no longer want a tag to show up 
+        # (could do this another way so we keep "last tag" but indicate which has preference??)
+        self._canv_curtag = None
 
     @QtCore.pyqtSlot(str, str)
     def _jsSetCurTag(self, tagname, tagval):
