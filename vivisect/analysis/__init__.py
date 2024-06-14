@@ -94,7 +94,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.elf")
 
-        if arch in ('i386', 'amd64', 'arm'):
+        if arch in ('i386', 'amd64', 'arm', 'riscv'):
             vw.addImpApi('posix', arch)
 
         if arch == 'i386':
@@ -144,7 +144,8 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.elf.elfplt_late")
         vw.addAnalysisModule("vivisect.analysis.generic.linker")
         vw.addAnalysisModule("vivisect.analysis.generic.thunks")
-        vw.addAnalysisModule("vivisect.analysis.generic.pointers")
+        if arch not in ('rv32', 'rv64'):
+            vw.addAnalysisModule("vivisect.analysis.generic.pointers")
 
     elif fmt == 'macho': # MACH-O ###################################################
 
