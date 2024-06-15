@@ -422,7 +422,7 @@ class VivChunkQueue(e_threads.ChunkQueue):
             return evts
 
         # handle events in "chunks"
-        if self.chunksize is not None:
+        if self.chunksize:
             logger.debug('_get_items(): chunksize: %d', self.chunksize)
 
             # search for ADDMMAPs so we don't group two in one transmission
