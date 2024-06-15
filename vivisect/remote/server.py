@@ -353,7 +353,7 @@ class VivServer:
             fileevts = viv_basicfile.vivEventsFromFile(fpath)
             fileevts.extend(pevents)
             # use this firethread function to add events while we return the channel
-            queue.asyncAddLargeEventList(fileevts)
+            queue.chunkedAddLargeEventList(fileevts)
 
         return chan
 
@@ -474,7 +474,7 @@ class VivChunkQueue(e_threads.ChunkQueue):
         return ret
 
     @e_threads.firethread
-    def asyncAddLargeEventList(self, evts):
+    def chunkedAddLargeEventList(self, evts):
         '''
         Break up a large list of events into appropriately pre-sized chunks,
         allowing for high efficiency in serving them.  This is a @firethread
