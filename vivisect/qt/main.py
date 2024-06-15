@@ -156,6 +156,35 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
             self.vw.makeName(va, name)
 
+    def setName(self, va, tag, parent=None):
+        '''
+        Set the name for a given Tag or VA 
+        '''
+        if parent is None:
+            parent = self
+
+        if tag and tag[0] == 'name':
+            # do tag things
+            ttype, tagname = tag
+            
+            if tagname:
+                tagname = tagname.decode('utf8')
+                fva = self.vw.getFunction(va)
+                if fva:
+                    rtype, rname, cconv, cname, cargs = self.vw.getFunctionApi(fva)
+                    if cargs:
+                        for i, (atype, aname) in enumerate(cargs):
+                            if aname == tagname:
+                                self.setFuncArgName(fva, i, atype, aname)
+                            else:
+                                logger.warning("%s != %s" % (aname, tagname))
+                    else:
+                        logger.warning("setName(va=0x%x, tag=%r) called on a 'name' but function has no args: fva: 0x%x", va, repr(tag), fva)
+                else:
+                    vw.vprint("setName(va=0x%x, tag=%r):  can't determine what function we're in", va, repr(tag))
+        else:
+            self.setVaName(va)
+
     def setVaComment(self, va, parent=None):
         if parent is None:
             parent = self
