@@ -22,11 +22,14 @@ def parseFile(vw, filename, baseaddr=None):
     if not arch:
         raise Exception('SRec loader *requires* arch option (-O viv.parsers.srec.arch=\\"<archname>\\")')
 
+    bigend = vw.config.viv.parsers.ihex.bigend
+
     envi.getArchModule(arch)
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform', 'Unknown')
     vw.setMeta('Format', 'srec')
+    vw.setMeta('bigend', bigend)
 
     vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
 
