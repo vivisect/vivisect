@@ -3345,7 +3345,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             elif name.startswith('*.'):
                 skip, npart = name.split('.', 1)
         else:
-            logger.warning("_getNameParts(%r): fname is None?", name)
+            logger.warning("_getNameParts(%r): fname is None (and shouldn't be)", name)
 
         if npart.endswith(vastr) and not npart == 'sub' + vastr:
             npart, vapart = npart.rsplit('_', 1)

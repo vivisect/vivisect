@@ -76,6 +76,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         self.vqAddMenuField('&View.&Layouts.&Set Default', self._menuViewLayoutsSetDefault)
         self.vqAddMenuField('&View.&Layouts.&Save', self._menuViewLayoutsSave)
         self.vqAddMenuField('&View.&Layouts.&Load', self._menuViewLayoutsLoad)
+        self.vqAddMenuField('&View.&Layouts.Load &Base Default', self._menuViewLayoutsLoadBase)
 
         self.vqAddMenuField('&Share.Share Workspace', self._menuShareWorkspace)
         self.vqAddMenuField('&Share.Connect to Shared Workspace', self._menuShareConnect)
@@ -101,7 +102,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             self.vw.vprint('\n')
             #self.vw.vprint('&#10;')
             self.vw.vprint('Looks like you have an empty layout!')
-            self.vw.vprint('Use View->Layouts->Load and select vivisect/qt/default.lyt')
+            self.vw.vprint('Use View->Layouts->Load Base Default')
 
         fname = os.path.basename(self.vw.getMeta('StorageName', 'Unknown'))
         self.setWindowTitle('Vivisect: %s' % fname)
@@ -577,6 +578,12 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def _menuFileSaveServer(self):
         viv_q_remote.saveToServer(self.vw, parent=self)
 
+    def _menuViewLayoutsLoadBase(self):
+        dirname = os.path.dirname(viv_q_views.__file__) 
+        fname = os.sep.join([dirname, "default.lyt"])
+        settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
+        self.vqRestoreGuiSettings(settings)
+
     def _menuViewLayoutsLoad(self):
         fname = getOpenFileName(self, 'Load Layout')
         if fname is None:
@@ -700,8 +707,29 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def newMemoryView(self, name='viv', floating=False, expr=None):
         dock, widget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
         widget.setMemWindowName(name)
-        if expr is not None:
-            widget.enviNavGoto(expr)
+        if expr is None:
+            expr = self._getFirstFileBase()
+        widget.enviNavGoto(expr)
+
+    def _getFirstFileBase(self):
+        '''
+        Returns a string expression of the first file registered in the workspace.
+        If the filename is '' (a possibility), the ImageBase is returned from 
+        file-metadata.
+        '''
+        files = self.vw.getFiles()
+        if not len(files):
+            return
+
+        file = files[0]
+        if not len(file):
+            # a file may have a '' name
+            imagebase = self.vw.getFileMeta(file, "ImageBase")
+            if self.vw.isValidPointer(imagebase):
+                return hex(imagebase)
+
+        return file
+
 
     @idlethread
     def newFuncGraphView(self, name=None, floating=False, expr=None):

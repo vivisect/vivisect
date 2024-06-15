@@ -459,7 +459,11 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self.comments[va] = comment
 
     def _handleENDIAN(self, einfo):
-        self._doSetEndian(einfo)
+        self.bigend = einfo
+        for arch in self.imem_archs:
+            if not arch:
+                continue
+            arch.setEndian(self.bigend)
 
     def _handleADDFILE(self, einfo):
         normname, imagebase, md5sum = einfo
@@ -590,6 +594,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
         self.ehand[VWE_ENDIAN] = self._handleENDIAN
         self.ehand[VWE_WRITEMEM] = self._handleWRITEMEM
+        self.ehand[VWE_ENDIAN] = self._handleENDIAN
 
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
@@ -676,13 +681,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def getEndian(self):
         return self.bigend
 
-    def _doSetEndian(self, endian):
-        self.bigend = endian
-        for arch in self.imem_archs:
-            if not arch:
-                continue
-            arch.setEndian(self.bigend)
-
 
 #################################################################
 #
@@ -691,14 +689,16 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _mcb_Architecture(self, name, value):
         archid = envi.getArchByName(value)
         try:
-            # Some of the ENVI archs defined may not architecture modules that 
+
+            # Some of the ENVI archs defined may have architecture modules that 
             # are still in progress
             self.setMemArchitecture(archid)
         except IndexError:
-            raise Exception("Architecture Module not defined for %s yet!" % value)
+            raise ArchModDefException(value) from None
 
         # This is for legacy stuff...
-        self.arch = envi.getArchModule(value)
+        #self.arch = envi.getArchModule(value)
+        self.arch = self.getMemArchModule()
         self.psize = self.arch.getPointerSize()
 
         # Default calling convention for architecture

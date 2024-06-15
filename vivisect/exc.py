@@ -62,6 +62,11 @@ class InvalidWorkspace(Exception):
         Exception.__init__(self, 'Failed to load %s: %s' % (nameinfo, errinfo))
 
 
+class ArchModDefException(Exception):
+    def __init__(self, arch):
+        Exception.__init__(self, "Architecture Module not defined for %s yet!" % arch)
+        self.arch = arch
+
 class InvalidArchitecture(Exception):
     def __init__(self, fileformat, arch):
         Exception.__init__(self, 'Architecture %s is not supported for %s' % (arch, fileformat))
