@@ -29,9 +29,9 @@ viv_s_ip = '224.56.56.56'
 viv_s_port = 26998
 
 # DEFAULTS for non-configured use
-timeo_wait = 10
-timeo_sock = 50
-timeo_aban = 120   # 2 minute timeout for abandon
+timeout_wait = 10
+timeout_sock = 50
+timeout_aban = 120   # 2 minute timeout for abandon
 
 # This should *only* rev when they're truly incompatible
 server_version = 20130820
@@ -163,8 +163,8 @@ class VivServer:
         cfgpath = os.path.join(self.vivhome, 'viv.json')
         self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig, autosave=True)
 
-        self.timeo_wait = self.config.viv.remote.timeo_wait
-        self.timeo_aban = self.config.viv.remote.timeo_aban
+        self.timeout_wait = self.config.viv.remote.timeout_wait
+        self.timeout_aban = self.config.viv.remote.timeout_aban
         self.wsdict = {}
         self.chandict = {}
         self.wslock = threading.Lock()
@@ -189,7 +189,7 @@ class VivServer:
                 continue
 
             wsinfo, queue, chanleaders = chaninfo
-            if queue.abandoned(self.timeo_aban):
+            if queue.abandoned(self.timeout_aban):
                 self.cleanupChannel(chan)
 
     @e_threads.maintthread(30)
@@ -269,7 +269,7 @@ class VivServer:
         if chaninfo is None:
             raise Exception('Invalid Channel: %s' % chan)
         logger.debug("getNextEvents(%r)", repr(chaninfo))
-        return chaninfo[1].get(timeout=self.timeo_wait)
+        return chaninfo[1].get(timeout=self.timeout_wait)
 
     # All APIs from here down are basically mirrors of the workspace APIs
     # used with remote workspaces, with a prepended chan first argument
@@ -528,7 +528,7 @@ def getServerWorkspace(server, wsname, block=True):
 
 def connectToServer(hostname, port=viv_port):
     builder = cobra.initSocketBuilder(hostname, port)
-    builder.setTimeout(timeo_sock)
+    builder.setTimeout(timeout_sock)
     server = cobra.CobraProxy("cobra://%s:%d/VivServer" % (hostname, port), msgpack=True)
     version = server.getServerVersion()
     if version != server_version:
@@ -539,7 +539,7 @@ def connectToServer(hostname, port=viv_port):
 def runMainServer(dirname='', port=viv_port):
     s = VivServer(dirname=dirname)
     daemon = cobra.CobraDaemon(port=port, msgpack=True)
-    daemon.recvtimeout = timeo_sock
+    daemon.recvtimeout = timeout_sock
     daemon.shareObject(s, 'VivServer')
     daemon.serve_forever()
 

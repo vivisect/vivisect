@@ -50,8 +50,8 @@ defconfig = {
         },
         'remote':{
             'wait_for_plat_arch': 10,
-            'timeo_wait': 10,
-            'timeo_aban': 120,
+            'timeout_wait': 10,
+            'timeout_aban': 120,
         },
         'server':{
             'queue_chunksize': 70000,
@@ -108,8 +108,8 @@ docconfig = {
         },
         'remote':{
             'wait_for_plat_arch':'How many secs to wait for the remote server/workspace to provide a Platform or Architecture before moving on.',
-            'timeo_wait': "Timeout waiting for getNextEvent() to have more Viv events to send.",
-            'timeo_aban': "Server channel timeout.  At this point, clean up and delete the channel.  The connection is dead.",
+            'timeout_wait': "Timeout waiting for getNextEvent() to have more Viv events to send.",
+            'timeout_aban': "Server channel timeout.  At this point, clean up and delete the channel.  The connection is dead.",
         },
 
         'server':{
