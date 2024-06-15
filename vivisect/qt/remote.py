@@ -168,7 +168,7 @@ def selectServerWorkspace(vw, server, workspaces, parent=None):
 @vq_main.workthread
 def loadServerWorkspace(oldvw, server, workspace):
     oldvw.vprint('Loading Workspace: %s' % workspace)
-    vw = viv_server.getServerWorkspace(server, workspace, block=False)
+    vw = viv_server.getServerWorkspace(server, workspace)
     # reset the FunctionGraph Counter
     v_q_funcgraph.reset()
 

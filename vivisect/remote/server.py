@@ -516,7 +516,7 @@ class VivChunkQueue(e_threads.ChunkQueue):
 
 
 
-def getServerWorkspace(server, wsname, block=True):
+def getServerWorkspace(server, wsname):
     vw = v_cli.VivCli()
     logger.debug("Starting:  VivServerClient(%r, %r)", server, wsname)
     cliproxy = VivServerClient(vw, server, wsname)
