@@ -707,8 +707,29 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def newMemoryView(self, name='viv', floating=False, expr=None):
         dock, widget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
         widget.setMemWindowName(name)
-        if expr is not None:
-            widget.enviNavGoto(expr)
+        if expr is None:
+            expr = self._getFirstFileBase()
+        widget.enviNavGoto(expr)
+
+    def _getFirstFileBase(self):
+        '''
+        Returns a string expression of the first file registered in the workspace.
+        If the filename is '' (a possibility), the ImageBase is returned from 
+        file-metadata.
+        '''
+        files = self.vw.getFiles()
+        if not len(files):
+            return
+
+        file = files[0]
+        if not len(file):
+            # a file may have a '' name
+            imagebase = self.vw.getFileMeta(file, "ImageBase")
+            if self.vw.isValidPointer(imagebase):
+                return hex(imagebase)
+
+        return file
+
 
     @idlethread
     def newFuncGraphView(self, name=None, floating=False, expr=None):
