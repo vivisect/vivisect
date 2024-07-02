@@ -53,7 +53,7 @@ def vprint(vw, s, *args, **kwargs):
     print(s % args)
 
 
-def ctxMenuHook(vw, va, expr, menu, parent, nav):
+def ctxMenuHook(vw, va, expr, menu, parent, nav, tag=None):
     '''
     Context Menu handler (adds options as we wish)
     '''

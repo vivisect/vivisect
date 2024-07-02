@@ -258,7 +258,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     @vq_hotkey.hotkey('viv:setname')
     def _hotkey_setname(self):
         if self._canv_curva is not None:
-            self.vw.getVivGui().setVaName(self._canv_curva, parent=self)
+            self.vw.getVivGui().setName(self._canv_curva, self._canv_curtag, parent=self)
 
     @vq_hotkey.hotkey('viv:bookmark')
     def _hotkey_bookmark(self):
@@ -411,9 +411,9 @@ class VQVivMemoryCanvas(VivCanvasBase):
         if self._canv_navcallback:
             self._canv_navcallback(expr)
 
-    def initMemWindowMenu(self, va, menu):
+    def initMemWindowMenu(self, va, tag, menu):
         nav = self.parent()  # our parent is always a VQVivMemoryWindow (nav target)
-        viv_q_ctxmenu.buildContextMenu(self.vw, va=va, menu=menu, nav=nav)
+        viv_q_ctxmenu.buildContextMenu(self.vw, va=va, menu=menu, nav=nav, tag=tag)
 
     def _loc_helper(self, va):
         '''
