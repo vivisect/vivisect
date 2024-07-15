@@ -4,7 +4,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'vivisect'
-version = '1.1.1'
+version = '1.2.0'
 authors = [
     { name =  'The Vivisect Peeps', email = 'vivdevs@r4780y.com'}
 ]
