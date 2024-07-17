@@ -253,7 +253,7 @@ class FileEntryItem(ItemBase):
 
     def pcb_primary_name(self):
         # if this is an ascii string and we're not 16-bit aligned,
-        # consume an extra padded bit
+        # consume an extra padded byte to get us to 16 alignment
         unicode = self.iden & 0x04 != 0
         # include null terminator in length calculation
         if unicode == 0 and ((len(self.primary_name) + 1) * 8) % 16 != 0:
