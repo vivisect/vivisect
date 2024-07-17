@@ -472,7 +472,7 @@ class Lnk:
                 # offset += self.propStore.size + 8  # This gets us to some kinda alignment I think?
                 continue
             elif item.blocksig == ExtraDataSigs.VistaAndAboveIDList:
-                self.vistaIDList, offset = self._parseItemID(byts, offset, unicode)
+                self.vistaIDList, offset = self._parseItemID(byts, offset)
                 continue
             elif item.blocksig == ExtraDataSigs.Console:
                 self.console = block = ConsoleBlock()
