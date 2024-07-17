@@ -1,0 +1,143 @@
+linux/i386/chgrp.llvm - no switchcases i can recognize.  all dynamic branches are calls.
+    correction: switchcases are handled using Rakuyo's code, but not named as switchcases nor added to the SwitchCases VAset.
+
+example:
+.text:0x0804ebf0  8b4c2404         mov ecx,dword [esp + arg0]
+.text:0x0804ebf4  83c1df           add ecx,0xffffffdf
+.text:0x0804ebf7  83f95d           cmp ecx,93
+.text:0x0804ebfa  770a             ja case15_0804ebfe
+.text:0x0804ebfc  b001             mov al,1
+.text:0x0804ebfe  ff248d981f0508   jmp dword [ptr_case0_0804ebfe_08051f98 + ecx * 4]
+
+
+linux/i386/ld-2.31.so - Thunk-BX
+example:
+.text:0x0201de96  e8240a0000       call thunk_bx_0201e8bf    ;thunk_bx_0201e8bf()
+.text:0x0201de9b  81c391240000     add ebx,0x00002491
+.text:0x0201dea1  031c8b           add ebx,dword [ebx + ecx * 4]
+.text:0x0201dea4  01ca             add edx,ecx
+.text:0x0201dea6  01ce             add esi,ecx
+.text:0x0201dea8  switch_0201dea8: [0 XREFS]
+.text:0x0201dea8  3effe3           ds: jmp ebx    ;lower: 0x1, upper: 0x1f
+.text:0x0201deab  8d
+.text:0x0201deac  74    't'
+.text:0x0201dead  26    '&'
+.text:0x0201deae  00
+.text:0x0201deaf  90
+.text:0x0201deb0  case_5C_201deb0: [2 XREFS]
+.text:0x0201deb0  8b46e4           mov eax,dword [esi - 28]
+.text:0x0201deb3  8b4ae4           mov ecx,dword [edx - 28]
+.text:0x0201deb6  39c8             cmp eax,ecx
+.text:0x0201deb8  0f855a020000     jnz loc_0201e118
+.text:0x0201debe  case_58_201debe: [2 XREFS]
+.text:0x0201debe  8b46e8           mov eax,dword [esi - 24]
+.text:0x0201dec1  8b4ae8           mov ecx,dword [edx - 24]
+.text:0x0201dec4  39c8             cmp eax,ecx
+.text:0x0201dec6  0f854c020000     jnz loc_0201e118
+
+not all switches are correctly identified however... and it turns out we have more than "thunk-bx" for PIC...here's an example of "thunk-esi"
+.text:0x0201a437  e887440000       call sub_0201e8c3    ;sub_0201e8c3()
+.text:0x0201a43c  81c6c41b0100     add esi,0x00011bc4
+...
+.text:0x0201a562  8db600000000     lea esi,dword [esi]
+.text:0x0201a568  loc_0201a568: [1 XREFS]
+.text:0x0201a568  83e803           sub eax,3
+.text:0x0201a56b  83f81e           cmp eax,30
+.text:0x0201a56e  7720             ja loc_0201a590
+.text:0x0201a570  8b9c86bc3cffff   mov ebx,dword [esi + eax * 4 + -49988]
+.text:0x0201a577  01f3             add ebx,esi
+.text:0x0201a579  3effe3           ds: jmp ebx
+
+in fact, it looks like we're looking at numerous "thunk-reg" examples, as indicated here:
+.text:0x0201e8b7  FUNC: int cdecl sub_0201e8b7( ) [54 XREFS]
+.text:0x0201e8b7
+.text:0x0201e8b7  Stack Variables:
+.text:0x0201e8b7
+.text:0x0201e8b7  8b0424           mov eax,dword [esp]
+.text:0x0201e8ba  c3               ret
+.text:0x0201e8bb
+.text:0x0201e8bb  FUNC: int cdecl sub_0201e8bb( ) [24 XREFS]
+.text:0x0201e8bb
+.text:0x0201e8bb  Stack Variables:
+.text:0x0201e8bb
+.text:0x0201e8bb  8b1424           mov edx,dword [esp]
+.text:0x0201e8be  c3               ret
+.text:0x0201e8bf
+.text:0x0201e8bf  FUNC: int cdecl thunk_bx_0201e8bf( ) [90 XREFS]
+.text:0x0201e8bf
+.text:0x0201e8bf  Stack Variables:
+.text:0x0201e8bf
+.text:0x0201e8bf  8b1c24           mov ebx,dword [esp]
+.text:0x0201e8c2  c3               ret
+.text:0x0201e8c3
+.text:0x0201e8c3  FUNC: int cdecl sub_0201e8c3( ) [32 XREFS]
+.text:0x0201e8c3
+.text:0x0201e8c3  Stack Variables:
+.text:0x0201e8c3
+.text:0x0201e8c3  8b3424           mov esi,dword [esp]
+.text:0x0201e8c6  c3               ret
+.text:0x0201e8c7
+.text:0x0201e8c7  FUNC: int cdecl sub_0201e8c7( ) [36 XREFS]
+.text:0x0201e8c7
+.text:0x0201e8c7  Stack Variables:
+.text:0x0201e8c7
+.text:0x0201e8c7  8b3c24           mov edi,dword [esp]
+.text:0x0201e8ca  c3               ret
+.text:0x0201e8cb
+.text:0x0201e8cb  FUNC: int cdecl sub_0201e8cb( ) [14 XREFS]
+.text:0x0201e8cb
+.text:0x0201e8cb  Stack Variables:
+.text:0x0201e8cb
+.text:0x0201e8cb  8b2c24           mov ebp,dword [esp]
+.text:0x0201e8ce  c3               ret
+.text:0x0201e8cf
+.text:0x0201e8cf  FUNC: int cdecl sub_0201e8cf( ) [6 XREFS]
+.text:0x0201e8cf
+.text:0x0201e8cf  Stack Variables:
+.text:0x0201e8cf
+.text:0x0201e8cf  8b0c24           mov ecx,dword [esp]
+.text:0x0201e8d2  c3               ret
+
+before this, we've got 12 switches in ld.so
+
+
+
+here's the old way (with thunk_bx):
+oldsw = [0x200704d,
+ 0x200d274,
+ 0x200d62d,
+ 0x200d6e0,
+ 0x200d8ac,
+ 0x200dd56,
+ 0x200e0e1,
+ 0x200e19c,
+ 0x200e371,
+ 0x201b438,
+ 0x201dea8,
+ 0x201e0fe]
+
+
+huh.  after changing to support all regs... we end up with 10???
+newsw = [0x2002160,
+ 0x2002d80,
+ 0x200704d,
+ 0x200d274,
+ 0x200dd56,
+ 0x201a579,
+ 0x201ad11,
+ 0x201b438,
+ 0x201dea8,
+ 0x201e0fe]
+
+so the conversion gains us:
+Missing from old:
+In [10]: [hex(x) for x in newsw if x not in oldsw]                                                                                                                                                                                                       
+Out[10]: ['0x2002160', '0x2002d80', '0x201a579', '0x201ad11']
+
+and loses us:
+Missing from new:
+In [11]: [hex(x) for x in oldsw if x not in newsw]                                                                                                                                                                                                       
+Out[11]: ['0x200d62d', '0x200d8ac', '0x200d6e0', '0x200e0e1', '0x200e371', '0x200e19c']
+
+
+

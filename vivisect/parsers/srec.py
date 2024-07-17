@@ -49,7 +49,7 @@ def parseFile(vw, filename, baseaddr=None):
 
         # calculate SREC-specific hash - only the fields copied into memory
         srdata = srec.vsEmit()
-        vw.setFileMeta(fname, 'sha256_srec', v_parsers.sha256Bytes(srdata.encode('utf-8')))
+        vw.setFileMeta(fname, 'sha256_srec', v_parsers.sha256Bytes(srdata))
 
         for eva in srec.getEntryPoints():
             if eva is not None:
@@ -64,3 +64,28 @@ def parseFile(vw, filename, baseaddr=None):
 
 def parseMemory(vw, memobj, baseaddr):
     raise Exception('srec loader cannot parse memory!')
+
+def getMemBaseAndSize(vw, srec, baseaddr=None):
+    '''
+    Returns the default baseaddr and memory size required to load the file
+    '''
+    savebase = baseaddr
+
+    memmaps = srec.getMemoryMaps()
+    baseaddr = 0xffffffffffffffffffffffff
+    topmem = 0
+
+    for mapva, mperms, mname, mbytes in memmaps:
+        if mapva < baseaddr:
+            baseaddr = mapva
+        endva = mapva + len(mbytes)
+        if endva > topmem:
+            topmem = endva
+
+    size = topmem - baseaddr
+    if savebase:
+        # if we provided a baseaddr, override what the file wants
+        baseaddr = savebase
+        
+    return baseaddr, size
+

@@ -7,6 +7,7 @@ import argparse
 import cProfile
 import importlib.util
 
+import envi
 import envi.exc as e_exc
 import envi.common as e_common
 import envi.threads as e_threads
@@ -36,6 +37,10 @@ def main():
                         help='Manually specify the parser module (pe/elf/blob/...)')
     parser.add_argument('-s', '--storage', dest='storage_name', default=None, action='store',
                         help='Specify a storage module by name')
+    parser.add_argument('-S', '--server', dest='server_mode', default=False, action='store_true',
+                        help='Run Vivisect Server.  Last argument should be the VivWorkspaces directory.')
+    parser.add_argument('-P', '--port', dest='server_port', default=None, action='store',
+                        help='Port to run Vivisect Server on (only meaningful with --server)')
     parser.add_argument('-v', '--verbose', dest='verbose', default=False, action='count',
                         help='Enable verbose mode (multiples matter: -vvvv)')
     parser.add_argument('-V', '--version', dest='version', default=None, action='store',
@@ -44,6 +49,11 @@ def main():
                         help='Path to a directory to use for config data')
     parser.add_argument('-a', '--autosave', dest='autosave', default=False, action='store_true',
                         help='Autosave configuration data')
+    parser.add_argument('-o', '--outfile', default=None,
+                        help='Name of VivWorkspace file to create (useful for loading multiple binaries into one workspace)')
+    parser.add_argument('-m', '--archmaturity', default=False, action='store_true',
+                        help="List Architectures and their version/maturity")
+
     parser.add_argument('file', nargs='*')
     args = parser.parse_args()
 
@@ -54,6 +64,43 @@ def main():
     level = e_common.LOG_LEVELS[vw.verbose]
     e_common.initLogging(logger, level=level)
 
+    if args.server_mode:
+        import vivisect.remote.server as vr_server
+        if len(args.file):
+            file = args.file[-1]
+
+        else:
+            print("Server mode requires directory name as last argument")
+            sys.exit(-1)
+
+        if args.server_port is None:
+            vr_server.runMainServer(dirname=file)
+        else:
+            server_port = int(args.server_port)
+            vr_server.runMainServer(dirname=file, port=server_port)
+        sys.exit(0)
+
+    if args.outfile:
+        vw.setMeta('StorageName', args.outfile)
+
+
+    if args.archmaturity:
+        # This is it.  Nothing happens beyond this point :)
+
+        # make sure we are at least at debug level INFO
+        if level > logging.INFO:
+            logger.setLevel(logging.INFO)
+
+        logger.info("Supported Architectures, Version, and Features")
+        logger.info("==============================================")
+        for arch, m in envi.arch_defs.items():
+            logger.info("%20s  ver: v%d.%d.%d  aliases: %s", m['name'], *m['version'], m.get('aliases'))
+            logger.debug("\t\t\tdisasm: %5s   emu: %5s   symboliks: %5s   unittests: %5s\n", 
+                    m['has_disasm'],
+                    m['has_emu'],
+                    m['has_symboliks'],
+                    m['has_unittests'])
+        sys.exit(-1)
 
     # do things
     if args.option is not None:

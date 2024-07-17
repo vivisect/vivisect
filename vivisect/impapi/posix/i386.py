@@ -1118,6 +1118,7 @@ api = {
     '*.readdir_r': ('int', None, 'cdecl', '*.readdir_r', (('DIR *', 'dirstream'), ('struct dirent *', 'entry'), ('struct dirent * *', 'result'))),
     '*.readlink': ('ssize_t', None, 'cdecl', '*.readlink', (('const char *', 'filename'), ('char *', 'buffer'), ('size_t', 'size'))),
     '*.readv': ('ssize_t', None, 'cdecl', '*.readv', (('int', 'filedes'), ('const struct iovec *', 'vector'), ('int', 'count'))),
+    '*.__read_chk': ('ssize_t', None, 'cdecl', '*.__read_chk', (('int', 'filedes'), ('void *', 'buffer'), ('size_t', 'nbytes'), ('size_t', 'buflen'))),
     '*.realloc': ('void *', None, 'cdecl', '*.realloc', (('void *', 'ptr'), ('size_t', 'newsize'))),
     '*.reallocarray': ('void *', None, 'cdecl', '*.reallocarray', (('void *', 'ptr'), ('size_t', 'nmemb'), ('size_t', 'size'))),
     '*.realpath': ('char *', None, 'cdecl', '*.realpath', (('const char * restrict', 'name'), ('char * restrict', 'resolved'))),

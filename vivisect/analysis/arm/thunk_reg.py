@@ -82,7 +82,7 @@ def analyzeFunction(vw, fva):
             success = True
 
             reg = op.opers[0].reg
-            vw.setVaSetRow('thunk_reg', (fva, reg))
+            vw.setVaSetRow('thunk_reg', (fva, reg, 0))
 
             if vw.getFunctionMeta(fva, 'PIE_reg') is None:
                 vw.setFunctionMeta(fva, 'PIE_reg', reg)

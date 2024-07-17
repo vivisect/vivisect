@@ -5,7 +5,7 @@ The stalker subsystem is a breakpoint based coverage tool
 import vtrace
 
 import envi
-import envi.memory as e_mem
+import envi.const as e_const
 import envi.codeflow as e_codeflow
 
 
@@ -29,7 +29,7 @@ class StalkerCodeFlow(e_codeflow.CodeFlowContext):
 
             if bflags & envi.BR_DEREF and br is not None:
                 bflags &= ~envi.BR_DEREF # Mask it back out...
-                if not self.trace.probeMemory(br, 1, e_mem.MM_READ):
+                if not self.trace.probeMemory(br, 1, e_const.MM_READ):
                     continue
 
                 br = self.trace.readMemoryFormat(br, '<P')[0]

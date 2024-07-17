@@ -13,6 +13,9 @@ import vivisect.tests.helpers as helpers
 import vivisect.remote.server as v_r_server
 
 import envi.memcanvas as e_mcanvas
+import envi.common as ecmn
+logger = ecmn.logging.getLogger(__name__)
+ecmn.initLogging(logger)
 
 def runServer(name, port):
     dirn = os.path.dirname(name)
@@ -27,6 +30,19 @@ def runServer(name, port):
 
     v_r_server.runMainServer(dirn, port)
 
+
+def getOutput(strcanv, timeout=10):
+    '''
+    Watches a StringCanvas for data up to a given timeout
+    '''
+    starttime = time.time()
+    output = strcanv.strval
+    while not output and (time.time() - starttime) < timeout:
+        time.sleep(.1)
+        output = strcanv.strval
+
+    strcanv.strval = ''
+    return output
 
 class VivisectRemoteTests(unittest.TestCase):
     '''
@@ -148,15 +164,13 @@ class VivisectRemoteTests(unittest.TestCase):
 
                 # empty leaders
                 rmtvw.do_leaders('')
-                output = rmtvw.canvas.strval
+                output = getOutput(rmtvw.canvas)
                 self.assertIn('Manage Leader Sessions.', output)
-                rmtvw.canvas.strval = ''
 
                 # list leaders
                 rmtvw.do_leaders('list')
-                output = rmtvw.canvas.strval
+                output = getOutput(rmtvw.canvas)
                 self.assertIn("rakuy0's moving castle", output)
-                rmtvw.canvas.strval = ''
 
                 # modify a leader session
                 rmtvw.do_leaders('mod %s foo foo bar baz' % testuuid)
@@ -172,9 +186,8 @@ class VivisectRemoteTests(unittest.TestCase):
                     time.sleep(.1)
                     sys.stderr.write('%d' % retry)
 
-                output = rmtvw.canvas.strval
+                output = getOutput(rmtvw.canvas)
                 self.assertIn("foo bar baz", output)
-                rmtvw.canvas.strval = ''
 
                 # kill leader session
                 rmtvw.do_leaders('kill %s' % testuuid)
@@ -188,9 +201,8 @@ class VivisectRemoteTests(unittest.TestCase):
                     time.sleep(.1)
                     sys.stderr.write('%d' % retry)
 
-                output = rmtvw.canvas.strval
+                output = getOutput(rmtvw.canvas)
                 self.assertIn("*Ended: foo's session 'foo bar baz'", output)
-                rmtvw.canvas.strval = ''
 
 
                 # kill all (which means we need to add a few)
@@ -222,10 +234,9 @@ class VivisectRemoteTests(unittest.TestCase):
                     time.sleep(.1)
                     sys.stderr.write('%d' % retry)
 
-                output = rmtvw.canvas.strval
+                output = getOutput(rmtvw.canvas)
                 self.assertIn("castle 3", output)
                 self.assertEqual(len(rmtvw2.getLeaderSessions()), 0)
-                rmtvw.canvas.strval = ''
 
 
                 # close down tests

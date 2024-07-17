@@ -22,7 +22,7 @@ Packages for vivisect are built and push to the Python Package index at https://
 
 Which will get you the latest vivisect for use in headless mode. If would also like a cool hacker UI to do your reverse engineering in, you can instead run::
 
-    pip install vivisect[gui]
+    pip install "vivisect[gui]"
 
 Which will also install the PyQt5 dependecies necessary for running the vivisect UI.
 
@@ -40,13 +40,16 @@ Running the Vivisect UI
 =======================
 
 If you're eager to get started analyzing a binary, first:
-* Make sure vivisect is up to date.
-* Make sure you have all the GUI requirements installed
-* Make sure vivisect is in your PYTHONPATH environment variable.
+
+- Make sure vivisect is up to date.
+
+- Make sure you have all the GUI requirements installed
+
+- Make sure vivisect is in your PYTHONPATH environment variable.
 
 And then you should just be able to run the vivisect UI using this::
 
-    python -m viviect.vivbin
+    python -m vivisect.vivbin
 
 Or for convenience sake, we also register vivbin as a script name, so this should also work::
 
@@ -69,6 +72,37 @@ If you'd prefer to run vivisect headless, or you want to save and/or share the i
 Which will create a ".viv" file located at `/path/to/my/bulk/binary.exe.viv`. The viv file is a saved version of the full workspace, so you can open it up like you would any other file::
 
     vivbin /path/to/my/bulk/binary.exe.viv
+
+
+Collaborative Reverse Engineering
+=================================
+
+One of the most powerful aspects of Vivisect is its real-time collaboration server capabilities.  There are two ways to collaborate with others over a network.
+
+- The first way is completely from the GUI, choosing `Share->Share Workspace` from one instance of Vivisect (vivbin), and others choosing `Share->Connect to Shared Workspace` from a separate Vivisect instance
+
+- The other way to collaborate over a network, or using localhost, is to run a VivServer.  With a VivServer, you can share an entire directory structure of VivWorkspace files.
+
+Because of the :ref:`event-driven <eventsystem>` Vivisect storage model, actions taken in one Vivisect window is easily redirected to the remote Server/Workspace, and other connected workspaces updated within seconds.
+
+Running the VivServer
+=====================
+
+Running the VivServer is simple::
+
+    vivserver /path/to/top/directory
+
+Interacting with the VivServer
+==============================
+
+Saving a workspace to a VivServer is as simple as `File->Save to Server`
+A popup lets you choose the server and the path.  A checkbox lets you set the default server.  If you access one server the majority of the time, you will find this very helpful.  If you want to access another server once or twice, don't check this box, and your default won't be affected.
+
+The FilePath is where in the remote file repository this workspace will be stored, and its name (Be sure to add the .viv extension to the filename).
+
+Loading a remote workspace from a VivServer is accomplished by `Share->Connect to Workspace Server`
+A similar popup will allow you to select the server, and a followup dialog will list the workspaces available.  Once you choose a workspace, the current Vivisect window will close and be replaced by a new window, connected to the remote workspace.
+
 
 Running the VDB UI
 ==================
