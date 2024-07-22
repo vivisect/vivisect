@@ -166,7 +166,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if tag and tag[0] == 'name':
             # do tag things
             ttype, tagname = tag
-            
+
             if tagname:
                 tagname = tagname.decode('utf8')
                 fva = self.vw.getFunction(va)
@@ -252,10 +252,10 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
             self.vw.setFunctionArg(fva, idx, atype, str(newname))
 
     def showFuncCallGraph(self, fva):
-        callview = viv_q_funcviews.FuncCallsView(self.vw)
+        callview = viv_q_funcviews.FuncCallsView(self.vw, parent=self)
         callview.functionSelected(fva)
         callview.show()
-        self.vqDockWidget(callview, floating=True)
+        self.vqDockWidget(callview, floating=False)
 
     def makeStruct(self, va, parent=None):
         if parent is None:
@@ -804,7 +804,7 @@ def selectArrayBounds(startva, stopva, count=0, parent=None):
         dynd.addIntHexField('startva', dflt=hex(startva), title='Start Address')
         dynd.addIntHexField('stopva', dflt=hex(stopva), title='Stop Address ')
         dynd.addIntHexField('count', dflt=0, title='Count (if nonzero, ignore stop address)')
-    except Exception as e:
+    except Exception:
         logger.warning("ERROR BUILDING DIALOG!", exc_info=1)
 
     results = dynd.prompt()
