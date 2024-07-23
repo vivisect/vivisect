@@ -10,6 +10,7 @@ ls_amd64_data = {
     ],
 
     'names': [
+        (0x850000, 'ls.bss_temp'),
         (0x400220, 'ls.init_function'),
         (0x400230, 'ls.__entry'),
         (0x42ec10, 'ls.fini_function'),

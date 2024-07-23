@@ -133,8 +133,11 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
             logger.warning('vqBuildDockWidget Failed For: %s (No class constructor found)', clsname)
             return
         cls, args = res
-        obj = cls(*args)
-        return (self.vqDockWidget(obj, area, floating=floating), obj)
+        try:
+            obj = cls(*args)
+            return self.vqDockWidget(obj, area, floating=floating), obj
+        except Exception as  e:
+            logger.error('vqBuildDockWidget Failed For: %s  (%r)', clsname, e)
 
     def vqRestoreGuiSettings(self, settings, stub=''):
         dwcls = settings.value('DockClasses')
