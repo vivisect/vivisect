@@ -235,23 +235,30 @@ class VolumeItem(ItemBase):
 
 
 class FileEntryItem(ItemBase):
-    def __init__(self, unicode=True):
+    def __init__(self):
         ItemBase.__init__(self)
 
+    def pcb_iden(self):
         self.unk = v_uint8()
         self.filesize = v_uint32()
         self.lastmod = v_uint32()
 
         self.fileattrs = v_uint16()
 
+        unicode = self.iden & 0x04 != 0
         if unicode:
-            self.primary_name = v_zstr()
-            self.secondary_name = v_zstr()
-        else:
             self.primary_name = v_zwstr()
-            self.secondary_name = v_zwstr()
+        else:
+            self.primary_name = v_zstr()
 
-        # post XP?
+    def pcb_primary_name(self):
+        # if this is an ascii string and we're not 16-bit aligned,
+        # consume an extra padded byte to get us to 16 alignment
+        unicode = self.iden & 0x04 != 0
+        # include null terminator in length calculation
+        if unicode == 0 and ((len(self.primary_name) + 1) * 8) % 16 != 0:
+            self.padding = v_bytes(size=1)
+
         self.extsize = v_uint16()
         self.extver = v_uint16()
         self.extsig = v_uint32()
@@ -278,11 +285,11 @@ class FileEntryItem(ItemBase):
             self.longname = v_zwstr()
 
     def pcb_longstr_size(self):
-        if self.extver >= 3 and self.longstr_size > 0:
-            self.localname = v_str()
-
-        if self.extver >= 7 and self.longstr_size > 0:
-            self.longlocalname = v_zwstr()
+        if self.longstr_size > 0:
+            if self.extver >= 7:
+                self.localname = v_zwstr()
+            elif self.extver >= 3:
+                self.localname = v_str()
 
         if self.extver >= 3:
             self.firstextoffset = v_uint16()
@@ -364,6 +371,9 @@ class Lnk:
         self.header = LnkShellLinkHeader()
         self.header.vsParse(byts)
 
+        self.items = None
+        self.linkinfo = None
+
         # StringData items
         self.nameInfo = None
         self.relPath = None
@@ -390,7 +400,7 @@ class Lnk:
         unicode = self.header.linkflags & LinkFlags.IsUnicode != 0
 
         if self.header.linkflags & LinkFlags.HasLinkTargetIDList:
-            self.items, offset = self._parseItemID(byts, offset, unicode)
+            self.items, offset = self._parseItemID(byts, offset)
 
         if self.header.linkflags & LinkFlags.HasLinkInfo:
             # LinkInfo
@@ -462,7 +472,7 @@ class Lnk:
                 # offset += self.propStore.size + 8  # This gets us to some kinda alignment I think?
                 continue
             elif item.blocksig == ExtraDataSigs.VistaAndAboveIDList:
-                self.vistaIDList, offset = self._parseItemID(byts, offset, unicode)
+                self.vistaIDList, offset = self._parseItemID(byts, offset)
                 continue
             elif item.blocksig == ExtraDataSigs.Console:
                 self.console = block = ConsoleBlock()
@@ -495,7 +505,7 @@ class Lnk:
         if offset < len(byts):
             self.leftovers = byts[offset:]
 
-    def _parseItemID(self, byts, offset, unicode):
+    def _parseItemID(self, byts, offset):
         items = []
         idlistsize = v_uint16()
         idlistsize.vsParse(byts[offset:])
@@ -519,7 +529,7 @@ class Lnk:
                 item.vsParse(byts[offset:])
                 offset += item.size
             elif iden & 0x70 == 0x30:
-                item = FileEntryItem(unicode=unicode)
+                item = FileEntryItem()
                 item.vsParse(byts[offset:])
                 offset += item.size
             else:
