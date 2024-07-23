@@ -106,6 +106,9 @@ function nameclick(elem) {
     var newclass = "envi-" + tagname + "-" + tagval;
     $("." + selclass).removeClass(selclass);
     $("." + newclass).addClass(selclass);
+
+    console.log("click name " + tagname + " : " + tagval);
+    vnav._jsSetCurTag(tagname, tagval);
 }
 
 var curva = null;
@@ -116,6 +119,8 @@ document.addEventListener("DOMContentLoaded", function () {
         vnav = channel.objects.vnav;
     });
 });
+
+
 
 function vaclick(elem) {
     var elem = $(elem);

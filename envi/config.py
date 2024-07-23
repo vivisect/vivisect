@@ -28,6 +28,23 @@ def gethomedir(*paths, **kwargs):
     return path
 
 
+def loadConfig(defaults=None, docs=None, autosave=False, cfgdir=None):
+    '''
+    Loads config from a viv.json file.  If one does not exist, loads the 
+    provided defaults.
+
+    Returns: EnviConfig with appropriate config data
+    '''
+    if cfgdir:
+        vivhome = os.path.abspath(cfgdir)
+    else:
+        vivhome = gethomedir(".viv", makedir=autosave)
+
+    cfgpath = os.path.join(vivhome, 'viv.json')
+    config = EnviConfig(filename=cfgpath, defaults=defaults, docs=docs, autosave=autosave)
+    return config
+
+
 class EnviConfig:
     '''
     EnviConfig basically works like a multi-layer dictionary that
