@@ -57,6 +57,11 @@ class InvalidWorkspace(Exception):
         Exception.__init__(self, 'Failed to load %s: %s' % (nameinfo, errinfo))
 
 
+class ArchModDefException(Exception):
+    def __init__(self, arch):
+        Exception.__init__(self, "Architecture Module not defined for %s yet!" % arch)
+        self.arch = arch
+
 class InvalidArchitecture(Exception):
     def __init__(self, fileformat, arch):
         Exception.__init__(self, 'Architecture %s is not supported for %s' % (arch, fileformat))
@@ -74,3 +79,18 @@ class CorruptFile(Exception):
 class CorruptPeFile(CorruptFile):
     def __init__(self, message):
         super(CorruptPeFile, self).__init__("PE", message)
+
+
+class SymIdxNotFoundException(Exception):
+    def __repr__(self):
+        return "getSymIdx cannot determine the Index register"
+
+class NoComplexSymIdxException(Exception):
+    def __init__(self, sc=None):
+        self.sc = sc
+        Exception.__init__(self)
+
+    def __repr__(self):
+        return "getComplexIdx cannot determine the Index register"
+
+

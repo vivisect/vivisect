@@ -193,6 +193,11 @@ def takeSnapshot(trace):
         except Exception as msg:
             logger.warning("Can't snapshot memmap at 0x%.8x (%s)", base, msg)
 
+    # if we're on windows, grab and store TEBs as metadata
+    plat = trace.getMeta('Platform')
+    if plat == 'windows':
+        trace.setMeta('TEBs', dict(trace.win32threads))
+
     # If the contents here change, change the version...
     sd['version'] = 1
     sd['threads'] = trace.getThreads()

@@ -25,12 +25,14 @@ class Breakpoint:
     bpcodeobj = {} # Cache compiled code objects on the class def
 
     def __init__(self, address, expression=None):
-        self.resonce = False
+        self.resonce = False        # has this addr expression been resolved yet?
         self.address = address
-        self.enabled = True
-        self.active = False
+        self.enabled = True         # should this BP be used/ignored
+        self.active = False         # have we placed a BP in the code (eg. i386: \xCC)
+        self.silent = False         # don't print "Hit Break" messages, still runs code/notifiers
         self.fastbreak = False      # no NOTIFY_BREAK, autocont, no NOTIFY_CONTINUE
-        self.stealthbreak = False   # no NOTIFY_BREAK
+        self.stealthbreak = False   # no NOTIFY_BREAK - used for hidden/system events
+        self._complained = False    # only complain about not resolving this *once*
 
         self.id = -1
         self.vte = None
@@ -96,9 +98,13 @@ class Breakpoint:
         if self.address is None and self.vte:
             try:
                 self.address = trace.parseExpression(self.vte)
+
             except Exception as e:
-                logger.warning('Failed to resolve breakpoint address for expression: %s', self.vte)
-                logger.warning('Error:', exc_info=1)
+                # this will happen with unresolved breakpoints.  
+                # depending on when resolution happens, the library may not have loaded yet.
+                if not self._complained:
+                    logger.warning('Failed to resolve breakpoint address for expression: %s (delayed resolution?)', self.vte)
+                    self._complained = True
                 self.address = None
 
         # If we resolved, lets get our saved code...
@@ -154,6 +160,11 @@ class Breakpoint:
 
             d = vtrace.VtraceExpressionLocals(trace)
             d['bp'] = self
+            d['event'] = event
+            d['trace'] = trace
+            d['vprint'] = trace.vprint
+            if hasattr(trace, 'db'):
+                d['db'] = trace.db
             exec(cobj, None, d)
 
 class TrackerBreak(Breakpoint):
@@ -404,3 +415,19 @@ class PostHookBreakpoint(NiceBreakpoint):
         ret_addr, args = tup
 
         self.runPostHookCallbacks(event, trace, ret_addr, args)
+
+class PosixLibLoadHookBreakpoint(Breakpoint):
+    '''
+    POSIX systems need to hook DL to identfy when libraries are loaded.
+    '''
+    def __init__(self, expression):
+        Breakpoint.__init__(self, None, expression=expression)
+        self.stealthbreak = True
+
+    def notify(self, event, trace):
+        logger.debug("PosixLibLoadHookBreakpoint: reanalyze maps and resolve symbols")
+        if not trace._findLibraryMaps(b'\x7fELF', always=True):
+            # if we find new maps, we'll let the LOAD_LIBRARY Autoload config setting handle
+            # whether we continue or not.  if we fire this and *don't* find a new map, 
+            # let's just continue like nothing ever happened.  "Nothing to see here."
+            trace.runAgain()

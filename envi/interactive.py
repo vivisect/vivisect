@@ -58,9 +58,10 @@ def dbg_interact(lcls, gbls, intro=None):
                     shelltype = STYPE_IPYTHON
 
                 except ImportError as e:
+                    import code
                     print(e)
                     shell = code.InteractiveConsole(gbls)
-                    shelltype = STYPE_IPYTHON
+                    shelltype = STYPE_CODE_INTERACT
 
     if shelltype == STYPE_IPYTHON_NEW:
         globals().update(gbls)

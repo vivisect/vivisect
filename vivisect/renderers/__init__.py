@@ -196,7 +196,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
                     xrefs = self.vw.getXrefsTo(sva)
                     if len(xrefs):
                         xrtag = mcanv.getTag("xrefs")
-                        mcanv.addText("[%d XREFS]" % len(xrefs), tag=xrtag)
+                        mcanv.addText(" [%d XREFS]" % len(xrefs), tag=xrtag)
 
                 # Handle the comment if present
                 cmnt = self.vw.getComment(sva)

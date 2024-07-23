@@ -28,6 +28,23 @@ def gethomedir(*paths, **kwargs):
     return path
 
 
+def loadConfig(defaults=None, docs=None, autosave=False, cfgdir=None):
+    '''
+    Loads config from a viv.json file.  If one does not exist, loads the 
+    provided defaults.
+
+    Returns: EnviConfig with appropriate config data
+    '''
+    if cfgdir:
+        vivhome = os.path.abspath(cfgdir)
+    else:
+        vivhome = gethomedir(".viv", makedir=autosave)
+
+    cfgpath = os.path.join(vivhome, 'viv.json')
+    config = EnviConfig(filename=cfgpath, defaults=defaults, docs=docs, autosave=autosave)
+    return config
+
+
 class EnviConfig:
     '''
     EnviConfig basically works like a multi-layer dictionary that
@@ -72,6 +89,36 @@ class EnviConfig:
                 print('woot: %s' % doc)
         '''
         return self.cfgdocs.get(optname)
+
+    def getOptionByString(self, pathstring):
+        '''
+        Retrieve config options as a single dot-separated string.
+
+        This is a convenience function for reading config options dynamically from a single
+        string, which has benefits over config-object manipulation for alternative UIs or 
+        plugins.
+
+        Example:
+            opt = config.getOptionByString('foo.bar.baz.info')
+
+            where:
+                info is a data option in side of baz
+                baz is a subconfig of bar
+                bar is a subconfig of foo
+                foo is a top level subconfig
+        '''
+        optparts = pathstring.split('.')
+        config = self
+        for opart in optparts[:-1]:
+            config = config.getSubConfig(opart, add=False)
+            if config is None:
+                raise e_exc.ConfigInvalidName(pathstring)
+
+        optname = optparts[-1]
+        if optname not in config.cfginfo:
+            raise e_exc.ConfigInvalidOption(optname)
+
+        return config[optname]
 
     def getConfigPaths(self):
         '''

@@ -24,6 +24,9 @@ class ByteRend(e_canvas.MemoryRenderer):
         self.pformat = '0x%s' % self.bformat
 
     def render(self, mcanv, va, numbytes=16):
+        bigend = mcanv.getEndian()
+        self.fmtbase = ('<', '>')[bigend]
+
         bytez = mcanv.mem.readMemory(va, numbytes)
         if self.__pad__:
             bytez = bytez.ljust(numbytes, b'\x00')
@@ -88,13 +91,13 @@ def isBasicUnicode(bytez: bytes):
 def getAsciiFormatted(bytez):
     is_ascii, bytez = isAscii(bytez)
     if bytez is not None:
-        bytez = "'%s'" % bytez
+        bytez = "'%s'" % bytez.decode('utf8')
     return bytez
 
 def getBasicUnicodeFormatted(bytez):
     is_uni, bytez = isBasicUnicode(bytez)
     if bytez is not None:
-        bytez = "u'%s'" % bytez
+        bytez = "u'%s'" % bytez.decode('utf8')
     return bytez
 
 def getSymByAddrFormatted(trace, va):

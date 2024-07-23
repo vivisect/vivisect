@@ -1,11 +1,14 @@
 import logging
 
+import visgraph.pathcore as vg_path
+
 import vivisect
 import vivisect.exc as v_exc
 import vivisect.impemu.monitor as viv_monitor
 import vivisect.analysis.generic.codeblocks as viv_cb
 
 import envi
+import envi.common as e_cmn
 import envi.archs.arm as e_arm
 
 from envi.archs.arm.regs import *
@@ -130,6 +133,11 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
         if op.opcode == INS_BLX:
             emu.setFlag(PSR_T_bit, self.last_tmode)
 
+        elif op.opcode == INS_MOVT:
+            val = op.getOperValue(0, emu=emu)
+            emu.vw.setSymHint(op.va, OP_SYMHINT_IDX, val)
+            if emu.isValidPointer(val):
+                emu.vw.addXref(op.va, val, vivisect.REF_PTR)
 
 argnames = {
     0: ('r0', 0),
@@ -175,8 +183,67 @@ def buildFunctionApi(vw, fva, emu, emumon):
     return api
 
 
+def getAllReads(emu):
+    '''
+    WorkspaceEmulators optionally track paths through all code emulated.  While called a "path",
+    this data is actually stored in a graph-like object where nodes are able to store properties.
+
+    Read/Write logs are stored in these nodes.
+
+    This function sorts through the emulator's Path structure and grab all Reads.  It uses
+    getAllPaths() for the graph-like Path, which flattens out all paths and returns them as a 
+    list of paths, each path being a list of codeblock nodes.
+
+    The details are hidden with an accessor API, but the nodes are tuple of:
+        (parent, [children], {properties})
+
+    Yield generator
+    Skips duplicates
+    '''
+    allaccess = set()
+    for path in vg_path.getAllPaths(emu.path):
+        for node in path:
+            for read in vg_path.getNodeProp(node, 'readlog'):
+                if read in allaccess:
+                    # skip duplicate
+                    continue
+
+                allaccess.add(read)
+                logger.log(e_cmn.SHITE, "getAllReads() => %r", repr(read))
+                yield read
+
+
+def getAllWrites(emu):
+    '''
+    WorkspaceEmulators optionally track paths through all code emulated.  While called a "path",
+    this data is actually stored in a graph-like object where nodes are able to store properties.
+
+    Read/Write logs are stored in these nodes.
+
+    This function sorts through the emulator's Path structure and grab all Writes.  It uses
+    getAllPaths() for the graph-like Path, which flattens out all paths and returns them as a 
+    list of paths, each path being a list of codeblock nodes.
+
+    The details are hidden with an accessor API, but the nodes are tuple of:
+        (parent, [children], {properties})
+
+    Yield generator
+    Skips duplicates
+    '''
+    allaccess = set()
+    for path in vg_path.getAllPaths(emu.path):
+        for node in path:
+            for write in vg_path.getNodeProp(node, 'writelog'):
+                if write in allaccess:
+                    # skip duplicate
+                    continue
+
+                allaccess.add(write)
+                logger.log(e_cmn.SHITE, "getAllWrites() => %r", repr(write))
+                yield write
+
 def analyzeFunction(vw, fva):
-    emu = vw.getEmulator(va=fva)
+    emu = vw.getEmulator(va=fva, logread=True, logwrite=True)
     emumon = AnalysisMonitor(vw, fva)
     emu.setEmulationMonitor(emumon)
 
@@ -190,6 +257,31 @@ def analyzeFunction(vw, fva):
         logger.warning("NO LOCATION at FVA: 0x%x", fva)
 
     emu.runFunction(fva, maxhit=1)
+
+
+    # find all xrefs that are read/written to
+    xrefs = []
+    for read in getAllReads(emu):
+        tofrom = read[:2]
+        if tofrom not in xrefs:
+            xrefs.append(tofrom)
+
+    for write in getAllWrites(emu):
+        tofrom = write[:2]
+        if tofrom not in xrefs:
+            xrefs.append(tofrom)
+
+    stackmap = emu.getMemoryMap(emu.getStackCounter())
+
+    # make XREFs for the ones that are interesting/sane
+    for x, y in xrefs:
+        if emu.getVivTaint(y):
+            continue
+
+        if emu.getMemoryMap(y) == stackmap:
+            continue
+
+        vw.addXref(x, y, REF_PTR)
 
     # Do we already have API info in meta?
     # NOTE: do *not* use getFunctionApi here, it will make one!

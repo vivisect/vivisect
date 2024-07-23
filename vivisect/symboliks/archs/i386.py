@@ -33,58 +33,6 @@ def getSegmentSymbol(op):
     if op.prefixes & e_i386.PREFIX_GS:
         return Var('gs', 4)
 
-
-class ArgDefSymEmu(object):
-    '''
-    An emulator snapped in to return the symbolic representation of
-    a calling convention arg definition.  This is used by getPreCallArgs when
-    called by {get, set}SymbolikArgs.  This allows us to not have to
-    re-implement cc argument parsing *again* for symbolics.
-    '''
-    def __init__(self):
-        self.xlator = self.__xlator__(None)
-
-    def getRegister(self, ridx):
-        '''
-        uses the translators method to return a symbolic object for a
-        register index.
-        '''
-        return self.xlator.getRegObj(ridx)
-
-    def getStackCounter(self):
-        '''
-        uses the translators register ctx to find the sp index and returns a
-        symbolic object for the sp.
-        '''
-        return self.getRegister(self.xlator._reg_ctx._rctx_spindex)
-
-    def setStackCounter(self, value):
-        '''
-        stubbed out so when we re-use deallocateCallSpace we don't get an
-        exception.  we only use the delta returned by deallocateCallSpace; we
-        don't care that it's setting the stack counter.
-        '''
-        pass
-
-    def readMemoryFormat(self, va, fmt):
-        # TODO: we assume psize and le, better way? must be...
-        if not fmt.startswith('<') and not fmt.endswith('P'):
-            raise Exception('we dont handle this format string')
-
-        if isinstance(va, int):
-            va = Const(va, self.xlator._psize)
-
-        if len(fmt) == 2:
-            return Mem(va, Const(self.xlator._psize, self.xlator._psize))
-
-        args = []
-        num = int(fmt[1:fmt.index('P')])
-        for i in range(num):
-            args.append(Mem(va, Const(self.xlator._psize, self.xlator._psize)))
-            va += Const(self.xlator._psize, self.xlator._psize)
-
-        return args
-
 class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     '''
     Common parent for i386 and x64.  Make sure you define:
@@ -1581,11 +1529,14 @@ class i386SymbolikTranslator(IntelSymbolikTranslator):
         self.effSetVariable('eax', Mem(esp + Const(28, self._psize), Const(4, self._psize)))
         self.effSetVariable('esp', esp + Const(32, self._psize))
 
-class i386ArgDefSymEmu(ArgDefSymEmu):
+class i386ArgDefSymEmu(vsym_callconv.ArgDefSymEmu):
     __xlator__ = i386SymbolikTranslator
 
 class i386SymCallingConv(vsym_callconv.SymbolikCallingConvention):
     __argdefemu__ = i386ArgDefSymEmu
+
+    def __init__(self, xlator=None):
+        super().__init__(xlator=xlator)
 
 class StdCall(i386SymCallingConv, e_i386.StdCall):
     pass
@@ -1615,21 +1566,21 @@ class i386SymFuncEmu(vsym_analysis.SymbolikFunctionEmulator):
 
     __width__ = 4
 
-    def __init__(self, vw):
-        vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw)
+    def __init__(self, vw, *args, xlator=None):
+        vsym_analysis.SymbolikFunctionEmulator.__init__(self, vw, *args, xlator=xlator)
         self.setStackBase(0xbfbff000, 16384)
 
-        self.addCallingConvention('cdecl', Cdecl())
-        self.addCallingConvention('stdcall', StdCall())
-        self.addCallingConvention('thiscall', ThisCall())
-        self.addCallingConvention('bfastcall', BFastCall())
-        self.addCallingConvention('msfastcall', MsFastCall())
+        self.addCallingConvention('cdecl', Cdecl(xlator=xlator))
+        self.addCallingConvention('stdcall', StdCall(xlator=xlator))
+        self.addCallingConvention('thiscall', ThisCall(xlator=xlator))
+        self.addCallingConvention('bfastcall', BFastCall(xlator=xlator))
+        self.addCallingConvention('msfastcall', MsFastCall(xlator=xlator))
 
-        self.addCallingConvention('thiscall_caller', ThisCall_Caller())
-        self.addCallingConvention('bfastcall_caller', BFastCall_Caller())
-        self.addCallingConvention('msfastcall_caller', MsFastCall_Caller())
+        self.addCallingConvention('thiscall_caller', ThisCall_Caller(xlator=xlator))
+        self.addCallingConvention('bfastcall_caller', BFastCall_Caller(xlator=xlator))
+        self.addCallingConvention('msfastcall_caller', MsFastCall_Caller(xlator=xlator))
         # FIXME possibly decide this by platform/format?
-        self.addCallingConvention(None, Cdecl())
+        self.addCallingConvention(None, Cdecl(xlator=xlator))
 
         self.addFunctionCallback('ntdll.eh_prolog', self._eh_prolog)
         self.addFunctionCallback('ntdll.seh3_prolog', self._seh3_prolog)

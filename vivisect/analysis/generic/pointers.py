@@ -6,6 +6,7 @@ in a previous life, this analysis code lived inside VivWorkspace.analyze()
 """
 import logging
 
+import envi.exc as e_exc
 import visgraph.exc as g_exc
 import visgraph.graphcore as g_core
 from vivisect.const import RTYPE_BASEPTR, LOC_POINTER
@@ -25,7 +26,10 @@ def analyze(vw):
 
         for xfr, xto, xtype, xinfo in vw.getXrefsFrom(rva):
             logger.debug('pointer(xref): 0x%x -> 0x%x', xfr, xto)
-            vw.analyzePointer(xto)
+            try:
+                vw.analyzePointer(xto)
+            except e_exc.SegmentationViolation:
+                continue
             done[xfr] = xto
 
     # Now, we'll analyze the pointers placed by the file wrapper (ELF, PE, MACHO, etc...)

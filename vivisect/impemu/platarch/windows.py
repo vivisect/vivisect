@@ -3,6 +3,7 @@ import envi.archs.amd64 as e_amd64
 
 import vivisect.impemu.emulator as v_i_emulator
 import vivisect.impemu.platarch.i386 as v_i_i386
+import vivisect.impemu.platarch.amd64 as v_i_amd64
 
 from vivisect.impemu.emulator import imphook
 
@@ -80,15 +81,15 @@ class WindowsMixin(v_i_emulator.WorkspaceEmulator):
     def kernel32_LoadLibraryExW(self, emu, callconv, api, argv):
         return self.kernel32_LoadLibraryW(emu, callconv, api, argv)
 
-    @imphook('kernel32.GetModuleHandleA')
+    @imphook('kernel32.GetModuleHandleExA')
     def kernel32_GetModuleHandleExA(self, emu, callconv, api, argv):
         dwFlags,lpLibName,phModule = argv
         libname = self.readLibraryPath(lpLibName, unicode=False)
         retval = emu.setVivTaint('dynlib',libname)
         callconv.execCallReturn(emu, retval, len(argv))
 
-    @imphook('kernel32.GetModuleHandleW')
-    def kernel32_GetModuleHandleExA(self, emu, callconv, api, argv):
+    @imphook('kernel32.GetModuleHandleExW')
+    def kernel32_GetModuleHandleExW(self, emu, callconv, api, argv):
         dwFlags,lpLibName,phModule = argv
         libname = self.readLibraryPath(lpLibName, unicode=True)
         retval = emu.setVivTaint('dynlib',libname)
@@ -184,18 +185,27 @@ class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
 
     @imphook('ntdll._alloca_probe')
     def alloca_probe(self, emu, callconv, api, argv):
+        '''
+        Causes ESP to be decremented by the value passed in EAX.
+        The actual function loops over each 4k page (0x1000 bytes) and
+        forces a memory access, presumably to trigger any O/S page faults.
+        The emulation here does not loop or read memory.
+
+        Results:  ESP decremented by EAX
+                  EAX set to EIP of next instruction
+
+        Safeguard ESP to be nonnegative.  The true alloca_probe code has this
+        safeguard, though in practice an illegal memory access O/S exception
+        is raised.
+        '''
         esp = emu.getRegister(e_i386.REG_ESP)
         eax = emu.getRegister(e_i386.REG_EAX)
-        if eax < 0x1000:
-            eax -= 4
-            emu.setRegister(e_i386.REG_ESP,  (esp-eax))
-        else:
-            while eax > 0x1000:
-                eax -= 0x1000
-                emu.setRegister(e_i386.REG_ESP,  (esp-0x1000))
-                esp -= 0x1000
+        eip = emu.getRegister(e_i386.REG_EIP)
 
-            emu.setRegister(e_i386.REG_ESP,  (esp-eax))
+        new_esp = max(esp + 4 - eax, 0)
+        emu.setRegister(e_i386.REG_ESP, new_esp)
+        ret_addr = self.readMemValue(esp, size=4)
+        emu.setRegister(e_i386.REG_EAX, ret_addr)
 
     @imphook('ntdll.gs_prolog')
     def gs_prolog(self, emu, callconv, api, argv):
@@ -206,3 +216,31 @@ class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
         if eax < 0x1000:
             emu.setRegister(e_i386.REG_ESP,  (esp-eax))
 
+class WindowsAmd64Emulator(WindowsMixin, v_i_amd64.Amd64WorkspaceEmulator):
+
+    taintregs = [
+        e_amd64.REG_RAX, e_amd64.REG_RCX, e_amd64.REG_RDX,
+        e_amd64.REG_RBX, e_amd64.REG_RBP, e_amd64.REG_RSI,
+        e_amd64.REG_RDI, e_amd64.REG_R8,  e_amd64.REG_R9,
+    ]
+
+    def __init__(self, vw, **kwargs):
+        '''
+        Please see the base emulator class in vivisect/impemu/emulator.py for the parameters
+        that can be passed through kwargs
+        '''
+        v_i_amd64.Amd64WorkspaceEmulator.__init__(self, vw, **kwargs)
+        WindowsMixin.__init__(self)
+
+    @imphook('ntdll._alloca_probe')
+    def alloca_probe(self, emu, callconv, api, argv):
+        '''
+        Return RSP unchanged.  This requires a correction to the stack since
+        the emulator will push a return value.  The actual alloca_probe has a
+        nonstandard calling convention.
+
+        The actual function loops over each 4k page (0x1000 bytes) and
+        forces a memory access, presumably to trigger any O/S page faults.
+        The emulation here does not loop or read memory.
+        '''
+        emu.doPop()

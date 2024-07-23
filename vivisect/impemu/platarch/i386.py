@@ -7,6 +7,7 @@ non_use_mnems = ('push', )
 
 
 class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator):
+    __archemu__ = e_i386.IntelEmulator
 
     taintregs = [
         e_i386.REG_EAX, e_i386.REG_ECX, e_i386.REG_EDX,

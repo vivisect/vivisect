@@ -101,6 +101,27 @@ class NoValidFreeMemoryFound(EnviException):
         self.size = size
 
 
+class ModuleLoadFailure(EnviException):
+    '''
+    Raised during the process of dynamically loading a Python module.
+
+    component is the name of the module being loaded
+    message is more details about the failure
+    '''
+    def __init__(self, component, message=None):
+        self.component = component
+        self.message = message
+
+        EnviException.__init__(self, component)
+
+
+    def __repr__(self):
+        component = self.component
+        if self.message:
+            component = "%s: %s" % (component, message)
+
+        return component
+
 class ArchNotImplemented(EnviException):
     """
     Raised by various Envi components when the architecture
@@ -208,7 +229,7 @@ class MapNotFoundException(EnviException):
     """
     def __init__(self, mmapva):
         self.mmapva = mmapva
-        
+
     def __repr__(self):
         return 'Map not found at base va 0x%.8x!' % self.mmapva
 

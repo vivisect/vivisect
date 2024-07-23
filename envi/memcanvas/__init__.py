@@ -85,6 +85,19 @@ class MemoryCanvas(object):
         '''
         self._canv_navcallback = callback
 
+    def getEndian(self):
+        '''
+        returns the endianness setting of the mem object
+        '''
+        return self.mem.getEndian()
+
+    def setEndian(self, bigend):
+        '''
+        envi.ENDIAN_LSB or envi.ENDIAN_MSB
+        passes the value to the mem.setEndian() accessor
+        '''
+        self.mem.setEndian(bigend)
+
     def addRenderer(self, name, rend):
         self.renderers[name] = rend
         self.currend = rend
@@ -150,14 +163,14 @@ class MemoryCanvas(object):
     def render(self, va, size, rend=None):
         raise Exception('Deprecated!  use renderMemory!')
 
-    def clearCanvas(self, cb=None):
+    def clearCanvas(self, cb=None, sel=None):
         if cb is not None:
             cb(None)
 
     def _beginRenderMemory(self, va, size, rend):
         pass
 
-    def _endRenderMemory(self, va, size, rend, cb=None):
+    def _endRenderMemory(self, va, size, rend, cb=None, sel=None):
         if cb is not None:
             cb(None)
 
@@ -317,7 +330,7 @@ class MemoryCanvas(object):
 
         self._endRenderAppend(cb)
 
-    def _canvasCleared(self, cb, data):
+    def _canvasCleared(self, cb, sel, data):
         va = self._canv_beginva
         maxva = self._canv_endva
         size = maxva - va
@@ -344,9 +357,11 @@ class MemoryCanvas(object):
             self.addText("\nException At %s: %s\n" % (hex(va), str(e)))
 
         # Canvas callback for render completion (or error...)
-        self._endRenderMemory(va, size, rend, cb)
+        self._endRenderMemory(va, size, rend, cb, sel)
 
-    def renderMemory(self, va, size, rend=None, cb=None):
+    def renderMemory(self, va, size, rend=None, cb=None, clear=True, sel=None):
+        if sel is None:
+            sel = '#memcanvas'
         # Set our canvas render tracking variables.
         self._canv_beginva = va
         self._canv_endva = va + size
@@ -355,10 +370,10 @@ class MemoryCanvas(object):
             rend = self.currend
         self.currend = rend
 
-        clearcb = functools.partial(self._canvasCleared, cb)
+        clearcb = functools.partial(self._canvasCleared, cb, sel)
         # if this is not a "scrolled" canvas, clear it.
-        if not self._canv_scrolled:
-            self.clearCanvas(clearcb)
+        if not self._canv_scrolled and clear:
+            self.clearCanvas(clearcb, sel)
         else:
             clearcb(None)
 
@@ -373,7 +388,7 @@ class StringMemoryCanvas(MemoryCanvas):
         # we don't want it cleared every renderMemory call.
         self.setScrolledCanvas(True)
 
-    def clearCanvas(self, cb=None):
+    def clearCanvas(self, cb=None, sel=None):
         self.strval = ''
 
     def addText(self, text, tag=None):
@@ -382,6 +397,40 @@ class StringMemoryCanvas(MemoryCanvas):
     def __str__(self):
         return self.strval
 
+
+class FileBackedMemoryCanvas(StringMemoryCanvas):
+    '''
+    FileBackedMemoryCanvas writes output to a file of your choosing.  It writes
+    out the data to the file after `rollwindow` number of calls to `addText()`.
+
+    NOTE: when done writing to the canvas, be certain to call `flush()` or you
+            will lose data.
+    '''
+    def __init__(self, filename, mem, syms=None, append=True, rollwindow=100):
+        StringMemoryCanvas.__init__(self, mem, syms)
+        if append:
+            self.fd = open(filename, 'a', encoding='utf-8')
+        else:
+            self.fd = open(filename, 'w', encoding='utf-8')
+
+        self.rollwindow = rollwindow
+        self.linecount = 0
+
+    def addText(self, text, tag=None):
+        super().addText(text, tag)
+
+        self.linecount += 1
+        if self.linecount % self.rollwindow == 0:
+            self.flush()
+
+    def flush(self):
+        self.fd.write(str(self))
+        self.clearCanvas()
+        self.linecount = 0
+
+    def __del__(self):
+        self.flush()
+        self.fd.close()
 
 class CanvasMethodProxy(object):
     '''
@@ -393,8 +442,15 @@ class CanvasMethodProxy(object):
 
     def __call__(self, *args, **kwargs):
         for canvas in self.canvases:
-            attr = getattr(canvas, self.name)
-            attr(*args, **kwargs)
+            try:
+                attr = getattr(canvas, self.name)
+                attr(*args, **kwargs)
+            except Exception as e:
+                logger.warning("Error: %r", e, exc_info=1)
+
+    def __getattr__(self, name):
+        obj = getattr(self.canvases[0], self.name)
+        return getattr(obj, name)
 
 
 class TeeCanvas(object):

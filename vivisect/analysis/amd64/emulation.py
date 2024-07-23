@@ -14,8 +14,8 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
     def __init__(self, vw, fva):
         viv_monitor.AnalysisMonitor.__init__(self, vw, fva)
-        self.addDynamicBranchHandler(vag_switch.analyzeJmp)
         self.retbytes = None
+        self.addDynamicBranchHandler(vag_switch.analyzeJmp)
         self.badops = vw.arch.archGetBadOps()
 
     def prehook(self, emu, op, starteip):

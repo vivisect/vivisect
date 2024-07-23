@@ -183,7 +183,7 @@ class RegistersView(QWidget):
         self.flagviews = {}
 
         reg_groups = trace.archGetRegisterGroups()
-        for name, group in reg_groups:
+        for name, group in reg_groups.items():
             self.regviews[name] = group
             self.viewnames.addItem(name)
 
@@ -256,7 +256,7 @@ class VQFlagsGridView(VQTraceNotifier, QWidget):
 
     def buttonClicked(self):
         obj = self.sender()
-        name = str(obj.text().toAscii())
+        name = obj.text()
 
         value = self.trace.getRegisterByName(name)
         if value not in (0, 1):

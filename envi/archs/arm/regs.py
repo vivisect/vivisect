@@ -1,5 +1,7 @@
-from envi.archs.arm.const import *
+import envi.bits as e_bits
 import envi.registers as e_reg
+
+from envi.archs.arm.const import *
 
 '''
 Strategy:
@@ -27,7 +29,8 @@ arm_regs_tups = [
     ('lr', 32),  # also r14
     ('pc', 32),  # also r15
     ('cpsr', 32),
-    ('nil', 32),   # place holder
+    ('nil', 32),    # place holder
+    ('spsr', 32),   # updated for each level
     # FIXME: need to deal with ELR_hyp
 ]
 
@@ -41,21 +44,65 @@ arm_metas = [
         ("r15", REG_PC, 0, 32),
 ]
 
+REG_PC =   15
+REG_CPSR = 16
+REG_NIL =  17
+REG_SPSR = 18
+
 REG_APSR_MASK = 0xffff0000
 
 # build a translation table to allow for fast access of banked registers
 modes = list(proc_modes.keys())
 modes.sort()
 
-reg_table = [ x for x in range(17 * REGS_PER_MODE) ]
+# ARMv7/A32/T32 registers as complicated.  each processor mode accesses a particular set of 
+# registers.  some regs are shared with other modes, and some are unique to a particular mode.
+# to achieve this using high-performance disassembly and emulation, and the power of the Viv
+# RegisterContext model, we've had to get creative.  
+
+# the solution we've chosen is to use a big lookup table and an extra layer to access the actual
+# emulated register data.  the larger list of registers (below, reg_table_data) defines a large 
+# list of registers, grouped into an equal size list of register definitions per processor mode.
+# the smaller list (reg_data) defines a collapsed list of registers, including only the register 
+# definitions which have unique data storage.
+# we use another large list (reg_table) for mapping indexes into 
+# reg_table_data to indexes into reg_data
+
+# so, thats:
+# reg_table is the redirection table between MATH-COUNT-Index and Real Register Index: #index
+# reg_data is that compressed "only what's needed" table of register entries:  ('name', size)
+# reg_table_data is the expanded reg_data completing the all modes, etc:       ('name', size')
+
+# other details:
+# emulator get/setRegister() access the emulator data as per *reg_data*
+# disassembly creates *RegOper*s using indexes into *reg_table_data*
+# the ArmRegisterContext class override get/setRegister() to handle translation
+# as far as the rest of the ArmRegisterContext is concern, there is only reg_data
+# *RegOper* operands only care about the *reg_tables_data* since they only care about render/repr
+#    and the getOperValue() defers to the ArmRegisterContext() for actually accessing the emu data
+
+# this setup allows us to have ranges of "registers" to match the different processor modes
+# where some of those registers are unique to a given mode, and others are shared (banked regs)
+
+# all modes' CPSR's point to the one and only CPSR
+# all modes` SPSR's are their own thing, and should get a copy of the current CPSR's data on 
+#       mode-change.        # NOTE: THIS IS IMPORTANT FOR FULL EMULATION
+
+
+# start off creating the data for the first mode (USR mode)
+# and then pre-populating the reg_table and reg_table_data
 reg_data = [ (reg, sz) for reg,sz in arm_regs_tups ]
-reg_table_data = [ (None, 32) for x in range(17 * REGS_PER_MODE) ]
+reg_table = [ x for x in range(MODE_COUNT * REGS_PER_MODE) ]
+reg_table_data = [ (None, 32) for x in range(MODE_COUNT * REGS_PER_MODE) ]
+
 for idx,data in enumerate(reg_data):
     reg_table_data[idx] = data
 
 # banked registers for different processor modes
 for modenum in modes[1:]:       # skip first since we're already done
     (mname, msname, desc, offset, mode_reg_count, PSR_offset, priv_level) = proc_modes.get(modenum)
+    #print("Building %s (%x): offset=0x%x   PSR_offset: 0x%x" % (msname, modenum, offset, PSR_offset))
+    #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
     # shared regs
     for ridx in range(mode_reg_count):
         # don't create new entries for this register, use the usr-mode reg
@@ -74,18 +121,18 @@ for modenum in modes[1:]:       # skip first since we're already done
 
         reg_table_data[ridx+offset] = (regname, rsz) 
 
-    # PC
-    reg_table[PSR_offset-3] = 15
+    # PC    - always the original PC
+    reg_table[PSR_offset-3] = REG_PC
     reg_table_data[PSR_offset-3] = ('pc_%s' % (msname), 32)
-    # CPSR
-    reg_table[PSR_offset-2] = 16   # SPSR....??
+    # CPSR  - always the original CPSR
+    reg_table[PSR_offset-2] = REG_CPSR   # SPSR....??
     reg_table_data[PSR_offset-2] = ('CPSR_%s' % (msname), 32) 
     # NIL
-    reg_table[PSR_offset-1] = 17
+    reg_table[PSR_offset-1] = REG_NIL
     reg_table_data[PSR_offset-1] = ('NIL_%s' % (msname), 32) 
     # PSR
-    reg_table[PSR_offset] = len(reg_data)
-    reg_table_data[PSR_offset] = ('SPSR_%s' % (msname), 32) 
+    reg_table[PSR_offset] = len(reg_data)                   # -2 because we want SPSR_foo to point at the CPSR_foo.  i think?
+    reg_table_data[PSR_offset] = ('SPSR_%s' % (msname), 32)
     reg_data.append(("SPSR_"+msname, 32))
 
 # done with banked register translation table
@@ -123,12 +170,40 @@ for simdreg in range(VFP_QWORD_REG_COUNT):
 REG_FPSCR = len(reg_table)
 reg_table.append(len(reg_data))
 reg_data.append(('fpscr', 32))
+reg_table_data.append(('fpscr', 32))
 
+reg_table.append(len(reg_data))
+reg_data.append(('IPSR', 32))
+reg_table_data.append(('IPSR', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('EPSR', 32))
+reg_table_data.append(('EPSR', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('PRIMASK', 32))
+reg_table_data.append(('PRIMASK', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('FAULTMASK', 32))
+reg_table_data.append(('FAULTMASK', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('BASEPRI', 32))
+reg_table_data.append(('BASEPRI', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('BASEPRI_MAX', 32))
+reg_table_data.append(('BASEPRI_MAX', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('CONTROL', 32))
+reg_table_data.append(('CONTROL', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('MSP', 32))
+reg_table_data.append(('MSP', 32))
+reg_table.append(len(reg_data))
+reg_data.append(('PSP', 32))
+reg_table_data.append(('PSP', 32))
 
 MAX_TABLE_SIZE = len(reg_table_data)
 
 l = locals()
-e_reg.addLocalEnums(l, arm_regs_tups)
+e_reg.addLocalEnums(l, reg_table_data)
 
 PSR_N = 31  # negative
 PSR_Z = 30  # zero
@@ -228,5 +303,109 @@ class ArmRegisterContext(e_reg.RegisterContext):
         self.loadRegDef(reg_table_data)
         self.loadRegMetas(arm_metas, statmetas=arm_status_metas)
         self.setRegisterIndexes(REG_PC, REG_SP)
+
+    def getProcMode(self):
+        '''
+        get current ARM processor mode.  see proc_modes (const.py)
+        '''
+        return self._rctx_vals[REG_CPSR] & 0x1f
+
+    def setProcMode(self, mode):
+        '''
+        set the current processor mode.  stored in CPSR
+        '''
+        # write current psr to the saved psr register for target mode
+        # but not for USR or SYS modes, which don't have their own SPSR
+        if mode not in (PM_usr, PM_sys):
+            curSPSRidx = proc_modes[mode]
+            self._rctx_vals[curSPSRidx] = self.getCPSR()
+
+        # set current processor mode
+        cpsr = self._rctx_vals[REG_CPSR] & 0xffffffe0
+        self._rctx_vals[REG_CPSR] = cpsr | mode
+
+    def getRegister(self, index, mode=None):
+        """
+        Return the current value of the specified register index.
+        """
+        if mode is None:
+            mode = self.getProcMode() & 0xf
+        else:
+            mode &= 0xf
+
+        idx = (index & 0xffff)
+        ridx = _getRegIdx(idx, mode)
+
+        if (index & 0xffff) == index:   # not a metaregister
+            return self._rctx_vals[ridx]
+
+        offset = (index >> 24) & 0xff
+        width  = (index >> 16) & 0xff
+
+        mask = (2**width)-1
+        return (self._rctx_vals[ridx] >> offset) & mask
+
+    def setRegister(self, index, value, mode=None):
+        """
+        Set a register value by index.
+        """
+        if mode is None:
+            mode = self.getProcMode() & 0xf
+        else:
+            mode &= 0xf
+
+        self._rctx_dirty = True
+
+        # the raw index (in case index is a metaregister)
+        idx = (index & 0xffff)
+
+        # have to translate every register index to find the right home
+        ridx = _getRegIdx(idx, mode)
+
+        if (index & 0xffff) == index:   # not a metaregister
+            self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])      # FIXME: hack.  should look up index in proc_modes dict?
+            return
+
+        # If we get here, it's a meta register index.
+        # NOTE: offset/width are in bits...
+        offset = (index >> 24) & 0xff
+        width  = (index >> 16) & 0xff
+
+        mask = e_bits.b_masks[width]
+        mask = mask << offset
+
+        # NOTE: basewidth is in *bits*
+        basewidth = self._rctx_widths[ridx]
+        basemask  = (2**basewidth)-1
+
+        # cut a whole in basemask at the size/offset of mask
+        finalmask = basemask ^ mask
+
+        curval = self._rctx_vals[ridx]
+
+        self._rctx_vals[ridx] = (curval & finalmask) | (value << offset)
+
+
+def _getRegIdx(idx, mode):
+    if idx >= REGS_VECTOR_TABLE_IDX:
+        return reg_table[idx]
+
+    mode &= 0xf
+    ridx = idx + (mode*REGS_PER_MODE)  # account for different banks of registers
+    ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
+    return ridx
+
+
+def reg_mode_base(mode):
+    '''
+    Get the base register index for a given mode (full-sized table)
+    '''
+    mdata = proc_modes.get(mode)
+    if mdata is None:
+        raise Exception("Invalid Mode access (reg_mode_base): %d" % mode)
+
+    return mdata[3]
+
+
 
 rctx = ArmRegisterContext()

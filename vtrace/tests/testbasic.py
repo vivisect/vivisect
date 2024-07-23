@@ -59,6 +59,6 @@ class VtraceBasicTest(vt_tests.VtraceProcessTest):
 class VtraceBasicExecTest(VtraceBasicTest, vt_tests.VtraceExecTest):
     breakpoints = {
         'windows': 'ntdll.NtTerminateProcess',
-        'linux': 'ld.malloc',
+        'linux': 'libc.malloc',
         'freebsd': 'ld._rtld_thread_init',
     }
