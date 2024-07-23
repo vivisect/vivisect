@@ -1,4 +1,5 @@
 import vdb
+import cobra
 import getpass
 
 
@@ -83,10 +84,16 @@ defconfig = {
 
         'remote':{
             'wait_for_plat_arch': 10,
+            'timeout_wait': 10,
+            'timeout_aban': 120,
+        },
+        'server':{
+            'queue_chunksize': 70000,
         },
     },
     'cli':vdb.defconfig.get('cli'), # FIXME make our own...
     'vdb':vdb.defconfig.get('vdb'),
+    'cobra':cobra.defconfig.get('cobra'),
     'user':{
         'name': getpass.getuser(),
     }
@@ -160,7 +167,13 @@ docconfig = {
 
         'remote':{
             'wait_for_plat_arch':'How many secs to wait for the remote server/workspace to provide a Platform or Architecture before moving on.',
-        }
+            'timeout_wait': "Timeout waiting for getNextEvent() to have more Viv events to send.",
+            'timeout_aban': "Server channel timeout.  At this point, clean up and delete the channel.  The connection is dead.",
+        },
+
+        'server':{
+            'queue_chunksize':"VivServer Queue Chunk Size, the largest chunk of events the server will send at a time.  This affects queue time and overall efficiency of serving large workspaces",
+        },
     },
 
     'vdb':vdb.docconfig.get('vdb'),

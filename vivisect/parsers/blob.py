@@ -41,8 +41,8 @@ def parseFile(vw, filename, baseaddr=None):
 
     try:
         envi.getArchModule(arch)
-    except Exception:
-        raise v_exc.BlobArchException()
+    except Exception as e:
+        raise v_exc.BlobArchException() from None
 
     vw.setMeta('Architecture', arch)
     vw.setMeta('Platform', 'unknown')

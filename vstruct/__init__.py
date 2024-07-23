@@ -518,7 +518,6 @@ class VUnion(VStruct):
 
         Any method named pcb_<FieldName> will be called back when the specified
         field is set by the parser.
-        
         """
         ret = offset
         for fname,fobj in self.vsGetFields():
