@@ -4,17 +4,17 @@ Vivisect Changelog
 
 V1.2.1 - 2024-07-24
 ===================
-Features
---------
-- Update to large resource class in CI config.
-  (`#526 <https://github.com/vivisect/vivisect/pull/526>`_)
-
 Fixes
 -----
 - Fix an off by one issue in the LNK parser.
   (`#655 <https://github.com/vivisect/vivisect/pull/655>`_)
 - Fix Callgraph initialization and UI rendering.and UI rendering.
   (`#657 <https://github.com/vivisect/vivisect/pull/657>`_)
+
+Devops
+------
+- Update to large resource class in CI config.
+  (`#526 <https://github.com/vivisect/vivisect/pull/526>`_)
 
 Documentation
 -------------
