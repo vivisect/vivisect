@@ -620,40 +620,49 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             sva += baseoff
             if symname:
                 vw.makeName(sva, symname, filelocal=True, makeuniq=True)
-                valu = vw.readMemoryPtr(sva)
-                if not vw.isValidPointer(valu) and s.st_size == vw.psize:
-                    vw.makePointer(sva, follow=False)
+                if sva == 0x0:
+                    # if the address of the object is 0x0,
+                    # then it is probably an extern object, like the environ pointer provided by glibc.
+                    pass
+                elif not vw.isValidPointer(sva):
+                    # if the address of the object is invalid, 
+                    # this is weird, but we'll try to carry on.
+                    pass
                 else:
-                    '''
-                    Most of this is replicated in makePointer with follow=True. We specifically don't use that,
-                    since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in
-                    fun ways), but we still want these locations made first, so that other analysis modules know
-                    to not monkey with these and so I can set sizes and what not.
-                    And while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
-                    '''
-                    if not valu:
-                        # do a double check to make sure we can even make a pointer this large
-                        # because some relocations like __FRAME_END__ might end up short
-                        psize = vw.getPointerSize()
-                        byts = vw.readMemory(sva, psize)
-                        if len(byts) == psize:
-                            new_pointers.append((sva, valu, symname))
-                    elif s.st_size == 0:
-                        # the object doesn't have any size, 
-                        # so don't try to create anything at its location.
-                        pass
-                    elif vw.isProbablyUnicode(sva):
-                        vw.makeUnicode(sva, size=s.st_size)
-                    elif vw.isProbablyString(sva):
-                        vw.makeString(sva, size=s.st_size)
-                    elif s.st_size % vw.getPointerSize() == 0 and s.st_size >= vw.getPointerSize():
-                        # so it could be something silly like an array
-                        for addr in range(sva, sva+s.st_size, vw.psize):
-                            valu = vw.readMemoryPtr(addr)
-                            if vw.isValidPointer(valu):
-                                new_pointers.append((addr, valu, symname))
+                    valu = vw.readMemoryPtr(sva)
+                    if not vw.isValidPointer(valu) and s.st_size == vw.psize:
+                        vw.makePointer(sva, follow=False)
                     else:
-                        vw.makeNumber(sva, size=s.st_size)
+                        '''
+                        Most of this is replicated in makePointer with follow=True. We specifically don't use that,
+                        since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in
+                        fun ways), but we still want these locations made first, so that other analysis modules know
+                        to not monkey with these and so I can set sizes and what not.
+                        And while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
+                        '''
+                        if not valu:
+                            # do a double check to make sure we can even make a pointer this large
+                            # because some relocations like __FRAME_END__ might end up short
+                            psize = vw.getPointerSize()
+                            byts = vw.readMemory(sva, psize)
+                            if len(byts) == psize:
+                                new_pointers.append((sva, valu, symname))
+                        elif s.st_size == 0:
+                            # the object doesn't have any size, 
+                            # so don't try to create anything at its location.
+                            pass
+                        elif vw.isProbablyUnicode(sva):
+                            vw.makeUnicode(sva, size=s.st_size)
+                        elif vw.isProbablyString(sva):
+                            vw.makeString(sva, size=s.st_size)
+                        elif s.st_size % vw.getPointerSize() == 0 and s.st_size >= vw.getPointerSize():
+                            # so it could be something silly like an array
+                            for addr in range(sva, sva+s.st_size, vw.psize):
+                                valu = vw.readMemoryPtr(addr)
+                                if vw.isValidPointer(valu):
+                                    new_pointers.append((addr, valu, symname))
+                        else:
+                            vw.makeNumber(sva, size=s.st_size)
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
         sname = demangle(s.name)
