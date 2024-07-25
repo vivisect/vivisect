@@ -184,6 +184,13 @@ def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseoff=0):
     psize = vw.getPointerSize()
     fmtgrps = e_bits.fmt_chars[vw.getEndian()]
     pfmt = fmtgrps[psize]
+
+    if size % psize != 0:
+        # If the table size isn't a multiple of the pointer size, round down.
+        # It doesn't really make sense for this to be the case, 
+        # but this is seen in a small number of real world samples.
+        size -= (size % psize)
+
     secbytes = elf.readAtRva(tbladdr, size)
     tbladdr += baseoff
 
