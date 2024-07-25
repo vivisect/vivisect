@@ -6,6 +6,7 @@ import collections
 import Elf
 import Elf.elf_lookup as elf_lookup
 
+import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.const as e_const
 
@@ -629,7 +630,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     # this is weird, but we'll try to carry on.
                     pass
                 else:
-                    valu = vw.readMemoryPtr(sva)
+                    try:
+                        valu = vw.readMemoryPtr(sva)
+                    except e_exc.SegmentationViolation:
+                        valu = 0
+
                     if not vw.isValidPointer(valu) and s.st_size == vw.psize:
                         vw.makePointer(sva, follow=False)
                     else:
@@ -644,9 +649,12 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                             # do a double check to make sure we can even make a pointer this large
                             # because some relocations like __FRAME_END__ might end up short
                             psize = vw.getPointerSize()
-                            byts = vw.readMemory(sva, psize)
-                            if len(byts) == psize:
-                                new_pointers.append((sva, valu, symname))
+                            try:
+                                byts = vw.readMemory(sva, psize)
+                                if len(byts) == psize:
+                                    new_pointers.append((sva, valu, symname))
+                            except e_exc.SegmentationViolation:
+                                pass
                         elif s.st_size == 0:
                             # the object doesn't have any size, 
                             # so don't try to create anything at its location.
