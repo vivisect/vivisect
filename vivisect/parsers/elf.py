@@ -638,6 +638,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                         byts = vw.readMemory(sva, psize)
                         if len(byts) == psize:
                             new_pointers.append((sva, valu, symname))
+                    elif s.st_size == 0:
+                        # the object doesn't have any size, 
+                        # so don't try to create anything at its location.
+                        pass
                     elif vw.isProbablyUnicode(sva):
                         vw.makeUnicode(sva, size=s.st_size)
                     elif vw.isProbablyString(sva):
