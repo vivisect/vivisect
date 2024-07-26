@@ -628,7 +628,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 elif not vw.isValidPointer(sva):
                     # if the address of the object is invalid, 
                     # this is weird, but we'll try to carry on.
-                    pass
+                    logger.warning("Symbol VA (0x%x) is not a valid address for %r, not processing symbol further", sva, symname)
                 else:
                     try:
                         valu = vw.readMemoryPtr(sva)
