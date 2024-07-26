@@ -624,7 +624,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 if sva == 0x0:
                     # if the address of the object is 0x0,
                     # then it is probably an extern object, like the environ pointer provided by glibc.
-                    pass
+                    logger.warning("Symbol VA (0x%x) is 0 for %r, skipping...", sva, symname)
                 elif not vw.isValidPointer(sva):
                     # if the address of the object is invalid, 
                     # this is weird, but we'll try to carry on.
