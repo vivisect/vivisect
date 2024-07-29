@@ -424,6 +424,11 @@ class PE(object):
             self.filesize = fd.tell()
             fd.seek(0)
 
+        else:
+            #import envi.interactive as ei; ei.dbg_interact(locals(), globals())
+            self.filesize = fd.getSize()
+
+
         self.fd = fd
 
         self.pe32p = False

@@ -4,6 +4,9 @@ from copy import deepcopy
 from inspect import isclass
 
 import vstruct.primitives as vs_prims
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MemObjFile:
@@ -26,11 +29,67 @@ class MemObjFile:
     def tell(self):
         return self.offset - self.baseaddr
 
+    def getSize(self):
+        '''
+        To calculate the file size, we have to walk through memory maps, hoping they are in a row
+        '''
+        offset = 0
+        mmva, size, _, origname = self.memobj.getMemoryMap(self.baseaddr)
+        logger.debug('fd.getSize() initial size: %s: %x:%x', origname, mmva, size)
+
+
+        while True:
+            tgtva = self.baseaddr + offset
+            mtup = self.memobj.getMemoryMap(tgtva)
+            if mtup is None:
+                logger.debug('Break at 0x%x (gap in maps)', tgtva)
+                break
+
+            mmva, msize, _, mname = self.memobj.getMemoryMap(self.baseaddr + offset)
+            if mname != origname:
+                logger.debug('Break at 0x%x (map name change: %s != %s)', tgtva, mname, origname)
+                break
+
+            size += msize
+            offset += msize
+            logger.info('fd.getSize() size: %s: %x:%x (%s)', origname, mmva, size, mname)
+
+        return size
+
+        
     def read(self, size=None):
+        '''
+        Read data as in a file.
+        If size is None, map calculation is done to attempt to determine where the end
+        of the file is.  Attempting to model a traditional file.
+        '''
+        osize = size
         if size is None:
-            # end of map for now, but perhaps this should be end of contiguous maps
-            _, size, _, _ = self.memobj.getMemoryMap(self.offset)
-            size -= self.offset
+            mtup = self.memobj.getMemoryMap(self.baseaddr + self.offset)
+            if mtup is None:
+                return b''
+
+            _, msize, _, origname = mtup
+            size = msize - self.offset
+            offset = 0
+
+            while True:
+                tgtva = self.baseaddr + offset + offset
+                mtup = self.memobj.getMemoryMap(tgtva)
+                if mtup is None:
+                    logger.debug('Break at 0x%x (gap in maps)', tgtva)
+                    break
+
+                _, msize, _, mname = mtup
+                if mname != origname:
+                    logger.debug('Break at 0x%x (map name change: %s != %s)', tgtva, mname, origname)
+                    break
+                size += msize
+                offset += msize
+
+        if osize is None:
+            logger.info("read() reading from 0x%x: 0x%x", self.baseaddr + self.offset, size)
+
         ret = self.memobj.readMemory(self.offset, size)
         self.offset += size
         return ret
