@@ -789,9 +789,12 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
-    def __init__(self, mem, persist=False, exptable=True, recurse=True):
-        e_codeflow.CodeFlowContext.__init__(self, mem, persist=persist, exptable=exptable, recurse=recurse)
+    def __init__(self, mem, persist=False, exptable=True, recurse=True, **kwargs):
+        e_codeflow.CodeFlowContext.__init__(self, mem, persist=persist, exptable=exptable, recurse=recurse, **kwargs)
         self.addDynamicBranchHandler(trackDynBranches)
+        self._cf_stop_on_exports = kwargs.get('stopOnExports', False)
+        self._cf_onelib = kwargs.get('onelib', False)
+        self._cf_ol_strict = kwargs.get('strict', False)
 
     def _cb_noflow(self, srcva, dstva):
         vw = self._mem
@@ -831,6 +834,57 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             logger.warning("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
 
         return ()
+
+
+    def _shouldDescend(self, va, arch):
+        '''
+        Check for reasons to skip Function Analysis and Descent
+        This is a overload from envi.codeflow
+
+        This checks for Stop on Map changes and Stop on File changes
+        For File changes, strict mode means any change in filename will cause
+        codeflow to stop.  Non-strict mode means calling from a Filename to
+        an anonymous map (filename == "") is ok, but not the other direction.
+        '''
+        if self._cf_stop_on_exports and self._mem.getExport(va):
+            return False
+
+        if self._cf_onelib:     # Break on change in: map, file, or none
+            mmto = self._mem.getMemoryMap(va)
+            mmfr = self._mem.getMemoryMap(self._cf_calling_va)
+            if mmto is None:
+                logger.info("0x%x->0x%x skipping because destination doesn't exist (no map)", self._cf_calling_va, va)
+                return False
+            if mmfr is None:
+                logger.info("0x%x->0x%x skipping because source doesn't exist (no map)?!?!?", self._cf_calling_va, va)
+                return False
+
+            # if we choose to stop on any map change
+            if self._cf_onelib == envi.CF_RECURSE_STOP_MAPS:
+                if mmto[viv_const.MAP_VA] != mmfr[viv_const.MAP_VA]: # MAP only...
+                    return False
+
+            elif self._cf_onelib == envi.CF_RECURSE_STOP_FILES:
+                # check if the file changed
+                mmnmto = mmto[viv_const.MAP_FNAME] 
+                mmnmfr = mmfr[viv_const.MAP_FNAME] 
+
+                if mmnmto != mmnfr:
+                    if self._cf_ol_strict:
+                        # if strict, any change in filename will stop
+                        logger.debug("%x skipping function 0x%x (arch: %x): call to another file (strict)",\
+                                    self._cf_calling_va, arch)
+                        return False
+
+                    else:
+                        # otherwise, we only care if it's got a filename (calling into anonymous maps is fine)
+                        if len(mmnmto):
+                            logger.debug("%x skipping function 0x%x (arch: %x): call to another file",\
+                                    self._cf_calling_va, arch)
+                            return False
+
+        # default to returning whatever our parent decides
+        return super()._shouldDescend(va, arch)
 
     def _cb_function(self, fva, fmeta):
 

@@ -402,6 +402,8 @@ class EnviCli(Cmd):
                 # whether to convert it to an int or leave it as a str.
                 if type(cfg[optname]) == int:
                     newval = int(parts[1], 0)
+                elif type(cfg[optname]) == bool:
+                    newval = eval(parts[1])
                 else:
                     newval = parts[1]
 
@@ -412,8 +414,10 @@ class EnviCli(Cmd):
 
                 optval = newval
                 cfg[optname] = newval
+                pathstring = '.'.join(subnames)
+                self.config._handleCallback(pathstring, newval)
 
-            self.vprint('%s.%s=%s' % ('.'.join(subnames), optname, json.dumps(optval)))
+            self.vprint('%s=%s' % (pathstring, json.dumps(optval)))
 
         if options.do_save:
             self.config.saveConfigFile()
