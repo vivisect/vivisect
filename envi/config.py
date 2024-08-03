@@ -141,7 +141,6 @@ class EnviConfig:
         Check for a callback for the given pathstring and call it
         Called whenever an item is updated
         '''
-        logger.warning("pathstring: %r   value: %r", pathstring, value)
         cb = self.callbacks.get(pathstring)
         if cb:
             cb(value)
