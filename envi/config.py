@@ -69,6 +69,7 @@ class EnviConfig:
         self.autosave = autosave
         self.filename = filename
         self.cfgsubsys = {}
+        self.callbacks = {}
 
         if defaults is not None:
             self.setConfigPrimitive(defaults)
@@ -119,6 +120,61 @@ class EnviConfig:
             raise e_exc.ConfigInvalidOption(optname)
 
         return config[optname]
+
+    def setOptionByString(self, pathstring, value):
+        optparts = pathstring.split('.')
+        config = self
+        for opart in optparts[:-1]:
+            config = config.getSubConfig(opart, add=False)
+            if config is None:
+                raise e_exc.ConfigInvalidName(pathstring)
+
+        optname = optparts[-1]
+        if optname not in config.cfginfo:
+            raise e_exc.ConfigInvalidOption(optname)
+
+        config[optname] = value
+        self._handleCallback(pathstring, value)
+
+    def _handleCallback(self, pathstring, value):
+        '''
+        Check for a callback for the given pathstring and call it
+        Called whenever an item is updated
+        '''
+        logger.warning("pathstring: %r   value: %r", pathstring, value)
+        cb = self.callbacks.get(pathstring)
+        if cb:
+            cb(value)
+
+    def triggerCallbacks(self):
+        '''
+        Trigger all callbacks as if their values had just been set
+        '''
+        for pathstring in self.callbacks.keys():
+            value = self.getOptionByString(pathstring)
+            self._handleCallback(pathstring, value)
+
+    def registerCallback(self, pathstring, cb):
+        '''
+        Register a callback which is called when a given configuration item changes
+        Only one callback can be registered per path.
+        '''
+        if pathstring in self.callbacks:
+            raise CallbackRegisterException("Could not register Config path %s.  Path already has \
+                    a callback registered" % pathstring)
+
+        self.callbacks[pathstring] = cb
+
+    def deregisterCallback(self, pathstring):
+        '''
+        De-register a callback for a given pathstring.
+        Call this before registering a new callback.
+
+        Silently fails if callback doesn't exist
+        '''
+        if pathstring in self.callbacks:
+            self.callbacks.pop(pathstring)
+
 
     def getConfigPaths(self):
         '''
@@ -207,7 +263,9 @@ class EnviConfig:
                 except:
                     valstr = '"' + valstr + '"'
 
-        config[optname] = json.loads(valstr)
+        value = json.loads(valstr)
+        config[optname] = value
+        self._handleCallback(optpath, value)
 
     def getSubConfig(self, name, add=True):
         subcfg = self.cfgsubsys.get(name)
