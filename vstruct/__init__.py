@@ -1,3 +1,4 @@
+import os
 import struct
 
 from copy import deepcopy
@@ -16,12 +17,46 @@ class MemObjFile:
     """
 
     def __init__(self, memobj, baseaddr):
+        self.basemaps = []
         self.baseaddr = baseaddr
         self.offset = baseaddr
         self.memobj = memobj
+        self._end = self._getEnd()
 
-    def seek(self, offset):
-        self.offset = self.baseaddr + offset
+    def _getEnd(self):
+        '''
+        Calculate the end of file (at initialization)
+        If the underlying memory map is named, find the highest map and use its
+        end as "the end".  
+        If the map has no name, use that one map as the end.
+
+        Stores all applicable memory maps in self.basemaps for easy access
+        '''
+        basemap = self.memobj.getMemoryMap(self.baseaddr)
+        mmapva, mmapsz, mmperm, mmname = basemap
+
+        if not mmname:  # unnamed map, stay local
+            self.basemaps = [basemap]
+            return mmapva + mmapsz
+
+        else:
+            self.basemaps = [mmap for mmap in self.memobj.getMemoryMaps() if mmap[3] == mmname]
+
+            eof = 0
+            for mmva, mmsz, mmperm, mmname in self.basemaps:
+                mmeof = mmapva + mmapsz
+                if mmeof > eof:
+                    eof = mmeof
+
+            return eof
+
+    def seek(self, offset, whence=0):
+        if whence == os.SEEK_SET:
+            self.offset = self.baseaddr + offset
+        elif whence == os.SEEK_CUR:
+            self.offset += offset
+        elif whence == os.SEEK_END:
+            self.offset = self._end + offset    # this and getSize were written at different times.  may need to merge things a little.
 
     def flush(self):
         pass
@@ -36,7 +71,7 @@ class MemObjFile:
         offset = 0
         mmva, size, _, origname = self.memobj.getMemoryMap(self.baseaddr)
         logger.debug('fd.getSize() initial size: %s: %x:%x', origname, mmva, size)
-
+        offset += size
 
         while True:
             tgtva = self.baseaddr + offset
@@ -558,6 +593,9 @@ class VArray(VStruct):
 
     def __getitem__(self, index):
         return self.vsGetField("%d" % index)
+
+    def __setitem__(self, index, valu):
+        return self.vsSetField("%d" % index, valu)
 
     #FIXME slice asignment
 
