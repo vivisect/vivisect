@@ -622,40 +622,37 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if symname:
                 vw.makeName(sva, symname, filelocal=True, makeuniq=True)
                 if sva == 0x0:
-                    # if the address of the object is 0x0,
+                    # if the address of the symbol is 0x0,
                     # then it is probably an extern object, like the environ pointer provided by glibc.
                     logger.warning("Symbol VA (0x%x) is 0 for %r, skipping...", sva, symname)
                 elif not vw.isValidPointer(sva):
-                    # if the address of the object is invalid, 
+                    # if the address of the symbol is invalid, 
                     # this is weird, but we'll try to carry on.
                     logger.warning("Symbol VA (0x%x) is not a valid address for %r, not processing symbol further", sva, symname)
                 else:
+                    # the address of the symbol is valid,
+                    # and we expect it to be a pointer to valid memory.
                     try:
                         valu = vw.readMemoryPtr(sva)
                     except e_exc.SegmentationViolation:
-                        valu = 0
-
-                    if not vw.isValidPointer(valu) and s.st_size == vw.psize:
-                        vw.makePointer(sva, follow=False)
+                        # the symbol points to invalid memory,
+                        # which doesn't really make sense,
+                        # but we'll try to carry on.
+                        if s.st_size == vw.getPointerSize():
+                            # this is supposed to be a pointer, but the target doesn't exist.
+                            # maybe the file is corrupted. 
+                            # so, mark it as a pointer but don't follow.
+                            vw.makePointer(sva, follow=False)
                     else:
-                        '''
-                        Most of this is replicated in makePointer with follow=True. We specifically don't use that,
-                        since that kicks off a bunch of other analysis that isn't safe to run yet (it blows up in
-                        fun ways), but we still want these locations made first, so that other analysis modules know
-                        to not monkey with these and so I can set sizes and what not.
-                        And while ugly, this does cover a couple nice use cases like pointer tables/arrays of pointers being present.
-                        '''
-                        if not valu:
-                            # do a double check to make sure we can even make a pointer this large
-                            # because some relocations like __FRAME_END__ might end up short
-                            psize = vw.getPointerSize()
-                            try:
-                                byts = vw.readMemory(sva, psize)
-                                if len(byts) == psize:
-                                    new_pointers.append((sva, valu, symname))
-                            except e_exc.SegmentationViolation:
-                                pass
-                        elif s.st_size == 0:
+                        # the symbol points to valid memory,
+                        # so we'll try to interpret the data there in the following ways:
+                        #
+                        #   1. as an empty object
+                        #   2. as Unicode string
+                        #   3. as ASCII string
+                        #   4. as an array of pointers
+                        #   5. as a number (default)
+                        if s.st_size == 0:
                             # the object doesn't have any size, 
                             # so don't try to create anything at its location.
                             pass
@@ -664,13 +661,19 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                         elif vw.isProbablyString(sva):
                             vw.makeString(sva, size=s.st_size)
                         elif s.st_size % vw.getPointerSize() == 0 and s.st_size >= vw.getPointerSize():
-                            # so it could be something silly like an array
+                            # this might be an array of pointers, or a structure with embedded pointers,
+                            # so walk through the entries (pointer-aligned) and try to extract pointers.
                             for addr in range(sva, sva+s.st_size, vw.psize):
                                 valu = vw.readMemoryPtr(addr)
                                 if vw.isValidPointer(valu):
                                     new_pointers.append((addr, valu, symname))
-                        else:
+                        elif s.st_size in (1, 2, 4, 8, 16):
+                            # we don't really know how to interpret the data, 
+                            # so fall back to a number.
                             vw.makeNumber(sva, size=s.st_size)
+                        else:
+                            # we really don't know what to do, and thats ok.
+                            pass
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
         sname = demangle(s.name)
