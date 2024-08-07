@@ -390,7 +390,7 @@ class VivisectTest(v_t_utils.VivTest):
 
     def test_vaset_populate(self):
         '''
-        Make sure the the VASEts are populated in roughly the way we expect
+        Make sure the the VASets are populated in roughly the way we expect
         '''
         vw = self.vdir_vw
         ans = {
@@ -1057,8 +1057,8 @@ class VivisectTest(v_t_utils.VivTest):
         vw = self.chgrp_vw
         exports = [
             # .rodata
-            (0x08050650, 4, v_const.LOC_POINTER, 'chgrp._fp_hw'),
-            (0x08050654, 4, v_const.LOC_POINTER, 'chgrp._IO_stdin_used'),
+            (0x08050650, 4, v_const.LOC_NUMBER, 'chgrp._fp_hw'),  # 08050650  uint32_t _fp_hw = 0x3
+            (0x08050654, 4, v_const.LOC_NUMBER, 'chgrp._IO_stdin_used'),  # 08050654  uint32_t _IO_stdin_used = 0x20001
 
             # long options is really an array of pointers, but that isn't obvi
             # (0x08050748, 4, v_const.LOC_POINTER, 'chgrp.long_options'),
@@ -1073,11 +1073,11 @@ class VivisectTest(v_t_utils.VivTest):
             (0x805419c, 1, v_const.LOC_NUMBER, 'chgrp.completed.7282'),
 
             # .data pointers/numbers
-            (0x805411c, 4, v_const.LOC_POINTER, 'chgrp.__dso_handle'),
+            (0x805411c, 4, v_const.LOC_POINTER, 'chgrp.__dso_handle'),  # 0805411c  int32_t __dso_handle = 0x0
             (0x8054120, 4, v_const.LOC_POINTER, 'chgrp.Version'),
-            (0x8054124, 4, v_const.LOC_POINTER, 'chgrp.exit_failure'),
+            (0x8054124, 4, v_const.LOC_NUMBER, 'chgrp.exit_failure'),  # 08054124  uint32_t exit_failure = 0x1
             (0x8054128, 4, v_const.LOC_POINTER, 'chgrp.slotvec'),
-            (0x805412c, 4, v_const.LOC_POINTER, 'chgrp.nslots'),
+            (0x805412c, 4, v_const.LOC_NUMBER, 'chgrp.nslots'),  # 0805412c  uint32_t nslots = 0x1
             (0x8054130, 8, v_const.LOC_NUMBER, 'chgrp.slotvec0'),  # this one kinda pulls double duty as both 4 and 8....
             # Another horrible little saved space of bytes for....well technically a struct, not that we
             # can easily detect that

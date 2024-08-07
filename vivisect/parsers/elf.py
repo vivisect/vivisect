@@ -617,63 +617,108 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     logger.info('mapping (NOTYPE) data symbol: 0x%x: %r', sva, dmglname)
                     data_ptrs.append(sva)
         elif symtype == Elf.STT_OBJECT:
+            # "This symbol is associated with a data object, such as a variable, an array, and so forth."
+
             symname = s.getName()
             sva += baseoff
             if symname:
                 vw.makeName(sva, symname, filelocal=True, makeuniq=True)
-                if sva == 0x0:
-                    # if the address of the symbol is 0x0,
-                    # then it is probably an extern object, like the environ pointer provided by glibc.
-                    logger.warning("Symbol VA (0x%x) is 0 for %r, skipping...", sva, symname)
-                elif not vw.isValidPointer(sva):
-                    # if the address of the symbol is invalid, 
-                    # this is weird, but we'll try to carry on.
-                    logger.warning("Symbol VA (0x%x) is not a valid address for %r, not processing symbol further", sva, symname)
-                else:
-                    # the address of the symbol is valid,
-                    # and we expect it to be a pointer to valid memory.
-                    try:
-                        valu = vw.readMemoryPtr(sva)
-                    except e_exc.SegmentationViolation:
-                        # the symbol points to invalid memory,
-                        # which doesn't really make sense,
-                        # but we'll try to carry on.
-                        if s.st_size == vw.getPointerSize():
-                            # this is supposed to be a pointer, but the target doesn't exist.
-                            # maybe the file is corrupted. 
-                            # so, mark it as a pointer but don't follow.
-                            vw.makePointer(sva, follow=False)
+
+            if sva == 0x0:
+                # if the address of the symbol is 0x0,
+                # then it is probably an extern object, like the environ pointer provided by glibc.
+                logger.warning("Symbol VA (0x%x) is 0 for %r, skipping...", sva, symname or "")
+            elif not vw.isValidPointer(sva):
+                # if the address of the symbol is invalid, 
+                # this is weird, but we'll try to carry on.
+                logger.warning("Symbol VA (0x%x) is not a valid address for %r, not processing symbol further", sva, symname or "")
+            else:
+                # the address of the symbol is valid.
+                # the data named by the symbol is in this image.
+                # so we'll try to interpret the data there in the following ways:
+                #
+                #   1. as an empty object
+                #   2. as Unicode string
+                #   3. as ASCII string
+                #   4. as a pointer
+                #   5. as an array of pointers
+                #   6. as a number
+
+                if s.st_size == 0:
+                    # via Oracle docs:
+                    # > Many symbols have associated sizes.
+                    # > For example, a data object's size is the number of bytes that are contained in the object.
+                    # > This member holds the value zero if the symbol has no size or an unknown size.
+                    #
+                    # Let's assume there's at least a pointer-sized object here.
+                    valu = vw.readMemoryPtr(sva)
+                    if valu == 0x0:
+                        # this is either the number 0,
+                        # or a null-initialized pointer, like `void *foo = NULL;`
+                        # prefer the second one.
+                        logger.debug("STT_OBJECT symbol %s@0x%x with zero size: guessing zero-initialized pointer", 
+                                     symname or "",
+                                     sva)
+                        vw.makePointer(sva, follow=False)
+                        new_pointers.append((sva, valu, symname or ""))
+                    elif vw.isValidPointer(valu):
+                        logger.debug("STT_OBJECT symbol %s@0x%x with zero size: guessing valid pointer",
+                                     symname or "",
+                                     sva)
+                        vw.makePointer(sva)
+                        new_pointers.append((sva, valu, symname or ""))
                     else:
-                        # the symbol points to valid memory,
-                        # so we'll try to interpret the data there in the following ways:
-                        #
-                        #   1. as an empty object
-                        #   2. as Unicode string
-                        #   3. as ASCII string
-                        #   4. as an array of pointers
-                        #   5. as a number (default)
-                        if s.st_size == 0:
-                            # the object doesn't have any size, 
-                            # so don't try to create anything at its location.
-                            pass
-                        elif vw.isProbablyUnicode(sva):
-                            vw.makeUnicode(sva, size=s.st_size)
-                        elif vw.isProbablyString(sva):
-                            vw.makeString(sva, size=s.st_size)
-                        elif s.st_size % vw.getPointerSize() == 0 and s.st_size >= vw.getPointerSize():
-                            # this might be an array of pointers, or a structure with embedded pointers,
-                            # so walk through the entries (pointer-aligned) and try to extract pointers.
-                            for addr in range(sva, sva+s.st_size, vw.psize):
-                                valu = vw.readMemoryPtr(addr)
-                                if vw.isValidPointer(valu):
-                                    new_pointers.append((addr, valu, symname))
-                        elif s.st_size in (1, 2, 4, 8, 16):
-                            # we don't really know how to interpret the data, 
-                            # so fall back to a number.
-                            vw.makeNumber(sva, size=s.st_size)
-                        else:
-                            # we really don't know what to do, and thats ok.
-                            pass
+                        logger.debug("STT_OBJECT symbol %s@0x%x with zero size: guessing number",
+                                     symname or "",
+                                     sva)
+                        vw.makeNumber(sva, size=vw.getPointerSize())
+                elif vw.isProbablyUnicode(sva):
+                    vw.makeUnicode(sva, size=s.st_size)
+                elif vw.isProbablyString(sva):
+                    vw.makeString(sva, size=s.st_size)
+                elif s.st_size == vw.getPointerSize():
+                    # appears to be a single pointer, or number of pointer-width
+                    valu = vw.readMemoryPtr(sva)
+                    if valu == 0x0:
+                        # this is either the number 0,
+                        # or a null-initialized pointer, like `void *foo = NULL;`
+                        # prefer the second one.
+                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing zero-initialized pointer", 
+                                     symname or "",
+                                     sva)
+                        vw.makePointer(sva, follow=False)
+                        new_pointers.append((sva, valu, symname or ""))
+                    elif vw.isValidPointer(valu):
+                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing valid pointer", 
+                                     symname or "",
+                                     sva)
+                        vw.makePointer(sva)
+                        new_pointers.append((sva, valu, symname or ""))
+                    else:
+                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing number", 
+                                     symname or "",
+                                     sva)
+                        vw.makeNumber(sva, size=vw.getPointerSize())
+                elif s.st_size % vw.getPointerSize() == 0 and s.st_size > vw.getPointerSize():
+                    # because this object size is pointer-aligned,
+                    # this might be an array of pointers, or a structure with embedded pointers.
+                    # so walk through the entries (pointer-aligned) and try to extract pointers.
+                    for addr in range(sva, sva+s.st_size, vw.psize):
+                        valu = vw.readMemoryPtr(addr)
+                        if vw.isValidPointer(valu):
+                            new_pointers.append((addr, valu, symname or ""))
+                elif s.st_size in (1, 2, 4, 8, 16):
+                    logger.debug("STT_OBJECT symbol %s@0x%x: guessing number", 
+                                 symname or "",
+                                 sva)
+                    # we don't really know how to interpret the data, 
+                    # so fall back to a number.
+                    vw.makeNumber(sva, size=s.st_size)
+                else:
+                    # we really don't know what to do, and thats ok.
+                    logger.warning("STT_OBJECT symbol %s@0x%x with unaligned size: unknown data", 
+                                   symname or "",
+                                   sva)
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
         sname = demangle(s.name)
