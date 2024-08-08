@@ -670,7 +670,6 @@ class VivisectTest(v_t_utils.VivTest):
                                  (0x805e778, 0x805e7c9, 'vdir', 'quoting_style_args'),
                                  (0x805e77c, 0x805b6f2, 'vdir', 'quoting_style_args'),
                                  (0x805e780, 0x805e7ec, 'vdir', 'quoting_style_args'),
-                                 (0x805f3a0, 0x0, 'vdir', '__FRAME_END__'),  # WB: this may be a void*
                                  (0x80611bc, 0x805b722, 'vdir', 'color_indicator'),
                                  (0x80611c4, 0x805dca1, 'vdir', 'color_indicator'),
                                  (0x80611d4, 0x805b789, 'vdir', 'color_indicator'),
@@ -696,7 +695,6 @@ class VivisectTest(v_t_utils.VivTest):
                                  (0x80612a0, 0x80612a8, 'vdir', 'slotvec'),
                                  (0x80612ac, 0x806231c, 'vdir', 'slotvec0'),
                                  (0x80612e0, 0x8058980, 'vdir', 'obstack_alloc_failed_handler'),
-                                 (0x80612e4, 0x0, 'vdir', '__TMC_END__'),
                                  ],
             'EmucodeFunctions': []
 
