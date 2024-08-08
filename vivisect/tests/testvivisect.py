@@ -695,6 +695,9 @@ class VivisectTest(v_t_utils.VivTest):
                                  (0x80612a0, 0x80612a8, 'vdir', 'slotvec'),
                                  (0x80612ac, 0x806231c, 'vdir', 'slotvec0'),
                                  (0x80612e0, 0x8058980, 'vdir', 'obstack_alloc_failed_handler'),
+                                 (0x8060f0c, 0x8049c80, 'vdir', '__frame_dummy_init_array_entry'),
+                                 (0x8060f10, 0x8049c50, 'vdir', '__do_global_dtors_aux_fini_array_entry'),
+                                 (0x8061000, 0x8060f14, 'vdir', '_GLOBAL_OFFSET_TABLE_'),
                                  ],
             'EmucodeFunctions': []
 
