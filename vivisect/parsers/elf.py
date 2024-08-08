@@ -627,11 +627,15 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if sva == 0x0:
                 # if the address of the symbol is 0x0,
                 # then it is probably an extern object, like the environ pointer provided by glibc.
-                logger.warning("Symbol VA (0x%x) is 0 for %r, skipping...", sva, symname or "")
+                logger.debug("STT_OBJECT symbol %s@0x%x has address 0x0: skipping.", 
+                             symname or "",
+                             sva)
             elif not vw.isValidPointer(sva):
                 # if the address of the symbol is invalid, 
                 # this is weird, but we'll try to carry on.
-                logger.warning("Symbol VA (0x%x) is not a valid address for %r, not processing symbol further", sva, symname or "")
+                logger.debug("STT_OBJECT symbol %s@0x%x has invalid address: skipping.", 
+                             symname or "",
+                             sva)
             else:
                 # the address of the symbol is valid.
                 # the data named by the symbol is in this image.
@@ -655,17 +659,16 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     if valu == 0x0:
                         # this is either the number 0,
                         # or a null-initialized pointer, like `void *foo = NULL;`
-                        # prefer the second one.
-                        logger.debug("STT_OBJECT symbol %s@0x%x with zero size: guessing zero-initialized pointer", 
+                        # without analyzing how this data is used, we can't tell.
+                        # so assume its a number for now.
+                        logger.debug("STT_OBJECT symbol %s@0x%x with zero size and NULL value: guessing number 0x0", 
                                      symname or "",
                                      sva)
-                        vw.makePointer(sva, follow=False)
-                        new_pointers.append((sva, valu, symname or ""))
+                        vw.makeNumber(sva, size=vw.getPointerSize())
                     elif vw.isValidPointer(valu):
                         logger.debug("STT_OBJECT symbol %s@0x%x with zero size: guessing valid pointer",
                                      symname or "",
                                      sva)
-                        vw.makePointer(sva)
                         new_pointers.append((sva, valu, symname or ""))
                     else:
                         logger.debug("STT_OBJECT symbol %s@0x%x with zero size: guessing number",
@@ -682,17 +685,16 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     if valu == 0x0:
                         # this is either the number 0,
                         # or a null-initialized pointer, like `void *foo = NULL;`
-                        # prefer the second one.
-                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing zero-initialized pointer", 
+                        # without analyzing how this data is used, we can't tell.
+                        # so assume its a number for now.
+                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size and NULL value: guessing number 0x0", 
                                      symname or "",
                                      sva)
-                        vw.makePointer(sva, follow=False)
-                        new_pointers.append((sva, valu, symname or ""))
+                        vw.makeNumber(sva, size=vw.getPointerSize())
                     elif vw.isValidPointer(valu):
                         logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing valid pointer", 
                                      symname or "",
                                      sva)
-                        vw.makePointer(sva)
                         new_pointers.append((sva, valu, symname or ""))
                     else:
                         logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing number", 
