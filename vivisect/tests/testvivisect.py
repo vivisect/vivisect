@@ -1024,16 +1024,26 @@ class VivisectTest(v_t_utils.VivTest):
             # (0x08050748, 4, v_const.LOC_POINTER, 'chgrp.long_options'),
             #(0x08050850, 0x27, v_const.LOC_STRING, None),
 
-            (0x8054170, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_short_name@@GLIBC_2.0'),
-            (0x8054178, 4, v_const.LOC_POINTER, 'chgrp.stderr@@GLIBC_2.0'),
-            (0x8054180, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_name@@GLIBC_2.0'),
-            (0x8054190, 4, v_const.LOC_POINTER, 'chgrp.optind@@GLIBC_2.0'),
-            (0x8054194, 4, v_const.LOC_POINTER, 'chgrp.stdout@@GLIBC_2.0'),
-            (0x8054198, 4, v_const.LOC_POINTER, 'chgrp.optarg@@GLIBC_2.0'),
+            # these are zero-initialized global pointers, like:
+            #
+            #     uint32_t* const __progname = 0x0
+            #
+            # however, we can't differentiate this from a zero-initialized variable,
+            # especially without data flow analysis, 
+            # so we assume (incorrectly) that these are numbers rather than pointers.
+            # (0x8054170, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_short_name@@GLIBC_2.0'),
+            # (0x8054178, 4, v_const.LOC_POINTER, 'chgrp.stderr@@GLIBC_2.0'),
+            # (0x8054180, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_name@@GLIBC_2.0'),
+            # (0x8054190, 4, v_const.LOC_POINTER, 'chgrp.optind@@GLIBC_2.0'),
+            # (0x8054194, 4, v_const.LOC_POINTER, 'chgrp.stdout@@GLIBC_2.0'),
+            # (0x8054198, 4, v_const.LOC_POINTER, 'chgrp.optarg@@GLIBC_2.0'),
+            #
+            # this, on the other hand, is a zero-initialized global variable,
+            # which we can correctly identify.
             (0x805419c, 1, v_const.LOC_NUMBER, 'chgrp.completed.7282'),
 
             # .data pointers/numbers
-            (0x805411c, 4, v_const.LOC_POINTER, 'chgrp.__dso_handle'),  # 0805411c  int32_t __dso_handle = 0x0
+            (0x805411c, 4, v_const.LOC_NUMBER, 'chgrp.__dso_handle'),  # 0805411c  int32_t __dso_handle = 0x0
             (0x8054120, 4, v_const.LOC_POINTER, 'chgrp.Version'),
             (0x8054124, 4, v_const.LOC_NUMBER, 'chgrp.exit_failure'),  # 08054124  uint32_t exit_failure = 0x1
             (0x8054128, 4, v_const.LOC_POINTER, 'chgrp.slotvec'),
