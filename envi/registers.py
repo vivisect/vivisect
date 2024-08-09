@@ -404,6 +404,9 @@ def addLocalEnums(l, regdef):
     values for all the base registers defined in regdef.
     """
     for i,(rname,width) in enumerate(regdef):
+        if rname is None:   # allow for sparse register banks
+            continue
+
         l["REG_%s" % rname.upper()] = i
 
 def addLocalStatusMetas(l, metas, statmetas, regname):

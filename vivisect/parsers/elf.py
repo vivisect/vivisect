@@ -292,7 +292,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # Base addr is earliest section address rounded to pagesize
     # Some ELF's require adding the baseaddr to most/all later addresses
     addbase, baseoff, baseaddr = getAddBaseAddr(elf, baseaddr)
-    logger.warning("addbase: %r, baseoff: 0x%x, baseaddr: 0x%x", addbase, baseoff, baseaddr)
+    logger.debug("Loading ELF into workspace: addbase: %r, baseoff: 0x%x, baseaddr: 0x%x", addbase, baseoff, baseaddr)
 
     elf.fd.seek(0)
     md5hash = v_parsers.md5Bytes(byts)

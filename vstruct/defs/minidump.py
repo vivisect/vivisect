@@ -39,7 +39,7 @@ class MiniDumpLocationDescriptor(vstruct.VStruct):
 class MiniDumpMemoryDescriptor(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
-        self.StartOfMemoryPage = v_uint64()
+        self.StartOfMemoryRange = v_uint64()
         self.Memory = MiniDumpLocationDescriptor()
 
 class MiniDumpMemoryDescriptor64(vstruct.VStruct):
@@ -486,7 +486,9 @@ class MiniDumpThreadListStream(vstruct.VStruct):
     def __init__(self):
         vstruct.VStruct.__init__(self)
         self.NumberOfThreads = v_uint32()
-        self.Threads = MiniDumpThread()
+
+    def pcb_NumberOfThreads(self):
+        self.Threads = vstruct.VArray([MiniDumpThread() for i in range(self.NumberOfThreads)])
 
 class MiniDumpReservedStream1(vstruct.VStruct):
     '''

@@ -14,7 +14,7 @@ from PyQt5 import QtCore
 
 from vqt.main import idlethread
 from vqt.basics import VBox
-from vqt.common import ACT
+from vqt.common import ACT, DynamicDialog
 
 class ExampleToolbar(QToolBar):
     def __init__(self, vw, vwgui):
@@ -53,7 +53,7 @@ def vprint(vw, s, *args, **kwargs):
     print(s % args)
 
 
-def ctxMenuHook(vw, va, expr, menu, parent, nav):
+def ctxMenuHook(vw, va, expr, menu, parent, nav, tag=None):
     '''
     Context Menu handler (adds options as we wish)
     '''
@@ -88,7 +88,7 @@ class Crap:
         vprint(self.vw, '%r:  %r', ok, utext)
 
     def printDynUserInput(self):
-        dynd = vcmn.DynamicDialog('Test Dialog')
+        dynd = DynamicDialog('Test Dialog')
         dynd.addComboBox('testbox', ["a", 'b', 'c'], dfltidx=2)
         dynd.addTextField('foo', dflt="blah blah")
         dynd.addIntHexField('bar', dflt=47145)

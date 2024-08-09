@@ -146,15 +146,17 @@ class HotKeyMixin(object):
 
         target = self._vq_hotkeys.get(hotkey)
         if target is not None:
-            callback, args, kwargs = self._vq_hotkey_targets.get(target)
-            try:
-                cbret = callback(*args, **kwargs)
-                # if callback returns False, let the default behavior happen
-                if cbret == False:
-                    return False
-            except:
-                logger.warning("error in eatKeyPressEvent(%r, %r, %r)", event, args, kwargs)
-                logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
+            hktgt = self._vq_hotkey_targets.get(target)
+            if hktgt:
+                callback, args, kwargs = self._vq_hotkey_targets.get(target)
+                try:
+                    cbret = callback(*args, **kwargs)
+                    # if callback returns False, let the default behavior happen
+                    if cbret == False:
+                        return False
+                except:
+                    logger.warning("error in eatKeyPressEvent(%r, %r, %r)", event, args, kwargs)
+                    logger.debug(''.join(traceback.format_exception(*sys.exc_info())))
 
             event.accept()
             return True

@@ -49,6 +49,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self.addHotKey('ctrl+p', 'viv:preview:instr')
         self.addHotKey('B', 'viv:bookmark')
         self.addHotKey('ctrl+meta+J', 'viv:javascript')
+        self.addHotKey('P', 'viv:make:ptr:array')
 
         self.addHotKey('ctrl+1', 'viv:make:number:one')
         self.addHotKey('ctrl+2', 'viv:make:number:two')
@@ -117,7 +118,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         self._selectVa(loc[0])
 
     @vq_hotkey.hotkey('viv:nav:nextpage')
-    def _hotkey_nav_nextva(self):
+    def _hotkey_nav_nextpage(self):
         if self._canv_curva is None:
             return
 
@@ -125,7 +126,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
         return False
 
     @vq_hotkey.hotkey('viv:nav:prevpage')
-    def _hotkey_nav_prevva(self):
+    def _hotkey_nav_prevpage(self):
         if self._canv_curva is None:
             return
 
@@ -224,6 +225,16 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
 
             self.vw.makePointer(self._canv_curva)
 
+    @vq_hotkey.hotkey('viv:make:ptr:array')
+    def _hotkey_make_pointer_array(self):
+        if self._canv_curva is not None:
+            loctup = self.vw.getLocation(self._canv_curva)
+            if loctup is not None:
+                self.vw.vprint("Failed to make pointer array (at 0x%x) where something already exists: %r " % (va, self.reprLocation(loctup)))
+                return
+
+            self.vw.getVivGui().makePtrArray(self._canv_curva)
+
     @vq_hotkey.hotkey('viv:make:unicode')
     def _hotkey_make_unicode(self):
         if self._canv_curva is not None:
@@ -247,7 +258,7 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     @vq_hotkey.hotkey('viv:setname')
     def _hotkey_setname(self):
         if self._canv_curva is not None:
-            self.vw.getVivGui().setVaName(self._canv_curva, parent=self)
+            self.vw.getVivGui().setName(self._canv_curva, self._canv_curtag, parent=self)
 
     @vq_hotkey.hotkey('viv:bookmark')
     def _hotkey_bookmark(self):
@@ -400,9 +411,9 @@ class VQVivMemoryCanvas(VivCanvasBase):
         if self._canv_navcallback:
             self._canv_navcallback(expr)
 
-    def initMemWindowMenu(self, va, menu):
+    def initMemWindowMenu(self, va, tag, menu):
         nav = self.parent()  # our parent is always a VQVivMemoryWindow (nav target)
-        viv_q_ctxmenu.buildContextMenu(self.vw, va=va, menu=menu, nav=nav)
+        viv_q_ctxmenu.buildContextMenu(self.vw, va=va, menu=menu, nav=nav, tag=tag)
 
     def _loc_helper(self, va):
         '''
