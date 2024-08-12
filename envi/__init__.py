@@ -72,7 +72,7 @@ arch_defs = {
     
     ARCH_ARMV7:     {
         'name':     'arm',
-        'aliases':  ('armv6l', 'armv7l', 'a32', 'leg', 'leg32', 'armv7a', 'armv7'),
+        'aliases':  ('armv6l', 'armv7l', 'a32', 'leg', 'leg32'),
         'modpath':  ('envi', 'archs', 'arm'),
         'clsname':  'ArmModule',
         'version':  (1,0,0),
@@ -365,7 +365,6 @@ class ArchitectureModule:
     _default_call = None
     _plat_def_calls = {}
     def __init__(self, archname, maxinst=32, endian=ENDIAN_LSB):
-        print("archname: %r" %  archname)
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
@@ -1556,7 +1555,7 @@ def getArchByName(archname):
     '''
     Get the architecture constant by the humon name.
     '''
-    return arch_by_name_and_aliases.get(archname.lower())
+    return arch_by_name_and_aliases.get(archname)
 
 def getArchById(archid):
     '''
