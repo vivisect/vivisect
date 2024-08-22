@@ -49,7 +49,7 @@ defconfig = {
             },
             'codeflow':{
                 'strict':False,
-                'onelib':False,
+                'onelib':True,
                 'stopOnExports':False,
             }
         },
