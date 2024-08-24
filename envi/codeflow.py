@@ -5,9 +5,10 @@ import logging
 import collections
 
 import envi
+import envi.const as e_const
 import envi.common as e_cmn
 import envi.memory as e_mem
-import envi.const as e_const
+import envi.config as e_config
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,11 @@ class CodeFlowContext(object):
         NOTE: recurseBoundary is only checked when codeflow reaches a call
     OR!!!  STOP AT EXPORTS?!?
     '''
-    def __init__(self, mem, persist=False, exptable=True, recurse=True, **kwargs):
+    def __init__(self, mem, persist=False, exptable=True, recurse=True, config=None):
+
+        self.config = config
+        if config is None:
+            self.config = e_config.EnviConfig()
 
         self._funcs = {}
         self._fcalls = {}
@@ -55,9 +60,6 @@ class CodeFlowContext(object):
 
         self._cf_recurse = recurse
         
-        self._cf_onelib = kwargs.get('onelib', e_const.CF_RECURSE_NOSTOP)
-        self._cf_onelib = kwargs.get('strict', e_const.CF_RECURSE_NOSTOP)
-
         self._cf_exptable = exptable
         self._cf_blocks = []
         self._cf_startfile = None
