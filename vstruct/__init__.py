@@ -56,7 +56,7 @@ class MemObjFile:
         elif whence == os.SEEK_CUR:
             self.offset += offset
         elif whence == os.SEEK_END:
-            self.offset = self._end + offset    # this and getSize were written at different times.  may need to merge things a little.
+            self.offset = self._end + offset
 
     def flush(self):
         pass
