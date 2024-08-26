@@ -756,17 +756,14 @@ def p_dp_imm(opval, va):
     return (opcode, mnem, olist, iflags, 0)
 
 def p_undef(opval, va):
-    # FIXME: make this an actual opcode with the opval as an imm oper?
-    raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
     opcode = IENC_UNDEF
     mnem = "undefined instruction"
     olist = (
         ArmImmOper(opval),
     )
         
-    return (opcode, mnem, olist, 0, 0)
+    iflags = envi.IF_NOFALL
+    return (opcode, mnem, olist, iflags, 0)
 
 def p_dp_movw(opval, va):
     iflags = 0
