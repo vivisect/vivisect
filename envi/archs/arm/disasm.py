@@ -3337,6 +3337,9 @@ def _do_adv_simd_ldst_32(val, va, u):
     return opcode, mnem, opers, iflags, simdflags    # no iflags, only simdflags for this one
 
 def adv_simd_32(val, va):
+    if val == 0xffffffff:
+        return p_undef(val, va)
+
     u = (val>>24) & 1
     return _do_adv_simd_32(val, va, u)
 
