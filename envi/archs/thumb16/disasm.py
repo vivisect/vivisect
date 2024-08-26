@@ -1940,6 +1940,12 @@ def adv_simd_ldst_32(va, val1, val2):
 
 
 def adv_simd_32(va, val1, val2):
+    if val1 == 0xffff and val2 == 0xffff:   # skip this known-bad encoding
+        olist = (
+                ArmImmOper(0xffffffff),
+                )
+        return COND_AL, IENC_UNDEF, 'undefined', olist, envi.IF_NOFALL | IF_THUMB32, 0
+
     val = (val1 << 16) | val2
     u = (val1 >> 12) & 1
     opcode, mnem, opers, iflags, simdflags = _do_adv_simd_32(val, va, u)
