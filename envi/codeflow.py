@@ -330,11 +330,6 @@ class CodeFlowContext(object):
         va, info = self._mem.arch.archModifyFuncAddr(va, info)
         arch = info.get('arch', arch)
 
-        # Check if this is already a known function.
-        if self._funcs.get(va) is not None:
-            logger.debug("... skipping function 0x%x (arch: %x): already analyzed", va, arch)
-            return
-
         # addEntryPoint *is* the start of analysis
         self._cf_calling_va = va
 
