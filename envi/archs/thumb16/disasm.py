@@ -584,6 +584,12 @@ def i_imm5_rn(va, value):
     return COND_AL, (oper0, oper1,), None
 
 
+def i_imm6(va, value):
+    imm6 = shmaskval(value, 0, 0x3f)
+    oper0 = ArmImmOper(imm6, va=va)
+    return COND_AL, (oper0,), None
+
+
 def ldm16(va, value):
     raise Exception("32bit wrapping of 16bit instruction... and it's not implemented")
 
@@ -1944,7 +1950,9 @@ def adv_simd_32(va, val1, val2):
         olist = (
                 ArmImmOper(0xffffffff),
                 )
-        return COND_AL, IENC_UNDEF, 'undefined', olist, envi.IF_NOFALL | IF_THUMB32, 0
+        iflags = envi.IF_NOFALL | IF_THUMB32
+
+        return COND_AL, IENC_UNDEF, 'undefined', olist, iflags, 0
 
     val = (val1 << 16) | val2
     u = (val1 >> 12) & 1
@@ -2271,6 +2279,7 @@ thumb_base = [
     ('10111011',    (INS_CBNZ,  'cbnz',    i_imm5_rn,  envi.IF_COND | envi.IF_BRANCH)),
     ('1011101000',  (INS_REV,   'rev',     rm_rdn,     0)),  # REV Rd, Rn
     ('1011101001',  (INS_REV16, 'rev16',   rm_rdn,     0)),  # REV16 Rd, Rn
+    ('1011101010',  (INS_HLT,   'hlt',     i_imm6,     envi.IF_NOFALL)),  # HLT imm6
     ('1011101011',  (INS_REVSH, 'revsh',   rm_rdn,     0)),  # REVSH Rd, Rn
 
     ('101100000',   (INS_ADD, 'add',     sp_sp_imm7, 0)),  # ADD<c> SP,SP,#<imm>

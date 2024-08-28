@@ -757,7 +757,7 @@ def p_dp_imm(opval, va):
 
 def p_undef(opval, va):
     opcode = IENC_UNDEF
-    mnem = "undefined instruction"
+    mnem = "undefined"
     olist = (
         ArmImmOper(opval),
     )
@@ -1718,7 +1718,7 @@ def p_uncond(opval, va, psize = 4):
     if opval & 0x0f000000 == 0x0f000000:
         opcode = INS_UNDEF
         immval = opval & 0x00ffffff
-        return (opcode, 'undefined', (ArmImmOper(immval),), 0, 0)
+        return (opcode, 'undefined', (ArmImmOper(immval),), envi.IF_NOFALL, 0)
 
     optop = ( opval >> 26 ) & 0x3
     if optop == 0:
@@ -2316,21 +2316,21 @@ adv_simd_3_regs = (  # ABUC fields slammed together
         ('vcgt',        INS_VCGT, IFS_S8, None),
         ('vcgt',        INS_VCGT, IFS_S16, None),
         ('vcgt',        INS_VCGT, IFS_S32, None),
-        (None,          None, 0, None),
+        ('vcgt',        INS_VCGT, IFS_S64, None),
         ('vcgt',        INS_VCGT, IFS_U8, None),
         ('vcgt',        INS_VCGT, IFS_U16, None),
         ('vcgt',        INS_VCGT, IFS_U32, None),
-        (None,          None, 0, None),
+        ('vcgt',        INS_VCGT, IFS_U64, None),
 
         # a=0011 b=1
         ('vcge',        INS_VCGE, IFS_S8, None),
         ('vcge',        INS_VCGE, IFS_S16, None),
         ('vcge',        INS_VCGE, IFS_S32, None),
-        (None,          None, 0, None),
+        ('vcge',        INS_VCGE, IFS_S64, None),
         ('vcge',        INS_VCGE, IFS_U8, None),
         ('vcge',        INS_VCGE, IFS_U16, None),
         ('vcge',        INS_VCGE, IFS_U32, None),
-        (None,          None, 0, None),
+        ('vcge',        INS_VCGE, IFS_U64, None),
 
         # a=0100 b=0
         ('vshl',        INS_VSHL, IFS_S8, None),           # d, m, n, not d, n, m like all the others in this category
@@ -3367,9 +3367,9 @@ def _do_adv_simd_32(val, va, u):
 
     if not (a & 0x10):
         # three registers of the same length
-        a = (val>>8) & 0xf
-        b = (val>>4) & 1
-        c = (val>>20) & 3
+        a = (val>>8) & 0xf  # opc
+        b = (val>>4) & 1    # o1
+        c = (val>>20) & 3   # size
 
         index = c | (u<<2) | (b<<3) | (a<<4)
         mnem, opcode, simdflags, handler = adv_simd_3_regs[index]
