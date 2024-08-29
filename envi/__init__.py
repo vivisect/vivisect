@@ -183,7 +183,7 @@ arch_defs = {
         'aliases':  ('ppc32',),
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc32EmbeddedModule',
-        'disabled': True,
+        'disabled': False,
         'version':  (1,0,0),
         'has_disasm':   True,
         'has_emu':      True,
@@ -196,7 +196,7 @@ arch_defs = {
         'aliases':  ('ppc64-embedded','ppc-spe'),
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc64EmbeddedModule',
-        'disabled': True,
+        'disabled': False,
         'version':  (1,0,0),
         'has_disasm':   True,
         'has_emu':      True,
@@ -209,7 +209,7 @@ arch_defs = {
         'modpath':  ('envi', 'archs', 'ppc32-server', 'Module'),
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc32ServerModule',
-        'disabled': True,
+        'disabled': False,
         'version':  (0,9,0),
         'has_disasm':   True,
         'has_emu':      True,
@@ -222,7 +222,7 @@ arch_defs = {
         'aliases':  ('ppc64-server','altivec', 'ppc-altivec'),
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc64ServerModule',
-        'disabled': True,
+        'disabled': False,
         'version':  (0,9,0),
         'has_disasm':   True,
         'has_emu':      True,
@@ -235,7 +235,7 @@ arch_defs = {
         'aliases':  ('vle','ppc32-vle', 'ppcvle'),
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'PpcVleModule',
-        'disabled': True,
+        'disabled': False,
         'version':  (1,0,0),
         'has_disasm':   True,
         'has_emu':      True,
@@ -247,7 +247,7 @@ arch_defs = {
         'name':     'ppc-desktop',
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'PpcDesktopModule',
-        'disabled': True,
+        'disabled': False,
         'version':  (0,5,0),
         'has_disasm':   True,
         'has_emu':      True,
@@ -551,6 +551,13 @@ class ArchitectureModule:
     def archGetPointerAlignment(self):
         return 1
 
+    def archMarkupVW(self, vw):
+        """
+        Allow an architecture to make changes to the workspace based on it's
+        own needs. For example adding arch-specific VaSets.
+        """
+        pass
+
 def stealArchMethods(obj, archname):
     '''
     Used by objects which are expected to inherit from an
@@ -842,6 +849,9 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         # by finding all methods starting with i_ and assume they
         # implement an instruction by mnemonic
         self.op_methods = {}
+        self._populateOpMethods()
+
+    def _populateOpMethods(self):
         for name in dir(self):
             if name.startswith("i_"):
                 self.op_methods[name[2:]] = getattr(self, name)
@@ -1127,7 +1137,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Do the core of integer addition but only *return* the
         resulting value rather than assigning it.
 
-        Architectures shouldn't have to override this as operand order 
+        Architectures shouldn't have to override this as operand order
         doesn't matter
         """
         src = self.getOperValue(op, 0)

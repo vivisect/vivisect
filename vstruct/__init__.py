@@ -500,6 +500,9 @@ class VArray(VStruct):
     def __getitem__(self, index):
         return self.vsGetField("%d" % index)
 
+    def __setitem__(self, index, valu):
+        return self.vsSetField("%d" % index, valu)
+
     #FIXME slice asignment
 
 class VUnion(VStruct):
