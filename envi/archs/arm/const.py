@@ -415,6 +415,7 @@ instrnames = [
         'MOV',
         'BIC',
         'MVN',
+        'HLT',
         'ORN',
         'ADR',
         'B',
