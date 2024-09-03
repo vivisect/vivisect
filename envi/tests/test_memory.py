@@ -64,4 +64,18 @@ class EnviMemoryTest(unittest.TestCase):
         with self.assertRaises(e_exc.NoValidFreeMemoryFound):
             failmap = mem.allocateMemory(0x100000)
 
+    def test_readMemString(self):
+        mem = e_mem.MemoryObject()
+        mem.addMemoryMap(0x41410000, e_const.MM_RWX, 'test', b'\0'*1024)
+        mem.addMemoryMap(0x41420000, e_const.MM_RWX, 'test', b'abcdefghijklmnop\0' + b'\0'*1024)
+        mem.addMemoryMap(0x41430000, e_const.MM_RWX, 'test', b'a\0b\0c\0d\0e\0f\0g\0h\0i\0j\0k\0l\0m\0n\0o\0p\0' + b'\0'*1024)
+
+        self.assertEqual(mem.readMemString(0x41410000), b'')
+        self.assertEqual(mem.readMemString(0x41420000), b'abcdefghijklmnop')
+        self.assertEqual(mem.readMemString(0x41430000), b'a')
+
+        self.assertEqual(mem.readMemString(0x41410000, wide=True), b'',)
+        self.assertEqual(mem.readMemString(0x41420000, wide=True), b'abcdefghijklmnop') # only looks for '\0\0' terminator
+        self.assertEqual(mem.readMemString(0x41430000, wide=True), b'a\0b\0c\0d\0e\0f\0g\0h\0i\0j\0k\0l\0m\0n\0o\0p\0')
+
 
