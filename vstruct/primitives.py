@@ -234,11 +234,11 @@ class v_number(v_prim):
     def __int__(self):
         return int(self._vs_value)
 
-    def __str__(self):
+    def __repr__(self):
         v = self.vsGetValue()
         if self._vs_enum is not None:
-            return str(self._vs_enum.vsReverseMapping(v, default=str(v)))
-        return str(v)
+            return hex(self._vs_enum.vsReverseMapping(v, default=hex(v)))
+        return "0x%x   (%d)" % (v, v)
 
     ##################################################################
     # Implement the number API
