@@ -2,6 +2,84 @@
 Vivisect Changelog
 ******************
 
+V1.2.0 - 2024-07-15
+===================
+Features
+--------
+- Various vtrace improvements.
+  (`#406 <https://github.com/vivisect/vivisect/pull/406>`_)
+- Defer emucode analysis pass until after pointertables analysis.
+  (`#561 <https://github.com/vivisect/vivisect/pull/561>`_)
+- Add API accessible architecture maturity information.
+  (`#588 <https://github.com/vivisect/vivisect/pull/588>`_)
+- Open xrefs and menu items in a new memory view or function graph.
+  (`#600 <https://github.com/vivisect/vivisect/pull/600>`_)
+- Step in the same memory map and fix saving to a file.
+  (`#608 <https://github.com/vivisect/vivisect/pull/608>`_)
+- Allow readMemStringto handle Wide Strings.
+  (`#609 <https://github.com/vivisect/vivisect/pull/609>`_)
+- Cobra dcode upgrades.
+  (`#610 <https://github.com/vivisect/vivisect/pull/610>`_)
+- Various VivServer enhancements.
+  (`#615 <https://github.com/vivisect/vivisect/pull/615>`_)
+- Add a pretty printer for PE files.
+  (`#620 <https://github.com/vivisect/vivisect/pull/620>`_)
+- Propagate symbolik translator down into calling conventions to ease performance issues.
+  (`#621 <https://github.com/vivisect/vivisect/pull/621>`_)
+- Deal with uninitialized data sections in PE files.
+  (`#622 <https://github.com/vivisect/vivisect/pull/622>`_)
+- Validate Extensions loaded via vivExtension/vdbExtension.
+  (`#624 <https://github.com/vivisect/vivisect/pull/624>`_)
+- Parse Threads structure from MiniDumpThreadListStream.
+  (`#625 <https://github.com/vivisect/vivisect/pull/625>`_)
+- Performance improvement for vstruct emitting of IHEX and SREC files.
+  (`#627 <https://github.com/vivisect/vivisect/pull/627>`_)
+- LEG architecture Aliases.
+  (`#628 <https://github.com/vivisect/vivisect/pull/628>`_)
+- Migrate to pyproject.toml and update CI and dependencies.
+  (`#629 <https://github.com/vivisect/vivisect/pull/629>`_)
+- Add a default name for locations.
+  (`#630 <https://github.com/vivisect/vivisect/pull/630>`_)
+- Arm improvements.
+  (`#631 <https://github.com/vivisect/vivisect/pull/631>`_)
+- Propagate endianness down through the workspace and memory objects.
+  (`#632 <https://github.com/vivisect/vivisect/pull/632>`_)
+- Large performance improvement for function graph drawing.
+  (`#636 <https://github.com/vivisect/vivisect/pull/636>`_)
+- Add ability to make pointer arrays via the UI and API.
+  (`#637 <https://github.com/vivisect/vivisect/pull/637>`_)
+- Add a default view for the UI.
+  (`#643 <https://github.com/vivisect/vivisect/pull/643>`_)
+- Various VivServer enhancements.
+  (`#645 <https://github.com/vivisect/vivisect/pull/645>`_)
+- Tag tracking in function graph and memory views in the UI..
+  (`#646 <https://github.com/vivisect/vivisect/pull/646>`_)
+- RenderMemory on MemoryView Window load/restore.
+  (`#647 <https://github.com/vivisect/vivisect/pull/647>`_)
+- Save and Restore History for memory windows and function graphs.
+  (`#648 <https://github.com/vivisect/vivisect/pull/648>`_)
+- Add a vstruct parser for LNK/Microsoft shortcut files.
+  (`#649 <https://github.com/vivisect/vivisect/pull/649>`_)
+
+Fixes
+-----
+- Fix usage of super keyword in a pair of classes.
+  (`#613 <https://github.com/vivisect/vivisect/pull/613>`_)
+- Fix up/down in memory view.
+  (`#614 <https://github.com/vivisect/vivisect/pull/614>`_)
+- SymbolResolver bugfix for Windows.
+  (`#617 <https://github.com/vivisect/vivisect/pull/617>`_)
+- Fix name of Minidump MemoryDescriptor range start.
+  (`#626 <https://github.com/vivisect/vivisect/pull/626>`_)
+- Descend into thunk_reg functions to avoid some infinite recursion issues.
+  (`#634 <https://github.com/vivisect/vivisect/pull/634>`_)
+- Add in missing IHEX_REC_STARTLINADDR check.
+  (`#638 <https://github.com/vivisect/vivisect/pull/638>`_)
+- Fix PE repr method when printing PE resources.
+  (`#641 <https://github.com/vivisect/vivisect/pull/641>`_)
+- Fix pyproject.toml for local installs.
+  (`#642 <https://github.com/vivisect/vivisect/pull/642>`_)
+
 V1.1.1 - 2023-04-07
 ===================
 Features

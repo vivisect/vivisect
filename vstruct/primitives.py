@@ -500,6 +500,7 @@ class v_float(v_prim):
 
     def __int__(self):
         return int(self._vs_value)
+
     def __float__(self):
         return float(self._vs_value)
 
