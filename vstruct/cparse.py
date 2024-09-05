@@ -282,21 +282,29 @@ def clean_code(code, comments=True, macros=False):
                 lines[i] = ''
                 in_macro = l.endswith('\\')
         code = '\n'.join(lines)
+        # TODO:  Parse and Apply macros
 
     if comments:
         idx = 0
         comment_start = None
         while idx < len(code)-1:
-            if comment_start is None and code[idx:idx+2] == '//':
-                end_idx = code.find('\n', idx)
-                code = code[:idx]+code[end_idx:]
-                idx -= end_idx - idx
-            elif comment_start is None and code[idx:idx+2] == '/*':
-                comment_start = idx
-            elif comment_start is not None and code[idx:idx+2] == '*/':
-                code = code[:comment_start]+'\n'*code[comment_start:idx].count('\n')+code[idx+2:]
-                idx -= idx - comment_start
-                comment_start = None
+            if comment_start is None:
+                if code[idx:idx+2] == '//':
+                    end_idx = code.find('\n', idx)
+                    if end_idx == -1:
+                        code = code[:idx]
+                    else:
+                        code = code[:idx]+code[end_idx:]
+                        idx -= end_idx - idx
+
+                elif code[idx:idx+2] == '/*':
+                    comment_start = idx
+
+            else:
+                if code[idx:idx+2] == '*/':
+                    code = code[:comment_start]+'\n'*code[comment_start:idx].count('\n')+code[idx+2:]
+                    idx -= idx - comment_start
+                    comment_start = None
             idx += 1
 
     return code
