@@ -680,6 +680,19 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def getEndian(self):
         return self.bigend
 
+    def notifyLoadEvent(self):
+        '''
+        There are a couple components required before we the "load event" is
+        complete.  Each component calls this function, and based on the state
+        of other components, the _load_event is set
+        '''
+        if self.getMeta('Architecture') is None:
+            return
+
+        if self.getMeta('Platform') is None:
+            return
+
+        self._load_event.set()
 
 #################################################################
 #
@@ -705,7 +718,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
-        self._load_event.set()
+        self.notifyLoadEvent()
 
     def _mcb_bigend(self, name, value):
         self.setEndian(bool(value))
@@ -718,7 +731,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
-        self._load_event.set()
+        self.notifyLoadEvent()
 
     def _mcb_FileBytes(self, name, value):
         if not self.parsedbin:
