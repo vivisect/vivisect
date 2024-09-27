@@ -21,24 +21,37 @@ def evaluate(pycode, locvars):
     try:
         val = eval(pycode, {}, locvars)
     except Exception:
-        try:
-            # check through the keys for anything we might want to replace
-            keys = list(locvars.keys())
+        # help handle names with () as in C++ function names
+        if '(' in pycode and ')' in pycode:
+            try:
+                # check through the keys for anything we might want to replace
+                keys = list(locvars.keys())
 
-            # sort the keys in reverse order so that longer matching strings take priority
-            keys.sort(reverse=True)
+                # sort the keys in reverse order so that longer matching strings take priority
+                keys.sort(reverse=True)
 
-            # replace the substrings with the string versions of the lookup value
-            for key in keys:
-                if key in pycode:
-                    pval = locvars[key]
-                    pycode = pycode.replace(key, str(pval))
+                # replace the substrings with the string versions of the lookup value
+                for key in keys:
+                    if key in pycode:
+                        pval = locvars[key]
+                        startidx = pycode.find(key)
+                        endidx = startidx + len(key)
 
-            val = eval(pycode, {}, locvars)
+                        # make sure this is a "token" not part of another token
+                        if startidx != 0 and pycode[startidx-1:startidx].isalnum():
+                            continue
+                        if endidx != len(pycode) and pycode[endidx:endidx+1].isalnum():
+                            continue
 
-        except Exception as e:
+                        pycode = pycode.replace(key, str(pval))
+
+                val = eval(pycode, {}, locvars)
+
+            except Exception as e:
+                raise ExpressionFail(pycode, e)
+
+        else:
             raise ExpressionFail(pycode, e)
-
     return val
 
 
