@@ -2,6 +2,31 @@
 Vivisect Changelog
 ******************
 
+V1.2.1 - 2024-07-24
+===================
+Fixes
+-----
+- Fix an off by one issue in the LNK parser.
+  (`#655 <https://github.com/vivisect/vivisect/pull/655>`_)
+- Fix Callgraph initialization and UI rendering
+  (`#657 <https://github.com/vivisect/vivisect/pull/657>`_)
+- Fix an issue in readMemString where the last null byte of a wide string should be considered part of the terminator.
+  (`#663 <https://github.com/vivisect/vivisect/pull/663>`_)
+- Add a missing ARM alias.
+  (`#667 <https://github.com/vivisect/vivisect/pull/667>`_)
+- Fix default ARM arch name.
+  (`#668 <https://github.com/vivisect/vivisect/pull/668>`_)
+
+Devops
+------
+- Update to large resource class in CI configuration.
+  (`#526 <https://github.com/vivisect/vivisect/pull/526>`_)
+
+Documentation
+-------------
+- Fix the readthedocs build.
+  (`#654 <https://github.com/vivisect/vivisect/pull/654>`_)
+
 V1.2.0 - 2024-07-15
 ===================
 Features
