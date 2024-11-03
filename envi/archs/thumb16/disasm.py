@@ -2469,9 +2469,15 @@ thumb2_extension = [
     ('11110000010',         (INS_ORR, 'orr',      dp_mod_imm_32,      IF_THUMB32)),
     ('11110000011',         (INS_ORN, 'orn',
                              dp_mod_imm_32,      IF_THUMB32)),  # mvn if rn=1111
+    ('11110000101',         (INS_BL, 'bl',
+                             branch_misc,        IF_THUMB32)),    # necessary
     # teq if rd=1111 and s=1
     ('11110000100',         (INS_EOR, 'eor',      dp_mod_imm_32,      IF_THUMB32)),
+    ('11110000101',         (INS_BL, 'bl',
+                             branch_misc,        IF_THUMB32)),    # necessary
     ('11110000110',         (INS_BLX, 'blx',
+                             branch_misc,        IF_THUMB32)),    # necessary
+    ('11110000111',         (INS_BL, 'bl',
                              branch_misc,        IF_THUMB32)),    # necessary
     # cmn if rd=1111 and s=1
     ('11110001000',         (INS_ADD, 'add',      dp_mod_imm_32,      IF_THUMB32)),
