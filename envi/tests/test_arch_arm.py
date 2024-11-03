@@ -31,9 +31,9 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS_ALL = 6125
+GOOD_TESTS_ALL = 6130
 GOOD_TESTS_THUMB = 8849
-GOOD_EMU_TESTS = 1205
+GOOD_EMU_TESTS = 1208
 GOOD_EMU_THUMB = 8776
 
 
@@ -145,6 +145,10 @@ global_instrs = [
         (REV_ALL_ARM, '22209ae7', 0xbfb00000, 'ldr r2, [r10, r2, lsr #32]', 0, ()),
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
+
+        (REV_ALL_ARM, 'ffffffff', 0xbfb00000, 'undefined #0xffffff', IF_NOFALL, ()),
+        (REV_ALL_ARM, 'aaba', 0x4561, 'hlt #0x2a', IF_NOFALL, ()),
+
         (REV_ALL_ARM, '674503e0', 0x4560, 'and r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '674513e0', 0x4560, 'ands r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '674523e0', 0x4560, 'eor r4, r3, r7, ror #10', 0, ()),
@@ -176,6 +180,9 @@ global_instrs = [
         (REV_ALL_ARM, '774523e0', 0x4560, 'eor r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774533e0', 0x4560, 'eors r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774543e0', 0x4560, 'sub r4, r3, r7, ror r5', 0, ()),
+        (REV_ALL_ARM, '774553e0', 0x4560, 'subs r4, r3, r7, ror r5', 0, ()),
+        (REV_ALL_ARM, '774563e0', 0x4560, 'rsb r4, r3, r7, ror r5', 0, ()),
+        (REV_ALL_ARM, '774573e0', 0x4560, 'rsbs r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774553e0', 0x4560, 'subs r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774563e0', 0x4560, 'rsb r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774573e0', 0x4560, 'rsbs r4, r3, r7, ror r5', 0, ()),
