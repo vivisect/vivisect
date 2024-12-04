@@ -9,9 +9,13 @@ import envi.exc as e_exc
 import envi.const as e_const
 import envi.memcanvas as e_mcanvas
 
+import vstruct
+import vstruct.primitives as v_prim
+
 import vivisect
 import vivisect.exc as v_exc
 import vivisect.const as v_const
+import vivisect.renderers as v_rend
 import vivisect.tools.graphutil as v_t_graphutil
 
 import vivisect.tests.helpers as helpers
@@ -1631,3 +1635,22 @@ class VivisectTest(v_t_utils.VivTest):
 
             with vw.getAdminRights():
                 vw.writeMemory(base, oldmem)
+
+    def test_render_vstruct(self):
+        vw = vivisect.VivWorkspace()
+        canvas = e_mcanvas.StringMemoryCanvas(vw)
+
+        struct = vstruct.VStruct()
+        struct.foo = v_prim.v_number(55)
+
+        structcmp = '''.dynsym:0x000099e0  Elf32Symbol: 
+.dynsym:0x000099e0    st_name:     0x5ba   (1466)
+.dynsym:0x000099e4    st_value:    0x21769   (137065)
+.dynsym:0x000099e8    st_size:     0x6c   (108)
+.dynsym:0x000099ec    st_info:     0x12   (18)
+.dynsym:0x000099ed    st_other:    0x0   (0)
+.dynsym:0x000099ee    st_shndx:    0xb   (11)
+'''
+        wsr = v_rend.WorkspaceRenderer(self.sh_vw)
+        wsr.renderLocation(canvas, 0x000099e0)
+        self.assertEqual(canvas.strval, structcmp)

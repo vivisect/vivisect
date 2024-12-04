@@ -237,7 +237,7 @@ class v_number(v_prim):
     def __repr__(self):
         v = self.vsGetValue()
         if self._vs_enum is not None:
-            return hex(self._vs_enum.vsReverseMapping(v, default=hex(v)))
+            return str(self._vs_enum.vsReverseMapping(v, default=hex(v)))
         return "0x%x   (%d)" % (v, v)
 
     ##################################################################
