@@ -20,14 +20,15 @@ Send bug reports to rakuyo or at1as in the issue tracker
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import io
 import logging
+import envi.bits as e_bits
 
 from stat import *
 from Elf.elf_lookup import *
 import vstruct
 import vstruct.defs.elf as vs_elf
+import vstruct.primitives as vs_prim
 
 logger = logging.getLogger(__name__)
-
 HAS_STRING = [DT_NEEDED, DT_SONAME]
 
 class Elf(vs_elf.Elf32, vs_elf.Elf64):
@@ -98,6 +99,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.symbols_by_addr = {}
         self.dynamics = []      # deprecated - 2019-10-21
         self.dynamic_symbols = []
+
+
         self.dynstrtabmeta = (None, None)
         self.dynstrtab = []
         self.dynsymtabct = None     # populated by _parseDynStrs()
@@ -126,7 +129,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self._parseDynamicsFromSections()
         except Exception as e:
             logger.warning("Exception parsing Dynamics from Sections: %r" % e, exc_info=1)
-
 
         # load symbols and relocs from DYNAMICS
         try:
