@@ -21,8 +21,9 @@ import collections
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
-import envi.common as e_common
 import envi.memory as e_mem
+import envi.const as e_const
+import envi.common as e_common
 import envi.config as e_config
 import envi.bytesig as e_bytesig
 import envi.symstore.resolver as e_resolv
@@ -182,7 +183,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('EmucodeFunctions', (('va', VASET_ADDRESS),))
         self.addVaSet('FuncWrappers', (('va', VASET_ADDRESS), ('wrapped_va', VASET_ADDRESS),))
         self.addVaSet('thunk_reg', ( ('fva', VASET_ADDRESS), ('reg', VASET_STRING), ('tgtval', VASET_INTEGER)) )
-        self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING), 
+        self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING),
                 ('resolved address', VASET_ADDRESS)))
 
     def vprint(self, msg):
@@ -355,6 +356,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if dl is None:
             return []
         return list(dl)
+
+    def setEndian(self, endian):
+        '''
+        Set the Endianness for the workspace from this point on.
+        '''
+        self._fireEvent(VWE_ENDIAN, endian)
 
     def setComment(self, va, comment, check=False):
         '''
@@ -782,10 +789,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
 
         elif ltype == LOC_STRING:
+            logger.debug("followPointer->makeString(0x%x)", va)
             self.makeString(va)
             return True
 
         elif ltype == LOC_UNI:
+            logger.debug("followPointer->makeUnicode(0x%x)", va)
             self.makeUnicode(va)
             return True
 
@@ -963,6 +972,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         size = self.psize
 
         for mva, msize, mperm, mname in self.getMemoryMaps():
+
+            if mperm & e_const.MM_UNINIT:
+                continue
 
             offset, bytes = self.getByteDef(mva)
             maxsize = len(bytes) - size
@@ -1384,6 +1396,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.addXref(va, tova, REF_DATA)
                 ptrdest = None
                 if self.getLocation(tova) is None:
+                    logger.debug('makeOpcode(0x%x)->makePointer(0x%x)', va, tova)
                     ptrdest = self.makePointer(tova, follow=False)
 
                 # If the actual dest is executable, make a code ref fixup
@@ -1512,6 +1525,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return self.getFunctionMeta(funcva, 'Thunk') is not None
         except InvalidFunction:
             return False
+
+    def isFunctionThunkReg(self, fva):
+        '''
+        Returns True if fva is a thunk we've identified as being
+        something of the form of __x86.get_pc_thunk.bx
+        '''
+        return self.getVaSetRow('thunk_reg', fva) is not None
 
     def getFunctions(self):
         """
@@ -1727,7 +1747,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         If basename is provided, that name is used to create the Vivisect name for the thunk.
         If basename is not provided, thname is chopped and used for the Vivisect name.
-        This difference allows, for example, the Elf loader to make PLT functions named "plt_<foo>" 
+        This difference allows, for example, the Elf loader to make PLT functions named "plt_<foo>"
         but still use the official thunk name "*.<foo>".  This thunk name is used to look up
         the import api.  These "*.<foo>" thunk names are also used in the addNoReturnApi().
 
@@ -2100,7 +2120,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if tova is None:
             tova = self.castPointer(va)
 
-        self.addXref(va, tova, REF_PTR)
+        self.addXref(va, tova, REF_PTR, rflags=0)
 
         ploc = self.addLocation(va, psize, LOC_POINTER)
 
@@ -2108,6 +2128,52 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.followPointer(tova)
 
         return ploc
+
+    def makePointerArray(self, startva, stopva=None, count=None, break_on_bad=True):
+        '''
+        Create a group of sequential pointers in the workspace (and follow/analyze)
+        Continues to create pointers until:
+        * if count != None, ends when we reach the correct number of pointers
+        * or if stopva != None, ends when we reach endva (not including it as a pointer)
+        * if we run into another location, quit
+        * if we run into an invalid pointer, bad
+
+        if "bad", and break_on_bad==True, stop
+        '''
+        psize = self.psize
+        if count:
+            stopva = startva + (psize * count)
+
+        if stopva is None:
+            stopva = 0
+
+        for tva in range(startva, stopva, psize):
+            try:
+                bad = False
+                ptr = self.readMemoryPtr(tva)
+
+                if not self.isValidPointer(ptr):
+                    bad = True
+
+                for x in range(psize):
+                    if self.getLocation(tva + x) is not None:
+                        bad = True
+                        break
+
+                if bad:
+                    self.vprint("bad: 0x%x  -> 0x%x" % (tva, ptr))
+                    if break_on_bad:
+                        break
+                    continue
+
+                self.vprint("pointer: 0x%x  -> 0x%x" % (tva, ptr))
+                self.makePointer(tva)
+
+            except:
+                logger.warning("Exception analyzing pointer: 0x%x", tva, exc_info=1)
+
+        return count
+
 
     def makePad(self, va, size):
         """
@@ -3188,10 +3254,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         fname = self.getFileByVa(va)
         vastr = '_%.8x' % va
 
-        if name.startswith(fname + '.'):
-            fpart, npart = name.split('.', 1)
-        elif name.startswith('*.'):
-            skip, npart = name.split('.', 1)
+        if fname is not None:
+            if name.startswith(fname + '.'):
+                fpart, npart = name.split('.', 1)
+            elif name.startswith('*.'):
+                skip, npart = name.split('.', 1)
+        else:
+            logger.warning("_getNameParts(%r): fname is None (and shouldn't be)", name)
 
         if npart.endswith(vastr) and not npart == 'sub' + vastr:
             npart, vapart = npart.rsplit('_', 1)
@@ -3288,6 +3357,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 1, 1)
+version = (1, 2, 1)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

@@ -288,6 +288,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             mapflags |= e_const.MM_EXEC
         if chars & PE.IMAGE_SCN_CNT_CODE:
             mapflags |= e_const.MM_EXEC
+        if chars & PE.IMAGE_SCN_CNT_UNINITIALIZED_DATA:
+            mapflags |= e_const.MM_UNINIT
 
         secrva = sec.VirtualAddress
         secvsize = sec.VirtualSize
