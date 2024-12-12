@@ -2844,15 +2844,15 @@ adv_simd_2regs_misc = (
         (None,  0, 0, 0,0, 0),
         (None,  0, 0, 0,0, 0),
         # a=11 b=000xx
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
+        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 0,0, 0), # , #0
+        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 1,1, 0), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_S8, 0,0, 0), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_S8, 1,1, 0), # , #0
         # a=11 b=001xx
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
+        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 0,0, 0), # , #0
+        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 1,1, 0), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_I8, 0,0, 0), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_I8, 1,1, 0), # , #0
         # a=11 b=010xx
         (None,  0, 0, 0,0, 0),
         (None,  0, 0, 0,0, 0),
