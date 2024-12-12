@@ -31,7 +31,7 @@ from envi.tests.armthumb_tests import advsimdtests
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS_ALL = 6142
+GOOD_TESTS_ALL = 6144
 GOOD_TESTS_THUMB = 8849
 GOOD_EMU_TESTS = 1208
 GOOD_EMU_THUMB = 8776
