@@ -5,7 +5,7 @@ import vstruct.primitives as v_prim
 import vivisect.renderers as v_rend
 import vivisect.tests.utils as v_t_utils
 
-class VivisectTest(v_t_utils.VivTest):
+class VivisectVstructTest(v_t_utils.VivTest):
 
     def test_render_vstruct(self):
         structcmp = '''.dynsym:0x000099e0  Elf32Symbol: 
