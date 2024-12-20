@@ -1,11 +1,9 @@
 '''
 Stuff still to do:
-* Still don't support macros
+* Support for macros (mostly a v5 thing)
+    * I'll worry about this when I can actually find something real that generates it. So far I can't find anything
 * need to plumb this into the event stream
 '''
-
-
-import sys
 import logging
 
 import Elf
@@ -13,9 +11,9 @@ import envi.bits as e_bits
 import vivisect.exc as v_exc
 
 import vstruct
-import vstruct.primitives as vs_prim
+import vstruct.primitives as v_s_prim
 
-from vstruct.defs.dwarf import *
+import vstruct.defs.dwarf as v_d_dwarf
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +27,7 @@ class LineStateMachine:
     opcode, and the possibly a set of special opcodes that I'm not going to
     currently support for a POC
     '''
-    def __init__(self, byts, header, bigend=False):
+    def __init__(self, byts, offset, header, bigend=False):
         '''
         * header
             - Type: Dwarf32UnitLineHeader or Dwarf64UnitLineHeader
@@ -39,7 +37,8 @@ class LineStateMachine:
         self.header = header
         self.consumed = 0
         self.bigend = bigend
-        self.byts = byts
+        self.byts = byts[offset:]
+        self.offset = offset
 
         # don't mess with the order here
         self.funcs = [
@@ -70,13 +69,15 @@ class LineStateMachine:
 
         self._reset_registers()
 
+        self._reg_address = offset
+
     def _reset_registers(self):
         self._reg_address = 0  # pc
         self._reg_op_index = 0
         self._reg_file = 1  # indicates the index of the file
         self._reg_line = 1
         self._reg_column = 0  # begins at 1
-        self._reg_is_stmt = False  # TODO: This is determined by the header actually
+        self._reg_is_stmt = False   # TODO: This is determined by the header actually
         self._reg_basic_block = False
         self._reg_end_sequence = False
         self._reg_prologue_end = False
@@ -102,7 +103,7 @@ class LineStateMachine:
 
     def _op_special(self, opcode):
         '''
-        See pages  116-117 in DWARFv4 standard for the full formulas and procedures here
+        See pages 116-117 in DWARFv4 standard for the full formulas and procedures here
         '''
         adjusted = opcode - self.header.opcode_base
         adv = adjusted // self.header.line_range
@@ -124,13 +125,14 @@ class LineStateMachine:
         self._reg_epilogue_begin = False
 
     def _op_extended(self):
-        oplen, con = leb128ToInt(self.byts[self.consumed:], signed=False)
+        oplen, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:], signed=False)
         self.consumed += con
 
         opcode = self.byts[self.consumed]
         self.consumed += 1
         if opcode > len(self.extended_funcs):
-            breakpoint()
+            # breakpoint()
+            pass
 
         self.extended_funcs[opcode](oplen - 1)
 
@@ -148,7 +150,7 @@ class LineStateMachine:
         # modified address and op_indx according to the same stuff
         # as a special opcode, except the parameter is unsigned leb128
         # that acts as the operation advance
-        adv, con = leb128ToInt(self.byts[self.consumed:])
+        adv, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:])
         self.consumed += con
 
         addr_add = self.header.min_instr_len * ((self._reg_op_index + adv) // self.header.max_ops_per_instr)
@@ -158,17 +160,17 @@ class LineStateMachine:
         self._reg_op_index = opidx
 
     def _op_advance_line(self):
-        adv, con = leb128ToInt(self.byts[self.consumed:], signed=True)
+        adv, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:], signed=True)
         self.consumed += con
         self._reg_line += adv
 
     def _op_set_file(self):
-        fidx, con = leb128ToInt(self.byts[self.consumed:])
+        fidx, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:])
         self.consumed += con
         self._reg_file = fidx
 
     def _op_set_column(self):
-        column, con = leb128ToInt(self.byts[self.consumed:])
+        column, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:])
         self.consumed += con
         self._reg_column = column
 
@@ -202,12 +204,12 @@ class LineStateMachine:
         self._reg_epilogue_begin = True
 
     def _op_set_isa(self):
-        isa, con = leb128ToInt(self.byts[self.consumed:])
+        isa, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:])
         self.consumed += con
         self._reg_isa = isa
 
     def _op_ext_end_sequence(self, blen):
-        breakpoint()
+        self.matrix.append(self.serializeRegisters())
         self._reset_registers()
         self._reg_end_sequence = True
 
@@ -219,22 +221,22 @@ class LineStateMachine:
     def _op_ext_define_file(self, blen):
         # TODO: Should this emit some debug info? Or is it *literally* just
         # defining a file?
-        breakpoint()
-        srcfile = v_str(val=self.byts[self.consumed:])
+        # this is deprecated in dwarf V5 btw
+        srcfile = v_s_prim.v_str(val=self.byts[self.consumed:])
         srcfile.vsSetLength(len(srcfile) + 1)
         self.consumed += len(srcfile)
 
-        diridx, con = leb128ToInt(self.byts[self.consumed:])
+        diridx, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:])
         self.consumed += con
 
-        modtime, con = leb128ToInt(self.byts[self.consumed:])
+        modtime, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:])
         self.consumed += con
 
-        filelen, con = leb128ToInt(self.byts[self.consumed:])
+        filelen, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:])
         self.consumed += con
 
     def _op_ext_set_discriminator(self, blen):
-        dis, con = leb128ToInt(self.byts[self.consumed:])
+        dis, con = v_d_dwarf.leb128ToInt(self.byts[self.consumed:])
         self.consumed += con
         self._reg_discriminator = dis
 
@@ -248,11 +250,11 @@ class LineStateMachine:
         go into the even stream
         '''
         opbase = self.header.opcode_base
-        oplen = len(self.funcs)
-        while True:
+        # oplen = len(self.funcs)
+        while self.consumed < len(self.byts):
             byt = self.byts[self.consumed]
+            print('%.8x -- 0x%.8x -- %d' % (self.offset + self.consumed, self._reg_address, self._reg_line))
             self.consumed += 1
-            print("Opcode -- %d" % byt)
             if byt >= opbase:
                 yield self._op_special(byt)
                 continue
@@ -278,31 +280,35 @@ class DwarfInfo:
                     self.secmap[name.decode('utf-8')] = sec
         self.is64BitDwarf = False
         self.abbrev = self._parseDebugAbbrev()
-        self.info = self._parseDebugInfo()
+        try:
+            self.info = self._parseDebugInfo()
+        except:
+            import pdb, sys
+            pdb.post_mortem(sys.exc_info()[2])
         self.line = self._parseDebugLine()
 
     def getSectionBytes(self, name):
         if isinstance(self.pbin, Elf.Elf):
             return self.pbin.getSectionBytes(name)
-        else:
-            sec = self.secmap.get(name)
-            if not sec:
-                logger.warning('Could not find bytes for section %s', name)
-                return None
-            return self.pbin.readAtRva(sec.VirtualAddress, sec.VirtualSize)
 
-    def _getDebugString(self, offset, use_utf8=False):
+        sec = self.secmap.get(name)
+        if not sec:
+            logger.warning('Could not find bytes for section %s', name)
+            return None
+        return self.pbin.readAtRva(sec.VirtualAddress, sec.VirtualSize)
+
+    def _getDebugString(self, offset, use_utf8=False, line=False):
         '''
         TODO: We can make this so much faster by just preparsing and indexing them by
         their offsets
         '''
-        bytez = self.getSectionBytes('.debug_str')
+        bytez = self.getSectionBytes('.debug_str' if not line else '.debug_line_str')
         if bytez is None or offset > len(bytez):
             return None
         return bytez[offset:].split(b'\x00', 1)[0]
 
     def _getBlock(self, length, bytez):
-        block = vs_prim.v_bytes(size=length.vsGetValue())
+        block = v_s_prim.v_bytes(size=length.vsGetValue())
         block.vsParse(bytez)
         return block
 
@@ -317,161 +323,215 @@ class DwarfInfo:
         Returns a tuple of (attribute name, vstruct data, how many bytes were consumed)
         '''
         extra = 0
-        if form == DW_FORM_addr:
+        # TODO: is the bigend here right?
+        if form == v_d_dwarf.DW_FORM_addr:
             # So this is technically supposed to come from the compilation header in the info section,
             # but for now we're going to cheat and just use the info we grabbed from the elf header itself
             if addrsize == 8:
-                vsData = vs_prim.v_ptr64(bigend=self.vw.bigend)
+                vsData = v_s_prim.v_ptr64(bigend=self.vw.bigend)
             else:
-                vsData = vs_prim.v_ptr32(bigend=self.vw.bigend)
+                vsData = v_s_prim.v_ptr32(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_block:  # special block
+        elif form == v_d_dwarf.DW_FORM_block:  # special block
             # TODO
-            blocklen, extra = leb128ToInt(bytez)
-            vsData = vs_prim.v_bytes(size=blocklen)
+            blocklen, extra = v_d_dwarf.leb128ToInt(bytez)
+            vsData = v_s_prim.v_bytes(size=blocklen)
             vsData.vsParse(bytez, extra)
 
-        elif form == DW_FORM_block1:  # block
-            blocklen = vs_prim.v_uint8(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_block1:  # block
+            blocklen = v_s_prim.v_uint8(bigend=self.vw.bigend)
             blocklen.vsParse(bytez)
             vsData = self._getBlock(blocklen, bytez[len(blocklen):])
             extra = blocklen
 
-        elif form == DW_FORM_block2:  # block
-            blocklen = vs_prim.v_uint16(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_block2:  # block
+            blocklen = v_s_prim.v_uint16(bigend=self.vw.bigend)
             blocklen.vsParse(bytez)
             vsData = self._getBlock(blocklen, bytez[len(blocklen):])
             extra = blocklen
 
-        elif form == DW_FORM_block4:  # block
-            blocklen = vs_prim.v_uint32(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_block4:  # block
+            blocklen = v_s_prim.v_uint32(bigend=self.vw.bigend)
             blocklen.vsParse(bytez)
             vsData = self._getBlock(blocklen, bytez[len(blocklen):])
             extra = blocklen
 
-        elif form == DW_FORM_data1:  # constant
-            vsData = vs_prim.v_uint8(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_data1:  # constant
+            vsData = v_s_prim.v_uint8(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_data2:  # constant
-            vsData = vs_prim.v_uint16(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_data2:  # constant
+            vsData = v_s_prim.v_uint16(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_data4:  # constant
-            vsData = vs_prim.v_uint32(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_data4:  # constant
+            vsData = v_s_prim.v_uint32(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_data8:  # constant
-            vsData = vs_prim.v_uint64(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_data8:  # constant
+            vsData = v_s_prim.v_uint64(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_string:  # string
+        elif form == v_d_dwarf.DW_FORM_string:  # string
             # Directly in the .debug_info section
-            vsData = vs_prim.v_str(size=bytez.index(b'\x00'))
+            vsData = v_s_prim.v_str(size=bytez.index(b'\x00'))
             vsData.vsParse(bytez)
             # Don't forget about skipping the null terminator
             extra = 1
 
-        elif form == DW_FORM_flag:  # flag
-            vsData = vs_prim.v_uint8(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_flag:  # flag
+            vsData = v_s_prim.v_uint8(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_strp:  # string
+        elif form == v_d_dwarf.DW_FORM_strp:  # string
             # a ptr-sized offset into the string table .debug_str
             if self.is64BitDwarf:
-                offset = vs_prim.v_int64(bigend=self.vw.bigend)
+                offset = v_s_prim.v_int64(bigend=self.vw.bigend)
                 offset.vsParse(bytez)
             else:
-                offset = vs_prim.v_int32(bigend=self.vw.bigend)
+                offset = v_s_prim.v_int32(bigend=self.vw.bigend)
                 offset.vsParse(bytez)
+
             strp = self._getDebugString(offset.vsGetValue(), use_utf8)
-            vsData = vs_prim.v_str(len(strp), val=strp)
+            vsData = v_s_prim.v_str(len(strp), val=strp)
 
             # strp is special since it's an easy reference into a table
             return vsData, len(offset)
 
-        elif form == DW_FORM_sdata:  # constant
+        elif form == v_d_dwarf.DW_FORM_line_strp:  # string
+            # a ptr-sized offset into the string table .debug_line_str section
+            if self.is64BitDwarf:
+                offset = v_s_prim.v_int64(bigend=self.vw.bigend)
+                offset.vsParse(bytez)
+            else:
+                offset = v_s_prim.v_int32(bigend=self.vw.bigend)
+                offset.vsParse(bytez)
+
+            strp = self._getDebugString(offset.vsGetValue(), use_utf8=use_utf8, line=True)
+            vsData = v_s_prim.v_str(len(strp), val=strp)
+
+            # strp is special since it's an easy reference into a table
+            return vsData, len(offset)
+
+        elif form == v_d_dwarf.DW_FORM_sdata:  # constant
             bits = self.vw.psize * 8
-            slen, extra = leb128ToInt(bytez, bitlen=bits, signed=True)
+            slen, extra = v_d_dwarf.leb128ToInt(bytez, bitlen=bits, signed=True)
             slen = e_bits.signed(slen, extra)
             if bits == 64:
-                return vs_prim.v_int64(slen), extra
-            else:
-                return vs_prim.v_int32(slen), extra
+                return v_s_prim.v_int64(slen), extra
+            return v_s_prim.v_int32(slen), extra
 
-        elif form == DW_FORM_udata:  # constant
+        elif form == v_d_dwarf.DW_FORM_udata:  # constant
             bits = self.vw.psize * 8
-            ulen, extra = leb128ToInt(bytez, bitlen=bits)
+            ulen, extra = v_d_dwarf.leb128ToInt(bytez, bitlen=bits)
             if bits == 64:
-                return vs_prim.v_uint64(ulen), extra
-            else:
-                return vs_prim.v_uint32(ulen), extra
+                return v_s_prim.v_uint64(ulen), extra
+            return v_s_prim.v_uint32(ulen), extra
 
-        elif form == DW_FORM_ref_addr:  # ref
+        elif form == v_d_dwarf.DW_FORM_ref_addr:  # ref
             if self.is64BitDwarf:
-                vsData = vs_prim.v_ptr64(bigend=self.vw.bigend)
+                vsData = v_s_prim.v_ptr64(bigend=self.vw.bigend)
             else:
-                vsData = vs_prim.v_ptr32(bigend=self.vw.bigend)
+                vsData = v_s_prim.v_ptr32(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_ref1:  # ref
-            vsData = vs_prim.v_uint8(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_ref1:  # ref
+            vsData = v_s_prim.v_uint8(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_ref2:  # ref
-            vsData = vs_prim.v_uint16(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_ref2:  # ref
+            vsData = v_s_prim.v_uint16(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_ref4:  # ref
-            vsData = vs_prim.v_uint32(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_ref4:  # ref
+            vsData = v_s_prim.v_uint32(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_ref8:  # ref
-            vsData = vs_prim.v_uint64(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_ref8:  # ref
+            vsData = v_s_prim.v_uint64(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == DW_FORM_ref_udata:  # ref
+        elif form == v_d_dwarf.DW_FORM_ref_udata:  # ref
             # refers to something within the .debug_info section
             # variable length offset
-            # XXX
-            reflen, extra = leb128ToInt(bytez)
-            vsData = vs_prim.v_uint64(value=reflen, bigend=self.vw.bigend)
+            reflen, extra = v_d_dwarf.leb128ToInt(bytez)
+            vsData = v_s_prim.v_uint64(value=reflen, bigend=self.vw.bigend)
             return vsData, extra
 
-        elif form == DW_FORM_indirect:  # SPECIAL
+        elif form == v_d_dwarf.DW_FORM_indirect:  # SPECIAL
             # TODO: Is this right?
-            valu, extra = leb128ToInt(bytez)
-            vsData = vs_prim.v_uint64(value=valu, bigend=self.vw.bigend)
+            valu, extra = v_d_dwarf.leb128ToInt(bytez)
+            vsData = v_s_prim.v_uint64(value=valu, bigend=self.vw.bigend)
             return vsData, extra
 
-        elif form == DW_FORM_sec_offset:  # lineptr, loclistptr, macptr, rangelistptr
+        elif form == v_d_dwarf.DW_FORM_sec_offset:  # lineptr, loclistptr, macptr, rangelistptr
             if self.is64BitDwarf:
-                vsData = vs_prim.v_int64(bigend=self.vw.bigend)
+                vsData = v_s_prim.v_int64(bigend=self.vw.bigend)
                 vsData.vsParse(bytez)
             else:
-                vsData = vs_prim.v_int32(bigend=self.vw.bigend)
+                vsData = v_s_prim.v_int32(bigend=self.vw.bigend)
                 vsData.vsParse(bytez)
             # raise Exception("IMPLEMENT ME!")
             # TODO: so where the offset is depends on what subtype the sec_offset is, but that's determined
             # by the attr name, and honestly, right now, I don't care about that
 
-        elif form == DW_FORM_exprloc:  # exprloc
-            loclen, extra = leb128ToInt(bytez)
-            vsData = vs_prim.v_bytes(loclen)
+        elif form == v_d_dwarf.DW_FORM_exprloc:  # exprloc
+            loclen, extra = v_d_dwarf.leb128ToInt(bytez)
+            vsData = v_s_prim.v_bytes(loclen)
             vsData.vsParse(bytez[extra:])
             # self._getExprLoc(vsData)
 
-        elif form == DW_FORM_flag_present:  # flag
+        elif form == v_d_dwarf.DW_FORM_flag_present:  # flag
             # Don't actually consume any bytes, but do indicate the flag is there
-            vsData = vs_prim.v_uint8(value=1)
+            vsData = v_s_prim.v_uint8(value=1)
             return vsData, 0
 
-        elif form == DW_FORM_ref_sig8:  # reference
-            vsData = vs_prim.v_int64(bigend=self.vw.bigend)
+        elif form == v_d_dwarf.DW_FORM_ref_sig8:  # reference
+            vsData = v_s_prim.v_int64(bigend=self.vw.bigend)
+            vsData.vsParse(bytez)
+
+        elif form == v_d_dwarf.DW_FORM_rnglistx:
+            vsData = v_d_dwarf.v_uleb()
+            vsData.vsParse(bytez)
+
+        # these are all indexes into the .debug_str_offsets section. All of those are 
+        # DW_FORM_strp
+        elif form == v_d_dwarf.DW_FORM_strx:
+            vsData = v_d_dwarf.v_uleb()
+            vsData.vsParse(bytez)
+        elif form == v_d_dwarf.DW_FORM_strx1:
+            vsData = v_s_prim.v_uint8()
+            vsData.vsParse(bytez)
+        elif form == v_d_dwarf.DW_FORM_strx2:
+            vsData = v_s_prim.v_uint16()
+            vsData.vsParse(bytez)
+        elif form == v_d_dwarf.DW_FORM_strx3:
+            vsData = v_s_prim.v_uint24()
+            vsData.vsParse(bytez)
+        elif form == v_d_dwarf.DW_FORM_strx4:
+            vsData = v_s_prim.v_uint32()
+            vsData.vsParse(bytez)
+
+        # similar to above, these are parsed the same but are indexes into the .debug_addr section
+        elif form == v_d_dwarf.DW_FORM_addrx:
+            vsData = v_d_dwarf.v_uleb()
+            vsData.vsParse(bytez)
+        elif form == v_d_dwarf.DW_FORM_addrx1:
+            vsData = v_s_prim.v_uint8()
+            vsData.vsParse(bytez)
+        elif form == v_d_dwarf.DW_FORM_addrx2:
+            vsData = v_s_prim.v_uint16()
+            vsData.vsParse(bytez)
+        elif form == v_d_dwarf.DW_FORM_addrx3:
+            vsData = v_s_prim.v_uint24()
+            vsData.vsParse(bytez)
+        elif form == v_d_dwarf.DW_FORM_addrx4:
+            vsData = v_s_prim.v_uint32()
             vsData.vsParse(bytez)
 
         else:
+            # TODO: loosen this up?
             raise Exception('Unrecognized debug form 0x%.4x' % form)
 
         return vsData, len(vsData) + extra
@@ -492,22 +552,21 @@ class DwarfInfo:
             # Parse the compile unit header
             # we can have 32 bit dwarf in a 64 bit binary and the way they dynamic repr that
             # is by all the 64 bit addresses being 12 bytes long, but the first 4 are 0xffffffff
-            version = vs_prim.v_uint32(bigend=vw.bigend)
+            version = v_s_prim.v_uint32(bigend=vw.bigend)
             if version == 0xFFFFFFFF:
                 consumed += 4
-                header = Dwarf64CompileHeader(bigend=vw.bigend)
+                header = v_d_dwarf.Dwarf64CompileHeader(bigend=vw.bigend)
                 self.is64BitDwarf = True
             else:
-                header = Dwarf32CompileHeader(bigend=vw.bigend)
+                header = v_d_dwarf.Dwarf32CompileHeader(bigend=vw.bigend)
                 # So it says it's 12 bytes, but the first 4 are ffffffff
 
             header.vsParse(bytez[consumed:])
-            abbrev = self.abbrev[header.abbrev_offset]
             cuoffs = {}
 
             # so the header in 64 bit is weird, since the first 4 are going to all f's for the length field
             consumed += len(header)
-            toConsume = header.length + len(header.vsGetField('length'))
+            toConsume = len(header) + header.vsGetField('length')
             unitConsumed = 0
             startoff = len(header)
             parentChain = []
@@ -515,43 +574,58 @@ class DwarfInfo:
             # Or just parse out the first header block?
 
             while len(header) + unitConsumed < toConsume:
-                idx, ulen = leb128ToInt(bytez[consumed + unitConsumed:])
+                idx, ulen = v_d_dwarf.leb128ToInt(bytez[consumed + unitConsumed:])
                 unitConsumed += ulen
                 if idx == 0:
                     startoff += 1
-                    parentChain.pop()
+                    if parentChain:
+                        parentChain.pop()
+                    else:
+                        break
                     continue
 
-                tag, hasKids, typeinfo = abbrev[idx]
+                tag, hasKids, typeinfo = self.abbrev[idx]
                 # Need to actually do something with struct
-                struct = vstruct.VStruct()
-                struct.vsAddField('tag', vs_prim.v_uint16(tag))
-                for attr, attrForm in typeinfo:
-                    if DW_AT_lo_user < attr < DW_AT_hi_user:
+                child = vstruct.VStruct()
+                child.vsAddField('tag', v_s_prim.v_uint16(tag))
+                for info in typeinfo:
+                    attr = info['name']
+                    form = info['form']
+                    extra = info['extra']
+                    if v_d_dwarf.DW_AT_lo_user < attr < v_d_dwarf.DW_AT_hi_user:
                         # try reaching into the gnu attribute names since they're a well known
                         # "vendor"
-                        name = gnu_attribute_names.get(attr, "UNK")
+                        name = v_d_dwarf.gnu_attribute_names.get(attr, "UNK")
                     else:
-                        name = dwarf_attribute_names.get(attr, "UNK")
+                        name = v_d_dwarf.dwarf_attribute_names.get(attr, "UNK")
 
-                    vsForm, flen = self._getFormData(attrForm,
-                                                     bytez[consumed+unitConsumed:],
-                                                     addrsize=header.ptrsize)
-                    struct.vsAddField(name, vsForm)
+                    # implict const you use the value from the abbrev section and nothing is stored here
+                    # but the value is a signed LEB128 number that we've already fetch
+                    # technically we shouldn't be storing this here because a LEB128 number can be arbitrarily large
+                    # so....yea. Need a way around that.
+                    if extra == v_d_dwarf.DW_FORM_implicit_const:
+                        vsForm = v_s_prim.v_int64(value=form)
+                        flen = 0
+                    else:
+                        vsForm, flen = self._getFormData(form,
+                                                         bytez[consumed+unitConsumed:],
+                                                         addrsize=header.ptrsize)
+                    child.vsAddField(name, vsForm)
                     unitConsumed += flen
 
-                cuoffs[startoff] = struct
+                cuoffs[startoff] = child
                 startoff = unitConsumed + len(header)
                 if parentChain:
-                    parentChain[-1].dwarf_children.vsAddElement(struct)
+                    parentChain[-1].dwarf_children.vsAddElement(child)
                 else:
-                    debuginfo.append((struct, cuoffs))
+                    debuginfo.append((child, cuoffs))
 
                 if hasKids:
-                    parentChain.append(struct)
-                    struct.vsAddField('dwarf_children', vstruct.VArray())
+                    parentChain.append(child)
+                    child.vsAddField('dwarf_children', vstruct.VArray())
 
-            consumed += unitConsumed
+            consumed += unitConsumed + 1
+            # TODO: confirm that there's an extra null byte
         return debuginfo
 
     def _parseDebugLine(self):
@@ -559,64 +633,63 @@ class DwarfInfo:
         consumed = 0
         byts = self.getSectionBytes('.debug_line')
 
-        version = vs_prim.v_uint32(bigend=vw.bigend)
+        version = v_s_prim.v_uint32(bigend=vw.bigend)
         if version == 0xFFFFFFFF:
             consumed += 4
-            header = Dwarf64UnitLineHeader(bigend=vw.bigend)
+            header = v_d_dwarf.Dwarf64UnitLineHeader(bigend=vw.bigend)
         else:
-            header = Dwarf32UnitLineHeader(bigend=vw.bigend)
+            header = v_d_dwarf.Dwarf32UnitLineHeader(self, bigend=vw.bigend)
 
-        header.vsParse(byts[consumed:])
+        header.vsParse(byts[consumed:], offset=0)
         consumed += len(header)
-        while byts[consumed] != 0:
-            dirn = v_str(val=byts[consumed:])
-            dirn.vsSetLength(len(dirn.vsGetValue()) + 1)
-            header.include_directories.vsAddElement(dirn)
-            consumed += len(dirn)
 
-        # skip over terminator byte
-        consumed += 1
+        # this is really only for v4 and we really should wrap it into the main vstruct
+        if header.version == 4:
+            while byts[consumed] != 0:
+                dirn = v_s_prim.v_str(val=byts[consumed:])
+                dirn.vsSetLength(len(dirn.vsGetValue()) + 1)
+                header.include_directories.vsAddElement(dirn)
+                consumed += len(dirn)
 
-        while byts[consumed] != 0:
-            srcpath = v_str(val=byts[consumed:])
-            srcpath.vsSetLength(len(srcpath.vsGetValue()) + 1)
-            consumed += len(srcpath)
+            # skip over terminator byte
+            consumed += 1
 
-            diridx, con = leb128ToInt(byts[consumed:])
-            consumed += con
+            while byts[consumed] != 0:
+                srcpath = v_s_prim.v_str(val=byts[consumed:])
+                srcpath.vsSetLength(len(srcpath.vsGetValue()) + 1)
+                consumed += len(srcpath)
 
-            modtime, con = leb128ToInt(byts[consumed:])
-            consumed += con
+                diridx, con = v_d_dwarf.leb128ToInt(byts[consumed:])
+                consumed += con
 
-            filelen, con = leb128ToInt(byts[consumed:])
-            consumed += con
+                modtime, con = v_d_dwarf.leb128ToInt(byts[consumed:])
+                consumed += con
 
-            header.file_names.append((srcpath, diridx, modtime, filelen))
+                filelen, con = v_d_dwarf.leb128ToInt(byts[consumed:])
+                consumed += con
 
-        # skip over terminator byte
-        consumed += 1
+                header.file_names.append((srcpath, diridx, modtime, filelen))
+
+            # skip over terminator byte
+            consumed += 1
 
         # actually run the line number program through the state machine
-        vm = LineStateMachine(byts[consumed:], header, bigend=vw.bigend)
+        vm = LineStateMachine(byts, consumed, header, bigend=vw.bigend)
         for dbginfo in vm.run():
-            # print(hex(vm._reg_address))
-            print('0x%.8x -- %d' % (vm._reg_address, vm._reg_line))
             pass
-        breakpoint()
-        print('wat')
+            # print(hex(vm._reg_address))
 
     def _parseDebugAbbrev(self):
         bytez = self.getSectionBytes('.debug_abbrev')
         if bytez is None:
             return
-        consumed = offset = 0
+        consumed = 0
         # Compile units are referenced by their offsets in the .debug_info section.
-        compileunits = {}
         dies = {}
         while consumed < len(bytez):
-            idx, con = leb128ToInt(bytez[consumed:])
+            idx, con = v_d_dwarf.leb128ToInt(bytez[consumed:])
             consumed += con
-            tag, con = leb128ToInt(bytez[consumed:])
+            tag, con = v_d_dwarf.leb128ToInt(bytez[consumed:])
             consumed += con
             hasKids = bytez[consumed]
             consumed += 1
@@ -624,24 +697,40 @@ class DwarfInfo:
             typeinfo = []
             attr, attrType = 0xff, 0xff
             while True:
-                attr, alen = leb128ToInt(bytez[consumed:])
+                implicit = False
+                # name
+                attr, alen = v_d_dwarf.leb128ToInt(bytez[consumed:])
                 consumed += alen
-                attrType, alen = leb128ToInt(bytez[consumed:])
+
+                # form
+                attrType, alen = v_d_dwarf.leb128ToInt(bytez[consumed:])
                 consumed += alen
+
+                extra = None
+                # should only show up in v5?
+                if attrType == v_d_dwarf.DW_FORM_implicit_const:
+                    # we need to consume another byte
+                    implicit, alen = v_d_dwarf.leb128ToInt(bytez[consumed:], signed=True)
+                    consumed += alen
+
+                    extra = attrType
+                    attrType = implicit
 
                 if attr == 0 and attrType == 0:
                     break
-                typeinfo.append((attr, attrType))
+
+                # typeinfo.append((attr, attrType))
+                typeinfo.append({'name': attr, 'form': attrType, 'extra': extra})
 
             dies[idx] = (tag, hasKids, typeinfo)
             # if the next byte is 0, we're done with this compile unit
             if bytez[consumed] == 0:
-                compileunits[offset] = dies
+                # compileunits[offset] = dies
                 consumed += 1
-                offset = consumed
-                dies = {}
+                # offset = consumed
+                # dies = {}
 
-        return compileunits
+        return dies
 
 
 def parseDwarf(vw, pbin, strtab=b''):
@@ -649,13 +738,26 @@ def parseDwarf(vw, pbin, strtab=b''):
     return DwarfInfo(vw, pbin, strtab)
 
 
+def getFunctionInfo(prog):
+    breakpoint()
+    print(prog)
+    pass
+
+
+def getDebugStrings(dwarf):
+    pass
+
+
 def _add_children(vw, parent, offsets, children):
     for indx, child in children:
-        if child.tag == DW_TAG_subprogram:
+        if child.tag == v_d_dwarf.DW_TAG_subprogram:
             if not hasattr(child, 'low_pc'):
                 continue
+            yield getFunctionInfo(child)
+            '''
             hasAbstract = child.vsHasField('abstract_origin')
-            if hasAbstract and child.abstract_origin:
+            # TODO: collect the formal parameters and other things
+            if hasAbstract and child.abstract_origin is not None:
                 # So...this highly depends on what type of ref we've got, so we need to
                 # plumb not just what type of ref we're looking at, but also the various different
                 # offsets (file, compunit, etc) all the way through
@@ -672,6 +774,8 @@ def _add_children(vw, parent, offsets, children):
                 except v_exc.DuplicateName:
                     # someone else beat us to it. Whatever. Keep chugging
                     pass
+            '''
+
         if child.vsHasField('dwarf_children'):
             _add_children(vw, child, offsets, child.dwarf_children)
 
