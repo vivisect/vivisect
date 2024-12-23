@@ -10,7 +10,7 @@ from envi.archs.arm.disasm import *
 
 class ArmModule(envi.ArchitectureModule):
 
-    def __init__(self, name='ARMv7A'):
+    def __init__(self, name='arm'):
         import envi.archs.thumb16.disasm as eatd
         # these are required for setEndian() which is called from ArchitectureModule.__init__()
         self._arch_dis = ArmDisasm()
