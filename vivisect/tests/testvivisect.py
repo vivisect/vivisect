@@ -9,9 +9,13 @@ import envi.exc as e_exc
 import envi.const as e_const
 import envi.memcanvas as e_mcanvas
 
+import vstruct
+import vstruct.primitives as v_prim
+
 import vivisect
 import vivisect.exc as v_exc
 import vivisect.const as v_const
+import vivisect.renderers as v_rend
 import vivisect.tools.graphutil as v_t_graphutil
 
 import vivisect.tests.helpers as helpers
@@ -1631,3 +1635,4 @@ class VivisectTest(v_t_utils.VivTest):
 
             with vw.getAdminRights():
                 vw.writeMemory(base, oldmem)
+
