@@ -1972,6 +1972,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 return
             if ref[:-1] == existing_ref[:-1]:
                 ref = ref[:-1] + (ref[-1] | existing_ref[-1],)  # merge rflags
+                if ref == existing_ref:
+                    return
                 self._fireEvent(VWE_DELXREF, existing_ref)
                 break
 
