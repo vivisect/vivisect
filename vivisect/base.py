@@ -1,5 +1,4 @@
 import queue
-import base64
 import logging
 import traceback
 import threading
@@ -10,6 +9,7 @@ import envi.bits as e_bits
 import envi.memory as e_mem
 import envi.pagelookup as e_page
 import envi.codeflow as e_codeflow
+import envi.debuginfo as e_debuginfo
 
 import vstruct.cparse as vs_cparse
 import vstruct.builder as vs_builder
@@ -188,6 +188,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # Follow the Leader data
         self.leaders = {}       # existing "leader" sessions
         self.leaderloc = {}     # last known location for each session
+
+        self.debuginfo = e_debuginfo.DebugInfo()
 
     def _snapInAnalysisModules(self):
         '''
@@ -546,8 +548,19 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         (fname, off, bytez, supv) where supv is supervisor mode...
         '''
         va, bytez, oldbytes = einfo
+        # NOTE: This assumes we're in a viv workspace object, which is a bit...awkward to assume
         with self.getAdminRights():
             e_mem.MemoryObject.writeMemory(self, va, bytez)
+
+    # TODO: need debug string xrefs API?
+    def _handleDEBUGSTR(self, einfo):
+        self.debuginfo.addString(einfo)
+
+    def _handleDEBUGFUNC(self, einfo):
+        self.debuginfo.addFunction(einfo)
+
+    def _handleDEBUGIMPORT(self, einfo):
+        self.debuginfo.addImport(einfo)
 
     def _initEventHandlers(self):
         self.ehand = [None for x in range(VWE_MAX)]
@@ -594,6 +607,10 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
         self.ehand[VWE_WRITEMEM] = self._handleWRITEMEM
         self.ehand[VWE_ENDIAN] = self._handleENDIAN
+
+        self.ehand[VWE_DEBUG_ADDSTR] = self._handleDEBUGSTR
+        self.ehand[VWE_DEBUG_ADDFUNC] = self._handleDEBUGFUNC
+        self.ehand[VWE_DEBUG_ADDIMPORT] = self._handleDEBUGIMPORT
 
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
