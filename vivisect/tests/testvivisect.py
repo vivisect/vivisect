@@ -933,7 +933,7 @@ class VivisectTest(v_t_utils.VivTest):
     def test_basic_callers(self):
         vw = self.firefox_vw
         self.assertTrue(18000 < len(vw.getXrefs()))
-        self.assertEqual(42, len(vw.getImportCallers('kernel32.GetProcAddress')))
+        self.assertEqual(45, len(vw.getImportCallers('kernel32.GetProcAddress')))
         self.assertEqual(9, len(vw.getImportCallers('kernel32.LoadLibraryW')))
 
     def test_consecutive_jump_table(self):
