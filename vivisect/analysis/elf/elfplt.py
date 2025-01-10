@@ -244,11 +244,11 @@ def analyzePLT(vw, ssva, ssize):
                             if loc is None:
                                 realplt = False
 
-                            # if target is in the ELF Section with a name starting with ".got" 
+                            # if target is in the ELF Section with a name starting with ".got"
                             # OR that the target address is after the DT_PLTGOT entry (
                             elif tgt_seg is not None:
                                 tsegva, tsegsz, tsegname, tsegfile = tgt_seg
-                                # see if the target address segment is GOT, but 
+                                # see if the target address segment is GOT, but
                                 # also don't let it be the first entry, which is the LazyLoader
                                 if not (tsegname.startswith('.got') and tsegva != lva):
                                     logger.debug("0x%x: tbrref not in GOT (segment)", tbrref)
@@ -300,13 +300,13 @@ def analyzeFunction(vw, funcva):
     plts = getPLTs(vw)
     isplt = False
     for pltva, pltsz in plts:
-        if pltva <= funcva <= (pltva + pltsz):
+        if pltva <= funcva < (pltva + pltsz):
             isplt = True
             segva = pltva
             segsize = pltsz
             break
 
-    # if we're not 
+    # if we're not
     if not isplt:
         logger.log(e_cmn.SHITE, '0x%x: not part of a .plt section', funcva)
         return
@@ -474,7 +474,7 @@ def analyzeFunction(vw, funcva):
         funcname = funcname[:-9]
 
     logger.info('makeFunctionThunk(0x%x, "plt_%s")', funcva, funcname)
-    vw.makeFunctionThunk(funcva, "*." + funcname, addVa=False, filelocal=True, 
+    vw.makeFunctionThunk(funcva, "*." + funcname, addVa=False, filelocal=True,
             basename="plt_" + funcname)
 
 '''
@@ -518,7 +518,7 @@ linux/ie86/chgrp:
 0x8048dbb:                          e9d0ffffff  jmp 0x08048d90
 .plt.got
 0x80491d0:                        ff25fc3f0508  jmp dword [0x08053ffc]
-0x80491d6:                                6690  nop 
+0x80491d6:                                6690  nop
 0x80491d8:                                0000  add byte [eax],al
 0x80491da:                                0000  add byte [eax],al
 
@@ -739,7 +739,7 @@ In [79]: x+=1; print '======================================\n' + vws[x].metadat
 ======================================
 /home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/amd64/ls.viv
 0x4015f8 0x9d8 0x618fe8
-Out[79]: 
+Out[79]:
 [Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
  Elf Sec: [             .interp] @0x00400238 (     568)  ent/size:        0/      28  align:        1,
  Elf Sec: [       .note.ABI-tag] @0x00400254 (     596)  ent/size:        0/      32  align:        4,
@@ -750,9 +750,9 @@ Out[79]:
  Elf Sec: [        .gnu.version] @0x004013aa (    5034)  ent/size:        2/     242  align:        2,
  Elf Sec: [      .gnu.version_r] @0x004014a0 (    5280)  ent/size:        0/     176  align:        8,
  Elf Sec: [           .rela.dyn] @0x00401550 (    5456)  ent/size:       24/     168  align:        8,
- 
+
  Elf Sec: [           .rela.plt] @0x004015f8 (    5624)  ent/size:       24/    2520  align:        8,
- 
+
  Elf Sec: [               .init] @0x00401fd0 (    8144)  ent/size:        0/      24  align:        4,
  Elf Sec: [                .plt] @0x00401ff0 (    8176)  ent/size:       16/    1696  align:       16,
  Elf Sec: [               .text] @0x00402690 (    9872)  ent/size:        0/   61800  align:       16,
@@ -765,9 +765,9 @@ Out[79]:
  Elf Sec: [                .jcr] @0x00618e10 (  101904)  ent/size:        0/       8  align:        8,
  Elf Sec: [            .dynamic] @0x00618e18 (  101912)  ent/size:       16/     448  align:        8,
  Elf Sec: [                .got] @0x00618fd8 (  102360)  ent/size:        8/      16  align:        8,
- 
+
  Elf Sec: [            .got.plt] @0x00618fe8 (  102376)  ent/size:        8/     864  align:        8,
- 
+
  Elf Sec: [               .data] @0x00619360 (  103264)  ent/size:        0/     528  align:       32,
  Elf Sec: [                .bss] @0x00619580 (  103792)  ent/size:        0/    3424  align:       32,
  Elf Sec: [      .gnu_debuglink] @0x00000000 (  103792)  ent/size:        0/       8  align:        1,
@@ -776,7 +776,7 @@ Out[79]:
 ======================================
 /home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/amd64/chown.viv
 0x1648 0x6f0 0x20fd68
-Out[80]: 
+Out[80]:
 [Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
  Elf Sec: [             .interp] @0x00000238 (     568)  ent/size:        0/      28  align:        1,
  Elf Sec: [       .note.ABI-tag] @0x00000254 (     596)  ent/size:        0/      32  align:        4,
@@ -787,9 +787,9 @@ Out[80]:
  Elf Sec: [        .gnu.version] @0x00001134 (    4404)  ent/size:        2/     204  align:        2,
  Elf Sec: [      .gnu.version_r] @0x00001200 (    4608)  ent/size:        0/     112  align:        8,
  Elf Sec: [           .rela.dyn] @0x00001270 (    4720)  ent/size:       24/     984  align:        8,
- 
+
  Elf Sec: [           .rela.plt] @0x00001648 (    5704)  ent/size:       24/    1776  align:        8,
- 
+
  Elf Sec: [               .init] @0x00001d38 (    7480)  ent/size:        0/      23  align:        4,
  Elf Sec: [                .plt] @0x00001d50 (    7504)  ent/size:       16/    1200  align:       16,
  Elf Sec: [            .plt.got] @0x00002200 (    8704)  ent/size:        8/      16  align:        8,
@@ -802,9 +802,9 @@ Out[80]:
  Elf Sec: [         .fini_array] @0x0020f958 (   63832)  ent/size:        8/       8  align:        8,
  Elf Sec: [        .data.rel.ro] @0x0020f960 (   63840)  ent/size:        0/     536  align:       32,
  Elf Sec: [            .dynamic] @0x0020fb78 (   64376)  ent/size:       16/     496  align:        8,
- 
+
  Elf Sec: [                .got] @0x0020fd68 (   64872)  ent/size:        8/     664  align:        8,
- 
+
  Elf Sec: [               .data] @0x00210000 (   65536)  ent/size:        0/     128  align:       32,
  Elf Sec: [                .bss] @0x00210080 (   65664)  ent/size:        0/     456  align:       32,
  Elf Sec: [      .gnu_debuglink] @0x00000000 (   65664)  ent/size:        0/      52  align:        4,
@@ -813,7 +813,7 @@ Out[80]:
 ======================================
 /home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/amd64/libc-2.27.so.viv
 0x20b78 0x450 0x3eb000
-Out[81]: 
+Out[81]:
 [Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
  Elf Sec: [  .note.gnu.build-id] @0x00000270 (     624)  ent/size:        0/      36  align:        4,
  Elf Sec: [       .note.ABI-tag] @0x00000294 (     660)  ent/size:        0/      32  align:        4,
@@ -824,9 +824,9 @@ Out[81]:
  Elf Sec: [      .gnu.version_d] @0x00018af0 (  101104)  ent/size:        0/    1028  align:        8,
  Elf Sec: [      .gnu.version_r] @0x00018ef8 (  102136)  ent/size:        0/      48  align:        8,
  Elf Sec: [           .rela.dyn] @0x00018f28 (  102184)  ent/size:       24/   31824  align:        8,
- 
+
  Elf Sec: [           .rela.plt] @0x00020b78 (  134008)  ent/size:       24/    1104  align:        8,
- 
+
  Elf Sec: [                .plt] @0x00020fd0 (  135120)  ent/size:       16/     752  align:       16,
  Elf Sec: [            .plt.got] @0x000212c0 (  135872)  ent/size:        8/      16  align:        8,
  Elf Sec: [               .text] @0x000212d0 (  135888)  ent/size:        0/ 1542508  align:       16,
@@ -849,9 +849,9 @@ Out[81]:
  Elf Sec: [        .data.rel.ro] @0x003e84e0 ( 2000096)  ent/size:        0/    9888  align:       32,
  Elf Sec: [            .dynamic] @0x003eab80 ( 2009984)  ent/size:       16/     480  align:        8,
  Elf Sec: [                .got] @0x003ead60 ( 2010464)  ent/size:        8/     656  align:        8,
- 
+
  Elf Sec: [            .got.plt] @0x003eb000 ( 2011136)  ent/size:        8/     392  align:        8,
- 
+
  Elf Sec: [               .data] @0x003eb1a0 ( 2011552)  ent/size:        0/    5824  align:       32,
  Elf Sec: [                .bss] @0x003ec860 ( 2017376)  ent/size:        0/   17024  align:       32,
  Elf Sec: [       .note.stapsdt] @0x00000000 ( 2017376)  ent/size:        0/    4896  align:        4,
@@ -895,7 +895,7 @@ Out[81]:
 ======================================
 /home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/amd64/libstdc++.so.6.0.25.viv
 0x83788 0x4cf8 0x382000
-Out[82]: 
+Out[82]:
 [Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
  Elf Sec: [  .note.gnu.build-id] @0x00000200 (     512)  ent/size:        0/      36  align:        4,
  Elf Sec: [           .gnu.hash] @0x00000228 (     552)  ent/size:        0/   33808  align:        8,
@@ -905,9 +905,9 @@ Out[82]:
  Elf Sec: [      .gnu.version_d] @0x0006c6c8 (  444104)  ent/size:        0/    1292  align:        8,
  Elf Sec: [      .gnu.version_r] @0x0006cbd8 (  445400)  ent/size:        0/     272  align:        8,
  Elf Sec: [           .rela.dyn] @0x0006cce8 (  445672)  ent/size:       24/   92832  align:        8,
- 
+
  Elf Sec: [           .rela.plt] @0x00083788 (  538504)  ent/size:       24/   19704  align:        8,
- 
+
  Elf Sec: [               .init] @0x00088480 (  558208)  ent/size:        0/      23  align:        4,
  Elf Sec: [                .plt] @0x000884a0 (  558240)  ent/size:       16/   13152  align:       16,
  Elf Sec: [            .plt.got] @0x0008b800 (  571392)  ent/size:        0/     184  align:        8,
@@ -927,7 +927,7 @@ Out[82]:
  Elf Sec: [                .got] @0x00380f68 ( 1576808)  ent/size:        8/    4248  align:        8,
 
  Elf Sec: [            .got.plt] @0x00382000 ( 1581056)  ent/size:        8/    6592  align:        8,
- 
+
  Elf Sec: [               .data] @0x003839c0 ( 1587648)  ent/size:        0/     376  align:       32,
  Elf Sec: [                .bss] @0x00383b40 ( 1588024)  ent/size:        0/   14112  align:       32,
  Elf Sec: [       .note.stapsdt] @0x00000000 ( 1588024)  ent/size:        0/     236  align:        4,
@@ -957,7 +957,7 @@ KeyError: 'DT_JMPREL'
 ======================================
 /home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/i386/libc-2.13.so.viv
 0x16b38 0x40 0x158ff4
-Out[85]: 
+Out[85]:
 [Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
  Elf Sec: [  .note.gnu.build-id] @0x00000174 (     372)  ent/size:        0/      36  align:        4,
  Elf Sec: [       .note.ABI-tag] @0x00000198 (     408)  ent/size:        0/      32  align:        4,
@@ -968,9 +968,9 @@ Out[85]:
  Elf Sec: [      .gnu.version_d] @0x00013d00 (   81152)  ent/size:        0/     984  align:        4,
  Elf Sec: [      .gnu.version_r] @0x000140d8 (   82136)  ent/size:        0/      64  align:        4,
  Elf Sec: [            .rel.dyn] @0x00014118 (   82200)  ent/size:        8/   10784  align:        4,
- 
+
  Elf Sec: [            .rel.plt] @0x00016b38 (   92984)  ent/size:        8/      64  align:        4,
- 
+
  Elf Sec: [                .plt] @0x00016b78 (   93048)  ent/size:        4/     144  align:        4,
  Elf Sec: [               .text] @0x00016c10 (   93200)  ent/size:        0/ 1083604  align:       16,
  Elf Sec: [   __libc_freeres_fn] @0x0011f4f0 ( 1176816)  ent/size:        0/    4040  align:       16,
@@ -992,9 +992,9 @@ Out[85]:
  Elf Sec: [        .data.rel.ro] @0x00157280 ( 1401472)  ent/size:        0/    6908  align:       32,
  Elf Sec: [            .dynamic] @0x00158d7c ( 1408380)  ent/size:        8/     240  align:        4,
  Elf Sec: [                .got] @0x00158e6c ( 1408620)  ent/size:        4/     372  align:        4,
- 
+
  Elf Sec: [            .got.plt] @0x00158ff4 ( 1409012)  ent/size:        4/      44  align:        4,
- 
+
  Elf Sec: [               .data] @0x00159020 ( 1409056)  ent/size:        0/    2428  align:       32,
  Elf Sec: [                .bss] @0x001599a0 ( 1411484)  ent/size:        0/   12392  align:       32,
  Elf Sec: [.gnu.warning.sigstack] @0x00000000 ( 1411488)  ent/size:        0/      77  align:       32,
@@ -1035,7 +1035,7 @@ Out[85]:
 ======================================
 /home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/i386/libstdc++.so.6.0.25.viv
 0x69470 0x1a10 0x182000
-Out[86]: 
+Out[86]:
 [Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
  Elf Sec: [  .note.gnu.build-id] @0x00000134 (     308)  ent/size:        0/      36  align:        4,
  Elf Sec: [           .gnu.hash] @0x00000158 (     344)  ent/size:        4/   33608  align:        4,
@@ -1045,9 +1045,9 @@ Out[86]:
  Elf Sec: [      .gnu.version_d] @0x000613f4 (  398324)  ent/size:        0/    1436  align:        4,
  Elf Sec: [      .gnu.version_r] @0x00061990 (  399760)  ent/size:        0/     336  align:        4,
  Elf Sec: [            .rel.dyn] @0x00061ae0 (  400096)  ent/size:        8/   31120  align:        4,
- 
+
  Elf Sec: [            .rel.plt] @0x00069470 (  431216)  ent/size:        8/    6672  align:        4,
- 
+
  Elf Sec: [               .init] @0x0006ae80 (  437888)  ent/size:        0/      35  align:        4,
  Elf Sec: [                .plt] @0x0006aeb0 (  437936)  ent/size:        4/   13360  align:       16,
  Elf Sec: [            .plt.got] @0x0006e2e0 (  451296)  ent/size:        8/     184  align:        8,
@@ -1064,9 +1064,9 @@ Out[86]:
  Elf Sec: [        .data.rel.ro] @0x0017cee0 ( 1556192)  ent/size:        0/   18276  align:       32,
  Elf Sec: [            .dynamic] @0x00181644 ( 1574468)  ent/size:        8/     272  align:        4,
  Elf Sec: [                .got] @0x00181754 ( 1574740)  ent/size:        4/    2196  align:        4,
- 
+
  Elf Sec: [            .got.plt] @0x00182000 ( 1576960)  ent/size:        4/    3348  align:        4,
- 
+
  Elf Sec: [               .data] @0x00182d20 ( 1580320)  ent/size:        0/     204  align:       32,
  Elf Sec: [                .bss] @0x00182e00 ( 1580524)  ent/size:        0/    8760  align:       32,
  Elf Sec: [       .note.stapsdt] @0x00000000 ( 1580524)  ent/size:        0/     192  align:        4,
@@ -1076,7 +1076,7 @@ Out[86]:
 ======================================
 /home/atlas/hacking/git/atlas0fd00m/vivtestfiles//linux/arm/sh.viv
 0xaca8 0x928 0x49490
-Out[87]: 
+Out[87]:
 [Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
  Elf Sec: [             .interp] @0x000080d4 (     212)  ent/size:        0/      19  align:        1,
  Elf Sec: [               .hash] @0x000080e8 (     232)  ent/size:        4/    2392  align:        4,
@@ -1085,9 +1085,9 @@ Out[87]:
  Elf Sec: [        .gnu.version] @0x0000a994 (   10644)  ent/size:        2/     666  align:        2,
  Elf Sec: [      .gnu.version_r] @0x0000ac30 (   11312)  ent/size:        0/      64  align:        4,
  Elf Sec: [            .rel.dyn] @0x0000ac70 (   11376)  ent/size:        8/      56  align:        4,
- 
+
  Elf Sec: [            .rel.plt] @0x0000aca8 (   11432)  ent/size:        8/    2344  align:        4,
- 
+
  Elf Sec: [               .init] @0x0000b5d0 (   13776)  ent/size:        0/      20  align:        4,
  Elf Sec: [                .plt] @0x0000b5e4 (   13796)  ent/size:        4/    3536  align:        4,
  Elf Sec: [               .text] @0x0000c3b8 (   17336)  ent/size:        0/  175376  align:        8,
@@ -1098,9 +1098,9 @@ Out[87]:
  Elf Sec: [         .fini_array] @0x00049398 (  234392)  ent/size:        0/       4  align:        4,
  Elf Sec: [                .jcr] @0x0004939c (  234396)  ent/size:        0/       4  align:        4,
  Elf Sec: [            .dynamic] @0x000493a0 (  234400)  ent/size:        8/     240  align:        4,
- 
+
  Elf Sec: [                .got] @0x00049490 (  234640)  ent/size:        4/    1192  align:        4,
- 
+
  Elf Sec: [               .data] @0x00049938 (  235832)  ent/size:        0/    1136  align:        4,
  Elf Sec: [                .bss] @0x00049da8 (  236968)  ent/size:        0/   27032  align:        8,
  Elf Sec: [     .ARM.attributes] @0x00000000 (  236968)  ent/size:        0/      16  align:        1,
@@ -1109,7 +1109,7 @@ Out[87]:
 ======================================
 /home/atlas/hacking/git/atlas0fd00m/vivtestfiles//qnx/arm/ksh.viv
 0x102d5c 0x7d8 0x146a10
-Out[88]: 
+Out[88]:
 [Elf Sec: [                    ] @0x00000000 (       0)  ent/size:        0/       0  align:        0,
  Elf Sec: [            QNX_info] @0x00000000 (  288368)  ent/size:        0/     147  align:        0,
  Elf Sec: [           .shstrtab] @0x00000000 (  288515)  ent/size:        0/      20  align:        1]

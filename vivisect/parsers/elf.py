@@ -182,6 +182,12 @@ def makeRelocTable(vw, va, maxva, baseoff, addend=False):
 def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseoff=0):
     logger.debug('makeFunctionTable(tbladdr=0x%x, size=0x%x, tblname=%r,  baseoff=0x%x)', tbladdr, size, tblname, baseoff)
     psize = vw.getPointerSize()
+
+    # If the provided buffer is shorter than the standard pointer size, use the
+    # buffer length
+    if size < psize:
+        psize = size
+
     fmtgrps = e_bits.fmt_chars[vw.getEndian()]
     pfmt = fmtgrps[psize]
     secbytes = elf.readAtRva(tbladdr, size)
@@ -206,6 +212,7 @@ arch_names = {
     Elf.EM_386: 'i386',
     Elf.EM_X86_64: 'amd64',
     Elf.EM_MSP430: 'msp430',
+    Elf.EM_RISCV: {32: 'rv32', 64: 'rv64'},
 }
 
 archcalls = {
@@ -214,6 +221,11 @@ archcalls = {
     'arm': 'armcall',
     'thumb': 'armcall',
     'thumb16': 'armcall',
+
+    # Assume the default calling convention names for the standard RISC-V 32 and
+    # 64-bit architectures
+    'rv32': 'ilp32d',
+    'rv64': 'lp64d',
 }
 
 def getAddBaseAddr(elf, baseaddr=None):
@@ -258,8 +270,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
 
     arch = arch_names.get(elf.e_machine)
+    if isinstance(arch, dict):
+        arch = arch.get(elf.bits)
     if arch is None:
-       raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
+        raise Exception("Unsupported Architecture: %d (%d bits)\n" % (elf.e_machine, elf.bits))
 
     platform = elf.getPlatform()
 
@@ -342,7 +356,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     # since getFileByVa is based on segments, and ELF Sections seldom cover all the
     # loadable memory space.... we'll add PT_LOAD Program Headers, only at the
-    # end.  If we add them first, they're always the matching segments.  At the 
+    # end.  If we add them first, they're always the matching segments.  At the
     # end, they make more of a default segment
     pcount = 0
     if vw.getFileByVa(baseaddr) is None:
@@ -381,7 +395,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     f_preinita = elf.dyns.get(Elf.DT_PREINIT_ARRAY)
     if f_preinita is not None:
-        f_preinitasz = elf.dyns.get(Elf.DT_PREINIT_ARRAY)
+        f_preinitasz = elf.dyns.get(Elf.DT_PREINIT_ARRAYSZ)
         makeFunctionTable(elf, vw, f_preinita, f_preinitasz, 'preinit_array', new_functions, new_pointers, baseoff)
 
     # dynamic table
@@ -634,7 +648,10 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     elif vw.isProbablyUnicode(sva):
                         vw.makeUnicode(sva, size=s.st_size)
                     elif vw.isProbablyString(sva):
-                        vw.makeString(sva, size=s.st_size)
+                        try:
+                            vw.makeString(sva, size=s.st_size)
+                        except Exception as e:
+                            logger.warning("bad attempt to make a string at 0x%x of size %d", sva, s.st_size, exc_info=1)
                     elif s.st_size % vw.getPointerSize() == 0 and s.st_size >= vw.getPointerSize():
                         # so it could be something silly like an array
                         for addr in range(sva, sva+s.st_size, vw.psize):
@@ -691,6 +708,12 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     # mark all the entry points for analysis later
     for cmnt, fva in new_functions:
+        # If the address of the potential new function is the ELF base address
+        # (therefore something that had an offset of 0, and points to the ELF
+        # header itself), skip it
+        if fva == baseaddr:
+            continue
+
         logger.info('adding function from ELF metadata: 0x%x (%s)', fva, cmnt)
         vw.addEntryPoint(fva)   # addEntryPoint queue's code analysis for later in the analysis pass
 
@@ -729,7 +752,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
             logger.debug('relocs: 0x%x: %s (%s)', rlva, dmglname, name)
             if arch in ('i386', 'amd64'):
                 if name:
-                    #if dmglname == 
+                    #if dmglname ==
                     if rtype == Elf.R_X86_64_IRELATIVE:
                         # before making import, let's fix up the pointer as a BASEPTR Relocation
                         ptr = r.r_addend
@@ -809,7 +832,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
 
 
             if arch in ('arm', 'thumb', 'thumb16'):
-                # ARM REL entries require an addend that could be stored as a 
+                # ARM REL entries require an addend that could be stored as a
                 # number or an instruction!
                 import envi.archs.arm.const as eaac
                 if r.vsHasField('addend'):
@@ -817,7 +840,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     addend = r.addend
                 else:
                     # otherwise, we have to check the stored value for number or instruction
-                    # if it's an instruction, we have to use the immediate value and then 
+                    # if it's an instruction, we have to use the immediate value and then
                     # figure out if it's negative based on the instruction!
                     try:
                         temp = vw.readMemoryPtr(rlva)
