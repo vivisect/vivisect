@@ -93,15 +93,8 @@ class AnalysisMonitor(EmulationMonitor):
                 if spdelta <= 0:  # add function locals
                     vw.setFunctionLocal(self.fva, spdelta, LSYM_NAME, ('int','local%d' % abs(spdelta)))
 
-                continue
-
-            # Only infer things about the workspace based on discrete operands
-            if vw.isValidPointer(val) and discrete:
-                vw.addXref(va, val, REF_DATA)
-                if vw.getLocation(val) is not None:
-                    continue
-
-                vw.guessDataPointer(val, tsize)
+            else:
+                self.checkAddDataXref(vw, va, val, discrete, tsize)
 
         for va, callname, argv in self.callcomments:
             reprargs = [emu.reprVivValue(val) for val in argv]
@@ -109,6 +102,15 @@ class AnalysisMonitor(EmulationMonitor):
             cva = self.vw.vaByName(callname)
             if cva:
                 self.vw.addXref(va, cva, REF_CODE, envi.BR_PROC)
+
+    def checkAddDataXref(self, vw, va, val, discrete, tsize):
+        # Only infer things about the workspace based on discrete operands
+        if vw.isValidPointer(val) and discrete:
+            vw.addXref(va, val, REF_DATA)
+
+            # If the target location does not already exist, create one now
+            if vw.getLocation(val) is None:
+                vw.guessDataPointer(val, tsize)
 
     def addDynamicBranchHandler(self, cb):
         '''
@@ -140,14 +142,15 @@ class AnalysisMonitor(EmulationMonitor):
 
                     self.operrefs.append((starteip, i, operva, o.tsize, stackoff, discrete))
 
-        if op.iflags & BRANCH_FLAGS:
-            oper = op.opers[0]
-            if oper.isDeref() or oper.isReg():
-                for cb in self._dynamic_branch_handlers:
-                    try:
-                        cb(self, emu, op, starteip)
-                    except Exception as e:
-                        logger.exception('error with dyn branch handler (%s) (%s)', cb, e)
+        if op.iflags & BRANCH_FLAGS:  # handle "branch to inherent register" such as bctr (ppc)
+            for tgt, bflags in op.getBranches():    # ignoring emu, so we correctly identify the dynamic branch
+                if tgt is None:
+                    for cb in self._dynamic_branch_handlers:
+                        logger.debug("dynamic branch cb: %r\top: 0x%x  %r", cb, op.va, op)
+                        try:
+                            cb(self, emu, op, starteip)
+                        except Exception as e:
+                            logger.exception('error with dyn branch handler (%s) (%s)', cb, e)
 
     def apicall(self, emu, op, pc, api, argv):
         rettype, retname, convname, callname, callargs = api
@@ -174,7 +177,7 @@ class AnalysisMonitor(EmulationMonitor):
                 self.vw.setComment(arg, argtype, check=True)
                 if not self.vw.isLocation(arg):
                     if argname == 'funcptr':
-                        logger.debug('discovered new function: 0x%x', arg)
+                        logger.debug('discovered new function (apicall): 0x%x', arg)
                         self.vw.makeFunction(arg)
 
                     # FIXME make an API for this? ( the name parsing )

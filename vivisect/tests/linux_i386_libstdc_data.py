@@ -18839,9 +18839,13 @@ libstdc_data = {
         (0x218502c, 'libstdc___so_6_0.std::money_get<wchar_t, std::istreambuf_iterator<wchar_t, std::char_traits<wchar_t> > >::id'),
         (0x2185030, 'libstdc___so_6_0.std::moneypunct<wchar_t, true>::id'),
         (0x2185034, 'libstdc___so_6_0.std::moneypunct<wchar_t, false>::id'),
+        (0x2190000, 'libstdc___so_6_0.bss_temp'),
+        (0x2000af7, 'libstdc___so_6_0.ptr_bss_temp_02000af7'),
     ],
 
     'pltgot': [
     ],
 
 }
+
+

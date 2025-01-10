@@ -8,6 +8,11 @@ class BlobArchException(Exception):
         Exception.__init__(self, 'Blob loader *requires* arch option (-O viv.parsers.blob.arch="<archname>")')
 
 
+class VbfArchException(Exception):
+    def __init__(self):
+        Exception.__init__(self, 'VBF loader *requires* arch option (-O viv.parsers.vbf.arch="<archname>")')
+
+
 class BadOutInstruction(Exception):
     def __init__(self, va):
         Exception.__init__(self, 'Hit out instruction at 0x%.8x' % va)

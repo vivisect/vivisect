@@ -249,6 +249,10 @@ class MemoryCanvas(object):
 
         # We must actually start rendering from the beginning
         # of the first updated VA index
+        if not len(updatedvas):
+            print("returning because no updatedvas: %x/%x" % (va, size))
+            return self.renderMemory(va, size)
+
         startva = updatedvas[0][0]
         endva = self._canv_endva
         if saved_last:

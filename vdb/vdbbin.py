@@ -51,12 +51,6 @@ def targetusage():
     ''')
     sys.exit(0)
 
-loglevels = (logging.CRITICAL,
-             logging.ERROR,
-             logging.WARN,
-             logging.INFO,
-             logging.DEBUG)
-
 
 def main():
     parser = argparse.ArgumentParser(prog='vdbbin', usage='%(prog)s [options] [platformopt=foo, ...]')

@@ -51,7 +51,11 @@ class VBitField(VStruct):
             # use vsSetBitWidth(0) to disable fields
             if field._vs_bitwidth == 0:
                 continue
-            bitname = '%s[%d:%d]' % (fname,bitoff,bitoff + field._vs_bitwidth)
+            bw = field._vs_bitwidth
+            if bw > 1:
+                bitname = '%s[%d:%d]' % (fname,bitoff,bitoff + bw - 1)
+            else:
+                bitname = '%s[%d]' % (fname,bitoff)
             ret.append( (offset, indent, bitname, field) )
             bitoff += field._vs_bitwidth
 

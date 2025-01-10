@@ -996,11 +996,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         offset &= -align
                     continue
 
-                x = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
-                if self.isValidPointer(x):
-                    ret.append((va, x))
-                    offset += size
-                    continue
+                ptrva = e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
+                if self.isValidPointer(ptrva):
+                    if self.isLikelyPointer(va, ptrva):
+                        ret.append((va, ptrva))
+                        offset += size
+                        continue
 
                 offset += align
                 offset &= -align
@@ -1009,6 +1010,49 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             self.setTransMeta('findPointers', ret)
 
         return ret
+
+    def isLikelyPointer(self, va, ptrva, thresh=0):
+        '''
+        This identifies and ranks the likelihood that a valid address discovered
+        in memory is actually a pointer.
+        '''
+        heur = 0.0
+
+        # if it points to something common, like < 0x200, it's suspect.
+        if ptrva < 0x200:
+            heur -= ((0x200 - ptrva)/0x200)
+
+
+        # if surrounded by pointers, it's more likely one
+        mmva, mmsz, mmperms, mmname = self.getMemoryMap(va)
+        # let's check the area around va
+        teststart = max(mmva, va - (self.psize * 10))
+        teststop  = min(mmva+mmsz, va + (self.psize * 11))
+
+        testva = teststart
+        data = collections.defaultdict(int)
+        while testva < teststop:
+            loc = self.getLocation(testva)
+            if loc is None:
+                testva += 1
+                continue
+
+            lva, lsz, ltype, ltinfo = loc
+            data[ltype] += 1
+            testva += lsz
+
+        if not data:
+            logger.debug("isLikelyPointer(0x%x, 0x%x): %f  (no other locations nearby)", va, ptrva, heur)
+            return (heur >= thresh)
+
+        ltypes = [(count, ltype) for ltype, count in data.items()]
+        ltypes.sort()
+        topdog = ltypes[-1]
+        if topdog[1] == LOC_POINTER and topdog[0] > 1:
+            heur += 1
+
+        logger.debug("isLikelyPointer(0x%x, 0x%x): %f", va, ptrva, heur)
+        return (heur >= thresh)
 
     def detectString(self, va):
         '''
@@ -1039,7 +1083,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                         if bytez[offset+count] != 0:
                             # we probably hit a case where the string at the lower va is
                             # technically the start of the full string, but the binary does
-                            # some optimizations and just ref's inside the full string to save 
+                            # some optimizations and just ref's inside the full string to save
                             # some space
                             return count + loc[L_SIZE]
                         return loc[L_VA] - (va + count) + loc[L_SIZE]
@@ -1877,7 +1921,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Add a memory map to the workspace.  This is the *only* way to
         get memory backings into the workspace.
+
+        If va is None, a location will be selected from free-space
+        appropriate to the desired size.  va is returned from this call
         """
+        if va is None:
+            msize = len(bytes)
+            va = self.getFreeMemAddr(msize)
+
         # handle nasty special case of an empty map with an alignment
         if not len(bytes):
             bytes = b'\0'
@@ -1892,6 +1943,40 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Remove a memory map from the workspace.
         '''
         self._fireEvent(VWE_DELMMAP, mapva)
+
+    def getFreeMemAddr(self, size, hint=None, align=0x10000, minaddr=0x100000):
+        """
+        This returns a base memory address with at least "size" free bytes
+        immediately following.
+
+        If "hint" is provided, address-space at or above that location will
+        be searched first.
+
+        This function is used for loader capabilities.
+        """
+        # select a starting address (if hint not provided)
+        if hint is None:
+            maxmap = 0
+            for mva, msz, mperm, mname in self.getMemoryMaps():
+                if mva + msz > maxmap:
+                    maxmap = mva + msz
+            hint = maxmap
+
+        # align appropriately
+        hint += align-1
+        hint = (hint // align) * align
+
+        # now go fish...
+        memva = hint
+        while self.isValidPointer(memva):
+            memva += align
+
+            # arbitrarily limiting to a 64-bit address space
+            # FIXME: for some devices, this will definitely need to be lower.
+            if memva > e_bits.u_maxes[8]:
+                memva = minaddr
+
+        return memva
 
     def addSegment(self, va, size, name, filename):
         """

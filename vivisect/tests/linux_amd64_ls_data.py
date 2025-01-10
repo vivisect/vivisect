@@ -128,6 +128,7 @@ ls_data = {
     ],
 
     'names': [
+        (0x620000, 'ls.bss_temp'),
         (0x401fd0, 'ls._init'),
         (0x402000, 'ls.plt___ctype_toupper_loc'),
         (0x402010, 'ls.plt_getenv'),

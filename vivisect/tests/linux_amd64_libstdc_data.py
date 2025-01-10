@@ -7452,6 +7452,7 @@ libstdc_data = {
     ],
 
     'names': [
+        (0x2390000, 'libstdc___so_6_0.bss_temp'),
         (0x2088480, 'libstdc___so_6_0.init_function'),
         (0x20884b0, 'libstdc___so_6_0.plt___cxa_allocate_dependent_exception'),
         (0x20884c0, 'libstdc___so_6_0.plt_std::__cxx11::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t> >::find_last_not_of(wchar_t const*, unsigned long, unsigned long) const'),
