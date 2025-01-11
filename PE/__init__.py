@@ -1,14 +1,20 @@
 import io
-import logging
 import os
+import math
 import struct
+import logging
+import binascii
 
 
 import vstruct
 import vstruct.defs.pe as vs_pe
+import PE.clr as clr
+
 import vivisect.exc as v_exc
 
 from . import ordlookup
+
+logger = logging.getLogger('vivisect')
 
 PE32_MAGIC = 0x10b
 PE32PLUS_MAGIC = 0x20b
@@ -184,6 +190,21 @@ RT_ANIICON          = 22
 RT_HTML             = 23
 RT_MANIFEST         = 24
 
+
+def fourPad(off):
+    return (4 - (off % 4)) % 4
+
+
+def uncompLen(bytez):
+    valu = bytez[0]
+    if valu <= 0x7F:
+        return 1, valu
+    elif valu & 0xC0 == 0x80:
+        return 2, struct.unpack('>H', bytes([valu & 0x3F, bytez[1]]))[0]
+    else:
+        return 4, struct.unpack('>I', bytes([valu & 0x3F] + bytez[1:4]))[0]
+
+
 RT_DESC = {
     RT_CURSOR: 'Hardware-dependent cursor resource',
     RT_BITMAP: 'Bitmap resource',
@@ -209,6 +230,7 @@ RT_DESC = {
 }
 
 logger = logging.getLogger('vivisect')
+
 
 class VS_VERSIONINFO:
     '''
@@ -1530,8 +1552,216 @@ class PE(object):
             self.parseLoadConfig()
             return self.IMAGE_LOAD_CONFIG
 
+        elif name == "clr":
+            self.parseCLR()
+            #return self.clr
+
         else:
             raise AttributeError
+
+    def parseCLR(self):
+        self.CLRHeader = None
+        self.CLRTables = {}
+        self.CLRBlobs = {}
+        self.CLRGuids = {}
+        self.CLRStrings = {}
+        self.CLRUserStrings = {}
+
+        dirn = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+        doff = self.rvaToOffset(dirn.VirtualAddress)
+
+        if doff == 0:
+            return None
+
+        self.IMAGE_COR20_HEADER = clrheader = self.readStructAtOffset(doff, 'pe.IMAGE_COR20_HEADER')
+
+        # So all the juicy bits live under the Metadata field, but other exports can live under 
+        # vtable fixups
+
+        # metadata points to signature header
+        # which is followed by storage header
+        # which is followed by stream headers
+        # which is then followed by different heaps/streams that contain all the data
+        metasize = clrheader.Metadata.Size
+        moff = metastart = self.rvaToOffset(clrheader.Metadata.VirtualAddress)
+        # the clr does some fun things with packing to get things aligned to a 4 byte boundary
+        moff += moff % 4
+
+        self.CLRSignatureHeader = self.readStructAtOffset(moff, 'pe.METADATA_SIGNATURE_HEADER')
+        moff += len(self.CLRSignatureHeader)
+        moff += fourPad(moff)
+
+        self.CLRStorageHeader = self.readStructAtOffset(moff, 'pe.METADATA_STORAGE_HEADER')
+        moff += len(self.CLRStorageHeader)
+        moff += fourPad(moff)
+
+        shoff = moff
+        self.CLRStreamHeaders = []
+        # Ultimately there should only be at most 6 streams
+        for i in range(self.CLRStorageHeader.NumberOfStreams):
+            stream = self.readStructAtOffset(shoff, 'pe.METADATA_STREAM_HEADER')
+            shoff += len(stream)
+            shoff += fourPad(len(stream))
+            self.CLRStreamHeaders.append(stream)
+
+        # Note: the stream offsets are from the start of the metadata header, not the start
+        # of the file 
+        for sh in self.CLRStreamHeaders:
+            name = sh.RCName
+
+            if name == '#~':  # optimized clr data
+                self.CLRHeader, self.CLRTables = self.parseOptimizedData(metastart + sh.Offset, sh.Size)
+            elif name == '#-':  # unoptimized clr data
+                self.parseUnoptimizedData(metastart + sh.Offset, sh.Size)
+            elif name == '#Strings':
+                self.CLRStrings = self.parseStringHeap(metastart + sh.Offset, sh.Size)
+            elif name == '#GUID':
+                self.CLRGuids = self.parseGuidHeap(metastart + sh.Offset, sh.Size)
+            elif name == '#Blob':
+                self.CLRBlobs = self.parseBlobHeap(metastart + sh.Offset, sh.Size)
+            elif name == '#US':
+                '''
+                So just up front, the #US heap is actually a blob heap, even though it's
+                called the User Strings heap.
+
+                So the user strings are stored in utf-16 format, with two exceptions. One
+                is that all strings have a trailing 1 or 0 byte to indicate whether there
+                are any characters with codes greater than 0x7f in the string.
+
+                Additionally, the #US heap can store *any* binary object since it's just
+                a blob heap. So we've gotta take care there. At least since it's a blob
+                heap the strings are preceded by their length :|
+                '''
+                self.CLRUserStrings = self.parseBlobHeap(metastart + sh.Offset, sh.Size)
+            else:
+                logger.warning('Unhandled CLR stream type of: %s' % name)
+
+
+    def parseOptimizedData(self, offset, size):
+        '''
+        So I note it down below, it's it's so important I'll note it here as well:
+        RIDs are all 1 based, so the first element of most lists are going to be None
+        '''
+        header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
+        ridmask = (2 ** header.Rid) - 1
+
+        strOffSz  = 4 if header.Heaps & 0x1 else 2
+        guidOffSz = 4 if header.Heaps & 0x2 else 2
+        blobOffSz = 4 if header.Heaps & 0x4 else 2
+
+        srtd = {}
+        tblc = {}
+        tables_present = header.MaskValid
+        sorted_tables = header.Sorted
+        tid = 0
+        while tables_present:
+            if tables_present & 1:
+                tblc[tid] = 0
+            tables_present >>= 1
+            tid += 1
+
+        tid = 0
+        while sorted_tables:
+            if sorted_tables & 1:
+                srtd[tid] = 0
+            sorted_tables >>= 1
+            tid += 1
+
+        # parse out the table counts. it's just a series of back to back 4 byte integers
+        offset += len(header)
+        for key in tblc:
+            bytez = self.readAtOffset(offset, 4)
+            count = struct.unpack("<I", bytez)[0]
+            tblc[key] = count
+            offset += 4
+
+        ridbits = len(bin(max(tblc.values()) + 1)[2:])
+        ridbytes = 4 if ridbits > 16 else 2
+
+        ridtbls = {}
+        for key, count in tblc.items():
+            i = 0
+            ctor = clr.RIDTYPEMAP[key]
+            # DEV: RIDs are all 1 based indexes :(, so fake it here
+            table = [None]
+            for i in range(count):
+                obj = ctor(tblc, ridlen=ridbytes, slen=strOffSz, glen=guidOffSz, blen=blobOffSz)
+                l = len(obj)
+                obj.vsParse(self.readAtOffset(offset, l))
+                table.append(obj)
+                offset += l
+            ridtbls[key] = table
+
+        return header, ridtbls
+
+    def parseUnoptimizedData(self, offset, size):
+        '''
+        Now the question is, does this differ at all from optimized in terms of what we need to
+        directly parse?
+        '''
+        header = self.readStructAtOffset(offset, 'pe.METADATA_TABLE_STREAM_HEADER')
+        # ridlen = header.Rid % 8 + (1 if header.Rid % 8 > 0  else 0)
+        raise NotImplementedError("UNOPT -- TODO")
+
+    def parseStringHeap(self, offset, size):
+        '''
+        A string heap isn't the hard coded strings that you'd see in the source
+        code. Those live in the #US heap. This is things like class names,
+        method names, etc. And it's a true string heap, with strings in utf-8 format
+        '''
+        strs = {}  # indexed by offset in the string table
+        data = self.readAtOffset(offset, size)
+        consumed = 0
+        s = ''
+        # The very first and very last values in the returned values will always be 
+        # \x00 if the table is formatted correctly
+        while consumed < size:
+            length = data[consumed:].find(b'\x00')
+            s = data[consumed:consumed+length]
+            strs[consumed] = s.decode('utf-8')
+            consumed += len(s) + 1
+            # to avoid having duplicate null entries at the end of the dictionary
+            if s == '\x00' and consumed > 1:
+                break
+        return strs
+
+    def parseBlobHeap(self, offset, size):
+        '''
+        Blobs in this case are internal binary objects like signatures and others or
+        things like users strings, depending on which stream we're looking at.
+
+        The #US heap is special in that we *technically* can depend on things being
+        utf-16. But things can still lie to us about it, so don't really depend on that
+
+        Structure of a blob in the blob heap is
+        <compressed_length><value>
+
+        where compressed length is their special format
+        '''
+        blobs = {}
+        data = self.readAtOffset(offset, size)
+        consumed = 0
+        while consumed < size:
+            lcomp, objsz = uncompLen(data[consumed:])
+            consumed += lcomp
+            blobs[consumed] = data[consumed:consumed+objsz]
+            consumed += objsz
+        return blobs
+
+    def parseGuidHeap(self, offset, size):
+        '''
+        Guid heaps are just a series of 16 byte strings immediately following each other.
+        There's no delimiting or size parameters. Just a big blob.
+        '''
+        consumed = 0
+        guids = []
+        while consumed < size:
+            # Is this right? Who references this?
+            g = binascii.hexlify(self.readAtOffset(offset + consumed, 16)).decode('utf-8')
+            guids.append(g)
+            consumed += 16
+
+        return guids
 
 def peFromMemoryObject(memobj, baseaddr):
     fd = vstruct.MemObjFile(memobj, baseaddr)

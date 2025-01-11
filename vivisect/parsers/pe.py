@@ -8,6 +8,7 @@ import vstruct
 import vivisect
 import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
+import vivisect.parsers.clr as v_p_clr
 # Steal symbol parsing from vtrace
 import vtrace  # needed only for setting the logging level
 import vtrace.platforms.win32 as vt_win32
@@ -563,6 +564,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
             pebytes = subpe.readAtOffset(0, subpe.getFileSize())
             rva = pe.offsetToRva(offset) + baseaddr
             vw.markDeadData(rva, rva+len(pebytes))
+
+    comdesc = pe.getDataDirectory(PE.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+    if comdesc.VirtualAddress and comdesc.Size:
+        # TODO: maybe just in case, also parse the entry point and make sure it's a jump
+        # to CorExeMain?
+        v_p_clr.loadCLRIntoWorkspace(vw, pe)
 
     return fname
 
