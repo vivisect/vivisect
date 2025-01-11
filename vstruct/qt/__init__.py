@@ -114,6 +114,9 @@ class VQStructNamespacesView(vq_tree.VQTreeView):
         pos_elf = model.append(('', 'Elf'), parent=pos)
         pos_elf.modinfo = ('elf', 'vstruct.defs.elf')
 
+        osx  = model.append(('osx', ''))
+        osx_macho = model.append(('', 'macho'), parent=osx)
+
         self.setModel(model)
 
 class VQStructNamespaceDialog(QDialog):

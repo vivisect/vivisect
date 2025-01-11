@@ -2,7 +2,7 @@ import logging
 import unittest
 
 import PE
-import envi.memory as e_memory
+import envi.const as e_const
 
 import vivisect
 import vivisect.const as viv_con
@@ -562,11 +562,11 @@ class PETests(v_t_utils.VivTest):
         vw = self.vw_mimi
         ans = {
             # name -> (Base, Size, Flags)
-            'PE_Header': (0x400000, 0x1000, e_memory.MM_READ),
-            '.text': (0x401000, 0x71800, e_memory.MM_READ | e_memory.MM_EXEC),
-            '.data': (0x4b6000, 0x4200, e_memory.MM_READ | e_memory.MM_WRITE),
-            '.rdata': (0x473000, 0x42e00, e_memory.MM_READ),
-            '.reloc': (0x4bf000, 0x6800, e_memory.MM_READ),
+            'PE_Header': (0x400000, 0x1000, e_const.MM_READ),
+            '.text': (0x401000, 0x71800, e_const.MM_READ | e_const.MM_EXEC),
+            '.data': (0x4b6000, 0x4200, e_const.MM_READ | e_const.MM_WRITE),
+            '.rdata': (0x473000, 0x42e00, e_const.MM_READ),
+            '.reloc': (0x4bf000, 0x6800, e_const.MM_READ),
         }
         for sva, ssize, sname, sfname in vw.getSegments():
             self.assertEqual(ans[sname][0], sva)

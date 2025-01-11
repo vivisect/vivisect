@@ -23,10 +23,11 @@ import vivisect.tools.graphutil as v_t_graph
 
 import visgraph.pathcore as vg_path
 
-import vtrace.envitools as vt_envitools
+import vtrace.lockstep as vt_lockstep
 
 import vdb
 
+import envi.exc as e_exc
 import envi.cli as e_cli
 import envi.common as e_common
 import envi.memory as e_memory
@@ -392,7 +393,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
                     self.canvas.addText('\t\t; %s (Perms: %s, Smartname: %s)' % (cmt, pname, sname))
 
                 self.canvas.addText('\n')
-            except envi.SegmentationViolation as e:
+            except e_exc.SegmentationViolation as e:
                 logger.debug("segv at 0x%x", va)
 
         self.vprint('done (%d results).' % len(res))
@@ -636,7 +637,7 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         addr = self.parseExpression(line)
         emu = self.getEmulator(va=addr)
 
-        trace = vt_envitools.TraceEmulator(emu)
+        trace = vt_lockstep.TraceEmulator(emu)
 
         db = vdb.Vdb(trace=trace)
         db.cmdloop()
@@ -781,6 +782,106 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         import vivisect.vdbext as viv_vdbext
         viv_vdbext.runVdb(self._viv_gui)
+
+    def do_switch(self, line):
+        '''
+        Wire up a switch case.  
+
+        Usage: switch <jmp_va> <count> [offset]
+            where:
+                jmp_va  - the va of the  "jmp reg" instruction
+                count   - number of switch case indices are covered by this switch case jmp
+                offset  - first switch case index.
+            
+            eg: switch case handles i == 32 thru 47, count = 16, offset = 32
+        '''
+        if not line:
+            return self.do_help("switch")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) < 2:
+            return self.do_help("switch")
+
+        offset = 0
+        try:
+            if argv[0].startswith("0x"):
+                jmpva = int(argv[0], 16)
+            else:
+                jmpva = int(argv[0])
+
+            if argv[1].startswith("0x"):
+                count = int(argv[1], 16)
+            else:
+                count = int(argv[1])
+
+            if len(argv) == 3:
+                if argv[2].startswith("0x"):
+                    offset = int(argv[2], 16)
+                else:
+                    offset = int(argv[2])
+
+            import vivisect.analysis.generic.symswitchcase as vagss
+            import vivisect.analysis.generic.codeblocks as vagc
+            sc = vagss.SwitchCase(self, jmpva)
+            sc.makeSwitch(count, offset)
+            funcva = self.getFunction(jmpva)
+            vagc.analyzeFunction(self, funcva)
+        except ValueError as e:
+            self.vprint("exception: %r" % e)
+            return self.do_help("switch")
+
+    def do_m_switch(self, line):
+        '''
+        Wire up a switch-case based on an array of pointers
+
+        Usage: m_switch <jmp_va> <array_va> <count> [baseva] [offset] [size]
+            where:
+                jmp_va  - the va of the  "jmp reg" instruction
+                array_va - the location of the first pointer in the array
+                count   - number of switch case indices are covered by this switch case jmp
+                baseva  - add the offset to this address (eg. _GOT_)
+                offset  - first switch case index.
+                [size]  - size (default: pointer size)
+            
+            eg: switch case handles i == 32 thru 47, count = 16, offset = 32
+        '''
+        if not line:
+            return self.do_help("m_switch")
+
+        argv = e_cli.splitargs(line)
+        if len(argv) < 3:
+            return self.do_help("m_switch")
+
+        size = 0
+        baseva = 0
+        offset = 0
+        try:
+            jmpva = self.parseExpression(argv[0])
+            array = self.parseExpression(argv[1])
+            count = self.parseExpression(argv[2])
+
+            if len(argv) > 3:
+                baseva = self.parseExpression(argv[3])
+
+            if len(argv) > 4:
+                offset = self.parseExpression(argv[4])
+
+            if len(argv) > 5:
+                size = self.parseExpression(argv[5])
+
+            # link up the switchcase using data provided
+            import vivisect.analysis.generic.symswitchcase as vagss
+            import vivisect.analysis.generic.codeblocks as vagc
+            vagss.link_up(self, jmpva, array, count, offset, baseva, size)
+
+            # reanalyze codeblocks for the function (since it should have changed)
+            funcva = self.getFunction(jmpva)
+            if funcva is not None:
+                vagc.analyzeFunction(self, funcva)
+
+        except ValueError as e:
+            self.vprint("exception: %r" % e)
+            return self.do_help("m_switch")
 
     def do_plt(self, line):
         '''

@@ -2,6 +2,7 @@ import envi.archs.msp430.emu as e_msp430e
 import vivisect.impemu.emulator as v_i_emulator
 
 class Msp430WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_msp430e.Msp430Emulator):
+    __archemu__ = e_msp430e.Msp430Emulator
 
     taintregs = [ x for x in range(2, 16) ]
 

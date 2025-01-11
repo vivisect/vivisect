@@ -8,7 +8,7 @@ Please see the quickstart/usage docs over at our [docs page](https://vivisect.re
 
 ## Installing
 
-For most use cases, you should just be able to run `pip install vivisect[gui]` to get both the vivisect/vdb libraries and UI components. For other use cases, please see our [documentation](https://vivisect.readthedocs.io/en/latest/).
+For most use cases, you should just be able to run `pip install "vivisect[gui]"` to get both the vivisect/vdb libraries and UI components. For other use cases, please see our [documentation](https://vivisect.readthedocs.io/en/latest/).
 
 
 ## Versioning
@@ -31,3 +31,5 @@ be loadable in python3 vivisect.
 ## Build Status
 
 [![CircleCI](https://circleci.com/gh/vivisect/vivisect/tree/master.svg?style=svg)](https://circleci.com/gh/vivisect/vivisect/tree/master)
+
+[![Documentation Status](https://readthedocs.org/projects/vivisect/badge/?version=latest)](https://vivisect.readthedocs.io/en/latest/?badge=latest)

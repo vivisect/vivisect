@@ -30,14 +30,21 @@ class v_bitmask(object):
 
 
 class v_base(object):
-    def __init__(self):
+    def __init__(self, bigend=False):
         self._vs_meta = {}
+        self._vs_bigend = bigend
 
     def vsGetMeta(self, name, defval=None):
         return self._vs_meta.get(name, defval)
 
     def vsSetMeta(self, name, value):
         self._vs_meta[name] = value
+
+    def vsGetEndian(self):
+        return self._vs_bigend
+
+    def vsSetEndian(self, bigend):
+        self._vs_bigend = bigend
 
     # Sub-classes (primitive base, or VStruct must have these
     def vsParse(self, bytes):
@@ -53,9 +60,10 @@ class v_base(object):
         return NotImplemented
 
 
+
 class v_prim(v_base):
-    def __init__(self):
-        v_base.__init__(self)
+    def __init__(self, bigend=False):
+        v_base.__init__(self, bigend)
         # Used by base len(),vsGetFormat, etc...
         self._vs_value = None
         self._vs_length = None
@@ -155,15 +163,20 @@ class v_number(v_prim):
     _vs_length = 1
 
     def __init__(self, value=0, bigend=False, enum=None):
-        v_prim.__init__(self)
-        self._vs_bigend = bigend
+        v_prim.__init__(self, bigend)
         self._vs_enum = enum
         self._vs_length = self.__class__._vs_length
-        self._vs_fmt = num_fmts.get((bigend, self._vs_length))
-
-        # TODO: could use envi.bits, but do we really want to dep on envi?
-        self.maxval = (2 ** (8 * self._vs_length)) - 1
+        self._setFmt()
         self.vsSetValue(value)
+
+    def _setFmt(self):
+        # TODO: could use envi.bits, but do we really want to dep on envi?
+        self._vs_fmt = num_fmts.get((self._vs_bigend, self._vs_length))
+        self.maxval = (2 ** (8 * self._vs_length)) - 1
+
+    def vsSetEndian(self, bigend):
+        v_prim.vsSetEndian(self, bigend)
+        self._setFmt()
 
     def vsGetValue(self):
         return self._vs_value
@@ -221,11 +234,11 @@ class v_number(v_prim):
     def __int__(self):
         return int(self._vs_value)
 
-    def __str__(self):
+    def __repr__(self):
         v = self.vsGetValue()
         if self._vs_enum is not None:
-            return str(self._vs_enum.vsReverseMapping(v, default=str(v)))
-        return str(v)
+            return str(self._vs_enum.vsReverseMapping(v, default=hex(v)))
+        return "0x%x   (%d)" % (v, v)
 
     ##################################################################
     # Implement the number API
@@ -487,6 +500,7 @@ class v_float(v_prim):
 
     def __int__(self):
         return int(self._vs_value)
+
     def __float__(self):
         return float(self._vs_value)
 

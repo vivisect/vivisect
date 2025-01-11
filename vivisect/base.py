@@ -3,7 +3,6 @@ import base64
 import logging
 import traceback
 import threading
-import contextlib
 import collections
 
 import envi
@@ -208,12 +207,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         '''
         self._event_saved = len(self._event_list)
 
-    @contextlib.contextmanager
-    def getAdminRights(self):
-        self._supervisor = True
-        yield
-        self._supervisor = False
-
     def _handleADDLOCATION(self, loc):
         lva, lsize, ltype, linfo = loc
         self.locmap.setMapLookup(lva, lsize, loc)
@@ -223,7 +216,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if ltype == LOC_IMPORT:
             # Check if the import is registered in NoReturnApis
             if self.getMeta('NoReturnApis', {}).get(linfo.lower()):
-                self.cfctx.addNoReturnAddr( lva )
+                self.cfctx.addNoReturnAddr(lva)
 
     def _handleDELLOCATION(self, loc):
         # FIXME delete xrefs
@@ -235,12 +228,19 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.segments.append(einfo)
 
     def _handleADDRELOC(self, einfo):
-        fname, ptroff, rtype, data = einfo
+        if len(einfo) == 4:
+            fname, ptroff, rtype, data = einfo
+            size = None
+        else:
+            fname, ptroff, rtype, data, size = einfo
+
+        if size is None:
+            size = self.psize
         imgbase = self.getFileMeta(fname, 'imagebase')
         rva = imgbase + ptroff
 
         self.reloc_by_va[rva] = rtype
-        self.relocations.append(einfo)
+        self.relocations.append((fname, ptroff, rtype, data, size))
 
         # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
@@ -248,13 +248,13 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # add imgbase and offset to pointer in memory
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
-            if ptr != (ptr & e_bits.u_maxes[self.psize]):
+            if ptr != (ptr & e_bits.u_maxes[size]):
                 logger.warning('Relocations calculated a bad pointer: 0x%x (imgbase: 0x%x) (relocation: %d)', ptr, imgbase, rtype)
 
             # writes are costly, especially on larger binaries
-            if ptr != self.readMemoryPtr(rva):
+            if ptr != self.readMemValue(rva, size):
                 with self.getAdminRights():
-                    self.writeMemoryPtr(rva, ptr)
+                    self.writeMemValue(rva, ptr, size)
 
         if rtype == RTYPE_BASEPTR:
             # make it like a pointer (but one that could move with each load)
@@ -263,7 +263,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             #   don't follow.  handle it later, once "known code" is analyzed
             ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
             self._handleADDXREF((rva, ptr, REF_PTR, 0))
-            self._handleADDLOCATION((rva, self.psize, LOC_POINTER, ptr))
+            self._handleADDLOCATION((rva, size, LOC_POINTER, ptr))
 
     def _handleDELRELOC(self, einfo):
         fname, rva, rtyp, full = einfo
@@ -273,7 +273,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.reloc_by_va.pop(rva, None)
         delidx = -1
 
-        for idx, (fn, off, typ, data) in enumerate(self.relocations):
+        for idx, (fn, off, typ, data, size) in enumerate(self.relocations):
             if fn == fname and off == ptroff and typ == rtyp:
                 delidx = idx
                 break
@@ -432,6 +432,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.locmap.delMapLookup(mapva)
         self.blockmap.delMapLookup(mapva)
 
+        # wipe the opcode cache in case we have cached deleted locations
+        self.clearOpcache()
+
     def _handleADDEXPORT(self, einfo):
         va, etype, name, filename = einfo
         self.exports.append(einfo)
@@ -454,6 +457,13 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self.comments.pop(va, None)
         else:
             self.comments[va] = comment
+
+    def _handleENDIAN(self, einfo):
+        self.bigend = einfo
+        for arch in self.imem_archs:
+            if not arch:
+                continue
+            arch.setEndian(self.bigend)
 
     def _handleADDFILE(self, einfo):
         normname, imagebase, md5sum = einfo
@@ -530,6 +540,15 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         '''
         pass
 
+    def _handleWRITEMEM(self, einfo):
+        '''
+        Handle permanent writes to a memory map after initialization
+        (fname, off, bytez, supv) where supv is supervisor mode...
+        '''
+        va, bytez, oldbytes = einfo
+        with self.getAdminRights():
+            e_mem.MemoryObject.writeMemory(self, va, bytez)
+
     def _initEventHandlers(self):
         self.ehand = [None for x in range(VWE_MAX)]
         self.ehand[VWE_ADDLOCATION] = self._handleADDLOCATION
@@ -573,6 +592,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_CHAT]     = self._handleCHAT
         self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
         self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
+        self.ehand[VWE_WRITEMEM] = self._handleWRITEMEM
+        self.ehand[VWE_ENDIAN] = self._handleENDIAN
 
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
@@ -656,18 +677,40 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     #def _loadImportApi(self, apidict):
         #self._imp_api.update( apidict )
 
+    def getEndian(self):
+        return self.bigend
+
+    def notifyLoadEvent(self):
+        '''
+        There are a couple components required before we the "load event" is
+        complete.  Each component calls this function, and based on the state
+        of other components, the _load_event is set
+        '''
+        if self.getMeta('Architecture') is None:
+            return
+
+        if self.getMeta('Platform') is None:
+            return
+
+        self._load_event.set()
 
 #################################################################
 #
 #  setMeta key callbacks
 #
     def _mcb_Architecture(self, name, value):
-        # This is for legacy stuff...
-        self.arch = envi.getArchModule(value)
-        self.psize = self.arch.getPointerSize()
-
         archid = envi.getArchByName(value)
-        self.setMemArchitecture(archid)
+        try:
+            # Some of the ENVI archs defined may have architecture modules that 
+            # are still in progress
+            self.setMemArchitecture(archid)
+        except IndexError:
+            raise ArchModDefException(value) from None
+
+        # This is for legacy stuff...
+        #self.arch = envi.getArchModule(value)
+        self.arch = self.getMemArchModule()
+        self.psize = self.arch.getPointerSize()
 
         # Default calling convention for architecture
         # This will be superceded by Platform and Parser settings
@@ -675,7 +718,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
-        self._load_event.set()
+        self.notifyLoadEvent()
 
     def _mcb_bigend(self, name, value):
         self.setEndian(bool(value))
@@ -688,7 +731,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if defcall:
             self.setMeta('DefaultCall', defcall)
 
-        self._load_event.set()
+        self.notifyLoadEvent()
 
     def _mcb_FileBytes(self, name, value):
         if not self.parsedbin:
@@ -715,8 +758,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _fmcb_Thunk(self, funcva, th, thunkname):
         # If the function being made a thunk is registered
         # in NoReturnApis, update codeflow...
-        if self.getMeta('NoReturnApis').get( thunkname.lower() ):
-            self.cfctx.addNoReturnAddr( funcva )
+        if self.getMeta('NoReturnApis').get(thunkname.lower()):
+            self.cfctx.addNoReturnAddr(funcva)
 
     def _fmcb_CallsFrom(self, funcva, th, callsfrom):
         for va in callsfrom:
@@ -742,6 +785,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     if len(vw.getXrefsFrom(op.va)):
         return
 
+    logger.info("0x%x: Dynamic Branch found:  %s" % (op.va, op))
     vw.setVaSetRow('DynamicBranches', (op.va, repr(op), bflags))
 
 class VivCodeFlowContext(e_codeflow.CodeFlowContext):
@@ -779,11 +823,13 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
             self._mem.makeOpcode(op.va, op=op)
             # TODO: future home of makeOpcode branch/xref analysis
-            return branches
+            if not self._mem.isNoReturnVa(op.va):
+                return branches
 
         elif loc[L_LTYPE] != LOC_OP:
             locrepr = self._mem.reprLocation(loc)
             logger.warning("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
+
         return ()
 
     def _cb_function(self, fva, fmeta):
@@ -808,7 +854,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         fname = vw.getName( fva )
         if vw.getMeta('NoReturnApis').get( fname.lower() ):
-            self._cf_noret[ fva ] = True
+            self._cf_noret[fva] = True
 
         if len( vw.getFunctionBlocks( fva )) == 1:
             return
@@ -818,7 +864,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             va = lva[0]
             ctup = vw.getCodeBlock(va)
             if ctup and fva == ctup[2] and vw.getFunctionMeta(fva, 'BlockCount', default=0) == 1:
-                self._cf_noret[ fva ] = True
+                self._cf_noret[fva] = True
                 break
 
     def _cb_branchtable(self, tablebase, tableva, destva):

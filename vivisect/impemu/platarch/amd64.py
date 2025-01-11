@@ -16,6 +16,7 @@ non_use_mnems = ('push', )
 
 
 class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulator):
+    __archemu__ = e_amd64.Amd64Emulator
 
     taintregs = [
         e_amd64.REG_RAX, e_amd64.REG_RCX, e_amd64.REG_RDX,

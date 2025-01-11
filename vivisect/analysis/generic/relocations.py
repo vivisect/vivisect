@@ -7,7 +7,7 @@ import vivisect.const as v_const
 
 
 def analyze(vw):
-    for fname, vaoff, rtype, data in vw.getRelocations():
+    for fname, vaoff, rtype, data, size in vw.getRelocations():
         imgbase = vw.getFileMeta(fname, 'imagebase')
         va = imgbase + vaoff
         if rtype == v_const.RTYPE_BASERELOC and not vw.isLocation(va):
