@@ -102,6 +102,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         cfgpath = os.path.join(self.vivhome, 'viv.json')
         self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig, autosave=autosave)
+        self.config.registerCallback('viv.analysis.codeflow.onelib', self._ccb_codeflow_onelib)
+        self.config.registerCallback('viv.analysis.codeflow.strict', self._ccb_codeflow_strict)
+        self.config.registerCallback('viv.analysis.codeflow.stopOnExports', self._ccb_codeflow_stopOnExports)
 
         # Ideally, *none* of these are modified except by _handleFOO funcs...
         self.segments = []
@@ -127,7 +130,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.filemeta = {}  # Metadata Dicts stored by filename
         self.transmeta = {}  # Metadata that is *not* saved/evented
 
-        self.cfctx = viv_base.VivCodeFlowContext(self)
+        self.cfctx = viv_base.VivCodeFlowContext(self, config=self.config)
 
         self.va_by_name = {}
         self.name_by_va = {}
@@ -511,8 +514,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         '''
         c = re.compile(funcre, re.IGNORECASE)
         m = self.getMeta('NoReturnApisRegex', [])
-        m.append(funcre)
-        self.setMeta('NoReturnApisRegex', m)
+        if not funcre in m:
+            # only add the pattern once.  important for multi-bin workspaces
+            m.append(funcre)
+            self.setMeta('NoReturnApisRegex', m)
 
         for lva, lsize, ltype, linfo in self.getImports():
             if c.match(linfo):
@@ -2026,6 +2031,27 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         unmark a virtual range as dead code
         """
         self._dead_data.remove( (start,end) )
+
+    def _ccb_codeflow_onelib(self, value):
+        '''
+        Update Codeflow
+        '''
+        logger.warning("value=%r", value)
+        self.cfctx._cf_onelib = value
+
+    def _ccb_codeflow_strict(self, value):
+        '''
+        Update Codeflow
+        '''
+        logger.warning("value=%r", value)
+        self.cfctx._cf_ol_strict = value
+
+    def _ccb_codeflow_stopOnExports(self, value):
+        '''
+        Update Codeflow
+        '''
+        logger.warning("value=%r", value)
+        self.cfctx._cf_stop_on_exports = value
 
     def _mcb_deaddata(self, name, value):
         """
