@@ -12,6 +12,7 @@ struct monty {
     int life;
     char of;
     long brian;
+    u8 goard[2];
 };
 '''
 
@@ -24,6 +25,7 @@ struct python {
     } holygrail;
     int hollywood[64];
     unsigned char bow[5];
+    uint32_t sandal;
 };
 '''
 
