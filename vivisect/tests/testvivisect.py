@@ -394,7 +394,7 @@ class VivisectTest(v_t_utils.VivTest):
 
     def test_vaset_populate(self):
         '''
-        Make sure the the VASEts are populated in roughly the way we expect
+        Make sure the the VASets are populated in roughly the way we expect
         '''
         vw = self.vdir_vw
         ans = {
@@ -454,14 +454,23 @@ class VivisectTest(v_t_utils.VivTest):
                                 (134563178, 'jmp dword [0x0805e250 + edi * 4]', 65545),
                                 (134569031, 'jmp dword [0x0805e4ac + edi * 4]', 65545)],
             'NoReturnCalls': [(134573120,), (134524676,), (134577802,), (134582295,), (134551055,), (134525456,),
-                              (134568495,), (134534039,), (134524568,), (134528303,), (134578863,), (134577311,),
-                              (134549928,), (134544175,), (134553138,), (134572852,), (134580661,),
+                              (134568495,), (134534039,), (134528303,), (134578863,), (134577311,),
+                              (134549928,), (134544175,), (134553138,), (134572852,),
                               (134550582,), (134579529,), (134572857,), (134534204,), (134577471,), (134580544,),
                               (134568769,), (134546505,), (134578743,), (134553208,), (134555349,),
-                              (134580057,), (134521306,), (134531547,), (134572084,), (134578576,), (134554727,),
-                              (134576873,), (134580336,), (134521331,), (134550133,), (134521336,), (134529017,),
-                              (134524668,), (134577049,), (134547258,), (134577158,), (134524356,), (134524581,),
+                              (134521306,), (134572084,), (134578576,), (134554727,),
+                              (134576873,), (134521331,), (134550133,), (134521336,), (134529017,),
+                              (134524668,), (134577049,), (134577158,),
                               (134576974,), (134576909,),
+
+                              (134531547,),  # void usage(int status) - call exit
+                              (134547258,),  # void __argmatch_die() - call usage
+                              (134524568,),  # int decode_switches(int argc, char** argv) - call usage
+                              (134524356,),  # int decode_switches(int argc, char** argv) - call usage
+                              (134524581,),  # int decode_switches(int argc, char** argv) - call usage
+                              (134580057,),  # _obstack_begin_worker(...) - call obstack_alloc_failed_handler
+                              (134580661,),  # void print_and_abort() - call exit
+                              (134580336,),  # void _obstack_newchunk(...) - call obstack_alloc_failed_handler
                               ],
             'Bookmarks': [],
             'SwitchCases': [(134533577, 134533577, 162),
@@ -498,8 +507,8 @@ class VivisectTest(v_t_utils.VivTest):
                             ('program_invocation_name', 0x8061300),
                             ('program_invocation_short_name', 0x80612f0),
                             ('__gmon_start__', 0x8060ffc)],
-            'PointersFromFile': [(134614800, 134519888, 'vdir', 'fini_function_0'),
-                                 (134614796, 134519936, 'vdir', 'init_function_0'),
+            'PointersFromFile': [(0x8060f0c, 0x8049c80, 'vdir', '__frame_dummy_init_array_entry'),
+                                 (0x8060f10, 0x8049c50, 'vdir', '__do_global_dtors_aux_fini_array_entry'),
                                  (0x805a00c, 0x805d77c, 'vdir', 'long_options'),
                                  (0x805a01c, 0x805e7c9, 'vdir', 'long_options'),
                                  (0x805a02c, 0x805da20, 'vdir', 'long_options'),
@@ -553,7 +562,6 @@ class VivisectTest(v_t_utils.VivTest):
                                  (0x805a314, 0x805d87c, 'vdir', 'time_args'),
                                  (0x805a318, 0x805d880, 'vdir', 'time_args'),
                                  (0x805a31c, 0x805d886, 'vdir', 'time_args'),
-                                 (0x805a324, 0x0, 'vdir', 'format_types'),
                                  (0x805a340, 0x805d88d, 'vdir', 'format_args'),
                                  (0x805a344, 0x805d895, 'vdir', 'format_args'),
                                  (0x805a348, 0x805d89a, 'vdir', 'format_args'),
@@ -570,7 +578,6 @@ class VivisectTest(v_t_utils.VivTest):
                                  (0x805a39c, 0x805d8dd, 'vdir', 'when_args'),
                                  (0x805a3a0, 0x805d8e5, 'vdir', 'when_args'),
                                  (0x805a3a4, 0x805d8e2, 'vdir', 'when_args'),
-                                 (0x805a3ac, 0x0, 'vdir', 'indicator_style_types'),
                                  (0x805a3bc, 0x805d860, 'vdir', 'indicator_style_args'),
                                  (0x805a3c0, 0x805d8e9, 'vdir', 'indicator_style_args'),
                                  (0x805a3c4, 0x805d798, 'vdir', 'indicator_style_args'),
@@ -579,7 +586,6 @@ class VivisectTest(v_t_utils.VivTest):
                                  (0x805a3dc, 0x805d905, 'vdir', 'time_style_args'),
                                  (0x805a3e0, 0x805d90a, 'vdir', 'time_style_args'),
                                  (0x805a3e4, 0x805b6f2, 'vdir', 'time_style_args'),
-                                 (0x805a3ec, 0x0, 'vdir', 'time_style_types'),
                                  (0x805a3fc, 0x805d987, 'vdir', 'indicator_name'),
                                  (0x805a400, 0x805d98a, 'vdir', 'indicator_name'),
                                  (0x805a404, 0x805d98d, 'vdir', 'indicator_name'),
@@ -656,7 +662,6 @@ class VivisectTest(v_t_utils.VivTest):
                                  (0x805b5f8, 0x804ed10, 'vdir', 'sort_functions'),
                                  (0x805b5fc, 0x804ed70, 'vdir', 'sort_functions'),
                                  (0x805b600, 0x804ed90, 'vdir', 'sort_functions'),
-                                 (0x805e014, 0x0, 'vdir', 'default_tuning'),
                                  (0x805e050, 0x805d722, 'vdir', 'block_size_args'),
                                  (0x805e054, 0x805d7a2, 'vdir', 'block_size_args'),
                                  (0x805e75c, 0x805d7fe, 'vdir', 'quoting_style_args'),
@@ -669,9 +674,6 @@ class VivisectTest(v_t_utils.VivTest):
                                  (0x805e778, 0x805e7c9, 'vdir', 'quoting_style_args'),
                                  (0x805e77c, 0x805b6f2, 'vdir', 'quoting_style_args'),
                                  (0x805e780, 0x805e7ec, 'vdir', 'quoting_style_args'),
-                                 (0x805e788, 0x0, 'vdir', 'quoting_style_vals'),
-                                 (0x805f3a0, 0x0, 'vdir', '__FRAME_END__'),
-                                 (0x80611b4, 0x0, 'vdir', '__dso_handle'),
                                  (0x80611bc, 0x805b722, 'vdir', 'color_indicator'),
                                  (0x80611c4, 0x805dca1, 'vdir', 'color_indicator'),
                                  (0x80611d4, 0x805b789, 'vdir', 'color_indicator'),
@@ -697,49 +699,7 @@ class VivisectTest(v_t_utils.VivTest):
                                  (0x80612a0, 0x80612a8, 'vdir', 'slotvec'),
                                  (0x80612ac, 0x806231c, 'vdir', 'slotvec0'),
                                  (0x80612e0, 0x8058980, 'vdir', 'obstack_alloc_failed_handler'),
-                                 (0x80612e4, 0x0, 'vdir', '__TMC_END__'),
-                                 (0x806131c, 0x0, 'vdir', 'completed.7282'),
-                                 (0x8061324, 0x0, 'vdir', 'print_dir_name'),
-                                 (0x806132c, 0x0, 'vdir', 'current_time'),
-                                 (0x8061334, 0x0, 'vdir', 'print_with_color'),
-                                 (0x8061335, 0x0, 'vdir', 'directories_first'),
-                                 (0x8061336, 0x0, 'vdir', 'check_symlink_mode'),
-                                 (0x8061337, 0x0, 'vdir', 'color_symlink_as_referent'),
-                                 (0x8061340, 0x0, 'vdir', 'immediate_dirs'),
-                                 (0x8061348, 0x0, 'vdir', 'recursive'),
-                                 (0x8061350, 0x0, 'vdir', 'dev_ino_obstack'),
-                                 (0x8061384, 0x0, 'vdir', 'print_scontext'),
-                                 (0x8061385, 0x0, 'vdir', 'print_block_size'),
-                                 (0x8061386, 0x0, 'vdir', 'format_needs_stat'),
-                                 (0x8061387, 0x0, 'vdir', 'format_needs_type'),
-                                 (0x8061388, 0x0, 'vdir', 'dired'),
-                                 (0x806138c, 0x0, 'vdir', 'dired_obstack'),
-                                 (0x80613b8, 0x0, 'vdir', 'subdired_obstack'),
-                                 (0x80613e4, 0x0, 'vdir', 'print_hyperlink'),
-                                 (0x80613fc, 0x0, 'vdir', 'used_color'),
-                                 (0x806140c, 0x0, 'vdir', 'RFC3986'),
-                                 (0x806150c, 0x0, 'vdir', 'caught_signals'),
-                                 (0x806158c, 0x0, 'vdir', 'qmark_funny_chars'),
-                                 (0x8061594, 0x0, 'vdir', 'sort_reverse'),
-                                 (0x8061595, 0x0, 'vdir', 'numeric_ids'),
-                                 (0x8061596, 0x0, 'vdir', 'print_inode'),
-                                 (0x80615ac, 0x0, 'vdir', 'print_owner'),
-                                 (0x80615b8, 0x0, 'vdir', 'output_block_size'),
-                                 (0x80615c0, 0x0, 'vdir', 'print_group'),
-                                 (0x80615c1, 0x0, 'vdir', 'print_author'),
-                                 (0x80615c8, 0x0, 'vdir', 'align_variable_outer_quotes'),
-                                 (0x80615d0, 0x0, 'vdir', 'abformat'),
-                                 (0x80621d0, 0x0, 'vdir', 'use_abformat'),
-                                 (0x80621dc, 0x0, 'vdir', 'print_dir.first'),
-                                 (0x80621dd, 0x0, 'vdir', 'cwd_some_quoted'),
-                                 (0x80621e4, 0x0, 'vdir', 'any_has_acl'),
-                                 (0x8062210, 0x0, 'vdir', 'has_capability_cache.unsupported_device'),
-                                 (0x8062218, 0x0, 'vdir', 'getfilecon_cache.unsupported_device'),
-                                 (0x8062220, 0x0, 'vdir', 'file_has_acl_cache.unsupported_device'),
-                                 (0x806222c, 0x0, 'vdir', 'failed_strcoll'),
-                                 (0x80622d4, 0x0, 'vdir', 'ignore_EPIPE'),
-                                 (0x80622ec, 0x0, 'vdir', 'default_quoting_options'),
-                                 (0x806231c, 0x0, 'vdir', 'slot0'),
+                                 (0x8061000, 0x8060f14, 'vdir', '_GLOBAL_OFFSET_TABLE_'),
                                  ],
             'EmucodeFunctions': []
 
@@ -1061,27 +1021,37 @@ class VivisectTest(v_t_utils.VivTest):
         vw = self.chgrp_vw
         exports = [
             # .rodata
-            (0x08050650, 4, v_const.LOC_POINTER, 'chgrp._fp_hw'),
-            (0x08050654, 4, v_const.LOC_POINTER, 'chgrp._IO_stdin_used'),
+            (0x08050650, 4, v_const.LOC_NUMBER, 'chgrp._fp_hw'),  # 08050650  uint32_t _fp_hw = 0x3
+            (0x08050654, 4, v_const.LOC_NUMBER, 'chgrp._IO_stdin_used'),  # 08050654  uint32_t _IO_stdin_used = 0x20001
 
             # long options is really an array of pointers, but that isn't obvi
             # (0x08050748, 4, v_const.LOC_POINTER, 'chgrp.long_options'),
             #(0x08050850, 0x27, v_const.LOC_STRING, None),
 
-            (0x8054170, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_short_name@@GLIBC_2.0'),
-            (0x8054178, 4, v_const.LOC_POINTER, 'chgrp.stderr@@GLIBC_2.0'),
-            (0x8054180, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_name@@GLIBC_2.0'),
-            (0x8054190, 4, v_const.LOC_POINTER, 'chgrp.optind@@GLIBC_2.0'),
-            (0x8054194, 4, v_const.LOC_POINTER, 'chgrp.stdout@@GLIBC_2.0'),
-            (0x8054198, 4, v_const.LOC_POINTER, 'chgrp.optarg@@GLIBC_2.0'),
+            # these are zero-initialized global pointers, like:
+            #
+            #     uint32_t* const __progname = 0x0
+            #
+            # however, we can't differentiate this from a zero-initialized variable,
+            # especially without data flow analysis, 
+            # so we assume (incorrectly) that these are numbers rather than pointers.
+            # (0x8054170, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_short_name@@GLIBC_2.0'),
+            # (0x8054178, 4, v_const.LOC_POINTER, 'chgrp.stderr@@GLIBC_2.0'),
+            # (0x8054180, 4, v_const.LOC_POINTER, 'chgrp.program_invocation_name@@GLIBC_2.0'),
+            # (0x8054190, 4, v_const.LOC_POINTER, 'chgrp.optind@@GLIBC_2.0'),
+            # (0x8054194, 4, v_const.LOC_POINTER, 'chgrp.stdout@@GLIBC_2.0'),
+            # (0x8054198, 4, v_const.LOC_POINTER, 'chgrp.optarg@@GLIBC_2.0'),
+            #
+            # this, on the other hand, is a zero-initialized global variable,
+            # which we can correctly identify.
             (0x805419c, 1, v_const.LOC_NUMBER, 'chgrp.completed.7282'),
 
             # .data pointers/numbers
-            (0x805411c, 4, v_const.LOC_POINTER, 'chgrp.__dso_handle'),
+            (0x805411c, 4, v_const.LOC_NUMBER, 'chgrp.__dso_handle'),  # 0805411c  int32_t __dso_handle = 0x0
             (0x8054120, 4, v_const.LOC_POINTER, 'chgrp.Version'),
-            (0x8054124, 4, v_const.LOC_POINTER, 'chgrp.exit_failure'),
+            (0x8054124, 4, v_const.LOC_NUMBER, 'chgrp.exit_failure'),  # 08054124  uint32_t exit_failure = 0x1
             (0x8054128, 4, v_const.LOC_POINTER, 'chgrp.slotvec'),
-            (0x805412c, 4, v_const.LOC_POINTER, 'chgrp.nslots'),
+            (0x805412c, 4, v_const.LOC_NUMBER, 'chgrp.nslots'),  # 0805412c  uint32_t nslots = 0x1
             (0x8054130, 8, v_const.LOC_NUMBER, 'chgrp.slotvec0'),  # this one kinda pulls double duty as both 4 and 8....
             # Another horrible little saved space of bytes for....well technically a struct, not that we
             # can easily detect that
