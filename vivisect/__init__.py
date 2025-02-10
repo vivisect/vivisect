@@ -1965,9 +1965,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         tova, reftype, rflags = self.arch.archModifyXrefAddr(tova, reftype, rflags)
 
         ref = (fromva, tova, reftype, rflags)
-        if ref in self.getXrefsFrom(fromva):
-            return
-        self._fireEvent(VWE_ADDXREF, (fromva, tova, reftype, rflags))
+
+        # Update rflag if existing ref is already there.
+        for existing_ref in self.getXrefsFrom(fromva):
+            if ref == existing_ref:
+                return
+            if ref[:-1] == existing_ref[:-1]:
+                ref = ref[:-1] + (ref[-1] | existing_ref[-1],)  # merge rflags
+                if ref == existing_ref:
+                    return
+                self._fireEvent(VWE_DELXREF, existing_ref)
+                break
+
+        self._fireEvent(VWE_ADDXREF, ref)
 
     def delXref(self, ref):
         """
