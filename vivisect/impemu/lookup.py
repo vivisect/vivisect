@@ -9,6 +9,7 @@ import vivisect.impemu.platarch.msp430 as v_i_msp430
 
 import vivisect.impemu.platarch.linux as v_i_linux
 import vivisect.impemu.platarch.windows as v_i_windows
+import vivisect.impemu.platarch.riscv as v_i_riscv
 
 workspace_emus  = {
     'h8': v_i_h8.H8WorkspaceEmulator,
@@ -22,4 +23,5 @@ workspace_emus  = {
     ('windows', 'amd64'): v_i_windows.WindowsAmd64Emulator,
     ('linux', 'i386'): v_i_linux.Linuxi386Emulator,
     ('linux', 'amd64'): v_i_linux.LinuxAmd64Emulator,
-}
+    'rv32': v_i_riscv.RiscV32WorkspaceEmulator,
+    'rv64': v_i_riscv.RiscV64WorkspaceEmulator,}

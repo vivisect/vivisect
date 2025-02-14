@@ -62,10 +62,20 @@ class ImportApi:
     def addImpApi(self, api, arch):
         api = api.lower()
         arch = arch.lower()
-        modname = 'vivisect.impapi.%s.%s' % (api, arch)
-        __import__(modname)
-        mod = sys.modules[modname]
-        self._api_lookup.update(mod.api)
+
+        # First try to look for a specific IMPAPI, if that fails use just the
+        # "api" name to get a generic IMPAPI
+        try:
+            modname = 'vivisect.impapi.%s.%s' % (api, arch)
+            __import__(modname)
+            mod = sys.modules[modname]
+            self._api_lookup.update(mod.api)
+        except ModuleNotFoundError:
+            modname = 'vivisect.impapi.%s' % api
+            __import__(modname)
+            mod = sys.modules[modname]
+            self._api_lookup.update(mod.getGenericImpApi(arch))
+
         self._apitype_lookup.update(mod.apitypes)
 
 

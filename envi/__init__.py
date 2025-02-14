@@ -156,9 +156,9 @@ arch_defs = {
     ARCH_RISCV32:   {
         'name':     'rv32',
         'aliases':  ('riscv', 'risc-v',),
-        'modpath':  ('envi', 'archs', 'rv32'),
-        'clsname':  'Rv32Module',
-        'disabled': True,
+        'modpath':  ('envi', 'archs', 'riscv'),
+        'clsname':  'RiscV32Module',
+        'disabled': False,
         'version':  (0,5,0),
         'has_disasm':   True,
         'has_emu':      True,
@@ -168,9 +168,10 @@ arch_defs = {
     
     ARCH_RISCV64:   {
         'name':     'rv64',
-        'modpath':  ('envi', 'archs', 'rv64'),
-        'clsname':  'Rv64Module',
-        'disabled': True,
+        'aliases':  ('riscv64',),
+        'modpath':  ('envi', 'archs', 'riscv'),
+        'clsname':  'RiscV64Module',
+        'disabled': False,
         'version':  (0,5,0),
         'has_disasm':   True,
         'has_emu':      True,
@@ -838,6 +839,9 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self._emu_opts = {}
         self._emu_optdocs = {}
 
+        self.populateOpMethods()
+
+    def populateOpMethods(self):
         # Automagically setup an instruction mnemonic handler dict
         # by finding all methods starting with i_ and assume they
         # implement an instruction by mnemonic
@@ -1127,7 +1131,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Do the core of integer addition but only *return* the
         resulting value rather than assigning it.
 
-        Architectures shouldn't have to override this as operand order 
+        Architectures shouldn't have to override this as operand order
         doesn't matter
         """
         src = self.getOperValue(op, 0)
