@@ -37,6 +37,7 @@ class ArgDefSymEmu(object):
 
     def readMemoryFormat(self, va, fmt):
         # TODO: we assume psize and le, better way? must be...
+        # FIXME: psize and endian correctness here!
         if not fmt.startswith('<') and not fmt.endswith('P'):
             raise Exception('we dont handle this format string')
 
