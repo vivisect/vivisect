@@ -8,7 +8,7 @@ import copy
 import types
 import struct
 import logging
-import platform
+import platform as plat
 import importlib
 import contextlib
 
@@ -41,6 +41,7 @@ ARCH_SPARC       = 19 << 16
 ARCH_SPARC64     = 20 << 16
 ARCH_MIPS32      = 21 << 16
 ARCH_MIPS64      = 22 << 16
+ARCH_MIPS64      = 23 << 16
 
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
@@ -330,7 +331,6 @@ for arch, adict in arch_defs.items():
     for alias in adict.get('aliases', []):
         arch_by_name_and_aliases[alias] = arch
 
-
 # Instruction flags (The first 8 bits are reserved for arch independant use)
 IF_NOFALL = 0x01  # Set if this instruction does *not* fall through
 IF_PRIV   = 0x02  # Set if this is a "privileged mode" instruction
@@ -371,6 +371,7 @@ class ArchitectureModule:
         self._arch_badopbytes = [b'\x00\x00\x00\x00\x00', b'\xff\xff\xff\xff\xff']
         self.setEndian(endian)
         self.badops = []
+        self.extrainfo = {}
 
         self.initRegGroups()
 
@@ -551,6 +552,17 @@ class ArchitectureModule:
     def archGetPointerAlignment(self):
         return 1
 
+    def archSetExtra(self, key, valu):
+        '''
+        An escape hatch to where we can bleed information from outside an
+        ArchitectureModule down into it.
+
+        Current consumer is mostly the .NET module to propagate tables/names down
+        into the architecture/disassembler modules so that we can cross reference
+        classes/methods/properties/etc. properly.
+        '''
+        self.extrainfo[key] = valu
+
 def stealArchMethods(obj, archname):
     '''
     Used by objects which are expected to inherit from an
@@ -563,11 +575,10 @@ def stealArchMethods(obj, archname):
             setattr(obj, name, o)
 
 class Operand:
-
     """
     Thses are the expected methods needed by any implemented operand object
     attached to an envi Opcode.  This does *not* have a constructor of it's
-    pwn on purpose to cut down on memory use and constructor CPU cost.
+    own on purpose to cut down on memory use and constructor CPU cost.
     """
 
     def getOperValue(self, op, emu=None):
@@ -1568,7 +1579,7 @@ def getCurrentArch():
     Return an envi normalized name for the current arch.
     """
     width = struct.calcsize("P")
-    mach = platform.machine()   # 'i386','ppc', etc...
+    mach = plat.machine()   # 'i386','ppc', etc...
 
     if width == 4:
         ret = arch_xlate_32.get(mach)
@@ -1643,6 +1654,12 @@ def getArchModule(name=None):
     
     return archmod
 
+    elif name == 'dotnet':
+        import envi.archs.dotnet as e_dotnet
+        return e_dotnet.DotNetModule()
+
+    else:
+        raise ArchNotImplemented(name)
 
 def getArchModules(default=ARCH_DEFAULT):
     '''
