@@ -572,21 +572,21 @@ class WorkspaceEmulator:
 
             taint = self.getVivTaint(va)
             if taint:
-                tva,ttype,tinfo = taint
+                tva, ttype, tinfo = taint
 
                 if ttype == 'import':
-                    lva,lsize,ltype,linfo = tinfo
-                    ret = vw.getImpApi( linfo )
+                    lva, lsize, ltype, linfo = tinfo
+                    ret = vw.getImpApi(linfo)
 
                 elif ttype == 'dynfunc':
-                    libname,funcname = tinfo
-                    ret = vw.getImpApi('%s.%s' % (libname,funcname))
+                    libname, funcname = tinfo
+                    ret = vw.getImpApi('%s.%s' % (libname, funcname))
 
                 if ret:
                     return ret
 
         defcall = vw.getMeta("DefaultCall")
-        return ('int', None, defcall, 'UnknownApi', () )
+        return ('int', None, defcall, 'UnknownApi', ())
 
     def nextVivTaint(self):
         # One page into the new taint range
@@ -598,7 +598,7 @@ class WorkspaceEmulator:
         the created taint.
         '''
         va = self.nextVivTaint()
-        self.taints[ va & self.taintmask ] = (va,typename,taint)
+        self.taints[va & self.taintmask] = (va, typename, taint)
         return va
 
     def getVivTaint(self, va):
@@ -606,7 +606,7 @@ class WorkspaceEmulator:
         Retrieve a previously registered taint ( this will automagically
         mask values down and allow you to retrieve "near taint" values.)
         '''
-        return self.taints.get( va & self.taintmask )
+        return self.taints.get(va & self.taintmask)
 
     def reprVivTaint(self, taint):
         '''
