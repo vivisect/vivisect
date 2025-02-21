@@ -2473,7 +2473,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if linfo is None:
             return [loc for loc in self.loclist if loc[2] == ltype]
 
-        return [ loc for loc in self.loclist if (loc[2] == ltype and loc[3] == linfo) ]
+        return [loc for loc in self.loclist if (loc[2] == ltype and loc[3] == linfo)]
 
     def isLocation(self, va, range=False):
         """
