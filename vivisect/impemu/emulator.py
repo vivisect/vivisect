@@ -704,7 +704,7 @@ class WorkspaceEmulator:
 
     def writeMemory(self, va, bytes):
         """
-        Try to write the bytes to the memory object, otherwise, dont'
+        Try to write the bytes to the memory object, otherwise, don't
         complain...
         """
         if self.logwrite:
