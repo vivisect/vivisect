@@ -345,3 +345,8 @@ class VStructTest(unittest.TestCase):
 
         s = v_int32(value=-32)
         self.assertEqual(b'\xe0\xff\xff\xff', s.vsEmit())
+
+    def test_repr(self):
+        num = v_number(25)
+        self.assertEqual(repr(num), '0x19   (25)')
+        
