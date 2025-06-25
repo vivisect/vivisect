@@ -2401,12 +2401,17 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             vw.setUserStructSource( src )
         '''
         # First, we make sure it compiles...
-        ctor = vs_cparse.ctorFromCSource( ssrc )
-        # Then, build one to get the name from it...
-        vs = ctor()
-        cname = vs.vsGetTypeName()
-        self.setMeta('ustruct:%s' % cname, ssrc)
-        return cname
+        cnames = []
+        for ctor in vs_cparse.ctorsFromCSource( ssrc ):
+            if ctor is None:
+                # non-struct
+                continue
+            # Then, build one to get the name from it...
+            vs = ctor()
+            cname = vs.vsGetTypeName()
+            self.setMeta('ustruct:%s' % cname, ssrc)
+            cnames.append(cname)
+        return cnames[0]
 
     def asciiStringSize(self, va):
         """

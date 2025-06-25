@@ -27,8 +27,10 @@ class AwesomeTest(s_cparse.CVStruct):
         int y;
         struct haha {
             int blah;
+            uint32_t bar;
         } s;
         int *q;
+        u8 foo;
     };
     '''
 
@@ -37,13 +39,16 @@ class VStructTest(unittest.TestCase):
 
     def test_autoparse(self):
         awe = AwesomeTest()
-        awe.vsParse(b'XXXXZZZZhow cool is this?\x00\x00\x00YYYYblahQQQQ')
+        awe.vsParse(b'XXXXZZZZhow cool is this?\x00\x00\x00YYYYblahBARRQQQQe')
         self.assertEqual(awe.x, 0x58585858)
         self.assertEqual(awe.z, 0x5A5A5A5A)
         self.assertEqual(awe.stuff, 'how cool is this?')
         self.assertEqual(awe.y, 0x59595959)
         self.assertEqual(awe.s.blah, 0x68616c62)
         self.assertEqual(awe.q, 0x51515151)
+        self.assertEqual(awe.s.bar, 0x52524142)
+        self.assertEqual(awe.q, 0x51515151)
+        self.assertEqual(awe.foo, 0x65)
 
     def test_vstruct_basicstruct(self):
 
