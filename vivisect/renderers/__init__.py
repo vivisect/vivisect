@@ -98,7 +98,6 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
             mcanv.addText(")")
 
-            # FIXME color code and get args parsing goin on
             mcanv.addText(" ")
             xrtag = mcanv.getTag("xrefs")
             mcanv.addText("[%d XREFS] " % xrcount, tag=xrtag)
@@ -225,7 +224,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
                 pstr = "ERROR"
                 
             else:
-                fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0]  # FIXME hardcoded one
+                fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0]
                 pstr = self.vw.arch.pointerString(tova)
 
             totag = mcanv.getVaTag(tova)
@@ -233,7 +232,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
             name = self.vw.getName(tova)
             if name is None:
-                name = "loc_%.8x" % tova  # FIXME 64bit
+                name = "loc_%.8x" % tova
 
             mcanv.addText(" (")
             mcanv.addText(name, tag=totag)

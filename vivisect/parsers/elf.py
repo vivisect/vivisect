@@ -708,6 +708,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         # (therefore something that had an offset of 0, and points to the ELF
         # header itself), skip it
         if fva == baseaddr:
+            logger.warning("Skipping 'new' function pointing at baseaddr: 0x%x (%s)", fva, cmnt)
             continue
 
         logger.info('adding function from ELF metadata: 0x%x (%s)', fva, cmnt)
