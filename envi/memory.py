@@ -733,12 +733,16 @@ class MemoryObject(IMemory):
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not mperms & MM_READ:
+                if not (mperms & MM_READ or self._supervisor):
                     raise envi.SegmentationViolation(va)
                 offset = va - mva
 
                 # now find the end of the string based on either \x00, maxlen, or end of map
                 end = mbytes.find(terminator, offset)
+                while (end > offset) and (end-offset) % len(terminator) != 0:
+                    # with codepage 0, we really need \0\0\0 because the first
+                    #   0 is part of the last character
+                    end = mbytes.find(terminator, end+1)
 
                 left = end - offset
                 if end == -1:
