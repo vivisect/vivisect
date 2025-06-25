@@ -127,7 +127,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.filemeta = {}  # Metadata Dicts stored by filename
         self.transmeta = {}  # Metadata that is *not* saved/evented
 
-        self.cfctx = viv_base.VivCodeFlowContext(self)
+        self.cfctx = viv_base.VivCodeFlowContext(self, self.config)
 
         self.va_by_name = {}
         self.name_by_va = {}
