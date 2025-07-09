@@ -10,9 +10,8 @@ def leb128ToInt(bytez, bitlen=64, signed=False):
     valu = 0
     shift = 0
     signBit = False
-    i = -1
+    i = 0
     for i, bz in enumerate(bytez, start=1):
-        # bz = bz
         valu |= (bz & 0x7f) << shift
         shift += 7
         if not bz & 0x80:
@@ -114,14 +113,6 @@ class v_form_block(vstruct.VStruct):
         self.data = v_bytes(size=self.length)
 
 
-class file_name_entry(vstruct.VStruct):
-    def __init__(self, idx, con):
-        vstruct.VStruct.__init__(self, bigend=False)
-        self._idx = idx
-        self.con = con
-        # This doesn't seem to be mentioned anywhere in section 6? 
-        self.dir = v_uint8()
-
 class Dwarf32CompileHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
         vstruct.VStruct.__init__(self, bigend=bigend)
@@ -152,6 +143,8 @@ class Dwarf32TypeHeader(vstruct.VStruct):
 class Dwarf32UnitLineHeader(vstruct.VStruct):
     def __init__(self, dinfo, bigend=False):
         vstruct.VStruct.__init__(self)
+        # we really don't need all this. just the "is64bit" stuff really
+        # or we can even just segment that off into the Dwarf64 version
         self._dwarf_info = dinfo
         self.unit_length = v_uint32(bigend=bigend)
         self.version = v_uint16(bigend=bigend)
@@ -199,9 +192,13 @@ class Dwarf32UnitLineHeader(vstruct.VStruct):
     def pcb_directories_count(self):
         self.directories = vstruct.VArray()
         for idx in range(self.directories_count):
-            typ = self.directory_entry_format[0][0].vsGetValue()
-            form = self.directory_entry_format[0][1].vsGetValue()
-            self.directories.vsAddElement(_handleContentTypeCode(typ, form, self._dwarf_info.is64BitDwarf))
+            valu = vstruct.VArray()
+            for _, fileEntry in self.directory_entry_format:
+                typ = fileEntry[0].vsGetValue()
+                form = fileEntry[1].vsGetValue()
+                con = _handleContentTypeCode(typ, form, self._dwarf_info.is64BitDwarf)
+                valu.vsAddElement(con)
+            self.directories.vsAddElement(valu)
 
         self.file_name_entry_format_count = v_uint8()
 
@@ -218,10 +215,14 @@ class Dwarf32UnitLineHeader(vstruct.VStruct):
     def pcb_file_names_count(self):
         self.file_names = vstruct.VArray()
         for idx in range(self.file_names_count):
-            typ = self.file_names_entry_formats[0][0].vsGetValue()
-            form = self.file_names_entry_formats[0][1].vsGetValue()
-            con = _handleContentTypeCode(typ, form, self._dwarf_info.is64BitDwarf)
-            self.file_names.vsAddElement(file_name_entry(idx, con))
+            valu = vstruct.VArray()
+            for _, fileEntry in self.file_names_entry_formats:
+                typ = fileEntry[0].vsGetValue()
+                form = fileEntry[1].vsGetValue()
+                con = _handleContentTypeCode(typ, form, self._dwarf_info.is64BitDwarf)
+                valu.vsAddElement(con)
+
+            self.file_names.vsAddElement(valu)
 
 
 class Dwarf64CompileHeader(vstruct.VStruct):
@@ -229,8 +230,8 @@ class Dwarf64CompileHeader(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.length = v_uint96(bigend=bigend)
         self.version = v_uint16(bigend=bigend)
-        self.abbrev_offset = v_uint64(bigend=bigend)
-        self.ptrsize = v_uint8()
+        #self.abbrev_offset = v_uint64(bigend=bigend)
+        #self.ptrsize = v_uint8()
 
     def pcb_version(self):
         if self.version == 5:

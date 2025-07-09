@@ -8,7 +8,6 @@ import logging
 
 import Elf
 import envi.bits as e_bits
-import vivisect.exc as v_exc
 
 import vstruct
 import vstruct.primitives as v_s_prim
@@ -40,7 +39,7 @@ class LineStateMachine:
         self.byts = byts[offset:]
         self.offset = offset
 
-        # don't mess with the order here
+        # don't mess with the order here. The indexing matches what the DWARF spec states
         self.funcs = [
             self._op_extended,
             self._op_copy,
@@ -130,9 +129,9 @@ class LineStateMachine:
 
         opcode = self.byts[self.consumed]
         self.consumed += 1
-        if opcode > len(self.extended_funcs):
-            # breakpoint()
-            pass
+        # TODO: raise?
+        #if opcode > len(self.extended_funcs):
+            #pass
 
         self.extended_funcs[opcode](oplen - 1)
 
@@ -266,6 +265,12 @@ class DwarfInfo:
     def __init__(self, vw, pbin, strtab=b''):
         self.vw = vw
         self.pbin = pbin
+
+        self.dirs = []
+        self.files = []
+
+        self.compileunits = []
+
         # strab typically only shows up in cygwin binaries
         self.secmap = {}
         self.strtable = strtab
@@ -279,12 +284,9 @@ class DwarfInfo:
                     name = self.strtable[indx:].split(b'\x00', 1)[0]
                     self.secmap[name.decode('utf-8')] = sec
         self.is64BitDwarf = False
-        self.abbrev = self._parseDebugAbbrev()
-        try:
-            self.info = self._parseDebugInfo()
-        except:
-            import pdb, sys
-            pdb.post_mortem(sys.exc_info()[2])
+        # TODO: abbrevByIndex seems like a good idea, but who consumes it realistically?
+        self.abbrevByIndex, self.abbrevByOffset = self._parseDebugAbbrev()
+        self.info = self._parseDebugInfo()
         self.line = self._parseDebugLine()
 
     def getSectionBytes(self, name):
@@ -298,14 +300,51 @@ class DwarfInfo:
         return self.pbin.readAtRva(sec.VirtualAddress, sec.VirtualSize)
 
     def _getDebugString(self, offset, use_utf8=False, line=False):
-        '''
-        TODO: We can make this so much faster by just preparsing and indexing them by
-        their offsets
-        '''
         bytez = self.getSectionBytes('.debug_str' if not line else '.debug_line_str')
         if bytez is None or offset > len(bytez):
             return None
         return bytez[offset:].split(b'\x00', 1)[0]
+
+    def _getContentStrings(self, entries, formats):
+        for idx, file_name_info in entries:
+            info = {}
+            for formatidx, valu in file_name_info:
+                fidx = int(formatidx)
+                type = formats[fidx][0].vsGetValue()
+                form = formats[fidx][1].vsGetValue()
+                if type == v_d_dwarf.DW_LNCT_path:
+                    if form == v_d_dwarf.DW_FORM_string:
+                        # string is already collected in the header, we
+                        # can just promote it here
+                        s = valu.vsGetValue()
+                        info['valu'] = s
+                    elif form == v_d_dwarf.DW_FORM_strp:
+                        # .debug_str section
+                        s = self._getDebugString(valu.vsGetValue())
+                        if s is not None:
+                            info['valu'] = s
+                    elif form == v_d_dwarf.DW_FORM_line_strp:
+                        # .debug_line_str section
+                        s = self._getDebugString(valu.vsGetValue(), line=True)
+                        if s is not None:
+                            info['valu'] = s
+                    elif form == v_d_dwarf.DW_FORM_strp_sup:
+                        # "supplementary strings section"???
+                        # I have no idea where to go for this
+                        pass
+
+                elif type == v_d_dwarf.DW_LNCT_directory_index:
+                    rval = valu.vsGetValue()
+                    info['diridx'] = rval
+                elif type == v_d_dwarf.DW_LNCT_timestamp:
+                    info['timestamp'] = valu.vsGetValue()
+                elif type == v_d_dwarf.DW_LNCT_size:
+                    info['size'] = valu.vsGetValue()
+                elif type == v_d_dwarf.DW_LNCT_md5:
+                    info['md5'] = valu.vsGetValue()
+
+            # files.append(file)
+            yield info
 
     def _getBlock(self, length, bytez):
         block = v_s_prim.v_bytes(size=length.vsGetValue())
@@ -313,6 +352,7 @@ class DwarfInfo:
         return block
 
     def _getExprLoc(self, bytez):
+        # TODO: wut?
         pass
 
     def _getFormData(self, form, bytez, addrsize, use_utf8=False):
@@ -548,20 +588,24 @@ class DwarfInfo:
             return
 
         consumed = 0
+
+        version = v_s_prim.v_uint32(bigend=vw.bigend)
+        if version == 0xFFFFFFFF:
+            consumed += 4
+            headerctor = v_d_dwarf.Dwarf64CompileHeader
+            self.is64BitDwarf = True
+        else:
+            headerctor = v_d_dwarf.Dwarf32CompileHeader
+            # So it says it's 12 bytes, but the first 4 are ffffffff
         while consumed < len(bytez):
             # Parse the compile unit header
             # we can have 32 bit dwarf in a 64 bit binary and the way they dynamic repr that
             # is by all the 64 bit addresses being 12 bytes long, but the first 4 are 0xffffffff
-            version = v_s_prim.v_uint32(bigend=vw.bigend)
-            if version == 0xFFFFFFFF:
-                consumed += 4
-                header = v_d_dwarf.Dwarf64CompileHeader(bigend=vw.bigend)
-                self.is64BitDwarf = True
-            else:
-                header = v_d_dwarf.Dwarf32CompileHeader(bigend=vw.bigend)
-                # So it says it's 12 bytes, but the first 4 are ffffffff
 
+            header = headerctor()
+            # TODO: there's a unit type header for like TYPE structures that we need to handle
             header.vsParse(bytez[consumed:])
+            self.compileunits.append(header)
             cuoffs = {}
 
             # so the header in 64 bit is weird, since the first 4 are going to all f's for the length field
@@ -580,11 +624,11 @@ class DwarfInfo:
                     startoff += 1
                     if parentChain:
                         parentChain.pop()
-                    else:
-                        break
+                        if not parentChain:
+                            break
                     continue
 
-                tag, hasKids, typeinfo = self.abbrev[idx]
+                tag, hasKids, typeinfo = self.abbrevByOffset[header.abbrev_offset][idx]
                 # Need to actually do something with struct
                 child = vstruct.VStruct()
                 child.vsAddField('tag', v_s_prim.v_uint16(tag))
@@ -600,7 +644,7 @@ class DwarfInfo:
                         name = v_d_dwarf.dwarf_attribute_names.get(attr, "UNK")
 
                     # implict const you use the value from the abbrev section and nothing is stored here
-                    # but the value is a signed LEB128 number that we've already fetch
+                    # but the value is a signed LEB128 number that we've already fetched
                     # technically we shouldn't be storing this here because a LEB128 number can be arbitrarily large
                     # so....yea. Need a way around that.
                     if extra == v_d_dwarf.DW_FORM_implicit_const:
@@ -624,7 +668,7 @@ class DwarfInfo:
                     parentChain.append(child)
                     child.vsAddField('dwarf_children', vstruct.VArray())
 
-            consumed += unitConsumed + 1
+            consumed += unitConsumed
             # TODO: confirm that there's an extra null byte
         return debuginfo
 
@@ -633,61 +677,87 @@ class DwarfInfo:
         consumed = 0
         byts = self.getSectionBytes('.debug_line')
 
+        # TODO: By this point we should have already snagged the compile
+        # unit info, because there are as much Line Program headers/sections
+        # as there are compile units (and parsing needs to reflect that
+
         version = v_s_prim.v_uint32(bigend=vw.bigend)
         if version == 0xFFFFFFFF:
             consumed += 4
-            header = v_d_dwarf.Dwarf64UnitLineHeader(bigend=vw.bigend)
+            headerctor = v_d_dwarf.Dwarf64UnitLineHeader
         else:
-            header = v_d_dwarf.Dwarf32UnitLineHeader(self, bigend=vw.bigend)
+            headerctor = v_d_dwarf.Dwarf32UnitLineHeader
 
-        header.vsParse(byts[consumed:], offset=0)
-        consumed += len(header)
+        for _ in range(len(self.compileunits)):
+            dirs = []
+            files = []
+            header = headerctor(self, bigend=vw.bigend)
+            header.vsParse(byts[consumed:], offset=0)
+            consumed += len(header)
 
-        # this is really only for v4 and we really should wrap it into the main vstruct
-        if header.version == 4:
-            while byts[consumed] != 0:
-                dirn = v_s_prim.v_str(val=byts[consumed:])
-                dirn.vsSetLength(len(dirn.vsGetValue()) + 1)
-                header.include_directories.vsAddElement(dirn)
-                consumed += len(dirn)
+            if header.version == 4:
+                # TODO: actually test with v4 again
+                while byts[consumed] != 0:
+                    dirn = v_s_prim.v_str(val=byts[consumed:])
+                    dirn.vsSetLength(len(dirn.vsGetValue()) + 1)
+                    header.include_directories.vsAddElement(dirn)
+                    consumed += len(dirn)
 
-            # skip over terminator byte
-            consumed += 1
+                # skip over terminator byte
+                consumed += 1
 
-            while byts[consumed] != 0:
-                srcpath = v_s_prim.v_str(val=byts[consumed:])
-                srcpath.vsSetLength(len(srcpath.vsGetValue()) + 1)
-                consumed += len(srcpath)
+                while byts[consumed] != 0:
+                    srcpath = v_s_prim.v_str(val=byts[consumed:])
+                    srcpath.vsSetLength(len(srcpath.vsGetValue()) + 1)
+                    consumed += len(srcpath)
 
-                diridx, con = v_d_dwarf.leb128ToInt(byts[consumed:])
-                consumed += con
+                    diridx, con = v_d_dwarf.leb128ToInt(byts[consumed:])
+                    consumed += con
 
-                modtime, con = v_d_dwarf.leb128ToInt(byts[consumed:])
-                consumed += con
+                    modtime, con = v_d_dwarf.leb128ToInt(byts[consumed:])
+                    consumed += con
 
-                filelen, con = v_d_dwarf.leb128ToInt(byts[consumed:])
-                consumed += con
+                    filelen, con = v_d_dwarf.leb128ToInt(byts[consumed:])
+                    consumed += con
 
-                header.file_names.append((srcpath, diridx, modtime, filelen))
+                    header.file_names.append((srcpath, diridx, modtime, filelen))
 
-            # skip over terminator byte
-            consumed += 1
+                # skip over terminator byte
+                consumed += 1
+            elif header.version == 5:
+                # TODO: We're sorta reparsing this? Would be nice to collapse all
+                # this with the vstruct def. But that means handing the Dwarf obj
+                # down into the vstruct parse, which isn't a line I'm quite ready
+                # to cross
+                # TODO: Do the same for the directory index
+                for info in self._getContentStrings(header.directories, header.directory_entry_format):
+                    dirs.append(info)
+                self.dirs.append(dirs)
 
-        # actually run the line number program through the state machine
-        vm = LineStateMachine(byts, consumed, header, bigend=vw.bigend)
-        for dbginfo in vm.run():
-            pass
-            # print(hex(vm._reg_address))
+                for info in self._getContentStrings(header.file_names, header.file_names_entry_formats):
+                    files.append(info)
+                self.files.append(files)
+
+        self.lineheader = header
+        self.linevm = LineStateMachine(byts, consumed, header, bigend=vw.bigend)
 
     def _parseDebugAbbrev(self):
         bytez = self.getSectionBytes('.debug_abbrev')
         if bytez is None:
             return
         consumed = 0
+        retnIdx = {}
+        retnOff = {}
         # Compile units are referenced by their offsets in the .debug_info section.
+        # but abbrevs are also reference by an index number, so....we have to track
+        # this in two ways :(
         dies = {}
+        # we have to track index ourselves because it can reset between compile units
+        idx = 0
+        offset = consumed
         while consumed < len(bytez):
-            idx, con = v_d_dwarf.leb128ToInt(bytez[consumed:])
+            idx += 1
+            code, con = v_d_dwarf.leb128ToInt(bytez[consumed:])
             consumed += con
             tag, con = v_d_dwarf.leb128ToInt(bytez[consumed:])
             consumed += con
@@ -720,17 +790,23 @@ class DwarfInfo:
                     break
 
                 # typeinfo.append((attr, attrType))
+                # attrType should be something of DW_FORM_*
+                # attr should be something of DW_AT_*
                 typeinfo.append({'name': attr, 'form': attrType, 'extra': extra})
 
-            dies[idx] = (tag, hasKids, typeinfo)
+            retnIdx[idx] = dies[code] = (tag, hasKids, typeinfo)
+            # diesByOff[offset] = (tag, hasKids, typeinfo)
             # if the next byte is 0, we're done with this compile unit
             if bytez[consumed] == 0:
-                # compileunits[offset] = dies
                 consumed += 1
-                # offset = consumed
-                # dies = {}
+                idx += 1
 
-        return dies
+                dies[idx] = None
+                retnOff[offset] = dies
+                offset = consumed
+                dies = {}
+
+        return retnIdx, retnOff
 
 
 def parseDwarf(vw, pbin, strtab=b''):
@@ -739,21 +815,79 @@ def parseDwarf(vw, pbin, strtab=b''):
 
 
 def getFunctionInfo(prog):
-    breakpoint()
-    print(prog)
-    pass
+    info = {}
+    params = []
+    for indx, child in prog.dwarf_children:
+        propname = v_d_dwarf.dwarf_attribute_names.get(child.tag)
+        if not child.vsHasField(propname):
+            # TODO: log? break?
+            continue
+        valu = child.vsGetField(propname)
+
+        # Be nice if I could tighten this up into a dictionary or something
+        if child.tag == v_d_dwarf.DW_TAG_formal_paramter:
+            pass
+        elif child.tag == v_d_dwarf.DW_AT_name:
+            info['name'] = valu
+        elif child.tag == v_d_dwarf.DW_AT_decl_file:
+            info['file'] = valu
+        elif child.tag == v_d_dwarf.DW_AT_decl_line:
+            info['line'] = valu
+        elif child.tag == v_d_dwarf.DW_AT_low_pc:
+            info['start'] = valu
+        elif child.tag == v_d_dwarf.DW_AT_high_pc:
+            info['end'] = valu
+        # DW_AT_type?
+    info['params'] = params
+    return info
 
 
-def getDebugStrings(dwarf):
-    pass
+def getStructureInfo(struct):
+    info = {
+        'name': ''
+    }
+    for indx, child in struct.dwarf_children:
+        propname = v_d_dwarf.dwarf_attribute_names.get(child.tag)
+        if not child.vsHasField(propname):
+            # TODO: log? break?
+            continue
+        valu = child.vsGetField(propname)
+
+        # for the files we've gotta go to the side lookup
+        if child.tag == v_d_dwarf.DW_TAG_member:
+            pass
+        elif child.tag == v_d_dwarf.DW_AT_name:
+            info['name'] = valu
+        elif child.tag == v_d_dwarf.DW_AT_decl_file:
+            info['file'] = valu
+        elif child.tag == v_d_dwarf.DW_AT_decl_line:
+            info['line'] = valu
+        elif child.tag == v_d_dwarf.DW_AT_byte_size:
+            info['size'] = valu
+
+    return info
 
 
-def _add_children(vw, parent, offsets, children):
+def _add_children(vw, children, pns=None, pfunc=None):
     for indx, child in children:
         if child.tag == v_d_dwarf.DW_TAG_subprogram:
+            if child.vsHasField('abstract_origin'):
+                continue
             if not hasattr(child, 'low_pc'):
                 continue
-            yield getFunctionInfo(child)
+            func = getFunctionInfo(child)
+        elif child.tag == v_d_dwarf.DW_TAG_structure_type:
+            struct = getStructureInfo(child)
+        #elif child.tag == v_d_dwarf.DW_TAG_subroutine_type:
+            #pass
+        #elif child.tag == v_d_dwarf.DW_TAG_inlined_subroutine:
+            #pass
+        elif child.tag == v_d_dwarf.DW_TAG_namespace:
+            if child.vsHasField('dwarf_children'):
+                _add_children(vw, child.dwarf_children, pns=child, pfunc=pfunc)
+        elif child.tag == v_d_dwarf.DW_TAG_class_type:
+            pass
+
             '''
             hasAbstract = child.vsHasField('abstract_origin')
             # TODO: collect the formal parameters and other things
@@ -776,11 +910,8 @@ def _add_children(vw, parent, offsets, children):
                     pass
             '''
 
-        if child.vsHasField('dwarf_children'):
-            _add_children(vw, child, offsets, child.dwarf_children)
-
 
 def addDwarfToWorkspace(vw, dwarf):
     for compunit, offsets in dwarf.info:
         if compunit.vsHasField('dwarf_children'):
-            _add_children(vw, compunit, offsets, compunit.dwarf_children)
+            _add_children(vw, compunit.dwarf_children)

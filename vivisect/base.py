@@ -553,14 +553,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             e_mem.MemoryObject.writeMemory(self, va, bytez)
 
     # TODO: need debug string xrefs API?
-    def _handleDEBUGSTR(self, einfo):
-        self.debuginfo.addString(einfo)
-
-    def _handleDEBUGFUNC(self, einfo):
-        self.debuginfo.addFunction(einfo)
-
-    def _handleDEBUGIMPORT(self, einfo):
-        self.debuginfo.addImport(einfo)
+    def _handleDEBUGADD(self, einfo):
+        self.debuginfo.addChild(einfo)
 
     def _initEventHandlers(self):
         self.ehand = [None for x in range(VWE_MAX)]
@@ -608,9 +602,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[VWE_WRITEMEM] = self._handleWRITEMEM
         self.ehand[VWE_ENDIAN] = self._handleENDIAN
 
-        self.ehand[VWE_DEBUG_ADDSTR] = self._handleDEBUGSTR
-        self.ehand[VWE_DEBUG_ADDFUNC] = self._handleDEBUGFUNC
-        self.ehand[VWE_DEBUG_ADDIMPORT] = self._handleDEBUGIMPORT
+        self.ehand[VWE_DEBUGADD] = self._handleDEBUGADD
 
         self.thand = [None for x in range(VTE_MAX)]
         self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
