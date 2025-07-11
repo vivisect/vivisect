@@ -269,7 +269,7 @@ class DwarfInfo:
         self.dirs = []
         self.files = []
 
-        self.compileunits = []
+        self.cuheaders = []
 
         # strab typically only shows up in cygwin binaries
         self.secmap = {}
@@ -289,6 +289,111 @@ class DwarfInfo:
         self.info = self._parseDebugInfo()
         self.line = self._parseDebugLine()
 
+    def getFormalParam(self, param):
+        info = {}
+        for _, child in param.dwarf_children:
+            propname = v_d_dwarf.dwarf_attribute_names.get(child.tag)
+            if not child.vsHasField(propname):
+                # TODO: log? break?
+                continue
+            valu = child.vsGetField(propname)
+
+            if child.tag == v_d_dwarf.DW_AT_name:
+                info['name'] = valu
+            elif child.tag == v_d_dwarf.DW_AT_decl_file:
+                info['file'] = valu
+            elif child.tag == v_d_dwarf.DW_AT_decl_line:
+                info['line'] = valu
+            # DW_AT_location?
+            # DW_AT_type?
+
+        return info
+
+    def getFunctionInfo(self, prog):
+        info = {
+        }
+        params = []
+        breakpoint()
+        for name, valu in prog.vsGetFields():
+            if name == 'name':
+                info['name'] = valu
+            elif name == 'linkage_name':
+                info['name'] = valu
+            elif name == 'decl_file':
+                info['file'] = valu
+            elif name == 'decl_line':
+                info['line'] = valu
+            elif name == 'low_pc':
+                info['start'] = valu
+            elif name == 'high_pc':
+                info['end'] = valu
+
+        if prog.vsHasField('dwarf_children'):
+            for _, child in prog.dwarf_children:
+                propname = v_d_dwarf.dwarf_attribute_names.get(child.tag)
+                if not child.vsHasField(propname):
+                    # TODO: log? break?
+                    continue
+                valu = child.vsGetField(propname)
+
+                # Be nice if I could tighten this up into a dictionary or something
+                if child.tag == v_d_dwarf.DW_TAG_formal_parameter:
+                    params.append(self.getFormalParam(child))
+                # DW_AT_type?
+            info['params'] = params
+        return info
+
+    def getStructureInfo(self, struct):
+        info = {}
+        if not struct.vsHasField('dwarf_children'):
+            return
+        for _, child in struct.dwarf_children:
+            propname = v_d_dwarf.dwarf_attribute_names.get(child.tag)
+            if not child.vsHasField(propname):
+                # TODO: log? break?
+                continue
+            valu = child.vsGetField(propname)
+
+            # for the files we've gotta go to the side lookup
+            if child.tag == v_d_dwarf.DW_TAG_member:
+                pass
+            elif child.tag == v_d_dwarf.DW_AT_name:
+                info['name'] = valu
+            elif child.tag == v_d_dwarf.DW_AT_decl_file:
+                info['file'] = valu
+            elif child.tag == v_d_dwarf.DW_AT_decl_line:
+                info['line'] = valu
+            elif child.tag == v_d_dwarf.DW_AT_byte_size:
+                info['size'] = valu
+
+        return info
+
+    def addChildrenToWorkspace(self, vw, children, pns=None, pfunc=None):
+        for indx, child in children:
+            if child.tag == v_d_dwarf.DW_TAG_subprogram:
+                if child.vsHasField('abstract_origin'):
+                    continue
+                func = self.getFunctionInfo(child)
+                vw.addDebugInfo('function', func)
+            elif child.tag == v_d_dwarf.DW_TAG_structure_type:
+                struct = self.getStructureInfo(child)
+                if struct:
+                    vw.addDebugInfo('struct', struct)
+            # elif child.tag == v_d_dwarf.DW_TAG_subroutine_type:
+            # elif child.tag == v_d_dwarf.DW_TAG_inlined_subroutine:
+            elif child.tag == v_d_dwarf.DW_TAG_namespace:
+                if child.vsHasField('dwarf_children'):
+                    self.addChildrenToWorkspace(vw, child.dwarf_children, pns=child, pfunc=pfunc)
+            elif child.tag == v_d_dwarf.DW_TAG_class_type:
+                pass
+
+    def addToWorkspace(self, vw):
+        for compunit, offsets in self.info:
+            if compunit.vsHasField('dwarf_children'):
+                self.addChildrenToWorkspace(vw, compunit.dwarf_children)
+            breakpoint()
+            print('we are...done?')
+
     def getSectionBytes(self, name):
         if isinstance(self.pbin, Elf.Elf):
             return self.pbin.getSectionBytes(name)
@@ -299,6 +404,19 @@ class DwarfInfo:
             return None
         return self.pbin.readAtRva(sec.VirtualAddress, sec.VirtualSize)
 
+    def _getDebugName(self, offset):
+        # TODO: This is v5 specific. Need to double check what v4 does
+        bytez = self.getSectionBytes('.debug_names')
+        if bytez is None or offset > len(bytez):
+            return None
+        return bytez[offset:].split(b'\x00', 1)[0]
+
+    def _getDebugStrOffset(self, offset):
+        bytez = self.getSectionBytes('.debug_str_offsets')
+        if bytez is None or offset > len(bytez):
+            return None
+        return bytez[offset:].split(b'\x00', 1)[0]
+
     def _getDebugString(self, offset, use_utf8=False, line=False):
         bytez = self.getSectionBytes('.debug_str' if not line else '.debug_line_str')
         if bytez is None or offset > len(bytez):
@@ -306,7 +424,7 @@ class DwarfInfo:
         return bytez[offset:].split(b'\x00', 1)[0]
 
     def _getContentStrings(self, entries, formats):
-        for idx, file_name_info in entries:
+        for _, file_name_info in entries:
             info = {}
             for formatidx, valu in file_name_info:
                 fidx = int(formatidx)
@@ -535,8 +653,8 @@ class DwarfInfo:
             vsData = v_d_dwarf.v_uleb()
             vsData.vsParse(bytez)
 
-        # these are all indexes into the .debug_str_offsets section. All of those are 
-        # DW_FORM_strp
+        # these are all indexes into the .debug_str_offsets section. All of
+        # those are DW_FORM_strp
         elif form == v_d_dwarf.DW_FORM_strx:
             vsData = v_d_dwarf.v_uleb()
             vsData.vsParse(bytez)
@@ -553,7 +671,8 @@ class DwarfInfo:
             vsData = v_s_prim.v_uint32()
             vsData.vsParse(bytez)
 
-        # similar to above, these are parsed the same but are indexes into the .debug_addr section
+        # similar to above, these are parsed the same but are indexes into the
+        # .debug_addr section
         elif form == v_d_dwarf.DW_FORM_addrx:
             vsData = v_d_dwarf.v_uleb()
             vsData.vsParse(bytez)
@@ -605,7 +724,7 @@ class DwarfInfo:
             header = headerctor()
             # TODO: there's a unit type header for like TYPE structures that we need to handle
             header.vsParse(bytez[consumed:])
-            self.compileunits.append(header)
+            self.cuheaders.append(header)
             cuoffs = {}
 
             # so the header in 64 bit is weird, since the first 4 are going to all f's for the length field
@@ -669,7 +788,7 @@ class DwarfInfo:
                     child.vsAddField('dwarf_children', vstruct.VArray())
 
             consumed += unitConsumed
-            # TODO: confirm that there's an extra null byte
+
         return debuginfo
 
     def _parseDebugLine(self):
@@ -688,7 +807,7 @@ class DwarfInfo:
         else:
             headerctor = v_d_dwarf.Dwarf32UnitLineHeader
 
-        for _ in range(len(self.compileunits)):
+        for _ in range(len(self.info)):
             dirs = []
             files = []
             header = headerctor(self, bigend=vw.bigend)
@@ -814,104 +933,5 @@ def parseDwarf(vw, pbin, strtab=b''):
     return DwarfInfo(vw, pbin, strtab)
 
 
-def getFunctionInfo(prog):
-    info = {}
-    params = []
-    for indx, child in prog.dwarf_children:
-        propname = v_d_dwarf.dwarf_attribute_names.get(child.tag)
-        if not child.vsHasField(propname):
-            # TODO: log? break?
-            continue
-        valu = child.vsGetField(propname)
-
-        # Be nice if I could tighten this up into a dictionary or something
-        if child.tag == v_d_dwarf.DW_TAG_formal_paramter:
-            pass
-        elif child.tag == v_d_dwarf.DW_AT_name:
-            info['name'] = valu
-        elif child.tag == v_d_dwarf.DW_AT_decl_file:
-            info['file'] = valu
-        elif child.tag == v_d_dwarf.DW_AT_decl_line:
-            info['line'] = valu
-        elif child.tag == v_d_dwarf.DW_AT_low_pc:
-            info['start'] = valu
-        elif child.tag == v_d_dwarf.DW_AT_high_pc:
-            info['end'] = valu
-        # DW_AT_type?
-    info['params'] = params
-    return info
-
-
-def getStructureInfo(struct):
-    info = {
-        'name': ''
-    }
-    for indx, child in struct.dwarf_children:
-        propname = v_d_dwarf.dwarf_attribute_names.get(child.tag)
-        if not child.vsHasField(propname):
-            # TODO: log? break?
-            continue
-        valu = child.vsGetField(propname)
-
-        # for the files we've gotta go to the side lookup
-        if child.tag == v_d_dwarf.DW_TAG_member:
-            pass
-        elif child.tag == v_d_dwarf.DW_AT_name:
-            info['name'] = valu
-        elif child.tag == v_d_dwarf.DW_AT_decl_file:
-            info['file'] = valu
-        elif child.tag == v_d_dwarf.DW_AT_decl_line:
-            info['line'] = valu
-        elif child.tag == v_d_dwarf.DW_AT_byte_size:
-            info['size'] = valu
-
-    return info
-
-
-def _add_children(vw, children, pns=None, pfunc=None):
-    for indx, child in children:
-        if child.tag == v_d_dwarf.DW_TAG_subprogram:
-            if child.vsHasField('abstract_origin'):
-                continue
-            if not hasattr(child, 'low_pc'):
-                continue
-            func = getFunctionInfo(child)
-        elif child.tag == v_d_dwarf.DW_TAG_structure_type:
-            struct = getStructureInfo(child)
-        #elif child.tag == v_d_dwarf.DW_TAG_subroutine_type:
-            #pass
-        #elif child.tag == v_d_dwarf.DW_TAG_inlined_subroutine:
-            #pass
-        elif child.tag == v_d_dwarf.DW_TAG_namespace:
-            if child.vsHasField('dwarf_children'):
-                _add_children(vw, child.dwarf_children, pns=child, pfunc=pfunc)
-        elif child.tag == v_d_dwarf.DW_TAG_class_type:
-            pass
-
-            '''
-            hasAbstract = child.vsHasField('abstract_origin')
-            # TODO: collect the formal parameters and other things
-            if hasAbstract and child.abstract_origin is not None:
-                # So...this highly depends on what type of ref we've got, so we need to
-                # plumb not just what type of ref we're looking at, but also the various different
-                # offsets (file, compunit, etc) all the way through
-                origin = child.abstract_origin
-                concrete = offsets.get(origin)
-                if concrete:
-                    try:
-                        vw.makeName(child.low_pc, concrete.name, filelocal=False)
-                    except v_exc.DuplicateName:
-                        pass
-            else:
-                try:
-                    vw.makeName(child.low_pc, child.name, filelocal=True)
-                except v_exc.DuplicateName:
-                    # someone else beat us to it. Whatever. Keep chugging
-                    pass
-            '''
-
-
 def addDwarfToWorkspace(vw, dwarf):
-    for compunit, offsets in dwarf.info:
-        if compunit.vsHasField('dwarf_children'):
-            _add_children(vw, compunit.dwarf_children)
+    dwarf.addToWorkspace(vw)

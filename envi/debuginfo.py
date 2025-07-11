@@ -79,6 +79,7 @@ class DebugInfo:
         self.imports = []
         self.functions = []
         self.structs = []
+        self.kids = []
 
-    def addChild(self):
-        pass
+    def addChild(self, type, info):
+        self.kids.append((type, info))
