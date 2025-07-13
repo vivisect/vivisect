@@ -554,7 +554,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     # TODO: need debug string xrefs API?
     def _handleDEBUGADD(self, einfo):
-        self.debuginfo.addChild(einfo)
+        self.debuginfo.addChild(*einfo)
 
     def _initEventHandlers(self):
         self.ehand = [None for x in range(VWE_MAX)]

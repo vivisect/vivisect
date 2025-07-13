@@ -2,7 +2,6 @@ import vstruct
 from vstruct.primitives import v_prim, v_int8, v_uint8, v_uint16, v_uint32, v_uint64, v_bytes, v_uint96, v_str
 
 
-# TODO: I should just make you your own v_number primitive
 def leb128ToInt(bytez, bitlen=64, signed=False):
     '''
     Return tuple of the decoded value and how many bytes it consumed to decode the value
@@ -113,6 +112,19 @@ class v_form_block(vstruct.VStruct):
         self.data = v_bytes(size=self.length)
 
 
+class DwarfTypedStruct(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self, bigend=False)
+        self.__formtypes = {}
+
+    def addField(self, name, valu, type=None):
+        super().vsAddField(name, valu)
+        if type is not None:
+            self.__formtypes[name] = type
+
+    def getFieldDwarfType(self, name):
+        return self.__formtypes.get(name)
+
 class Dwarf32CompileHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
         vstruct.VStruct.__init__(self, bigend=bigend)
@@ -151,6 +163,9 @@ class Dwarf32UnitLineHeader(vstruct.VStruct):
 
     def pcb_version(self):
         bigend = self._vs_bigend
+        # NOTE: This version is not tied to the main dwarf version.
+        # The line header version is rev'd independent of which dwarf
+        # standard you're using
         if self.version == 5:
             self.address_size = v_uint8()
             self.segment_selector_size = v_uint8()
@@ -173,9 +188,9 @@ class Dwarf32UnitLineHeader(vstruct.VStruct):
 
         if self.version == 5:
             self.directory_entry_format_count = v_uint8()
-        elif self.version == 4:
-            self.include_directories = vstruct.VArray()
-            self.file_names = []
+        #elif self.version == 4:
+            #self.include_directories = vstruct.VArray()
+            #self.v4_file_names = []
 
     def pcb_directory_entry_format_count(self):
         # we know we're in version 5 right now
