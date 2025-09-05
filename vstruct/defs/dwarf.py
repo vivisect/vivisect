@@ -245,8 +245,6 @@ class Dwarf64CompileHeader(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.length = v_uint96(bigend=bigend)
         self.version = v_uint16(bigend=bigend)
-        #self.abbrev_offset = v_uint64(bigend=bigend)
-        #self.ptrsize = v_uint8()
 
     def pcb_version(self):
         if self.version == 5:
