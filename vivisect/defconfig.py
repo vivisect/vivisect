@@ -4,9 +4,9 @@ import getpass
 
 
 defconfig = {
-    'viv':{
+    'viv': {
 
-        'SymbolCacheSave':True,
+        'SymbolCacheSave': True,
 
         'parsers':{
             'pe':{
@@ -17,6 +17,9 @@ defconfig = {
             },
             'elf':{
                 'baseaddr': 0x200000,
+            },
+            'dwarf': {
+                'enabled': False,
             },
             'blob':{
                 'arch':'',

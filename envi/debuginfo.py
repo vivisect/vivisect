@@ -9,59 +9,76 @@ class DebugBase:
 
 
 class DebugParam(DebugBase):
-    def __init__(self, name, file, line, type):
-        super().__init__(name, file)
-        self.line = line
+    def __init__(self, **info):
+        super().__init__(info.get('name'), info.get('file'))
+        self.line = info.get('line')
+        self.type = info.get('type')
 
 
 class DebugFunction(DebugBase):
-    def __init__(self, name, file, line, params, start, end, accessibility):
-        super().__init__(name, file)
-        self.line = line
+    # TODO: I should cut these down...
+    def __init__(self, **info):
+        super().__init__(info.get('name'), info.get('file'))
+        self.dirn = info.get('dirn')
+        self.line = info.get('line')
 
         # TODO: do we bundle template parameters into here as well?
-        # self.params = params
-        for param in params:
-            self.params.append(DebugParam(param))
-        self.accessibility = accessibility
-        self.start = start
-        self.end = end
+        self.params = []
+        for param in info.get('params', ()):
+            self.params.append(DebugParam(**param))
+        # self.accessibility = accessibility
+        self.start = info.get('start')
+        self.end = info.get('end')
 
 
 class DebugImport(DebugBase):
-    def __init__(self, info):
+    def __init__(self, **info):
         pass
 
 
 class DebugString(DebugBase):
-    def __init__(self, name, file, valu, offset):
-        super().__init__(name, file)
-        self.valu = valu
-        self.offset = offset
+    def __init__(self, **info):
+        super().__init__(info.get('name'), info.get('file'))
+        self.valu = info.get('valu')
+        self.offset = info.get('offset')
 
 
 class DebugStructMember(DebugBase):
-    pass
+    def __init__(self, **info):
+        # TODO: Functionalize this preamble too
+        name = info.get('name')
+        file = info.get('file')
+        super().__init__(name, file)
+        self.dirn = info.get('dirn')
+        self.line = info.get('line')
+        self.offset = info.get('offset')
 
 
 class DebugStructure(DebugBase):
-    def __init__(self, name, file, line):
+    def __init__(self, **info):
+        name = info.get('name')
+        file = info.get('file')
         super().__init__(name, file)
-        self.line = line
+        self.dirn = info.get('dirn')
+        self.line = info.get('line')
+        self.size = info.get('size')
 
+        self.members = []
+        for member in info.get('members', ()):
+            self.members.append(DebugStructMember(**member))
 
 class DebugLocal(DebugBase):
-    def __init__(self, name, file, line, type):
-        super().__init__(name, file)
-        self.line = line
-        self.type = type
+    def __init__(self, **info):
+        super().__init__(info.get('name'), info.get('file'))
+        self.line = info.get('line')
+        self.type = info.get('type')
 
 
 class DebugNamespace(DebugBase):
-    def __init__(self, name, file, line, parent):
-        super().__init__(name, file)
-        self.line = line
-        self.parent = parent
+    def __init__(self, **info):
+        super().__init__(info.get('name'), info.get('file'))
+        self.line = info.get('line')
+        self.parent = info.get('parent')
 
 
 class DebugInfo:
@@ -83,3 +100,7 @@ class DebugInfo:
 
     def addChild(self, type, info):
         self.kids.append((type, info))
+        if type == 'function':
+            self.functions.append(DebugFunction(**info))
+        elif type == 'struct':
+            self.structs.append(DebugStructure(**info))

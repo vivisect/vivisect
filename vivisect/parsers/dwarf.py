@@ -2,7 +2,6 @@
 Stuff still to do:
 * Support for macros (mostly a v5 thing)
     * I'll worry about this when I can actually find something real that generates it. So far I can't find anything
-* need to plumb this into the event stream
 '''
 import logging
 
@@ -314,21 +313,24 @@ class DwarfInfo:
         div = 8 if isinstance(cu, v_d_dwarf.Dwarf64CompileHeader) else 4
         info = {}
         for name, valu in param.vsGetFields():
-            type = param.getFieldDwarfType(name)
+            if name == 'dwarf_children':
+                continue
+            typ = param.getFieldDwarfType(name)
+            rval = valu.vsGetValue()
             # TODO: parse more type info
             # TODO: DW_AT_location
             if name == 'type':
-                info['type'] = valu
+                info['type'] = rval
             elif name == 'artificial':
-                info['artificial'] = valu
+                info['artificial'] = rval
             elif name == 'name':
-                info['name'] = self._getRealString(type, valu, offset // div, utf8=utf8)
+                info['name'] = self._getRealString(typ, valu, offset // div, utf8=utf8)
             elif name == 'line':
-                info['line'] = valu
+                info['line'] = rval
             elif name == 'decl_column':
-                info['column'] = valu
+                info['column'] = rval
             elif name == 'file':
-                file = self.files[cuidx][valu]
+                file = self.files[cuidx][rval]
                 filename = file.get('valu')
                 info['file'] = filename
                 diridx = file.get('diridx')
@@ -351,27 +353,30 @@ class DwarfInfo:
         params = []
         div = 8 if isinstance(cu, v_d_dwarf.Dwarf64CompileHeader) else 4
         for name, valu in prog.vsGetFields():
-            type = prog.getFieldDwarfType(name)
+            if name == 'dwarf_children':
+                continue
+            typ = prog.getFieldDwarfType(name)
+            rval = valu.vsGetValue()
             if name == 'name':
-                info['name'] = self._getRealString(type, valu, offset // div, utf8=utf8)
+                info['name'] = self._getRealString(typ, valu, offset // div, utf8=utf8)
             elif name == 'linkage_name':
-                info['link_name'] = self._getRealString(type, valu, offset // div, utf8=utf8)
+                info['link_name'] = self._getRealString(typ, valu, offset // div, utf8=utf8)
             elif name == 'decl_file':
-                file = self.files[cuidx][valu]
+                file = self.files[cuidx][rval]
                 filename = file.get('valu')
                 info['file'] = filename
                 diridx = file.get('diridx')
                 if diridx is not None:
                     info['dirn'] = self.dirs[cuidx][diridx]['valu']
             elif name == 'decl_line':
-                info['line'] = valu
+                info['line'] = rval
             elif name == 'decl_column':
-                info['column'] = valu
+                info['column'] = rval
             elif name == 'low_pc':
-                info['start'] = valu
+                info['start'] = rval
             elif name == 'high_pc':
                 # usually an offset from low_pc
-                info['end'] = valu
+                info['end'] = rval
 
         if prog.vsHasField('dwarf_children'):
             for _, child in prog.dwarf_children:
@@ -399,20 +404,23 @@ class DwarfInfo:
 
         div = 8 if isinstance(cu, v_d_dwarf.Dwarf64CompileHeader) else 4
         for name, valu in member.vsGetFields():
+            if name == 'dwarf_children':
+                continue
+            rval = valu.vsGetValue()
             type = member.getFieldDwarfType(name)
             if name == 'name':
                 info['name'] = self._getRealString(type, valu, offset // div, utf8=utf8)
             elif name == 'decl_file':
-                file = self.files[cuidx][valu]
+                file = self.files[cuidx][rval]
                 filename = file.get('valu')
                 info['file'] = filename
                 diridx = file.get('diridx')
                 if diridx is not None:
                     info['dirn'] = self.dirs[cuidx][diridx]['valu']
             elif name == 'decl_line':
-                info['line'] = valu
+                info['line'] = rval
             elif name == 'data_member_location':
-                info['offset'] = valu
+                info['offset'] = rval
             # TODO: DW_AT_type??
 
         return info
@@ -431,20 +439,23 @@ class DwarfInfo:
 
         div = 8 if isinstance(cu, v_d_dwarf.Dwarf64CompileHeader) else 4
         for name, valu in struct.vsGetFields():
+            if name == 'dwarf_children':
+                continue
+            rval = valu.vsGetValue()
             type = struct.getFieldDwarfType(name)
             if name == 'name':
                 info['name'] = self._getRealString(type, valu, offset // div, utf8=utf8)
             elif name == 'decl_file':
-                file = self.files[cuidx][valu]
+                file = self.files[cuidx][rval]
                 filename = file.get('valu')
                 info['file'] = filename
                 diridx = file.get('diridx')
                 if diridx is not None:
                     info['dirn'] = self.dirs[cuidx][diridx]['valu']
             elif name == 'decl_line':
-                info['line'] = valu
+                info['line'] = rval
             elif name == 'byte_size':
-                info['size'] = valu
+                info['size'] = rval
 
         members = []
         if struct.vsHasField('dwarf_children'):
@@ -494,7 +505,7 @@ class DwarfInfo:
             offset = self._getDebugStrOffset(valu + offs)
             return self._getDebugString(offset, utf8=utf8)
 
-        return valu
+        return valu.vsGetValue()
 
     def _getDebugStrOffset(self, offset):
         # This really only exists in v5. v4 does it totally different
@@ -510,15 +521,15 @@ class DwarfInfo:
         byts = bytez[offset:].split(b'\x00', 1)[0]
         if utf8 is True:
             return byts.decode('utf-8')
-        elif utf8 is False:
+        if utf8 is False:
             return byts.decode('ascii')
-        else:
-            return byts
+        return byts
 
     def _getContentStrings(self, entries, formats, utf8=False):
         for _, file_name_info in entries:
             info = {}
             for formatidx, valu in file_name_info:
+                rval = valu.vsGetValue()
                 fidx = int(formatidx)
                 type = formats[fidx][0].vsGetValue()
                 form = formats[fidx][1].vsGetValue()
@@ -530,12 +541,12 @@ class DwarfInfo:
                         info['valu'] = s
                     elif form == v_d_dwarf.DW_FORM_strp:
                         # .debug_str section
-                        s = self._getDebugString(valu.vsGetValue(), utf8=utf8)
+                        s = self._getDebugString(rval, utf8=utf8)
                         if s is not None:
                             info['valu'] = s
                     elif form == v_d_dwarf.DW_FORM_line_strp:
                         # .debug_line_str section
-                        s = self._getDebugString(valu.vsGetValue(), utf8=utf8, line=True)
+                        s = self._getDebugString(rval, utf8=utf8, line=True)
                         if s is not None:
                             info['valu'] = s
                     elif form == v_d_dwarf.DW_FORM_strp_sup:
@@ -544,14 +555,13 @@ class DwarfInfo:
                         pass
 
                 elif type == v_d_dwarf.DW_LNCT_directory_index:
-                    rval = valu.vsGetValue()
                     info['diridx'] = rval
                 elif type == v_d_dwarf.DW_LNCT_timestamp:
-                    info['timestamp'] = valu.vsGetValue()
+                    info['timestamp'] = rval
                 elif type == v_d_dwarf.DW_LNCT_size:
-                    info['size'] = valu.vsGetValue()
+                    info['size'] = rval
                 elif type == v_d_dwarf.DW_LNCT_md5:
-                    info['md5'] = valu.vsGetValue()
+                    info['md5'] = rval
 
             yield info
 
