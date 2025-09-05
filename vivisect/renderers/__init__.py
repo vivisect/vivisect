@@ -160,6 +160,12 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
         elif ltype == LOC_STRUCT:
 
+            maxnamelen = 0
+            for soff, sind, sname, sobj in extra.vsGetPrintInfo():
+                snamelen = len(sname)
+                if snamelen > maxnamelen:
+                    maxnamelen = snamelen
+
             for soff, sind, sname, sobj in extra.vsGetPrintInfo():
 
                 sva = lva + soff
@@ -184,6 +190,8 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
                 mcanv.addText("  "*sind)
                 mcanv.addNameText(sname)
                 mcanv.addText(": ")
+                deltasz = maxnamelen - len(sname)
+                mcanv.addText(" "*deltasz)
 
                 # Insert the sobj info (if it's a primitive)
                 if isinstance(sobj, vs_prims.v_prim):
@@ -196,7 +204,7 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
                     xrefs = self.vw.getXrefsTo(sva)
                     if len(xrefs):
                         xrtag = mcanv.getTag("xrefs")
-                        mcanv.addText("[%d XREFS]" % len(xrefs), tag=xrtag)
+                        mcanv.addText(" [%d XREFS]" % len(xrefs), tag=xrtag)
 
                 # Handle the comment if present
                 cmnt = self.vw.getComment(sva)

@@ -13,6 +13,9 @@ import vivisect.tests.helpers as helpers
 import vivisect.remote.server as v_r_server
 
 import envi.memcanvas as e_mcanvas
+import envi.common as ecmn
+logger = ecmn.logging.getLogger(__name__)
+ecmn.initLogging(logger)
 
 def runServer(name, port):
     dirn = os.path.dirname(name)
@@ -36,6 +39,7 @@ def getOutput(strcanv, timeout=10):
     output = strcanv.strval
     while not output and (time.time() - starttime) < timeout:
         time.sleep(.1)
+        output = strcanv.strval
 
     strcanv.strval = ''
     return output

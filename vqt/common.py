@@ -36,6 +36,7 @@ class ACT:
         except Exception as e:
             logger.warning("error in ACT(%s, %s, %s)", str(self.meth), str(self.args), str(self.kwargs))
             logger.warning(str(e))
+            logger.info("", exc_info=1)
 
 
 class VqtModel(QtCore.QAbstractItemModel):
