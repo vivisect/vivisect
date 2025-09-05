@@ -65,8 +65,7 @@ class RxOpcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in range(imax):
-            oper = self.opers[i]
+        for idx, oper in enumerate(self.opers):
             oper.render(mcanv, self, i)
             if i != lasti:
                 mcanv.addText(", ")
@@ -116,20 +115,6 @@ def addrToName(mcanv, va):
     if sym is not None:
         return repr(sym)
     return "0x%.4x" % va
-
-def renderPossibleLocation(mcanv, op, idx, value):
-    hint = mcanv.syms.getSymHint(op.va, idx)
-    if hint is not None:
-        if mcanv.mem.isValidPointer(value):
-            mcanv.addVaText(hint, value)
-        else:
-            mcanv.addNameText(hint)
-    elif mcanv.mem.isValidPointer(value):
-        name = addrToName(mcanv, value)
-        mcanv.addVaText(name, value)
-    else:
-        value &= 0xffff
-        mcanv.addNameText('0x%x' % value)
 
 class RxRegDirectOper(envi.RegisterOper):
     '''

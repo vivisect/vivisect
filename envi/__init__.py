@@ -37,6 +37,7 @@ ARCH_PPCVLE      = 15 << 16
 ARCH_PPC_D       = 16 << 16
 ARCH_MCS51       = 17 << 16
 ARCH_RX          = 18 << 16
+ARCH_RXV2        = ARCH_RX   # backwards compatibility
 ARCH_SPARC       = 19 << 16
 ARCH_SPARC64     = 20 << 16
 ARCH_MIPS32      = 21 << 16

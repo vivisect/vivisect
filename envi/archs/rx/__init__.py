@@ -3,9 +3,9 @@ rxv2 module
 """
 import envi
 
-from . import regs
-from . import const
-from . import disasm
+from envi.archs.rx import regs
+from envi.archs.rx import const
+from envi.archs.rx import disasm
 
 class RxModule(envi.ArchitectureModule):
 
