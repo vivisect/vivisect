@@ -25,6 +25,3 @@ class DwarfTest(v_t_utils.VivTest):
 
         missing = dbgfuncs - realfuncs
         self.len(missing, 0)
-        #names = [self.vw.getName(x) for x in foo]
-        breakpoint()
-        print('wat')
