@@ -185,6 +185,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('thunk_reg', ( ('fva', VASET_ADDRESS), ('reg', VASET_STRING), ('tgtval', VASET_INTEGER)) )
         self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING),
                 ('resolved address', VASET_ADDRESS)))
+        self.addVaSet("Null Offset Functions", (("Comment", VASET_STRING), ("va", VASET_ADDRESS)))
 
     def vprint(self, msg):
         logger.info(msg)

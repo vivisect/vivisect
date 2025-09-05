@@ -702,12 +702,16 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         sname = 'elf.Elf%d' % (vw.getPointerSize() * 8)
         vw.makeStructure(baseaddr, sname)
 
+
+
     # mark all the entry points for analysis later
     for cmnt, fva in new_functions:
         # If the address of the potential new function is the ELF base address
         # (therefore something that had an offset of 0, and points to the ELF
         # header itself), skip it
         if fva == baseaddr:
+            # throw the null offset functions into a VAset
+            vw.setVaSetRow("Null Offset Functions", (cmnt, fva))
             logger.warning("Skipping 'new' function pointing at baseaddr: 0x%x (%s)", fva, cmnt)
             continue
 

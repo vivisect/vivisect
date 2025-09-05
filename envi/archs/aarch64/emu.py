@@ -70,6 +70,8 @@ def _getRegIdx(idx, mode):
     #ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
     return ridx
 
+
+# Conditional handlers based in bitfield.  Used for handling bitfields in an array
 def c0000(flags):
     return flags & 4
 
@@ -160,10 +162,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
             flags &= ~which
         self.setCPSR(flags)
 
-    def getFlag(self, which):          # FIXME: CPSR?
-        #if (flags_reg == None):
-        #    flags_reg = proc_modes[self.getProcMode()][5]
-        #flags = self.getRegister(flags_reg)
+    def getFlag(self, which):
         flags = self.getCPSR()
         if flags == None:
             raise envi.PDEUndefinedFlag(self)
@@ -173,8 +172,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
-        #FIXME change this (and all uses of it) to passing in format...
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
         if size == 1:
@@ -187,8 +184,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
             return struct.unpack(b"<Q", bytes)[0]
 
     def writeMemValue(self, addr, value, size):
-        #FIXME change this (and all uses of it) to passing in format...
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
         if size == 1:
             bytes = struct.pack(b"B",value & 0xff)
         elif size == 2:
@@ -200,7 +195,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         self.writeMemory(addr, bytes)
 
     def readMemSignedValue(self, addr, size):
-        #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
         bytes = self.readMemory(addr, size)
         if bytes == None:
             return None
@@ -321,7 +315,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         ridx = _getRegIdx(idx, mode)
 
         if idx == index:    # not a metaregister
-            self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])      # FIXME: hack.  should look up index in proc_modes dict?
+            self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])
             return
 
         # If we get here, it's a meta register index.

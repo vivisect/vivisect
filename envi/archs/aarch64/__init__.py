@@ -46,12 +46,6 @@ class A64Module(envi.ArchitectureModule):
         self._endian = endian
         self._arch_dis.setEndian(endian)
 
-    def archModifyFuncAddr(self, va, info):
-        return va, {}
-
-    def archModifyXrefAddr(self, tova, reftype, rflags):
-        return tova, reftype, rflags
-
     def initRegGroups(self):
         envi.ArchitectureModule.initRegGroups(self)
         self._regGrps.update({'general': aarch64_regs})
