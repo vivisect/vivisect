@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 # 
 # instruction code
 # exception handler code
-# FIXME: SPSR handling is not certain.  
 
 # calling conventions
 
@@ -323,8 +322,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         offset = (index >> 24) & 0xff
         width  = (index >> 16) & 0xff
 
-        #FIXME is it faster to generate or look thses up?
-        mask = (2**width)-1
+        mask = e_bits.b_masks[width]
         mask = mask << offset
 
         # NOTE: basewidth is in *bits*
@@ -345,7 +343,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         (allows cmp and sub to use the same code)
         """
         # Src op gets sign extended to dst
-        #FIXME account for same operand with zero result for PDE
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         Sflag = op.iflags & IF_PSR_S
@@ -466,7 +463,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         
-        #FIXME PDE and flags
         if src1 == None or src2 == None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
@@ -526,7 +522,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         
-        #FIXME PDE and flags
         if src1 == None or src2 == None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
@@ -561,7 +556,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 
     def i_rsb(self, op):
         # Src op gets sign extended to dst
-        #FIXME account for same operand with zero result for PDE
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         Sflag = op.iflags & IF_PSR_S
@@ -575,7 +569,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 
     def i_sub(self, op):
         # Src op gets sign extended to dst
-        #FIXME account for same operand with zero result for PDE
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         Sflag = op.iflags & IF_PSR_S
@@ -593,7 +586,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         
-        #FIXME PDE and flags
         if src1 == None or src2 == None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
