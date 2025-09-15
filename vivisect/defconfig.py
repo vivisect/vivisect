@@ -19,7 +19,8 @@ defconfig = {
                 'baseaddr': 0x200000,
             },
             'dwarf': {
-                'enabled': False,
+                'enabled': True,
+                'lines': False,
             },
             'blob':{
                 'arch':'',
@@ -60,10 +61,10 @@ defconfig = {
             'queue_chunksize': 70000,
         },
     },
-    'cli':vdb.defconfig.get('cli'), # FIXME make our own...
-    'vdb':vdb.defconfig.get('vdb'),
-    'cobra':cobra.defconfig.get('cobra'),
-    'user':{
+    'cli': vdb.defconfig.get('cli'), # FIXME make our own...
+    'vdb': vdb.defconfig.get('vdb'),
+    'cobra': cobra.defconfig.get('cobra'),
+    'user': {
         'name': getpass.getuser(),
     }
 }
@@ -73,12 +74,12 @@ defconfig.get('cli').update(vdb.defconfig.get('cli'))
 # Config elements docs
 docconfig = {
 
-    'viv':{
+    'viv': {
 
-        'SymbolCacheSave':'Save vivisect names to the vdb configured symbol cache?',
+        'SymbolCacheSave': 'Save vivisect names to the vdb configured symbol cache?',
 
-        'parsers':{
-            'pe':{
+        'parsers': {
+            'pe': {
                 'baseaddr': 'Address used to relocate PE files if base-address is 0 and PE is relocatable',
                 'loadresources':'Should we load resource segments?',
                 'carvepes':'Should we carve pes?',

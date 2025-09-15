@@ -1085,7 +1085,5 @@ def parseDwarf(vw, pbin, strtab=b''):
 def addDwarfToWorkspace(vw, dwarf):
     try:
         dwarf.addToWorkspace(vw)
-    except Exception as e:
-        import traceback
-        logger.warning("DWARF parsing ran into bug: %s", e)
-        traceback.print_exc()
+    except Exception:
+        logger.exception("DWARF parsing ran into bug:")
