@@ -1,5 +1,6 @@
 import vstruct
-from vstruct.primitives import *
+from vstruct.primitives import v_prim, v_int8, v_uint8, v_uint16, v_uint32, v_uint64, v_bytes, v_uint96, v_str
+
 
 def leb128ToInt(bytez, bitlen=64, signed=False):
     '''
@@ -8,12 +9,12 @@ def leb128ToInt(bytez, bitlen=64, signed=False):
     valu = 0
     shift = 0
     signBit = False
+    i = 0
     for i, bz in enumerate(bytez, start=1):
-        bz = bz
         valu |= (bz & 0x7f) << shift
         shift += 7
         if not bz & 0x80:
-            signBit = True if bz & 0x40 else False
+            signBit = bool(bz & 0x40)
             break
 
     if signed and signBit and shift < bitlen:
@@ -21,14 +22,123 @@ def leb128ToInt(bytez, bitlen=64, signed=False):
 
     return valu, i
 
+def _handleContentTypeCode(type, form, is64Bit):
+    offcon = v_uint64 if is64Bit else v_uint32
+    if type == DW_LNCT_path:
+        if form == DW_FORM_string:
+            return v_str()
+        if form == DW_FORM_block1:
+            return v_form_block(length=1)
+        if form == DW_FORM_block2:
+            return v_form_block(length=2)
+        if form == DW_FORM_block4:
+            return v_form_block(length=4)
+        if form == DW_FORM_block:
+            return v_form_block()
+        # value is an offset into another section like the debug_string
+        return offcon()
+    elif type == DW_LNCT_directory_index:
+        if form == DW_FORM_data1:
+            return v_uint8()
+        if form == DW_FORM_data2:
+            return v_uint16()
+        if form == DW_FORM_udata:
+            return v_uleb()
+    elif type == DW_LNCT_timestamp:
+        if form == DW_FORM_udata:
+            return v_uleb()
+        if form == DW_FORM_data4:
+            return v_uint32()
+        if form == DW_FORM_data8:
+            return v_uint64()
+        if form == DW_FORM_block:
+            return v_form_block()
+    elif type == DW_LNCT_size:
+        if form == DW_FORM_udata:
+            return v_uleb()
+        if form == DW_FORM_data1:
+            return v_uint8()
+        if form == DW_FORM_data2:
+            return v_uint16()
+        if form == DW_FORM_data4:
+            return v_uint32()
+        if form == DW_FORM_data8:
+            return v_uint64()
+        if form == DW_FORM_block:
+            return v_form_block()
+    elif type == DW_LNCT_md5:
+        return v_bytes(size=16)
+
+class v_uleb(v_prim):
+    def __init__(self):
+        v_prim.__init__(self, bigend=False)
+
+    def vsParse(self, bytes, offset=0):
+        valu, length = leb128ToInt(bytes[offset:], signed=False)
+        self._vs_value = valu
+        self._vs_length = length
+        return offset + length
+
+    def vsEmit(self):
+        pass
+
+class v_sleb(v_prim):
+    def __init__(self, signed=False):
+        pass
+
+    def vsParse(self, bytes, offset=0):
+        valu, length = leb128ToInt(bytes[offset:], signed=True)
+        self._vs_value = valu
+        self._vs_length = length
+        return length
+
+    def vsEmit(self):
+        pass
+
+# A Block is 
+class v_form_block(vstruct.VStruct):
+    def __init__(self, length=-1):
+        vstruct.VStruct.__init__(self, bigend=False)
+        if length == 1:
+            self.length = v_uint8()
+        if length == 2:
+            self.length = v_uint16()
+        if length == 4:
+            self.length = v_uint32()
+        else:
+            self.length = v_uleb()
+
+    def pcb_length(self):
+        self.data = v_bytes(size=self.length)
+
+
+class DwarfTypedStruct(vstruct.VStruct):
+    def __init__(self):
+        vstruct.VStruct.__init__(self, bigend=False)
+        self.__formtypes = {}
+
+    def addField(self, name, valu, type=None):
+        super().vsAddField(name, valu)
+        if type is not None:
+            self.__formtypes[name] = type
+
+    def getFieldDwarfType(self, name):
+        return self.__formtypes.get(name)
 
 class Dwarf32CompileHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
-        vstruct.VStruct.__init__(self)
+        vstruct.VStruct.__init__(self, bigend=bigend)
         self.length = v_uint32(bigend=bigend)
         self.version = v_uint16(bigend=bigend)
-        self.abbrev_offset = v_uint32(bigend=bigend)
-        self.ptrsize = v_uint8()
+
+    def pcb_version(self):
+        if self.version == 5:
+            self.unit_type = v_uint8()
+            self.ptrsize = v_uint8()
+            self.abbrev_offset = v_uint32(bigend=self._vs_bigend)
+        else:
+            self.abbrev_offset = v_uint32(bigend=self._vs_bigend)
+            self.ptrsize = v_uint8()
 
 
 class Dwarf32TypeHeader(vstruct.VStruct):
@@ -43,26 +153,91 @@ class Dwarf32TypeHeader(vstruct.VStruct):
 
 
 class Dwarf32UnitLineHeader(vstruct.VStruct):
-    def __init__(self, bigend=False):
+    def __init__(self, dinfo, bigend=False):
         vstruct.VStruct.__init__(self)
+        # we really don't need all this. just the "is64bit" stuff really
+        # or we can even just segment that off into the Dwarf64 version
+        self._dwarf_info = dinfo
         self.unit_length = v_uint32(bigend=bigend)
         self.version = v_uint16(bigend=bigend)
+
+    def pcb_version(self):
+        bigend = self._vs_bigend
+        # NOTE: This version is not tied to the main dwarf version.
+        # The line header version is rev'd independent of which dwarf
+        # standard you're using
+        if self.version == 5:
+            self.address_size = v_uint8()
+            self.segment_selector_size = v_uint8()
+
         self.header_length = v_uint32(bigend=bigend)
 
-        self.min_instr_len = v_uint8(bigend=bigend)
+        self.min_instr_len = v_uint8(bigend)
         self.max_ops_per_instr = v_uint8(bigend=bigend)
         self.default_is_statement = v_uint8(bigend=bigend)
         self.line_base = v_int8(bigend=bigend)
         self.line_range = v_int8(bigend=bigend)
         self.opcode_base = v_uint8(bigend=bigend)
 
-        # could also be an array.
-        self.standard_opcode_lengths = v_bytes()
-        self.include_directories = vstruct.VArray()
-        self.file_names = []
+        # could also be an array of v_uint8
+        # self.standard_opcode_lengths = v_bytes()
 
     def pcb_opcode_base(self):
+        # maybe better as an array of v_uint8 since that's more accurate
         self.standard_opcode_lengths = v_bytes(size=self.opcode_base - 1)
+
+        if self.version == 5:
+            self.directory_entry_format_count = v_uint8()
+        #elif self.version == 4:
+            #self.include_directories = vstruct.VArray()
+            #self.v4_file_names = []
+
+    def pcb_directory_entry_format_count(self):
+        # we know we're in version 5 right now
+        self.directory_entry_format = vstruct.VArray()
+        # this is a sequence of ULEB pairs, but it's only ever referred to as a singlet?
+        for i in range(int(self.directory_entry_format_count)):
+            valu = vstruct.VArray()
+            valu.vsAddElement(v_uleb())
+            valu.vsAddElement(v_uleb())
+            self.directory_entry_format.vsAddElement(valu)
+
+        self.directories_count = v_uleb()
+
+    def pcb_directories_count(self):
+        self.directories = vstruct.VArray()
+        for idx in range(self.directories_count):
+            valu = vstruct.VArray()
+            for _, fileEntry in self.directory_entry_format:
+                typ = fileEntry[0].vsGetValue()
+                form = fileEntry[1].vsGetValue()
+                con = _handleContentTypeCode(typ, form, self._dwarf_info.is64BitDwarf)
+                valu.vsAddElement(con)
+            self.directories.vsAddElement(valu)
+
+        self.file_name_entry_format_count = v_uint8()
+
+    def pcb_file_name_entry_format_count(self):
+        self.file_names_entry_formats = vstruct.VArray()
+        for i in range(self.file_name_entry_format_count):
+            valu = vstruct.VArray()
+            valu.vsAddElement(v_uleb())
+            valu.vsAddElement(v_uleb())
+            self.file_names_entry_formats.vsAddElement(valu)
+
+        self.file_names_count = v_uleb()
+
+    def pcb_file_names_count(self):
+        self.file_names = vstruct.VArray()
+        for idx in range(self.file_names_count):
+            valu = vstruct.VArray()
+            for _, fileEntry in self.file_names_entry_formats:
+                typ = fileEntry[0].vsGetValue()
+                form = fileEntry[1].vsGetValue()
+                con = _handleContentTypeCode(typ, form, self._dwarf_info.is64BitDwarf)
+                valu.vsAddElement(con)
+
+            self.file_names.vsAddElement(valu)
 
 
 class Dwarf64CompileHeader(vstruct.VStruct):
@@ -70,8 +245,15 @@ class Dwarf64CompileHeader(vstruct.VStruct):
         vstruct.VStruct.__init__(self)
         self.length = v_uint96(bigend=bigend)
         self.version = v_uint16(bigend=bigend)
-        self.abbrev_offset = v_uint64(bigend=bigend)
-        self.ptrsize = v_uint8()
+
+    def pcb_version(self):
+        if self.version == 5:
+            self.unit_type = v_uint8()
+            self.ptrsize = v_uint8()
+            self.abbrev_offset = v_uint64(bigend=self._vs_bigend)
+        else:
+            self.abbrev_offset = v_uint64(bigend=self._vs_bigend)
+            self.ptrsize = v_uint8()
 
 
 class Dwarf64TypeHeader(vstruct.VStruct):
@@ -85,12 +267,13 @@ class Dwarf64TypeHeader(vstruct.VStruct):
         self.type_offset = v_uint64(bigend=bigend)
 
 
+# TODO: Yea. This should echo the 32bit version.
 class Dwarf64UnitLineHeader(vstruct.VStruct):
     def __init__(self, bigend=False):
         vstruct.VStruct.__init__(self)
 
-# DWARF Debugging info Enums
 
+# DWARF Debugging info Enums
 DW_CHILDREN_no = 0x0
 DW_CHILDREN_yes = 0x1
 
@@ -519,7 +702,6 @@ DW_FORM_addrx2 = 0x2a
 DW_FORM_addrx3 = 0x2b
 DW_FORM_addrx4 = 0x2c
 
-
 DW_LANG_C89 = 0x01
 DW_LANG_C = 0x02
 DW_LANG_Ada83 = 0x03
@@ -550,7 +732,6 @@ DW_ID_case_insensitive = 0x03
 
 
 # Dwarf has it's own kind of programming language inside of it to determine where things live in memory
-# 
 DW_OP_addr = 0x3
 DW_OP_deref = 0x6
 DW_OP_const1u = 0x8
@@ -823,3 +1004,9 @@ DW_LNE_define_file = 0x03
 DW_LNE_set_discriminator = 0x04
 DW_LNE_lo_user = 0x80
 DW_LNE_hi_user = 0xff
+
+DW_LNCT_path = 1
+DW_LNCT_directory_index = 2
+DW_LNCT_timestamp = 3
+DW_LNCT_size = 4
+DW_LNCT_md5 = 5

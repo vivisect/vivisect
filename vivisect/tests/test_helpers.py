@@ -1,6 +1,6 @@
 import unittest
 import vivisect.tests.helpers as helpers
-from vivisect.parsers.dwarf import leb128ToInt
+from vstruct.defs.dwarf import leb128ToInt
 
 
 class HelperTest(unittest.TestCase):

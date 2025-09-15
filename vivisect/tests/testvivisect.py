@@ -2,7 +2,6 @@ import io
 import os
 import logging
 import tempfile
-import unittest
 
 import envi
 import envi.exc as e_exc

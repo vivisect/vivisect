@@ -45,7 +45,7 @@ def getTestPath(*paths):
 
 
 @functools.lru_cache()
-def getTestWorkspace(*paths, vw=None):
+def getTestWorkspace(*paths, vw=None, **kwargs):
     testdir = os.getenv('VIVTESTFILES')
     if not testdir:
         raise unittest.SkipTest('VIVTESTFILES env var not found!')
@@ -57,6 +57,8 @@ def getTestWorkspace(*paths, vw=None):
         vw = v_cli.VivCli()
         vw.config.viv.analysis.symswitchcase.timeout_secs = 30
 
+    for key, valu in kwargs.items():
+        vw.config[key] = valu
 
     vw.loadFromFile(fpath)
     vw.analyze()
