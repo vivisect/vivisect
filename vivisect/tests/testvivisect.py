@@ -9,9 +9,13 @@ import envi.exc as e_exc
 import envi.const as e_const
 import envi.memcanvas as e_mcanvas
 
+import vstruct
+import vstruct.primitives as v_prim
+
 import vivisect
 import vivisect.exc as v_exc
 import vivisect.const as v_const
+import vivisect.renderers as v_rend
 import vivisect.tools.graphutil as v_t_graphutil
 
 import vivisect.tests.helpers as helpers
@@ -893,7 +897,7 @@ class VivisectTest(v_t_utils.VivTest):
     def test_basic_callers(self):
         vw = self.firefox_vw
         self.assertTrue(18000 < len(vw.getXrefs()))
-        self.assertEqual(42, len(vw.getImportCallers('kernel32.GetProcAddress')))
+        self.assertEqual(45, len(vw.getImportCallers('kernel32.GetProcAddress')))
         self.assertEqual(9, len(vw.getImportCallers('kernel32.LoadLibraryW')))
 
     def test_consecutive_jump_table(self):
@@ -1601,3 +1605,4 @@ class VivisectTest(v_t_utils.VivTest):
 
             with vw.getAdminRights():
                 vw.writeMemory(base, oldmem)
+

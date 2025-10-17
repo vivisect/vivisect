@@ -4,19 +4,19 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'vivisect'
-version = '1.2.0'
+version = '1.2.1'
 authors = [
     { name =  'The Vivisect Peeps', email = 'vivdevs@r4780y.com'}
 ]
 description = 'Pure python disassembler, debugger, emulator, and static analysis framework'
 readme = 'README.md'
-requires-python = '>=3.11'
+requires-python = '>=3.8'
 license = { text = 'Apache License 2.0' }
 classifiers = [
     'Topic :: Security',
     'Topic :: Software Development :: Disassemblers',
     'Topic :: Software Development :: Debuggers',
-    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.8',
     'License :: OSI Approved :: Apache Software License',
 ]
 
