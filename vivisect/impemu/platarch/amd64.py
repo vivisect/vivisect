@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 non_use_mnems = ('push', )
 
 
+# TODO: MemoryObject's writeMemory is incompatible with the WorkspaceEmulator's due to _origva
 class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulator):
     __archemu__ = e_amd64.Amd64Emulator
 
