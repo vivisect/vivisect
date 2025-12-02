@@ -400,8 +400,13 @@ class EnviCli(Cmd):
             if len(parts) == 2:
                 # the config entry already has a value, let's use it to decide
                 # whether to convert it to an int or leave it as a str.
-                if type(cfg[optname]) == int:
+                if type(cfg[optname]) is int:
                     newval = int(parts[1], 0)
+                elif type(cfg[optname]) is bool:
+                    if parts[1] in ("true", "True"):
+                        newval = True
+                    elif parts[1] in ("false", "False"):
+                        newval = False
                 else:
                     newval = parts[1]
 
@@ -412,8 +417,9 @@ class EnviCli(Cmd):
 
                 optval = newval
                 cfg[optname] = newval
+                pathstring = '.'.join(subnames)
 
-            self.vprint('%s.%s=%s' % ('.'.join(subnames), optname, json.dumps(optval)))
+            self.vprint('%s=%s' % (pathstring, json.dumps(optval)))
 
         if options.do_save:
             self.config.saveConfigFile()

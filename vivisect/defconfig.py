@@ -46,6 +46,12 @@ defconfig = {
                 'case_failure': 5000,
                 'min_func_instr_size': 10,
                 'timeout_secs': 45,
+            },
+            'codeflow':{
+                'strict':False,
+                'onelib':True,
+                'onemap':False,
+                'stopOnExports':False,
             }
         },
         'remote':{
@@ -105,6 +111,12 @@ docconfig = {
             'pointertables':{
                 'table_min_len':'How many pointers must be in a row to make a table?',
             },
+            'codeflow':{
+                'strict':"if 'onelib' is set, 'strict' breaks on code-flow into unnamed maps",
+                'onelib':"Stop code-flow if code calls to another library (multi-file workspaces)",
+                'onemap':"Stop code-flow if code calls to another memory-map (even within the same file)",
+                'stopOnExports':"Stop code-flow if we run into an Exported function",
+            }
         },
         'remote':{
             'wait_for_plat_arch':'How many secs to wait for the remote server/workspace to provide a Platform or Architecture before moving on.',
