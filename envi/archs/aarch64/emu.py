@@ -516,7 +516,6 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
         self.setFlag(PSR_Z_bit, (0,1)[ures==0])
         self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
-        #self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
         
     def i_rsb(self, op):
         src1 = self.getOperValue(op, 1)
