@@ -102,7 +102,7 @@ EXT_LSL     = 8
 ENDIAN_LSB = 0
 ENDIAN_MSB = 1
 
-iencs = (\
+iencs = (
     'IENC_DATA_SIMD',
     'IENC_LS_EXCL',
     'IENC_LS_NAPAIR_OFFSET',
