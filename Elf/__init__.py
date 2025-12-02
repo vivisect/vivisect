@@ -718,7 +718,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 offset = 0
                 notebyteslen = len(notebytes)
                 while offset < notebyteslen:
-                    note = vs_elf.ElfNote()
+                    note = vs_elf.ElfNote(bigend=self.getEndian())
                     if notebyteslen - offset < len(note):
                         logger.warning("""\nNOTES section length mismatch!\n\t%s
                                        \tSection Bytes: %s\n\tStranded bytes: %s\n""",
