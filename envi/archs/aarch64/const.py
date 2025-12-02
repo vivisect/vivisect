@@ -289,8 +289,8 @@ iencs = (
 
 IENC_MAX = len(iencs)
 
-for ieidx in range(IENC_MAX):
-    globals()[iencs[ieidx]] = ieidx
+for ieidx, enc in enumerate(iencs):
+    globals()[enc] = ieidx
 
 instrnames = [
     'ADR',
