@@ -52,7 +52,6 @@ MAX_REGS = len(aarch64_regs_tups) - 1
 
 # metas:   zr is x31.  w* is 32-bit versions of x* regs
 
-# FIXME: linkage.  if no overlapping regs for different modes, just remove and make all references hit aarch64_regs_tups
 reg_data = aarch64_regs_tups
 aarch64_regs = [r for r,sz in aarch64_regs_tups]
 
