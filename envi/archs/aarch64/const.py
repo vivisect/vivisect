@@ -1248,7 +1248,7 @@ cond_table = (
     'GT',
     'LE',
     'AL',
-    'NV^b', #FIXME
+    'NV',
 )
 
 COND_EQ = 0
