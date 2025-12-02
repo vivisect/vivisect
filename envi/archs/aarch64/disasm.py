@@ -15,7 +15,7 @@ import envi.bits as e_bits
 '''
 All the various tables inittable references
 '''
-s_0_table = (   # undefined and unallcated
+s_0_table = (   # undefined and unallocated
     (0b11011110110000000000000000001000, 0b10000000110000000000000000000000, IENC_SME_OUTER_PRODUCT_64_BIT),
     #(0b10000x11xxxxxxxxxxxxxxxxxx1xxxxx, 0b10000x11xxxxxxxxxxxxxxxxxx1xxxxx, UNALLOCATED.),
     #(0b1000000x0xxxxxxxxxxxxxxxxxxxxxxx, 0b1000000x0xxxxxxxxxxxxxxxxxxxxxxx, UNALLOCATED.),
