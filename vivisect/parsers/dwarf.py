@@ -2,6 +2,7 @@
 Stuff still to do:
 * Support for macros (mostly a v5 thing)
     * I'll worry about this when I can actually find something real that generates it. So far I can't find anything
+* It might be good to firm up the Compile Unit boundaries into a formal object instead of just a vstruct
 '''
 import logging
 
@@ -83,7 +84,9 @@ class LineStateMachine:
         self._reg_file = 1  # indicates the index of the file
         self._reg_line = 1
         self._reg_column = 0  # begins at 1
-        self._reg_is_stmt = False   # TODO: This is determined by the header actually
+        self._reg_is_stmt = False
+        if self.header.vsHasField('default_is_statement'):
+            self._reg_is_stmt = bool(self.header.default_is_statement)
         self._reg_basic_block = False
         self._reg_end_sequence = False
         self._reg_prologue_end = False
@@ -300,7 +303,7 @@ class DwarfInfo:
         self.info = self._parseDebugInfo()
         self._parseDebugLine()
 
-    def getFormalParam(self, cu, cuidx, param):
+    def _resolveDwarfType(self, cu, cuidx, struct, byoffset):
         if cu.vsHasField('str_offsets_base'):
             offset = cu.str_offsets_base
         else:
@@ -312,23 +315,52 @@ class DwarfInfo:
 
         div = 8 if isinstance(cu, v_d_dwarf.Dwarf64CompileHeader) else 4
         info = {}
-        for name, valu in param.vsGetFields():
+        # TODO: This might be faster if we don't resolve the field names?
+        for name, valu in struct.vsGetFields():
             if name == 'dwarf_children':
                 continue
-            typ = param.getFieldDwarfType(name)
+            typ = struct.getFieldDwarfType(name)
             rval = valu.vsGetValue()
-            # TODO: parse more type info
-            # TODO: DW_AT_location
+            # TODO: match/case would be nice here
             if name == 'type':
+                # type can be a reference to a base type that we should go fetch
+                # but unfortunately it can be very cyclical, so we need a way to resolve that
+                # without going into a death spiral
+                # It should be fairly easy, keep track of what we've resolved and bail if we've already
+                # done it, but Imma save that for a future PR
                 info['type'] = rval
+                #othr = byoffset.get(rval)
+                #if othr:
+                    #res = self._resolveDwarfType(cu, cuidx, othr, byoffset)
+                    #if res:
+                        #info['type'] = res
             elif name == 'artificial':
                 info['artificial'] = rval
             elif name == 'name':
                 info['name'] = self._getRealString(typ, valu, offset // div, utf8=utf8)
+            elif name == 'linkage_name':
+                info['link_name'] = self._getRealString(typ, valu, offset // div, utf8=utf8)
             elif name == 'line':
                 info['line'] = rval
+            elif name == 'decl_line':
+                info['decl_line'] = rval
             elif name == 'decl_column':
                 info['column'] = rval
+            elif name == 'low_pc':
+                info['start'] = rval
+            elif name == 'high_pc':
+                # TODO: usually an offset from low_pc, should we resolve this?
+                info['end'] = rval
+            elif name == 'data_member_location':
+                info['offset'] = rval
+            elif name == 'byte_size':
+                info['size'] = rval
+            elif name == 'import':
+                impstruct = byoffset.get(rval)
+                if impstruct:
+                    res = self._resolveDwarfType(cu, cuidx, impstruct, byoffset)
+                    if res:
+                        info['import'] = res
             elif name == 'file':
                 file = self.files[cuidx][rval]
                 filename = file.get('valu')
@@ -336,159 +368,105 @@ class DwarfInfo:
                 diridx = file.get('diridx')
                 if diridx is not None:
                     info['dirn'] = self.dirs[cuidx][diridx]['valu']
+            elif name == 'calling_convention':
+                info['calling_convention'] = rval
+            elif name == 'is_optional':
+                info['optional'] = rval
+            elif name == 'endianity':
+                info['endian'] = rval
+            elif name == 'call_line':
+                info['call_line'] = rval
+            elif name == 'call_file':
+                info['call_file'] = rval
+            elif name == 'call_column':
+                info['call_column'] = rval
+            elif name == 'encoding':
+                info['encoding'] = rval
 
-        return info
+            # DW_AT_const_value?
+            # DW_AT_default_value?
+            # DW_AT_declaration?
+            # DW_AT_location?
 
-    def getFunctionInfo(self, cu, cuidx, prog):
-        if cu.vsHasField('str_offsets_base'):
-            offset = cu.str_offsets_base
-        else:
-            offset = 0
+        getkids = struct.tag in (v_d_dwarf.DW_TAG_subprogram, v_d_dwarf.DW_TAG_structure_type, v_d_dwarf.DW_TAG_class_type)
 
-        utf8 = False
-        if cu.vsHasField('use_utf8'):
-            utf8 = True
-
-        info = {}
-        params = []
-        div = 8 if isinstance(cu, v_d_dwarf.Dwarf64CompileHeader) else 4
-        for name, valu in prog.vsGetFields():
-            if name == 'dwarf_children':
-                continue
-            typ = prog.getFieldDwarfType(name)
-            rval = valu.vsGetValue()
-            if name == 'name':
-                info['name'] = self._getRealString(typ, valu, offset // div, utf8=utf8)
-            elif name == 'linkage_name':
-                info['link_name'] = self._getRealString(typ, valu, offset // div, utf8=utf8)
-            elif name == 'decl_file':
-                file = self.files[cuidx][rval]
-                filename = file.get('valu')
-                info['file'] = filename
-                diridx = file.get('diridx')
-                if diridx is not None:
-                    info['dirn'] = self.dirs[cuidx][diridx]['valu']
-            elif name == 'decl_line':
-                info['line'] = rval
-            elif name == 'decl_column':
-                info['column'] = rval
-            elif name == 'low_pc':
-                info['start'] = rval
-            elif name == 'high_pc':
-                # usually an offset from low_pc
-                info['end'] = rval
-
-        if prog.vsHasField('dwarf_children'):
-            for _, child in prog.dwarf_children:
-                # Be nice if I could tighten this up into a dictionary or something
-                if child.tag == v_d_dwarf.DW_TAG_formal_parameter:
-                    param = self.getFormalParam(cu, cuidx, child)
-                    if param:
-                        params.append(param)
-                # DW_AT_type?
-            info['params'] = params
-        return info
-
-    def getStructureMemberInfo(self, cu, cuidx, member):
-        info = {}
-
-        # TOOD: Functionalize this preamble
-        if cu.vsHasField('str_offsets_base'):
-            offset = cu.str_offsets_base
-        else:
-            offset = 0
-
-        utf8 = False
-        if cu.vsHasField('use_utf8'):
-            utf8 = True
-
-        div = 8 if isinstance(cu, v_d_dwarf.Dwarf64CompileHeader) else 4
-        for name, valu in member.vsGetFields():
-            if name == 'dwarf_children':
-                continue
-            rval = valu.vsGetValue()
-            type = member.getFieldDwarfType(name)
-            if name == 'name':
-                info['name'] = self._getRealString(type, valu, offset // div, utf8=utf8)
-            elif name == 'decl_file':
-                file = self.files[cuidx][rval]
-                filename = file.get('valu')
-                info['file'] = filename
-                diridx = file.get('diridx')
-                if diridx is not None:
-                    info['dirn'] = self.dirs[cuidx][diridx]['valu']
-            elif name == 'decl_line':
-                info['line'] = rval
-            elif name == 'data_member_location':
-                info['offset'] = rval
-            # TODO: DW_AT_type??
-
-        return info
-
-    def getStructureInfo(self, cu, cuidx, struct):
-        info = {}
-
-        if cu.vsHasField('str_offsets_base'):
-            offset = cu.str_offsets_base
-        else:
-            offset = 0
-
-        utf8 = False
-        if cu.vsHasField('use_utf8'):
-            utf8 = True
-
-        div = 8 if isinstance(cu, v_d_dwarf.Dwarf64CompileHeader) else 4
-        for name, valu in struct.vsGetFields():
-            if name == 'dwarf_children':
-                continue
-            rval = valu.vsGetValue()
-            type = struct.getFieldDwarfType(name)
-            if name == 'name':
-                info['name'] = self._getRealString(type, valu, offset // div, utf8=utf8)
-            elif name == 'decl_file':
-                file = self.files[cuidx][rval]
-                filename = file.get('valu')
-                info['file'] = filename
-                diridx = file.get('diridx')
-                if diridx is not None:
-                    info['dirn'] = self.dirs[cuidx][diridx]['valu']
-            elif name == 'decl_line':
-                info['line'] = rval
-            elif name == 'byte_size':
-                info['size'] = rval
-
-        members = []
-        if struct.vsHasField('dwarf_children'):
+        if getkids and struct.vsHasField('dwarf_children'):
+            functions = []
+            members = []
+            params = []
             for _, child in struct.dwarf_children:
                 if child.tag == v_d_dwarf.DW_TAG_member:
-                    members.append(self.getStructureMemberInfo(cu, cuidx, child))
-        info['members'] = members
+                    members.append(self._resolveDwarfType(cu, cuidx, child, byoffset))
+                elif child.tag == v_d_dwarf.DW_TAG_formal_parameter:
+                    params.append(self._resolveDwarfType(cu, cuidx, child, byoffset))
+                elif child.tag == v_d_dwarf.DW_TAG_template_type_parameter:
+                    params.append(self._resolveDwarfType(cu, cuidx, child, byoffset))
+                elif child.tag == v_d_dwarf.DW_TAG_subprogram:
+                    functions.append(self._resolveDwarfType(cu, cuidx, child, byoffset))
+
+            if functions:
+                info['functions'] = functions
+
+            if members:
+                info['members'] = members
+
+            # break parameters out in formal/template/etc?
+            if params:
+                info['parameters'] = params
 
         return info
 
-    def addChildrenToWorkspace(self, vw, cu, cuidx, children, pns=None, pfunc=None):
+    def addChildrenToWorkspace(self, vw, cu, cuidx, byoffset, children, pns=None, pfunc=None):
+        '''
+        pns and pfunc are TODO things for when we're adding who the parent namepsace (like in C++) and
+        parent function (for more detailed debugging info) are. I should do things with those eventually.
+        '''
         for indx, child in children:
             if child.tag == v_d_dwarf.DW_TAG_subprogram:
                 if child.vsHasField('abstract_origin'):
                     continue
-                func = self.getFunctionInfo(cu, cuidx, child)
-                vw.addDebugInfo('function', func)
+                func = self._resolveDwarfType(cu, cuidx, child, byoffset)
+                if func:
+                    vw.addDebugInfo('function', func)
+            elif child.tag == v_d_dwarf.DW_TAG_inlined_subroutine:
+                func = self._resolveDwarfType(cu, cuidx, child, byoffset)
+                if func:
+                    func['inline'] = 1
+                    vw.addDebugInfo('function', func)
+            # TODO: elif child.tag == v_d_dwarf.DW_TAG_subroutine_type:
             elif child.tag == v_d_dwarf.DW_TAG_structure_type:
-                struct = self.getStructureInfo(cu, cuidx, child)
+                struct = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if struct:
+                    struct['union'] = False
                     vw.addDebugInfo('struct', struct)
-            # elif child.tag == v_d_dwarf.DW_TAG_subroutine_type:
-            # elif child.tag == v_d_dwarf.DW_TAG_inlined_subroutine:
+            elif child.tag == v_d_dwarf.DW_TAG_union_type:
+                union = self._resolveDwarfType(cu, cuidx, child, byoffset)
+                if union:
+                    union['union'] = True
+                    vw.addDebugInfo('struct', union)
             elif child.tag == v_d_dwarf.DW_TAG_namespace:
                 if child.vsHasField('dwarf_children'):
-                    self.addChildrenToWorkspace(vw, cu, cuidx, child.dwarf_children, pns=child, pfunc=pfunc)
+                    self.addChildrenToWorkspace(vw, cu, cuidx, byoffset, child.dwarf_children, pns=child, pfunc=pfunc)
             elif child.tag == v_d_dwarf.DW_TAG_class_type:
-                pass
+                ct = self._resolveDwarfType(cu, cuidx, child, byoffset)
+                if ct:
+                    vw.addDebugInfo('class', ct)
+            elif child.tag == v_d_dwarf.DW_TAG_imported_declaration:
+                imp = self._resolveDwarfType(cu, cuidx, child, byoffset)
+                if imp:
+                    vw.addDebugInfo('import', imp)
+            elif child.tag == v_d_dwarf.DW_TAG_imported_module:
+                imp = self._resolveDwarfType(cu, cuidx, child, byoffset)
+                if imp:
+                    vw.addDebugInfo('import', imp)
+            # TODO: I need an example of this
+            #elif child.tag == v_d_dwarf.DW_TAG_imported_unit:
+                # imp = self.getImportedModule(child, cu, cuidx)
 
     def addToWorkspace(self, vw):
-        for idx, (compunit, offsets) in enumerate(self.info):
+        for idx, (compunit, byoffset) in enumerate(self.info):
             if compunit.vsHasField('dwarf_children'):
-                self.addChildrenToWorkspace(vw, compunit, idx, compunit.dwarf_children)
+                self.addChildrenToWorkspace(vw, compunit, idx, byoffset, compunit.dwarf_children)
 
     def getSectionBytes(self, name):
         if isinstance(self.pbin, Elf.Elf):
@@ -920,10 +898,6 @@ class DwarfInfo:
         consumed = 0
         byts = self.getSectionBytes('.debug_line')
 
-        # TODO: By this point we should have already snagged the compile
-        # unit info, because there are as much Line Program headers/sections
-        # as there are compile units (and parsing needs to reflect that
-
         version = v_s_prim.v_uint32(bigend=vw.bigend)
         if version == 0xFFFFFFFF:
             consumed += 4
@@ -1057,9 +1031,8 @@ class DwarfInfo:
                 if attr == 0 and attrType == 0:
                     break
 
-                # typeinfo.append((attr, attrType))
-                # attrType should be something of DW_FORM_*
                 # attr should be something of DW_AT_*
+                # attrType should be something of DW_FORM_*
                 typeinfo.append({'name': attr, 'form': attrType, 'extra': extra})
 
             retnIdx[idx] = dies[code] = (tag, hasKids, typeinfo)
@@ -1085,5 +1058,5 @@ def parseDwarf(vw, pbin, strtab=b''):
 def addDwarfToWorkspace(vw, dwarf):
     try:
         dwarf.addToWorkspace(vw)
-    except Exception:
+    except:
         logger.exception("DWARF parsing ran into bug:")
