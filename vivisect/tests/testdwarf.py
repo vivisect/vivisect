@@ -32,7 +32,7 @@ class DwarfTest(v_t_utils.VivTest):
         self.isin('dev_ino', names)
         self.isin('timespec', names)
 
-        # we end up with two copies since it's defined twice (even dwarfdump lists in twice total)
+        # we end up with two copies since it's defined twice (even dwarfdump lists it twice total)
         structs = [x for x in vw.debuginfo.structs if x.name == 'Chown_option']
         self.len(structs, 2)
         mnames = [m.name for m in structs[0].members]
@@ -45,3 +45,6 @@ class DwarfTest(v_t_utils.VivTest):
             'user_name',
             'group_name'
         ])
+
+    def test_dwarf_aurbis(self):
+        pass
