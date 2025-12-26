@@ -33,8 +33,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
     def prehook(self, emu, op, starteip):
 
         try:
-            tmode = emu.getFlag(PSR_T_bit)
-            self.last_tmode = tmode
             if op in self.badops:
                 emu.stopEmu()
                 raise v_exc.BadOpBytes(op.va)
@@ -44,7 +42,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             loctup = emu.vw.getLocation(starteip)
             if loctup is None:
                 # logger.debug("emulation: prehook: new LOC_OP  fva: 0x%x     starteip: 0x%x  flags: 0x%x", self.fva, starteip, op.iflags)
-                arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[(starteip & 1) | tmode]
+                arch = envi.ARCH_A64
                 emu.vw.makeCode(starteip & -2, arch=arch)
 
             elif loctup[2] != LOC_OP:
@@ -61,17 +59,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                     if hasattr(op.opers, 'imm'):
                         self.retbytes = op.opers[0].imm
 
-            # ARM gives us nice switchcase handling instructions
-            # FIXME: wrap TB-handling into getBranches(emu) which is called by checkBranches during emulation
-            if op.opcode in (INS_TBH, INS_TBB):
-                if emu.vw.getVaSetRow('SwitchCases', op.va) is None:
-                    base, tbl = analyzeTB(emu, op, starteip, self)
-                    if None not in (base, tbl):
-                        count = len(tbl)
-                        self.switchcases += 1
-                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count))
-
-            elif op.opcode == INS_MOV:
+            if op.opcode == INS_MOV:
                 if len(op.opers) >= 2:
                     oper0 = op.opers[0]
                     oper1 = op.opers[1]
@@ -79,13 +67,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                     if isinstance(oper0, e_a64.A64RegOper) and oper0.reg == REG_LR:
                         if isinstance(oper1, e_a64.A64RegOper) and oper1.reg == REG_PC:
                             self.last_lr_pc = starteip
-
-            elif op.opcode == INS_BX:
-                if starteip - self.last_lr_pc <= 4:
-                    # this is a call.  the compiler updated lr
-                    logger.info("CALL by mov lr, pc; bx <foo> at 0x%x", starteip)
-                    tgtva = op.opers[-1].getOperValue(op)
-                    self.vw.makeFunction(tgtva)
 
             elif op.opcode == INS_ADD and op.opers[0].reg == REG_PC:
                 # simple branch code
@@ -129,10 +110,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             logger.warning("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
     def posthook(self, emu, op, starteip):
-        if op.opcode == INS_BLX:
-            emu.setFlag(PSR_T_bit, self.last_tmode)
-
-        elif op.opcode == INS_MOVT:
+        if op.opcode == INS_MOVT:
             val = op.getOperValue(0, emu=emu)
             emu.vw.setSymHint(op.va, OP_SYMHINT_IDX, val)
             if emu.isValidPointer(val):
@@ -159,7 +137,7 @@ def archargname(idx):
     return name
 
 
-def buildFunctionApi(vw, fva, emu, emumon):
+def buildFunctionApi(vw, fva, emu, emumon, stkstart=0):
     argc = 0
     funcargs = []
     callconv = vw.getMeta('DefaultCall')
@@ -214,17 +192,8 @@ def getAllWrites(emu):
 def analyzeFunction(vw, fva):
     emu = vw.getEmulator(va=fva, logread=True, logwrite=True)
     emumon = AnalysisMonitor(vw, fva)
+    stkstart = emu.getStackCounter()
     emu.setEmulationMonitor(emumon)
-
-    loc = vw.getLocation(fva)
-    if loc is not None:
-        lva, lsz, lt, lti = loc
-        if lt == LOC_OP:
-            if (lti & envi.ARCH_MASK) != envi.ARCH_ARMV7:
-                emu.setFlag(PSR_T_bit, 1)
-    else:
-        logger.warning("NO LOCATION at FVA: 0x%x", fva)
-
     emu.runFunction(fva, maxhit=1)
 
 
@@ -256,7 +225,7 @@ def analyzeFunction(vw, fva):
     # NOTE: do *not* use getFunctionApi here, it will make one!
     api = vw.getFunctionMeta(fva, 'api')
     if api is None:
-        api = buildFunctionApi(vw, fva, emu, emumon)
+        api = buildFunctionApi(vw, fva, emu, emumon, stkstart)
 
     rettype,retname,callconv,callname,callargs = api
 
@@ -350,14 +319,7 @@ def analyzeTB(emu, op, starteip, amon):
     for ova, nextoff in tbl:
         nexttgt = base + nextoff
         emu.vw.makeNumber(ova, 2)
-        # check for loc first?
-        if nexttgt & 1:
-            nexttgt &= -2
-            arch = envi.ARCH_THUMB
-        else:
-            arch = envi.ARCH_ARMV7
-
-        emu.vw.makeCode(nexttgt, arch=arch)
+        emu.vw.makeCode(nexttgt, arch=ARCH_A64)
         # check xrefs fist?
         emu.vw.addXref(op.va, nexttgt, REF_CODE)
 
