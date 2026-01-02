@@ -66,8 +66,8 @@ class StorageTests(unittest.TestCase):
 
         old = list(vw.exportWorkspace())
         new = list(ovw.exportWorkspace())
-        self.assertEqual(len(old), 39)
-        self.assertEqual(len(new), 40)  # the last event is a setMeta made by loadWorkspace
+        self.assertEqual(len(old), 40)
+        self.assertEqual(len(new), 41)  # the last event is a setMeta made by loadWorkspace
         self.assertEqual(new[-1], (VWE_SETMETA, ('StorageName', self.tmpf.name)))
         for idx in range(len(old)):
             self.assertEqual(old[idx], new[idx])

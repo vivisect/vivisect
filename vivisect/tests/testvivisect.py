@@ -708,7 +708,7 @@ class VivisectTest(v_t_utils.VivTest):
         for name, valist in ans.items():
             retn = vw.getVaSetRows(name)
             try:
-                self.assertEqual(set(retn), set(valist))
+                self.assertEqual((name, set(retn)), (name, set(valist)))
             except Exception as e:
                 mesg = f'On VaSet {name}, we failed due to: {str(e)}'
                 self.fail(mesg)
