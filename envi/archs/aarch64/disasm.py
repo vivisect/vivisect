@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 from envi.archs.aarch64.const import *
 from envi.archs.aarch64.regs import *
+from envi.archs.aarch64 import sysregs
 import envi
 import struct
 import envi.bits as e_bits
@@ -953,7 +954,7 @@ def p_sys(opval, va):
     Returns parameters for an A64Opcode for a system instruction
     '''
     l = opval >> 21 & 0x1
-    op0 = opval >> 19 & 0x3
+    op0 = 2 | (opval >> 19 & 0x1)
     op1 = opval >> 16 & 0x7
     crn = opval >> 12 & 0xf
     crm = opval >> 8 & 0xf
@@ -964,6 +965,7 @@ def p_sys(opval, va):
     #this is legitimately ugly as sin. hopefully can come back and fix, though
     #since it has 6 relevant decode fields, it won't be that improvable
     ## FIXME:  clean up LinuxKernel-based unittests, then revisit this if not filled in.
+    olist = ()
 
     if relevant & 0b111000_11110000_00011111 == 0b000000_01000000_00011111:
         opcode = INS_MSR
@@ -1076,10 +1078,10 @@ def p_sys(opval, va):
         )
         iflags = 0
 
-    elif (l + op0) == 0x001:
-        opcode = INS_SYS
-        mnem = 'sys'
-        if crn == 0b0111 or crn == 0b1000:
+    elif (l + op0) == 0x003 and (crn == 0b0111 or crn == 0b1000):
+            print("===7")
+            opcode = INS_SYS
+            mnem = 'sys'
             # sysop_concat = op1:crn:crm:op2
             sysop_concat = (op1 << 11) | (crn << 7) | (crm << 3) | op2
 
@@ -1136,7 +1138,7 @@ def p_sys(opval, va):
                 if rt == 0b11111:   
                     olist = olist[:1]
 
-        iflags = 0
+            iflags = 0
 
     elif (l + op0) & 0b110 == 0b010:
         opcode = INS_MSR
@@ -8879,7 +8881,23 @@ class A64Disasm:
         therefore calling ienc_parsers[enc](opval, va) calls the corresponding function with parameters
         opval and va
         '''
-        opcode, mnem, olist, flags, simdflags = ienc_parsers[enc](opval, va)
+        parser = ienc_parsers[enc]
+        if not parser:
+            raise envi.InvalidInstruction(
+                    mesg="No IENC Parser Response.  encfam: %x (%r)" % (enc, iencs[enc]),
+                    bytez=struct.pack("<I", opval), va=va)
+
+        parsetup = parser(opval, va)
+
+        if not parsetup:
+            raise envi.InvalidInstruction(
+                    mesg="IENC Parser Returned None.  encfam: %x (%r): %r" % (enc, iencs[enc], parser),
+                    bytez=struct.pack("<I", opval), va=va)
+
+
+        opcode, mnem, olist, flags, simdflags = parsetup
+        #print("opcode: %r  mnem: %r  olist: %r   flags: %r  simdflags: %r" % 
+        #      (opcode, mnem, olist, flags, simdflags))
 
         return opcode, mnem, olist, flags, simdflags
 
@@ -9615,6 +9633,427 @@ for x in range(0x8000, 0x10000):
     op2 = x & 7
     sys_regs.append(("s%d_%d_c%d_c%d_%d" % (op0, op1, crn, crm, op2), 64))
 
+
+
+
+
+
+
+
+
+
+"""
+ARM64 (AArch64) Disassembler - System Register Operand Updates
+Add this to envi/archs/aarch64/disasm.py
+"""
+
+import envi
+from envi.archs.aarch64 import sysregs
+
+# Build system register encoding to register index lookup table
+# This gets populated during module initialization
+_sysreg_encoding_to_idx = {}
+_sysreg_name_to_idx = {}
+
+def _build_sysreg_lookup():
+    """
+    Build lookup tables for system register encodings to register indices.
+    Must be called after RegisterContext is initialized.
+
+    This maps (op0, op1, CRn, CRm, op2) -> register index in RegisterContext
+    """
+    global _sysreg_encoding_to_idx, _sysreg_name_to_idx
+
+    if _sysreg_encoding_to_idx:  # Already built
+        return
+
+    # Import here to avoid circular dependency
+    from envi.archs.aarch64.regs import reg_data as registers
+
+    # Count GPRs and SIMD regs to find where system regs start
+    # GPRs: x0-x30, xzr, sp, pc = 34 registers
+    # SIMD: v0-v31 = 32 registers
+    # Total offset = 66
+    base_idx = 0
+
+    # Find the actual base by counting non-system registers
+    for idx, (name, width) in enumerate(registers):
+        # System registers start after all x* and v* registers
+        if not (name.startswith('x') or name.startswith('v') or
+                name in ('sp', 'pc', 'xzr')):
+            base_idx = idx
+            break
+
+    # Now build the lookup from system register definitions
+    for idx, (name, width) in enumerate(registers[base_idx:], start=base_idx):
+        # Get the encoding for this system register
+        sysreg_info = sysregs.get_sysreg_by_name(name)
+        if sysreg_info:
+            op0, op1, crn, crm, op2, desc = sysreg_info
+            encoding = (op0, op1, crn, crm, op2)
+            _sysreg_encoding_to_idx[encoding] = idx
+            _sysreg_name_to_idx[name] = idx
+
+
+def get_sysreg_idx(op0, op1, crn, crm, op2):
+    """
+    Get the register index for a system register by its encoding.
+
+    Args:
+        op0, op1, crn, crm, op2: System register encoding fields
+
+    Returns:
+        Register index or None if not found
+    """
+    if not _sysreg_encoding_to_idx:
+        _build_sysreg_lookup()
+
+    return _sysreg_encoding_to_idx.get((op0, op1, crn, crm, op2))
+
+
+def get_sysreg_idx_by_name(name):
+    """
+    Get the register index for a system register by name.
+
+    Args:
+        name: System register name (e.g., "VBAR_EL1")
+
+    Returns:
+        Register index or None if not found
+    """
+    if not _sysreg_name_to_idx:
+        _build_sysreg_lookup()
+
+    return _sysreg_name_to_idx.get(name)
+
+
+class A64SysRegOper(envi.Operand):
+    """
+    System Register Operand for MRS/MSR instructions.
+
+    Represents a system register accessed via MRS (read) or MSR (write).
+    The operand stores the encoding and resolves to the actual register
+    in the RegisterContext.
+    """
+
+    def __init__(self, op0, op1, crn, crm, op2, va=0):
+        """
+        Initialize system register operand.
+
+        Args:
+            op0, op1, crn, crm, op2: System register encoding fields
+            va: Virtual address (for position-dependent display)
+        """
+        self.op0 = op0
+        self.op1 = op1
+        self.crn = crn
+        self.crm = crm
+        self.op2 = op2
+        self._va = va
+
+        # Get register index in RegisterContext
+        self._reg_idx = get_sysreg_idx(op0, op1, crn, crm, op2)
+
+        # Cache the register name for display
+        sysreg_info = sysregs.get_sysreg_by_encoding(op0, op1, crn, crm, op2)
+        if sysreg_info:
+            self._reg_name, self._reg_desc = sysreg_info
+        else:
+            # Unknown system register - use generic encoding
+            self._reg_name = f"S{op0}_{op1}_C{crn}_C{crm}_{op2}"
+            self._reg_desc = "Unknown/Implementation Defined"
+
+    def getEncoding(self):
+        """Get the system register encoding tuple."""
+        return (self.op0, self.op1, self.crn, self.crm, self.op2)
+
+    def getRegIdx(self):
+        """Get the register index in the RegisterContext."""
+        return self._reg_idx
+
+    def isReg(self):
+        """This operand represents a register."""
+        return True
+
+    def isDeref(self):
+        """This operand is not a dereference."""
+        return False
+
+    def getOperAddr(self, op, emu=None):
+        """
+        System registers don't have addresses.
+        Required by Operand interface.
+        """
+        return None
+
+    def getOperValue(self, op, emu=None):
+        """
+        Get the current value of this system register from the emulator.
+
+        Args:
+            op: The containing instruction (not used)
+            emu: The emulator/workspace with RegisterContext
+
+        Returns:
+            Current register value or 0 if not available
+        """
+        if emu is None:
+            return 0
+
+        if self._reg_idx is not None:
+            # Use the register index to get value from RegisterContext
+            return emu.getRegister(self._reg_idx)
+
+        # Fallback: try to get by encoding if index not found
+        # This handles unknown/implementation-defined registers
+        if hasattr(emu, 'getSystemRegisterByEncoding'):
+            return emu.getSystemRegisterByEncoding(
+                self.op0, self.op1, self.crn, self.crm, self.op2
+            )
+
+        return 0
+
+    def setOperValue(self, op, emu, val):
+        """
+        Set the value of this system register in the emulator.
+
+        Args:
+            op: The containing instruction (not used)
+            emu: The emulator/workspace with RegisterContext
+            val: Value to set
+        """
+        if emu is None:
+            return
+
+        if self._reg_idx is not None:
+            # Use the register index to set value in RegisterContext
+            emu.setRegister(self._reg_idx, val)
+        elif hasattr(emu, 'setSystemRegisterByEncoding'):
+            # Fallback for unknown registers
+            emu.setSystemRegisterByEncoding(
+                self.op0, self.op1, self.crn, self.crm, self.op2, val
+            )
+
+    def repr(self, op):
+        """
+        Return the string representation of this operand.
+
+        Args:
+            op: The containing instruction
+
+        Returns:
+            String representation (register name or encoding)
+        """
+        return self._reg_name
+
+    def __repr__(self):
+        """Debug representation."""
+        if self._reg_idx is not None:
+            return f"<A64SysRegOper {self._reg_name} idx={self._reg_idx} " \
+                   f"S{self.op0}_{self.op1}_C{self.crn}_C{self.crm}_{self.op2}>"
+        else:
+            return f"<A64SysRegOper {self._reg_name} (unknown) " \
+                   f"S{self.op0}_{self.op1}_C{self.crn}_C{self.crm}_{self.op2}>"
+
+
+class A64PStateFieldOper(envi.Operand):
+    """
+    PSTATE Field Operand for MSR (immediate) instructions.
+
+    Handles special PSTATE fields like DAIFSet, DAIFClr, etc.
+    These are pseudo-registers that modify PSTATE bits.
+    """
+
+    # PSTATE field names and their effects
+    PSTATE_FIELDS = {
+        0b000101: ("SPSel", "Stack Pointer Select"),
+        0b011110: ("DAIFSet", "Interrupt Mask Set"),
+        0b011111: ("DAIFClr", "Interrupt Mask Clear"),
+        0b011000: ("PAN", "Privileged Access Never"),
+        0b011001: ("UAO", "User Access Override"),
+        0b011010: ("DIT", "Data Independent Timing"),
+        0b011100: ("TCO", "Tag Check Override"),
+    }
+
+    def __init__(self, pstate_field, va=0):
+        """
+        Initialize PSTATE field operand.
+
+        Args:
+            pstate_field: 6-bit PSTATE field encoding
+            va: Virtual address
+        """
+        self.pstate_field = pstate_field
+        self._va = va
+
+        # Get field name and description
+        if pstate_field in self.PSTATE_FIELDS:
+            self._field_name, self._field_desc = self.PSTATE_FIELDS[pstate_field]
+        else:
+            self._field_name = f"PSTATE_0x{pstate_field:02x}"
+            self._field_desc = "Unknown PSTATE field"
+
+        # Determine which system register this affects
+        self._target_reg_idx = None
+        if pstate_field in (0b011110, 0b011111):  # DAIFSet/DAIFClr
+            self._target_reg_idx = get_sysreg_idx_by_name("DAIF")
+        elif pstate_field == 0b000101:  # SPSel
+            # Affects which SP is used, special handling needed
+            pass
+
+    def isReg(self):
+        """This represents a pseudo-register/field."""
+        return True
+
+    def isDeref(self):
+        """Not a dereference."""
+        return False
+
+    def getOperAddr(self, op, emu=None):
+        """PSTATE fields don't have addresses."""
+        return None
+
+    def getOperValue(self, op, emu=None):
+        """
+        Get the current value of the PSTATE field.
+
+        For read operations (though PSTATE fields are typically write-only).
+        """
+        if emu is None or self._target_reg_idx is None:
+            return 0
+
+        return emu.getRegister(self._target_reg_idx)
+
+    def setOperValue(self, op, emu, val):
+        """
+        Set the PSTATE field value.
+
+        Args:
+            op: The containing instruction
+            emu: The emulator
+            val: Immediate value to apply
+        """
+        if emu is None:
+            return
+
+        # Handle different PSTATE fields
+        if self.pstate_field == 0b011110:  # DAIFSet
+            # Set (mask) interrupt bits - OR with current value
+            if self._target_reg_idx is not None:
+                current = emu.getRegister(self._target_reg_idx)
+                # Val contains which bits to set (D=bit3, A=bit2, I=bit1, F=bit0)
+                # Map to actual bit positions (D=9, A=8, I=7, F=6)
+                mask = ((val & 0x8) << 6) | ((val & 0x4) << 6) | \
+                       ((val & 0x2) << 6) | ((val & 0x1) << 6)
+                emu.setRegister(self._target_reg_idx, current | mask)
+
+        elif self.pstate_field == 0b011111:  # DAIFClr
+            # Clear (unmask) interrupt bits - AND with inverted mask
+            if self._target_reg_idx is not None:
+                current = emu.getRegister(self._target_reg_idx)
+                mask = ((val & 0x8) << 6) | ((val & 0x4) << 6) | \
+                       ((val & 0x2) << 6) | ((val & 0x1) << 6)
+                emu.setRegister(self._target_reg_idx, current & ~mask)
+
+        elif self.pstate_field == 0b000101:  # SPSel
+            # Switch between SP_EL0 and SP_ELx
+            # This needs special handling in the emulator
+            if hasattr(emu, 'setPStateSPSel'):
+                emu.setPStateSPSel(val & 0x1)
+
+        # Other PSTATE fields can be handled similarly
+
+    def repr(self, op):
+        """String representation."""
+        return self._field_name
+
+    def __repr__(self):
+        """Debug representation."""
+        return f"<A64PStateFieldOper {self._field_name} field=0x{self.pstate_field:02x}>"
+
+
+# Helper function for decoding MRS/MSR instructions
+def decode_sysreg_operand(instruction):
+    """
+    Decode system register operand from MRS/MSR instruction.
+
+    Args:
+        instruction: 32-bit instruction word
+
+    Returns:
+        A64SysRegOper instance or None if not a system register instruction
+    """
+    # Check if it's MRS/MSR format
+    # 1101 0101 00L1 xxxx xxxx xxxx xxx xxxxx
+    if (instruction & 0xFFE00000) != 0xD5000000:
+        return None
+
+    # Extract system register encoding
+    is_read = (instruction >> 21) & 1
+    op0 = ((instruction >> 19) & 0x1) | 0x2  # Always 2 or 3
+    op1 = (instruction >> 16) & 0x7
+    crn = (instruction >> 12) & 0xF
+    crm = (instruction >> 8) & 0xF
+    op2 = (instruction >> 5) & 0x7
+
+    return A64SysRegOper(op0, op1, crn, crm, op2)
+
+
+def decode_pstate_operand(instruction):
+    """
+    Decode PSTATE field operand from MSR (immediate) instruction.
+
+    Args:
+        instruction: 32-bit instruction word
+
+    Returns:
+        A64PStateFieldOper instance or None if not a PSTATE instruction
+    """
+    # MSR (immediate): 1101 0101 0000 0xxx 0100 xxxx xxx 11111
+    # The xxx bits form the PSTATE field (op1:op2)
+    if (instruction & 0xFFF8F01F) != 0xD500401F:
+        return None
+
+    # Extract PSTATE field
+    op1 = (instruction >> 16) & 0x7
+    op2 = (instruction >> 5) & 0x7
+    pstate_field = (op1 << 3) | op2
+
+    return A64PStateFieldOper(pstate_field)
+
+
+# Example usage in instruction emulation:
+"""
+# In the MRS instruction emulation:
+def i_mrs(self, op):
+    '''MRS: Move System Register to general-purpose register'''
+    # op.opers[0] is destination register (GPR)
+    # op.opers[1] is source system register (A64SysRegOper)
+
+    sysreg_oper = op.opers[1]
+    value = sysreg_oper.getOperValue(op, self)
+
+    # Set destination register
+    self.setOperValue(op.opers[0], op, value)
+
+# In the MSR instruction emulation:
+def i_msr(self, op):
+    '''MSR: Move general-purpose register to System Register'''
+    # op.opers[0] is destination system register (A64SysRegOper)
+    # op.opers[1] is source register (GPR or immediate)
+
+    value = self.getOperValue(op.opers[1], op)
+    op.opers[0].setOperValue(op, self, value)
+"""
+
+
+# Initialization - call this when the module loads
+def initialize_sysreg_support():
+    """
+    Initialize system register support.
+    Should be called when the AArch64 architecture module is loaded.
+    """
+    _build_sysreg_lookup()
 
 if __name__=="__main__":
     import envi.archs

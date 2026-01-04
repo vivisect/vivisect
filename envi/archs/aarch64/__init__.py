@@ -1,6 +1,6 @@
 
 """
-The initial aarch64 module.
+AArch64 Architecture Module Initialization
 """
 
 import envi
@@ -51,6 +51,5 @@ class A64Module(envi.ArchitectureModule):
         self._regGrps.update({'general': aarch64_regs})
 
 
-
-
-#from envi.archs.aarch64.emu import *
+# Initialize system register lookup tables when module loads
+initialize_sysreg_support()

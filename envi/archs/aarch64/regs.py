@@ -1,5 +1,7 @@
 from envi.archs.aarch64.const import *
 from envi.archs.aarch64.regs_sys import *
+from envi.archs.aarch64 import sysregs
+
 import envi.registers as e_reg
 
 '''
@@ -62,8 +64,6 @@ aarch64_metas.extend([("b%d" % x, x, 0, 8) for x in range(31)])
 
 # Adding register 31 context (wzr or xzr) separately
 aarch64_metas.append(("wzr", REG_XZR, 0, 32))
-#aarch64_metas.append(("wzr", REG_SP, 0, 32))
-#aarch64_metas.append(("xzr", REG_SP, 0, 64))
 
 # done with banked register translation table
 
@@ -95,6 +95,9 @@ reg_data.append(('fpcr', 32))
 reg_data.append(('fpsr', 32))
 
 REGS_SYSTEM_REGS = len(reg_data)
+
+# System Registers - build from sysregs module
+sys_regs = [(reg, 64) for reg, _, _, _, _, _, _ in sysregs.system_registers]
 reg_data.extend(sys_regs)
 
 l = locals()
