@@ -967,8 +967,8 @@ system_registers = [
     ("ICH_LR15_EL2", 3, 4, 12, 13, 7, "Interrupt Controller List Register 15"),
 ]
 
-cache = {(t, u, v, w, x):1 for s,t,u,v,w,x,y in system_registers}
 # fill in the gaps (HACK)
+cache = {(t, u, v, w, x):1 for s,t,u,v,w,x,y in system_registers}
 for x in range(0x8000, 0x10000):
     op0 = 2 | (x >> 14) & 1
     op1 = (x >> 11) & 7
@@ -983,7 +983,7 @@ for x in range(0x8000, 0x10000):
     cache[y] = 1
 
     system_registers.append(("s%d_%d_c%d_c%d_%d" % (op0, op1, crn, crm, op2), op0, op1, crn, crm, op2, "Undefined / Implementation Specific"))
-
+cache = None    # cleanup, no need for 32k items
 
 # Build lookup dictionaries for fast access
 sysreg_by_encoding = {}
