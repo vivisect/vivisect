@@ -65,8 +65,8 @@ system_registers = [
     ("HSTR_EL2", 3, 4, 1, 1, 3, "Hypervisor System Trap Register"),
     ("HACR_EL2", 3, 4, 1, 1, 7, "Hypervisor Auxiliary Control Register"),
     ("HCRX_EL2", 3, 4, 1, 2, 2, "Extended Hypervisor Configuration Register"),
-    ("SDER32_EL2", 3, 4, 1, 1, 1, "AArch32 Secure Debug Enable Register"),
-    ("SDER32_EL3", 3, 6, 1, 1, 1, "AArch32 Secure Debug Enable Register (EL3)"),
+    ("SDER32_EL2", 3, 4, 1, 3, 1, "AArch32 Secure Debug Enable Register"),
+    #("SDER32_EL3", 3, 6, 1, 1, 1, "AArch32 Secure Debug Enable Register (EL3)"),
     
     # ================================================================
     # TRANSLATION TABLE BASE REGISTERS
@@ -191,6 +191,13 @@ system_registers = [
     # EL0 debug state
     ("DLR_EL0", 3, 3, 4, 5, 1, "Debug Link Register"),
     ("DSPSR_EL0", 3, 3, 4, 5, 0, "Debug Saved Program Status Register"),
+
+    # ================================================================
+    # DEBUG DATA TRANSFER REGISTERS (EL0 access - op0=3, op1=3)
+    # ================================================================
+    ("DBGDTR_EL0", 3, 3, 0, 4, 0, "Debug Data Transfer Register"),
+    ("DBGDTRRX_EL0", 3, 3, 0, 5, 0, "Debug Data Transfer Register, Receive"),
+    ("DBGDTRTX_EL0", 3, 3, 0, 5, 0, "Debug Data Transfer Register, Transmit"),
     
     # Floating-point Control/Status
     ("FPCR", 3, 3, 4, 4, 0, "Floating-point Control Register"),
@@ -960,6 +967,24 @@ system_registers = [
     ("ICH_LR15_EL2", 3, 4, 12, 13, 7, "Interrupt Controller List Register 15"),
 ]
 
+cache = {(t, u, v, w, x):1 for s,t,u,v,w,x,y in system_registers}
+# fill in the gaps (HACK)
+for x in range(0x8000, 0x10000):
+    op0 = 2 | (x >> 14) & 1
+    op1 = (x >> 11) & 7
+    crn = (x >> 7) & 0xf
+    crm = (x >> 3) & 0xf
+    op2 = x & 7
+    
+    y = (op0, op1, crn, crm, op2)
+    if cache.get(y):
+        continue
+
+    cache[y] = 1
+
+    system_registers.append(("s%d_%d_c%d_c%d_%d" % (op0, op1, crn, crm, op2), op0, op1, crn, crm, op2, "Undefined / Implementation Specific"))
+
+
 # Build lookup dictionaries for fast access
 sysreg_by_encoding = {}
 sysreg_by_name = {}
@@ -976,5 +1001,4 @@ def get_sysreg_by_encoding(op0, op1, crn, crm, op2):
 def get_sysreg_by_name(name):
     """Get system register encoding by name."""
     return sysreg_by_name.get(name.upper())
-
 

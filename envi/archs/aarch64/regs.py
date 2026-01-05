@@ -1,5 +1,4 @@
 from envi.archs.aarch64.const import *
-from envi.archs.aarch64.regs_sys import *
 from envi.archs.aarch64 import sysregs
 
 import envi.registers as e_reg
@@ -65,7 +64,15 @@ aarch64_metas.extend([("b%d" % x, x, 0, 8) for x in range(31)])
 # Adding register 31 context (wzr or xzr) separately
 aarch64_metas.append(("wzr", REG_XZR, 0, 32))
 
-# done with banked register translation table
+REG_FPSCR = len(reg_data)
+reg_data.append(('fpcr', 32))
+reg_data.append(('fpsr', 32))
+
+REGS_SYSTEM_REGS = len(reg_data)
+
+# System Registers - build from sysregs module
+sys_regs = [(reg, 64) for reg, _, _, _, _, _, _ in sysregs.system_registers]
+reg_data.extend(sys_regs)
 
 # VFP Registers
 #    VFPv2 consists of 16 doubleword registers
@@ -89,16 +96,6 @@ for simdreg in range(VFP_QWORD_REG_COUNT):
     aarch64_metas.append(("s%d" % (s),   simd_idx, 0, 32))
     aarch64_metas.append(("h%d" % (s),   simd_idx, 0, 16))
     aarch64_metas.append(("b%d" % (s),   simd_idx, 0, 8))
-
-REG_FPSCR = len(reg_data)
-reg_data.append(('fpcr', 32))
-reg_data.append(('fpsr', 32))
-
-REGS_SYSTEM_REGS = len(reg_data)
-
-# System Registers - build from sysregs module
-sys_regs = [(reg, 64) for reg, _, _, _, _, _, _ in sysregs.system_registers]
-reg_data.extend(sys_regs)
 
 l = locals()
 e_reg.addLocalEnums(l, aarch64_regs_tups)
