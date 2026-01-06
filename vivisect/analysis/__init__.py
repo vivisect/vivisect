@@ -76,7 +76,7 @@ def addAnalysisModules(vw):
         elif arch in ARM_ARCHS:
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
 
-        elif arch == 'aarch64':
+        elif arch in ('aarch64', 'a64'):
             vw.addFuncAnalysisModule("vivisect.analysis.aarch64.emulation")
 
         # See if we got lucky and got arg/local hints from symbols
@@ -97,7 +97,7 @@ def addAnalysisModules(vw):
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.elf")
 
-        if arch in ('i386', 'amd64', 'arm', 'aarch64'):
+        if arch in ('i386', 'amd64', 'arm', 'aarch64', 'a64'):
             vw.addImpApi('posix', arch)
 
         if arch == 'i386':
@@ -131,7 +131,7 @@ def addAnalysisModules(vw):
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
 
-        elif arch == 'aarch64':
+        elif arch in ('aarch64', 'a64'):
             vw.addFuncAnalysisModule("vivisect.analysis.aarch64.emulation")
 
         elif arch in ARM_ARCHS:
@@ -177,7 +177,7 @@ def addAnalysisModules(vw):
         elif arch == 'amd64':
             vw.addFuncAnalysisModule("vivisect.analysis.amd64.emulation")
 
-        elif arch == 'aarch64':
+        elif arch in ('aarch64', 'a64'):
             vw.addFuncAnalysisModule("vivisect.analysis.aarch64.emulation")
 
         elif arch in ARM_ARCHS:
@@ -201,7 +201,7 @@ def addAnalysisModules(vw):
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
-        elif arch == 'aarch64':
+        elif arch in ('aarch64', 'a64'):
             vw.addFuncAnalysisModule("vivisect.analysis.aarch64.emulation")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.symswitchcase")
@@ -222,7 +222,7 @@ def addAnalysisModules(vw):
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
-        elif arch == 'aarch64':
+        elif arch in ('aarch64', 'a64'):
             vw.addFuncAnalysisModule("vivisect.analysis.aarch64.emulation")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.symswitchcase")
@@ -254,7 +254,7 @@ def addAnalysisModules(vw):
             vw.addFuncAnalysisModule("vivisect.analysis.arm.emulation")
             vw.addFuncAnalysisModule('vivisect.analysis.arm.renaming')
 
-        elif arch == 'aarch64':
+        elif arch in ('aarch64', 'a64'):
             vw.addFuncAnalysisModule("vivisect.analysis.aarch64.emulation")
 
         vw.addFuncAnalysisModule("vivisect.analysis.generic.symswitchcase")

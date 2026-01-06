@@ -97,14 +97,14 @@ class StorageTests(unittest.TestCase):
             mvw._event_list = []
             mvw.loadWorkspace(mpfile.name)
             mevt = list(mvw.exportWorkspace())
-            self.assertEqual(len(mevt), 40)
+            self.assertEqual(len(mevt), 41)
 
             bvw = vivisect.VivWorkspace()
             bvw.setMeta('StorageModule', 'vivisect.storage.basicfile')
             bvw._event_list = []
             bvw.loadWorkspace(basicfile.name)
             bevt = list(bvw.exportWorkspace())
-            self.assertEqual(len(bevt), 40)
+            self.assertEqual(len(bevt), 41)
 
             # the last three events are specific to the different storage modules
             for idx in range(len(mevt) - 3):
