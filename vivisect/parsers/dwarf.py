@@ -431,35 +431,51 @@ class DwarfInfo:
             elif child.tag == v_d_dwarf.DW_TAG_inlined_subroutine:
                 func = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if func:
+                    if pns:
+                        func['parent'] = pns
                     func['inline'] = 1
                     vw.addDebugInfo('function', func)
             # TODO: elif child.tag == v_d_dwarf.DW_TAG_subroutine_type:
             elif child.tag == v_d_dwarf.DW_TAG_structure_type:
                 struct = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if struct:
+                    if pns:
+                        func['parent'] = pns
                     struct['union'] = False
                     vw.addDebugInfo('struct', struct)
             elif child.tag == v_d_dwarf.DW_TAG_union_type:
                 union = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if union:
+                    if pns:
+                        func['parent'] = pns
                     union['union'] = True
                     vw.addDebugInfo('struct', union)
             elif child.tag == v_d_dwarf.DW_TAG_namespace:
-                if child.vsHasField('dwarf_children'):
-                    self.addChildrenToWorkspace(vw, cu, cuidx, byoffset, child.dwarf_children, pns=child, pfunc=pfunc)
+                ns = self._resolveDwarfType(cu, cuidx, child, byoffset)
+                if ns:
+                    if pns:
+                        ns['parent'] = pns
+                    if child.vsHasField('dwarf_children'):
+                        self.addChildrenToWorkspace(vw, cu, cuidx, byoffset, child.dwarf_children, pns=ns, pfunc=pfunc)
             elif child.tag == v_d_dwarf.DW_TAG_class_type:
                 ct = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if ct:
+                    if pns:
+                        func['parent'] = pns
                     vw.addDebugInfo('class', ct)
             elif child.tag == v_d_dwarf.DW_TAG_imported_declaration:
                 imp = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if imp:
+                    if pns:
+                        func['parent'] = pns
                     vw.addDebugInfo('import', imp)
             elif child.tag == v_d_dwarf.DW_TAG_imported_module:
                 imp = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if imp:
+                    if pns:
+                        func['parent'] = pns
                     vw.addDebugInfo('import', imp)
-            # TODO: I need an example of this
+            # TODO: need an example of this
             #elif child.tag == v_d_dwarf.DW_TAG_imported_unit:
                 # imp = self.getImportedModule(child, cu, cuidx)
 

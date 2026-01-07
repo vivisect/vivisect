@@ -9,6 +9,7 @@ class DwarfTest(v_t_utils.VivTest):
     @classmethod
     def setUpClass(cls):
         cls.vw = v_t_helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
+        cls.tonic = v_t_helpers.getTestWorkspace('linux', 'amd64', 'tonic')
 
     def test_dwarf_functions(self):
         vw = self.vw
@@ -46,5 +47,5 @@ class DwarfTest(v_t_utils.VivTest):
             'group_name'
         ])
 
-    def test_dwarf_aurbis(self):
-        pass
+    def test_dwarf_control(self):
+        vw = self.vw
