@@ -3367,6 +3367,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 2, 1)
+version = (1, 3, 0)
 verstring = '.'.join([str(x) for x in version])
 commit = ''
