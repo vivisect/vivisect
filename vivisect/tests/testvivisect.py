@@ -498,7 +498,7 @@ class VivisectTest(v_t_utils.VivTest):
                             (134576219, 134576219, 9)],
             'thunk_reg': [(134519744, 'ebx', 134615040),
                           (134519715, 'ebx', 134615040)],
-            'FuncWrappers': [(134517916, 134517946)],
+            'FuncWrappers': [],
             'Emulation Anomalies': [(134546338, 'DivideByZero at 0x80503a2'),
                                     (134544390, 'DivideByZero at 0x804fc06'),
                                     (134545954, 'DivideByZero at 0x8050222'),
@@ -708,7 +708,7 @@ class VivisectTest(v_t_utils.VivTest):
         for name, valist in ans.items():
             retn = vw.getVaSetRows(name)
             try:
-                self.assertEqual(set(retn), set(valist))
+                self.assertEqual((name, set(retn)), (name, set(valist)))
             except Exception as e:
                 mesg = f'On VaSet {name}, we failed due to: {str(e)}'
                 self.fail(mesg)
@@ -722,7 +722,7 @@ class VivisectTest(v_t_utils.VivTest):
         '''
         vw = self.firefox_vw
         self.assertIsNotNone(vw.parsedbin)
-        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut', 'thunk_reg', 'ResolvedImports']), set(vw.getVaSetNames()))
+        self.assertEqual(set(['Emulation Anomalies', 'EntryPoints', 'SwitchCases', 'EmucodeFunctions', 'PointersFromFile', 'FuncWrappers', 'CodeFragments', 'DynamicBranches', 'Bookmarks', 'NoReturnCalls', 'DelayImports', 'Library Loads', 'pe:ordinals', 'SwitchCases_TimedOut', 'thunk_reg', 'ResolvedImports', 'Null Offset Functions']), set(vw.getVaSetNames()))
 
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60))
         self.assertEqual((0x14001fa5a, 6, 10, None), vw.getPrevLocation(0x14001fa60, adjacent=True))
