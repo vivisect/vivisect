@@ -572,6 +572,7 @@ ksh_data = {
     ],
 
     'names': [
+        (0x100018, 'ksh.ptr___entry_00100018'),
         (0x1000bc, 'ksh.ptr_ptr_init_array_0_00146934_001000bc'),
         (0x101d48, 'ksh.ptr___gnu_ldivmod_helper_00101d48'),
         (0x101d58, 'ksh.ptr_strchr_00101d58'),
