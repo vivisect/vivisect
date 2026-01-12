@@ -8,6 +8,8 @@ Features
 --------
 - Improve how VStruct renders structures.
   (`#674 <https://github.com/vivisect/vivisect/pull/674>`_)
+- Added support for AArch64.
+  (`#224 <https://github.com/vivisect/vivisect/pull/224>`_)
 
 Fixes
 -----
