@@ -1,8 +1,8 @@
 #this probably needs to be looked over once more to make sure all
 #assembler symbols are correctly represented
 
-GOOD_TESTS = 495588
-GOOD_EMU_TESTS = 412972
+GOOD_TESTS = 2130
+GOOD_EMU_TESTS = 984
 
 import sys
 import envi
