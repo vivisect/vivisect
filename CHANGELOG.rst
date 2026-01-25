@@ -2,6 +2,27 @@
 Vivisect Changelog
 ******************
 
+V1.3.0 - 2026-01-09
+===================
+Features
+--------
+- Improve how VStruct renders structures.
+  (`#674 <https://github.com/vivisect/vivisect/pull/674>`_)
+- Added support for AArch64.
+  (`#224 <https://github.com/vivisect/vivisect/pull/224>`_)
+
+Fixes
+-----
+- Various fixes to the PE and ELF loaders.
+  (`#659 <https://github.com/vivisect/vivisect/pull/659>`_)
+- Various improvements to ARM support.
+  (`#672 <https://github.com/vivisect/vivisect/pull/672>`_)
+- Fix ``readMemString`` to respect admin rights.
+  (`#677 <https://github.com/vivisect/vivisect/pull/677>`_)
+- Fix references being added for dynamic calls.
+  (`#678 <https://github.com/vivisect/vivisect/pull/678>`_)
+
+
 V1.2.1 - 2024-07-24
 ===================
 Fixes
