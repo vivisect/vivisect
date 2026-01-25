@@ -108,9 +108,9 @@ arch_defs = {
     ARCH_A64:       {
         'name':     'a64',
         'aliases':  ('aarch64', 'leg64', 'legv8'),
-        'modpath':  ('envi', 'archs', 'a64'),
+        'modpath':  ('envi', 'archs', 'aarch64'),
         'clsname':  'A64Module',
-        'disabled': True,
+        'disabled': False,
         'version':  (0,2,0),
         'has_disasm':   True,
         'has_emu':      True,
