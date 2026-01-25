@@ -97,6 +97,12 @@ for simdreg in range(VFP_QWORD_REG_COUNT):
     aarch64_metas.append(("h%d" % (s),   simd_idx, 0, 16))
     aarch64_metas.append(("b%d" % (s),   simd_idx, 0, 8))
 
+REGS_PREDICATE_BASE_IDX = len(reg_data)
+#sve_preg_names = ['p%d' % i for i in range(16)]
+for pregidx in range(16):
+    reg_data.append(("p%d" % pregidx, 32))  # how big should this be??
+
+
 l = locals()
 e_reg.addLocalEnums(l, aarch64_regs_tups)
 REG_LR = REG_X30
