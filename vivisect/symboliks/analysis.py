@@ -700,4 +700,8 @@ def getSymbolikAnalysisContext(vw, consolve=False):
         import vivisect.symboliks.archs.amd64 as vsym_amd64
         return vsym_amd64.Amd64SymbolikAnalysisContext(vw, consolve=consolve)
 
+    elif arch in ('a64', 'aarch64'):
+        import vivisect.symboliks.archs.a64 as vsym_a64
+        return vsym_a64.A64SymbolikAnalysisContext(vw, consolve=consolve)
+
     return None
