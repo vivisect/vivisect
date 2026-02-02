@@ -253,9 +253,27 @@ class A64SymbolikTranslator(vsym_trans.SymbolikTranslator):
     # ==========================================================================
     # Condition Flag Helpers
     # ==========================================================================
+    #
+    # AArch64 uses PSTATE flags (N, Z, C, V) which are set by flag-setting
+    # instructions (ADDS, SUBS, ANDS, etc.) via effSetVariable().
+    # 
+    # Conditional branches then reference these flags via effConstrain()
+    # (called automatically by translateOpcode() when i_* methods return
+    # constraint tuples).
+    #
+    # The flow is:
+    # 1. CMP/SUBS/etc. sets pstate_n, pstate_z, pstate_c, pstate_v via effSetVariable()
+    # 2. B.EQ/B.NE/etc. returns constraint tuples referencing these flags
+    # 3. translateOpcode() calls effConstrain() for each constraint tuple
+    # ==========================================================================
 
     def _set_add_flags(self, v1, v2, result, dsize):
-        """Set flags for ADD operations."""
+        """
+        Set PSTATE flags for ADD operations using effSetVariable().
+        
+        These flags can later be referenced by conditional branches which
+        will call effConstrain() via their return value.
+        """
         zero = Const(0, self._psize)
         smax = e_bits.s_maxes[dsize]
 
@@ -267,7 +285,12 @@ class A64SymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.effSetVariable('pstate_v', gt(result, Const(smax, self._psize)))
 
     def _set_sub_flags(self, v1, v2, result, dsize):
-        """Set flags for SUB/CMP operations."""
+        """
+        Set PSTATE flags for SUB/CMP operations using effSetVariable().
+        
+        These flags can later be referenced by conditional branches which
+        will call effConstrain() via their return value.
+        """
         zero = Const(0, self._psize)
 
         self.effSetVariable('pstate_n', lt(result, zero))
@@ -281,7 +304,11 @@ class A64SymbolikTranslator(vsym_trans.SymbolikTranslator):
         ))
 
     def _set_logic_flags(self, result, dsize):
-        """Set flags for logical operations (AND, ORR, EOR, etc.)."""
+        """
+        Set PSTATE flags for logical operations using effSetVariable().
+        
+        Logical operations (AND, ORR, EOR, etc.) clear C and V flags.
+        """
         zero = Const(0, self._psize)
         self.effSetVariable('pstate_n', lt(result, zero))
         self.effSetVariable('pstate_z', eq(result, zero))
@@ -290,43 +317,68 @@ class A64SymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def _cond_check(self, cond):
         """
-        Return a symbolic condition based on the AArch64 condition code.
+        Return a symbolic constraint based on the AArch64 condition code.
+        
+        These constraints are used by conditional branch instructions.
+        When returned from an i_* method, the base class translateOpcode()
+        will call effConstrain() for each (address, constraint) tuple to
+        register the path constraints.
+        
+        AArch64 condition codes and their flag checks:
+        - EQ: Z == 1 (equal)
+        - NE: Z == 0 (not equal)  
+        - CS/HS: C == 1 (carry set / unsigned higher or same)
+        - CC/LO: C == 0 (carry clear / unsigned lower)
+        - MI: N == 1 (minus / negative)
+        - PL: N == 0 (plus / positive or zero)
+        - VS: V == 1 (overflow set)
+        - VC: V == 0 (overflow clear)
+        - HI: C == 1 AND Z == 0 (unsigned higher)
+        - LS: C == 0 OR Z == 1 (unsigned lower or same)
+        - GE: N == V (signed greater or equal)
+        - LT: N != V (signed less than)
+        - GT: Z == 0 AND N == V (signed greater than)
+        - LE: Z == 1 OR N != V (signed less or equal)
+        - AL: always
         """
+        # Reference the PSTATE flag variables
+        # These are set by flag-setting instructions via effSetVariable()
         n = Var('pstate_n', self._psize)
         z = Var('pstate_z', self._psize)
         c = Var('pstate_c', self._psize)
         v = Var('pstate_v', self._psize)
-        zero = Const(0, self._psize)
-        one = Const(1, self._psize)
 
+        # Simple flag checks - use the flag variable directly or cnot()
+        # This matches the i386 pattern of using Var('eflags_eq') directly
         if cond == e_a64_const.COND_EQ:
-            return eq(z, one)
+            return z  # Z flag set (pstate_z is a constraint that's true when Z=1)
         elif cond == e_a64_const.COND_NE:
-            return eq(z, zero)
+            return cnot(z)  # Z flag clear
         elif cond == e_a64_const.COND_CS:  # HS (carry set)
-            return eq(c, one)
+            return c  # C flag set
         elif cond == e_a64_const.COND_CC:  # LO (carry clear)
-            return eq(c, zero)
+            return cnot(c)  # C flag clear
         elif cond == e_a64_const.COND_MI:  # Negative
-            return eq(n, one)
+            return n  # N flag set
         elif cond == e_a64_const.COND_PL:  # Positive or zero
-            return eq(n, zero)
+            return cnot(n)  # N flag clear
         elif cond == e_a64_const.COND_VS:  # Overflow
-            return eq(v, one)
+            return v  # V flag set
         elif cond == e_a64_const.COND_VC:  # No overflow
-            return eq(v, zero)
+            return cnot(v)  # V flag clear
+        # Compound conditions
         elif cond == e_a64_const.COND_HI:  # Unsigned higher (C=1 and Z=0)
-            return o_and(eq(c, one), eq(z, zero), self._psize)
-        elif cond == e_a64_const.COND_LS:  # Unsigned lower or same
-            return o_or(eq(c, zero), eq(z, one), self._psize)
+            return o_and(c, cnot(z), self._psize)
+        elif cond == e_a64_const.COND_LS:  # Unsigned lower or same (C=0 or Z=1)
+            return o_or(cnot(c), z, self._psize)
         elif cond == e_a64_const.COND_GE:  # Signed greater or equal (N == V)
             return eq(n, v)
         elif cond == e_a64_const.COND_LT:  # Signed less than (N != V)
             return ne(n, v)
         elif cond == e_a64_const.COND_GT:  # Signed greater (Z=0 and N==V)
-            return o_and(eq(z, zero), eq(n, v), self._psize)
+            return o_and(cnot(z), eq(n, v), self._psize)
         elif cond == e_a64_const.COND_LE:  # Signed less or equal (Z=1 or N!=V)
-            return o_or(eq(z, one), ne(n, v), self._psize)
+            return o_or(z, ne(n, v), self._psize)
         elif cond == e_a64_const.COND_AL:  # Always
             return Const(1, self._psize)
         elif cond == e_a64_const.COND_NV:  # Never (treated as always in AArch64)
@@ -335,7 +387,17 @@ class A64SymbolikTranslator(vsym_trans.SymbolikTranslator):
         raise Exception('Unknown condition code: %d' % cond)
 
     def _cond_jmp(self, op, cond):
-        """Handle conditional branch instruction."""
+        """
+        Handle conditional branch instruction.
+        
+        Returns a tuple of (address, constraint) pairs. The base class
+        translateOpcode() method iterates through these and calls 
+        effConstrain(addr, constraint) for each to register the path
+        constraints for symbolic analysis.
+        
+        The first tuple is the taken branch (target address, condition true).
+        The second tuple is the fall-through (next instruction, condition false).
+        """
         return ((self.getOperObj(op, 0), cond),
                 (Const(op.va + len(op), self._psize), cnot(cond)))
 
