@@ -207,6 +207,28 @@ def main():
         raise Exception('main() must be called by same thread as startup()!')
 
     qapp.exec()
+    _shutdown()
+
+def _shutdown():
+    '''
+    Cleanly shut down the gui and worker threads so Qt doesn't
+    segfault during teardown (PyQt6 is strict about this).
+    '''
+    global ethread
+    global guiq
+    global workerq
+
+    # Send sentinel values to tell both threads to exit
+    guiq.append((None, None, None))
+    workerq.append((None, None, None))
+
+    # Wait for threads to finish (with timeout to avoid hanging)
+    if ethread is not None:
+        ethread.wait(2000)
+
+    # Prevent any further queued callbacks from firing
+    guiq = e_threads.EnviQueue()
+    workerq = e_threads.EnviQueue()
 
 def eatevents():
     global qapp

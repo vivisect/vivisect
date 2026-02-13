@@ -59,7 +59,7 @@ class VQMemoryMapView(vq_tree.VQTreeView):
     def contextMenuEvent(self, event):
         va, size = self.getSelectedData()
         menu = self.buildContextMenu(va, size)
-        menu.exec(event.globalPosition().toPoint())
+        menu.exec(event.globalPos())
 
     def menuCopyBytesToClipboard(self, va, size):
         bytez = self.mem.readMemory(va, size)

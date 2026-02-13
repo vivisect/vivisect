@@ -166,7 +166,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.viewmenu.addAction("Paint Down", ACT(self.paintDown.emit))
         self.viewmenu.addAction("Paint Down until remerge", ACT(self.paintMerge.emit))
 
-        menu.exec(event.globalPosition().toPoint())
+        menu.exec(event.globalPos())
 
     def _navExpression(self, expr):
         if self._canv_navcallback:

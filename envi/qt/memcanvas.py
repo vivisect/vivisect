@@ -310,7 +310,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         viewmenu = menu.addMenu('view   ')
         viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
 
-        menu.exec(event.globalPosition().toPoint())
+        menu.exec(event.globalPos())
 
     def initMemWindowMenu(self, va, tag, menu):
         initMemSendtoMenu('0x%.8x' % va, menu)

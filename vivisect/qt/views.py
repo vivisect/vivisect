@@ -52,7 +52,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             expr = pnode.rowdata[self._viv_navcol]
             v_q_ctxmenu.buildContextMenu(self.vw, expr=expr, menu=menu)
 
-        menu.exec(event.globalPosition().toPoint())
+        menu.exec(event.globalPos())
 
     def vivAddRow(self, va, *row):
         node = self.model().append(row)
