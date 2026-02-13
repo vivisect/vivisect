@@ -2,7 +2,7 @@ import sys
 import logging
 import traceback
 
-from PyQt5.QtWidgets import *
+from PyQt6.QtWidgets import *
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
@@ -116,7 +116,7 @@ class HotKeyMixin(object):
         '''
         key = event.key()
 
-        mods = int(event.modifiers())
+        mods = event.modifiers().value
 
 
         keytxt = None

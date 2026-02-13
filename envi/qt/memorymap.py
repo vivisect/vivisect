@@ -1,5 +1,5 @@
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import *
 
 import envi.common as e_common
 import envi.memory as e_memory
@@ -51,15 +51,15 @@ class VQMemoryMapView(vq_tree.VQTreeView):
         pindex = index.parent()
         va_index = self.model().index(index.row(), 0, pindex)
         size_index = self.model().index(index.row(), 1, pindex)
-        va = self.mem.parseExpression(self.model().data(va_index, QtCore.Qt.DisplayRole))
-        size = self.mem.parseExpression(self.model().data(size_index, QtCore.Qt.DisplayRole))
+        va = self.mem.parseExpression(self.model().data(va_index, QtCore.Qt.ItemDataRole.DisplayRole))
+        size = self.mem.parseExpression(self.model().data(size_index, QtCore.Qt.ItemDataRole.DisplayRole))
 
         return va, size
 
     def contextMenuEvent(self, event):
         va, size = self.getSelectedData()
         menu = self.buildContextMenu(va, size)
-        menu.exec_(event.globalPos())
+        menu.exec(event.globalPosition().toPoint())
 
     def menuCopyBytesToClipboard(self, va, size):
         bytez = self.mem.readMemory(va, size)
@@ -69,7 +69,7 @@ class VQMemoryMapView(vq_tree.VQTreeView):
 
     def menuSaveBytesToFile(self, va, size):
         dlg = envi.qt.memdump.MemDumpDialog(va, size=size)
-        if dlg.exec_() != QDialog.Accepted:
+        if dlg.exec() != QDialog.DialogCode.Accepted:
             return
 
         filename, size = dlg.getResults()
@@ -79,7 +79,7 @@ class VQMemoryMapView(vq_tree.VQTreeView):
 
     def menuSearchMaps(self, va, size, allmaps=False):
         dlg = envi.qt.memsearch.MemSearchDialog()
-        if dlg.exec_() != QDialog.Accepted:
+        if dlg.exec() != QDialog.DialogCode.Accepted:
             return
 
         pattern, fname = dlg.getResults()

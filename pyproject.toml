@@ -45,9 +45,8 @@ docs = [
 ]
 
 gui = [
-    # TODO: PyQT6 is out, but that's a beast that deserves its own PR.
-    'pyqt5==5.15.7',
-    'pyqtwebengine==5.15.6',
+    'pyqt6>=6.5.0',
+    'pyqt6-webengine>=6.5.0',
 ]
 
 [project.scripts]

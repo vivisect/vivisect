@@ -1,10 +1,11 @@
 import html
 
-from PyQt5 import QtCore, QtGui, QtWebEngine, QtWebEngineWidgets
-from PyQt5.QtCore import QObject, qInstallMessageHandler
-from PyQt5.QtWebChannel import QWebChannel
-from PyQt5.QtWebEngineWidgets import *
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtCore import QObject, qInstallMessageHandler
+from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtWebEngineCore import QWebEnginePage
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import *
 
 import envi.exc as e_exc
 import envi.common as e_common
@@ -59,7 +60,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         loop = QtCore.QEventLoop()
         page.loadFinished.connect(loop.quit)
         loop.exec()
-        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents | QtCore.QEventLoop.ExcludeSocketNotifiers)
+        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents | QtCore.QEventLoop.ProcessEventsFlag.ExcludeSocketNotifiers)
         page.runJavaScript(e_q_jquery.jquery_2_1_0)
         self.forceSync()
 
@@ -71,7 +72,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
     def forceSync(self):
         cthr = QtCore.QThread.currentThread()
         loop = QtCore.QThread.eventDispatcher(cthr)
-        loop.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents | QtCore.QEventLoop.ExcludeSocketNotifiers | QtCore.QEventLoop.WaitForMoreEvents)
+        loop.processEvents(QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents | QtCore.QEventLoop.ProcessEventsFlag.ExcludeSocketNotifiers | QtCore.QEventLoop.ProcessEventsFlag.WaitForMoreEvents)
 
     def renderMemory(self, va, size, rend=None):
 
@@ -309,7 +310,7 @@ class VQMemoryCanvas(e_memcanvas.MemoryCanvas, QWebEngineView):
         viewmenu = menu.addMenu('view   ')
         viewmenu.addAction("Save frame to HTML", ACT(self._menuSaveToHtml))
 
-        menu.exec_(event.globalPos())
+        menu.exec(event.globalPosition().toPoint())
 
     def initMemWindowMenu(self, va, tag, menu):
         initMemSendtoMenu('0x%.8x' % va, menu)

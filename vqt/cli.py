@@ -1,7 +1,7 @@
 import os
 
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import *
 
 import envi.cli as e_cli
 import envi.qt.memcanvas as e_q_memcanvas

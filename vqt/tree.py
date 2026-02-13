@@ -1,5 +1,5 @@
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QTreeView
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QTreeView
 
 
 class VQTreeItem(object):
@@ -97,9 +97,9 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         flags = QtCore.QAbstractItemModel.flags(self, index)
         col = index.column()
         if self.editable[col]:
-            flags |= QtCore.Qt.ItemIsEditable
+            flags |= QtCore.Qt.ItemFlag.ItemIsEditable
         if self.dragable:
-            flags |= QtCore.Qt.ItemIsDragEnabled
+            flags |= QtCore.Qt.ItemFlag.ItemIsDragEnabled
         return flags
 
     def columnCount(self, parent=None):
@@ -110,22 +110,22 @@ class VQTreeModel(QtCore.QAbstractItemModel):
             return None
 
         item = index.internalPointer()
-        if role == QtCore.Qt.DisplayRole:
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
             return item.data(index.column())
 
-        if role == QtCore.Qt.UserRole:
+        if role == QtCore.Qt.ItemDataRole.UserRole:
             return item
 
         return None
 
-    def setData(self, index, value, role=QtCore.Qt.EditRole):
+    def setData(self, index, value, role=QtCore.Qt.ItemDataRole.EditRole):
 
         node = index.internalPointer()
         if not node:
             return False
 
         # If this is the edit role, fire the vqEdited thing
-        if role == QtCore.Qt.EditRole:
+        if role == QtCore.Qt.ItemDataRole.EditRole:
             value = self.vqEdited(node, index.column(), value)
             if value is None:
                 return False
@@ -136,8 +136,8 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         return True
 
     def headerData(self, column, orientation, role):
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
+        if ( orientation == QtCore.Qt.Orientation.Horizontal and
+             role == QtCore.Qt.ItemDataRole.DisplayRole):
 
             return self.columns[column]
 

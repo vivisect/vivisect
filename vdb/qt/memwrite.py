@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QVBoxLayout
+from PyQt6.QtWidgets import QVBoxLayout
 
 import vdb.qt.base
 import envi.qt.memwrite as e_qt_mw

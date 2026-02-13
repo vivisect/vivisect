@@ -5,8 +5,8 @@ import functools
 from queue import Queue
 from threading import current_thread
 
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import *
 
 import envi.threads as e_threads
 
@@ -206,7 +206,7 @@ def main():
     if not iAmQtSafeThread():
         raise Exception('main() must be called by same thread as startup()!')
 
-    qapp.exec_()
+    qapp.exec()
 
 def eatevents():
     global qapp
