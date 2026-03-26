@@ -300,7 +300,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         self._stopped_hack = False
 
         self.fireTracerThread()
-        self.setMeta('BadMaps', ['[vvar]', '[vsyscall]'])
+        self.setMeta('BadMaps', ['[vvar]', '[vsyscall]', '[vvar_vclock]'])
 
         self.initMode("Syscall", False, "Break On Syscalls")
 
