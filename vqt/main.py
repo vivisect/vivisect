@@ -227,8 +227,8 @@ def _shutdown():
         ethread.wait(2000)
 
     # Prevent any further queued callbacks from firing
-    guiq = e_threads.EnviQueue()
-    workerq = e_threads.EnviQueue()
+    guiq.shutdown()
+    workerq.shutdown()
 
 def eatevents():
     global qapp
