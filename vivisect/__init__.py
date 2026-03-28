@@ -185,6 +185,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('thunk_reg', ( ('fva', VASET_ADDRESS), ('reg', VASET_STRING), ('tgtval', VASET_INTEGER)) )
         self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING),
                 ('resolved address', VASET_ADDRESS)))
+        self.addVaSet("Null Offset Functions", (("Comment", VASET_STRING), ("va", VASET_ADDRESS)))
 
     def vprint(self, msg):
         logger.info(msg)
@@ -356,6 +357,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if dl is None:
             return []
         return list(dl)
+
+    def setEndian(self, endian):
+        '''
+        Set the Endianness for the workspace from this point on.
+        '''
+        self._fireEvent(VWE_ENDIAN, endian)
 
     def setComment(self, va, comment, check=False):
         '''
@@ -783,10 +790,12 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return True
 
         elif ltype == LOC_STRING:
+            logger.debug("followPointer->makeString(0x%x)", va)
             self.makeString(va)
             return True
 
         elif ltype == LOC_UNI:
+            logger.debug("followPointer->makeUnicode(0x%x)", va)
             self.makeUnicode(va)
             return True
 
@@ -1388,6 +1397,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 self.addXref(va, tova, REF_DATA)
                 ptrdest = None
                 if self.getLocation(tova) is None:
+                    logger.debug('makeOpcode(0x%x)->makePointer(0x%x)', va, tova)
                     ptrdest = self.makePointer(tova, follow=False)
 
                 # If the actual dest is executable, make a code ref fixup
@@ -1956,9 +1966,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         tova, reftype, rflags = self.arch.archModifyXrefAddr(tova, reftype, rflags)
 
         ref = (fromva, tova, reftype, rflags)
-        if ref in self.getXrefsFrom(fromva):
-            return
-        self._fireEvent(VWE_ADDXREF, (fromva, tova, reftype, rflags))
+
+        # Update rflag if existing ref is already there.
+        for existing_ref in self.getXrefsFrom(fromva):
+            if ref == existing_ref:
+                return
+            if ref[:-1] == existing_ref[:-1]:
+                ref = ref[:-1] + (ref[-1] | existing_ref[-1],)  # merge rflags
+                if ref == existing_ref:
+                    return
+                self._fireEvent(VWE_DELXREF, existing_ref)
+                break
+
+        self._fireEvent(VWE_ADDXREF, ref)
 
     def delXref(self, ref):
         """
@@ -3245,10 +3265,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         fname = self.getFileByVa(va)
         vastr = '_%.8x' % va
 
-        if name.startswith(fname + '.'):
-            fpart, npart = name.split('.', 1)
-        elif name.startswith('*.'):
-            skip, npart = name.split('.', 1)
+        if fname is not None:
+            if name.startswith(fname + '.'):
+                fpart, npart = name.split('.', 1)
+            elif name.startswith('*.'):
+                skip, npart = name.split('.', 1)
+        else:
+            logger.warning("_getNameParts(%r): fname is None (and shouldn't be)", name)
 
         if npart.endswith(vastr) and not npart == 'sub' + vastr:
             npart, vapart = npart.rsplit('_', 1)
@@ -3345,6 +3368,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 1, 1)
+version = (1, 3, 0)
 verstring = '.'.join([str(x) for x in version])
 commit = ''

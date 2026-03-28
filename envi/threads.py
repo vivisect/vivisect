@@ -8,6 +8,7 @@ import functools
 import collections
 
 import envi.exc as e_exc
+import envi.common as e_cmn
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ class ChunkQueue:
     when requested to minimize round tripping.  It's also keeps track
     of client checkins to help identify "abandonment" behaviors.
     '''
-    def __init__(self, items=None):
+    def __init__(self, items=None, chunksize=None):
         self.shut = False
         self.last = time.time()
         self.lock = threading.Lock()
@@ -66,6 +67,7 @@ class ChunkQueue:
         if items is None:
             items = []
         self.items = items
+        self.chunksize = chunksize
 
     def shutdown(self):
         self.shut = True
@@ -125,6 +127,7 @@ class ChunkQueue:
             # Clear the event so we can wait...
             self.event.clear()
 
+        logger.log(e_cmn.MIRE, "self.event.wait(%d)", timeout)
         self.event.wait(timeout=timeout)
         if self.shut:
             raise e_exc.QueueShutdown()
@@ -138,8 +141,14 @@ class ChunkQueue:
         return list(self.items)
 
     def _get_items(self):
-        ret = self.items
-        self.items = []
+        if self.chunksize is not None:
+            ret = self.items[:self.chunksize]
+            self.items = self.items[self.chunksize:]
+            logger.debug("_get_items() - returning %d items (%d remaining)", len(ret), len(self.items))
+        else:
+            ret = self.items
+            self.items = []
+            logger.debug("_get_items() - returning %d items (%d remaining)", len(ret), len(self.items))
         return ret
 
 class EnviQueue:
@@ -206,6 +215,7 @@ class EnviQueue:
 
         while True:
             if self.shut:
+                logger.debug("get() SHUTDOWN")
                 raise e_exc.QueueShutdown()
 
             with self.lock:

@@ -8,6 +8,7 @@ import threading
 
 import envi
 import envi.bits as e_bits
+import envi.archs.arm.regs as a_regs
 from envi.const import *
 from envi.archs.arm.regs import *
 from envi.archs.arm import ArmModule
@@ -84,14 +85,6 @@ class ITException(Exception):
 
     def __repr__(self):
         return "Error with Thumb IT state: va:0x%x ITSTATE: 0x%x/%x" % (self.va, self.itbase, self.itsize)
-
-def _getRegIdx(idx, mode):
-    if idx >= REGS_VECTOR_TABLE_IDX:
-        return reg_table[idx]
-
-    ridx = idx + (mode*REGS_PER_MODE)  # account for different banks of registers
-    ridx = reg_table[ridx]  # magic pointers allowing overlapping banks of registers
-    return ridx
 
 
 ZC_bits = PSR_Z_bit | PSR_C_bit
@@ -380,15 +373,12 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         self.setRegister(REG_SP, esp+4)
         return val
 
-    def getProcMode(self):
-        '''
-        get current ARM processor mode.  see proc_modes (const.py)
-        '''
-        return self._rctx_vals[REG_CPSR] & 0x1f     # obfuscated for speed.  could call getCPSR but it's not as fast
-
     def getCPSR(self):
         '''
         return the Current Program Status Register.
+        There can be only one. (CPSR, that is).  Each processor mode has a slot
+        for a CPSR, and they all must point to the one and only CPSR data 
+        in the RegisterContext, where emu values are stored.
         '''
         return self._rctx_vals[REG_CPSR]
 
@@ -422,93 +412,16 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         '''
         get the SPSR for the given ARM processor mode
         '''
-        ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
+        ridx = a_regs._getRegIdx(REG_OFFSET_SPSR, mode)
         return self._rctx_vals[ridx]
 
     def setSPSR(self, mode, psr, mask=0xffffffff):
         '''
         set the SPSR for the given ARM processor mode
         '''
-        ridx = _getRegIdx(REG_OFFSET_CPSR, mode)
+        ridx = a_regs._getRegIdx(REG_OFFSET_SPSR, mode)
         psr = self._rctx_vals[ridx] & (~mask) | (psr & mask)
         self._rctx_vals[ridx] = psr
-
-    def setProcMode(self, mode):
-        '''
-        set the current processor mode.  stored in CPSR
-        '''
-        # write current psr to the saved psr register for target mode
-        # but not for USR or SYS modes, which don't have their own SPSR
-        if mode not in (PM_usr, PM_sys):
-            curSPSRidx = proc_modes[mode]
-            self._rctx_vals[curSPSRidx] = self.getCPSR()
-
-        # set current processor mode
-        cpsr = self._rctx_vals[REG_CPSR] & 0xffffffe0
-        self._rctx_vals[REG_CPSR] = cpsr | mode
-
-    def getRegister(self, index, mode=None):
-        """
-        Return the current value of the specified register index.
-        """
-        if mode is None:
-            mode = self.getProcMode() & 0xf
-        else:
-            mode &= 0xf
-
-        idx = (index & 0xffff)
-        ridx = _getRegIdx(idx, mode)
-        if idx == index:
-            return self._rctx_vals[ridx]
-
-        offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
-
-        mask = (2**width)-1
-        return (self._rctx_vals[ridx] >> offset) & mask
-
-    def setRegister(self, index, value, mode=None):
-        """
-        Set a register value by index.
-        """
-        if mode is None:
-            mode = self.getProcMode() & 0xf
-        else:
-            mode &= 0xf
-
-        self._rctx_dirty = True
-
-        # the raw index (in case index is a metaregister)
-        idx = (index & 0xffff)
-
-        # we only keep separate register banks per mode for general registers, not vectors
-        if idx >= REGS_VECTOR_TABLE_IDX:
-            ridx = idx
-        else:
-            ridx = _getRegIdx(idx, mode)
-
-        if idx == index:    # not a metaregister
-            self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])      # FIXME: hack.  should look up index in proc_modes dict?
-            return
-
-        # If we get here, it's a meta register index.
-        # NOTE: offset/width are in bits...
-        offset = (index >> 24) & 0xff
-        width  = (index >> 16) & 0xff
-
-        mask = e_bits.b_masks[width]
-        mask = mask << offset
-
-        # NOTE: basewidth is in *bits*
-        basewidth = self._rctx_widths[ridx]
-        basemask  = (2**basewidth)-1
-
-        # cut a whole in basemask at the size/offset of mask
-        finalmask = basemask ^ mask
-
-        curval = self._rctx_vals[ridx]
-
-        self._rctx_vals[ridx] = (curval & finalmask) | (value << offset)
 
     def integerSubtraction(self, op):
         """
@@ -676,6 +589,24 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             val1 = self.getOperValue(op, 0)
             val2 = self.getOperValue(op, 1)
         val = val1 | val2
+        self.setOperValue(op, 0, val)
+
+        Sflag = op.iflags & IF_PSR_S
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(val, tsize))
+            self.setFlag(PSR_Z_bit, not val)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(val, tsize))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(val, tsize))
+       
+    def i_orn(self, op):
+        tsize = op.opers[0].tsize
+        if len(op.opers) == 3:
+            val1 = self.getOperValue(op, 1)
+            val2 = self.getOperValue(op, 2)
+        else:
+            val1 = self.getOperValue(op, 0)
+            val2 = self.getOperValue(op, 1)
+        val = val1 | (~val2)
         self.setOperValue(op, 0, val)
 
         Sflag = op.iflags & IF_PSR_S
@@ -1986,7 +1917,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             loc = self.vw.getLocation(va)
             if loc is not None:
                 logger.warning("Terminating TB at Location/Reference")
-                logger.warning("%x, %d, %x, %r", loc)
+                logger.warning("%x, %d, %x, %r", *loc)
                 break
 
             tbl.append(nexttgt)
@@ -2001,7 +1932,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         if idx > 0x40000000:
             self.setRegister(idxreg, 0) # args handed in can be replaced with index 0
 
-        jmptblbase = op.opers[0]._getOperBase(emu)
+        jmptblbase = op.opers[0]._getOperBase(self)
         jmptblval = self.getOperAddr(op, 0)
         jmptbltgt = (self.getOperValue(op, 0) * 2) + base
         logger.debug("0x%x: 0x%r\njmptblbase: 0x%x\njmptblval:  0x%x\njmptbltgt:  0x%x", op.va, op, jmptblbase, jmptblval, jmptbltgt)
@@ -2016,6 +1947,18 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
         mask = (1 << width) - 1
 
         val = (src>>lsb) & mask
+
+        self.setOperValue(op, 0, val)
+
+
+    def i_sbfx(self, op):
+        tsize = op.opers[0].tsize
+        src = self.getOperValue(op, 1)
+        lsb = self.getOperValue(op, 2)
+        width = self.getOperValue(op, 3)
+        mask = (1 << width) - 1
+
+        val = e_bits.sign_extend((src>>lsb) & mask, width, tsize)
 
         self.setOperValue(op, 0, val)
 

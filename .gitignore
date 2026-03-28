@@ -6,6 +6,8 @@
 .hg*
 /.project
 .idea
+.DS_Store
 coverage_html_report*
 *~
 _build
+build

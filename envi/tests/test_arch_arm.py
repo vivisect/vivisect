@@ -1,13 +1,17 @@
+import re
 import struct
 import logging
-import binascii
 import unittest
 import importlib
+import collections
 
 import envi
 import envi.exc as e_exc
 import envi.common as e_common
+import envi.memcanvas as ememc
 import envi.archs.arm as arm
+import envi.archs.arm.regs as eaar
+import envi.archs.thumb16.disasm as eatd
 import vivisect
 
 import envi.tests.arm_bit_test_adds as arm_bit_test_adds
@@ -15,32 +19,22 @@ import envi.tests.arm_bit_test_cmn as arm_bit_test_cmn
 import envi.tests.arm_bit_test_cmp as arm_bit_test_cmp
 import envi.tests.arm_bit_test_subs as arm_bit_test_subs
 
+from binascii import *
 from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 from envi.archs.arm.regs import *
 from envi.archs.arm.const import *
 from envi.archs.arm.disasm import *
+from envi.tests.thumb_tests import thumb_instrs
 
 from envi.tests.armthumb_tests import advsimdtests
 
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 5960
-GOOD_EMU_TESTS = 1190
-'''
-  This dictionary will contain all instructions supported by ARM to test
-  Fields will contain following information:
-  archVersionBitmask, ophex, va, repr, flags, emutests
-'''
-#List of instructions not tested and reason:
-#chka - thumbee
-#cps - thumb
-#cpy - pre ual for mov
-#enterx - go from thumb to thumbee
-#eret - exception return see B9.1980
-#F* (FLDMX, FSTMX)commands per A8.8.50 - pre UAL floating point
-#HB, HBL, HBLP, HBP - thumbee instructions see A9.1125-1127
-#IT - thumb
+GOOD_TESTS_ALL = 6144
+GOOD_TESTS_THUMB = 8849
+GOOD_EMU_TESTS = 1208
+GOOD_EMU_THUMB = 8776
 
 
 '''
@@ -113,7 +107,22 @@ r3             0x0      0
 cpsr           0x200d0010       537722896
 
 '''
-instrs = [
+
+'''
+  This dictionary will contain all instructions supported by ARM to test
+  Fields will contain following information:
+  archVersionBitmask, ophex, va, repr, flags, emutests
+'''
+#List of instructions not tested and reason:
+#chka - thumbee
+#cps - thumb
+#cpy - pre ual for mov
+#enterx - go from thumb to thumbee
+#eret - exception return see B9.1980
+#F* (FLDMX, FSTMX)commands per A8.8.50 - pre UAL floating point
+#HB, HBL, HBLP, HBP - thumbee instructions see A9.1125-1127
+#IT - thumb
+global_instrs = [
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
         (REV_ALL_ARM, '0830bbe5', 0xbfb00000, 'ldr r3, [r11, #0x8]!', 0, ()),
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, (
@@ -136,6 +145,10 @@ instrs = [
         (REV_ALL_ARM, '22209ae7', 0xbfb00000, 'ldr r2, [r10, r2, lsr #32]', 0, ()),
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
         (REV_ALL_ARM, '08309fe5', 0xbfb00000, 'ldr r3, [#0xbfb00010]', 0, ()),
+
+        (REV_ALL_ARM, 'ffffffff', 0xbfb00000, 'undefined #0xffffff', IF_NOFALL, ()),
+        (REV_ALL_ARM, 'aaba', 0x4561, 'hlt #0x2a', IF_NOFALL, ()),
+
         (REV_ALL_ARM, '674503e0', 0x4560, 'and r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '674513e0', 0x4560, 'ands r4, r3, r7, ror #10', 0, ()),
         (REV_ALL_ARM, '674523e0', 0x4560, 'eor r4, r3, r7, ror #10', 0, ()),
@@ -167,6 +180,9 @@ instrs = [
         (REV_ALL_ARM, '774523e0', 0x4560, 'eor r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774533e0', 0x4560, 'eors r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774543e0', 0x4560, 'sub r4, r3, r7, ror r5', 0, ()),
+        (REV_ALL_ARM, '774553e0', 0x4560, 'subs r4, r3, r7, ror r5', 0, ()),
+        (REV_ALL_ARM, '774563e0', 0x4560, 'rsb r4, r3, r7, ror r5', 0, ()),
+        (REV_ALL_ARM, '774573e0', 0x4560, 'rsbs r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774553e0', 0x4560, 'subs r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774563e0', 0x4560, 'rsb r4, r3, r7, ror r5', 0, ()),
         (REV_ALL_ARM, '774573e0', 0x4560, 'rsbs r4, r3, r7, ror r5', 0, ()),
@@ -807,6 +823,7 @@ instrs = [
         (REV_ALL_ARM, 'dc3c5fe1', 0x4560, 'ldrsb  r3, [#0x449c]', 0, ()),
         (REV_ALL_ARM, 'dc3cdfe1', 0x4560, 'ldrsb  r3, [#0x4634]', 0, ()),
         (REV_ALL_ARM, 'ff3f4fe3', 0x4560, 'movt r3, #0xffff', 0, ()),
+        (REV_ALL_ARM, 'a3f2fe33', 0x4561, 'subw r3, r3, #0x3fe', 0, ()),
         #implimented in disasm but not yet in emu
         (REV_ALL_ARM, '70f02fe1', 0x4560, 'bkpt  #0xff00', 0, ()),
         (REV_ALL_ARM, '24ff2fe1', 0x4560, 'bxj  r4', 0, ()), # note this switches to jazelle
@@ -897,6 +914,8 @@ instrs = [
         (REV_ALL_ARM, '74f603e7', 0x4560, 'smusdx r3, r4, r6', 0, ()),
         (REV_ALL_ARM, '1430a6e6', 0x4560, 'ssat r3, #0x07, r4', 0, ()),
         (REV_ALL_ARM, '1433a6e6', 0x4560, 'ssat r3, #0x07, r4, lsl #6', 0, ()),
+        (REV_ALL_ARM, '06f3c433', 0x4561, 'ssat.w r3, #0x05, r6, lsl #15', 0, ()),
+        (REV_ALL_ARM, '26f30403', 0x4561, 'ssat16.w r3, #0x05, r6', 0, ()),
         (REV_ALL_ARM, '5433a6e6', 0x4560, 'ssat r3, #0x07, r4, asr #6', 0, ()),
         (REV_ALL_ARM, '5430a6e6', 0x4560, 'ssat r3, #0x07, r4, asr #32', 0, ()),
         (REV_ALL_ARM, '1730e4e6', 0x4560, 'usat r3, #0x04, r7', 0, ()),
@@ -1030,6 +1049,7 @@ instrs = [
         (REV_ALL_ARM, 'a4f353f6', 0x4560, 'pli [r3, -r4, lsr #7]', 0, ()),
         (REV_ALL_ARM, 'e4f3d3f6', 0x4560, 'pli [r3, r4, ror #7]', 0, ()),
         (REV_ALL_ARM, '5436efe7', 0x4560, 'ubfx r3, r4, #0x0c, #0x0f', 0, ()),
+        (REV_ALL_ARM, 'c4f35436', 0x4561, 'ubfx.w r6, r4, #0x0d, #0x15', 0, ()),
         (REV_ALL_ARM, '14f603e7', 0x4560, 'smuad r3, r4, r6', 0, ()),
         (REV_ALL_ARM, '34f603e7', 0x4560, 'smuadx r3, r4, r6', 0, ()),
         (REV_ALL_ARM, '343fa6e6', 0x4560, 'ssat16 r3, #0x06, r4', 0, ()),
@@ -1112,11 +1132,176 @@ instrs = [
         (REV_ALL_ARM, '04102de5', 0x4560, 'push r1', 0, ()),
         (REV_ALL_ARM, '343fffe6', 0x4560, 'rbit r3, r4', 0, ()),
         (REV_ALL_ARM, '5434a3e7', 0x4560, 'sbfx r3, r4, #0x08, #0x03', 0, ()),
+        (REV_ALL_ARM, '44f35436', 0x4561, 'sbfx.w r6, r4, #0x0d, #0x15', 0, ()),
         (REV_ALL_ARM, '14f713e7', 0x4560, 'sdiv r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '14f733e7', 0x4560, 'udiv r3, r4, r7', 0, ()),
         (REV_ALL_ARM, '3f5b46ec', 0x4560, 'vmov d31, r5, r6', 0, ()),
         #(REV_ALL_ARM, 'f000f0e7', 0x4560, 'udf #0x00', 0, ()), #This forces an undefined instruction. Commented out normally.
-        #all v codes are suspect at this time - not implimented but may not be correct here either
+        
+        # VST's
+        (REV_ALL_ARM, '0f0a43f4', 0x4560, 'vst1.8 {d16,d17}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0743f4', 0x4560, 'vst1.8 {d16}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0243f4', 0x4560, 'vst1.8 {d16, d17, d18, d19}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0343f4', 0x4560, 'vst2.8 {d16, d17, d18, d19}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0843f4', 0x4560, 'vst2.8 {d16, d17}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0943f4', 0x4560, 'vst2.8 {d16, d18}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0443f4', 0x4560, 'vst3.8 {d16, d17, d18}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0543f4', 0x4560, 'vst3.8 {d16,d18,d20}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f02c3f4', 0x4560, 'vst3.8 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f06c3f4', 0x4560, 'vst3.16 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ac3f4', 0x4560, 'vst3.32 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0d02c3f4', 0x4560, 'vst3.8 {d16[0],d17[0],d18[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d06c3f4', 0x4560, 'vst3.16 {d16[0],d17[0],d18[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0ac3f4', 0x4560, 'vst3.32 {d16[0],d17[0],d18[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '8f02c3f4', 0x4560, 'vst3.8 {d16[4],d17[4],d18[4]}, [r3]', 0, ()),
+        (REV_ALL_ARM, 'af06c3f4', 0x4560, 'vst3.16 {d16[2],d18[2],d20[2]}, [r3]', 0, ()),
+        (REV_ALL_ARM, 'cf0ac3f4', 0x4560, 'vst3.32 {d16[1],d18[1],d20[1]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f02c3f4', 0x4560, 'vst3.8 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0043f4', 0x4560, 'vst4.8 {d16, d17, d18, d19}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0143f4', 0x4560, 'vst4.8 {d16,d18,d20,d22}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0a83f4', 0x4560, 'vst3.32 {d0[0],d1[0],d2[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0783f4', 0x4560, 'vst4.16 {d0[0],d1[0],d2[0],d3[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0283f4', 0x4560, 'vst3.8 {d0[0],d1[0],d2[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0383f4', 0x4560, 'vst4.8 {d0[0],d1[0],d2[0],d3[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0883f4', 0x4560, 'vst1.32 {d0[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0983f4', 0x4560, 'vst2.32 {d0[0],d1[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0483f4', 0x4560, 'vst1.16 {d0[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0583f4', 0x4560, 'vst2.16 {d0[0],d1[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0083f4', 0x4560, 'vst1.8 {d0[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0183f4', 0x4560, 'vst2.8 {d0[0],d1[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ac3f4', 0x4560, 'vst3.32 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f07c3f4', 0x4560, 'vst4.16 {d16[0],d17[0],d18[0],d19[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f02c3f4', 0x4560, 'vst3.8 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f03c3f4', 0x4560, 'vst4.8 {d16[0],d17[0],d18[0],d19[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f08c3f4', 0x4560, 'vst1.32 {d16[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f09c3f4', 0x4560, 'vst2.32 {d16[0],d17[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f04c3f4', 0x4560, 'vst1.16 {d16[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f05c3f4', 0x4560, 'vst2.16 {d16[0],d17[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f00c3f4', 0x4560, 'vst1.8 {d16[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f01c3f4', 0x4560, 'vst2.8 {d16[0],d17[0]}, [r3]', 0, ()),
+
+        (REV_ALL_ARM, '0d0a43f4', 0x4560, 'vst1.8 {d16,d17}, [r3]!', 0, ()),     # OBJDUMP is wrong on this one, according to the ARM docs, not indicating "!"
+        (REV_ALL_ARM, '0d0743f4', 0x4560, 'vst1.8 {d16}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0243f4', 0x4560, 'vst1.8 {d16, d17, d18, d19}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0343f4', 0x4560, 'vst2.8 {d16, d17, d18, d19}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0843f4', 0x4560, 'vst2.8 {d16, d17}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0943f4', 0x4560, 'vst2.8 {d16, d18}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0443f4', 0x4560, 'vst3.8 {d16, d17, d18}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0543f4', 0x4560, 'vst3.8 {d16,d18,d20}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0043f4', 0x4560, 'vst4.8 {d16, d17, d18, d19}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0143f4', 0x4560, 'vst4.8 {d16,d18,d20,d22}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0a83f4', 0x4560, 'vst3.32 {d0[0],d1[0],d2[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0783f4', 0x4560, 'vst4.16 {d0[0],d1[0],d2[0],d3[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0283f4', 0x4560, 'vst3.8 {d0[0],d1[0],d2[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0383f4', 0x4560, 'vst4.8 {d0[0],d1[0],d2[0],d3[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0883f4', 0x4560, 'vst1.32 {d0[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0983f4', 0x4560, 'vst2.32 {d0[0],d1[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0483f4', 0x4560, 'vst1.16 {d0[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0583f4', 0x4560, 'vst2.16 {d0[0],d1[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0083f4', 0x4560, 'vst1.8 {d0[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0183f4', 0x4560, 'vst2.8 {d0[0],d1[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d0ac3f4', 0x4560, 'vst3.32 {d16[0],d17[0],d18[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d07c3f4', 0x4560, 'vst4.16 {d16[0],d17[0],d18[0],d19[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d03c3f4', 0x4560, 'vst4.8 {d16[0],d17[0],d18[0],d19[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d08c3f4', 0x4560, 'vst1.32 {d16[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d09c3f4', 0x4560, 'vst2.32 {d16[0],d17[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d04c3f4', 0x4560, 'vst1.16 {d16[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d05c3f4', 0x4560, 'vst2.16 {d16[0],d17[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d00c3f4', 0x4560, 'vst1.8 {d16[0]}, [r3]!', 0, ()),
+        (REV_ALL_ARM, '0d01c3f4', 0x4560, 'vst2.8 {d16[0],d17[0]}, [r3]!', 0, ()),
+
+        (REV_ALL_ARM, '070a43f4', 0x4560, 'vst1.8 {d16,d17}, [r3],r7', 0, ()),
+        (REV_ALL_ARM, '070743f4', 0x4560, 'vst1.8 {d16}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070243f4', 0x4560, 'vst1.8 {d16, d17, d18, d19}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070343f4', 0x4560, 'vst2.8 {d16, d17, d18, d19}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070843f4', 0x4560, 'vst2.8 {d16, d17}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070943f4', 0x4560, 'vst2.8 {d16, d18}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070443f4', 0x4560, 'vst3.8 {d16, d17, d18}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070543f4', 0x4560, 'vst3.8 {d16,d18,d20}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070043f4', 0x4560, 'vst4.8 {d16, d17, d18, d19}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070143f4', 0x4560, 'vst4.8 {d16,d18,d20,d22}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070a83f4', 0x4560, 'vst3.32 {d0[0],d1[0],d2[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070783f4', 0x4560, 'vst4.16 {d0[0],d1[0],d2[0],d3[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070283f4', 0x4560, 'vst3.8 {d0[0],d1[0],d2[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070383f4', 0x4560, 'vst4.8 {d0[0],d1[0],d2[0],d3[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070883f4', 0x4560, 'vst1.32 {d0[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070983f4', 0x4560, 'vst2.32 {d0[0],d1[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070483f4', 0x4560, 'vst1.16 {d0[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070583f4', 0x4560, 'vst2.16 {d0[0],d1[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070083f4', 0x4560, 'vst1.8 {d0[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070183f4', 0x4560, 'vst2.8 {d0[0],d1[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '070ac3f4', 0x4560, 'vst3.32 {d16[0],d17[0],d18[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '0707c3f4', 0x4560, 'vst4.16 {d16[0],d17[0],d18[0],d19[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '0702c3f4', 0x4560, 'vst3.8 {d16[0],d17[0],d18[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '0703c3f4', 0x4560, 'vst4.8 {d16[0],d17[0],d18[0],d19[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '0708c3f4', 0x4560, 'vst1.32 {d16[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '0709c3f4', 0x4560, 'vst2.32 {d16[0],d17[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '0704c3f4', 0x4560, 'vst1.16 {d16[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '0705c3f4', 0x4560, 'vst2.16 {d16[0],d17[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '0700c3f4', 0x4560, 'vst1.8 {d16[0]}, [r3], r7', 0, ()),
+        (REV_ALL_ARM, '0701c3f4', 0x4560, 'vst2.8 {d16[0],d17[0]}, [r3], r7', 0, ()),
+
+        # VLD's
+        (REV_ALL_ARM, '0f0a63f4', 0x4560, 'vld1.8 {d16,d17}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0763f4', 0x4560, 'vld1.8 {d16}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0c63f4', 0x4560, ' ', 0, ()),
+        (REV_ALL_ARM, '0f0263f4', 0x4560, 'vld1.8 {d16,d17,d18,d19}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0363f4', 0x4560, 'vld2.8 {d16,d17,d18,d19}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0863f4', 0x4560, 'vld2.8 {d16,d17}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0963f4', 0x4560, 'vld2.8 {d16,d18}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0d63f4', 0x4560, ' ', 0, ()),
+        (REV_ALL_ARM, '0f0463f4', 0x4560, 'vld3.8 {d16,d17,d18}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0563f4', 0x4560, 'vld3.8 {d16,d18,d20}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0e63f4', 0x4560, ' ', 0, ()),
+        (REV_ALL_ARM, '0f0063f4', 0x4560, 'vld4.8 {d16,d17,d18,d19}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0163f4', 0x4560, 'vld4.8 {d16,d18,d20,d22}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0f63f4', 0x4560, ' ', 0, ()),
+        (REV_ALL_ARM, '0f0ae3f4', 0x4560, 'vld3.32 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f07e3f4', 0x4560, 'vld4.16 {d16[0],d17[0],d18[0],d19[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ce3f4', 0x4560, 'vld1.8 {d16[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f02e3f4', 0x4560, 'vld3.8 {d16[0],d17[0],d18[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f03e3f4', 0x4560, 'vld4.8 {d16[0],d17[0],d18[0],d19[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f08e3f4', 0x4560, 'vld1.32 {d16[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f09e3f4', 0x4560, 'vld2.32 {d16[0],d17[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0de3f4', 0x4560, 'vld2.8 {d16[],d17[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f04e3f4', 0x4560, 'vld1.16 {d16[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f05e3f4', 0x4560, 'vld2.16 {d16[0],d17[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ee3f4', 0x4560, 'vld3.8 {d16[],d17[],d18[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f00e3f4', 0x4560, 'vld1.8 {d16[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f01e3f4', 0x4560, 'vld2.8 {d16[0],d17[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0fe3f4', 0x4560, 'vld4.8 {d16[],d17[],d18[],d19[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0a23f4', 0x4560, 'vld1.8 {d0,d1}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0723f4', 0x4560, 'vld1.8 {d0}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0c23f4', 0x4560, ' ', 0, ()),
+        (REV_ALL_ARM, '0f0223f4', 0x4560, 'vld1.8 {d0,d1,d2,d3}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0323f4', 0x4560, 'vld2.8 {d0,d1,d2,d3}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0823f4', 0x4560, 'vld2.8 {d0,d1}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0923f4', 0x4560, 'vld2.8 {d0,d1,d2}, [r3]', 0, ()),       # OBJDUMP, wrong
+        (REV_ALL_ARM, '0f0923f4', 0x4560, 'vld2.8 {d0,d2}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0d23f4', 0x4560, ' ', 0, ()),
+        (REV_ALL_ARM, '0f0423f4', 0x4560, 'vld3.8 {d0,d1,d2}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0523f4', 0x4560, 'vld3.8 {d0,d2,d4}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0e23f4', 0x4560, ' ', 0, ()),
+        (REV_ALL_ARM, '0f0023f4', 0x4560, 'vld4.8 {d0,d1,d2,d3}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0123f4', 0x4560, 'vld4.8 {d0,d2,d4,d6}, [r3]', 0, ()),
+        #(REV_ALL_ARM, '0f0f23f4', 0x4560, ' ', 0, ()),
+        (REV_ALL_ARM, '0f0aa3f4', 0x4560, 'vld3.32 {d0[0],d1[0],d2[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f07a3f4', 0x4560, 'vld4.16 {d0[0],d1[0],d2[0],d3[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ca3f4', 0x4560, 'vld1.8 {d0[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f02a3f4', 0x4560, 'vld3.8 {d0[0],d1[0],d2[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f03a3f4', 0x4560, 'vld4.8 {d0[0],d1[0],d2[0],d3[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f08a3f4', 0x4560, 'vld1.32 {d0[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f09a3f4', 0x4560, 'vld2.32 {d0[0],d1[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0da3f4', 0x4560, 'vld2.8 {d0[],d1[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f04a3f4', 0x4560, 'vld1.16 {d0[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f05a3f4', 0x4560, 'vld2.16 {d0[0],d1[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0ea3f4', 0x4560, 'vld3.8 {d0[],d1[],d2[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f00a3f4', 0x4560, 'vld1.8 {d0[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f01a3f4', 0x4560, 'vld2.8 {d0[0],d1[0]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0fa3f4', 0x4560, 'vld4.8 {d0[],d1[],d2[],d3[]}, [r3]', 0, ()),
+        (REV_ALL_ARM, '0f0fa3f4', 0x4560, 'vld4.8 {d0[],d1[],d2[],d3[]}, [r3]', 0, ()),
+
+
         (REV_ALL_ARM, '173704f2', 0x4560, 'vaba.s8 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '173714f2', 0x4560, 'vaba.s16 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '173724f2', 0x4560, 'vaba.s32 d3, d4, d7', 0, ()),
@@ -1223,54 +1408,68 @@ instrs = [
         (REV_ALL_ARM, '4861b1f3', 0x4560, 'vceq.i8 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, '4861b5f3', 0x4560, 'vceq.i16 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, '4861b9f3', 0x4560, 'vceq.i32 q3, q4, #0x00', 0, ()),
+        (REV_ALL_ARM, '4861bdf3', 0x4560, 'vceq.i64 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, '4865b9f3', 0x4560, 'vceq.f32 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, '0431b1f3', 0x4560, 'vceq.i8 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '0431b5f3', 0x4560, 'vceq.i16 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '0431b9f3', 0x4560, 'vceq.i32 d3, d4, #0x00', 0, ()),
+        (REV_ALL_ARM, '0431bdf3', 0x4560, 'vceq.i64 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '0435b9f3', 0x4560, 'vceq.f32 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '5e6308f2', 0x4560, 'vcge.s8  q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '5e6318f2', 0x4560, 'vcge.s16 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '5e6328f2', 0x4560, 'vcge.s32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6338f2', 0x4560, 'vcge.s64 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '5e6308f3', 0x4560, 'vcge.u8  q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '5e6318f3', 0x4560, 'vcge.u16 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '5e6328f3', 0x4560, 'vcge.u32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '5e6338f3', 0x4560, 'vcge.u64 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '4e6e08f3', 0x4560, 'vcge.f32 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '173304f2', 0x4560, 'vcge.s8  d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '173314f2', 0x4560, 'vcge.s16 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '173324f2', 0x4560, 'vcge.s32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173334f2', 0x4560, 'vcge.s64 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '173304f3', 0x4560, 'vcge.u8  d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '173314f3', 0x4560, 'vcge.u16 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '173324f3', 0x4560, 'vcge.u32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '173334f3', 0x4560, 'vcge.u64 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '073e04f3', 0x4560, 'vcge.f32 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '8430b1f3', 0x4560, 'vcge.s8  d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '8430b5f3', 0x4560, 'vcge.s16 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '8430b9f3', 0x4560, 'vcge.s32 d3, d4, #0x00', 0, ()),
+        (REV_ALL_ARM, '8430bdf3', 0x4560, 'vcge.s64 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '8434b9f3', 0x4560, 'vcge.f32 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, 'c860b1f3', 0x4560, 'vcge.s8  q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, 'c860b5f3', 0x4560, 'vcge.s16 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, 'c860b9f3', 0x4560, 'vcge.s32 q3, q4, #0x00', 0, ()),
+        (REV_ALL_ARM, 'c860bdf3', 0x4560, 'vcge.s64 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, 'c864b9f3', 0x4560, 'vcge.f32 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, '4e6308f2', 0x4560, 'vcgt.s8  q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '4e6318f2', 0x4560, 'vcgt.s16 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '4e6328f2', 0x4560, 'vcgt.s32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6338f2', 0x4560, 'vcgt.s64 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '4e6308f3', 0x4560, 'vcgt.u8  q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '4e6318f3', 0x4560, 'vcgt.u16 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '4e6328f3', 0x4560, 'vcgt.u32 q3, q4, q7', 0, ()),
+        (REV_ALL_ARM, '4e6338f3', 0x4560, 'vcgt.u64 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '4e6e28f3', 0x4560, 'vcgt.f32 q3, q4, q7', 0, ()),
         (REV_ALL_ARM, '073304f2', 0x4560, 'vcgt.s8  d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '073314f2', 0x4560, 'vcgt.s16 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '073324f2', 0x4560, 'vcgt.s32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073334f2', 0x4560, 'vcgt.s64 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '073304f3', 0x4560, 'vcgt.u8  d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '073314f3', 0x4560, 'vcgt.u16 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '073324f3', 0x4560, 'vcgt.u32 d3, d4, d7', 0, ()),
+        (REV_ALL_ARM, '073334f3', 0x4560, 'vcgt.u64 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '073e24f3', 0x4560, 'vcgt.f32 d3, d4, d7', 0, ()),
         (REV_ALL_ARM, '0430b1f3', 0x4560, 'vcgt.s8  d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '0430b5f3', 0x4560, 'vcgt.s16 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '0430b9f3', 0x4560, 'vcgt.s32 d3, d4, #0x00', 0, ()),
+        (REV_ALL_ARM, '0430bdf3', 0x4560, 'vcgt.s64 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '0434b9f3', 0x4560, 'vcgt.f32 d3, d4, #0x00', 0, ()),
         (REV_ALL_ARM, '4860b1f3', 0x4560, 'vcgt.s8  q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, '4860b5f3', 0x4560, 'vcgt.s16 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, '4860b9f3', 0x4560, 'vcgt.s32 q3, q4, #0x00', 0, ()),
+        (REV_ALL_ARM, '4860bdf3', 0x4560, 'vcgt.s64 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, '4864b9f3', 0x4560, 'vcgt.f32 q3, q4, #0x00', 0, ()),
         (REV_ALL_ARM, '0434b0f3', 0x4560, 'vcls.s8  d3, d4', 0, ()),
         (REV_ALL_ARM, '0434b4f3', 0x4560, 'vcls.s16 d3, d4', 0, ()),
@@ -1369,8 +1568,8 @@ instrs = [
         (REV_ALL_ARM, 'aff31a81', 0x4561, 'cps #0x1a', 0, ()),
         (REV_ALL_ARM, 'f6f7e456', 0x456ffff1, 'bl 0x44af6dbc', 0, ()),
         (REV_ALL_ARM, 'D5F6FEEA', 0x2208EBE, 'blx 0x020de4bc', 0, ()),
-        (REV_ALL_ARM, '33f6e456', 0x4561, 'add.w r6, r3, #0x3de4', 0, ()),
-        (REV_ALL_ARM, '56f6e456', 0x4561, 'movw.w r6, r6, #0x6de4', 0, ()),
+        (REV_ALL_ARM, '33f6e456', 0x4561, 'addw r6, r3, #0xde4', 0, ()),
+        (REV_ALL_ARM, '56f6e456', 0x4561, 'movw r6, #0x6de4', 0, ()),
         (REV_ALL_ARM, '53f83450', 0x4561, 'ldr.w r5, [r3, r4, lsl #3]', 0, ()),
 
         (REV_ALL_ARM, 'e3efa54b', 0x4561, 'vqdmlsl.s32 q10, d19, d21', 0, ()),
@@ -1405,11 +1604,25 @@ instrs = [
         (REV_ALL_ARM, 'f4efec2f', 0x4561, 'vext.8 q9, q10, q14, #0x0f', 0, ()),
 
         (REV_ALL_ARM, 'e4404ff4', 0x4561, 'lsrs r4, r4', 0, ()),
+        (REV_ALL_ARM, '63ea0102', 0x4561, 'orn.w r2,r3,r1', 0, (
+            {'setup':(('r3',0xaaaaaaaa),('r1',0x44400),),
+                'tests':(('r2',0xfffbbbff),) },
+            )),
         (REV_ALL_ARM, 'ab066ff0', 0x2, 'lsls r3, r5, #0x1a', 0, ()),
         (REV_ALL_ARM, '9800d6f8', 0x6, 'lsls r0, r3, #0x02', 0, ()),
         (REV_ALL_ARM, '407f10f4', 0xa, 'ldrb r0, [r0, #0x1d]', 0, ()),
         #(REV_ALL_ARM, '407f10f4', 0xa, 'tst.w r0, #768', 0, ()),
         (REV_ALL_ARM, '40704ff4', 0xe, 'strb r0, [r0, #0x1]', 0, ()),
+        (REV_ALL_ARM, '03f8014b', 0x2, 'strb.w r4, [r3], #0x1', 0, ()),
+        (REV_ALL_ARM, '83f8014b', 0x6, 'strb.w r4, [r3, #0xb01]', 0, ()),
+        (REV_ALL_ARM, '03f82140', 0x2, 'strb.w r4, [r3, r1, lsl #2]', 0, ()),
+        (REV_ALL_ARM, '43f82140', 0x6, 'str.w r4, [r3, r1, lsl #2]', 0, ()),
+        (REV_ALL_ARM, '53f82140', 0xa, 'ldr.w r4, [r3, r1, lsl #2]', 0, ()),
+        (REV_ALL_ARM, '43f8014b', 0xe, 'str.w r4, [r3], #0x1', 0, ()),
+        (REV_ALL_ARM, '53f8014b', 0x2, 'ldr.w r4, [r3], #0x1', 0, ()),
+        (REV_ALL_ARM, '23f8014b', 0xa, 'strh.w r4, [r3], #0x1', 0, ()),
+        (REV_ALL_ARM, 'a3f8014b', 0xe, 'strh.w r4, [r3, #0xb01]', 0, ()),
+        (REV_ALL_ARM, '23f82140', 0x2, 'strh.w r4, [r3, r1, lsl #2]', 0, ()),
         #(REV_ALL_ARM, '40704ff4', 0xe, 'mov.w r0, #768', 0, ()),
         (REV_ALL_ARM, 'd6f89800', 0x6, 'ldr.w r0, [r6, #0x98]', 0, ()),
         (REV_ALL_ARM, '980096e5', 0x4, 'ldr r0, [r6, #0x98]', 0, ()),       # arm
@@ -1427,7 +1640,7 @@ instrs = [
         (REV_ALL_ARM, '4ff44070', 0xe, 'mov.w r0, #0x300', 0, ()),
 
         ]
-instrs.extend(advsimdtests)
+global_instrs.extend(advsimdtests)
 
 # temp scratch: generated these while testing
 ['0de803c0','8de903c0','ade903c0','2de803c0','1de803c0','3de803c0','9de903c0','bde903c0',]
@@ -1440,7 +1653,6 @@ instrs.extend(advsimdtests)
          'rfeia.w sp',
          'rfeia.w sp!']
 
-import struct
 def getThumbStr(val, val2):
     return struct.pack('<HH', val, val2)
 
@@ -1453,9 +1665,6 @@ def getThumbOps(vw, numtups):
 #Out[1]: [msr.w APSR_s, r5]
 
 # testing PSR stuff - not actually working unittesting...
-import envi.memcanvas as ememc
-import envi.archs.thumb16.disasm as eatd
-oper = eatd.ArmPgmStatRegOper(1,15)
 #smc = ememc.StringMemoryCanvas(vw)
 #oper.render(smc, None, 0)
 #smc.strval == 'SPSR_fcxs'
@@ -1468,16 +1677,105 @@ class ArmInstructionSet(unittest.TestCase):
     armTestVersion = REV_ARMv7A
     armTestOnce = True
 
+    def test_PSRs(self):
+
+        am = arm.ArmModule()
+        emu = am.getEmulator()
+
+        # there can be only one CPSR.  all proc_modes must point to the one.
+        emu.setCPSR(47147)
+        self.assertEqual(emu.getCPSR(), 47147)
+        self.assertEqual(emu.getRegister(REG_CPSR), 47147)
+
+        for mode in range(MODE_COUNT):
+            modeval = mode | 0b10000
+            if not modeval in proc_modes:
+                continue
+
+            logger.info("Testing Mode %x (%r)", modeval, proc_modes.get(modeval)[0])
+            logger.info('  SPSR')
+            emu.setSPSR(mode, 31337 + mode)
+            self.assertEqual(emu.getSPSR(mode), 31337 + mode)
+
+            regidx = reg_mode_base(modeval) + REG_CPSR
+            ridx = eaar._getRegIdx(regidx, 0)
+            logger.info("  CPSR(%x): 0x%x -> 0x%x", modeval, regidx, ridx)
+            self.assertEqual(emu._rctx_vals[ridx], 47147)
+            self.assertEqual(emu.getRegister(REG_CPSR, mode=modeval), 47147)
+
+            # see vivisect/notes/envi/arm/registers.md
+
+        for _,_,_,_,_,PSR,_ in eaar.proc_modes.values():
+            spsrnm, spsrsz = (eaar.reg_data[eaar.reg_table[PSR]])
+            self.assertTrue(spsrnm.upper().startswith('SPSR'))
+            self.assertEqual(spsrsz, 32)
+        
+            # see vivisect/notes/envi/arm/registers.md
+
+    def test_BankedRegs(self):
+        am = arm.ArmModule()
+        emu = am.getEmulator()
+
+        histo = collections.defaultdict(list)
+        for bv, lv in enumerate(reg_table):
+            histo[lv].append(bv)
+
+
+
+        emu.setCPSR(0x10000)
+        for modeval in proc_modes:
+            #print("\n\nMODE: %r" % (proc_modes[modeval][0]))
+            emu.setSPSR(modeval, modeval)
+            for reg in range(16):
+                #print("Setting Mode %x (%r) Reg R%d" % (modeval, proc_modes.get(modeval)[0], reg))
+                emu.setRegister(reg, modeval, mode=modeval)
+                #self.assertEqual(emu.getRegister(regidx), 47147)
+
+
+        # test CPSR
+        self.assertEqual(emu.getCPSR(), 0x10000)
+        # test SPSRs
+        for modeval in proc_modes:
+            self.assertEqual(emu.getSPSR(modeval), modeval)
+
+        # check key registers
+        for reg in range(15):
+            self.assertEqual(emu._rctx_vals[reg], 0x1f)     # the last proc_mode doesn't use any banked regs
+
+        for reg in range(19, 27):
+            self.assertEqual(emu._rctx_vals[reg], 0x11)     # 17
+
+        for reg in range(27, 30):
+            self.assertEqual(emu._rctx_vals[reg], 0x12)     # 18
+
+        for reg in range(30, 33):
+            self.assertEqual(emu._rctx_vals[reg], 0x13)     # 19
+
+        for reg in range(33, 36):
+            self.assertEqual(emu._rctx_vals[reg], 0x16)     # 22
+
+        for reg in range(36, 39):
+            self.assertEqual(emu._rctx_vals[reg], 0x17)     # 23
+
+        for reg in range(39, 42):
+            self.assertEqual(emu._rctx_vals[reg], 0x1a)     # 26
+
+        for reg in range(42, 45):
+            self.assertEqual(emu._rctx_vals[reg], 0x1b)     # 27
+
+        self.assertEqual(emu._rctx_vals[45], 0x1f)          # 31
+
+
     def test_msr(self):
         # test the MSR instruction
         am = arm.ArmModule()
-        op = am.archParseOpcode(binascii.unhexlify('d3f021e3'))
+        op = am.archParseOpcode(unhexlify('d3f021e3'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
     def test_BigEndian(self):
         am = arm.ArmModule()
         am.setEndian(envi.ENDIAN_MSB)
-        op = am.archParseOpcode(binascii.unhexlify('e321f0d3'))
+        op = am.archParseOpcode(unhexlify('e321f0d3'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
     def test_regs(self):
@@ -1501,7 +1799,7 @@ class ArmInstructionSet(unittest.TestCase):
         emu.setMeta('forrealz', True)
         emu._forrealz = True    # cause base_reg updates on certain Operands.
 
-        emu.writeMemory(0xbfb00010, binascii.unhexlify("abcdef98"))
+        emu.writeMemory(0xbfb00010, unhexlify("abcdef98"))
 
         opstr = struct.pack('<I', 0xe59f3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
@@ -1511,7 +1809,7 @@ class ArmInstructionSet(unittest.TestCase):
 
 
         # ldr r3, [r11, #0x8]!
-        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
         emu.setRegister(11, 0xbfb00010)
 
         opstr = struct.pack('<I', 0xe5bb3008)
@@ -1522,7 +1820,7 @@ class ArmInstructionSet(unittest.TestCase):
         self.assertEqual(hex(0xccddeeff), hex(value))
 
         # ldr r3, [r11], #0x8
-        emu.writeMemory(0xbfb00010, binascii.unhexlify("ABCDEF10"))
+        emu.writeMemory(0xbfb00010, unhexlify("ABCDEF10"))
         emu.setRegister(11, 0xbfb00010)
         opstr = struct.pack('<I', 0xe4bb3008)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
@@ -1533,7 +1831,7 @@ class ArmInstructionSet(unittest.TestCase):
 
 
         # ldr r3, [r11], #-0x8
-        emu.writeMemory(0xbfb00010, binascii.unhexlify("ABCDEF10"))
+        emu.writeMemory(0xbfb00010, unhexlify("ABCDEF10"))
         emu.setRegister(11, 0xbfb00010)
 
         opstr = struct.pack('<I', 0xe43b3008)
@@ -1556,7 +1854,7 @@ class ArmInstructionSet(unittest.TestCase):
 
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00010, binascii.unhexlify("abcdef98"))
+        emu.writeMemory(0xbfb00010, unhexlify("abcdef98"))
 
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
@@ -1567,7 +1865,7 @@ class ArmInstructionSet(unittest.TestCase):
         # ldrt r2, [r10], r2 
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00008, binascii.unhexlify("ABCDEF10"))
+        emu.writeMemory(0xbfb00008, unhexlify("ABCDEF10"))
 
         opstr = struct.pack('<I', 0xe6ba2002)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
@@ -1578,9 +1876,9 @@ class ArmInstructionSet(unittest.TestCase):
         self.assertEqual(hex(0x10efcdab), hex(value))
 
         # ldr r2, [r10, -r2 ]!
-        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
-        emu.writeMemory(0xbfb00010, binascii.unhexlify("55555555"))
-        emu.writeMemory(0xbfb00008, binascii.unhexlify("f000f000"))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, unhexlify("55555555"))
+        emu.writeMemory(0xbfb00008, unhexlify("f000f000"))
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
 
@@ -1592,8 +1890,8 @@ class ArmInstructionSet(unittest.TestCase):
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
 
         # ldr r2, [r10, r2 ]!
-        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
-        emu.writeMemory(0xbfb00010, binascii.unhexlify("55555555"))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, unhexlify("55555555"))
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
 
@@ -1616,7 +1914,7 @@ class ArmInstructionSet(unittest.TestCase):
 
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  2)
-        emu.writeMemory(0xbfb00008, binascii.unhexlify("abcdef98"))
+        emu.writeMemory(0xbfb00008, unhexlify("abcdef98"))
 
         self.assertEqual(hex(0xbfb00008), hex(emu.getRegister(10)))
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
@@ -1631,7 +1929,7 @@ class ArmInstructionSet(unittest.TestCase):
         # ldr r2, [r10], r2 , lsr 2
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  2)
-        emu.writeMemory(0xbfb00008, binascii.unhexlify("ABCDEF10"))
+        emu.writeMemory(0xbfb00008, unhexlify("ABCDEF10"))
 
         opstr = struct.pack('<I', 0xe69a3122)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
@@ -1659,8 +1957,8 @@ class ArmInstructionSet(unittest.TestCase):
 
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00000, binascii.unhexlify("abcdef98"))
-        emu.writeMemory(0xbfb00008, binascii.unhexlify("12345678"))
+        emu.writeMemory(0xbfb00000, unhexlify("abcdef98"))
+        emu.writeMemory(0xbfb00008, unhexlify("12345678"))
         val = op.getOperValue(1, emu)
 
         self.assertEqual(hex(0x3412), hex(val))
@@ -1673,7 +1971,7 @@ class ArmInstructionSet(unittest.TestCase):
         # (131071, 'b2359ae0', 17760, 'ldrh r4, [r10], r2 ', 0, ())
         emu.setRegister(10, 0xbfb00008)
         emu.setRegister(2,  8)
-        emu.writeMemory(0xbfb00008, binascii.unhexlify("ABCDEF10"))
+        emu.writeMemory(0xbfb00008, unhexlify("ABCDEF10"))
 
         opstr = struct.pack('<I', 0xe0ba35b2)
         op = vw.arch.archParseOpcode(opstr, va=0xbfb00000)
@@ -1685,8 +1983,8 @@ class ArmInstructionSet(unittest.TestCase):
 
         # ldr r2, [r10, -r2 ]!
         # (131071, 'b2453ae1', 17760, 'ldrh r4, [r10, -r2]! ', 0, ())
-        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
-        emu.writeMemory(0xbfb00010, binascii.unhexlify("55555555"))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, unhexlify("55555555"))
         emu.writeMemValue(0xbfb00008, 0xf030e040, 4)
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
@@ -1703,8 +2001,8 @@ class ArmInstructionSet(unittest.TestCase):
 
         # ldr r2, [r10, r2 ]!
         # (131071, 'b245bae1', 17760, 'ldrh r4, [r10, r2]! ', 0, ())
-        emu.writeMemory(0xbfb00018, binascii.unhexlify("FFEEDDCC"))
-        emu.writeMemory(0xbfb00010, binascii.unhexlify("55555555"))
+        emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
+        emu.writeMemory(0xbfb00010, unhexlify("55555555"))
         emu.setRegister(10, 0xbfb00010)
         emu.setRegister(2,  8)
 
@@ -1717,12 +2015,18 @@ class ArmInstructionSet(unittest.TestCase):
         self.assertEqual(hex(0xbfb00018), hex(emu.getRegister(10)))
 
     def test_envi_arm_assorted_instrs(self):
+        self._do_test_envi_instrs(global_instrs)
+
+    def test_envi_thumb_assorted_instrs(self):
+        self._do_test_envi_instrs(thumb_instrs, 'thumb', GOOD_DISAS=GOOD_TESTS_THUMB, GOOD_EMU=GOOD_EMU_THUMB)
+
+    def _do_test_envi_instrs(self, instrs, arch="arm", verbose=False, GOOD_DISAS=GOOD_TESTS_ALL, GOOD_EMU=GOOD_EMU_TESTS):
         #setup initial work space for test
         vw = vivisect.VivWorkspace()
-        vw.setMeta("Architecture", "arm")
+        vw.setMeta("Architecture", arch)
         vw.addMemoryMap(0, 7, 'firmware', b'\xff' * 16384*1024)
         vw.addMemoryMap(0x400000, 7, 'firmware', b'\xff' * 16384*1024)
-        # TODO: This doesn't belong here.
+
         emu = vw.getEmulator()
         emu.setMeta('forrealz', True)
         emu._forrealz = True
@@ -1732,66 +2036,95 @@ class ArmInstructionSet(unittest.TestCase):
         goodcount = 0
         goodemu = 0
         bademu = 0
-        for archz, bytez, va, reprOp, iflags, emutests in instrs:
+        for tidx, testinfo in enumerate(instrs):
+            archz, bytez, va, reprOp, iflags, emutests = testinfo
             ranAlready = False  # support for run once only
-            #itterate through architectures 
+            #iterate through architectures 
             for key in ARCH_REVS:
                 test_arch = ARCH_REVS[key]
                 if ((not ranAlready) or (not self.armTestOnce)) and ((archz & test_arch & self.armTestVersion) != 0):
-                    ranAlready = True
-                    op = vw.arch.archParseOpcode(binascii.unhexlify(bytez), 0, va)
-                    redoprepr = repr(op).replace(' ','').lower()
-                    redgoodop = reprOp.replace(' ','').lower()
-                    if redoprepr != redgoodop:
-                        num, = struct.unpack("<I", binascii.unhexlify(bytez))
-                        bs = bin(num)[2:].zfill(32)
-                        badcount += 1
-                        raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
-                                (goodcount, va, bytez, reprOp, repr(op) ) )
-                        # self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
+                    try:
+                        logger.info("%s: %r", tidx, testinfo)
 
-                    else:
-                        goodcount += 1
+                        ranAlready = True
+                        op = vw.arch.archParseOpcode(unhexlify(bytez), 0, va)
 
-                    if not len(emutests):
-                        try:
-                            # if we don't have special tests, let's just run it in the emulator anyway and see if things break
-                            emu.setEmuSnap(emusnap)
-                            if not self.validateEmulation(emu, op, (), ()):
-                                goodemu += 1
+                        redoprepr = repr(op).lower()
+                        redgoodop = reprOp.lower()
+
+                        # drop 32-bit thumb .w suffix
+                        redoprepr = redoprepr.replace('.w ',' ')
+                        redgoodop = redgoodop.replace('.w ',' ')
+
+                        # convert both to hex:
+                        redoprepr = cvtImmToHex(redoprepr)
+                        #print("redoprepr: %r" % redoprepr)
+
+                        redgoodop = cvtImmToHex(redgoodop)
+                        #print("redgoodop: %r" % redgoodop)
+
+                        # remove whitespace
+                        redoprepr = redoprepr.replace(' ','').replace('\t','')
+                        redgoodop = redgoodop.replace(' ','').replace('\t','')
+
+                        # do the mnemonic comparison
+                        if redoprepr != redgoodop:
+                            log.warning("viv: %r != test: %r", redoprepr, redgoodop)
+                            if len(bytez) == 4:
+                                num, = struct.unpack("<H", unhexlify(bytez))
                             else:
-                                bademu += 1
-                        except envi.UnsupportedInstruction:
-                            bademu += 1
-                        except Exception as exp:
-                            logger.exception("Exception in Emulator for command - %r  %r  %r\n  %r", repr(op), bytez, reprOp, exp)
-                            bademu += 1
-                    else:
-                        # if we have a special test lets run it
-                        for tidx, sCase in enumerate(emutests):
-                            #allows us to just have a result to check if no setup needed
-                            if 'tests' in sCase:
-                                setters = ()
-                                if 'setup' in sCase:
-                                    setters = sCase['setup']
-                                tests = sCase['tests']
+                                num, = struct.unpack("<I", unhexlify(bytez))
+                            bs = bin(num)[2:].zfill(32)
+                            badcount += 1
+                            raise Exception("%d FAILED to decode instr:  %.8x %s - should be: %s  - is: %s" % \
+                                    (goodcount, va, bytez, reprOp, repr(op) ) )
+                            # self.assertEqual((goodcount, bytez, redoprepr), (goodcount, bytez, redgoodop))
+
+                        else:
+                            goodcount += 1
+
+                        if not len(emutests):
+                            try:
+                                # if we don't have special tests, let's just run it in the emulator anyway and see if things break
                                 emu.setEmuSnap(emusnap)
-                                if not self.validateEmulation(emu, op, (setters), (tests), tidx):
-                                    goodcount += 1
+                                if not self.validateEmulation(emu, op, (), ()):
                                     goodemu += 1
                                 else:
                                     bademu += 1
-                                    raise Exception( "FAILED emulation (special case): %.8x %s - %s" % (va, bytez, op) )
-
-                            else:
+                            except envi.UnsupportedInstruction:
                                 bademu += 1
-                                raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (va, bytez, op))
+                            except Exception as exp:
+                                logger.exception("Exception in Emulator for command - %r  %r  %r\n  %r", repr(op), bytez, reprOp, exp)
+                                bademu += 1
+                        else:
+                            # if we have a special test lets run it
+                            for tidx, sCase in enumerate(emutests):
+                                #allows us to just have a result to check if no setup needed
+                                if 'tests' in sCase:
+                                    setters = ()
+                                    if 'setup' in sCase:
+                                        setters = sCase['setup']
+                                    tests = sCase['tests']
+                                    emu.setEmuSnap(emusnap)
+                                    if not self.validateEmulation(emu, op, (setters), (tests), tidx):
+                                        goodcount += 1
+                                        goodemu += 1
+                                    else:
+                                        bademu += 1
+                                        raise Exception( "FAILED emulation (special case): %.8x %s - %s" % (va, bytez, op) )
+
+                                else:
+                                    bademu += 1
+                                    raise Exception( "FAILED special case test format bad:  Instruction test does not have a 'tests' field: %.8x %s - %s" % (va, bytez, op))
+                    except:
+                        logger.warning("FAILURE: %r, 0x%x, %r, %r, %r", bytez, va, reprOp, iflags, emutests)
+                        raise
 
         logger.info("Done with assorted instructions test.  DISASM: %s tests passed.  %s tests failed.  EMU: %s tests passed.  %s tests failed" % \
                 (goodcount, badcount, goodemu, bademu))
         logger.info("Total of %d tests completed", goodcount + badcount)
-        self.assertEqual(goodcount, GOOD_TESTS)
-        self.assertEqual(goodemu, GOOD_EMU_TESTS)
+        self.assertEqual(goodcount, GOOD_DISAS)
+        self.assertEqual(goodemu, GOOD_EMU)
 
     def test_envi_arm_thumb_switches(self):
         pass
@@ -1870,31 +2203,41 @@ class ArmInstructionSet(unittest.TestCase):
 
         return success
 
-"""
-def generateTestInfo(ophexbytez='6e'):
-    '''
-    Helper function to help generate test cases that can easily be copy-pasta
-    '''
-    h8 = e_h8.H8Module()
-    opbytez = ophexbytez
-    op = h8.archParseOpcode(binascii.unhexlify(opbytez), 0, 0x4000)
-    #print( "opbytez = '%s'\noprepr = '%s'"%(opbytez,repr(op)) )
-    opvars=vars(op)
-    opers = opvars.pop('opers')
-    #print( "opcheck = ",repr(opvars) )
+def cvtImmToHex(rep):
+    # convert to hex
+    rep += " "  # just for now
+    #print("cvtImmToHex: %r" % rep)
+    while True:
+        try:
+            i = re.finditer('#[-]*[0-9][0-9]*[ ,\]]', rep).__next__(); s = i.span(); s
+            num = int(i[0][1:-1])
+            rep = rep[:s[0]+1] + hex(num) + rep[s[1]-1:]
+            #print("iter0: %r" % rep)
 
-    opersvars = []
-    for x in range(len(opers)):
-        opervars = vars(opers[x])
-        opervars.pop('_dis_regctx')
-        opersvars.append(opervars)
+        except StopIteration:
+            break
 
-    #print( "opercheck = %s" % (repr(opersvars)) )
+    # now make sure we strip any leading 0x000 0's
+    redo = True
+    while redo:
+        try:
+            redo = False
+            leng = len(rep)
+            for i in re.finditer('0x0[0-9a-f]+[ ,\]]', rep):
+                s = i.span()
+                num = int(i[0][:-1], 16)
+                rep = rep[:s[0]] + hex(num) + rep[s[1]-1:]
+                #print("iter1: %r" % rep)
 
-"""
+                if len(rep) != leng:
+                    redo = True
+                    break   # for loop.  while loop run it again
 
-raw_instrs = [
-    ]
+        except Exception as e:
+            print("EXCEPTION: %r" % e)
+            break
+
+    return rep.strip()
 
 
 def genDPArm():
@@ -2116,4 +2459,19 @@ def genAdvSIMDtestBytez():
                         tbytez.append(bytezthumb)
 
     return abytez, tbytez
-# thumb 16bit IT, CNBZ, CBZ
+
+def dumpBytes():
+    with open('/tmp/armbytez', 'wb') as f:
+        for _, bytez, addr, mnem, _, _ in global_instrs:
+            if addr & 0b11:
+                continue    # not ARM
+            f.write(unhexlify(bytez))
+
+    with open('/tmp/thumbbytez', 'wb') as f:
+        for instrs in (global_instrs, thumb_instrs):
+            for _, bytez, addr, mnem, _, _ in instrs:
+                if not (addr & 0b11):
+                    continue    # not ARM
+                f.write(unhexlify(bytez))
+
+#dumpBytes()

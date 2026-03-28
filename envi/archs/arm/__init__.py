@@ -10,7 +10,7 @@ from envi.archs.arm.disasm import *
 
 class ArmModule(envi.ArchitectureModule):
 
-    def __init__(self, name='ARMv7A'):
+    def __init__(self, name='arm'):
         import envi.archs.thumb16.disasm as eatd
         # these are required for setEndian() which is called from ArchitectureModule.__init__()
         self._arch_dis = ArmDisasm()
@@ -71,8 +71,9 @@ class ArmModule(envi.ArchitectureModule):
             return va & -2, {'arch' : envi.ARCH_THUMB}
         return va, info
 
-    def archModifyXrefAddr(self, tova, reftype, rflags):
-        if tova & 1:
+    def archModifyXrefAddr(self, tova, reftype, rflags=0):
+        # if rflags is non-zero, it indicates that the target is Code
+        if tova & 3 and rflags:
             return tova & -2, reftype, rflags
         return tova, reftype, rflags
 

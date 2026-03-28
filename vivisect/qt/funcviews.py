@@ -8,6 +8,7 @@ import vivisect.qt.ctxmenu as viv_q_ctxmenu
 import visgraph.renderers.qgraphtree as vg_qgraphtree
 
 from vqt.basics import *
+from vqt.application import VQDockWidget
 
 
 class FuncBlockModel(BasicModel):
@@ -66,7 +67,7 @@ class FuncCallsView(QWidget):
 
     def __init__(self, vw, parent=None):
         self.vw = vw
-        QWidget.__init__(self, parent=parent)
+        super().__init__(parent=parent)
 
         self.graphview = vg_qgraphtree.QGraphTreeView(None, (), parent=self)
         self.graphview._sig_NodeContextMenu.connect(self.nodeContextMenu)

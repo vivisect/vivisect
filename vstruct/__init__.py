@@ -355,7 +355,7 @@ class VStruct(vs_prims.v_base):
 
     def vsGetOffset(self, name, offset=0):
         """
-        Return the offset of a member (by name).  This is recursive and will 
+        Return the offset of a member (by name).  This is recursive and will
         descend into nested structures to return the offset of a sub field.
         """
         nameparts = name.split('.')
@@ -515,7 +515,6 @@ class VUnion(VStruct):
 
         Any method named pcb_<FieldName> will be called back when the specified
         field is set by the parser.
-        
         """
         ret = offset
         for fname,fobj in self.vsGetFields():

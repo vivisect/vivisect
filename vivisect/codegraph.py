@@ -6,12 +6,13 @@ import visgraph.graphcore as v_graphcore
 
 from vivisect.const import *
 
+
 class CallGraph(v_graphcore.HierGraph):
     '''
     A graph which represents procedural branches.
     '''
     def __init__(self):
-        v_graphcore.Graph.__init__(self)
+        super().__init__()
 
     def getFunctionNode(self, va):
         node = self.getNode(va)
@@ -28,12 +29,13 @@ class CallGraph(v_graphcore.HierGraph):
                 return edge
 
         f2 = self.getFunctionNode(f2va)
-        return self.addEdge(f1,f2)
+        return self.addEdge(f1, f2)
+
 
 class CodeBlockGraph(v_graphcore.HierGraph):
 
     def __init__(self, vw):
-        v_graphcore.Graph.__init__(self)
+        super().__init__()
         self.vw = vw
         self.nodevas = {}
 
@@ -47,7 +49,7 @@ class CodeBlockGraph(v_graphcore.HierGraph):
 
         done = set()
 
-        todo = [ va, ]
+        todo = [va,]
         while todo:
 
             va = todo.pop()
@@ -58,14 +60,14 @@ class CodeBlockGraph(v_graphcore.HierGraph):
 
             branches = self._getCodeBranches(va)
             tdone = set()
-            for tova,bflags in branches:
+            for tova, bflags in branches:
                 if tova in tdone:
                     continue
 
                 tdone.add(tova)
                 node = self.getNodeByVa(va)
-                if self._addCodeBranch(node,va,tova,bflags):
-                    todo.append( tova )
+                if self._addCodeBranch(node, va, tova, bflags):
+                    todo.append(tova)
 
         return enode
 
@@ -74,40 +76,40 @@ class CodeBlockGraph(v_graphcore.HierGraph):
         if loc is None or loc[L_LTYPE] != LOC_OP:
             return []
 
-        lva,lsize,ltype,ltinfo = loc
+        lva, lsize, ltype, ltinfo = loc
 
         xrefs = self.vw.getXrefsFrom(va, rtype=REF_CODE)
 
-        crefs = [ (xto,xflags) for (xfrom,xto,xtype,xflags) in xrefs ]
+        crefs = [(xto,xflags) for (xfrom,xto,xtype,xflags) in xrefs]
 
         # If any of our other branches are conditional, so is our fall
         if not ltinfo & envi.IF_NOFALL:
 
             bflags = envi.BR_FALL
-            if any([ (x[3] & envi.BR_COND) for x in xrefs]):
+            if any([(x[3] & envi.BR_COND) for x in xrefs]):
                 bflags |= envi.BR_COND
 
-            crefs.append( (lva+lsize, bflags) )
+            crefs.append((lva+lsize, bflags))
 
         return crefs
 
     def _addCodeBranch(self, node, va, brva, bflags):
         if self.isCodeBlockNode(brva):
-            self.addCodeBlockEdge(node,va,brva)
+            self.addCodeBlockEdge(node, va, brva)
             return True
 
         if bflags & envi.BR_FALL and not bflags & envi.BR_COND:
-            self.addVaToNode(node,brva)
+            self.addVaToNode(node, brva)
             return True
 
         if bflags & envi.BR_DEREF:
             # FIXME handle these
             return False
 
-        n2node = self.addCodeBlockEdge(node,va,brva)
+        n2node = self.addCodeBlockEdge(node, va, brva)
 
         if bflags & envi.BR_PROC:
-            self.setNodeProp(n2node,'isfunc',True)
+            self.setNodeProp(n2node, 'isfunc', True)
 
         return True
 
@@ -118,7 +120,7 @@ class CodeBlockGraph(v_graphcore.HierGraph):
         cbva = node[0]
         lastva = node[1]['valist'][-1]
         cbsize = (lastva - cbva) + 1
-        return cbva,cbsize
+        return cbva, cbsize
 
     def getCodeBlockNode(self, va):
         '''
@@ -134,8 +136,8 @@ class CodeBlockGraph(v_graphcore.HierGraph):
 
         # is it part of another block already?
         node = self.getNodeByVa(va)
-        newnode = self.addNode(nid=va,cbva=va,valist=())
-        self.addVaToNode(newnode,va)
+        newnode = self.addNode(nid=va, cbva=va, valist=())
+        self.addVaToNode(newnode, va)
 
         if node is None:
             return newnode
@@ -148,7 +150,6 @@ class CodeBlockGraph(v_graphcore.HierGraph):
         vaend = valist[vaidx:]
 
         lastva = vabeg[-1]
-        newlastva = vaend[-1]
 
         self.setNodeVaList(node, vabeg)
         self.setNodeVaList(newnode, vaend)
@@ -166,9 +167,9 @@ class CodeBlockGraph(v_graphcore.HierGraph):
         return newnode
 
     def addCodeBlockEdge(self, node1, va1, va2):
-        vatup = (va1,va2)
+        vatup = (va1, va2)
 
-        edges = self.getEdgesByProp('codeflow',vatup)
+        edges = self.getEdgesByProp('codeflow', vatup)
         if len(edges):
             return edges[0]
 
@@ -189,23 +190,23 @@ class CodeBlockGraph(v_graphcore.HierGraph):
     def addVaToNode(self, node, va):
         self.nodevas[va] = node
         valist = node[1]['valist']
-        self.setNodeProp(node,'valist',valist + (va,))
+        self.setNodeProp(node, 'valist', valist + (va,))
 
     def setNodeVaList(self, node, valist):
-        [ self.nodevas.pop(va,None) for va in node[1]['valist'] ]
-        [ self.nodevas.__setitem__(va,node) for va in valist ]
-        self.setNodeProp(node,'valist',valist)
+        [self.nodevas.pop(va,None) for va in node[1]['valist']]
+        [self.nodevas.__setitem__(va,node) for va in valist]
+        self.setNodeProp(node, 'valist', valist)
 
     def getNodeByVa(self, va):
         return self.nodevas.get(va)
 
+
 class FuncBlockGraph(CodeBlockGraph):
 
     def __init__(self, vw, fva):
-        CodeBlockGraph.__init__(self,vw)
+        CodeBlockGraph.__init__(self, vw)
         root = self.addEntryPoint(fva)
         self.setHierRootNode(root)
 
     def _getCodeBranches(self, va):
-        return [ x for x in CodeBlockGraph._getCodeBranches(self,va) if not x[1] & envi.BR_PROC ]
-
+        return [x for x in CodeBlockGraph._getCodeBranches(self,va) if not x[1] & envi.BR_PROC]

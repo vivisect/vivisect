@@ -11,6 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import envi
+import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.archs.i386 as e_i386
 
@@ -355,6 +356,9 @@ class SwitchCase:
         logger.info('=== analyzing SwitchCase branch at 0x%x: %r ===' % (jmpva, self.jmpop))
 
         self.sctx = vs_anal.getSymbolikAnalysisContext(vw)
+        if self.sctx is None:
+            raise e_exc.ArchNotImplemented("Current architecture has no SymbolikTranslator")
+
         self.xlate = self.sctx.getTranslator()
 
         # 32-bit i386 thunk_reg handling.  this should be the only oddity for this architecture
@@ -1261,6 +1265,11 @@ def analyzeJmp(vw, jmpva, timeout=None):
         logger.debug("Removing 0x%x from VaSet SwitchCases_TimedOut", jmpva)
         vw.delVaSetRow('SwitchCases_TimedOut', jmpva)
 
-    sc = SwitchCase(vw, jmpva, timeout)
-    sc.analyze()
+    try:
+        sc = SwitchCase(vw, jmpva, timeout)
+        sc.analyze()
+    except e_exc.ArchNotImplemented:
+        logger.info("... skipping.  Current architecture has no SymbolikTranslator")
+
+
 

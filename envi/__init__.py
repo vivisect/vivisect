@@ -72,7 +72,7 @@ arch_defs = {
     
     ARCH_ARMV7:     {
         'name':     'arm',
-        'aliases':  ('armv6l', 'armv7l', 'a32', 'leg', 'leg32'),
+        'aliases':  ('armv7a', 'armv7', 'armv7l', 'armv6l', 'arm32', 'a32', 'leg', 'leg32'),
         'modpath':  ('envi', 'archs', 'arm'),
         'clsname':  'ArmModule',
         'version':  (1,0,0),
@@ -108,9 +108,9 @@ arch_defs = {
     ARCH_A64:       {
         'name':     'a64',
         'aliases':  ('aarch64', 'leg64', 'legv8'),
-        'modpath':  ('envi', 'archs', 'a64'),
+        'modpath':  ('envi', 'archs', 'aarch64'),
         'clsname':  'A64Module',
-        'disabled': True,
+        'disabled': False,
         'version':  (0,2,0),
         'has_disasm':   True,
         'has_emu':      True,
@@ -1554,7 +1554,7 @@ def getArchByName(archname):
     '''
     Get the architecture constant by the humon name.
     '''
-    return arch_by_name_and_aliases.get(archname)
+    return arch_by_name_and_aliases.get(archname.lower())
 
 def getArchById(archid):
     '''
