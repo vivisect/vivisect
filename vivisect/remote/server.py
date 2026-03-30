@@ -1,12 +1,12 @@
 import os
 import sys
 import time
-import cobra
 import queue
 import logging
 import argparse
 import threading
 
+import cobra
 import cobra.dcode
 
 import envi.config as e_config

@@ -98,20 +98,22 @@ def emuFromTrace(trace):
     plat = trace.getMeta('Platform')
     amod = envi.getArchModule(arch)
     emu = amod.getEmulator()
+    bmaps = trace.getMeta('BadMaps')
     [emu.setMeta(key, val) for key, val in trace.metadata.items()]
 
     # could use {get,set}MemorySnap if trace inherited from MemoryObject
     for va, size, perms, fname in trace.getMemoryMaps():
         try:
             # So linux maps in a PROT_NONE page for efficient library sharing, so we have to take that into account
-            if (not perms & e_const.MM_READ):
+            if not perms & e_const.MM_READ:
                 continue
-            if plat == 'linux' and fname in ['[vvar]']:
+
+            if plat == 'linux' and fname in bmaps:
                 continue
             bytez = trace.readMemory(va, size)
             emu.addMemoryMap(va, perms, fname, bytez)
         except vtrace.PlatformException:
-            logger.warning('failed to map: 0x{:x} into emu'.format(va, size))
+            logger.warning('failed to map: 0x{:x} (size: {:d}) into emu'.format(va, size))
             continue
 
     rsnap = trace.getRegisterContext().getRegisterSnap()
@@ -123,11 +125,11 @@ def emuFromTrace(trace):
         peb = trace.getMeta('PEB')
         if hasattr(trace, 'win32threads'):
             tebs = dict(trace.win32threads)
-            vw.setMeta('TEBs', tebs)
+            emu.setMeta('TEBs', tebs)
         else:
             metatebs = trace.getMeta('TEBs')
             if metatebs:
-                vw.setMeta('TEBs', tebs)
+                emu.setMeta('TEBs', tebs)
 
         emu.setMeta('PEB', peb)
 
@@ -153,7 +155,6 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
     vw = vivisect.VivWorkspace()
     arch = trace.getMeta('Architecture')
     plat = trace.getMeta('Platform')
-    psize = trace.getPointerSize()
 
     # determine file format (if not specified above)
     if filefmt is None:
@@ -163,25 +164,28 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         else:
             filefmt = 'elf'
             from vivisect.parsers.elf import archcalls
+    else:
+        # TODO: what should this be really be?
+        archcalls = {}
 
     vw.setMeta("Architecture", arch)
     vw.setMeta("Platform", plat)
     vw.setMeta('Format', filefmt)
-    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
+    vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
     vw.setMeta('StorageName', storagename)
-    
+
     if 'win' in plat.lower():
         ossep = '\\'
         exts = ('exe', 'dll')
-
     else:
         ossep = '/'
-        exts = ('so')
+        exts = ('so',)
 
     # could use {get,set}MemorySnap if trace inherited from MemoryObject
     maps = []
     fnames = collections.defaultdict(int)
     filemeta = collections.defaultdict(hashlib.md5)
+    bmaps = trace.getMeta('BadMaps')
 
     for va, size, perms, fname in trace.getMemoryMaps():
         # strip off unwanted parts
@@ -194,15 +198,15 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         # add map to the workspace
         try:
             # So linux maps in a PROT_NONE page for efficient library sharing, so we have to take that into account
-            if (not perms & e_const.MM_READ):
+            if not perms & e_const.MM_READ:
                 continue
-            if plat == 'linux' and stripfname in ['[vvar]']:
+            if plat == 'linux' and stripfname in bmaps:
                 continue
             bytez = trace.readMemory(va, size)
             maps.append((va, perms, stripfname, bytez))
 
         except vtrace.PlatformException:
-            logger.warning('failed to map: 0x{:x} into emu'.format(va, size))
+            logger.warning('failed to map: 0x{:x} (size: {:d}) into emu'.format(va, size))
             continue
 
     # filter maps
@@ -210,7 +214,7 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         maps = collapseMemoryMaps(maps, strict=strict)
 
     # add maps
-    for midx, (va, perms, fname, bytez) in enumerate(maps):
+    for va, perms, fname, bytez in maps:
         count = fnames.get(fname, 0)
         fnames[fname] = count + 1
 
@@ -219,13 +223,13 @@ def vwFromTrace(trace, storagename='binary_workspace_from_vsnap.viv', filefmt=No
         filemeta[fname].update(bytez)
 
     # now actually add the files
-    for fname in filemeta.keys():
+    for fname, fbyts in filemeta.items():
         # find first va:
         for va, perms, mnm, btz in maps:
             if mnm == fname:
                 break
 
-        vw.addFile(fname, va, filemeta[fname].hexdigest())
+        vw.addFile(fname, va, fbyts.hexdigest())
 
     # windows stuff
     if plat == 'windows':
