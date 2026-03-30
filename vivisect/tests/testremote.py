@@ -3,10 +3,8 @@ import sys
 import time
 import tempfile
 import unittest
-import threading
 import multiprocessing as mp
 
-import vivisect
 import vivisect.cli as vivcli
 import vivisect.const as v_const
 import vivisect.tests.helpers as helpers
@@ -237,7 +235,6 @@ class VivisectRemoteTests(unittest.TestCase):
                 output = getOutput(rmtvw.canvas)
                 self.assertIn("castle 3", output)
                 self.assertEqual(len(rmtvw2.getLeaderSessions()), 0)
-
 
                 # close down tests
                 try:
