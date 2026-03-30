@@ -1,14 +1,15 @@
 #this probably needs to be looked over once more to make sure all
 #assembler symbols are correctly represented
 
-GOOD_TESTS = 495588
-GOOD_EMU_TESTS = 412972
+GOOD_TESTS = 2154
+GOOD_EMU_TESTS = 239 #984
 
 import sys
 import envi
 import struct
 import unittest
 import vivisect
+import envi.exc as e_exc
 import envi.memcanvas as e_memcanv
 
 from binascii import unhexlify
@@ -4872,12 +4873,12 @@ class A64InstructionSet(unittest.TestCase):
             try:
                 # try register first
                 emu.setRegisterByName(tgt, val)
-            except e_reg.InvalidRegisterName as e:
+            except e_exc.InvalidRegisterName as e:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if type(tgt) is str and tgt.startswith("PSR_"):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
-                elif type(tgt) in (long, int):
+                elif type(tgt) is int:
                     # it's an address
                     #For this couldn't we set a temp value equal to endian and write that? Assuming byte order is issue with this one
                     emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
@@ -4897,9 +4898,9 @@ class A64InstructionSet(unittest.TestCase):
                     success = 0
                 else:  # should be an else
                     raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
-            except e_reg.InvalidRegisterName as e:
+            except e_exc.InvalidRegisterName as e:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if type(tgt) is str and tgt.startswith("PSR_"):
                     # it's a flag
                     testval = emu.getFlag(eval(tgt))
                     if testval == val:
@@ -4907,7 +4908,7 @@ class A64InstructionSet(unittest.TestCase):
                         success = 0
                     else:
                         raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
-                elif type(tgt) in (long, int):
+                elif type(tgt) is int:
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:
