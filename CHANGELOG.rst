@@ -2,6 +2,13 @@
 Vivisect Changelog
 ******************
 
+V1.3.2 - 2026-03-30
+===================
+Fixes
+-----
+- Fix issues in AArch64 disassembly and emulation.
+  (`#690 <https://github.com/vivisect/vivisect/pull/690>`_)
+
 V1.3.1 - 2026-03-30
 ===================
 Fixes
