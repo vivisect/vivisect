@@ -236,7 +236,10 @@ def analyzePLT(vw, ssva, ssize):
                         realplt = not bool(tbrva == ssva)
 
                         if tbrref is None:
-                            logger.debug("Skipping branch a tbrref is None (tgt: %x)", tbrva)
+                            if tbrva:
+                                logger.debug("Skipping branch as target branch reference is None (op: 0x%x   tgt: 0x%x)", lva, tbrva)
+                            else:
+                                logger.debug("Skipping branch as target branch reference is None (op: 0x%x)", lva)
                             skip = True
 
                         # since the above check will "fail open", refine check if True

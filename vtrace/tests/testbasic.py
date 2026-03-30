@@ -36,7 +36,6 @@ class VtraceBasicTest(vt_tests.VtraceProcessTest):
         bpid = self.trace.addBreakByExpr(symname)
         self.trace.setBreakpointCode(bpid, pycode)
         self.runUntilExit()
-        print("runUntilExit() complete (%s)." % plat)
 
         bp = self.trace.getBreakpoint(bpid)
         self.assertTrue(bp.address is not None)
