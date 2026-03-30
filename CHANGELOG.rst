@@ -2,6 +2,15 @@
 Vivisect Changelog
 ******************
 
+V1.3.1 - 2026-03-30
+===================
+Fixes
+-----
+- Upgrade pyasn1 dependencies to resolve CVE-2026-23490.
+  (`#693 <https://github.com/vivisect/vivisect/pull/693>`_)
+- Fix undeclared variable usage and attempts to read from `[vvar_vclock]` in vtrace.utils.
+  (`#693 <https://github.com/vivisect/vivisect/pull/693>`_)
+
 V1.3.0 - 2026-01-09
 ===================
 Features
