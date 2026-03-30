@@ -125,11 +125,11 @@ def emuFromTrace(trace):
         peb = trace.getMeta('PEB')
         if hasattr(trace, 'win32threads'):
             tebs = dict(trace.win32threads)
-            trace.setMeta('TEBs', tebs)
+            emu.setMeta('TEBs', tebs)
         else:
             metatebs = trace.getMeta('TEBs')
             if metatebs:
-                trace.setMeta('TEBs', tebs)
+                emu.setMeta('TEBs', tebs)
 
         emu.setMeta('PEB', peb)
 
