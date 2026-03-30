@@ -1,6 +1,5 @@
 import time
 import logging
-import platform
 import unittest
 
 import Elf
@@ -12,15 +11,18 @@ import vivisect.analysis.elf.elfplt_late as vaeepl
 import vivisect.analysis.generic.pointers as vagp
 import vivisect.analysis.generic.relocations as vagr
 
-from vivisect.tests import linux_amd64_ls_data
+# TODO: These should be changed up to not be giant python files and instead just be flat data files
+# but for now they're not the culprit of some other issues
 from vivisect.tests import linux_amd64_chown_data
 from vivisect.tests import linux_amd64_libc_2_27_data
-from vivisect.tests import linux_amd64_libstdc_data
-from vivisect.tests import linux_i386_libc_2_13_data
 from vivisect.tests import linux_i386_libstdc_data
 from vivisect.tests import linux_arm_sh_data
 from vivisect.tests import qnx_arm_ksh_data
 from vivisect.tests import openbsd_amd64_ls_data
+
+#from vivisect.tests import linux_amd64_ls_data
+#from vivisect.tests import linux_amd64_libstdc_data
+#from vivisect.tests import linux_i386_libc_2_13_data
 
 logger = logging.getLogger(__name__)
 

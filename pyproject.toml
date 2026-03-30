@@ -60,7 +60,7 @@ vivserver = 'vivisect.remote.server:main'
 include-package-data = true
 
 [tool.setuptools.package-data]
-'*' = ['*.dll', '*.dylib', '*.lyt', 'Makefile', '*.c', '*.h', '*.yes', '*.sh']
+'*' = ['*.dll', '*.dylib', '*.lyt', 'Makefile', '*.c', '*.h', '*.yes', '*.sh', '*.mpk']
 
 [tool.setuptools.packages.find]
 include = ['vivisect*', 'vtrace*', 'envi*', 'PE*', 'Elf*', 'vdb*', 'visgraph*', 'vstruct*', 'vqt*', 'cobra*']

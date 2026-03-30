@@ -254,6 +254,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         '''
         get the SPSR for the given AARCH64 processor mode
         '''
+        # TODO: This is not defined in aarch64 regs.py
         ridx = _getRegIdx(REG_SPSR, mode)
         return self._rctx_vals[ridx]
 
@@ -621,6 +622,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 
 
     # Coprocessor Instructions
+    # TODO: _getCoProc is not a valid method on A64Emulator
     def i_stc(self, op):
         cpnum = op.opers[0]
         coproc = self._getCoProc(cpnum)
