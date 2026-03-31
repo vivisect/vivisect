@@ -5,4 +5,4 @@ apitypes = {
     'HANDLE':       'unsigned long',
         }
 
-api = {symbol: (a[0], a[1], 'sysvamd64call', a[3], a[4]) for symbol, a in p386.api.items()}
+api = {symbol: (a[0], a[1], 'a64call', a[3], a[4]) for symbol, a in p386.api.items()}
