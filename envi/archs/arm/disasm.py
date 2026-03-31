@@ -756,17 +756,14 @@ def p_dp_imm(opval, va):
     return (opcode, mnem, olist, iflags, 0)
 
 def p_undef(opval, va):
-    # FIXME: make this an actual opcode with the opval as an imm oper?
-    raise envi.InvalidInstruction(
-            mesg="p_undef: invalid instruction (by definition in ARM spec)",
-            bytez=struct.pack("<I", opval), va=va)
     opcode = IENC_UNDEF
-    mnem = "undefined instruction"
+    mnem = "undefined"
     olist = (
         ArmImmOper(opval),
     )
         
-    return (opcode, mnem, olist, 0, 0)
+    iflags = envi.IF_NOFALL
+    return (opcode, mnem, olist, iflags, 0)
 
 def p_dp_movw(opval, va):
     iflags = 0
@@ -1721,7 +1718,7 @@ def p_uncond(opval, va, psize = 4):
     if opval & 0x0f000000 == 0x0f000000:
         opcode = INS_UNDEF
         immval = opval & 0x00ffffff
-        return (opcode, 'undefined', (ArmImmOper(immval),), 0, 0)
+        return (opcode, 'undefined', (ArmImmOper(immval),), envi.IF_NOFALL, 0)
 
     optop = ( opval >> 26 ) & 0x3
     if optop == 0:
@@ -2319,21 +2316,21 @@ adv_simd_3_regs = (  # ABUC fields slammed together
         ('vcgt',        INS_VCGT, IFS_S8, None),
         ('vcgt',        INS_VCGT, IFS_S16, None),
         ('vcgt',        INS_VCGT, IFS_S32, None),
-        (None,          None, 0, None),
+        ('vcgt',        INS_VCGT, IFS_S64, None),
         ('vcgt',        INS_VCGT, IFS_U8, None),
         ('vcgt',        INS_VCGT, IFS_U16, None),
         ('vcgt',        INS_VCGT, IFS_U32, None),
-        (None,          None, 0, None),
+        ('vcgt',        INS_VCGT, IFS_U64, None),
 
         # a=0011 b=1
         ('vcge',        INS_VCGE, IFS_S8, None),
         ('vcge',        INS_VCGE, IFS_S16, None),
         ('vcge',        INS_VCGE, IFS_S32, None),
-        (None,          None, 0, None),
+        ('vcge',        INS_VCGE, IFS_S64, None),
         ('vcge',        INS_VCGE, IFS_U8, None),
         ('vcge',        INS_VCGE, IFS_U16, None),
         ('vcge',        INS_VCGE, IFS_U32, None),
-        (None,          None, 0, None),
+        ('vcge',        INS_VCGE, IFS_U64, None),
 
         # a=0100 b=0
         ('vshl',        INS_VSHL, IFS_S8, None),           # d, m, n, not d, n, m like all the others in this category
@@ -2847,15 +2844,15 @@ adv_simd_2regs_misc = (
         (None,  0, 0, 0,0, 0),
         (None,  0, 0, 0,0, 0),
         # a=11 b=000xx
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
+        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 0,0, 0), # , #0
+        ('vcgt',        INS_VCGT, ADV_SIMD_S8, 1,1, 0), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_S8, 0,0, 0), # , #0
+        ('vcge',        INS_VCGE, ADV_SIMD_S8, 1,1, 0), # , #0
         # a=11 b=001xx
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
-        (None,  0, 0, 0,0, 0),
+        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 0,0, 0), # , #0
+        ('vceq',        INS_VCEQ, ADV_SIMD_I8, 1,1, 0), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_I8, 0,0, 0), # , #0
+        ('vcle',        INS_VCLE, ADV_SIMD_I8, 1,1, 0), # , #0
         # a=11 b=010xx
         (None,  0, 0, 0,0, 0),
         (None,  0, 0, 0,0, 0),
@@ -3340,6 +3337,9 @@ def _do_adv_simd_ldst_32(val, va, u):
     return opcode, mnem, opers, iflags, simdflags    # no iflags, only simdflags for this one
 
 def adv_simd_32(val, va):
+    if val == 0xffffffff:
+        return p_undef(val, va)
+
     u = (val>>24) & 1
     return _do_adv_simd_32(val, va, u)
 
@@ -3367,9 +3367,9 @@ def _do_adv_simd_32(val, va, u):
 
     if not (a & 0x10):
         # three registers of the same length
-        a = (val>>8) & 0xf
-        b = (val>>4) & 1
-        c = (val>>20) & 3
+        a = (val>>8) & 0xf  # opc
+        b = (val>>4) & 1    # o1
+        c = (val>>20) & 3   # size
 
         index = c | (u<<2) | (b<<3) | (a<<4)
         mnem, opcode, simdflags, handler = adv_simd_3_regs[index]

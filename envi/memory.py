@@ -733,7 +733,7 @@ class MemoryObject(IMemory):
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not mperms & MM_READ:
+                if not (mperms & MM_READ or self._supervisor):
                     raise envi.SegmentationViolation(va)
                 offset = va - mva
 

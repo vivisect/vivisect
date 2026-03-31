@@ -98,7 +98,6 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
             mcanv.addText(")")
 
-            # FIXME color code and get args parsing goin on
             mcanv.addText(" ")
             xrtag = mcanv.getTag("xrefs")
             mcanv.addText("[%d XREFS] " % xrcount, tag=xrtag)
@@ -160,6 +159,12 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
         elif ltype == LOC_STRUCT:
 
+            maxnamelen = 0
+            for soff, sind, sname, sobj in extra.vsGetPrintInfo():
+                snamelen = len(sname)
+                if snamelen > maxnamelen:
+                    maxnamelen = snamelen
+
             for soff, sind, sname, sobj in extra.vsGetPrintInfo():
 
                 sva = lva + soff
@@ -184,6 +189,8 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
                 mcanv.addText("  "*sind)
                 mcanv.addNameText(sname)
                 mcanv.addText(": ")
+                deltasz = maxnamelen - len(sname)
+                mcanv.addText(" "*deltasz)
 
                 # Insert the sobj info (if it's a primitive)
                 if isinstance(sobj, vs_prims.v_prim):
@@ -207,19 +214,25 @@ class WorkspaceRenderer(e_canvas.MemoryRenderer):
 
         elif ltype == LOC_POINTER:
 
-            fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0]  # FIXME hardcoded one
+            xrefs = self.vw.getXrefsFrom(lva)
 
             mcanv.addText(linepre, tag=vatag)
             mcanv.addNameText("ptr: ")
+            if not len(xrefs):
+                mcanv.addText("ERROR: No From references\n")
+                tova = lva
+                pstr = "ERROR"
+                
+            else:
+                fromva, tova, rtype, rflags = self.vw.getXrefsFrom(lva)[0]
+                pstr = self.vw.arch.pointerString(tova)
 
             totag = mcanv.getVaTag(tova)
-            pstr = self.vw.arch.pointerString(tova)
-
             mcanv.addText(pstr, tag=totag)
 
             name = self.vw.getName(tova)
             if name is None:
-                name = "loc_%.8x" % tova  # FIXME 64bit
+                name = "loc_%.8x" % tova
 
             mcanv.addText(" (")
             mcanv.addText(name, tag=totag)

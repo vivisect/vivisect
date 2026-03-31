@@ -1072,7 +1072,12 @@ class PE(object):
                 entry_name_rva = self.vaToRva(entry_name)
 
             # RP BUG FIX - we can't assume that we have 256 bytes to read
-            libname = self.readStringAtRva(entry_name_rva, maxsize=256).decode('utf-8')
+            try:
+                libname = self.readStringAtRva(entry_name_rva, maxsize=256).decode('utf-8')
+            except UnicodeDecodeError:
+                # if we're getting decode errors, then we're probably not reading real string data
+                # and the table is probably corrupt, so bail.
+                break
             idx = 0
 
             if flavor == "import table":

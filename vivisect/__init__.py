@@ -185,6 +185,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.addVaSet('thunk_reg', ( ('fva', VASET_ADDRESS), ('reg', VASET_STRING), ('tgtval', VASET_INTEGER)) )
         self.addVaSet('ResolvedImports', (('va',VASET_ADDRESS), ('symbol', VASET_STRING),
                 ('resolved address', VASET_ADDRESS)))
+        self.addVaSet("Null Offset Functions", (("Comment", VASET_STRING), ("va", VASET_ADDRESS)))
 
     def vprint(self, msg):
         logger.info(msg)
@@ -668,8 +669,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise Exception("_clientThread() with no server?!?!")
 
         while self.server is not None:
-            event, einfo = self.server.waitForEvent(self.rchan)
-            self._fireEvent(event, einfo, local=True)
+            try:
+                event, einfo = self.server.waitForEvent(self.rchan, timeout=10)
+                self._fireEvent(event, einfo, local=True)
+            except queue.Empty:
+                # Timed out waiting for events; loop back and
+                # re-check self.server before blocking again.
+                pass
 
     def waitForEvent(self, chanid, timeout=None):
         """
@@ -1965,9 +1971,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         tova, reftype, rflags = self.arch.archModifyXrefAddr(tova, reftype, rflags)
 
         ref = (fromva, tova, reftype, rflags)
-        if ref in self.getXrefsFrom(fromva):
-            return
-        self._fireEvent(VWE_ADDXREF, (fromva, tova, reftype, rflags))
+
+        # Update rflag if existing ref is already there.
+        for existing_ref in self.getXrefsFrom(fromva):
+            if ref == existing_ref:
+                return
+            if ref[:-1] == existing_ref[:-1]:
+                ref = ref[:-1] + (ref[-1] | existing_ref[-1],)  # merge rflags
+                if ref == existing_ref:
+                    return
+                self._fireEvent(VWE_DELXREF, existing_ref)
+                break
+
+        self._fireEvent(VWE_ADDXREF, ref)
 
     def delXref(self, ref):
         """
@@ -3359,6 +3375,6 @@ def getVivPath(*pathents):
 ##############################################################################
 # The following are touched during the release process by bump2version.
 # You should have no reason to modify these directly
-version = (1, 2, 1)
+version = (1, 3, 2)
 verstring = '.'.join([str(x) for x in version])
 commit = ''
