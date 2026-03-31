@@ -2061,6 +2061,7 @@ def p_ls_reg_us_imm(opval, va):
         )
         
     else:
+        rt += REGS_VECTOR_BASE_IDX
         if opc & 1:
             mnem = 'ldr'
             opcode = INS_LDR
@@ -7811,6 +7812,179 @@ def p_crypto_two_sha(opval, va):
     return opcode, mnem, olist, 0, 0
     
 
+sve_mnem_table = ['st1b', 'st1h', 'st1w', 'st1d']
+sve_opcode_table = (INS_ST1B, INS_ST1H, INS_ST1W, INS_ST1D)
+sve_mnem_table2 = ('st2b', 'st2h', 'st2w', 'st2d')
+sve_opcode_table2 = (INS_ST2B, INS_ST2H, INS_ST2W, INS_ST2D)
+sve_mnem_table3 = ('st3b', 'st3h', 'st3w', 'st3d')
+sve_opcode_table3 = (INS_ST3B, INS_ST3H, INS_ST3W, INS_ST3D)
+sve_mnem_table4 = ('st4b', 'st4h', 'st4w', 'st4d')
+sve_opcode_table4 = (INS_ST4B, INS_ST4H, INS_ST4W, INS_ST4D)
+
+SVE_MNEM_TBLS = (sve_mnem_table, None, sve_mnem_table2, sve_mnem_table3, sve_mnem_table4)
+SVE_OPCODE_TBLS = (sve_opcode_table, None, sve_opcode_table2, sve_opcode_table3, sve_opcode_table4)
+
+nt_mnem_table = ['stnt1b', 'stnt1h', 'stnt1w', 'stnt1d']
+nt_opcode_table = [INS_STNT1B, INS_STNT1H, INS_STNT1W, INS_STNT1D]
+
+def p_sve_mem_contig_store_unsized_contig(opval, va):
+    '''
+    SVE Memory - Contiguous Store (scalar plus scalar and scalar plus immediate)
+    
+    This encoding covers:
+    - ST1B, ST1H, ST1W, ST1D (single element stores)
+    - ST2B, ST2H, ST2W, ST2D (two-element structure stores)
+    - ST3B, ST3H, ST3W, ST3D (three-element structure stores)
+    - ST4B, ST4H, ST4W, ST4D (four-element structure stores)
+    - STNT1B, STNT1H, STNT1W, STNT1D (non-temporal stores)
+    
+    Encoding format (bits 31:25 = 1110010):
+    31 30 29 28 27 26 25 24 23 22 21 20-16 15-13 12-10 9-5 4-0
+     1  1  1  0  0  1  0  x  msz  opc  Rm   xxx   Pg   Rn  Zt
+    '''
+    # Extract common fields
+    msz = (opval >> 22) & 0x3       # bits 23:22 - memory element size
+    opc = (opval >> 21) & 0x1      # bit 21 - operation code / num structures
+    rm_imm = (opval >> 16) & 0x1f  # bits 20:16 - Rm register or immediate
+    op2 = (opval >> 13) & 0x7      # bits 15:13 - sub-encoding
+    pg = (opval >> 10) & 0x7       # bits 12:10 - predicate register
+    rn = (opval >> 5) & 0x1f       # bits 9:5 - base register
+    zt = opval & 0x1f              # bits 4:0 - first vector register
+    bit24 = (opval >> 24) & 0x1    # bit 24 - structure type indicator
+    
+    # Element size suffixes based on msz
+    esize_suffix = ['b', 'h', 's', 'd'][msz]
+    esize = 2 ** msz
+    
+    # Determine instruction type based on op2 (bits 15:13)
+    if op2 == 0b010:
+        # SVE contiguous store (scalar plus scalar)
+        # Format: ST1x {Zt.T}, Pg, [Xn, Xm]
+        if bit24 == 0 and opc == 0:
+            # ST1B/ST1H/ST1W/ST1D
+            mnem = sve_mnem_table[msz]
+            opcode = sve_opcode_table[msz]
+            
+            olist = (
+                A64SveZRegOper(zt, va, size=esize),
+                A64SvePRegOper(pg, va),
+                A64SveMemOper(rn, offset_reg=rm_imm, va=va),
+            )
+        else:
+            # Unhandled variant
+            return p_undef(opval, va)
+            
+    elif op2 == 0b011:
+        # SVE store multiple structures (scalar plus scalar)
+        # ST2, ST3, ST4 variants
+        if bit24 == 1:
+            # Determine number of structures from opc and bit 20
+            num_structs = ((opval >> 20) & 0x3) + 1  # 2, 3, or 4
+            if num_structs < 2 or num_structs > 4:
+                return p_undef(opval, va)
+            
+            rm = rm_imm & 0x1f
+            
+            mnem = SVE_MNEM_TBLS[num_structs][msz]
+            opcode = SVE_OPCODE_TBLS[num_structs][msz]
+            
+            # Build register list operand
+            zregs = [A64SveZRegOper((zt + i) % 32, va, size=esize) 
+                     for i in range(num_structs)]
+            
+            olist = tuple(zregs) + (
+                A64SvePRegOper(pg, va),
+                A64SveMemOper(rn, offset_reg=rm, va=va),
+            )
+        else:
+            return p_undef(opval, va)
+            
+    elif op2 == 0b111:
+        # SVE contiguous store (scalar plus immediate)
+        # Format: ST1x {Zt.T}, Pg, [Xn{, #imm, MUL VL}]
+        if bit24 == 0 and opc == 0:
+            # ST1B/ST1H/ST1W/ST1D with immediate offset
+            mnem = mnem_table[msz]
+            opcode = opcode_table[msz]
+            
+            # Immediate is a signed 4-bit value (-8 to 7) multiplied by VL
+            imm4 = rm_imm & 0xf
+            if imm4 >= 8:
+                imm4 -= 16  # Sign extend
+            
+            olist = (
+                A64SveZRegOper(zt, va, esize=esize_suffix),
+                A64SvePRegOper(pg, va),
+                A64SveMemOper(rn, offset_imm=imm4, mul_vl=True, va=va),
+            )
+        else:
+            return p_undef(opval, va)
+            
+    elif op2 == 0b100:
+        # SVE store multiple structures (scalar plus immediate)
+        if bit24 == 1:
+            num_structs = ((opval >> 20) & 0x3) + 1
+            if num_structs < 2 or num_structs > 4:
+                return p_undef(opval, va)
+                
+            imm4 = rm_imm & 0xf
+            if imm4 >= 8:
+                imm4 -= 16
+            
+            mnem = SVE_MNEM_TBLS[num_structs][msz]
+            opcode = SVE_OPCODE_TBLS[num_structs][msz]
+            
+            
+            zregs = [A64SveZRegOper((zt + i) % 32, va, esize=esize_suffix) 
+                     for i in range(num_structs)]
+            
+            olist = tuple(zregs) + (
+                A64SvePRegOper(pg, va),
+                A64SveMemOper(rn, offset_imm=imm4, mul_vl=True, va=va),
+            )
+        else:
+            return p_undef(opval, va)
+            
+    elif op2 == 0b110:
+        # SVE contiguous non-temporal store (scalar plus scalar)
+        # STNT1B, STNT1H, STNT1W, STNT1D
+        if bit24 == 0 and opc == 0:
+            mnem = nt_mnem_table[msz]
+            opcode = nt_opcode_table[msz]
+            
+            olist = (
+                A64SveZRegOper(zt, va, esize=esize_suffix),
+                A64SvePRegOper(pg, va),
+                A64SveMemOper(rn, offset_reg=rm_imm, va=va),
+            )
+        else:
+            return p_undef(opval, va)
+            
+    elif op2 == 0b101:
+        # SVE contiguous non-temporal store (scalar plus immediate)
+        if bit24 == 0 and opc == 0:
+            mnem = nt_mnem_table[msz]
+            opcode = nt_opcode_table[msz]
+            
+            imm4 = rm_imm & 0xf
+            if imm4 >= 8:
+                imm4 -= 16
+            
+            olist = (
+                A64SveZRegOper(zt, va, esize=esize_suffix),
+                A64SvePRegOper(pg, va),
+                A64SveMemOper(rn, offset_imm=imm4, mul_vl=True, va=va),
+            )
+        else:
+            return p_undef(opval, va)
+            
+    else:
+        # Unknown sub-encoding
+        return p_undef(opval, va)
+    
+    return (opcode, mnem, olist, 0, 0)
+
+
 def p_sme_outer_product_64_bit(opval, va):  pass
 def p_sme_fp_outer_product_32_bit(opval, va):   pass
 def p_sme2_binary_outer_product_32_bit(opval, va):  pass
@@ -7959,6 +8133,7 @@ ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_AND_SINGLE_ARRAY_VECTORS] = p_
 ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_ARRAY_VECTORS_TWO_REGISTERS] = p_sme2_multi_vector_multiple_array_vectors_two_registers
 ienc_parsers_tmp[ IENC_SME2_MULTI_VECTOR_MULTIPLE_ARRAY_VECTORS_FOUR_REGISTERS] = p_sme2_multi_vector_multiple_array_vectors_four_registers
 ienc_parsers_tmp[ IENC_SME_MEMORY] = p_sme_memory
+ienc_parsers_tmp[IENC_SVE_MEM_CONTIG_STORE_UNSIZED_CONTIG] = p_sve_mem_contig_store_unsized_contig
 ienc_parsers_tmp[IENC_UNDEF] = p_udf
 ienc_parsers_tmp[IENC_RESERVED] = p_udf
 
@@ -8586,6 +8761,119 @@ class A64BranchOper(A64Operand):
         #tname = "0x%.8x" % targ
         tname = "#" + hex(targ)
         return tname
+
+
+class A64SveZRegOper(A64RegOper):
+    '''
+    SVE Scalable Vector Register operand (z0-z31).
+    These registers share the same physical storage as v0-v31 but
+    with scalable width (128-2048 bits depending on implementation).
+    '''
+    def __init__(self, zreg, va=0, size=None):
+        '''
+        Args:
+            zreg: SVE Z register number (0-31)
+            va: Virtual address
+            esize: Element size suffix (None, 'b', 'h', 's', 'd', 'q')
+        '''
+        regidx = zreg + REGS_VECTOR_BASE_IDX
+        if size:
+            regidx = (size << 16) + regidx
+
+        # should we do META only here?  This feels like a solved problem just using metaregisters....
+
+        A64RegOper.__init__(self, regidx, size=size, va=va)
+
+        #self.zreg = zreg
+        #self.va = va
+        #self.esize = esize
+
+    def __eq__(self, oper):
+        if not isinstance(oper, self.__class__):
+            return False
+        return self.reg == oper.reg and self.size == oper.size
+
+class A64SvePRegOper(A64RegOper):
+    '''
+    SVE Predicate Register operand (p0-p15).
+    Used for predicated operations in SVE.
+    '''
+    def __init__(self, preg, va=0, qualifier=None):
+        '''
+        Args:
+            preg: SVE P register number (0-15)
+            va: Virtual address
+            qualifier: Optional qualifier (e.g., '/z' for zeroing, '/m' for merging)
+        '''
+        regidx = preg + REGS_PREDICATE_BASE_IDX
+        A64RegOper.__init__(self, regidx, size=size, va=va)
+
+
+class A64SveMemOper(A64DerefOperand):
+    '''
+    SVE Memory operand for contiguous loads/stores.
+    Format: [<Xn|SP>{, <Xm>}] or [<Xn|SP>{, #<imm>, MUL VL}]
+    '''
+    def __init__(self, base_reg, offset_reg=None, offset_imm=None, mul_vl=False, va=0):
+        '''
+        Args:
+            base_reg: Base register number (Xn or SP)
+            offset_reg: Offset register number (Xm) for scalar+scalar form
+            offset_imm: Immediate offset for scalar+immediate form
+            mul_vl: True if offset is multiplied by VL (vector length)
+            va: Virtual address
+        '''
+        self.base_reg = base_reg
+        self.offset_reg = offset_reg
+        self.offset_imm = offset_imm
+        self.mul_vl = mul_vl
+        self.va = va
+
+    def isDeref(self):
+        return True
+
+    def repr(self, op):
+        if self.base_reg == 31:
+            base_name = 'sp'
+        else:
+            base_name = 'x%d' % self.base_reg
+
+        if self.offset_reg is not None:
+            # Scalar + scalar form: [Xn, Xm]
+            if self.offset_reg == 31:
+                off_name = 'xzr'
+            else:
+                off_name = 'x%d' % self.offset_reg
+            return '[%s, %s]' % (base_name, off_name)
+        elif self.offset_imm is not None and self.offset_imm != 0:
+            # Scalar + immediate form: [Xn, #imm, MUL VL]
+            if self.mul_vl:
+                return '[%s, #%d, mul vl]' % (base_name, self.offset_imm)
+            else:
+                return '[%s, #%d]' % (base_name, self.offset_imm)
+        else:
+            # Base only: [Xn]
+            return '[%s]' % base_name
+
+    def render(self, mcanv, op, idx):
+        mcanv.addText('[')
+        if self.base_reg == 31:
+            mcanv.addNameText('sp', typename='registers')
+        else:
+            mcanv.addNameText('x%d' % self.base_reg, typename='registers')
+
+        if self.offset_reg is not None:
+            mcanv.addText(', ')
+            if self.offset_reg == 31:
+                mcanv.addNameText('xzr', typename='registers')
+            else:
+                mcanv.addNameText('x%d' % self.offset_reg, typename='registers')
+        elif self.offset_imm is not None and self.offset_imm != 0:
+            mcanv.addText(', #%d' % self.offset_imm)
+            if self.mul_vl:
+                mcanv.addText(', mul vl')
+
+        mcanv.addText(']')
 
 
 class A64Opcode(envi.Opcode):

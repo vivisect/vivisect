@@ -109,13 +109,6 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             self.logAnomaly(emu, self.fva, "0x%x: (%r) ERROR: %s" % (op.va, op, e))
             logger.warning("0x%x: (%r)  ERROR: %s", op.va, op, e)
 
-    def posthook(self, emu, op, starteip):
-        if op.opcode == INS_MOVT:
-            val = op.getOperValue(0, emu=emu)
-            emu.vw.setSymHint(op.va, OP_SYMHINT_IDX, val)
-            if emu.isValidPointer(val):
-                emu.vw.addXref(op.va, val, vivisect.REF_PTR)
-
 argnames = {
     0: ('x0', 0),
     1: ('x1', 1),
