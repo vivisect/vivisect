@@ -65,6 +65,9 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         if self.editable is None:
             self.editable = [False,] * len(self.columns)
 
+        self._sort_column = 0
+        self._sort_order = QtCore.Qt.SortOrder.AscendingOrder
+
     def vqEdited(self, pnode, col, value):
         return value
 
@@ -77,7 +80,12 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         self.beginInsertRows(pidx, i, i)
         node = parent.append(rowdata)
         self.endInsertRows()
-        self.layoutChanged.emit()
+
+        if self._sort_column is not None:
+            self.sort(self._sort_column, self._sort_order)
+        else:
+            self.layoutChanged.emit()
+
         return node
 
     def vqDelRow(self, rowdata, parent=None):
@@ -86,9 +94,12 @@ class VQTreeModel(QtCore.QAbstractItemModel):
 
         parent.delete(rowdata)
 
-    def sort(self, colnum, order=0):
+    def sort(self, colnum, order=QtCore.Qt.SortOrder.AscendingOrder):
+        self._sort_column = colnum
+        self._sort_order = order
         self.layoutAboutToBeChanged.emit()
-        self.rootnode.children.sort(key=lambda k: k.rowdata[colnum], reverse=bool(order))
+        reverse = (order == QtCore.Qt.SortOrder.DescendingOrder)
+        self.rootnode.children.sort(key=lambda k: k.rowdata[colnum], reverse=reverse)
         self.layoutChanged.emit()
 
     def flags(self, index):
@@ -207,4 +218,8 @@ class VQTreeView(QTreeView):
     def setModel(self, model):
         model.dataChanged.connect( self.dataChanged )
         model.rowsInserted.connect( self.rowsInserted )
-        return QTreeView.setModel(self, model)
+        ret = QTreeView.setModel(self, model)
+        # Qt6's header defaults to descending when sorting is enabled;
+        # force ascending on column 0 to match user expectations.
+        self.sortByColumn(0, QtCore.Qt.SortOrder.AscendingOrder)
+        return ret

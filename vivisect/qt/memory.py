@@ -80,6 +80,12 @@ class VivCanvasBase(vq_hotkey.HotKeyMixin, e_mem_canvas.VQMemoryCanvas):
     def eventFilter(self, src, evt):
         if evt.type() == QtCore.QEvent.Type.KeyPress:
             return self.eatKeyPressEvent(evt)
+        # In PyQt6, QWebEngineView routes wheel events to its internal
+        # child widget, bypassing wheelEvent() on the parent view.
+        # Catch them here so scrollEvent() can load more memory.
+        if evt.type() == QtCore.QEvent.Type.Wheel:
+            if hasattr(self, 'scrollEvent'):
+                self.scrollEvent()
         return False
 
     def vivColorMap(self, event, einfo):

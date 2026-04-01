@@ -61,6 +61,18 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
             # (this was the cause of the edge lines not highlighting on mouse over)
             self._mouseMoveEvent(evt)
             return False
+        if evt.type() == QtCore.QEvent.Type.KeyPress:
+            # Try canvas hotkeys first, then parent view hotkeys.
+            # In PyQt6, QWebEngineView's internal widget consumes keys
+            # like Ctrl+=/Ctrl+-/Ctrl+0 as browser zoom before they
+            # can reach the parent, so we must intercept them here.
+            if self.eatKeyPressEvent(evt):
+                return True
+            parent = self.parent()
+            if parent is not None and hasattr(parent, 'eatKeyPressEvent'):
+                if parent.eatKeyPressEvent(evt):
+                    return True
+            return False
         return vq_memory.VivCanvasBase.eventFilter(self, src, evt)
 
     def _wheelEvent(self, event):
