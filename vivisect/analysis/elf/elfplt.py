@@ -204,6 +204,7 @@ def analyzePLT(vw, ssva, ssize):
             return
 
         while sva < nextseg:
+            skip = False
             logger.debug('analyzePLT(0x%x, 0x%x) first pass:  sva: 0x%x   nextseg: 0x%x', ssva, ssize, sva, nextseg)
             if vw.getLocation(sva) is None:
                 logger.debug('making code: 0x%x', sva)
@@ -234,8 +235,15 @@ def analyzePLT(vw, ssva, ssize):
                         tbrref = op.opers[-1].getOperAddr(op, emu=emu)
                         realplt = not bool(tbrva == ssva)
 
+                        if tbrref is None:
+                            if tbrva:
+                                logger.debug("Skipping branch as target branch reference is None (op: 0x%x   tgt: 0x%x)", lva, tbrva)
+                            else:
+                                logger.debug("Skipping branch as target branch reference is None (op: 0x%x)", lva)
+                            skip = True
+
                         # since the above check will "fail open", refine check if True
-                        if realplt:
+                        if realplt and not skip:
                             loc = vw.getLocation(tbrref)
                             tgt_seg = vw.getSegment(tbrref)
 
@@ -281,7 +289,8 @@ def analyzePLT(vw, ssva, ssize):
                         branchvas.append((op.va, realplt, tbrva, op))
 
                     # after analyzing the situation, emulate the opcode
-                    emu.executeOpcode(op)
+                    if not skip:
+                        emu.executeOpcode(op)
 
                 sva += lsz
                 logger.debug('incrementing to next va: 0x%x', sva)
@@ -290,7 +299,7 @@ def analyzePLT(vw, ssva, ssize):
                 sva += 1
 
     except Exception as e:
-        logger.error('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
+        logger.exception('analyzePLT(0x%x, %r): %s', ssva, ssize, str(e))
 
 
 MAX_OPS = 10

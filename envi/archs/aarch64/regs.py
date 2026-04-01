@@ -97,6 +97,12 @@ for simdreg in range(VFP_QWORD_REG_COUNT):
     aarch64_metas.append(("h%d" % (s),   simd_idx, 0, 16))
     aarch64_metas.append(("b%d" % (s),   simd_idx, 0, 8))
 
+REGS_PREDICATE_BASE_IDX = len(reg_data)
+for pregidx in range(16):
+    reg_data.append(("p%d" % pregidx, 256))     # Predicate registers are scalable, from 16-bits to 256-bits
+                                                # based on the SVE register size (from 128-bits->2048-bits)
+
+
 l = locals()
 e_reg.addLocalEnums(l, aarch64_regs_tups)
 REG_LR = REG_X30
