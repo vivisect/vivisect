@@ -23,7 +23,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
         Please see the base emulator class in vivisect/impemu/emulator.py for the parameters
         that can be passed through kwargs
         '''
-        e_arm.ArmEmulator.__init__(self)
+        e_arm.emu.ArmEmulator.__init__(self)
         v_i_emulator.WorkspaceEmulator.__init__(self, vw, **kwargs)
         self.setMemArchitecture(envi.ARCH_ARMV7)
 
@@ -32,10 +32,10 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
             self._prep(va)
 
     def setThumbMode(self, thumb=1):
-        e_arm.ArmEmulator.setThumbMode(self, thumb)
+        e_arm.emu.ArmEmulator.setThumbMode(self, thumb)
 
     def setArmMode(self, arm=1):
-        e_arm.ArmEmulator.setArmMode(self, arm)
+        e_arm.emu.ArmEmulator.setArmMode(self, arm)
 
     def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
         '''
