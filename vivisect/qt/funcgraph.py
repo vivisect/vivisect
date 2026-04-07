@@ -23,9 +23,10 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
-from PyQt5 import Qt, QtCore, QtGui, QtWebEngine, QtWidgets
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtGui import QAction, QShortcut
+from PyQt6.QtWidgets import *
 
 from envi.threads import firethread
 from vqt.main import idlethread, eatevents, workthread, vqtevent
@@ -45,26 +46,38 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
     # These have changed because QtWebEngine suxxs: https://bugreports.qt.io/browse/QTBUG-43602
     def event(self, evt):
-        if evt.type() == Qt.QEvent.ChildAdded:
+        if evt.type() == QtCore.QEvent.Type.ChildAdded:
             evt.child().installEventFilter(self)
-        elif evt.type() == Qt.QEvent.ChildRemoved:
+        elif evt.type() == QtCore.QEvent.Type.ChildRemoved:
             evt.child().removeEventFilter(self)
         return vq_memory.VivCanvasBase.event(self, evt)
 
     def eventFilter(self, src, evt):
-        if evt.type() == Qt.QEvent.Wheel:
+        if evt.type() == QtCore.QEvent.Type.Wheel:
             return self._wheelEvent(evt)
-        if evt.type() == Qt.QEvent.MouseMove:
+        if evt.type() == QtCore.QEvent.Type.MouseMove:
             # Intercept mouse movements because frickin qt broke those for our shift scrolling,
             # but return False so we don't block the event from propagating to other event handlers
             # (this was the cause of the edge lines not highlighting on mouse over)
             self._mouseMoveEvent(evt)
             return False
+        if evt.type() == QtCore.QEvent.Type.KeyPress:
+            # Try canvas hotkeys first, then parent view hotkeys.
+            # In PyQt6, QWebEngineView's internal widget consumes keys
+            # like Ctrl+=/Ctrl+-/Ctrl+0 as browser zoom before they
+            # can reach the parent, so we must intercept them here.
+            if self.eatKeyPressEvent(evt):
+                return True
+            parent = self.parent()
+            if parent is not None and hasattr(parent, 'eatKeyPressEvent'):
+                if parent.eatKeyPressEvent(evt):
+                    return True
+            return False
         return vq_memory.VivCanvasBase.eventFilter(self, src, evt)
 
     def _wheelEvent(self, event):
         mods = QApplication.keyboardModifiers()
-        if mods == QtCore.Qt.ShiftModifier:
+        if mods == QtCore.Qt.KeyboardModifier.ShiftModifier:
             delta = event.angleDelta().y()
             factord = delta / 1000.0
             self.setZoomFactor(self.zoomFactor() + factord)
@@ -79,9 +92,9 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
     def _mouseMoveEvent(self, event):
         mods = QApplication.keyboardModifiers()
-        if mods == QtCore.Qt.ShiftModifier:
-            x = event.globalX()
-            y = event.globalY()
+        if mods == QtCore.Qt.KeyboardModifier.ShiftModifier:
+            x = int(event.globalPosition().x())
+            y = int(event.globalPosition().y())
             if self.lastpos:
                 dx = -(x - self.lastpos[0])
                 dy = -(y - self.lastpos[1])
@@ -165,7 +178,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
         self.viewmenu.addAction("Paint Down", ACT(self.paintDown.emit))
         self.viewmenu.addAction("Paint Down until remerge", ACT(self.paintMerge.emit))
 
-        menu.exec_(event.globalPos())
+        menu.exec(event.globalPos())
 
     def _navExpression(self, expr):
         if self._canv_navcallback:
@@ -269,7 +282,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         vwqgui.addEventCore(self)
         vwqgui.vivMemColorSignal.connect(self.mem_canvas._applyColorMap)
 
-        QtWidgets.QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=3)
+        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=QtCore.Qt.ShortcutContext.WidgetWithChildrenShortcut)
 
         # TODO: Transition these to the above pattern (since escape/ctrl-c)
         # See: https://stackoverflow.com/questions/56890831/qwidget-cannot-catch-escape-backspace-or-c-x-key-press-events
@@ -315,7 +328,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
         
     def rendToolsMenu(self, event):
         menu = self.getRendToolsMenu()
-        menu.exec_(self.mapToGlobal(self.rend_tools.pos()))
+        menu.exec(self.mapToGlobal(self.rend_tools.pos()))
 
     def getRendToolsMenu(self):
         menu = QMenu(parent=self.rend_tools)
