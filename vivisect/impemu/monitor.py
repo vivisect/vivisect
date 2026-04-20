@@ -104,6 +104,7 @@ class AnalysisMonitor(EmulationMonitor):
                 vw.guessDataPointer(val, tsize)
 
         imports = self.vw.getImports()
+        # TODO: Be pretty baller if we had an index for imports by VA and name...
         for va, callname, argv in self.callcomments:
             reprargs = [emu.reprVivValue(val) for val in argv]
             self.vw.setComment(va, '%s(%s)' % (callname, ','.join(reprargs)))

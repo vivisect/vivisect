@@ -1192,7 +1192,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if loctup is not None and loctup[L_TINFO] and loctup[L_LTYPE] == LOC_OP:
                 arch = loctup[L_TINFO]
 
-        amod = self.imem_archs[(arch & envi.ARCH_MASK) >> 16]
+        # amod = self.imem_archs[(arch & envi.ARCH_MASK) >> 16]
+        amod = self.getMemArchModule(arch=arch)
         # TODO: Consider reserving another key so architectures can pass down info specific to them
         extra = {
             'platform': self.getMeta('Platform')
@@ -2476,9 +2477,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             return list(self.loclist)
 
         if linfo is None:
-            return [ loc for loc in self.loclist if loc[2] == ltype ]
+            return [loc for loc in self.loclist if loc[2] == ltype]
 
-        return [ loc for loc in self.loclist if (loc[2] == ltype and loc[3] == linfo) ]
+        return [loc for loc in self.loclist if (loc[2] == ltype and loc[3] == linfo)]
 
     def isLocation(self, va, range=False):
         """

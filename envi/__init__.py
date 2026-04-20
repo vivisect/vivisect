@@ -2,8 +2,6 @@
 The Envi framework allows architecture abstraction through the use of the
 ArchitectureModule, Opcode, Operand, and Emulator objects.
 '''
-import os
-import sys
 import copy
 import types
 import struct
@@ -872,22 +870,6 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
 
-    def setEndian(self, endian):
-        '''
-        Sets Endianness for the Emulator.
-        '''
-        for arch in self.imem_archs:
-            # imem_archs may be sparse, with gaps of None
-            if not arch:
-                continue
-            arch.setEndian(endian)
-
-    def getEndian(self):
-        '''
-        Returns the current Endianness for the emulator
-        '''
-        return self.imem_archs[0].getEndian()
-
     def getMeta(self, name, default=None):
         return self.metadata.get(name, default)
 
@@ -898,7 +880,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self.metadata[name] = value
 
     def getArchModule(self):
-        raise Exception('Emulators *must* implement getArchModule()!')
+        raise NotImplementedError('Emulators *must* implement getArchModule()!')
 
     def getEmuSnap(self):
         """
@@ -908,10 +890,10 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         """
         regs = self.getRegisterSnap()
         mem = self.getMemorySnap()
-        return regs,mem
+        return regs, mem
 
     def setEmuSnap(self, snap):
-        regs,mem = snap
+        regs, mem = snap
         self.setRegisterSnap(regs)
         self.setMemorySnap(mem)
 
@@ -1557,6 +1539,7 @@ def getArchByName(archname):
     '''
     return arch_by_name_and_aliases.get(archname.lower())
 
+# TODO: misleading name
 def getArchById(archid):
     '''
     Get the architecture name by the constant.
@@ -1602,10 +1585,10 @@ def getArchNames():
     This is helpful for accessing and displaying available architectures, since we now
     allow definitions of architectures which may not be enabled or implemented.
 
-    Returns:   dict of { archnum: archname } 
+    Returns:   dict of { archnum: archname }
     """
     return {arch: name for (name, arch) in arch_by_name.items() if not arch_defs.get(arch).get('disabled')}
-    
+
 
 def getArchModule(name=None):
     """
@@ -1640,7 +1623,7 @@ def getArchModule(name=None):
     # instantiate the ArchitectureModule
     cls = getattr(module, amodname)
     archmod = cls()
-    
+
     return archmod
 
 
@@ -1652,7 +1635,7 @@ def getArchModules(default=ARCH_DEFAULT):
     archs = []
     for arch, adict in arch_defs.items():
         name = adict.get('name')
-        archidx = arch>>16
+        archidx = arch >> 16
         try:
             archmod = getArchModule(name)
 

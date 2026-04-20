@@ -460,7 +460,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     def _handleENDIAN(self, einfo):
         self.bigend = einfo
-        for arch in self.imem_archs:
+        for arch in self.imem_archs.items():
             if not arch:
                 continue
             arch.setEndian(self.bigend)
