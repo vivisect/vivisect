@@ -225,7 +225,7 @@ class CobraSocket:
             self.loads = jsonloads
 
     def __del__(self):
-        if hasattr(self, 'socket') and self.socket is not None:
+        if self.socket is not None:
             try:
                 self.socket.close()
             except (OSError, AttributeError):
