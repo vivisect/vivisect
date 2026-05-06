@@ -9,8 +9,8 @@ form of a .py file or a directory with a __init__.py
 file.  Either way, the module will be loaded into
 memory and the "vivExtension" function called.
 '''
-from PyQt5.QtWidgets import QToolBar, QLabel, QPushButton, QTextEdit, QWidget, QInputDialog
-from PyQt5 import QtCore
+from PyQt6.QtWidgets import QToolBar, QLabel, QPushButton, QTextEdit, QWidget, QInputDialog
+from PyQt6 import QtCore
 
 from vqt.main import idlethread
 from vqt.basics import VBox
@@ -100,7 +100,7 @@ class Crap:
 def vivExtension(vw, vwgui):
     # Create a toolbar and add it to the GUI
     toolbar = ExampleToolbar(vw, vwgui)
-    vwgui.addToolBar(QtCore.Qt.TopToolBarArea, toolbar)
+    vwgui.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, toolbar)
 
     # Create a new Vivisect Dock Window (based on a QWidget)
     window = ExampleWindow(vw, vwgui)
