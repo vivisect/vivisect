@@ -2,6 +2,9 @@ import time
 import unittest
 import itertools
 import threading
+import logging
+
+logger = logging.getLogger(__name__)
 
 import cobra
 import cobra.auth as c_auth
