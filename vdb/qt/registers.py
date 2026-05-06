@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QVBoxLayout
+from PyQt6.QtWidgets import QVBoxLayout
 
 import vtrace.qt
 import vdb.qt.base

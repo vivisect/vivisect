@@ -3,9 +3,9 @@ import logging
 import envi.threads as e_thread
 
 # Some common GUI helpers
-from PyQt5 import QtCore 
-from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtWidgets import QTreeView, QDialog, QLineEdit, QComboBox, QVBoxLayout, QHBoxLayout, QDialogButtonBox, QLabel, QMessageBox
+from PyQt6 import QtCore 
+from PyQt6.QtGui import QRegularExpressionValidator
+from PyQt6.QtWidgets import QTreeView, QDialog, QLineEdit, QComboBox, QVBoxLayout, QHBoxLayout, QDialogButtonBox, QLabel, QMessageBox
 from vqt.main import idlethread
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,7 @@ class VqtModel(QtCore.QAbstractItemModel):
         return len(self.columns)
 
     def headerData(self, column, orientation, role):
-        if (orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole):
+        if (orientation == QtCore.Qt.Orientation.Horizontal and role == QtCore.Qt.ItemDataRole.DisplayRole):
             return self.columns[column]
         return None
 
@@ -86,10 +86,10 @@ class VqtModel(QtCore.QAbstractItemModel):
         flags = QtCore.QAbstractItemModel.flags(self, index)
         col = index.column()
         if self.editable[col]:
-            flags |= QtCore.Qt.ItemIsEditable
+            flags |= QtCore.Qt.ItemFlag.ItemIsEditable
 
         if self.dragable:
-            flags |= QtCore.Qt.ItemIsDragEnabled# | QtCore.Qt.ItemIsDropEnabled
+            flags |= QtCore.Qt.ItemFlag.ItemIsDragEnabled# | QtCore.Qt.ItemIsDropEnabled
 
         return flags
 
@@ -97,9 +97,9 @@ class VqtModel(QtCore.QAbstractItemModel):
         #if not index.isValid():
             #return None
         #item = index.internalPointer()
-        #if role == QtCore.Qt.DisplayRole:
+        #if role == QtCore.Qt.ItemDataRole.DisplayRole:
             #return item.data(index.column())
-        #if role == QtCore.Qt.UserRole:
+        #if role == QtCore.Qt.ItemDataRole.UserRole:
             #return item
         #return None
 
@@ -117,13 +117,13 @@ class VqtModel(QtCore.QAbstractItemModel):
         self.endInsertRows()
         self.layoutChanged.emit()
 
-    def setData(self, index, value, role=QtCore.Qt.EditRole):
+    def setData(self, index, value, role=QtCore.Qt.ItemDataRole.EditRole):
 
         if not index.isValid():
             return False
 
         # If this is the edit role, fire the vqEdited thing
-        if role == QtCore.Qt.EditRole:
+        if role == QtCore.Qt.ItemDataRole.EditRole:
             #value = self.vqEdited(node, index.column(), value)
             #if value is None:
                 #return False
@@ -224,7 +224,7 @@ class DynamicDialog(QDialog):
         self.resize(width, height)
         self.vbox = QVBoxLayout()
         self.setLayout(self.vbox)
-        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel);
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel);
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
@@ -279,7 +279,7 @@ class DynamicDialog(QDialog):
     def addIntHexField(self, fieldname, dflt=None, title=None):
         '''
         Adds a number field to the dialog.  It's a QLineEdit field with a 
-        QRegExpValidator, using regex for Hexidecimal numbers, which also
+        QRegularExpressionValidator, using regex for Hexidecimal numbers, which also
         allows for Decimal.  
         Returned value is an int.
         The value is interpreted as decimal (ie. int(foo)) unless non-numeric digits 
@@ -290,7 +290,7 @@ class DynamicDialog(QDialog):
                     % (fieldname, self.items.get(fieldname)))
 
         le = QLineEdit()
-        le.setValidator(QRegExpValidator(QtCore.QRegExp("^(-)?(0x)?[0-9a-fA-F]+$")))
+        le.setValidator(QRegularExpressionValidator(QtCore.QRegularExpression("^(-)?(0x)?[0-9a-fA-F]+$")))
         self.items[fieldname] = (self._INTHEX, le)
 
         if dflt is not None:
@@ -309,7 +309,7 @@ class DynamicDialog(QDialog):
         dialog to the user.  Then removes the buttonBox.
         '''
         self.vbox.addWidget(self.buttonBox);
-        res = self.exec_()
+        res = self.exec()
         self.vbox.removeWidget(self.buttonBox);
 
         retval = {}
@@ -341,8 +341,8 @@ def warning(msg, info):
     msgbox.setWindowTitle('Warn: %s' % msg)
     msgbox.setText('Warn: %s' % msg)
     msgbox.setInformativeText(info)
-    msgbox.setIcon(QMessageBox.Warning)
-    msgbox.exec_()
+    msgbox.setIcon(QMessageBox.Icon.Warning)
+    msgbox.exec()
 
 @idlethread
 def information(msg, info):
@@ -350,8 +350,8 @@ def information(msg, info):
     msgbox.setWindowTitle('%s' % msg)
     msgbox.setText('%s' % msg)
     msgbox.setInformativeText(info)
-    msgbox.setIcon(QMessageBox.Information)
-    msgbox.exec_()
+    msgbox.setIcon(QMessageBox.Icon.Information)
+    msgbox.exec()
 
 @idlethread
 def scripterr(msg, info):
@@ -359,5 +359,5 @@ def scripterr(msg, info):
     msgbox.setWindowTitle('Script Error: %s' % msg)
     msgbox.setText('Script Error: %s' % msg)
     msgbox.setInformativeText(info)
-    msgbox.exec_()
+    msgbox.exec()
 
