@@ -5,9 +5,10 @@ import logging
 import collections
 
 import envi
+import envi.const as e_const
 import envi.common as e_cmn
 import envi.memory as e_mem
-import envi.const as e_const
+import envi.config as e_config
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +33,19 @@ class CodeFlowContext(object):
     Set exptable=True to expand branch tables in this phase
     Set persist=True to never disasm the same thing twice
     Set recurse=True to automatically code flow to nested functions
+
+    Set recurseBoundary to:
+        CF_RECURSE_STOP_MAPS to stop if the filename changes at a call
+        CF_RECURSE_STOP_FILES to stop if the filename changes to another filename
+
+        NOTE: recurseBoundary is only checked when codeflow reaches a call
+    OR!!!  STOP AT EXPORTS?!?
     '''
-    def __init__(self, mem, persist=False, exptable=True, recurse=True):
+    def __init__(self, mem, persist=False, exptable=True, recurse=True, config=None):
+
+        self.config = config
+        if config is None:
+            self.config = e_config.EnviConfig()
 
         self._funcs = {}
         self._fcalls = {}
@@ -47,13 +59,16 @@ class CodeFlowContext(object):
             self._cf_persist = {}
 
         self._cf_recurse = recurse
+        
         self._cf_exptable = exptable
         self._cf_blocks = []
+        self._cf_startfile = None
 
         self._cf_blocked = collections.OrderedDict()
         self._cf_delaying = collections.defaultdict(set)
         self._cf_delayed = collections.defaultdict(set)
         self._calls_from = {}
+        self._cf_calling_va = 0
 
         self._dynamic_branch_handlers = []
 
@@ -180,6 +195,9 @@ class CodeFlowContext(object):
             # FIXME: if IF_BRANCH: if IF_COND and len(branches)<2: _cb_dynamic_branch()
             # FIXME: if IF_BRANCH and not IF_COND and len(branches)<1: _cb_dynamic_branch()
             # FIXME: if IF_CALL and len(branches)<2: _cb_dynamic_branch()
+
+            if self._cf_calling_va == 0:
+                self._cf_calling_va = startva
 
             while len(branches):
 
@@ -312,9 +330,12 @@ class CodeFlowContext(object):
         va, info = self._mem.arch.archModifyFuncAddr(va, info)
         arch = info.get('arch', arch)
 
-        # Check if this is already a known function.
-        if self._funcs.get(va) is not None:
-            logger.debug("... skipping function 0x%x (arch: %x): already analyzed", va, arch)
+        # addEntryPoint *is* the start of analysis
+        self._cf_calling_va = va
+
+        # Check if we should continue analyzing
+        if not self._shouldDescend(va, arch):
+            logger.warning("not descending %x->%x because _shouldDescend said NO!", self._cf_calling_va, va)
             return
 
         # Add this function to known functions
@@ -347,6 +368,15 @@ class CodeFlowContext(object):
             self._calls_from[va] = calls_from
 
         return va
+
+        
+    def _shouldDescend(self, va, arch):
+        # Check if this is already a known function.
+        if self._funcs.get(va) is not None:
+            logger.debug("... skipping function 0x%x (arch: %x): already analyzed", va, arch)
+            return False
+
+        return True
 
     def flushFunction(self, fva):
         '''
