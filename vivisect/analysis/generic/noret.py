@@ -28,7 +28,11 @@ def analyzeFunction(vw, fva):
             if loc and loc[v_const.L_LTYPE] == v_const.LOC_IMPORT:
                 return
 
-    g = v_t_graph.buildFunctionGraph(vw, fva)
+    try:
+        g = v_t_graph.buildFunctionGraph(vw, fva)
+    except Exception as exc:
+        logger.warning('NoRet: Failed to build function graph for function 0x%x: %s', fva, exc)
+        return
     _, _, leaves = v_t_graph.getNodeWeightHisto(g)
 
     hasret = False

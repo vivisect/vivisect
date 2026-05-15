@@ -1,5 +1,5 @@
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtWidgets import *
 
 import vtrace
 from vtrace.const import *
@@ -45,7 +45,7 @@ class VQTraceNotifier(vtrace.Notifier):
 class RegisterListModel(envi_qt_memory.EnviNavModel):
     columns = ('Name', 'Hex', 'Dec', 'Best')
     editable = [False, True, True, False]
-    register_edited = QtCore.pyqtSignal(QtCore.QModelIndex, QtCore.QVariant)
+    register_edited = QtCore.pyqtSignal(QtCore.QModelIndex, object)
 
     def __init__(self, parent=None):
         envi_qt_memory.EnviNavModel.__init__(self, 0, parent=parent)
@@ -55,18 +55,18 @@ class RegisterListModel(envi_qt_memory.EnviNavModel):
             return None
 
         item = index.internalPointer()
-        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+        if role == QtCore.Qt.ItemDataRole.DisplayRole or role == QtCore.Qt.ItemDataRole.EditRole:
             return item.data(index.column())
 
-        if role == QtCore.Qt.UserRole:
+        if role == QtCore.Qt.ItemDataRole.UserRole:
             return item
 
-    def setData(self, index, value, role=QtCore.Qt.EditRole):
+    def setData(self, index, value, role=QtCore.Qt.ItemDataRole.EditRole):
         node = index.internalPointer()
         if not node:
             return False
 
-        if role == QtCore.Qt.EditRole:
+        if role == QtCore.Qt.ItemDataRole.EditRole:
             self.register_edited.emit(index, value)
 
         return True
@@ -98,7 +98,7 @@ class RegistersListView(VQTraceNotifier, vq_tree.VQTreeView):
         if not node or not value:
             return False
 
-        expr = str(value.toString())
+        expr = str(str(value))
         try:
             value = self.trace.parseExpression(expr)
         except Exception as e:
@@ -158,9 +158,9 @@ class RegColorDelegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         node = index.internalPointer()
-        weight = QtGui.QFont.Normal
+        weight = QtGui.QFont.Weight.Normal
         if self.reglist.lastregs.get(node.rowdata[0]) != node.rowdata[2]:
-            weight = QtGui.QFont.Bold
+            weight = QtGui.QFont.Weight.Bold
         option.font.setWeight(weight)
         return QStyledItemDelegate.paint(self, painter, option, index)
 
@@ -211,7 +211,7 @@ class RegistersView(QWidget):
         statusreg_widget.setMaximumHeight(60)
         statusreg_widget.hide()
 
-        splitview = QSplitter(QtCore.Qt.Vertical)
+        splitview = QSplitter(QtCore.Qt.Orientation.Vertical)
         splitview.addWidget(self.reglist)
         splitview.addWidget(statusreg_widget)
         vbox.addWidget(splitview)
@@ -245,7 +245,7 @@ class VQFlagsGridView(VQTraceNotifier, QWidget):
             flag_button.setToolTip(desc)
 
             flag_label = QLabel('0', self)
-            flag_label.setAlignment(QtCore.Qt.AlignCenter)
+            flag_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.flag_labels[name] = flag_label
 
             self.grid.addWidget(flag_button, 0, idx)
@@ -359,7 +359,7 @@ class VQProcessSelectDialog(QDialog):
 @idlethreadsync
 def getProcessPid(trace=None, parent=None):
     d = VQProcessSelectDialog(trace=trace, parent=parent)
-    r = d.exec_()
+    r = d.exec()
     return d.pid
 
 class FileDescModel(vq_tree.VQTreeModel):

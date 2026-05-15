@@ -628,6 +628,7 @@ sh_data = {
     ],
 
     'names': [
+        (0x8018, 'sh.ptr___entry_00008018'),
         (0x809c, 'sh.ptr_ptr_init_function_0_00049394_0000809c'),
         (0x80a0, 'sh.ptr_ptr_init_function_0_00049394_000080a0'),
         (0xb5d0, 'sh.init_function'),

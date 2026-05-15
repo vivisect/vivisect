@@ -10040,6 +10040,10 @@ libstdc_data = {
     ],
 
     'names': [
+        (0x2181884, 'std::__once_callable'),
+        (0x2181888, 'std::__once_callable_0'),
+        (0x2181bac, 'std::__once_call'),
+        (0x2181bb0, 'std::__once_call_0'),
         (0x2000536, 'libstdc___so_6_0.ptr_std::basic_istream<wchar_t, std::char_traits<wchar_t> >::ignore(int, unsigned int)_02000536'),
         (0x20005e3, 'libstdc___so_6_0.ptr_ptr_typeinfo name for std::basic_filebuf<char, std::char_traits<char> >_02180090_020005e3'),
         (0x2000b64, 'libstdc___so_6_0.ptr_std::codecvt<wchar_t, char, __mbstate_t>::~codecvt()_0_02000b64'),

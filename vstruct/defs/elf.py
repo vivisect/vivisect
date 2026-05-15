@@ -308,6 +308,9 @@ class Elf64Reloc(ElfReloc, vstruct.VStruct):
     def getSymTabIndex(self):
         return self.r_info >> 32
 
+    def getType(self):
+        return self.r_info & 0xffffffff
+
 class Elf64Reloca(Elf64Reloc):
     def __init__(self, bigend=False):
         Elf64Reloc.__init__(self)

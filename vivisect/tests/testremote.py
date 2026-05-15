@@ -3,10 +3,8 @@ import sys
 import time
 import tempfile
 import unittest
-import threading
 import multiprocessing as mp
 
-import vivisect
 import vivisect.cli as vivcli
 import vivisect.const as v_const
 import vivisect.tests.helpers as helpers
@@ -238,7 +236,6 @@ class VivisectRemoteTests(unittest.TestCase):
                 self.assertIn("castle 3", output)
                 self.assertEqual(len(rmtvw2.getLeaderSessions()), 0)
 
-
                 # close down tests
                 try:
                     rmtvw.server = None
@@ -248,12 +245,20 @@ class VivisectRemoteTests(unittest.TestCase):
                     if q:
                         # So it's not reeeealy auto analysis fini, but it's a good enough stand-in to get
                         # the server thread to shutdown cleaner
-                        q.puts((v_const.VWE_AUTOANALFIN, None))
+                        q.put((v_const.VWE_AUTOANALFIN, None))
 
-                    proc.terminate()
-                    proc.close()
                 except:
                     pass
             finally:
+                try:
+                    proc.terminate()
+                    proc.join(timeout=5)
+                except:
+                    pass
+                try:
+                    proc.close()
+                except:
+                    pass
                 tmpf.close()
-                os.unlink(tmpf.name)
+                if os.path.exists(tmpf.name):
+                    os.unlink(tmpf.name)

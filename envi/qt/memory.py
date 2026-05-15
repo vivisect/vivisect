@@ -2,8 +2,9 @@ import json
 import uuid
 from collections import deque
 
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtGui import QAction, QShortcut
+from PyQt6.QtWidgets import *
 
 import envi.expression as e_expr
 import envi.qt.memcanvas as e_memcanvas_qt
@@ -70,7 +71,7 @@ class EnviNavMixin:
         mdata = e.mimeData()
         if mdata.hasFormat('envi/expression'):
             expr = mdata.data('envi/expression').data().decode('utf-8')
-            e.setDropAction(QtCore.Qt.CopyAction)
+            e.setDropAction(QtCore.Qt.DropAction.CopyAction)
             e.accept()
             self.enviNavGoto(expr)
             return
@@ -129,7 +130,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.mem_canvas.setNavCallback(self.enviNavGoto)
 
         # https://doc.qt.io/qt-5/qt.html#ShortcutContext-enum
-        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=3)
+        QShortcut(QtGui.QKeySequence("Escape"), self, activated=self._hotkey_histback, context=QtCore.Qt.ShortcutContext.WidgetWithChildrenShortcut)
 
         self.loadDefaultRenderers()
         self.loadRendSelect()
@@ -137,7 +138,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
         self.addr_entry.returnPressed.connect(self._renderMemory)
         self.size_entry.returnPressed.connect(self._renderMemory)
 
-        self.rend_select.currentIndexChanged['QString'].connect(self._renderMemory)
+        self.rend_select.currentTextChanged.connect(self._renderMemory)
 
         hbox.addWidget(self.hist_button)
         hbox.addWidget(self.addr_entry)
@@ -206,7 +207,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
 
     def rendToolsMenu(self, event):
         menu = self.getRendToolsMenu()
-        menu.exec_(self.mapToGlobal(self.rend_tools.pos()))
+        menu.exec(self.mapToGlobal(self.rend_tools.pos()))
 
     #def setRendererByName(self, rname):
         # FIXME implement...

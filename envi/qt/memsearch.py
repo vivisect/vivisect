@@ -1,7 +1,7 @@
 import string
 
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtWidgets import *
 
 import envi.memory as e_mem
 import envi.const as e_const
@@ -30,7 +30,7 @@ class MemSearchDialog(QDialog):
         self.mode_combo.addItems(self.modes)
         self.mode_combo.currentIndexChanged.connect(self.encodingChanged)
         hbox1.addWidget(mode_label)
-        hbox1.addWidget(self.mode_combo, alignment=QtCore.Qt.AlignLeft)
+        hbox1.addWidget(self.mode_combo, alignment=QtCore.Qt.AlignmentFlag.AlignLeft)
         hbox1.addStretch(1)
 
         hbox2 = QHBoxLayout()
@@ -49,7 +49,7 @@ class MemSearchDialog(QDialog):
         hbox3 = QHBoxLayout()
         vbox_hex_label = QVBoxLayout() # for align to top.
         hex_label = QLabel('Hex:   ')
-        vbox_hex_label.addWidget(hex_label, alignment=QtCore.Qt.AlignTop)
+        vbox_hex_label.addWidget(hex_label, alignment=QtCore.Qt.AlignmentFlag.AlignTop)
         self.hex_edit = QPlainTextEdit()
         self.hex_edit.setReadOnly(True)
         font = QtGui.QFont('Courier') # should use actual memcanvas.
@@ -68,7 +68,7 @@ class MemSearchDialog(QDialog):
         save_check.stateChanged.connect(self.checkChanged)
         self.fname_label = QLabel('')
         buttons = QDialogButtonBox()
-        buttons.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        buttons.setStandardButtons(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
         buttons.accepted.connect(self.okClicked)
         buttons.rejected.connect(self.cancelClicked)
         hbox4.addWidget(save_check)
@@ -91,7 +91,7 @@ class MemSearchDialog(QDialog):
         self.encodingChanged(None)
 
     def checkChanged(self, state):
-        if state == QtCore.Qt.Checked:
+        if state == QtCore.Qt.CheckState.Checked:
             self.showSaveAsDialog()
         else:
             self.fname_label.setText('')
@@ -107,8 +107,8 @@ class MemSearchDialog(QDialog):
             if not all(c in string.hexdigits for c in txt):
                 self.data_edit.setText('')
 
-            regex = QtCore.QRegExp('^[0-9A-Fa-f]+$')
-            validator = QtGui.QRegExpValidator(regex)
+            regex = QtCore.QRegularExpression('^[0-9A-Fa-f]+$')
+            validator = QtGui.QRegularExpressionValidator(regex)
 
         self.data_edit.setValidator(validator)
 

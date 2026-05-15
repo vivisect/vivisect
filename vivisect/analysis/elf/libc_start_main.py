@@ -17,7 +17,8 @@ def getMainVas(vw):
 
             # also grab any function wrappers
             for xfr, xto, xtype, xinfo in vw.getXrefsTo(va, rtype=v_const.REF_CODE):
-                if not vw.isFunctionThunk(xfr):
+                funcva = vw.getFunction(xfr)
+                if not vw.isFunctionThunk(funcva):
                     continue
                 ret.append(xfr)
     return ret

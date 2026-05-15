@@ -66,8 +66,8 @@ class StorageTests(unittest.TestCase):
 
         old = list(vw.exportWorkspace())
         new = list(ovw.exportWorkspace())
-        self.assertEqual(len(old), 39)
-        self.assertEqual(len(new), 40)  # the last event is a setMeta made by loadWorkspace
+        self.assertEqual(len(old), 40)
+        self.assertEqual(len(new), 41)  # the last event is a setMeta made by loadWorkspace
         self.assertEqual(new[-1], (VWE_SETMETA, ('StorageName', self.tmpf.name)))
         for idx in range(len(old)):
             self.assertEqual(old[idx], new[idx])
@@ -97,14 +97,14 @@ class StorageTests(unittest.TestCase):
             mvw._event_list = []
             mvw.loadWorkspace(mpfile.name)
             mevt = list(mvw.exportWorkspace())
-            self.assertEqual(len(mevt), 40)
+            self.assertEqual(len(mevt), 41)
 
             bvw = vivisect.VivWorkspace()
             bvw.setMeta('StorageModule', 'vivisect.storage.basicfile')
             bvw._event_list = []
             bvw.loadWorkspace(basicfile.name)
             bevt = list(bvw.exportWorkspace())
-            self.assertEqual(len(bevt), 40)
+            self.assertEqual(len(bevt), 41)
 
             # the last three events are specific to the different storage modules
             for idx in range(len(mevt) - 3):

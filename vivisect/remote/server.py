@@ -1,12 +1,12 @@
 import os
 import sys
 import time
-import cobra
 import queue
 import logging
 import argparse
 import threading
 
+import cobra
 import cobra.dcode
 
 import envi.config as e_config
@@ -58,14 +58,25 @@ class VivServerClient:
     @e_threads.firethread
     def _eatServerEvents(self):
         while True:
-            logger.debug("Starting a Workspace Event Processing run...")
-            count = 0
-            with self._processlock:
-                for event in self.server.getNextEvents(self.chan):
-                    count += 1
-                    self.q.put(event)
-            logger.debug("Workspace Event Processing run Complete. (%d events processed)", count)
-            time.sleep(.01)
+            try:
+                logger.debug("Starting a Workspace Event Processing run...")
+                # Fetch events OUTSIDE the lock so waitForCurEvents() isn't
+                # starved while the server-side ChunkQueue.get() blocks for
+                # up to timeout_wait seconds.
+                events = self.server.getNextEvents(self.chan)
+
+                count = 0
+                with self._processlock:
+                    for event in events:
+                        count += 1
+                        self.q.put(event)
+
+                logger.debug("Workspace Event Processing run Complete. (%d events processed)", count)
+                time.sleep(.01)
+
+            except Exception:
+                logger.warning("Error in _eatServerEvents (will retry)", exc_info=1)
+                time.sleep(.5)
 
     def vprint(self, msg):
         return self.server.vprint(msg)

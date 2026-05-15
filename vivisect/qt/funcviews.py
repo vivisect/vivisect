@@ -1,8 +1,8 @@
 '''
 Views related to information about a given function.
 '''
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QMenu, QWidget
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QMenu, QWidget
 
 import vivisect.qt.ctxmenu as viv_q_ctxmenu
 import visgraph.renderers.qgraphtree as vg_qgraphtree
@@ -60,7 +60,7 @@ class FunctionBlocksView(BasicTreeView):
         rows = [('0x%.8x' % block[0], block[1], block) for block in blocks]
         model = FuncBlockModel(rows=rows)
         self.setModel(model)
-        self.sortByColumn(0, QtCore.Qt.AscendingOrder)
+        self.sortByColumn(0, QtCore.Qt.SortOrder.AscendingOrder)
 
 
 class FuncCallsView(QWidget):
@@ -81,4 +81,4 @@ class FuncCallsView(QWidget):
     def nodeContextMenu(self, pos, nid, nprops):
         menu = QMenu(parent=self)
         viv_q_ctxmenu.buildContextMenu(self.vw, va=nid, menu=menu)
-        menu.exec_(pos)
+        menu.exec(pos)

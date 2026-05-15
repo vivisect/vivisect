@@ -5,7 +5,7 @@ import types
 import traceback
 
 from threading import Thread
-from PyQt5.QtWidgets import *
+from PyQt6.QtWidgets import *
 
 from vqt.main import idlethread
 from vqt.basics import *
