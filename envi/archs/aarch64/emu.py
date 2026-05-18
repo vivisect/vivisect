@@ -2,7 +2,6 @@
 The initial aarch64 module.
 """
 
-import sys
 import struct
 import logging
 
@@ -151,7 +150,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         A flag setting operation has resulted in un-defined value.  Set
         the flags to un-defined as well.
         """
-        self.setRegister(REG_EFLAGS, None)
+        self.setCPSR(None)
 
     def setFlag(self, which, state):
         flags = self.getCPSR()
@@ -163,7 +162,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 
     def getFlag(self, which):
         flags = self.getCPSR()
-        if flags == None:
+        if flags is None:
             raise envi.PDEUndefinedFlag(self)
         return bool(flags & which)
 
@@ -347,7 +346,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 2)
         Sflag = op.iflags & IF_PSR_S
 
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             return None
 
@@ -387,7 +386,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 2)
 
         # PDE
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -462,8 +461,8 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
     def i_add(self, op):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
-        
-        if src1 == None or src2 == None:
+
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -521,7 +520,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return
@@ -559,7 +558,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 2)
         Sflag = op.iflags & IF_PSR_S
 
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             return None
 
@@ -572,7 +571,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 2)
         Sflag = op.iflags & IF_PSR_S
 
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             return None
 
@@ -585,7 +584,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         
-        if src1 == None or src2 == None:
+        if src1 is None or src2 is None:
             self.undefFlags()
             self.setOperValue(op, 0, None)
             return

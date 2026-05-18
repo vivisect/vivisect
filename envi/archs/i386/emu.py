@@ -37,7 +37,7 @@ def shiftMaskRC(val, size):
     elif size == 8:
         return val & 0x3f
     else:
-        raise Exception("shiftMask is broke in envi/arch/i386/emu.py")
+        raise Exception("shiftMaskRC is broke in envi/arch/i386/emu.py")
 
 
 def yieldPacked(valu, size, subsize):
@@ -151,6 +151,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.addCallingConvention('thiscall_caller', thiscall_caller)
         self.addCallingConvention('msfastcall_caller', msfastcall_caller)
         self.addCallingConvention('bfastcall_caller', bfastcall_caller)
+
+    def undefFlags(self):
+        self.setRegister(self.flagidx, None)
 
     def getSegmentIndex(self, op):
         # FIXME this needs to account for push/pop/etc
@@ -1979,8 +1982,9 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src = self.getOperValue(op, 1)
 
         # Much like "integer subtraction" but we need
-        # too add in the carry flag
+        # to add in the carry flag
         if src is None or dst is None:
+            # TODO: x86 doesn't define this
             self.undefFlags()
             return None
 
@@ -2037,7 +2041,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_xor(self, op):
         dsize = op.opers[0].tsize
-        ssize = op.opers[1].tsize
+        #ssize = op.opers[1].tsize
         dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
 
@@ -2166,7 +2170,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self._simdshift(op, operator.lshift, 16, 1)
 
     def i_pshufb(self, op, off=0):
-        dst = self.getOperValue(op, off)
+        # TODO: double check you for correctness
+        #dst = self.getOperValue(op, off)
         src = self.getOperValue(op, off)
         res = 0
 
@@ -2191,7 +2196,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pshufd(self, op, bwidth=32):
         mask = e_bits.u_maxes[4]
-        dst = self.getOperValue(op, 0)
+        #dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         order = self.getOperValue(op, 2)
         res = 0
@@ -2214,7 +2219,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pshufw(self, op):
         mask = e_bits.u_maxes[2]
-        dst = self.getOperValue(op, 0)
+        #dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         order = self.getOperValue(op, 2)
         res = 0
@@ -2227,7 +2232,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pshuflw(self, op, offset=0):
         mask = e_bits.u_maxes[2] << offset
-        dst = self.getOperValue(op, 0)
+        #dst = self.getOperValue(op, 0)
         src = self.getOperValue(op, 1)
         order = self.getOperValue(op, 2)
         clear = e_bits.u_maxes[8] << (64 - offset)
