@@ -72,7 +72,7 @@ class IMemory:
         self._supervisor = False
 
         # TODO: we...really shouldn't need this
-        self.arch = arch
+        self.arch = None
 
     def getEndian(self):
         '''
