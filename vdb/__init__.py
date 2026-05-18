@@ -20,6 +20,7 @@ import vtrace.util as v_util
 import vtrace.snapshot as vs_snap
 import vtrace.notifiers as v_notif
 
+# TODO: Import self??
 import vdb
 import vdb.stalker as v_stalker
 import vdb.extensions as v_ext

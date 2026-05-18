@@ -118,7 +118,7 @@ class ModuleLoadFailure(EnviException):
     def __repr__(self):
         component = self.component
         if self.message:
-            component = "%s: %s" % (component, message)
+            component = "%s: %s" % (component, self.message)
 
         return component
 
@@ -264,3 +264,11 @@ class GeneralProtection(EnviException):
     def __init__(self, op):
         EnviException.__init__(self, 'General Protection exception (0x%.8x: %s)' % (op.va, str(op)))
         self.op = op
+
+class InvalidFile(Exception):
+    def __init__(self, file):
+        self.file = file
+        Exception.__init__(self)
+
+    def __repr__(self):
+        return f"Invalid File: {self.file}"

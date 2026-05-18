@@ -22,6 +22,9 @@ class DuplicateName(Exception):
     def __init__(self, origva, newva, name):
         Exception.__init__(self, 'Duplicate Name: %s at 0x%.8x and 0x%.8x' % (name, origva, newva))
 
+class DuplicateFile(Exception):
+    def __init__(self, name):
+        Exception.__init__(self, 'Duplicate File Name: %s' % name)
 
 class InvalidVaSet(Exception):
     def __init__(self, name):
@@ -47,7 +50,6 @@ class UnknownCallingConvention(Exception):
     def __init__(self, fva, cc=None):
         Exception.__init__(self, 'Function 0x%.8x has unknown CallingConvention: %s' % (fva, cc))
 
-
 class InvalidWorkspace(Exception):
     """
     Raised when a storage module is given bunk data for loading
@@ -55,7 +57,6 @@ class InvalidWorkspace(Exception):
     """
     def __init__(self, nameinfo, errinfo):
         Exception.__init__(self, 'Failed to load %s: %s' % (nameinfo, errinfo))
-
 
 class ArchModDefException(Exception):
     def __init__(self, arch):
@@ -68,17 +69,16 @@ class InvalidArchitecture(Exception):
         self.fileformat = fileformat
         self.arch = arch
 
-
 class CorruptFile(Exception):
     def __init__(self, fileformat, message):
-        super(CorruptFile, self).__init__('%s: corrupt file: %s' % (fileformat, message))
+        super().__init__('%s: corrupt file: %s' % (fileformat, message))
         self.fileformat = fileformat
         self.message = message
 
 
 class CorruptPeFile(CorruptFile):
     def __init__(self, message):
-        super(CorruptPeFile, self).__init__("PE", message)
+        super().__init__("PE", message)
 
 
 class SymIdxNotFoundException(Exception):
@@ -93,4 +93,26 @@ class NoComplexSymIdxException(Exception):
     def __repr__(self):
         return "getComplexIdx cannot determine the Index register"
 
+class NotConnected(Exception):
+    def __init__(self, name):
+        Exception.__init__(self)
+        self.name = name
 
+    def __repr__(self):
+        return f"{self.name} requires being connected to a server"
+
+class InvalidChannel(Exception):
+    def __init__(self, name):
+        Exception.__init__(self)
+        self.name = name
+
+    def __repr__(self):
+        return f"Invalid Channel: {self.name}"
+
+class UnknownSymbolType(Exception):
+    def __init__(self, symtype):
+        Exception.__init__(self)
+        self.symtype = symtype
+
+    def __repr__(self):
+        return 'Unknown Local Symbol Type: %d' % self.symtype

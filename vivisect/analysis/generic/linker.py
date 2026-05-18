@@ -3,9 +3,10 @@ Connect any Exports we have to Imports we may also have
 (most useful for multiple file workspaces)
 '''
 import logging
-logger = logging.getLogger(__name__)
 
-from vivisect import LOC_OP, REF_CODE
+from vivisect.const import LOC_OP, REF_CODE
+
+logger = logging.getLogger(__name__)
 
 def analyze(vw):
     """
@@ -58,4 +59,3 @@ def analyze(vw):
 
                     vw.addXref(lva, eva, REF_CODE)
                     logger.debug("addXref(0x%x -> 0x%x)", lva, eva)
-

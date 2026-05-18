@@ -218,22 +218,20 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # Load up all the section headers
         if self.e_shoff:
             # Load up the sections
+            secs = vstruct.VArray()
+            [secs.vsAddElement(self._cls_section(bigend=self.bigend)) for i in range(self.e_shnum)]
+
             sbase = self.e_shoff
-            sec = self._cls_section(bigend=self.bigend)
             slen = self.e_shentsize
-            if len(sec) != slen:
+            if len(secs[0]) != slen:
                 raise Exception('Invalid Section Header Size: %d' % slen)
 
             secbytes = self.readAtOffset(sbase, self.e_shnum * slen)
 
-            secs = sec * self.e_shnum
             secslen = slen * self.e_shnum
-            if secslen != len(secbytes):
-                logger.warning('Invalid Section-Headers Size: should be: %d   retrieved: %d', secslen, len(secbytes))
-
-            secs = vstruct.VArray()
-            [secs.vsAddElement(self._cls_section(bigend=self.bigend)) for i in range(self.e_shnum)]
             secs.vsParse(secbytes, fast=True)
+            if secslen != len(secs):
+                logger.warning('Invalid Section-Headers Size: should be: %d   retrieved: %d', secslen, len(secbytes))
 
             self.sections.extend([s[1] for s in secs])
 
