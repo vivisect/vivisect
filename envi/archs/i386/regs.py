@@ -99,8 +99,8 @@ statmetas = [
 
 def getEflagsFields(regval):
     ret = []
-    for name,_,shift,bits,desc in statmetas:
-        ret.append( (name, regval >> shift & 1) )
+    for name,_flags, shift, bits, desc in statmetas:
+        ret.append((name, regval >> shift & 1))
     return ret
 
 e_reg.addLocalStatusMetas(l, i386meta, statmetas, 'EFLAGS')

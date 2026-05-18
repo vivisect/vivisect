@@ -4,15 +4,15 @@ if they are code by emulation behaviorial analysis.
 
 (This module works best very late in the analysis passes)
 """
-import envi
-import vivisect
-import vivisect.exc as v_exc
-from envi.archs.i386.opconst import *
-import vivisect.impemu.monitor as viv_imp_monitor
-
 import logging
 
-from vivisect.const import *
+import envi
+import envi.archs.i386.regs as e_i386_regs
+import envi.archs.i386.opconst as e_i386_const
+import vivisect.exc as v_exc
+import vivisect.const as v_const
+import vivisect.impemu.monitor as viv_imp_monitor
+
 
 logger = logging.getLogger(__name__)
 
@@ -70,18 +70,19 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             self.arch = op.iflags & envi.ARCH_MASK
 
         if self.arch == envi.ARCH_I386:
-            if op.opcode == INS_OUT:
+            if op.opcode == e_i386_const.INS_OUT:
                 emu.stopEmu()
                 raise v_exc.BadOutInstruction(op.va)
 
-            if op.opcode == INS_TRAP:
-                reg = emu.getRegister(envi.archs.i386.REG_EAX)
+            if op.opcode == e_i386_const.INS_TRAP:
+                # TODO: dynamically creating variables in modules fucks with tooling and name detection
+                reg = emu.getRegister(e_i386_regs.REG_EAX)
                 if reg == 1:
                     emu.stopEmu()
                     self.vw.addNoReturnVa(eip)
 
         if self.arch == envi.ARCH_AMD64:
-            if op.opcode == INS_OUT:
+            if op.opcode == e_i386_const.INS_OUT:
                 emu.stopEmu()
                 raise v_exc.BadOutInstruction(op.va)
 
@@ -98,7 +99,7 @@ class watcher(viv_imp_monitor.EmulationMonitor):
         loc = self.vw.getLocation(eip)
         if loc is not None:
             va, size, ltype, linfo = loc
-            if ltype != vivisect.LOC_OP:
+            if ltype != v_const.LOC_OP:
                 emu.stopEmu()
                 raise Exception("HIT LOCTYPE %d AT 0x%.8x" % (ltype, va))
 
@@ -127,14 +128,14 @@ def analyze(vw):
         bcode = []
 
         vatodo = set([va for va, name in vw.getNames() if vw.getLocation(va) is None and va not in tried])
-        vatodo = vatodo.union([tova for _, tova, _, _ in vw.getXrefs(rtype=REF_PTR) if vw.getLocation(tova) is None and tova not in tried])
+        vatodo = vatodo.union([tova for _, tova, _, _ in vw.getXrefs(rtype=v_const.REF_PTR) if vw.getLocation(tova) is None and tova not in tried])
         for va in vatodo:
             loc = vw.getLocation(va)
             if loc is not None:
-                if loc[L_LTYPE] == LOC_STRING:
+                if loc[v_const.L_LTYPE] == v_const.LOC_STRING:
                     vw.makeString(va)
                     tried.add(va)
-                elif loc[L_LTYPE] == LOC_UNI:
+                elif loc[v_const.L_LTYPE] == v_const.LOC_UNI:
                     vw.makeUnicode(va)
                     tried.add(va)
                 continue

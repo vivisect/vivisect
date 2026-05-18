@@ -16,8 +16,10 @@ analysis identify "truth" and then filling in the gaps.
 
 
 import logging
-import vivisect
-import envi.common as e_cmn
+
+import envi.common as e_common
+
+import vivisect.const as v_const
 
 from . import elfplt
 
@@ -153,7 +155,7 @@ def fillPLTviaGOTXrefs(vw, jmpheur, pltva, pltsz):
                     continue
 
                 tlva, tlsz, tltype, tlinfo = toloc
-                if tltype not in (vivisect.LOC_POINTER, vivisect.LOC_IMPORT):
+                if tltype not in (v_const.LOC_POINTER, v_const.LOC_IMPORT):
                     continue
 
                 toGOT = True
@@ -220,22 +222,22 @@ def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
         # where the magic comes in...
         funcsz = vw.getFunctionMeta(fva, 'Size')
         for divisor in range(funcdist, 0, -1):
-            logger.log(e_cmn.SHITE, 'attempting to divide funcdist (0x%x) by %d', funcdist, divisor)
+            logger.log(e_common.SHITE, 'attempting to divide funcdist (0x%x) by %d', funcdist, divisor)
 
             # does the gap between functions support splitting?
             if funcdist < (divisor * funcsz):
-                logger.log(e_cmn.SHITE, '.. not big enough')
+                logger.log(e_common.SHITE, '.. not big enough')
                 continue
 
             newdist = funcdist // divisor
             # does the funcdist split evenly?
             if newdist * divisor != funcdist:
-                logger.log(e_cmn.SHITE, ".. doesn't divide evenly(newdist: 0x%x  divisor: 0x%x   funcdist: 0x%x)", newdist, divisor, funcdist)
+                logger.log(e_common.SHITE, ".. doesn't divide evenly(newdist: 0x%x  divisor: 0x%x   funcdist: 0x%x)", newdist, divisor, funcdist)
                 continue
 
             # do the opcodes support this size split?
             if not compareFuncs(vw, fva, fva + newdist, funcsz):
-                logger.log(e_cmn.SHITE, ".. functions don't match!")
+                logger.log(e_common.SHITE, ".. functions don't match!")
                 continue
 
             break
@@ -255,7 +257,7 @@ def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
         stdmnem = op.mnem
         # start there and go backwards
         while tmpva > pltva:
-            logger.log(e_cmn.SHITE, "tmpva: 0x%x", tmpva)
+            logger.log(e_common.SHITE, "tmpva: 0x%x", tmpva)
             # check if already in a PLT function (ignore if it's part of some other func)
             curfunc = vw.getFunction(tmpva)
             if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
@@ -287,7 +289,7 @@ def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
         logger.debug("... forwards from... 0x%x", tmpva)
         endva = pltva + pltsz
         while tmpva < endva:
-            logger.log(e_cmn.SHITE, "tmpva: 0x%x", tmpva)
+            logger.log(e_common.SHITE, "tmpva: 0x%x", tmpva)
             # check if already in a PLT function
             curfunc = vw.getFunction(tmpva)
             if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
@@ -359,20 +361,20 @@ def compareFuncs(vw, fva1, fva2, funcsz):
         loc1 = vw.getLocation(va1)
         # if loc1 hits a None bail out
         if loc1 is None:
-            logger.log(e_cmn.SHITE, '... hit a None location in fva1')
+            logger.log(e_common.SHITE, '... hit a None location in fva1')
             return False
 
         lva, lsz, ltype, ltinfo = loc1
         try:
             op1 = vw.parseOpcode(va1)
             op2 = vw.parseOpcode(va2)
-       
+
             if op1.mnem != op2.mnem:
-                logger.log(e_cmn.SHITE, "fva1 op mnem (%r) doesn't match fva2 (%r) at offset %d", op1.mnem, op2.mnem, offset)
+                logger.log(e_common.SHITE, "fva1 op mnem (%r) doesn't match fva2 (%r) at offset %d", op1.mnem, op2.mnem, offset)
                 return False
 
             if len(op1.opers) != len(op2.opers):
-                logger.log(e_cmn.SHITE, "fva1 op operlen (%r) doesn't match fva2 (%r) at offset %d", op1.opers, op2.opers, offset)
+                logger.log(e_common.SHITE, "fva1 op operlen (%r) doesn't match fva2 (%r) at offset %d", op1.opers, op2.opers, offset)
                 return False
 
             for oidx in range(len(op1.opers)):
@@ -380,7 +382,7 @@ def compareFuncs(vw, fva1, fva2, funcsz):
                 oper2 = op2.opers[oidx]
 
                 if oper1.__class__ != oper2.__class__:
-                    logger.log(e_cmn.SHITE, "fva1 op operclass (%r) doesn't match fva2 (%r) at offset %d", oper1, oper2, offset)
+                    logger.log(e_common.SHITE, "fva1 op operclass (%r) doesn't match fva2 (%r) at offset %d", oper1, oper2, offset)
                     return False
                 
         except Exception as e:

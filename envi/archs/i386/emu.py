@@ -619,10 +619,13 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, res)
 
     def _ands(self, op, off=0):
-        dst = self.getOperValue(op, 0)
-        src = self.getOperValue(op, 1)
-        res = dst & src
+        dst = self.getOperValue(op, off)
+        src = self.getOperValue(op, off+1)
 
+        res = dst & src
+        self.setOperValue(op, 0, res)
+
+    # TODO: double check some of these are things
     def i_andsd(self, op):
         self._ands(op)
 
@@ -2075,6 +2078,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         res = opA | opB
 
         self.setOperValue(op, 0, res)
+
     i_orpd = i_orps
 
     def i_vorps(self, op):
@@ -2255,7 +2259,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         values = zip(yieldPacked(dst, tsize, width),
                      yieldPacked(src, tsize, width))
 
-        mask = e_bits.u_maxes[width]
         consumed = 0
         for i, (dst, src) in enumerate(values):
             res |= dst << (width*i)
@@ -2291,7 +2294,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         dst = self.getOperValue(op, off)
         src = self.getOperValue(op, off+1)
-        tsize = op.opers[0].tsize
         res = self._interleave_low(dst, src, op.opers[0].tsize, width, op.opers[0].tsize)
 
         # manual says to leave the upper bits of the ymm regs alone
@@ -2321,7 +2323,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         dst = self.getOperValue(op, off)
         src = self.getOperValue(op, off+1)
-        tsize = op.opers[0].tsize
         res = self._interleave_high(dst, src, op.opers[0].tsize, width, op.opers[0].tsize)
 
         # manual says to leave the lower bits of the ymm regs alone
@@ -2395,14 +2396,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             res |= cmp << (width * idx)
         self.setOperValue(op, 0, res)
 
-    def i_por(self, op, off=0):
-        dst = self.getOperValue(op, off)
-        src = self.getOperValue(op, off+1)
-
-        res = src | dst
-
-        self.setOperValue(op, 0, res)
-
     def i_pcmpeqw(self, op):
         self.i_pcmpeqb(op, width=2, off=0)
     def i_pcmpeqd(self, op):
@@ -2410,12 +2403,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_pcmpeqq(self, op):
         self.i_pcmpeqb(op, width=8, off=0)
 
-    def i_vpcmpeqw(self, op):
+    def i_vpcmpeqb(self, op):
         self.i_pcmpeqb(op, off=1)
+
     def i_vpcmpeqw(self, op):
         self.i_pcmpeqb(op, width=2, off=1)
+
     def i_vpcmpeqd(self, op):
         self.i_pcmpeqb(op, width=4, off=1)
+
     def i_vpcmpeqq(self, op):
         self.i_pcmpeqb(op, width=8, off=1)
 
@@ -2499,7 +2495,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         mask <<= bitwidth * select
         tmp = (src << (select * bitwidth)) & mask
-        dst = dst &  (~mask) | tmp
+        dst = dst & (~mask) | tmp
         self.setOperValue(op, 0, dst)
 
     def i_pinsrw(self, op):
@@ -2536,10 +2532,13 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_vpsubb(self, op):
         self.i_psubb(op, width=1, off=1)
+
     def i_vpsubw(self, op):
         self.i_psubb(op, width=2, off=1)
+
     def i_vpsubd(self, op):
         self.i_psubb(op, width=4, off=1)
+
     def i_vpsubq(self, op):
         self.i_psubb(op, width=8, off=1)
 
@@ -2552,7 +2551,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, off)
         src2 = self.getOperValue(op, off + 1)
         res = 0
-        mask = e_bits.u_maxes[width]
         bitwidth = width * 8
         valus = zip(yieldPacked(src1, tsize, width),
                     yieldPacked(src1, tsize, width))
@@ -2633,3 +2631,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         # in a malware sample with an anti-vm check using this instruction, vpcext is followed by a "test ebx, ebx" and exception handling code. 
         # to avoid a "non-defined" value in the register it is set to zero
         self.setRegister(REG_EBX, 0xffffffff)
+
+    def i_salc(self, op):
+        cf = self.getFlag(EFLAGS_CF)
+        self.setRegister(REG_AL, 0xff if cf else 0)

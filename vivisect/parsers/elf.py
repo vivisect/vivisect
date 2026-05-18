@@ -139,7 +139,7 @@ def makeStringTable(vw, va, maxva):
                 if vw.isLocation(va):
                     return
                 l = vw.makeString(va)
-                va += l[vivisect.L_SIZE]
+                va += l[L_SIZE]
             except Exception as e:
                 logger.warning("makeStringTable\t%r", e)
                 return

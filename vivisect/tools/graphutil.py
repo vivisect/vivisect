@@ -12,7 +12,7 @@ import envi.const as e_const
 import visgraph.pathcore as vg_pathcore
 import visgraph.graphcore as vg_graphcore
 
-import vivisect
+import vivisect.const as v_const
 
 xrskip = envi.BR_PROC | envi.BR_DEREF
 
@@ -472,7 +472,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
 
         lva, lsize, ltype, linfo = loc
 
-        for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(lva, vivisect.REF_CODE):
+        for xrfrom, xrto, xrtype, xrflags in vw.getXrefsFrom(lva, v_const.REF_CODE):
 
             # For now, the graph doesn't cross function boundaries
             # or indirects.
@@ -510,7 +510,7 @@ def buildFunctionGraph(vw, fva, revloop=False, g=None):
             else:
                 g.addEdgeByNids(cbva, xrto)
 
-        if ltype == vivisect.LOC_OP and linfo & envi.IF_NOFALL:
+        if ltype == v_const.LOC_OP and linfo & envi.IF_NOFALL:
             continue
 
         # If this codeblock can fall through into another, add it to

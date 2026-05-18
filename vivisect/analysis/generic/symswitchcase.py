@@ -8,25 +8,21 @@ import sys
 import time
 
 import logging
-logger = logging.getLogger(__name__)
 
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
-import envi.archs.i386 as e_i386
 
-import vivisect
 import vivisect.exc as v_exc
-import vivisect.cli as viv_cli
+import vivisect.const as v_const
 import vivisect.tools.graphutil as viv_graph
-import vivisect.symboliks.emulator as vs_emu
 import vivisect.symboliks.analysis as vs_anal
-import vivisect.symboliks.substitution as vs_sub
 import vivisect.analysis.generic.codeblocks as vagc
 
 from vivisect.symboliks.common import *
 from vivisect.tools.graphutil import PathForceQuitException
 
+logger = logging.getLogger(__name__)
 
 '''
 this analysis module takes a two stage approach to identifying and wiring up switch cases.
@@ -109,7 +105,7 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
             loc = self._sym_vw.getLocation(addrval)
             if loc is not None:
                 lva, lsize, ltype, linfo = loc
-                if ltype == vivisect.LOC_IMPORT:
+                if ltype == v_const.LOC_IMPORT:
                     # return name of import
                     symval = Var(linfo, self.__width__)
                     self.track(self.getMeta('va'), symaddr, symval)
@@ -957,10 +953,10 @@ class SwitchCase:
                 if caselist is None:
                     caselist = []
                     cases[addr] = caselist
-                caselist.append( idx )
+                caselist.append(idx)
 
                 # make the connections
-                vw.addXref(self.jmpva, addr, vivisect.REF_CODE)
+                vw.addXref(self.jmpva, addr, v_const.REF_CODE)
                 nloc = vw.getLocation(addr)
                 if nloc is None:
                     vw.makeCode(addr)
@@ -1185,7 +1181,7 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
         caselist.append( idx )
 
         # make the connections
-        vw.addXref(jmpva, addr, vivisect.REF_CODE)
+        vw.addXref(jmpva, addr, v_const.REF_CODE)
         nloc = vw.getLocation(addr)
         if nloc is None:
             vw.makeCode(addr)
