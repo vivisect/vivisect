@@ -1218,6 +1218,9 @@ def demangle(name):
     try:
         import cxxfilt
         name = cxxfilt.demangle(name)
+    except ModuleNotFoundError:
+        # NOT USEFUL
+        pass
     except Exception as e:
         logger.debug('failed to demangle name (%r): %r', name, e)
 

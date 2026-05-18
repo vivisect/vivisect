@@ -5,6 +5,7 @@ import struct
 
 import envi
 import envi.exc as e_exc
+import envi.bits as e_bits
 from envi.const import *
 import envi.archs.i386 as e_i386
 

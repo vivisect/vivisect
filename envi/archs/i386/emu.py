@@ -267,7 +267,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     ###### Repeat Prefix Handlers
 
-    def doRepzPrefix(emu, meth, op):
+    def doRepzPrefix(self, meth, op):
         '''
         Handle REP and REPZ prefixes (which are basically the same, but used for 
         different instructions.
@@ -278,20 +278,20 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         
         Respects emu option "i386:repmax" limiting the number of repetitions.
         '''
-        ecx = emu.getRegister(REG_ECX)
-        emu.setFlag(EFLAGS_ZF, 1)
+        ecx = self.getRegister(REG_ECX)
+        self.setFlag(EFLAGS_ZF, 1)
 
-        repmax = emu.getEmuOpt('i386:repmax') or ecx
+        repmax = self.getEmuOpt('i386:repmax') or ecx
 
         ret = None
-        while ecx and repmax and emu.getFlag(EFLAGS_ZF):
+        while ecx and repmax and self.getFlag(EFLAGS_ZF):
             ret = meth(op)
             ecx -= 1
             repmax -= 1
-            emu.setRegister(REG_ECX, ecx)
+            self.setRegister(REG_ECX, ecx)
         return ret
 
-    def doRepnzPrefix(emu, meth, op):
+    def doRepnzPrefix(self, meth, op):
         '''
         Handle REPNZ prefix.
 
@@ -301,23 +301,22 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         
         Respects emu option "i386:repmax" limiting the number of repetitions.
         '''
-        ecx = emu.getRegister(REG_ECX)
-        emu.setFlag(EFLAGS_ZF, 0)
+        ecx = self.getRegister(REG_ECX)
+        self.setFlag(EFLAGS_ZF, 0)
 
-        repmax = emu.getEmuOpt('i386:repmax') or ecx
+        repmax = self.getEmuOpt('i386:repmax') or ecx
 
         ret = None
-        while ecx and repmax and not emu.getFlag(EFLAGS_ZF):
+        while ecx and repmax and not self.getFlag(EFLAGS_ZF):
             ret = meth(op)
             ecx -= 1
             repmax -= 1
-            emu.setRegister(REG_ECX, ecx)
+            self.setRegister(REG_ECX, ecx)
         return ret
 
-
-    def doRepSIMDPrefix(emu, meth, op):
+    def doRepSIMDPrefix(self, meth, op):
         # TODO
-        raise Exception("doRepSIMDPrefix() not implemented.  Fix and retry.")
+        raise NotImplementedError("doRepSIMDPrefix() not implemented.  Fix and retry.")
 
     ###### Conditional Callbacks #####
 
@@ -1248,7 +1247,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         val = self.getOperValue(op, 1)
         self.setOperValue(op, 0, val)
 
-    i_movd  = i_mov
+    i_movd = i_mov
     i_movd_q = i_mov
     i_vmovd_q = i_mov
     i_movdqu = i_mov
@@ -1352,7 +1351,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             self._emu_setGpReg(GPR_D, d, tsize)
         else:
             mesg = "i_mul called with invalid size of %d" % tsize
-            raise e_exc.MultipleError(self, msg=mesg)
+            raise e_exc.MultiplyError(self, msg=mesg)
 
         # If the high order stuff was used, set CF/OF
         if res >> (tsize * 8):
@@ -1657,11 +1656,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         return ret
 
     def i_bound(self, op):
-        if self.psize == 8:
+        # we should have a better 32 vs 64 bit check
+        if self.imem_psize == 8:
             raise e_exc.UnsupportedInstruction(self, op)    # this instruction is invalid in 64-bit mode
 
         bsize = op.opers[1].tsize // 2  # target is two numbers
-        aidx = e_bits.signed(self.getOperValue(op, 0), self.psize)
+        aidx = e_bits.signed(self.getOperValue(op, 0), self.imem_psize)
         bounds = self.getOperValue(op, 1)
         lowbound = bounds & e_bits.u_maxes[bsize]
         hibound = bounds >> (bsize << 3)    # bsize * 8, but faster
@@ -1984,7 +1984,6 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         # Much like "integer subtraction" but we need
         # to add in the carry flag
         if src is None or dst is None:
-            # TODO: x86 doesn't define this
             self.undefFlags()
             return None
 
@@ -2366,11 +2365,13 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             # TODO
             pass
     def i_vpunpckhwd(self, op):
-        self.i_vpunpckhbw(self, op, width=2)
+        self.i_vpunpckhbw(op, width=2)
+
     def i_vpunpckhdq(self, op):
-        self.i_vpunpckhbw(self, op, width=4)
+        self.i_vpunpckhbw(op, width=4)
+
     def i_vpunpckhqdq(self, op):
-        self.i_vpunpckhbw(self, op, width=8)
+        self.i_vpunpckhbw(op, width=8)
 
     def _simdcmpr(self, op, cmpr, width, off):
         res = 0

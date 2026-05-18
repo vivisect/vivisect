@@ -1062,6 +1062,9 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         fmttbl = e_bits.fmt_schars[self.getEndian()]
         return struct.unpack(fmttbl[size], bytes)[0]
 
+    def undefFlags(self):
+        raise NotImplementedError("%s needs to implement undefFlags!" % self.__class__.__name__)
+
     def integerSubtraction(self, op, sidx=0, midx=1):
         """
         Do the core of integer subtraction but only *return* the
@@ -1150,7 +1153,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         return res
 
 
-class CallingConvention(object):
+class CallingConvention:
     '''
     Base class for all calling conventions. You must define class locals that
     define the fields below.

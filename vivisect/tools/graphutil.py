@@ -58,6 +58,7 @@ def getLongPath(g):
     if len(todo):
         leafmax = max(todo.keys())
 
+    # TODO: actually do something with invalidret
     invalidret = False
     # if the weight of the longest path to a leaf node
     # is not the highest weight then we need to fix our
