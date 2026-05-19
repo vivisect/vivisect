@@ -13,13 +13,11 @@ import envi.config as e_config
 import envi.common as e_common
 import envi.threads as e_threads
 
-import vivisect
 import vivisect.cli as v_cli
+import vivisect.const as v_const
 import vivisect.parsers as v_parsers
+import vivisect.defconfig as v_defconfig
 import vivisect.storage.basicfile as viv_basicfile
-
-from vivisect.const import *
-from vivisect.defconfig import *
 
 logger = logging.getLogger(__name__)
 
@@ -135,9 +133,8 @@ class VivServerClient:
 
                     # reset counter
                     self._qcount = 0
-            except:
+            except Exception:
                 logger.warning("Problem in Monitor Thread", exc_info=1)
-
 
     def waitForEvent(self, chan, timeout=None):
         q = self.q
@@ -172,7 +169,7 @@ class VivServer:
         else:
             self.vivhome = e_config.gethomedir(".viv", makedir=True)
         cfgpath = os.path.join(self.vivhome, 'viv.json')
-        self.config = e_config.EnviConfig(filename=cfgpath, defaults=defconfig, docs=docconfig, autosave=True)
+        self.config = e_config.EnviConfig(filename=cfgpath, defaults=v_defconfig.defconfig, docs=v_defconfig.docconfig, autosave=True)
 
         self.timeout_wait = self.config.viv.remote.timeout_wait
         self.timeout_aban = self.config.viv.remote.timeout_aban
@@ -264,7 +261,7 @@ class VivServer:
                 if not ext:
                     continue
 
-                if not v_parsers.guessFormat(ext) in ('viv', 'mpviv'):
+                if v_parsers.guessFormat(ext) not in ('viv', 'mpviv'):
                     continue
 
                 wsinfo = self.wsdict.get(wsname)
@@ -291,7 +288,6 @@ class VivServer:
         if chan in self.chandict:
             wsinfo, q, chanleaders = self.chandict.get(chan)
             lock, fpath, pevents, users, leaders, leaderloc = wsinfo
-            oldclient = False
 
         elif chan in self.wsdict:
             # DEPRECATED: this is for backwards compat.  use only the chandict code one year from today, 5/10/2022.
@@ -302,7 +298,6 @@ class VivServer:
             chanleaders = []
             leaders = {}
             leaderloc = {}
-            oldclient = True
 
         else:
             raise Exception("BAD CHANNEL: _fireEvent: %r %r %r %r %r" % (chan, event, einfo, local, skip))
@@ -310,37 +305,36 @@ class VivServer:
         evtup = (event, einfo)
         with lock:
             # Transient events do not get saved
-            if not event & VTE_MASK:
+            if not event & v_const.VTE_MASK:
                 pevents.append(evtup)
 
             else:
-                vtevent = event ^ VTE_MASK
-                if vtevent == VTE_FOLLOWME:
+                vtevent = event ^ v_const.VTE_MASK
+                if vtevent == v_const.VTE_FOLLOWME:
                     pass
 
-                elif vtevent == VTE_IAMLEADER:
+                elif vtevent == v_const.VTE_IAMLEADER:
                     logger.info("VTE_IAMLEADER: %r" % repr(evtup))
                     uuid, user, fname, locexpr = einfo
                     leaders[uuid] = (user, fname)
                     leaderloc[uuid] = locexpr
                     chanleaders.append(uuid)
 
-                elif vtevent == VTE_FOLLOWME:
+                elif vtevent == v_const.VTE_FOLLOWME:
                     logger.info("VTE_FOLLOWME: %r" % repr(evtup))
                     uuid, expr = einfo
                     leaderloc[uuid] = expr
 
-                elif vtevent == VTE_KILLLEADER:
+                elif vtevent == v_const.VTE_KILLLEADER:
                     logger.info("VTE_KILLLEADER: %r" % repr(evtup))
                     uuid = einfo
                     leaders.pop(uuid, None)
                     leaderloc.pop(uuid, None)
 
-                elif vtevent == VTE_MODLEADER:
+                elif vtevent == v_const.VTE_MODLEADER:
                     logger.info("VTE_MODLEADER: %r" % repr(evtup))
                     uuid, user, fname = einfo
                     leaders[uuid] = (user, fname)
-
 
             # SPEED HACK
             [q.append(evtup) for chan, q in users.items() if chan != skip]
@@ -355,16 +349,16 @@ class VivServer:
 
         with lock:
             # These must reference the same actual list object...
-            queue = VivChunkQueue(chunksize=chunksize)
-            users[chan] = queue
+            q = VivChunkQueue(chunksize=chunksize)
+            users[chan] = q
             chanleaders = []
-            self.chandict[chan] = [wsinfo, queue, chanleaders]
+            self.chandict[chan] = [wsinfo, q, chanleaders]
 
             # add events after the channel is created.  that way the client can start pulling event groups immediately
             fileevts = viv_basicfile.vivEventsFromFile(fpath)
             fileevts.extend(pevents)
             # use this firethread function to add events while we return the channel
-            queue.chunkedAddLargeEventList(fileevts)
+            q.chunkedAddLargeEventList(fileevts)
 
         return chan
 
@@ -385,14 +379,14 @@ class VivServer:
             return
 
         # Remove all channels originating from this channel
-        wsinfo, queue, chanleaders = chantup
+        wsinfo, _, chanleaders = chantup
         for uuid in chanleaders:
-            self._fireEvent(chan, VTE_KILLLEADER | VTE_MASK, uuid)
+            self._fireEvent(chan, v_const.VTE_KILLLEADER | v_const.VTE_MASK, uuid)
 
         # Remove from the workspace clients
         lock, fpath, pevents, users, leaders, leaderloc = wsinfo
         with lock:
-            userinfo = users.pop(chan, None)
+            users.pop(chan, None)
 
         # Remove from our chandict
         self.chandict.pop(chan, None)
@@ -426,7 +420,7 @@ class VivChunkQueue(e_threads.ChunkQueue):
         # then able to be shoved over the Cobra channel immediately, front-loading
         # any preparation, and drastically speeding up initial message glut on
         # workspace loading.
-        if type(self.items[0]) == dict:
+        if type(self.items[0]) is dict:
             evtgroup = self.items.pop(0)
             evts = evtgroup[0]
             logger.debug("_get_items: STORED EVENT GROUP of size %d (queue remaining: %d)", len(evts), len(self.items))
@@ -449,7 +443,7 @@ class VivChunkQueue(e_threads.ChunkQueue):
                 evtitem = self.items[idx]
 
                 # search for Event Groups
-                if type(evtitem) == dict:
+                if type(evtitem) is dict:
                     # don't include this in the list!  kick out and let the
                     # "event group" section (above) handle this one
                     idx -= 1
@@ -457,7 +451,7 @@ class VivChunkQueue(e_threads.ChunkQueue):
 
                 evtype, evtdata = evtitem
                 # search for ADDMMAP events
-                if evtype == vivisect.VWE_ADDMMAP:
+                if evtype == v_const.VWE_ADDMMAP:
                     break
 
 
@@ -476,7 +470,7 @@ class VivChunkQueue(e_threads.ChunkQueue):
             ret = self.items
             for idx, (evtype, evtdata) in enumerate(ret):
                 # still want to only send one memory map at a time
-                if evtype == vivisect.VWE_ADDMMAP:
+                if evtype == v_const.VWE_ADDMMAP:
                     ret = self.items[:idx+1]
                     break
 
@@ -502,7 +496,7 @@ class VivChunkQueue(e_threads.ChunkQueue):
                 evt = evts[idx]
                 idx += 1
                 evtcount -= 1
-                if evtcount <10:
+                if evtcount < 10:
                     logger.debug("...evtcount==%d, idx==%d", evtcount, idx)
                 if evtcount == 0:
                     # we don't want to clip the last entry
@@ -511,7 +505,7 @@ class VivChunkQueue(e_threads.ChunkQueue):
 
 
                 # if it's a memory map, only include one per chunk
-                if evt[0] == vivisect.VWE_ADDMMAP:
+                if evt[0] == v_const.VWE_ADDMMAP:
                     logger.debug(" (chopping after VWE_ADDMMAP)")
                     break
 
