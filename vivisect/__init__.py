@@ -1374,7 +1374,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if op is None:
             try:
                 op = self.parseOpcode(va, arch=arch)
-            except envi.InvalidInstruction as msg:
+            except e_exc.InvalidInstruction as msg:
                 # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
                 logger.warning("Invalid Instruct Attempt At:", hex(va), e_common.hexify(bytez))

@@ -219,8 +219,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     if vw.readMemory(baseaddr + magicaddr, 2) != b"PE":
         raise Exception("We only support PE exe's")
 
-    #if not vw.isLocation(baseaddr + magicaddr):
-        #padloc = vw.makePad(baseaddr + magicaddr, 4)
+    if not vw.isLocation(baseaddr + magicaddr):
+        vw.makePad(baseaddr + magicaddr, 4)
 
     ifhdr_va = baseaddr + magicaddr + 4
     ifstruct = vw.makeStructure(ifhdr_va, "pe.IMAGE_FILE_HEADER")

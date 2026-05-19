@@ -64,7 +64,7 @@ def parseFile(vw, filename, baseaddr=None):
 
         for addr, perms, _, byts in ihex.getMemoryMaps():
             vw.addMemoryMap(addr, perms, fname, byts)
-            vw.addSegment(addr, len(bytes), '%.8x' % addr, fname)
+            vw.addSegment(addr, len(byts), '%.8x' % addr, fname)
 
 
 def parseMemory(vw, memobj, baseaddr):

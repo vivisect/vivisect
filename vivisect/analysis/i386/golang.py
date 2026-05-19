@@ -14,7 +14,7 @@ address of runtime_main(); this module attempts all observed sequences.
 
 import logging
 
-import envi
+import envi.exc as e_exc
 import envi.archs.i386.disasm
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ def find_golang_bblock(vw, basic_blocks, match, idx):
         while next_va < bblock[0] + bblock[1]:
             try:
                 op = vw.parseOpcode(next_va)
-            except envi.InvalidInstruction:
+            except e_exc.InvalidInstruction:
                 op = None
             if op is None:
                 return None
@@ -195,7 +195,7 @@ def golang_collect_opcodes(vw, basic_block):
     while next_va < basic_block[0] + basic_block[1]:
         try:
             op = vw.parseOpcode(next_va)
-        except envi.InvalidInstruction:
+        except e_exc.InvalidInstruction:
             return []
         opcodes.append(op)
         next_va += op.size
