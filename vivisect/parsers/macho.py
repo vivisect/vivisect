@@ -56,14 +56,14 @@ def checkFatMagicAndTrunc(vw, filebytes):
     offset = 0
     fat = vs_macho.fat_header()
     offset = fat.vsParse(filebytes, offset=offset)
-    
+
     if fat.magic in vsm_const.FAT_64:
         archcon = vsm_fat.fat_arch_64
     else:
         archcon = vsm_fat.fat_arch
 
-    for i in range(fat.nfat_arch):
-        ar = vs_macho.fat_arch()
+    for _ in range(fat.nfat_arch):
+        ar = archcon()
         offset = ar.vsParse(filebytes, offset=offset)
         archname = vs_macho.mach_cpu_names.get(ar.cputype)
         if archname == fatarch:
@@ -119,7 +119,6 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     fhash = viv_parsers.md5Bytes(filebytes)
     sha256 = viv_parsers.sha256Bytes(filebytes)
 
-
     arch = vs_macho.mach_cpu_names.get(macho.mach_header.cputype)
     if arch is None:
         raise Exception('Unknown MACH-O arch: %.8x' % macho.mach_header.cputype)
@@ -166,14 +165,13 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     for va, cmdname in cmdinfo:
         vw.makeName(va, "macho_" + cmdname)
 
-
     for soff, va in macho.getEntryPoints():
         va += baseaddr
         if vw.isValidPointer(va):
             vw.addEntryPoint(va)
 
         ptr = baseaddr + soff
-        logger.debug("adding entrypoint: 0x%x (off: 0x%x/0x%x)", va, ptr, soff) 
+        logger.debug("adding entrypoint: 0x%x (off: 0x%x/0x%x)", va, ptr, soff)
         vw.makePointer(ptr, follow=False)
 
     return fname

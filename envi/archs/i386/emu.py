@@ -2641,3 +2641,4 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_salc(self, op):
         cf = self.getFlag(EFLAGS_CF)
         self.setRegister(REG_AL, 0xff if cf else 0)
+    # hlt, fcomp? fucomip? callf? fadd? subsd

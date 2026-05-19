@@ -207,7 +207,6 @@ def getCodePathsTo(fgraph, tocbva, loopcnt=0, maxpath=None):
                 ...etc...
     '''
     pathcnt = 0
-    looptrack = []
     pnode = vg_pathcore.newPathNode(nid=tocbva, eid=None)
 
     node = fgraph.getNode(tocbva)
@@ -390,15 +389,14 @@ def getLoopPaths(fgraph):
     '''
     for root in fgraph.getHierRootNodes():
         proot = vg_pathcore.newPathNode(nid=root[0], eid=None)
-        todo = [ (root[0],proot,0), ]
+        todo = [(root[0], proot, 0),]
 
         while todo:
-            node,cpath,loopcnt = todo.pop()
+            node, cpath, loopcnt = todo.pop()
 
             count = 0
-            free = []
             if loopcnt == 1:
-                yield [ _nodeedge(n) for n in vg_pathcore.getPathToNode(npath) ]
+                yield [_nodeedge(n) for n in vg_pathcore.getPathToNode(cpath)]
 
             else:
                 for eid, fromid, toid, einfo in fgraph.getRefsFromByNid(node):
@@ -574,15 +572,15 @@ def findRemergeDown(graph, va):
     preRouteGraphDown(graph, startnid, mark='hit', loop=False)
 
     histo, nodewts, leaves = getNodeWeightHisto(graph)
-    startnode = graph.getNode(startnid)
-    startweight = nodewts.get(startnid)
+    #startnode = graph.getNode(startnid)
+    #startweight = nodewts.get(startnid)
 
     for node in graph.getNodesByProp('hit'):
         # skip the starting node
-        if node[0] == startnid: 
+        if node[0] == startnid:
             continue
 
-        if node[1].get('hit') is None: 
+        if node[1].get('hit') is None:
             continue
 
         for eid, frva, tova, einfo in graph.getRefsTo(node):
@@ -634,7 +632,7 @@ def preRouteGraphUp(graph, tova, loop=True, mark='down'):
         curnode = todo.pop()
         graph.setNodeProp(curnode, mark, True)
         for eid, fr, to, einfo in graph.getRefsTo(curnode):
-            if graph.getNodeProps(fr).get(mark) == True:
+            if graph.getNodeProps(fr).get(mark):
                 continue
             if not loop and nwlist.get(fr) <= nwlist.get(to):
                 continue
@@ -657,7 +655,7 @@ def preRouteGraphDown(graph, fromva, loop=False, mark='up'):
         curnodeva, curninfo = curnode
         graph.setNodeProp(curnode, mark, True)
         for eid, fr, to, einfo in graph.getRefsFrom(curnode):
-            if graph.getNodeProps(to).get(mark) == True:
+            if graph.getNodeProps(to).get(mark):
                 continue
             if not loop and nwlist.get(fr) >= nwlist.get(to):
                 continue
@@ -683,8 +681,9 @@ def clearMarkDown(graph, fromva, loop=False, mark='up'):
         graph.delNodeProp(curnode, mark)
 
         for eid, fr, to, einfo in graph.getRefsFrom(curnode):
-            if graph.getNodeProps(to).get(mark) == True:
+            if graph.getNodeProps(to).get(mark):
                 continue
+
             if not loop and nwlist.get(fr) >= nwlist.get(to):
                 continue
 
@@ -754,7 +753,6 @@ class PathGenerator:
                     ...etc...
         '''
         fgraph = self.graph
-        self.__update = 0
         self.__go__ = True
         pathcnt = 0
         tocbva = getGraphNodeByVa(fgraph, tova)
@@ -785,18 +783,15 @@ class PathGenerator:
             if nodeid == frcbva:
                 path = vg_pathcore.getPathToNode(cpath)
                 path.reverse()
-                self.__steplock.acquire()
-                yield [ viv_graph._nodeedge(n) for n in path ]
+                yield [_nodeedge(n) for n in path]
                 vg_pathcore.trimPath(cpath)
 
                 pathcnt += 1
-                self.__update = 1
-                self.__steplock.release()
                 if maxpath and pathcnt >= maxpath:
                     return
 
             for eid, fromid, toid, einfo in refsto:
-                if fgraph.getNodeProps(fromid).get('up') != True:
+                if fgraph.getNodeProps(fromid).get('up') is False:
                     # TODO: drop the bad edges from graph in preprocessing? instead of "if" here
                     vg_pathcore.trimPath(cpath)
                     continue
@@ -824,7 +819,6 @@ class PathGenerator:
                     ...etc...
         '''
         fgraph = self.graph
-        self.__update = 0
         self.__go__ = True
         pathcnt = 0
         tocbva = getGraphNodeByVa(fgraph, tova)
@@ -837,9 +831,9 @@ class PathGenerator:
 
         # get node weights for reference later
         weights = fgraph.getHierNodeWeights()
-        
+
         pnode = vg_pathcore.newPathNode(nid=frcbva, eid=None)
-        
+
         loopcount = 0
 
         todo = [(frcbva,pnode,loopcount), ]
@@ -860,11 +854,10 @@ class PathGenerator:
             # This is the root node!
             if nodeid == tocbva:
                 path = vg_pathcore.getPathToNode(cpath)
-                yield [ _nodeedge(n) for n in path ]
+                yield [_nodeedge(n) for n in path]
                 vg_pathcore.trimPath(cpath)
 
                 pathcnt += 1
-                self.__update = 1
                 if maxpath and pathcnt >= maxpath:
                     return
 
@@ -875,14 +868,12 @@ class PathGenerator:
                 tgtlvl = weights.get(toid)
                 if tgtlvl <= curlvl:
                     # if we're moving *up* in the world, increment and check loopcount
-                    #loops = vg_pathcore.getPathLoopCount(cpath, 'nid', fromid)
                     loopcount += 1
                     if loopcount > loopcnt:
                         vg_pathcore.trimPath(cpath)
-                        #sys.stderr.write('o')
 
                         # as long as we have at least one path, we count loops as paths, lest we die.
-                        if pathcnt: 
+                        if pathcnt:
                             pathcnt += 1
                         continue
 
@@ -899,11 +890,9 @@ def pathGenConvert(pathgen):
     '''
     for path in pathgen:
         newpath = []
-        prevedge = [ None ]
+        prevedge = [None]
         for node, nextedge in path:
             newpath.append((node[0], prevedge[0]))
             prevedge = nextedge
 
-        #pprint(newpath)
         yield newpath
-

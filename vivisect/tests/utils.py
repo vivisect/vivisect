@@ -167,6 +167,7 @@ def printFuncBlocks(vw, fva, fakebase=None):
 we allow this to be run as a script from within Vivisect in order to easily extract relevant memory for a function
 '''
 if globals().get('vw') is not None:
+    # TODO: This is broken. Wtf is argv supposed to be grabbed from?
     va = vw.parseExpression(argv[1])
     fva = vw.getFunction(va)
     vprint("analyzing Funcva (0x%x) for provided va (0x%x)" % (va, fva))

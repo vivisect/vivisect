@@ -364,11 +364,9 @@ class SwitchCase:
             self.sctx.addSymFuncCallback(fname, trobj.thunk_reg)
             logger.debug( "sctx.addSymFuncCallback(%s, thunk_reg)" % fname)
 
-
         self._sgraph = None
         self._codepath = None
         self._codepathgen = None
-
 
         try:
             self.max_instr_count = vw.config.viv.analysis.symswitchcase.max_instr_count
@@ -384,8 +382,6 @@ class SwitchCase:
             self.min_func_instr_size = 10
 
         self.clearCache()
-
-
 
     def clearCache(self):
         '''
@@ -404,7 +400,6 @@ class SwitchCase:
         self.baseIdx = None
 
         self.jmpsymvar = None
-
 
     def analyze(self):
         '''
@@ -564,6 +559,7 @@ class SwitchCase:
         '''
         symtype, smplIdx = self.getSymIdx()
 
+        cplxIdx = None
         (csemu, cseffs), asp, fullp = self.getSymbolikParts()
         if symtype == SYMT_VAR:
             cplxIdx = csemu.getSymVariable(smplIdx)
@@ -616,8 +612,7 @@ class SwitchCase:
         longpath = ctx.get('longpath')
 
         # now compare the long path against constraints that contain it.  find sweet spot
-        count = last = None
-        which = None
+        count = None
         offset = 0
 
         # peel back the constraints to remove any incidental modifications to the index variable
@@ -629,14 +624,14 @@ class SwitchCase:
         # known index.
         #logging.info("LONGPATH: " + '\n'.join([repr(x) for x in longpath]))
         for symobj in longpath:
-            last = count
             count = len(self.getBoundingCons(symobj))
             logger.debug(" longpath constraints %d: %r" % (count, symobj))
 
             # peel off o_subs and size-limiting o_ands and o_sextends
             if isinstance(symobj, o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
-                mask = symobj.kids[1].solve()
-                pass    # this wrapper is a size-limiting bitmask
+                # TODO: Okay. So what do we do here? We're solving but throwing the result away
+                #mask = symobj.kids[1].solve()
+                pass
 
             elif isinstance(symobj, o_sub):
                 offset += symobj.kids[1].solve() # this is an offset, used to rebase the index into a different pointer array
@@ -811,8 +806,6 @@ class SwitchCase:
         semu.setSymVariable(symIdx, Const(0, 8))
 
         for eff in aseffs:
-            startlen = len(semu.getTrackInfo())
-
             if eff.efftype == EFFTYPE_READMEM:
                 if eff.va == self.jmpva:
                     continue
@@ -829,11 +822,8 @@ class SwitchCase:
                     size = target.getWidth()
                     derefs.append((eff.va, symaddr, solution, target.solve(), size))
 
-            endlen = len(semu.getTrackInfo())
 
         return derefs
-
-
 
     #### higher level functionality
     def makeSwitch(self):
@@ -913,7 +903,6 @@ class SwitchCase:
             # determine deref-ops...  uses TrackingSymbolikEmulator
             # iterCases
             cases = {}
-            memrefs = []
             for idx, addr in self.iterCases():
                 logger.info("0x%x analyzeSwitch: idx: %s \t address: 0x%x", self.jmpva, idx, addr)
 
@@ -1044,7 +1033,6 @@ class SwitchCase:
         replaceObj(jmptgt, symidx, Var('jmpidx', symidx.getWidth()))
         #workJmpTgt = jmptgt.update(emu=symemu)
 
-
         for idx in range(lower-offset, upper-offset+1):
             symemu.setSymVariable('jmpidx', Const(idx, 8))
             workJmpTgt = jmptgt.update(emu=symemu)  # would "jmptgt.solve(vals={'jmpidx': idx})" work?
@@ -1119,7 +1107,6 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
     logger.info("link_up(0x%x, 0x%x, %d, 0x%x, %r, %r)", jmpva, array, count, baseoff, baseva, itemsize)
 
     cases = {}
-    memrefs = []
     for idx in range(count):
         # handle specific itemsize if not pointer sized
 

@@ -121,6 +121,7 @@ def find_golang_bblock(vw, basic_blocks, match, idx):
     return instrs[len(match) - idx]
 
 
+# TODO: Nobody uses filename. We could probably just get rid of it
 def find_golang_bblock_via_stack(vw, filename):
     '''
     Find the basic block of interest and return the address where
@@ -150,7 +151,7 @@ def find_golang_bblock_via_stack(vw, filename):
 
     # Analyze the function at the pointer if necessary.
     if not vw.isFunction(ptr_va):
-        logger.debug('discovered new function(ptr): 0x%x', ptr_va)
+        logger.debug('discovered new golang function(ptr): 0x%x', ptr_va)
         vw.makeFunction(ptr_va)
 
     # This function should contain the special basic block.
@@ -180,7 +181,7 @@ def parse_push_imm(vw, opcode, filename, get_content=False):
         else:
             runtime_va = None
         return ptr_va, runtime_va
-    except Exception as e:
+    except Exception:
         return None, None
 
 

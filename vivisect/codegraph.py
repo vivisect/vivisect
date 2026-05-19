@@ -2,9 +2,10 @@
 Various codeflow oriented graph constructs.
 '''
 import envi
+
 import visgraph.graphcore as v_graphcore
 
-from vivisect.const import *
+import vivisect.const as v_const
 
 
 class CallGraph(v_graphcore.HierGraph):
@@ -73,14 +74,14 @@ class CodeBlockGraph(v_graphcore.HierGraph):
 
     def _getCodeBranches(self, va):
         loc = self.vw.getLocation(va)
-        if loc is None or loc[L_LTYPE] != LOC_OP:
+        if loc is None or loc[v_const.L_LTYPE] != v_const.LOC_OP:
             return []
 
         lva, lsize, ltype, ltinfo = loc
 
-        xrefs = self.vw.getXrefsFrom(va, rtype=REF_CODE)
+        xrefs = self.vw.getXrefsFrom(va, rtype=v_const.REF_CODE)
 
-        crefs = [(xto,xflags) for (xfrom,xto,xtype,xflags) in xrefs]
+        crefs = [(xto, xflags) for (xfrom, xto, xtype, xflags) in xrefs]
 
         # If any of our other branches are conditional, so is our fall
         if not ltinfo & envi.IF_NOFALL:

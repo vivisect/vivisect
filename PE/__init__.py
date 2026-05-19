@@ -308,7 +308,6 @@ class VS_VERSIONINFO:
         return xoffset
 
     def _varTable(self, bytes, offset, size):
-        xmax = offset + size
         xoffset = offset
         mysize, valsize, valtype = struct.unpack('<HHH', bytes[xoffset:xoffset+6])
         xoffset += 6
@@ -636,7 +635,6 @@ class PE(object):
         '''
         ddir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DEBUG)
         drva = ddir.VirtualAddress
-        dsize = ddir.Size
         d = self.readStructAtRva(drva, 'pe.IMAGE_DEBUG_DIRECTORY', check=True)
         if d is None:
             return None
@@ -1291,7 +1289,7 @@ class PE(object):
                     return
 
                 funcoff = funclist[ordl]
-                ffoff = self.rvaToOffset(funcoff)
+                #ffoff = self.rvaToOffset(funcoff)
 
                 name = None
 
@@ -1372,7 +1370,8 @@ class PE(object):
         substrate = sig.pkcs7
         contentInfo, rest = pyasn1.codec.der.decoder.decode(substrate, asn1Spec=pyasn1_modules.rfc2315.ContentInfo())
 
-        if rest: substrate = substrate[:-len(rest)]
+        if rest:
+            substrate = substrate[:-len(rest)]
 
         contentType = contentInfo.getComponentByName('contentType')
 

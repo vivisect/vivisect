@@ -55,7 +55,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_AMD64:     {
         'name':     'amd64',
         'aliases':  ('x86_64',),
@@ -67,7 +67,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_ARMV7:     {
         'name':     'arm',
         'aliases':  ('armv7a', 'armv7', 'armv7l', 'armv6l', 'arm32', 'a32', 'leg', 'leg32'),
@@ -79,7 +79,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_THUMB16:   {
         'name':     'thumb16',
         'modpath':  ('envi', 'archs', 'thumb16'),
@@ -90,7 +90,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_THUMB:     {
         'name':     'thumb',
         'aliases':  ('t32', 'thumb2', 'toe', 'toe2', 'toe32'),
@@ -102,7 +102,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_A64:       {
         'name':     'a64',
         'aliases':  ('aarch64', 'leg64', 'legv8'),
@@ -115,7 +115,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_MSP430:    {
         'name':     'msp430',
         'modpath':  ('envi', 'archs', 'msp430'),
@@ -126,7 +126,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_H8:        {
         'name':     'h8',
         'modpath':  ('envi', 'archs', 'h8'),
@@ -137,7 +137,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_MCS51:     {
         'name':     'mcs51',
         'aliases':  ('8051', '80x51'),
@@ -150,7 +150,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_RISCV32:   {
         'name':     'rv32',
         'aliases':  ('riscv', 'risc-v',),
@@ -163,7 +163,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_RISCV64:   {
         'name':     'rv64',
         'modpath':  ('envi', 'archs', 'rv64'),
@@ -175,7 +175,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_E32:   {
         'name':     'ppc32-embedded',
         'aliases':  ('ppc32',),
@@ -188,7 +188,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_E64:   {
         'name':     'ppc-embedded',
         'aliases':  ('ppc64-embedded','ppc-spe'),
@@ -201,10 +201,10 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_S32:   {
         'name':     'ppc32-server',
-        'modpath':  ('envi', 'archs', 'ppc32-server', 'Module'),
+        #'modpath':  ('envi', 'archs', 'ppc32-server', 'Module'),
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc32ServerModule',
         'disabled': True,
@@ -214,7 +214,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_S64:   {
         'name':     'ppc-server',
         'aliases':  ('ppc64-server','altivec', 'ppc-altivec'),
@@ -227,7 +227,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPCVLE:    {
         'name':     'ppc-vle',
         'aliases':  ('vle','ppc32-vle', 'ppcvle'),
@@ -240,7 +240,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_D:     {
         'name':     'ppc-desktop',
         'modpath':  ('envi', 'archs', 'ppc'),
@@ -557,7 +557,7 @@ def stealArchMethods(obj, archname):
     arch = getArchModule(archname)
     for name in dir(arch):
         o = getattr(arch, name, None)
-        if type(o) == types.MethodType:
+        if type(o) is types.MethodType:
             setattr(obj, name, o)
 
 class Operand:
