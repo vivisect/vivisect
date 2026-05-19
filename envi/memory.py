@@ -71,9 +71,6 @@ class IMemory:
         self.bigend = envi.ENDIAN_LSB
         self._supervisor = False
 
-        # TODO: we...really shouldn't need this
-        self.arch = None
-
     def getEndian(self):
         '''
         Returns the Endianness setting
@@ -103,7 +100,7 @@ class IMemory:
             mem.setMemArchitecture(envi.ARCH_I386)
         '''
         archmod = self.getMemArchModule(arch)
-        self.imem_archs[envi.ARCH_DEFAULT] = archmod
+        self.imem_archs[envi.ARCH_DEFAULT] = self.arch = archmod
         self.imem_psize = archmod.getPointerSize()
 
     def getMemArchModule(self, arch=envi.ARCH_DEFAULT):
