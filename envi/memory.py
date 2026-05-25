@@ -63,8 +63,8 @@ class IMemory:
 
     def __init__(self, arch=None):
         self.imem_psize = struct.calcsize('P')
-        #self.imem_archs = envi.getArchModules()
         self.imem_archs = {}
+        self.arch = None
         if arch is not None:
             self.setMemArchitecture(arch)
 
@@ -113,7 +113,6 @@ class IMemory:
         if not archmod:
             name = envi.getArchById(arch)
             archmod = envi.getArchModule(name=name)
-            #archmod = envi.getArchById(arch)
             self.imem_archs[idx] = archmod
 
         return archmod
