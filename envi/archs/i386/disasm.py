@@ -698,7 +698,7 @@ class i386Disasm:
         self._dis_amethods[opconst.ADDRMETH_C>>16] = self.ameth_c
         self._dis_amethods[opconst.ADDRMETH_D>>16] = self.ameth_d
         self._dis_amethods[opconst.ADDRMETH_E>>16] = self.ameth_e
-        self._dis_amethods[opconst.ADDRMETH_M>>16] = self.ameth_m
+        self._dis_amethods[opconst.ADDRMETH_M>>16] = self.ameth_e
         self._dis_amethods[opconst.ADDRMETH_N>>16] = self.ameth_n
         self._dis_amethods[opconst.ADDRMETH_Q>>16] = self.ameth_q
         self._dis_amethods[opconst.ADDRMETH_R>>16] = self.ameth_e
@@ -1126,13 +1126,6 @@ class i386Disasm:
         return (tsize, i386ImmOper(imm, tsize))
 
     def ameth_e(self, bytez, offset, tsize, prefixes, operflags):
-        return self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)
-
-    def ameth_m(self, bytez, offset, tsize, prefixes, operflags):
-        # we only refer to memory, anything else is invalid
-        mod,reg,rm = self.parse_modrm(bytez[offset])
-        if mod == 3:
-            raise envi.InvalidInstruction(bytez=bytez[offset:offset+16])
         return self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)
 
     def ameth_n(self, bytez, offset, tsize, prefixes, operflags):
