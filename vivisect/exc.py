@@ -80,39 +80,26 @@ class CorruptPeFile(CorruptFile):
     def __init__(self, message):
         super().__init__("PE", message)
 
-
 class SymIdxNotFoundException(Exception):
-    def __repr__(self):
-        return "getSymIdx cannot determine the Index register"
+    def __init__(self, message):
+        super().__init__("getSymIdx cannot determine the Index register: %s" % message)
 
 class NoComplexSymIdxException(Exception):
     def __init__(self, sc=None):
+        super().__init__("getComplexIdx cannot determine the Index register: %s" % sc)
         self.sc = sc
-        Exception.__init__(self)
-
-    def __repr__(self):
-        return "getComplexIdx cannot determine the Index register"
 
 class NotConnected(Exception):
     def __init__(self, name):
-        Exception.__init__(self)
+        super().__init__("%s requires being connected to a server" % name)
         self.name = name
-
-    def __repr__(self):
-        return f"{self.name} requires being connected to a server"
 
 class InvalidChannel(Exception):
     def __init__(self, name):
-        Exception.__init__(self)
+        super().__init__(f"Invalid Channel: {self.name}")
         self.name = name
-
-    def __repr__(self):
-        return f"Invalid Channel: {self.name}"
 
 class UnknownSymbolType(Exception):
     def __init__(self, symtype):
-        Exception.__init__(self)
+        super().__init__('Unknown Local Symbol Type: %d' % self.symtype)
         self.symtype = symtype
-
-    def __repr__(self):
-        return 'Unknown Local Symbol Type: %d' % self.symtype

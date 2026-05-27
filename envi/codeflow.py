@@ -5,8 +5,6 @@ import logging
 import collections
 
 import envi
-import envi.common as e_cmn
-import envi.memory as e_mem
 import envi.const as e_const
 
 logger = logging.getLogger(__name__)

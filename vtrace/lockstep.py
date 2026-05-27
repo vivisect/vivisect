@@ -336,7 +336,6 @@ def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
     '''
     byts = self.readMemory(va, 16)
     amod = self.getMemArchModule(arch=arch)
-    print(amod)
     return amod.archParseOpcode(byts, 0, va)
 
 

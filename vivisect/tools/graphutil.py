@@ -791,7 +791,7 @@ class PathGenerator:
                     return
 
             for eid, fromid, toid, einfo in refsto:
-                if fgraph.getNodeProps(fromid).get('up') is False:
+                if fgraph.getNodeProps(fromid).get('up') is not True:
                     # TODO: drop the bad edges from graph in preprocessing? instead of "if" here
                     vg_pathcore.trimPath(cpath)
                     continue

@@ -284,7 +284,7 @@ class i386PcRelOper(envi.Operand):
         return True
 
     def isDiscrete(self):
-        return True # Based on op.va...
+        return True  # Based on op.va...
 
     def getOperValue(self, op, emu=None):
         return op.va + op.size + self.imm
@@ -294,10 +294,10 @@ class i386PcRelOper(envi.Operand):
 
     def render(self, mcanv, op, idx):
         hint = mcanv.syms.getSymHint(op.va, idx)
+        value = op.va + op.size + self.imm
         if hint is not None:
             mcanv.addVaText(hint, value)
         else:
-            value = op.va + op.size + self.imm
             name = addrToName(mcanv, value)
             mcanv.addVaText(name, value)
 
@@ -443,7 +443,7 @@ class i386ImmMemOper(envi.DerefOper):
 
 class i386SibOper(envi.DerefOper):
     """
-    An operand which represents the result of reading/writting memory from the
+    An operand which represents the result of reading/writing memory from the
     dereference (with possible displacement) from a given register.
     """
     def __init__(self, tsize, reg=None, imm=None, index=None, scale=1, disp=0):
@@ -698,7 +698,7 @@ class i386Disasm:
         self._dis_amethods[opconst.ADDRMETH_C>>16] = self.ameth_c
         self._dis_amethods[opconst.ADDRMETH_D>>16] = self.ameth_d
         self._dis_amethods[opconst.ADDRMETH_E>>16] = self.ameth_e
-        self._dis_amethods[opconst.ADDRMETH_M>>16] = self.ameth_e
+        self._dis_amethods[opconst.ADDRMETH_M>>16] = self.ameth_m
         self._dis_amethods[opconst.ADDRMETH_N>>16] = self.ameth_n
         self._dis_amethods[opconst.ADDRMETH_Q>>16] = self.ameth_q
         self._dis_amethods[opconst.ADDRMETH_R>>16] = self.ameth_e
@@ -975,7 +975,7 @@ class i386Disasm:
 
             tabdesc = all_tables[0]
             while True:
-                if (obyte > tabdesc[4]):
+                if obyte > tabdesc[4]:
                     tabdesc = all_tables[tabdesc[5]]
 
                 tabidx = ((obyte - tabdesc[3]) >> tabdesc[1]) & tabdesc[2]
@@ -1067,7 +1067,7 @@ class i386Disasm:
                             if memsz is not None:
                                 oper.tsize = memsz
 
-                except struct.error as e:
+                except struct.error:
                     # Catch struct unpack errors due to insufficient data length
                     raise envi.InvalidInstruction(bytez=bytez[startoff:startoff+16])
 
@@ -1097,7 +1097,10 @@ class i386Disasm:
             # if we're on linux-i386, this is how they do syscalls, otherwise, it's a trap
             plat = extra.get('platform')
             if plat:
-                if ret.getOperValue(0) != PLATMODS.get(plat, None):
+                if not ret.opers:
+                    # int1 debug trap
+                    ret.iflags |= envi.IF_NOFALL
+                elif ret.getOperValue(0) != PLATMODS.get(plat, None):
                     ret.iflags |= envi.IF_NOFALL
 
         return ret
@@ -1123,6 +1126,13 @@ class i386Disasm:
         return (tsize, i386ImmOper(imm, tsize))
 
     def ameth_e(self, bytez, offset, tsize, prefixes, operflags):
+        return self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)
+
+    def ameth_m(self, bytez, offset, tsize, prefixes, operflags):
+        # we only refer to memory, anything else is invalid
+        mod,reg,rm = self.parse_modrm(bytez[offset])
+        if mod == 3:
+            raise envi.InvalidInstruction(bytez=bytez[offset:offset+16])
         return self.extended_parse_modrm(bytez, offset, tsize, prefixes=prefixes)
 
     def ameth_n(self, bytez, offset, tsize, prefixes, operflags):

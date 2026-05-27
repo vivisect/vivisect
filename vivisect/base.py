@@ -574,7 +574,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[v_const.VWE_ADDFSIG] = self._handleADDFSIG
         self.ehand[v_const.VWE_ADDFREF] = self._handleADDFREF
         self.ehand[v_const.VWE_DELFREF] = self._handleDELFREF
-        self.ehand[v_const.VWE_FOLLOWME] = self._handleFOLLOWME
+        self.ehand[v_const.VWE_FOLLOWME] = self._handleEventFOLLOWME
         self.ehand[v_const.VWE_CHAT] = self._handleCHAT
         self.ehand[v_const.VWE_SYMHINT] = self._handleSYMHINT
         self.ehand[v_const.VWE_AUTOANALFIN] = self._handleAUTOANALFIN
@@ -583,11 +583,14 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
         self.thand = [None for x in range(v_const.VTE_MAX)]
         self.thand[v_const.VTE_IAMLEADER] = self._handleIAMLEADER
-        self.thand[v_const.VTE_FOLLOWME] = self._handleFOLLOWME
+        self.thand[v_const.VTE_FOLLOWME] = self._handleTransFOLLOWME
         self.thand[v_const.VTE_KILLLEADER] = self._handleKILLLEADER
         self.thand[v_const.VTE_MODLEADER] = self._handleMODLEADER
 
-    def _handleFOLLOWME(self, event, einfo):
+    def _handleEventFOLLOWME(self, einfo):
+        pass
+
+    def _handleTransFOLLOWME(self, event, einfo):
         uuid, expr = einfo
         logger.debug("_handleFOLLOWME(%r, %r)", event, einfo)
         self.leaderloc[uuid] = expr

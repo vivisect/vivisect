@@ -957,7 +957,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         if curval is not None and curval != va and not makeuniq:
             # if we don't force it to make a uniq name, bail
-            raise v_exc.DuplicateName(rname, va, curval)
+            raise v_exc.DuplicateName(va, curval, rname)
 
         rname = self.makeName(va, rname, makeuniq=makeuniq)
         self._fireEvent(v_const.VWE_ADDEXPORT, (va, etype, name, filename))
@@ -1301,7 +1301,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # 4 -- neither are none
             #   * moveCodeBlock -- that func will handle whether or not functions are the same
             if curfva is not None:
-                self.moveCodeBlock(cb, prevcb[v_const.CB_FUNCVA])
+                self.moveCodeBlock(cb, curfva)
             else:
                 self.delCodeBlock(prevcb[v_const.CB_VA])
 
