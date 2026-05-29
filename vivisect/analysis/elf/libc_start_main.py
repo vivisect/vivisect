@@ -41,9 +41,10 @@ def analyzeFunction(vw, funcva, lcsm=None):
         if not emumon.success:
             logger.info("  emumon failure: %r", vars(emumon))
             return
+
         try:
             api = vw.getFunctionApi(emumon.startmain)
-            cconv = emu.getCallingConvention(api[vivisect.API_CCONV])
+            cconv = emu.getCallingConvention(api[v_const.API_CCONV])
         except:
             ccname = vw.getMeta('DefaultCall')
             cconv = emu.getCallingConvention(ccname)
@@ -59,7 +60,7 @@ def analyzeFunction(vw, funcva, lcsm=None):
         if curname in (None, "sub_%.8x" % mainva):
             vw.makeName(mainva, 'main', True)
 
-    except Exception as e:
+    except Exception:
         sys.excepthook(*sys.exc_info())
 
 

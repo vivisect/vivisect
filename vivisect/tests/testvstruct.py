@@ -1,7 +1,7 @@
-import vstruct
-import vivisect
 import envi.memcanvas as e_mcanvas
-import vstruct.primitives as v_prim
+
+import vivisect
+import vivisect.const as v_const
 import vivisect.renderers as v_rend
 import vivisect.tests.utils as v_t_utils
 
@@ -30,7 +30,7 @@ class VivisectVstructTest(v_t_utils.VivTest):
         wsr = v_rend.WorkspaceRenderer(vw)
         loc = vw.getLocation(0x99e0)
 
-        struct = vw.getStructure(0x99e0, loc[vivisect.L_TINFO])
+        struct = vw.getStructure(0x99e0, loc[v_const.L_TINFO])
         wsr.renderLocation(canvas, loc, None, False, 'cmnt', struct)
-        self.maxDiff=1000
+        self.maxDiff = 1000
         self.assertEqual(canvas.strval, structcmp)

@@ -122,6 +122,7 @@ def trackArgOrigin(vw, fva, argidx):
             newpath = vg_path.newPathNode(**pargs)
 
             aval, amagic = argv[trackidx]
+            # TODO: Need to switch to envi.CC_STACK or something
             if isinstance(amagic, viv_magic.StackArg) and newfva:
                 vg_path.setNodeProp(newpath, 'trackidx', amagic.index)
                 todo.append(newpath)

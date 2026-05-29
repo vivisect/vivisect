@@ -20,6 +20,7 @@ import vtrace.util as v_util
 import vtrace.snapshot as vs_snap
 import vtrace.notifiers as v_notif
 
+# TODO: Import self??
 import vdb
 import vdb.stalker as v_stalker
 import vdb.extensions as v_ext
@@ -304,6 +305,7 @@ class Vdb(e_cli.EnviMutableCli, v_notif.Notifier, v_util.TraceManager):
         import envi.memcanvas.renderers as e_render
         import vdb.renderers as v_rend
         # FIXME check endianness
+        # FIXME use trace?
         self.canvas.addRenderer("bytes", e_render.ByteRend())
         self.canvas.addRenderer("u_int_16", e_render.ShortRend())
         self.canvas.addRenderer("u_int_32", e_render.LongRend())

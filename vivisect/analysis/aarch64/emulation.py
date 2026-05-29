@@ -2,8 +2,8 @@ import logging
 
 import visgraph.pathcore as vg_path
 
-import vivisect
 import vivisect.exc as v_exc
+import vivisect.const as v_const
 import vivisect.impemu.monitor as viv_monitor
 import vivisect.analysis.generic.codeblocks as viv_cb
 
@@ -94,8 +94,9 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                         logger.info("0x%x: +++++++++++++++ infinite loop +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", op.va)
                         if op.va not in self.infloops:
                             self.infloops.append(op.va)
+                            # TODO: This va setsshould be defined higher up...
                             if 'InfiniteLoops' not in self.vw.getVaSetNames():
-                                self.vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
+                                self.vw.addVaSet('InfiniteLoops', (('va', v_const.VASET_ADDRESS, 'function', v_const.VASET_STRING)))
                             self.vw.setVaSetRow('InfiniteLoops', (op.va, self.fva))
 
                 except Exception as e:

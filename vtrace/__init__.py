@@ -31,7 +31,6 @@ import os
 import re
 import code
 import time
-import types
 import logging
 import platform
 

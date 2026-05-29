@@ -48,9 +48,10 @@ import logging
 import collections
 
 import envi
-import vivisect
-import envi.common as e_cmn
+import envi.common as e_common
 import envi.archs.i386 as e_i386
+
+import vivisect.const as v_const
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +220,7 @@ def analyzePLT(vw, ssva, ssize):
             if ltup is not None:
                 lva, lsz, ltype, ltinfo = ltup
                 # if the location is an Opcode, check for branch info
-                if ltype == vivisect.LOC_OP:
+                if ltype == v_const.LOC_OP:
                     op = vw.parseOpcode(lva)
                     emu.setProgramCounter(lva)
                     if op.iflags & envi.IF_BRANCH and \
@@ -312,12 +313,11 @@ def analyzeFunction(vw, funcva):
         if pltva <= funcva < (pltva + pltsz):
             isplt = True
             segva = pltva
-            segsize = pltsz
             break
 
     # if we're not
     if not isplt:
-        logger.log(e_cmn.SHITE, '0x%x: not part of a .plt section', funcva)
+        logger.log(e_common.SHITE, '0x%x: not part of a .plt section', funcva)
         return
 
     logger.info('analyzing PLT function: 0x%x', funcva)
@@ -339,7 +339,7 @@ def analyzeFunction(vw, funcva):
             emu.executeOpcode(op)
             opva += len(op)
             op = vw.parseOpcode(opva)
-            logger.log(e_cmn.SHITE, "0x%x: %r", opva, op)
+            logger.log(e_common.SHITE, "0x%x: %r", opva, op)
             count += 1
     except Exception as e:
         logger.warning('failure analyzing PLT func 0x%x: %r', funcva, e)
@@ -381,14 +381,14 @@ def analyzeFunction(vw, funcva):
             # add the xref to whatever location referenced (assuming the opref hack worked)
             if vw.isValidPointer(opref):
                 logger.debug('reference 0x%x is valid, adding Xref', opref)
-                vw.addXref(op.va, opref, vivisect.REF_DATA)
+                vw.addXref(op.va, opref, v_const.REF_DATA)
 
-            if ltype == vivisect.LOC_IMPORT:
+            if ltype == v_const.LOC_IMPORT:
                 # import locations store the name as ltinfo
                 funcname = ltinfo
                 logger.debug("0x%x: (0x%x) LOC_IMPORT by BR_DEREF %r", funcva, opval, funcname)
 
-            elif ltype == vivisect.LOC_POINTER:
+            elif ltype == v_const.LOC_POINTER:
                 # we have a deref to a pointer.
                 funcname = vw.getName(ltinfo)
                 if ltinfo:
@@ -412,7 +412,7 @@ def analyzeFunction(vw, funcva):
                 funcname = ltinfo
                 logger.debug('0x%x: LOC_IMPORT (emu-taint): 0x%x:  %r', opva, lva, funcname)
                 if not vw.getXrefsFrom(opva):
-                    vw.addXref(opva, lva, vivisect.REF_DATA)
+                    vw.addXref(opva, lva, v_const.REF_DATA)
 
             else:
                 # instead of a taint (which *should* indicate an IMPORT), we have real pointer.
@@ -440,12 +440,12 @@ def analyzeFunction(vw, funcva):
                     funcname = vw.getName(opval)
 
                 # sort through the location types and adjust accordingly
-                if ltype == vivisect.LOC_IMPORT:
+                if ltype == v_const.LOC_IMPORT:
                     logger.info("0x%x: (0x%x) dest is LOC_IMPORT but missed taint for %r", funcva, opval, funcname)
                     # import locations store the name as ltinfo
                     funcname = ltinfo
 
-                elif ltype == vivisect.LOC_OP:
+                elif ltype == v_const.LOC_OP:
                     logger.debug("0x%x: succeeded finding LOC_OP at the end of the rainbow! (%r)", funcva, funcname)
                     if vw.getFunction(aopval) is None:
                         logger.debug("0x%x: code does not exist at 0x%x.  calling makeFunction()", funcva, aopval)
@@ -453,10 +453,10 @@ def analyzeFunction(vw, funcva):
 
                     # this "thunk" actually calls something in the workspace, that exists as a function...
                     logger.info('0x%x points to real code (0x%x: %r)', funcva, opval, funcname)
-                    vw.addXref(op.va, aopval, vivisect.REF_CODE)
+                    vw.addXref(op.va, aopval, v_const.REF_CODE)
                     vw.setVaSetRow('FuncWrappers', (funcva, opval))
 
-                elif ltype == vivisect.LOC_POINTER:
+                elif ltype == v_const.LOC_POINTER:
                     logger.info("0x%x: (0x%x) dest is LOC_POINTER -> 0x%x", funcva, opval, ltinfo)
                     funcname = ltinfo
 
@@ -488,6 +488,7 @@ def analyzeFunction(vw, funcva):
     vw.makeFunctionThunk(funcva, "*." + funcname, addVa=False, filelocal=True,
             basename="plt_" + funcname)
 
+# TODO: This belongs somewhere actually discoverable and usable by other people
 '''
 def printPLTs(vw):
     for seg in vw.getSegments():

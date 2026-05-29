@@ -63,7 +63,8 @@ class IMemory:
 
     def __init__(self, arch=None):
         self.imem_psize = struct.calcsize('P')
-        self.imem_archs = envi.getArchModules()
+        self.imem_archs = {}
+        self.arch = None
         if arch is not None:
             self.setMemArchitecture(arch)
 
@@ -81,7 +82,7 @@ class IMemory:
         Set endianness for memory and architecture modules
         '''
         self.bigend = endian
-        for arch in self.imem_archs:
+        for idx, arch in self.imem_archs.items():
             if not arch:
                 continue
             arch.setEndian(self.bigend)
@@ -98,15 +99,23 @@ class IMemory:
             import envi
             mem.setMemArchitecture(envi.ARCH_I386)
         '''
-        archmod = self.imem_archs[arch >> 16]
-        self.imem_archs[envi.ARCH_DEFAULT] = archmod
+        archmod = self.getMemArchModule(arch)
+        self.imem_archs[envi.ARCH_DEFAULT] = self.arch = archmod
         self.imem_psize = archmod.getPointerSize()
 
     def getMemArchModule(self, arch=envi.ARCH_DEFAULT):
         '''
-        Get a reference to the default arch module for the memory object.
+        Get a reference to the arch module for the memory object.
         '''
-        return self.imem_archs[arch >> 16]
+        idx = (arch & envi.ARCH_MASK) >> 16
+        archmod = self.imem_archs.get(idx)
+        # on demand creation
+        if not archmod:
+            name = envi.getArchById(arch)
+            archmod = envi.getArchModule(name=name)
+            self.imem_archs[idx] = archmod
+
+        return archmod
 
     def getPointerSize(self):
         return self.imem_psize
@@ -118,7 +127,7 @@ class IMemory:
 
         Example: mem.readMemory(0x41414141, 20) -> "A..."
         """
-        raise Exception("must implement readMemory!")
+        raise NotImplementedError("must implement readMemory!")
 
     def writeMemory(self, va, bytes):
         """
@@ -126,14 +135,14 @@ class IMemory:
 
         Example: mem.writeMemory(0x41414141, "VISI")
         """
-        raise Exception("must implement writeMemory!")
+        raise NotImplementedError("must implement writeMemory!")
 
     def protectMemory(self, va, size, perms):
         """
         Change the protections for the given memory map. On most platforms
         the va/size *must* exactly match an existing memory map.
         """
-        raise Exception("must implement protectMemory!")
+        raise NotImplementedError("must implement protectMemory!")
 
     def probeMemory(self, va, size, perm):
         """
@@ -161,13 +170,13 @@ class IMemory:
         return True
 
     def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
-        raise Exception("must implement allocateMemory!")
+        raise NotImplementedError("must implement allocateMemory!")
 
     def addMemoryMap(self, mapva, perms, fname, bytes, align=None):
-        raise Exception("must implement addMemoryMap!")
+        raise NotImplementedError("must implement addMemoryMap!")
 
     def getMemoryMaps(self):
-        raise Exception("must implement getMemoryMaps!")
+        raise NotImplementedError("must implement getMemoryMaps!")
 
     # Mostly helpers from here down...
     def readMemoryFormat(self, va, fmt):
@@ -344,7 +353,7 @@ class IMemory:
         Example: op = m.parseOpcode(0x7c773803)
         '''
         b = self.readMemory(va, 16)
-        return self.imem_archs[arch >> 16].archParseOpcode(b, 0, va)
+        return self.getMemArchModule(arch).archParseOpcode(b, 0, va)
 
 
 class MemoryCache(IMemory):
@@ -722,7 +731,7 @@ class MemoryObject(IMemory):
         Example: op = m.parseOpcode(0x7c773803)
         '''
         off, b = self.getByteDef(va)
-        return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(b, off, va)
+        return self.getMemArchModule(arch).archParseOpcode(b, off, va)
 
     def readMemString(self, va, maxlen=0xfffffff, wide=False):
         '''
@@ -775,9 +784,9 @@ class MemoryFile:
         self.offset += size
         return ret
 
-    def write(self, bytes):
-        self.memobj.writeMemory(self.offset, bytes)
-        self.offset += len(bytes)
+    def write(self, byts):
+        self.memobj.writeMemory(self.offset, byts)
+        self.offset += len(byts)
 
 
 def memdiff(bytes1, bytes2):

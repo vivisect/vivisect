@@ -335,7 +335,8 @@ def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
     leads to a bunch of partial read errors that I don't feel like dealing with right now.
     '''
     byts = self.readMemory(va, 16)
-    return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(byts, 0, va)
+    amod = self.getMemArchModule(arch=arch)
+    return amod.archParseOpcode(byts, 0, va)
 
 
 ###### TraceEmulator fusion magic

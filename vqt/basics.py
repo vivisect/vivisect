@@ -1,8 +1,8 @@
 '''
 A place for some no-brainer basics :)
 '''
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import *
 
 
 class BasicTreeView(QTreeView):
@@ -47,10 +47,10 @@ class BasicModel(QtCore.QAbstractItemModel):
         else:
             return None
 
-    def sort(self, col, order=QtCore.Qt.AscendingOrder):
+    def sort(self, col, order=QtCore.Qt.SortOrder.AscendingOrder):
         self.layoutAboutToBeChanged.emit()
-        self.rows.sort( cmp=lambda x,y: cmp(x[col],y[col]) )
-        if order == QtCore.Qt.DescendingOrder:
+        self.rows.sort(key=lambda x: x[col])
+        if order == QtCore.Qt.SortOrder.DescendingOrder:
             self.rows.reverse()
         self.layoutChanged.emit()
 
@@ -59,8 +59,8 @@ class BasicModel(QtCore.QAbstractItemModel):
 
     def headerData(self, column, orientation, role):
 
-        if ( orientation == QtCore.Qt.Horizontal and
-             role == QtCore.Qt.DisplayRole):
+        if ( orientation == QtCore.Qt.Orientation.Horizontal and
+             role == QtCore.Qt.ItemDataRole.DisplayRole):
 
             return self.columns[column]
 

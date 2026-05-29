@@ -7,8 +7,8 @@ import envi.memory as e_memory
 import envi.memcanvas as e_canvas
 import envi.memcanvas.renderers as e_render
 
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtWidgets import *
 
 
 class VQLineEdit(QLineEdit):
@@ -93,7 +93,7 @@ class MemWriteWindow(QWidget):
 
         hbox2 = QHBoxLayout()
         self.hex_edit = QPlainTextEdit()
-        self.hex_edit.setWordWrapMode(QtGui.QTextOption.NoWrap)
+        self.hex_edit.setWordWrapMode(QtGui.QTextOption.WrapMode.NoWrap)
         self.hex_edit.setReadOnly(True)
         font = QtGui.QFont('Courier') # should use actual memcanvas
         self.hex_edit.setFont(font)
@@ -111,7 +111,7 @@ class MemWriteWindow(QWidget):
         self.mode_combo.addItems(self.modes)
         self.mode_combo.currentIndexChanged.connect(self.encodingChanged)
         hbox3.addWidget(mode_label)
-        hbox3.addWidget(self.mode_combo, alignment=QtCore.Qt.AlignLeft)
+        hbox3.addWidget(self.mode_combo, alignment=QtCore.Qt.AlignmentFlag.AlignLeft)
         hbox3.addStretch(1)
 
         hbox4 = QHBoxLayout()
@@ -129,7 +129,7 @@ class MemWriteWindow(QWidget):
 
         hbox5 = QHBoxLayout()
         self.hex_preview = QPlainTextEdit()
-        self.hex_preview.setWordWrapMode(QtGui.QTextOption.NoWrap)
+        self.hex_preview.setWordWrapMode(QtGui.QTextOption.WrapMode.NoWrap)
         self.hex_preview.setReadOnly(True)
         self.hex_preview.setFont(font)
         hbox5.addWidget(self.hex_preview)
@@ -206,8 +206,8 @@ class MemWriteWindow(QWidget):
             if not all(c in string.hexdigits for c in txt):
                 self.data_edit.setText('')
 
-            regex = QtCore.QRegExp('^[0-9A-Fa-f]+$')
-            validator = QtGui.QRegExpValidator(regex)
+            regex = QtCore.QRegularExpression('^[0-9A-Fa-f]+$')
+            validator = QtGui.QRegularExpressionValidator(regex)
 
         self.data_edit.setValidator(validator)
 
@@ -281,7 +281,7 @@ def main():
     w = MemWriteWindow('0x1234', '0xff', emu=MockEmu())
     w.show()
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 if __name__ == '__main__':
     main()

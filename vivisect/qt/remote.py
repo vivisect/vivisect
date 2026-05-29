@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import *
+from PyQt6.QtWidgets import *
 
 import vqt.main as vq_main
 import vqt.tree as vq_tree
@@ -33,7 +33,7 @@ class BaseServerDialog(QDialog):
         self.wsname = None
         self.wslist = WorkspaceListView(workspaces, parent=self)
 
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
@@ -45,7 +45,7 @@ class BaseServerDialog(QDialog):
         self.wslist.doubleClicked.connect( self.workspaceActivated )
 
     def getWorkspaceName(self):
-        self.exec_()
+        self.exec()
         return self.wsname
 
     def workspaceActivated(self, idx):
@@ -73,7 +73,7 @@ class VivServerDialog(QDialog):
         self.wsserver = QLineEdit(server, parent=self)
         self.setdef = QCheckBox(parent=self)
 
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
@@ -115,7 +115,7 @@ class VivSaveServerDialog(VivServerDialog):
         self.setWindowTitle('Save to Workspace Server...')
 
     def getNameAndServer(self):
-        if not self.exec_():
+        if not self.exec():
             return (None, None)
         wsname = str(self.wsname.text())
         wsserver = str(self.wsserver.text())
@@ -128,7 +128,7 @@ class VivConnectServerDialog(VivServerDialog):
         self.setWindowTitle('Workspace Server...')
 
     def getServer(self):
-        if not self.exec_():
+        if not self.exec():
             return None
         wsserver = str(self.wsserver.text())
         return wsserver

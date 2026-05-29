@@ -1,12 +1,16 @@
 import envi
+
 import vstruct.defs.srec as v_srec
+
+import vivisect.const as v_const
 import vivisect.parsers as v_parsers
-from vivisect.const import *
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
+# TODO: dedup all of this file with ihex
 archcalls = {
     'i386': 'cdecl',
     'amd64': 'sysvamd64call',
@@ -33,6 +37,7 @@ def parseFile(vw, filename, baseaddr=None):
     offset = vw.config.viv.parsers.srec.offset
     if not offset:
         offset = 0
+    # TODO: why are we overriding a config option here?
     vw.config.viv.parsers.srec.offset = 0
 
     srec = v_srec.SRecFile()
@@ -53,17 +58,17 @@ def parseFile(vw, filename, baseaddr=None):
 
         for eva in srec.getEntryPoints():
             if eva is not None:
-                vw.addExport(eva, EXP_FUNCTION, '__entry', fname, makeuniq=True)
+                vw.addExport(eva, v_const.EXP_FUNCTION, '__entry', fname, makeuniq=True)
                 logger.info('adding function from SREC metadata: 0x%x (_entry)', eva)
                 vw.addEntryPoint(eva)
 
-        for addr, perms, notused, bytes in srec.getMemoryMaps():
-            vw.addMemoryMap(addr, perms, fname, bytes)
-            vw.addSegment(addr, len(bytes), '%.8x' % addr, fname)
+        for addr, perms, _, byts in srec.getMemoryMaps():
+            vw.addMemoryMap(addr, perms, fname, byts)
+            vw.addSegment(addr, len(byts), '%.8x' % addr, fname)
 
 
 def parseMemory(vw, memobj, baseaddr):
-    raise Exception('srec loader cannot parse memory!')
+    raise NotImplementedError('srec loader cannot parse memory!')
 
 def getMemBaseAndSize(vw, srec, baseaddr=None):
     '''
@@ -76,16 +81,13 @@ def getMemBaseAndSize(vw, srec, baseaddr=None):
     topmem = 0
 
     for mapva, mperms, mname, mbytes in memmaps:
-        if mapva < baseaddr:
-            baseaddr = mapva
+        baseaddr = min(baseaddr, mapva)
         endva = mapva + len(mbytes)
-        if endva > topmem:
-            topmem = endva
+        topmem = max(topmem, endva)
 
     size = topmem - baseaddr
     if savebase:
         # if we provided a baseaddr, override what the file wants
         baseaddr = savebase
-        
-    return baseaddr, size
 
+    return baseaddr, size

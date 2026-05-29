@@ -1,6 +1,7 @@
 import logging
 
-from PyQt5.QtWidgets import *
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import *
 
 logger = logging.getLogger(__name__)
 

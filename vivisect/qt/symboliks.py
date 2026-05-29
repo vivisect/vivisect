@@ -11,8 +11,8 @@ import vivisect.symboliks.effects as viv_sym_effects
 import vivisect.symboliks.analysis as viv_sym_analysis
 import vivisect.symboliks.expression as viv_sym_expression
 
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import *
 
 from vqt.main import *
 from vqt.basics import *
@@ -228,7 +228,7 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
         emu = self.curemu
         effects = self.cureffects
 
-        alleff = self.alleffs.checkState() == QtCore.Qt.Checked
+        alleff = self.alleffs.checkState() == QtCore.Qt.CheckState.Checked
 
         self.memcanvas.clearCanvas()
         colormap = {}

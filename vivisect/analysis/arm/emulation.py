@@ -2,8 +2,8 @@ import logging
 
 import visgraph.pathcore as vg_path
 
-import vivisect
 import vivisect.exc as v_exc
+import vivisect.const as v_const
 import vivisect.impemu.monitor as viv_monitor
 import vivisect.analysis.generic.codeblocks as viv_cb
 
@@ -115,7 +115,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                         if op.va not in self.infloops:
                             self.infloops.append(op.va)
                             if 'InfiniteLoops' not in self.vw.getVaSetNames():
-                                self.vw.addVaSet('InfiniteLoops', (('va', vivisect.VASET_ADDRESS, 'function', vivisect.VASET_STRING)))
+                                self.vw.addVaSet('InfiniteLoops', (('va', v_const.VASET_ADDRESS, 'function', v_const.VASET_STRING)))
                             self.vw.setVaSetRow('InfiniteLoops', (op.va, self.fva))
 
                 except Exception as e:
@@ -137,7 +137,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             val = op.getOperValue(0, emu=emu)
             emu.vw.setSymHint(op.va, OP_SYMHINT_IDX, val)
             if emu.isValidPointer(val):
-                emu.vw.addXref(op.va, val, vivisect.REF_PTR)
+                emu.vw.addXref(op.va, val, v_const.REF_PTR)
 
 argnames = {
     0: ('r0', 0),

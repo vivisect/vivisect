@@ -124,7 +124,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     elif thumbop.mnem == 'b':
                         armthumb -= 2
 
-                except InvalidInstruction as e:
+                except e_exc.InvalidInstruction as e:
                     logger.debug("  heuristics: decoding ARM: %r", e)
 
 
@@ -139,7 +139,7 @@ class ArmWorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_arm.ArmEmulator):
                     if armop.prefixes: # highly unlikely for a function to start with a conditional
                         armthumb -= 3
 
-                except InvalidInstruction as e:
+                except e_exc.InvalidInstruction as e:
                     logger.debug("  heuristics: decoding THUMB: %r", e)
 
 

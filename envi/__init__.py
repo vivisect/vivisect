@@ -2,8 +2,6 @@
 The Envi framework allows architecture abstraction through the use of the
 ArchitectureModule, Opcode, Operand, and Emulator objects.
 '''
-import os
-import sys
 import copy
 import types
 import struct
@@ -57,7 +55,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_AMD64:     {
         'name':     'amd64',
         'aliases':  ('x86_64',),
@@ -69,7 +67,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_ARMV7:     {
         'name':     'arm',
         'aliases':  ('armv7a', 'armv7', 'armv7l', 'armv6l', 'arm32', 'a32', 'leg', 'leg32'),
@@ -81,7 +79,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_THUMB16:   {
         'name':     'thumb16',
         'modpath':  ('envi', 'archs', 'thumb16'),
@@ -92,7 +90,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_THUMB:     {
         'name':     'thumb',
         'aliases':  ('t32', 'thumb2', 'toe', 'toe2', 'toe32'),
@@ -104,7 +102,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_A64:       {
         'name':     'a64',
         'aliases':  ('aarch64', 'leg64', 'legv8'),
@@ -117,7 +115,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_MSP430:    {
         'name':     'msp430',
         'modpath':  ('envi', 'archs', 'msp430'),
@@ -128,7 +126,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_H8:        {
         'name':     'h8',
         'modpath':  ('envi', 'archs', 'h8'),
@@ -139,7 +137,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_MCS51:     {
         'name':     'mcs51',
         'aliases':  ('8051', '80x51'),
@@ -152,7 +150,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_RISCV32:   {
         'name':     'rv32',
         'aliases':  ('riscv', 'risc-v',),
@@ -165,7 +163,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_RISCV64:   {
         'name':     'rv64',
         'modpath':  ('envi', 'archs', 'rv64'),
@@ -177,7 +175,7 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_E32:   {
         'name':     'ppc32-embedded',
         'aliases':  ('ppc32',),
@@ -190,7 +188,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_E64:   {
         'name':     'ppc-embedded',
         'aliases':  ('ppc64-embedded','ppc-spe'),
@@ -203,10 +201,10 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_S32:   {
         'name':     'ppc32-server',
-        'modpath':  ('envi', 'archs', 'ppc32-server', 'Module'),
+        #'modpath':  ('envi', 'archs', 'ppc32-server', 'Module'),
         'modpath':  ('envi', 'archs', 'ppc'),
         'clsname':  'Ppc32ServerModule',
         'disabled': True,
@@ -216,7 +214,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_S64:   {
         'name':     'ppc-server',
         'aliases':  ('ppc64-server','altivec', 'ppc-altivec'),
@@ -229,7 +227,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPCVLE:    {
         'name':     'ppc-vle',
         'aliases':  ('vle','ppc32-vle', 'ppcvle'),
@@ -242,7 +240,7 @@ arch_defs = {
         'has_symboliks':True,
         'has_unittests':True,
         },
-    
+
     ARCH_PPC_D:     {
         'name':     'ppc-desktop',
         'modpath':  ('envi', 'archs', 'ppc'),
@@ -559,7 +557,7 @@ def stealArchMethods(obj, archname):
     arch = getArchModule(archname)
     for name in dir(arch):
         o = getattr(arch, name, None)
-        if type(o) == types.MethodType:
+        if type(o) is types.MethodType:
             setattr(obj, name, o)
 
 class Operand:
@@ -872,22 +870,6 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
 
-    def setEndian(self, endian):
-        '''
-        Sets Endianness for the Emulator.
-        '''
-        for arch in self.imem_archs:
-            # imem_archs may be sparse, with gaps of None
-            if not arch:
-                continue
-            arch.setEndian(endian)
-
-    def getEndian(self):
-        '''
-        Returns the current Endianness for the emulator
-        '''
-        return self.imem_archs[0].getEndian()
-
     def getMeta(self, name, default=None):
         return self.metadata.get(name, default)
 
@@ -898,7 +880,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self.metadata[name] = value
 
     def getArchModule(self):
-        raise Exception('Emulators *must* implement getArchModule()!')
+        raise NotImplementedError('Emulators *must* implement getArchModule()!')
 
     def getEmuSnap(self):
         """
@@ -908,10 +890,10 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         """
         regs = self.getRegisterSnap()
         mem = self.getMemorySnap()
-        return regs,mem
+        return regs, mem
 
     def setEmuSnap(self, snap):
-        regs,mem = snap
+        regs, mem = snap
         self.setRegisterSnap(regs)
         self.setMemorySnap(mem)
 
@@ -1080,6 +1062,9 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         fmttbl = e_bits.fmt_schars[self.getEndian()]
         return struct.unpack(fmttbl[size], bytes)[0]
 
+    def undefFlags(self):
+        raise NotImplementedError("%s needs to implement undefFlags!" % self.__class__.__name__)
+
     def integerSubtraction(self, op, sidx=0, midx=1):
         """
         Do the core of integer subtraction but only *return* the
@@ -1168,7 +1153,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         return res
 
 
-class CallingConvention(object):
+class CallingConvention:
     '''
     Base class for all calling conventions. You must define class locals that
     define the fields below.
@@ -1557,6 +1542,7 @@ def getArchByName(archname):
     '''
     return arch_by_name_and_aliases.get(archname.lower())
 
+# TODO: misleading name
 def getArchById(archid):
     '''
     Get the architecture name by the constant.
@@ -1602,10 +1588,10 @@ def getArchNames():
     This is helpful for accessing and displaying available architectures, since we now
     allow definitions of architectures which may not be enabled or implemented.
 
-    Returns:   dict of { archnum: archname } 
+    Returns:   dict of { archnum: archname }
     """
     return {arch: name for (name, arch) in arch_by_name.items() if not arch_defs.get(arch).get('disabled')}
-    
+
 
 def getArchModule(name=None):
     """
@@ -1640,7 +1626,7 @@ def getArchModule(name=None):
     # instantiate the ArchitectureModule
     cls = getattr(module, amodname)
     archmod = cls()
-    
+
     return archmod
 
 
@@ -1652,7 +1638,7 @@ def getArchModules(default=ARCH_DEFAULT):
     archs = []
     for arch, adict in arch_defs.items():
         name = adict.get('name')
-        archidx = arch>>16
+        archidx = arch >> 16
         try:
             archmod = getArchModule(name)
 

@@ -220,22 +220,22 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         # Load up all the section headers
         if self.e_shoff:
             # Load up the sections
+            secs = vstruct.VArray()
+            [secs.vsAddElement(self._cls_section(bigend=self.bigend)) for i in range(self.e_shnum)]
+
             sbase = self.e_shoff
-            sec = self._cls_section(bigend=self.bigend)
             slen = self.e_shentsize
-            if len(sec) != slen:
+            if len(secs[0]) != slen:
                 raise Exception('Invalid Section Header Size: %d' % slen)
 
             secbytes = self.readAtOffset(sbase, self.e_shnum * slen)
 
-            secs = sec * self.e_shnum
             secslen = slen * self.e_shnum
-            if secslen != len(secbytes):
+            secs.vsParse(secbytes, fast=True)
+            if secslen != len(secs):
                 logger.warning('Invalid Section-Headers Size: should be: %d   retrieved: %d', secslen, len(secbytes))
 
-            vstruct.VArray(elems=secs).vsParse(secbytes, fast=True)
-
-            self.sections.extend(secs)
+            self.sections.extend([s[1] for s in secs])
 
             # Populate the section names
             strsec = self.sections[self.e_shstrndx]
@@ -455,11 +455,12 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 symtab = self.readAtOffset(sec.sh_offset, sec.sh_size)
 
                 count, remain = divmod(sec.sh_size, len(sym))
-                syms = sym * count
 
-                vstruct.VArray(elems=syms).vsParse(symtab, fast=True)
+                syms = vstruct.VArray()
+                [syms.vsAddElement(self._cls_symbol(bigend=self.bigend)) for i in range(count)]
+                syms.vsParse(symtab, fast=True)
 
-                for sym in syms:
+                for idx, sym in syms:
                     if sym.st_name:
                         name = self.getStrtabString(sym.st_name, ".strtab")
                         sym.setName(name)

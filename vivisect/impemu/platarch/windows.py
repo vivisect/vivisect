@@ -200,7 +200,7 @@ class Windowsi386Emulator(WindowsMixin, v_i_i386.i386WorkspaceEmulator):
         '''
         esp = emu.getRegister(e_i386.REG_ESP)
         eax = emu.getRegister(e_i386.REG_EAX)
-        eip = emu.getRegister(e_i386.REG_EIP)
+        # eip = emu.getRegister(e_i386.REG_EIP)
 
         new_esp = max(esp + 4 - eax, 0)
         emu.setRegister(e_i386.REG_ESP, new_esp)

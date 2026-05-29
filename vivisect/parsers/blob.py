@@ -2,7 +2,6 @@ import os
 import envi
 import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
-from vivisect.const import *
 
 
 archcalls = {
@@ -23,7 +22,7 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
     try:
         envi.getArchModule(arch)
     except Exception:
-        raise v_exc.BlobArchException()
+        raise v_exc.BlobArchException() from None
 
     if filename is None:
         filename = 'blob_%.8x' % baseaddr
@@ -41,6 +40,7 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
     vw.addSegment(baseaddr, len(bytez), '%.8x' % baseaddr, fname)
     vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
 
+
 def parseFile(vw, filename, baseaddr=None):
 
     arch = vw.config.viv.parsers.blob.arch
@@ -50,7 +50,7 @@ def parseFile(vw, filename, baseaddr=None):
 
     try:
         envi.getArchModule(arch)
-    except Exception as e:
+    except Exception:
         raise v_exc.BlobArchException() from None
 
     vw.setMeta('Architecture', arch)
@@ -62,6 +62,7 @@ def parseFile(vw, filename, baseaddr=None):
 
     with open(filename, 'rb') as f:
         bytez = f.read()
+
     fname = vw.addFile(filename, baseaddr, v_parsers.md5File(filename))
     vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
     vw.addMemoryMap(baseaddr, 7, fname, bytez)
@@ -73,15 +74,16 @@ def parseMemory(vw, memobj, baseaddr):
     if not fname:
         fname = 'map_%.8x' % baseaddr
 
+    arch = vw.config.viv.parsers.blob.arch
     bytez = memobj.readMemory(va, size)
     fname = vw.addFile(fname, baseaddr, v_parsers.md5Bytes(bytez))
     vw.setFileMeta(fname, 'sha256', v_parsers.sha256Bytes(bytez))
     vw.addMemoryMap(va, perms, fname, bytez)
-    vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
+    vw.setMeta('DefaultCall', archcalls.get(arch, 'unknown'))
+
 
 def getMemBaseAndSize(vw, filename, baseaddr=None):
     if baseaddr is None:
         baseaddr = vw.config.viv.parsers.blob.baseaddr
     size = os.lstat(filename).st_size
     return baseaddr, size
-

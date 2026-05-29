@@ -1,8 +1,8 @@
 import os
 import logging
 
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import *
 
 import vqt.cli as vq_cli
 import vqt.main as vq_main
@@ -20,7 +20,7 @@ class VQDockWidget(vq_hotkeys.HotKeyMixin, QDockWidget):
         vq_hotkeys.HotKeyMixin.__init__(self)
         self.addHotKey('ctrl+enter', 'mem:undockmaximize')
         self.addHotKeyTarget('mem:undockmaximize', self._hotkey_undock_maximize)
-        self.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        self.setAllowedAreas(QtCore.Qt.DockWidgetArea.AllDockWidgetAreas)
 
     def vqSaveState(self, settings, name, stub=''):
         wid = self.widget()
@@ -105,7 +105,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
         self.setMenuBar(self._vq_mbar)
 
         # AnimatedDocks, AllowNestedDocks, AllowTabbedDocks, ForceTabbedDocks, VerticalTabs
-        self.setDockOptions(self.AnimatedDocks | self.AllowTabbedDocks)
+        self.setDockOptions(QMainWindow.DockOption.AnimatedDocks | QMainWindow.DockOption.AllowTabbedDocks)
 
         self._vq_cli = self.__cli_widget_class__(cmd)
         self._vq_cli.input.loadHistory(self._vq_histfile)
@@ -127,7 +127,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
     def vqAddDockWidgetClass(self, cls, args=()):
         self._dock_classes[cls.__name__] = (cls, args)
 
-    def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.TopDockWidgetArea):
+    def vqBuildDockWidget(self, clsname, floating=False, area=QtCore.Qt.DockWidgetArea.TopDockWidgetArea):
         res = self._dock_classes.get(clsname)
         if res is None:
             logger.warning('vqBuildDockWidget Failed For: %s (No class constructor found)', clsname)
@@ -204,7 +204,7 @@ class VQMainCmdWindow(vq_hotkeys.HotKeyMixin, QMainWindow):
         self._vq_dockwidgets.remove(widget)
         self.removeDockWidget(widget)
 
-    def vqDockWidget(self, widget, area=QtCore.Qt.TopDockWidgetArea, floating=False):
+    def vqDockWidget(self, widget, area=QtCore.Qt.DockWidgetArea.TopDockWidgetArea, floating=False):
         d = VQDockWidget(self)
         d.setWidget(widget)
         d.setFloating(floating)

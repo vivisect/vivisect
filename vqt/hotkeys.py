@@ -2,7 +2,8 @@ import sys
 import logging
 import traceback
 
-from PyQt5.QtWidgets import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import Qt
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
@@ -10,25 +11,25 @@ if not len(logger.handlers):
     logger.addHandler(logging.StreamHandler())
 
 
-QMOD_META = 0x08000000
-QMOD_CTRL = 0x04000000
-QMOD_SHIFT = 0x02000000
+# Derive from the actual enum so these stay correct across Qt versions
+QMOD_META = Qt.KeyboardModifier.MetaModifier.value
+QMOD_CTRL = Qt.KeyboardModifier.ControlModifier.value
+QMOD_SHIFT = Qt.KeyboardModifier.ShiftModifier.value
 
 special_keys = {
-    0x1000000: 'esc',
-    0x1000003: 'bs',
-    0x1000004: 'enter',
-    0x1000012: 'left',
-    0x1000013: 'up',
-    0x1000014: 'right',
-    0x1000015: 'down',
-    0x1000016: 'pgup',
-    0x1000017: 'pgdown',
+    Qt.Key.Key_Escape.value:    'esc',
+    Qt.Key.Key_Backspace.value: 'bs',
+    Qt.Key.Key_Return.value:    'enter',
+    Qt.Key.Key_Left.value:      'left',
+    Qt.Key.Key_Up.value:        'up',
+    Qt.Key.Key_Right.value:     'right',
+    Qt.Key.Key_Down.value:      'down',
+    Qt.Key.Key_PageUp.value:    'pgup',
+    Qt.Key.Key_PageDown.value:  'pgdown',
 }
 
-fkey_base = 0x100002f
-for i in range(1,12):
-    special_keys[ fkey_base + i ] = 'f%d' % i
+for i in range(1, 12):
+    special_keys[Qt.Key(Qt.Key.Key_F1.value + i - 1).value] = 'f%d' % i
 
 def hotkey(targname):
     def hotkeydecor(f):
@@ -116,7 +117,7 @@ class HotKeyMixin(object):
         '''
         key = event.key()
 
-        mods = int(event.modifiers())
+        mods = event.modifiers().value
 
 
         keytxt = None
