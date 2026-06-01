@@ -1,6 +1,6 @@
 import unittest
 
-import envi.memory as e_mem
+import envi.const as e_const
 
 import vivisect as viv
 import vivisect.const as viv_const
@@ -13,7 +13,7 @@ class TestArchind(unittest.TestCase):
 
     def test_wipeAstArch(self):
         vw = viv.VivWorkspace()
-        vw.addMemoryMap(0x00, e_mem.MM_RWX, 'code', [0 for x in range(256)])
+        vw.addMemoryMap(0x00, e_const.MM_RWX, 'code', [0 for x in range(256)])
         vw.addLocation(0x40, 47, viv_const.LOC_POINTER)
         vw.setMeta('Architecture', 'i386')
         symctx = vsym_analysis.SymbolikAnalysisContext(vw)
@@ -31,7 +31,7 @@ class TestArchind(unittest.TestCase):
 
     def test_wipeAstArch_wipeva(self):
         vw = viv.VivWorkspace()
-        vw.addMemoryMap(0x410000, e_mem.MM_RWX, 'code', [0 for x in range(0x10000)])
+        vw.addMemoryMap(0x410000, e_const.MM_RWX, 'code', [0 for x in range(0x10000)])
         vw.addLocation(0x41b2ac, 47, viv_const.LOC_POINTER)
         vw.addLocation(0x4149b3, 28, viv_const.LOC_POINTER)
         vw.addLocation(0x41ac93, 83, viv_const.LOC_POINTER)

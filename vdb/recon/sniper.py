@@ -4,7 +4,9 @@ mechanisms and tag them.
 '''
 import logging
 
-import envi.memory as e_mem
+import envi.const as e_const
+import vdb.recon as v_recon
+
 import vtrace.breakpoints as vt_breakpoints
 
 logger = logging.getLogger(__name__)
@@ -15,7 +17,7 @@ def getStackArg(trace, argidx):
     a call, grab the argument at the specified
     index (skipping the saved instruction pointer).
     '''
-    cc = detect_cc(trace)
+    cc = v_recon.detect_cc(trace)
     args = cc.getCallArgs(trace, argidx)
     return args[-1]
 
@@ -35,9 +37,9 @@ class SniperDynArgBreak(vt_breakpoints.Breakpoint):
         return "%s argidx: %d" % (self._symname, self._argidx)
 
     def notify(self, event, trace):
-        arg = getArg(trace, self._argidx)
+        arg = getStackArg(trace, self._argidx)
         self.fastbreak = True
-        if trace.probeMemory(arg, 1, e_mem.MM_WRITE):
+        if trace.probeMemory(arg, 1, e_const.MM_WRITE):
             logger.info('SNIPER: %s TOOK DYNAMIC ARG IDX %d (0x%.8x)', self._symname, self._argidx, arg)
             self.fastbreak = False
 
@@ -55,9 +57,9 @@ class SniperArgValueBreak(vt_breakpoints.Breakpoint):
         self._symname = symname
 
     def notify(self, event, trace):
-        arg = getArg(trace, self._argidx)
+        arg = getStackArg(trace, self._argidx)
         self.fastbreak = True
-        if(arg == self._argval):
+        if arg == self._argval:
             print("SNIPER: %s TOOK VALUE (0x%.8x) FOR ARG IDX %d" % (self._symname, arg, self._argidx))
             self.fastbreak = False
 

@@ -463,11 +463,12 @@ class SymbolikAnalysisContext:
 
         paths = viv_graph.getCodePathsTo(graph, tocb[0])
         spaths = self.getSymbolikPaths(fva, paths=paths, args=args, maxpath=maxpath, graph=graph)
-        for idx, (emu, effs) in enumerate(spaths):
+        for emu, effs in spaths:
             # we have symboliks up to the codeblock, but not into it.
             seffs = graph.getNodeProps(tocb[0]).get('symbolik_effects')
-            for va in seffs:
-                if tova == va:
+            idx = 0
+            for idx, seff in enumerate(seffs):
+                if tova == seff.va:
                     break
             effs.extend(emu.applyEffects(seffs[:idx+1]))
             yield emu, effs

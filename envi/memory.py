@@ -64,12 +64,13 @@ class IMemory:
     def __init__(self, arch=None):
         self.imem_psize = struct.calcsize('P')
         self.imem_archs = {}
-        self.arch = None
-        if arch is not None:
-            self.setMemArchitecture(arch)
 
         self.bigend = e_const.ENDIAN_LSB
         self._supervisor = False
+
+        self.arch = None
+        if arch is not None:
+            self.setMemArchitecture(arch)
 
     def getEndian(self):
         '''

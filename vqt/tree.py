@@ -2,7 +2,7 @@ from PyQt6 import QtCore
 from PyQt6.QtWidgets import QTreeView
 
 
-class VQTreeItem(object):
+class VQTreeItem:
 
     def __init__(self, rowdata, parent):
         self.parent = parent
@@ -65,7 +65,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         if self.editable is None:
             self.editable = [False,] * len(self.columns)
 
-        self._sort_column = 0
+        self._sort_column = None
         self._sort_order = QtCore.Qt.SortOrder.AscendingOrder
 
     def vqEdited(self, pnode, col, value):
@@ -81,7 +81,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         node = parent.append(rowdata)
         self.endInsertRows()
 
-        if not self._sort_column:
+        if self._sort_column is not None:
             self.sort(self._sort_column, self._sort_order)
         else:
             self.layoutChanged.emit()

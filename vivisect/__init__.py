@@ -823,7 +823,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         for eva in self.getEntryPoints():
             if self.isFunction(eva):
                 continue
-            if not self.probeMemory(eva, 1, e_mem.MM_EXEC):
+            if not self.probeMemory(eva, 1, e_const.MM_EXEC):
                 continue
             logger.debug('processEntryPoint: 0x%x', eva)
             self.makeFunction(eva)
@@ -2958,7 +2958,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         Override writeMemory to hook into the Event subsystem.
         Stores overwritten data for easy undo.
         '''
-        self._reqProbeMem(va, len(bytez), e_mem.MM_WRITE)
+        self._reqProbeMem(va, len(bytez), e_const.MM_WRITE)
         oldbytes = self.readMemory(va, len(bytez))
         self._fireEvent(v_const.VWE_WRITEMEM, (va, bytez, oldbytes))
 
