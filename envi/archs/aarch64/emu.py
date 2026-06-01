@@ -150,7 +150,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         A flag setting operation has resulted in un-defined value.  Set
         the flags to un-defined as well.
         """
-        self.setCPSR(0)
+        self.setCPSR(None)
 
     def setFlag(self, which, state):
         flags = self.getCPSR()
@@ -161,10 +161,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         self.setCPSR(flags)
 
     def getFlag(self, which):
-        flags = self.getCPSR()
-        if flags is None:
-            raise envi.PDEUndefinedFlag(self)
-        return bool(flags & which)
+        return bool(self.getCPSR() & which)
 
     def readMemValue(self, addr, size):
         bytes = self.readMemory(addr, size)
@@ -208,7 +205,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         #       other than None, that is the new eip
         x = None
         meth = self.op_methods.get(op.mnem, None)
-        if meth == None:
+        if meth is None:
             raise envi.UnsupportedInstruction(self, op)
         x = meth(op)
 
@@ -240,7 +237,10 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         '''
         return the Current Program Status Register.
         '''
-        return self._rctx_vals[REG_CPSR]
+        flags = self._rctx_vals[REG_CPSR]
+        if flags is None:
+            raise envi.PDEUndefinedFlag(self)
+        return flags
 
     def setCPSR(self, psr, mask=0xffffffff):
         '''

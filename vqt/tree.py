@@ -81,7 +81,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         node = parent.append(rowdata)
         self.endInsertRows()
 
-        if self._sort_column:
+        if not self._sort_column:
             self.sort(self._sort_column, self._sort_order)
         else:
             self.layoutChanged.emit()
@@ -98,7 +98,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         self._sort_column = colnum
         self._sort_order = order
         self.layoutAboutToBeChanged.emit()
-        reverse = (order == QtCore.Qt.SortOrder.DescendingOrder)
+        reverse = order == QtCore.Qt.SortOrder.DescendingOrder
         self.rootnode.children.sort(key=lambda k: k.rowdata[colnum], reverse=reverse)
         self.layoutChanged.emit()
 
