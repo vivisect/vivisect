@@ -100,6 +100,7 @@ class IMemory:
             mem.setMemArchitecture(envi.ARCH_I386)
         '''
         archmod = self.getMemArchModule(arch)
+        archmod.setEndian(self.endian)
         self.imem_archs[envi.ARCH_DEFAULT] = self.arch = archmod
         self.imem_psize = archmod.getPointerSize()
 
@@ -111,7 +112,7 @@ class IMemory:
         archmod = self.imem_archs.get(idx)
         # on demand creation
         if not archmod:
-            name = envi.getArchById(arch)
+            name = envi.getArchById(arch & envi.ARCH_MASK)
             archmod = envi.getArchModule(name=name)
             self.imem_archs[idx] = archmod
 

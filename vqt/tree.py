@@ -81,7 +81,7 @@ class VQTreeModel(QtCore.QAbstractItemModel):
         node = parent.append(rowdata)
         self.endInsertRows()
 
-        if self._sort_column is not None:
+        if self._sort_column:
             self.sort(self._sort_column, self._sort_order)
         else:
             self.layoutChanged.emit()

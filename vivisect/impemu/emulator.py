@@ -5,14 +5,12 @@ import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.const as e_const
-import envi.common as e_common
 import envi.memory as e_memory
 
 import visgraph.pathcore as vg_path
 
 import vivisect.exc as v_exc
-
-from vivisect.const import *
+import vivisect.const as v_const
 
 import logging
 logger = logging.getLogger(__name__)
@@ -351,7 +349,7 @@ class WorkspaceEmulator:
         paths = set()
         # if we've already hunted this location down, know it's a table, and we've resolved it
         # step carefully so we don't conflate tables together
-        xrefs = vw.getXrefsFrom(op.va, rtype=REF_CODE)
+        xrefs = vw.getXrefsFrom(op.va, rtype=v_const.REF_CODE)
         for bva, bflags in op.getBranches(emu=None):
             if bflags & envi.BR_TABLE and vw.getLocation(op.va) and len(xrefs):
                 for xrfrom, xrto, xrtype, xrflags in xrefs:
@@ -736,7 +734,7 @@ class WorkspaceEmulator:
         loc = self.vw.getLocation(va)
         if loc is not None:
             lva, lsize, ltype, ltinfo = loc
-            if ltype == LOC_IMPORT and lsize == size:  # They just read an import.
+            if ltype == v_const.LOC_IMPORT and lsize == size:  # They just read an import.
                 ret = self.setVivTaint('import', loc)
                 return e_bits.buildbytes(ret, lsize)
 

@@ -278,7 +278,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
             arch = (envi.ARCH_ARMV7, envi.ARCH_THUMB)[tmode]
 
         off, b = self.getByteDef(va)
-        return self.imem_archs[ (arch & envi.ARCH_MASK) >> 16 ].archParseOpcode(b, off, va)
+        return self.getMemArchModule(arch).archParseOpcode(b, off, va)
 
     def executeOpcode(self, op):
         # NOTE: If an opcode method returns

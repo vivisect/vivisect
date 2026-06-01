@@ -150,7 +150,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         A flag setting operation has resulted in un-defined value.  Set
         the flags to un-defined as well.
         """
-        self.setCPSR(None)
+        self.setCPSR(0)
 
     def setFlag(self, which, state):
         flags = self.getCPSR()

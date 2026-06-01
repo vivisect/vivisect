@@ -230,7 +230,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
             secslen = slen * self.e_shnum
             secs.vsParse(secbytes, fast=True)
-            if secslen != len(secs):
+            if secslen != len(secbytes):
                 logger.warning('Invalid Section-Headers Size: should be: %d   retrieved: %d', secslen, len(secbytes))
 
             self.sections.extend([s[1] for s in secs])
