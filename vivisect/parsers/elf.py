@@ -4,7 +4,6 @@ import traceback
 import collections
 
 import Elf
-import Elf.elf_lookup as elf_lookup
 
 import envi.bits as e_bits
 import envi.const as e_const
@@ -12,6 +11,8 @@ import envi.const as e_const
 import vivisect.exc as v_exc
 import vivisect.const as v_const
 import vivisect.parsers as v_parsers
+
+import vstruct.defs.constants.elf as vdc_elf
 
 from io import BytesIO
 
@@ -588,9 +589,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         sva = s.st_value
         shndx = s.st_shndx
         if elf.isRelocatable():
-            if shndx == elf_lookup.SHN_ABS:
+            if shndx == vdc_elf.SHN_ABS:
                 pass
-            elif shndx in elf_lookup.shn_special_section_indices:
+            elif shndx in vdc_elf.shn_special_section_indices:
                 # TODO: We should do things with SHN_ABS
                 pass
             else:
@@ -815,7 +816,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
         rlva = r.r_offset
         if elf.isRelocatable():
             container = elf.getSectionByIndex(secidx)
-            if container.sh_flags & elf_lookup.SHF_INFO_LINK:
+            if container.sh_flags & vdc_elf.SHF_INFO_LINK:
                 othr = elf.getSectionByIndex(container.sh_info)
                 if othr:
                     rlva += othr.sh_addr
@@ -871,7 +872,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                         ptr = r.r_addend
                         symbol = elf.getSymbols()[r.getSymTabIndex()]
                         valu = symbol.st_value
-                        if symbol.getInfoType() == elf_lookup.STT_SECTION:
+                        if symbol.getInfoType() == vdc_elf.STT_SECTION:
                             ref = elf.getSectionByIndex(symbol.st_shndx)
                             if ref:
                                 valu = ref.sh_addr

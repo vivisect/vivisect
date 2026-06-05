@@ -121,6 +121,8 @@ LOC_IMPORT  = 9  # An import dword ptr
 LOC_PAD     = 10  # A sequence of bytes which is a pad (string nulls, MS hotpatch... (char is tinfo)
 LOC_MAX     = 11
 
+STRTYPES = (LOC_STRING, LOC_UNI)
+
 loc_lookups = {v:k for k,v in globals().items() if k.startswith('LOC_')}
 
 loc_type_names = {

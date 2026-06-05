@@ -4,7 +4,6 @@ which use pointer arithetic to determine code path for each case.
 
 This will not connect switch cases which are actually explicit cmp/jz in the code.
 '''
-import sys
 import time
 
 import logging
