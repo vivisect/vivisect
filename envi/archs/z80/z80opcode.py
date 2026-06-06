@@ -1,3 +1,4 @@
+'''
 from envi.archs.z80.regs import *
 from envi.archs.z80.const import *
 # (patrn,mask), mnem, o1type, o1info, o2type, o2info, oplen, immoff, iflags
@@ -738,3 +739,4 @@ newtab = (
   (bb('001000100000000000000000'), bb('111111110000000000000000'), 'ld', OPTYPE_ImmMem, (8, 16), OPTYPE_OpReg, REG_HL),
 )
 
+'''

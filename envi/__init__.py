@@ -39,6 +39,7 @@ ARCH_SPARC       = 19 << 16
 ARCH_SPARC64     = 20 << 16
 ARCH_MIPS32      = 21 << 16
 ARCH_MIPS64      = 22 << 16
+ARCH_Z80         = 23 << 16
 
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
@@ -302,8 +303,8 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':False,
         },
-    
-    ARCH_MIPS64:    {
+
+    ARCH_MIPS64: {
         'name':     'mips64',
         'modpath':  ('envi', 'archs', 'mips64'),
         'clsname':  'Mips64Module',
@@ -314,6 +315,17 @@ arch_defs = {
         'has_symboliks':False,
         'has_unittests':False,
         },
+    ARCH_Z80: {
+        'name': 'z80',
+        'modpath': ('envi', 'archs', 'z80'),
+        'clsname':  'Z80Module',
+        'disabled': False,
+        'version':  (0, 0, 1),
+        'has_disasm': True,
+        'has_emu': False,
+        'has_symboliks': False,
+        'has_unittests': False,
+    }
 }
 
 
@@ -356,7 +368,7 @@ import envi.memcanvas as e_canvas
 
 class ArchitectureModule:
     """
-    An architecture module implementes methods to deal
+    An architecture module implements methods to deal
     with the creation of envi objects for the specified
     architecture.
     """

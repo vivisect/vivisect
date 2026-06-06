@@ -1,4 +1,6 @@
 
+import binascii
+
 import envi
 import envi.bits as e_bits
 import envi.bytesig as e_bsig
