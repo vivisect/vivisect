@@ -5,12 +5,12 @@ Watchpoint Objects
 import envi.const as e_const
 import envi.memory as e_memory
 
-import vtrace.breakpoints as v_breakpoints
+import vtrace.breakpoints as vt_bp
 
 
-class Watchpoint(v_breakpoints.Breakpoint):
+class Watchpoint(vt_bp.Breakpoint):
     """
-    The basic "break on access" watchpoint.  Extended from 
+    The basic "break on access" watchpoint.  Extended from
     Breakpoints and handled almost exactly the same way...
     """
     def __init__(self, addr, expression=None, size=4, perms="rw"):
@@ -27,7 +27,7 @@ class Watchpoint(v_breakpoints.Breakpoint):
         pass
 
     def getName(self):
-        bname = v_breakpoints.Breakpoint.getName(self)
+        bname = vt_bp.Breakpoint.getName(self)
         return "%s (%s %d bytes)" % (bname, self.wpperms, self.wpsize)
 
     def activate(self, trace):
@@ -75,7 +75,7 @@ class PageWatchpoint(Watchpoint):
         self.fastbreak = trace.getMeta('pagerun')
 
     def getName(self):
-        bname = v_breakpoints.Breakpoint.getName(self)
+        bname = vt_bp.Breakpoint.getName(self)
         return "%s (%s %d bytes)" % (bname, e_memory.reprPerms(self._new_perms), self.wpsize)
 
     def activate(self, trace):
