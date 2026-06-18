@@ -119,10 +119,10 @@ class DebugInfo:
         self.functions = []
         self.structs = []
 
-    def addChild(self, type, info):
-        if type == 'function':
+    def addChild(self, typ, info):
+        if typ == 'function':
             self.functions.append(DebugFunction(**info))
-        elif type == 'struct' or type == 'class':
+        elif typ == 'struct' or typ == 'class':
             self.structs.append(DebugStructure(**info))
-        elif type == 'import':
+        elif typ == 'import':
             self.imports.append(DebugImport(**info))

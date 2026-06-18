@@ -48,3 +48,5 @@ class VstructDwarfTests(unittest.TestCase):
 
         teststr = b'\xff\x7e\xff\xff'
         self.assertEqual((-129, 2), leb128ToInt(teststr, signed=True))
+
+        # TODO: Longer test strings?
