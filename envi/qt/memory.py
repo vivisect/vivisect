@@ -6,7 +6,7 @@ from PyQt6 import QtCore, QtGui
 from PyQt6.QtGui import QAction, QShortcut
 from PyQt6.QtWidgets import *
 
-import envi.expression as e_expr
+import envi.exc as e_exc
 import envi.qt.memcanvas as e_memcanvas_qt
 import envi.memcanvas.renderers as e_render
 
@@ -236,7 +236,7 @@ class VQMemoryWindow(vq_hotkey.HotKeyMixin, EnviNavMixin, vq_save.SaveableWidget
                 sym = self._mem_obj.getSymByAddr(addr)
                 if sym is not None:
                     menustr += ' - %s' % repr(sym)
-            except e_expr.ExpressionFail:
+            except e_exc.ExpressionException:
                 menustr = "UNKNOWN-Exception (%r)" % expr
 
             self.histmenu.addAction(menustr, ACT(self._histSelected, hinfo))
