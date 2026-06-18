@@ -184,7 +184,7 @@ class LineStateMachine:
         self._reg_column = column
 
     def _op_negate_stmt(self):
-        self._reg_is_stmt = ~self._reg_is_stmt
+        self._reg_is_stmt = not self._reg_is_stmt
 
     def _op_set_basic_block(self):
         self._reg_basic_block = True
@@ -205,6 +205,7 @@ class LineStateMachine:
         addend = e_bits.parsebytes(self.byts[self.consumed:], offset=0, size=2, bigend=self.bigend)
         self._reg_address += addend
         self._reg_op_index = 0
+        self.consumed += 2
 
     def _op_set_prologue_end(self):
         self._reg_prologue_end = True
@@ -262,7 +263,7 @@ class LineStateMachine:
         # oplen = len(self.funcs)
         while self.consumed < len(self.byts):
             byt = self.byts[self.consumed]
-            print('%.8x -- 0x%.8x -- %d' % (self.offset + self.consumed, self._reg_address, self._reg_line))
+            # print('%.8x -- 0x%.8x -- %d' % (self.offset + self.consumed, self._reg_address, self._reg_line))
             self.consumed += 1
             if byt >= opbase:
                 yield self._op_special(byt)
@@ -291,7 +292,7 @@ class DwarfInfo:
         # of the sections are just refs into a different section
         if self.strtable:
             for sec in pbin.getSections():
-                # so this is cygwin's shorthand for certain section with long names
+                # this is cygwin's shorthand for certain section with long names
                 if sec.Name.startswith('/'):
                     indx = int(sec.Name[1:], 10)
                     name = self.strtable[indx:].split(b'\x00', 1)[0]
@@ -440,14 +441,14 @@ class DwarfInfo:
                 struct = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if struct:
                     if pns:
-                        func['parent'] = pns
+                        struct['parent'] = pns
                     struct['union'] = False
                     vw.addDebugInfo('struct', struct)
             elif child.tag == v_d_dwarf.DW_TAG_union_type:
                 union = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if union:
                     if pns:
-                        func['parent'] = pns
+                        union['parent'] = pns
                     union['union'] = True
                     vw.addDebugInfo('struct', union)
             elif child.tag == v_d_dwarf.DW_TAG_namespace:
@@ -461,19 +462,19 @@ class DwarfInfo:
                 ct = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if ct:
                     if pns:
-                        func['parent'] = pns
+                        ct['parent'] = pns
                     vw.addDebugInfo('class', ct)
             elif child.tag == v_d_dwarf.DW_TAG_imported_declaration:
                 imp = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if imp:
                     if pns:
-                        func['parent'] = pns
+                        imp['parent'] = pns
                     vw.addDebugInfo('import', imp)
             elif child.tag == v_d_dwarf.DW_TAG_imported_module:
                 imp = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if imp:
                     if pns:
-                        func['parent'] = pns
+                        imp['parent'] = pns
                     vw.addDebugInfo('import', imp)
             # TODO: need an example of this
             #elif child.tag == v_d_dwarf.DW_TAG_imported_unit:
@@ -494,10 +495,11 @@ class DwarfInfo:
             return None
         return self.pbin.readAtRva(sec.VirtualAddress, sec.VirtualSize)
 
-    def _getRealString(self, type, valu, offs, utf8=False):
-        if type in INDIRECT_STRINGS:
+    def _getRealString(self, typ, valu, offs, utf8=False):
+        if typ in INDIRECT_STRINGS:
             offset = self._getDebugStrOffset(valu + offs)
-            return self._getDebugString(offset, utf8=utf8)
+            if offset is not None:
+                return self._getDebugString(offset, utf8=utf8)
 
         return valu.vsGetValue()
 
@@ -517,6 +519,7 @@ class DwarfInfo:
             return byts.decode('utf-8')
         if utf8 is False:
             return byts.decode('ascii')
+
         return byts
 
     def _getContentStrings(self, entries, formats, utf8=False):
@@ -525,9 +528,9 @@ class DwarfInfo:
             for formatidx, valu in file_name_info:
                 rval = valu.vsGetValue()
                 fidx = int(formatidx)
-                type = formats[fidx][0].vsGetValue()
+                ftyp = formats[fidx][0].vsGetValue()
                 form = formats[fidx][1].vsGetValue()
-                if type == v_d_dwarf.DW_LNCT_path:
+                if ftyp == v_d_dwarf.DW_LNCT_path:
                     if form == v_d_dwarf.DW_FORM_string:
                         # string is already collected in the header, we
                         # can just promote it here
@@ -548,13 +551,13 @@ class DwarfInfo:
                         # I have no idea where to go for this
                         pass
 
-                elif type == v_d_dwarf.DW_LNCT_directory_index:
+                elif ftyp == v_d_dwarf.DW_LNCT_directory_index:
                     info['diridx'] = rval
-                elif type == v_d_dwarf.DW_LNCT_timestamp:
+                elif ftyp == v_d_dwarf.DW_LNCT_timestamp:
                     info['timestamp'] = rval
-                elif type == v_d_dwarf.DW_LNCT_size:
+                elif ftyp == v_d_dwarf.DW_LNCT_size:
                     info['size'] = rval
-                elif type == v_d_dwarf.DW_LNCT_md5:
+                elif ftyp == v_d_dwarf.DW_LNCT_md5:
                     info['md5'] = rval
 
             yield info
@@ -562,7 +565,7 @@ class DwarfInfo:
     def _preprocStrOffsets(self):
         bytez = self.getSectionBytes('.debug_str_offsets')
         if bytez is None:
-            return
+            return []
         if self.is64BitDwarf:
             ctor = v_s_prim.v_uint64
         else:
@@ -615,19 +618,19 @@ class DwarfInfo:
             blocklen = v_s_prim.v_uint8(bigend=self.vw.bigend)
             blocklen.vsParse(bytez)
             vsData = self._getBlock(blocklen, bytez[len(blocklen):])
-            extra = blocklen
+            extra = 1
 
         elif form == v_d_dwarf.DW_FORM_block2:  # block
             blocklen = v_s_prim.v_uint16(bigend=self.vw.bigend)
             blocklen.vsParse(bytez)
             vsData = self._getBlock(blocklen, bytez[len(blocklen):])
-            extra = blocklen
+            extra = 2
 
         elif form == v_d_dwarf.DW_FORM_block4:  # block
             blocklen = v_s_prim.v_uint32(bigend=self.vw.bigend)
             blocklen.vsParse(bytez)
             vsData = self._getBlock(blocklen, bytez[len(blocklen):])
-            extra = blocklen
+            extra = 4
 
         elif form == v_d_dwarf.DW_FORM_data1:  # constant
             vsData = v_s_prim.v_uint8(bigend=self.vw.bigend)
@@ -666,10 +669,13 @@ class DwarfInfo:
                 offset.vsParse(bytez)
 
             strp = self._getDebugString(offset.vsGetValue(), utf8=None)
-            vsData = v_s_prim.v_str(len(strp), val=strp)
+            if strp is not None:
+                vsData = v_s_prim.v_str(len(strp), val=strp)
 
-            # strp is special since it's an easy reference into a table
-            return vsData, len(offset)
+                # strp is special since it's an easy reference into a table
+                return vsData, len(offset)
+            else:
+                return None, len(offset)
 
         elif form == v_d_dwarf.DW_FORM_line_strp:  # string
             # a ptr-sized offset into the string table .debug_line_str section
@@ -681,10 +687,13 @@ class DwarfInfo:
                 offset.vsParse(bytez)
 
             strp = self._getDebugString(offset.vsGetValue(), utf8=None, line=True)
-            vsData = v_s_prim.v_str(len(strp), val=strp)
+            if strp is not None:
+                vsData = v_s_prim.v_str(len(strp), val=strp)
 
-            # strp is special since it's an easy reference into a table
-            return vsData, len(offset)
+                # strp is special since it's an easy reference into a table
+                return vsData, len(offset)
+            else:
+                return None, len(offset)
 
         elif form == v_d_dwarf.DW_FORM_sdata:  # constant
             bits = self.vw.psize * 8
@@ -816,27 +825,29 @@ class DwarfInfo:
         # Use that to parse out things from the .debug_info section
         vw = self.vw
         debuginfo = []
-        bytez = self.getSectionBytes('.debug_info')
-        if bytez is None:
-            return
+        byts = self.getSectionBytes('.debug_info')
+        if byts is None:
+            return debuginfo
 
         consumed = 0
 
         version = v_s_prim.v_uint32(bigend=vw.bigend)
+        version.vsParse(byts)
         if version == 0xFFFFFFFF:
             consumed += 4
             headerctor = v_d_dwarf.Dwarf64CompileHeader
+            self.is64BitDwarf = True
         else:
             headerctor = v_d_dwarf.Dwarf32CompileHeader
             # So it says it's 12 bytes, but the first 4 are ffffffff
-        while consumed < len(bytez):
+        while consumed < len(byts):
             # Parse the compile unit header
             # we can have 32 bit dwarf in a 64 bit binary and the way they dynamic repr that
             # is by all the 64 bit addresses being 12 bytes long, but the first 4 are 0xffffffff
 
             header = headerctor()
             # TODO: there's a unit type header for like TYPE structures that we need to handle
-            header.vsParse(bytez[consumed:])
+            header.vsParse(byts[consumed:])
             self.cuheaders.append(header)
             cuoffs = {}
 
@@ -854,7 +865,7 @@ class DwarfInfo:
             # Or just parse out the first header block?
 
             while len(header) + unitConsumed < toConsume:
-                idx, ulen = v_d_dwarf.leb128ToInt(bytez[consumed + unitConsumed:])
+                idx, ulen = v_d_dwarf.leb128ToInt(byts[consumed + unitConsumed:])
                 unitConsumed += ulen
                 if idx == 0:
                     startoff += 1
@@ -888,10 +899,11 @@ class DwarfInfo:
                         flen = 0
                     else:
                         vsForm, flen = self._getFormData(form,
-                                                         bytez[consumed+unitConsumed:],
+                                                         byts[consumed+unitConsumed:],
                                                          addrsize=header.ptrsize,
                                                          utf8=utf8)
-                    child.addField(name, vsForm, type=form)
+                    if vsForm is not None:
+                        child.addField(name, vsForm, type=form)
                     unitConsumed += flen
 
                 cuoffs[startoff] = child
@@ -913,8 +925,11 @@ class DwarfInfo:
         vw = self.vw
         consumed = 0
         byts = self.getSectionBytes('.debug_line')
+        if byts is None:
+            return
 
         version = v_s_prim.v_uint32(bigend=vw.bigend)
+        version.vsParse(byts)
         if version == 0xFFFFFFFF:
             consumed += 4
             headerctor = v_d_dwarf.Dwarf64UnitLineHeader
@@ -968,7 +983,7 @@ class DwarfInfo:
                     consumed += con
 
                     files.append({
-                        'valu': srcpath,
+                        'valu': srcpath.vsGetValue(),
                         'diridx': diridx,
                         'modified': modtime,
                         'size': filelen
@@ -1074,5 +1089,5 @@ def parseDwarf(vw, pbin, strtab=b''):
 def addDwarfToWorkspace(vw, dwarf):
     try:
         dwarf.addToWorkspace(vw)
-    except:
+    except Exception:
         logger.exception("DWARF parsing ran into bug:")

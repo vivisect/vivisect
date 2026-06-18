@@ -120,6 +120,7 @@ class DebugInfo:
         self.structs = []
 
     def addChild(self, typ, info):
+        # TODO: Should we treat namespaces different so we can bucket things via namespace?
         if typ == 'function':
             self.functions.append(DebugFunction(**info))
         elif typ == 'struct' or typ == 'class':
