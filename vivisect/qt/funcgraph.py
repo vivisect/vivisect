@@ -9,7 +9,6 @@ import collections
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
 import envi.expression as e_expr
-import envi.qt.memory as e_mem_qt
 import envi.memcanvas as e_memcanvas
 import envi.qt.memory as e_qt_memory
 import vivisect.qt.views as viv_q_views
@@ -23,7 +22,7 @@ import vivisect.qt.memory as vq_memory
 import vivisect.qt.ctxmenu as vq_ctxmenu
 import vivisect.tools.graphutil as viv_graphutil
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QAction, QShortcut
 from PyQt6.QtWidgets import *
@@ -46,6 +45,7 @@ class VQVivFuncgraphCanvas(vq_memory.VivCanvasBase):
 
     # These have changed because QtWebEngine suxxs: https://bugreports.qt.io/browse/QTBUG-43602
     def event(self, evt):
+        # TODO: dedup with base viv canvase
         if evt.type() == QtCore.QEvent.Type.ChildAdded:
             evt.child().installEventFilter(self)
         elif evt.type() == QtCore.QEvent.Type.ChildRemoved:

@@ -24,14 +24,7 @@ NOTE: Initial signature code consists entirely of the envi
 bytesig module and byte/mask sets for known function signatures.
 """
 
-
-class Signature:
-    """
-    A function/procedure signature.
-    """
-    pass
-
-from vivisect.const import *
+import vivisect.const as v_const
 
 def genSigAndMask(vw, funcva):
 
@@ -50,7 +43,7 @@ def genSigAndMask(vw, funcva):
     # Figure out the size of the first linear chunk
     # in this function...
     cb = vw.getCodeBlock(funcva)
-    if cb[CB_VA] not in func_blocks:
+    if cb[v_const.CB_VA] not in func_blocks:
         raise Exception("funcva not in given func")
     while cb is not None:
         cbva, cbsize, cbfunc = cb
@@ -73,7 +66,7 @@ def genSigAndMask(vw, funcva):
             sig += bytez[i:i+1]
             mask += b"\xff"
             i += 1
-        elif rtype == RTYPE_BASERELOC:
+        elif rtype == v_const.RTYPE_BASERELOC:
             x = b"\x00" * vw.psize
             sig += x
             mask += x

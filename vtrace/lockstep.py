@@ -9,7 +9,6 @@ import envi.archs.i386.opconst as e_i386const
 
 import vtrace
 import vtrace.exc as v_exc
-import vtrace.util as vutil
 import vtrace.snapshot as v_snapshot
 import vtrace.platforms.base as v_base
 

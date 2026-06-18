@@ -1,7 +1,7 @@
 import unittest
 
 import vivisect
-import envi.memory as e_mem
+import envi.const as e_const
 
 
 class VampSigTests(unittest.TestCase):
@@ -24,10 +24,10 @@ class VampSigTests(unittest.TestCase):
         # Put the opcodes into an executable memory map.
         mapbase = 0x400000
         bufferpgsz = 2 * 4096
-        vw.addMemoryMap(mapbase - bufferpgsz, e_mem.MM_RWX,
+        vw.addMemoryMap(mapbase - bufferpgsz, e_const.MM_RWX,
                         'test', '@' * bufferpgsz)
         bytez = bytes(bytearray.fromhex(opcode_string))
-        vw.addMemoryMap(mapbase, e_mem.MM_RWX, 'test', bytez)
+        vw.addMemoryMap(mapbase, e_const.MM_RWX, 'test', bytez)
         vw.addSegment(mapbase, len(bytez), 'test_code_%x' % mapbase, 'test')
 
         # Make a function, triggering signature detection.

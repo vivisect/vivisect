@@ -1,6 +1,8 @@
-"""Locate locations which overlap"""
-from vivisect.const import *
+"""
+Locate locations which overlap
+"""
 
+import vivisect.const as v_const
 
 columns = (
     ("Overlap Size",   int),
@@ -11,7 +13,7 @@ columns = (
 
 def report(vw):
     res = {}
-    for i in range(LOC_MAX):
+    for i in range(v_const.LOC_MAX):
         for lva, size, ltype, tinfo in vw.getLocations(i):
             va = lva + 1
             maxva = lva + size

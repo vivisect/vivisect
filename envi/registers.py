@@ -4,7 +4,7 @@ access information about objects which contain registers
 """
 
 import envi.exc as e_exc
-from envi.const import *
+import envi.const as e_const
 
 class RegisterContext:
 
@@ -42,8 +42,8 @@ class RegisterContext:
         """
         return self._rctx_dirty
 
-    def setIsDirty(self, bool):
-        self._rctx_dirty = bool
+    def setIsDirty(self, valu):
+        self._rctx_dirty = valu
 
     def setRegisterIndexes(self, pcindex, spindex, srindex=None):
         self._rctx_pcindex = pcindex
@@ -58,11 +58,11 @@ class RegisterContext:
 
         NOTE: All widths in envi RegisterContexts are in bits.
         """
-        self._rctx_regdef = regdef # Save this for snaps etc..
+        self._rctx_regdef = regdef  # Save this for snaps etc..
         self._rctx_names = {}
         self._rctx_ids = {}
         self._rctx_widths = []
-        self._rctx_vals  = []
+        self._rctx_vals = []
         self._rctx_masks = []
 
         for i, (name, width) in enumerate(regdef):
@@ -123,7 +123,7 @@ class RegisterContext:
         """
         # On import from a structure, we are clean again.
         self._rctx_dirty = False
-        for name,idx in self._rctx_names.items():
+        for name, idx in self._rctx_names.items():
             # Skip meta registers
             if (idx & 0xffff) != idx:
                 continue
@@ -137,7 +137,7 @@ class RegisterContext:
         registers in our context, set the ones he has to match
         our values.
         """
-        for name,idx in self._rctx_names.items():
+        for name, idx in self._rctx_names.items():
             # Skip meta registers
             if (idx & 0xffff) != idx:
                 continue
@@ -260,7 +260,7 @@ class RegisterContext:
         value pairs.
         """
         ret = {}
-        for name,idx in self._rctx_names.items():
+        for name, idx in self._rctx_names.items():
             if (idx & 0xffff) != idx:
                 continue
             ret[name] = self.getRegister(idx)
@@ -271,7 +271,7 @@ class RegisterContext:
         For any name value pairs in the specified dictionary, set the current
         register values in this context.
         """
-        for name,value in regdict.items():
+        for name, value in regdict.items():
             self.setRegisterByName(name, value)
 
     def getRegisterIndex(self, name):
@@ -377,7 +377,7 @@ class RegisterContext:
         if ridx != index:
             value = self._xlateToNativeReg(index, value)
 
-        self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])
+        self._rctx_vals[ridx] = value & self._rctx_masks[ridx]
 
     def getRealRegisterNameByIdx(self, regidx):
         """
@@ -385,7 +385,7 @@ class RegisterContext:
         of meta-registers) or the name of the register.
         (by Index)
         """
-        return self.getRegisterName(regidx & RMETA_NMASK)
+        return self.getRegisterName(regidx & e_const.RMETA_NMASK)
 
     def getRealRegisterName(self, regname):
         """
@@ -394,7 +394,7 @@ class RegisterContext:
         """
         ridx = self.getRegisterIndex(regname)
         if ridx is not None:
-            return self.getRegisterName(ridx & RMETA_NMASK)
+            return self.getRegisterName(ridx & e_const.RMETA_NMASK)
         return regname
 
 
@@ -403,7 +403,7 @@ def addLocalEnums(l, regdef):
     Update a dictionary (or module locals) with REG_FOO index
     values for all the base registers defined in regdef.
     """
-    for i,(rname,width) in enumerate(regdef):
+    for i, (rname, width) in enumerate(regdef):
         if rname is None:   # allow for sparse register banks
             continue
 
@@ -417,7 +417,7 @@ def addLocalStatusMetas(l, metas, statmetas, regname):
     '''
     for metaname, idx, offset, width, desc in statmetas:
         # create meta registers
-        metas.append( (metaname, idx, offset, width) )
+        metas.append((metaname, idx, offset, width))
 
         # create local bitmask constants (EFLAGS_%)
         l['%s_%s' % (regname, metaname)] = 1 << offset # TODO: fix for arbitrary width

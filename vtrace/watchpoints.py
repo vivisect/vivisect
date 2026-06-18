@@ -3,17 +3,18 @@ Watchpoint Objects
 """
 # Copyright (C) 2007 Invisigoth - See LICENSE file for details
 import envi.const as e_const
+import envi.memory as e_memory
 
-from vtrace import *
-from vtrace.breakpoints import *
+import vtrace.breakpoints as vt_bp
 
-class Watchpoint(Breakpoint):
+
+class Watchpoint(vt_bp.Breakpoint):
     """
-    The basic "break on access" watchpoint.  Extended from 
+    The basic "break on access" watchpoint.  Extended from
     Breakpoints and handled almost exactly the same way...
     """
     def __init__(self, addr, expression=None, size=4, perms="rw"):
-        Breakpoint.__init__(self, addr, expression=expression)
+        super().__init__(self, addr, expression=expression)
         self.wpsize = size
         self.wpperms = perms
 
@@ -26,7 +27,7 @@ class Watchpoint(Breakpoint):
         pass
 
     def getName(self):
-        bname = Breakpoint.getName(self)
+        bname = vt_bp.Breakpoint.getName(self)
         return "%s (%s %d bytes)" % (bname, self.wpperms, self.wpsize)
 
     def activate(self, trace):
@@ -44,6 +45,7 @@ class Watchpoint(Breakpoint):
             self.active = False
         return self.active
 
+
 class PageWatchpoint(Watchpoint):
     """
     A special "watchpoint" that uses memory permissions to
@@ -55,7 +57,7 @@ class PageWatchpoint(Watchpoint):
     NOTE: These *must* be added page aligned
     """
     def __init__(self, addr, expression=None, size=4, watchread=False):
-        Watchpoint.__init__(self, addr, expression=expression, size=size, perms='rw')
+        super().__init__(self, addr, expression=expression, size=size, perms='rw')
         self._orig_perms = None
         self._new_perms = e_const.MM_READ
         if watchread:
@@ -67,14 +69,14 @@ class PageWatchpoint(Watchpoint):
     def notify(self, event, trace):
         pw = trace.getMeta('pagewatch')
         pc = trace.getProgramCounter()
-        vaddr,vperm = trace.platformGetMemFault()
+        vaddr, vperm = trace.platformGetMemFault()
         pw.append((pc, vaddr, vperm))
         # Change to/from fastbreak on pagerun...
         self.fastbreak = trace.getMeta('pagerun')
 
     def getName(self):
-        bname = Breakpoint.getName(self)
-        return "%s (%s %d bytes)" % (bname, e_mem.reprPerms(self._new_perms), self.wpsize)
+        bname = vt_bp.Breakpoint.getName(self)
+        return "%s (%s %d bytes)" % (bname, e_memory.reprPerms(self._new_perms), self.wpsize)
 
     def activate(self, trace):
         #trace.requireNotRunning()

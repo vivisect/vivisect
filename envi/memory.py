@@ -1,3 +1,8 @@
+"""
+A module containing memory utilities and the definition of the
+memory access API used by all vtoys trace/emulators/workspaces.
+"""
+
 import re
 import struct
 import logging
@@ -6,12 +11,7 @@ import contextlib
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
-
-from envi.const import *
-"""
-A module containing memory utilities and the definition of the
-memory access API used by all vtoys trace/emulators/workspaces.
-"""
+import envi.const as e_const
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +21,18 @@ def getPermName(perm):
     Return the human readable name for a *single* memory
     perm enumeration value.
     '''
-    return pnames[perm]
+    return e_const.pnames[perm]
 
 
 def reprPerms(mask):
     plist = ['-', '-', '-', '-']
-    if mask & MM_SHARED:
+    if mask & e_const.MM_SHARED:
         plist[0] = 's'
-    if mask & MM_READ:
+    if mask & e_const.MM_READ:
         plist[1] = 'r'
-    if mask & MM_WRITE:
+    if mask & e_const.MM_WRITE:
         plist[2] = 'w'
-    if mask & MM_EXEC:
+    if mask & e_const.MM_EXEC:
         plist[3] = 'x'
 
     return "".join(plist)
@@ -41,13 +41,13 @@ def reprPerms(mask):
 def parsePerms(pstr):
     ret = 0
     if pstr.find('s') != -1:
-        ret |= MM_SHARED
+        ret |= e_const.MM_SHARED
     if pstr.find('r') != -1:
-        ret |= MM_READ
+        ret |= e_const.MM_READ
     if pstr.find('w') != -1:
-        ret |= MM_WRITE
+        ret |= e_const.MM_WRITE
     if pstr.find('x') != -1:
-        ret |= MM_EXEC
+        ret |= e_const.MM_EXEC
     return ret
 
 
@@ -64,12 +64,13 @@ class IMemory:
     def __init__(self, arch=None):
         self.imem_psize = struct.calcsize('P')
         self.imem_archs = {}
+
+        self.bigend = e_const.ENDIAN_LSB
+        self._supervisor = False
+
         self.arch = None
         if arch is not None:
             self.setMemArchitecture(arch)
-
-        self.bigend = envi.ENDIAN_LSB
-        self._supervisor = False
 
     def getEndian(self):
         '''
@@ -100,6 +101,7 @@ class IMemory:
             mem.setMemArchitecture(envi.ARCH_I386)
         '''
         archmod = self.getMemArchModule(arch)
+        archmod.setEndian(self.bigend)
         self.imem_archs[envi.ARCH_DEFAULT] = self.arch = archmod
         self.imem_psize = archmod.getPointerSize()
 
@@ -111,7 +113,7 @@ class IMemory:
         archmod = self.imem_archs.get(idx)
         # on demand creation
         if not archmod:
-            name = envi.getArchById(arch)
+            name = envi.getArchById(arch & envi.ARCH_MASK)
             archmod = envi.getArchModule(name=name)
             self.imem_archs[idx] = archmod
 
@@ -169,7 +171,7 @@ class IMemory:
 
         return True
 
-    def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0):
+    def allocateMemory(self, size, perms=e_const.MM_RWX, suggestaddr=0):
         raise NotImplementedError("must implement allocateMemory!")
 
     def addMemoryMap(self, mapva, perms, fname, bytes, align=None):
@@ -277,7 +279,7 @@ class IMemory:
         mmap = self.getMemoryMap(va)
         while mmap is not None:
             mapva, size, perms, mname = mmap
-            if not (perms & MM_READ):
+            if not (perms & e_const.MM_READ):
                 break
 
             nread += (mapva + size) - (va + nread)
@@ -289,25 +291,25 @@ class IMemory:
         maptup = self.getMemoryMap(va)
         if maptup is None:
             return False
-        return bool(maptup[2] & MM_READ)
+        return bool(maptup[2] & e_const.MM_READ)
 
     def isWriteable(self, va):
         maptup = self.getMemoryMap(va)
         if maptup is None:
             return False
-        return bool(maptup[2] & MM_WRITE)
+        return bool(maptup[2] & e_const.MM_WRITE)
 
     def isExecutable(self, va):
         maptup = self.getMemoryMap(va)
         if maptup is None:
             return False
-        return bool(maptup[2] & MM_EXEC)
+        return bool(maptup[2] & e_const.MM_EXEC)
 
     def isShared(self, va):
         maptup = self.getMemoryMap(va)
         if maptup is None:
             return False
-        return bool(maptup[2] & MM_SHARED)
+        return bool(maptup[2] & e_const.MM_SHARED)
 
     def searchMemory(self, needle, regex=False):
         """
@@ -463,7 +465,7 @@ class MemoryObject(IMemory):
         finally:
             self._supervisor = oldrights
 
-    def allocateMemory(self, size, perms=MM_RWX, suggestaddr=0x1000, name='', fill=b'\0', align=None):
+    def allocateMemory(self, size, perms=e_const.MM_RWX, suggestaddr=0x1000, name='', fill=b'\0', align=None):
         '''
         Find a free block of memory (no maps exist) and allocate a new map
         Uses findFreeMemoryBlock()
@@ -474,10 +476,10 @@ class MemoryObject(IMemory):
 
     def findFreeMemoryBlock(self, size, suggestaddr=0x1000, MIN_MEM_ADDR = 0x1000, mapalign=0x10000):
         '''
-        Find a block of memory in the address-space of the correct size which 
+        Find a block of memory in the address-space of the correct size which
         doesn't overlap any existing maps.  Attempts to offer the map starting
         at suggestaddr.  If not possible, scans the rest of the address-space
-        until it finds a suitable location or loops twice(ie. no gap large 
+        until it finds a suitable location or loops twice(ie. no gap large
         enough to accommodate a map of this size exists.
 
         DOES NOT ALLOCATE.  see allocateMemory() if you want the map created
@@ -592,7 +594,7 @@ class MemoryObject(IMemory):
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not (mperms & MM_READ or self._supervisor):
+                if not (mperms & e_const.MM_READ or self._supervisor):
                     msg = "Bad Memory Read (no READ permission): %s: %s" % (hex(va), hex(size))
                     if _origva is not None:
                         msg += " (original va: %s)" % hex(_origva)
@@ -662,7 +664,7 @@ class MemoryObject(IMemory):
             curmap = self.getMemoryMap(ptr)
             if not curmap:
                 msg = "Bad Memory Access (invalid memory range): 0x%x: 0x%x (%s)" % (
-                        va, size, pnames[perm])
+                        va, size, e_const.pnames[perm])
                 raise envi.SegmentationViolation(va, msg)
 
         return True
@@ -683,7 +685,7 @@ class MemoryObject(IMemory):
             mva, mmaxva, mmap, mbytes = mapdef
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not (mperms & MM_WRITE or self._supervisor):
+                if not (mperms & e_const.MM_WRITE or self._supervisor):
                     msg = "Bad Memory Write (no WRITE permission): %s: %s" % (hex(va), hex(byteslen))
                     if _origva:
                         msg += " (original va: %s)" % hex(_origva)
@@ -742,7 +744,7 @@ class MemoryObject(IMemory):
         for mva, mmaxva, mmap, mbytes in self._map_defs:
             if mva <= va < mmaxva:
                 mva, msize, mperms, mfname = mmap
-                if not (mperms & MM_READ or self._supervisor):
+                if not (mperms & e_const.MM_READ or self._supervisor):
                     raise envi.SegmentationViolation(va)
                 offset = va - mva
 

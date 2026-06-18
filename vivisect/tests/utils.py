@@ -99,7 +99,7 @@ def getFuncMaps(vw, fva):
     vas.sort()
 
     maps = []
-    perms = 'e_mem.MM_RWX'
+    perms = 'e_const.MM_RWX'
     lastva = startva = vas[0]
     #print (vas)
     for va in vas:

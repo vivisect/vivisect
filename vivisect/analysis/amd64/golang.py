@@ -34,7 +34,7 @@ def analyze(vw):
     # of the .text segment (versus a .upxN segment of a packed sample).
     has_go_build = False
     for segment in vw.getSegments():
-        va, size, name, filename = segment
+        va, size, name, _ = segment
         if name == '.text':
             bytez = vw.readMemory(va, 10000)
             k1 = bytez.find(b'Go build ID: ')
@@ -47,7 +47,7 @@ def analyze(vw):
     # Search the entry point (public export) for the pointer to runtime_main().
     # Most GO executables have a single entry point, but some are more complex.
     ep = vw.getEntryPoints()
-    ptr_va, runtime_va = golang_search_eps(vw, ep, filename)
+    ptr_va, runtime_va = golang_search_eps(vw, ep)
     if runtime_va is None:
         return
 
@@ -70,7 +70,7 @@ _GOLANG_AMD64_MEP2A_INSTRS \
 _GOLANG_AMD64_MEP2B_INSTRS \
     = ['mov', 'mov', 'call', 'mov', 'mov', 'mov', 'mov', 'mov', 'mov',
        'call', 'mov', 'mov', 'test', 'jz']
-def golang_search_eps(vw, ep , filename):
+def golang_search_eps(vw, ep):
     '''
     Search over all entry points to find main(), and then look for the
     function that calls runtime_main().
@@ -81,7 +81,7 @@ def golang_search_eps(vw, ep , filename):
         bblocks = vw.getFunctionBlocks(ep_va)
         if not bblocks:
             return None, None
-        ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks, filename)
+        ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks)
         return ptr_va, runtime_va
 
     # Look for an entry point with a single basic block with a specific set
@@ -152,7 +152,7 @@ def golang_search_eps(vw, ep , filename):
     # This might be the function that calls runtime_main(), or there might
     # be one more indirect jump in a single basic block.
     if len(bblocks) > 1:
-        ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks, filename)
+        ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks)
         if runtime_va is None:
             return None, None
         return ptr_va, runtime_va
@@ -164,15 +164,15 @@ def golang_search_eps(vw, ep , filename):
     if not instrs:
         return None, None
     op = instrs[0]
-    ptr_va, _ = parse_lea_raxriprel(vw, op, filename)
+    ptr_va, _ = parse_lea_raxriprel(vw, op)
     if not vw.isFunction(ptr_va):
         return None, None
     bblocks = vw.getFunctionBlocks(ptr_va)
-    ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks, filename)
+    ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks)
     return ptr_va, runtime_va
 
 
-def extract_golang_mainmain(vw, basic_blocks, filename):
+def extract_golang_mainmain(vw, basic_blocks):
     '''
     Find the basic block of interest and return the address of
     the pointer and its contents, runtime_main().
@@ -183,17 +183,17 @@ def extract_golang_mainmain(vw, basic_blocks, filename):
     '''
     op = find_golang_bblock(vw, basic_blocks, _GOLANG_AMD64_INSTRS, 6)
     if op is None:
-        op = find_golang_bblock_via_ind_jmp(vw, filename)
+        op = find_golang_bblock_via_ind_jmp(vw)
         if op is None:
             return None, None
 
     # The key opcode is "lea rax,[rip + immediate]", which points to
     # the GO function runtime_mainPC (aka runtime_main).
-    ptr_va, runtime_va = parse_lea_raxriprel(vw, op, filename, get_content=True)
+    ptr_va, runtime_va = parse_lea_raxriprel(vw, op, get_content=True)
     return ptr_va, runtime_va
 
 
-def find_golang_bblock_via_ind_jmp(vw, filename):
+def find_golang_bblock_via_ind_jmp(vw):
     '''
     Find the basic block of interest and return the address where
     the special sequence of opcodes begins.  Return None if not found.
@@ -216,7 +216,7 @@ def find_golang_bblock_via_ind_jmp(vw, filename):
        (instrs[-2].mnem != 'lea'):
         return None
     op = instrs[-2]
-    ptr_va, _ = parse_lea_raxriprel(vw, op, filename)
+    ptr_va, _ = parse_lea_raxriprel(vw, op)
     if not ptr_va:
         return None
 
@@ -236,7 +236,7 @@ def find_golang_bblock_via_ind_jmp(vw, filename):
        (instrs[-2].mnem != 'lea'):
         return None
     op = instrs[-2]
-    ptr_va, _ = parse_lea_raxriprel(vw, op, filename)
+    ptr_va, _ = parse_lea_raxriprel(vw, op)
     if not ptr_va:
         return None
 
@@ -245,7 +245,7 @@ def find_golang_bblock_via_ind_jmp(vw, filename):
     return find_golang_bblock(vw, basic_blocks, _GOLANG_AMD64_INSTRS, 6)
 
 
-def parse_lea_raxriprel(vw, opcode, filename, get_content=False):
+def parse_lea_raxriprel(vw, opcode, get_content=False):
     '''
     Parse an opcode that should be "lea rax,[rip + immediate]", returning
     the address of the second operand.  Also return the content of the
@@ -267,5 +267,5 @@ def parse_lea_raxriprel(vw, opcode, filename, get_content=False):
         else:
             runtime_va = None
         return ptr_va, runtime_va
-    except Exception as e:
+    except Exception:
         return None, None
