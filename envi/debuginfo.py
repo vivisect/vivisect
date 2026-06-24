@@ -45,7 +45,7 @@ class DebugImport(DebugBase):
     def __init__(self, **info):
         imp = info.get('import')
         name = info.get('name')
-        if name is None:
+        if name is None and imp is not None:
             name = imp.get('name')
         # file and line in this case mean the line and file where the import occurred
         super().__init__(name, info.get('file'))
