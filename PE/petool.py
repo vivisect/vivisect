@@ -4,7 +4,6 @@ For now, all this does is rename files to their exportname and version info.
 '''
 
 import sys
-import code
 import optparse
 import binascii
 
@@ -45,7 +44,6 @@ def main():
                     val = vs.getVersionValue(k)
                     print('%s: %r' % (k, val))
 
-        code.interact(local=locals())
 
 
 if __name__ == "__main__":
