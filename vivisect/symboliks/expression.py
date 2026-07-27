@@ -117,6 +117,8 @@ class SymbolikExpressionParser:
             return v_s_com.Var(a.id, self._sym_defwidth)
 
         if isinstance(a, ast.Constant):
+            if not isinstance(a.value, int):
+                raise Exception('Unsupported constant type: %s' % type(a.value))
             return v_s_com.Const(a.value, self._sym_defwidth)
 
         if isinstance(a, ast.Subscript):
