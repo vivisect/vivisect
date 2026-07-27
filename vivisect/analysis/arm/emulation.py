@@ -59,7 +59,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             if op.iflags & envi.IF_RET:
                 self.returns = True
                 if len(op.opers):
-                    if hasattr(op.opers, 'imm'):
+                    if hasattr(op.opers[0], 'imm'):
                         self.retbytes = op.opers[0].imm
 
             # ARM gives us nice switchcase handling instructions

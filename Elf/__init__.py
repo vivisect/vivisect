@@ -375,7 +375,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
 
         if self.dynstrtabmeta != (None, None):
             curtab = self.dynstrtabmeta[0]
-            logger.warning('wtf?  multiple dynamic string tables?  old: 0x%x  new: 0x%x', curtab, rva)
+            logger.warning('wtf?  multiple dynamic string tables?  old: 0x%x  new: 0x%x', curtab, dynstrtabva)
 
         strtabbytes = self.readAtRva(dynstrtabva, strsz)
 

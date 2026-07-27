@@ -26,7 +26,8 @@ def main(argv):
             ords[ord+base] = name
 
         keys = list(ords.keys())
-        for k in keys.sort():
+        keys.sort()
+        for k in keys:
             print('    %d:"%s",' % (k, ords.get(k)))
 
 
