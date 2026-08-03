@@ -31,7 +31,7 @@ def analyze(vw):
     # of the .text segment (versus a .upxN segment of a packed sample).
     has_go_build = False
     for segment in vw.getSegments():
-        va, size, name, filename = segment
+        va, size, name, _ = segment
         if name == '.text':
             bytez = vw.readMemory(va, 10000)
             k1 = bytez.find(b'Go build ID: ')
@@ -51,7 +51,7 @@ def analyze(vw):
     bblocks = vw.getFunctionBlocks(ep_va)
     if not bblocks:
         return
-    ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks, filename)
+    ptr_va, runtime_va = extract_golang_mainmain(vw, bblocks)
     if runtime_va is None:
         return
 
@@ -64,7 +64,7 @@ def analyze(vw):
     vw.makePointer(ptr_va, tova=runtime_va)
 
 
-def extract_golang_mainmain(vw, basic_blocks, filename):
+def extract_golang_mainmain(vw, basic_blocks):
     '''
     Find the basic block of interest and return the address of
     the pointer and its contents, runtime_main().
@@ -75,13 +75,13 @@ def extract_golang_mainmain(vw, basic_blocks, filename):
     '''
     op = find_golang_bblock(vw, basic_blocks, _GOLANG_I386_INSTRS, 5)
     if op is None:
-        op = find_golang_bblock_via_stack(vw, filename)
+        op = find_golang_bblock_via_stack(vw)
         if op is None:
             return None, None
 
     # The key opcode is "push immediate", which identifies a pointer which
     # in turn identifies the GO function runtime_mainPC (aka runtime_main).
-    ptr_va, runtime_va = parse_push_imm(vw, op, filename, get_content=True)
+    ptr_va, runtime_va = parse_push_imm(vw, op, get_content=True)
     return ptr_va, runtime_va
 
 
@@ -115,14 +115,14 @@ def find_golang_bblock(vw, basic_blocks, match, idx):
     if the_bblock is None:
         return None
 
-    for k in range(len(match)):
-        if instrs[k].mnem != match[k]:
+    for k, mnem in enumerate(match):
+        if instrs[k].mnem != mnem:
             return None
+
     return instrs[len(match) - idx]
 
 
-# TODO: Nobody uses filename. We could probably just get rid of it
-def find_golang_bblock_via_stack(vw, filename):
+def find_golang_bblock_via_stack(vw):
     '''
     Find the basic block of interest and return the address where
     the special sequence of opcodes begins.  Return None if not found.
@@ -145,7 +145,7 @@ def find_golang_bblock_via_stack(vw, filename):
        (instrs[-2].mnem != 'push'):
         return None
     op = instrs[-2]
-    ptr_va, _ = parse_push_imm(vw, op, filename)
+    ptr_va, _ = parse_push_imm(vw, op)
     if not ptr_va:
         return None
 
@@ -159,7 +159,7 @@ def find_golang_bblock_via_stack(vw, filename):
     return find_golang_bblock(vw, basic_blocks, _GOLANG_I386_INSTRS, 5)
 
 
-def parse_push_imm(vw, opcode, filename, get_content=False):
+def parse_push_imm(vw, opcode, get_content=False):
     '''
     Parse an opcode that should be "push immediate", returning
     the address of the second operand.  Also return the content of the

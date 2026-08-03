@@ -19,4 +19,3 @@ class MemoryException(Exception):
 
 class TargetAddrCalcException(Exception):
     pass
-

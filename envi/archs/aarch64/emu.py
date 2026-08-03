@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 # CPU state (memory, regs inc SPSRs and banked registers)
 # CPU mode  (User, FIQ, IRQ, supervisor, Abort, Undefined, System)
-# 
 # instruction code
 # exception handler code
 
@@ -161,14 +160,11 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         self.setCPSR(flags)
 
     def getFlag(self, which):
-        flags = self.getCPSR()
-        if flags is None:
-            raise envi.PDEUndefinedFlag(self)
-        return bool(flags & which)
+        return bool(self.getCPSR() & which)
 
     def readMemValue(self, addr, size):
         bytes = self.readMemory(addr, size)
-        if bytes == None:
+        if bytes is None:
             return None
         if len(bytes) != size:
             raise Exception("Read Gave Wrong Length At 0x%.8x (va: 0x%.8x wanted %d got %d)" % (self.getProgramCounter(),addr, size, len(bytes)))
@@ -208,11 +204,11 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         #       other than None, that is the new eip
         x = None
         meth = self.op_methods.get(op.mnem, None)
-        if meth == None:
+        if meth is None:
             raise envi.UnsupportedInstruction(self, op)
         x = meth(op)
 
-        if x == None:
+        if x is None:
             pc = self.getProgramCounter()
             x = pc+op.size
 
@@ -234,19 +230,29 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         '''
         get current AARCH64 processor mode.  see proc_modes (const.py)
         '''
-        return self._rctx_vals[REG_CPSR] & 0x1f     # obfuscated for speed.  could call getCPSR but it's not as fast
+        # we're skipping getCPSR() here to avoid an infinite recursion
+        # because getProgramCounter -> getRegister -> getProcMode -> getCPSR -> PDEUndefinedFlag -> getProgramCounter
+        cpsr = self._rctx_vals[REG_CPSR]
+        if cpsr is None:
+            # should we raise a real error instead of silently tolerating this?
+            return 0
+        return cpsr & 0x1f
 
     def getCPSR(self):
         '''
         return the Current Program Status Register.
         '''
-        return self._rctx_vals[REG_CPSR]
+        flags = self._rctx_vals[REG_CPSR]
+        if flags is None:
+            raise envi.PDEUndefinedFlag(self)
+        return flags
 
     def setCPSR(self, psr, mask=0xffffffff):
         '''
         set the CPSR for the current AARCH64 processor mode
         '''
-        psr = self._rctx_vals[REG_CPSR] & (~mask) | (psr & mask)
+        if psr is not None:
+            psr = self._rctx_vals[REG_CPSR] & (~mask) | (psr & mask)
         self._rctx_vals[REG_CPSR] = psr
 
     def getSPSR(self, mode):
@@ -261,6 +267,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         set the SPSR for the given AARCH64 processor mode
         '''
         ridx = _getRegIdx(PSR_Offset, mode)
+        # TODO: Should this instead reach in using ridx or REG_SPSR and not REG_CPSR?
         psr = self._rctx_vals[REG_CPSR] & (~mask) | (psr & mask)
         self._rctx_vals[ridx] = psr
 
@@ -275,19 +282,20 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
             self._rctx_vals[curSPSRidx] = self.getCPSR()
 
         # set current processor mode
-        cpsr = self._rctx_vals[REG_CPSR] & 0xffffffe0
-        self._rctx_vals[REG_CPSR] = cpsr | mode
+        cpsr = self.getCPSR()
+        cpsr = (cpsr & 0xffffffe0) | mode
+        self.setCPSR(cpsr)
 
     def getRegister(self, index, mode=None):
         """
         Return the current value of the specified register index.
         """
-        if mode == None:
+        if mode is None:
             mode = self.getProcMode() & 0xf
         else:
             mode &= 0xf
 
-        idx = (index & 0xffff)
+        idx = index & 0xffff
         ridx = _getRegIdx(idx, mode)
         if idx == index:
             return self._rctx_vals[ridx]
@@ -302,7 +310,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         """
         Set a register value by index.
         """
-        if mode == None:
+        if mode is None:
             mode = self.getProcMode() & 0xf
         else:
             mode &= 0xf
@@ -313,7 +321,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         ridx = _getRegIdx(idx, mode)
 
         if idx == index:    # not a metaregister
-            self._rctx_vals[ridx] = (value & self._rctx_masks[ridx])
+            self._rctx_vals[ridx] = value & self._rctx_masks[ridx]
             return
 
         # If we get here, it's a meta register index.
@@ -368,7 +376,8 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         sres = sdst - ssrc
 
         if Sflag:
-            curmode = self.getProcMode() 
+            # TODO: This looks copy pasta'd around
+            curmode = self.getProcMode()
             if rd == 15:
                 if(curmode != PM_sys and curmode != PM_usr):
                     self.setCPSR(self.getSPSR(curmode))
@@ -482,7 +491,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, ures)
 
-        curmode = self.getProcMode() 
+        curmode = self.getProcMode()
         if op.iflags & IF_S:
             if op.opers[0].reg == 15 and (curmode != PM_sys and curmode != PM_usr):
                 self.setCPSR(self.getSPSR(curmode))
@@ -540,7 +549,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, ures)
 
-        curmode = self.getProcMode() 
+        curmode = self.getProcMode()
         if op.iflags & IF_S:
             if op.opers[0].reg == 15:
                 if (curmode != PM_sys and curmode != PM_usr):
@@ -596,7 +605,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 
         self.setOperValue(op, 0, ures)
 
-        curmode = self.getProcMode() 
+        curmode = self.getProcMode()
         if op.iflags & IF_S:
             if op.opers[0].reg == 15:
                 if (curmode != PM_sys and curmode != PM_usr):

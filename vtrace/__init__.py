@@ -37,6 +37,7 @@ import platform
 import envi
 import envi.bits as e_bits
 import envi.memory as e_mem
+import envi.const as e_const
 import envi.registers as e_reg
 import envi.expression as e_expr
 import envi.symstore.resolver as e_resolv
@@ -508,7 +509,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
 
 #######################################################################
 
-    def allocateMemory(self, size, perms=e_mem.MM_RWX, suggestaddr=0):
+    def allocateMemory(self, size, perms=e_const.MM_RWX, suggestaddr=0):
         """
         Allocate a chunk of memory inside the target process' address
         space.  Memory wil be mapped rwx unless otherwise specified with
@@ -548,6 +549,7 @@ class Trace(e_mem.IMemory, e_reg.RegisterContext, e_resolv.SymbolResolver, objec
         """
         Search all of process memory for a sequence of bytes.
         """
+        # TODO: we should just be able to call super on this
         ret = e_mem.IMemory.searchMemory(self, needle, regex=regex)
         self.setMeta('search', ret)
         self.setVariable('search', ret)

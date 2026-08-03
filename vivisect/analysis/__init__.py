@@ -5,15 +5,15 @@ for different phases of analysis on different platforms.
 """
 
 import logging
-logger = logging.getLogger(__name__)
 
+import vivisect.analysis.i386 as viv_analysis_i386
+
+logger = logging.getLogger(__name__)
 ARM_ARCHS = ('arm', 'thumb', 'thumb16')
 
 
 def addAnalysisModules(vw):
 
-    import vivisect
-    import vivisect.analysis.i386 as viv_analysis_i386
 
     arch = vw.getMeta('Architecture')
     fmt = vw.getMeta('Format')
@@ -229,13 +229,14 @@ def addAnalysisModules(vw):
         vw.addFuncAnalysisModule("vivisect.analysis.generic.thunks")
 
     elif fmt == 'vbf': # VBF ######################################################
-        if arch in PPC_ARCHS:
-            # Initial VLE pages must be managed manually for bare
-            # metal/embedded PowerPC targets
-            vw.addAnalysisModule("vivisect.analysis.ppc.vlepages")
+        # TODO: None of this exists
+        #if arch in PPC_ARCHS:
+        #    # Initial VLE pages must be managed manually for bare
+        #    # metal/embedded PowerPC targets
+        #    vw.addAnalysisModule("vivisect.analysis.ppc.vlepages")
 
-            # potentially tags a new EntryPoint, so must preceed entrypoints
-            vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
+        #    # potentially tags a new EntryPoint, so must preceed entrypoints
+        #    vw.addAnalysisModule("vivisect.analysis.ppc.bootstrap")
 
         vw.addAnalysisModule("vivisect.analysis.generic.entrypoints")
         vw.addAnalysisModule("vivisect.analysis.generic.funcentries")

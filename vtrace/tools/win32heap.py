@@ -391,7 +391,7 @@ class Win32Chunk:
     def reprFlags(self):
         return reprHeapFlags(int(self.chunk.Flags))
 
-class Win32Subsegment(object):
+class Win32Subsegment:
     def __init__(self, trace, heap, address):
         self.trace = trace
         self.heap = heap
@@ -430,7 +430,7 @@ class Win32Subsegment(object):
     def getUsedBlockCount(self):
         return self.getBlockCount() - self.getFreeBlockCount()
 
-class Win32LFH(object):
+class Win32LFH:
     def __init__(self, trace, heap, address):
         self.trace = trace
         self.heap = heap

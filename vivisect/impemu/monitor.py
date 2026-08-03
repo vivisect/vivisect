@@ -1,12 +1,10 @@
-import envi
-import envi.exc as e_exc
-import envi.bits as e_bits
-
 import logging
 
-from vivisect.const import *
+import envi
+import vivisect.const as v_const
 
 logger = logging.getLogger(__name__)
+# TODO: This logic differs from envi.IF_BRANCH_COND. Need to unify
 BRANCH_FLAGS = envi.IF_BRANCH | envi.IF_CALL
 
 
@@ -91,13 +89,13 @@ class AnalysisMonitor(EmulationMonitor):
 
                 deltadone[spdelta] = True
                 if spdelta <= 0:  # add function locals
-                    vw.setFunctionLocal(self.fva, spdelta, LSYM_NAME, ('int','local%d' % abs(spdelta)))
+                    vw.setFunctionLocal(self.fva, spdelta, v_const.LSYM_NAME, ('int','local%d' % abs(spdelta)))
 
                 continue
 
             # Only infer things about the workspace based on discrete operands
             if vw.isValidPointer(val) and discrete:
-                vw.addXref(va, val, REF_DATA)
+                vw.addXref(va, val, v_const.REF_DATA)
                 if vw.getLocation(val) is not None:
                     continue
 
@@ -116,7 +114,7 @@ class AnalysisMonitor(EmulationMonitor):
                         cva = import_va
                         break
             if cva:
-                self.vw.addXref(va, cva, REF_CODE, envi.BR_PROC)
+                self.vw.addXref(va, cva, v_const.REF_CODE, envi.BR_PROC)
 
     def addDynamicBranchHandler(self, cb):
         '''
@@ -215,4 +213,4 @@ class AnalysisMonitor(EmulationMonitor):
         # WOOT - we have found a runtime resolved function!
         self.vw.vprint('0x%.8x: Emulation Found 0x%.8x (from func: 0x%.8x) via %s' % (op.va, pc, self.fva, repr(op)))
         self.vw.makeFunction(pc, arch=op.iflags & envi.ARCH_MASK)
-        self.vw.addXref(op.va, pc, REF_CODE, envi.BR_PROC)
+        self.vw.addXref(op.va, pc, v_const.REF_CODE, envi.BR_PROC)

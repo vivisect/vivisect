@@ -1,9 +1,6 @@
 import envi.exc as e_exc
 
-from vivisect.const import *
-
-
-STRTYPES = (LOC_UNI, LOC_STRING)
+import vivisect.const as v_const
 
 
 def analyze(vw):
@@ -32,7 +29,7 @@ def analyze(vw):
 
                     # we've already processed this one
                     loc = vw.getLocation(ref)
-                    if loc and loc[L_LTYPE] in STRTYPES:
+                    if loc and loc[v_const.L_LTYPE] in v_const.STRTYPES:
                         continue
 
                     # Candidates will be listed with the Xrefs thanks to

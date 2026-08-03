@@ -2,6 +2,8 @@
 Some utilities for dealing with COFF .LIB files
 '''
 
+# TODO: Move this to our normal vstruct area
+
 import binascii
 
 import vstruct
