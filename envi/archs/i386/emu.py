@@ -2390,21 +2390,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, res)
 
     def i_pcmpeqb(self, op, width=1, off=0):
-        # TODO: I should collapse you with _simdcmpr, yea?
-        res = 0
-        dest = self.getOperValue(op, off)
-        src = self.getOperValue(op, off+1)
-        packed = zip(yieldPacked(dest, op.opers[off].tsize, width),
-                     yieldPacked(src, op.opers[off+1].tsize, width))
-
         eql = e_bits.u_maxes[width]
-        for idx, (lft, rgt) in enumerate(packed):
-            if lft == rgt:
-                cmp = eql
-            else:
-                cmp = 0
-            res |= cmp << (8 * width * idx)
-        self.setOperValue(op, 0, res)
+
+        def cmpr(a, b):
+            return eql if a == b else 0
+        self._simdcmpr(op, cmpr, width, off)
 
     def i_pcmpeqw(self, op):
         self.i_pcmpeqb(op, width=2, off=0)
