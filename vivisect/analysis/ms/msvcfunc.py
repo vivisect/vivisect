@@ -13,7 +13,7 @@ def analyze(vw):
             # parse teh first opcode in the function
             op = vw.parseOpcode(fva)
             if len(op.opers) != 2:
-                return
+                continue
 
             gscookie = None
             if op.opers[1].isDeref():
@@ -21,7 +21,7 @@ def analyze(vw):
                 gscookie = op.opers[1].getOperAddr(op, None)
 
             if not gscookie:
-                return
+                continue
 
             # iterate over all references to the cookie
             for fromva, tova, rtype, rflags in vw.getXrefsTo(gscookie):

@@ -573,6 +573,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             s = (lft + rgt) & mask
             res |= s << (idx * (8 * width))
 
+        self.setOperValue(op, 0, res)
+
     def i_paddw(self, op):
         self.i_paddb(op, width=2)
 
@@ -1324,7 +1326,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             # so technically we're supposed to zero out the upper ymm bits
             mask = 0xFFFFFFFFFFFFFFFFFFFFFFFF00000000
             dst &= ~mask
-            dst | src & 0xFFFFFFFF
+            dst |= src & 0xFFFFFFFF
 
         self.setOperValue(op, 0, dst)
 
@@ -1864,9 +1866,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         shft = self.getOperValue(op, 2)
 
         dsize = op.opers[1].tsize
-        msb = e_bits.msb(res, dsize)
+        msb = e_bits.msb(base, dsize)
 
         base >>= shft
+        # TODO: confirm your behavior
         if msb:
             # propagate the MSB down
             for i in range(shft):
@@ -2264,9 +2267,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                      yieldPacked(src, tsize, width))
 
         consumed = 0
-        for i, (dst, src) in enumerate(values):
-            res |= dst << (width*i)
-            res |= src << (width * (i+1))
+        bitwidth = 8 * width
+        for i, (vdst, vsrc) in enumerate(values):
+            res |= vdst << (bitwidth * 2 * i)
+            res |= vsrc << (bitwidth * (2*i + 1))
             consumed += 2 * width
             if consumed >= limit:
                 break
@@ -2280,14 +2284,13 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
                      yieldPacked(src, tsize, width))
         values = list(values)
         values = values[(len(values) >> 1):]
-        for i, (dst, src) in enumerate(values):
-            res |= dst << (8 * width * i)
-            res |= src << (8 * width * (i + 1))
+        for i, (vdst, vsrc) in enumerate(values):
+            res |= vdst << (8 * width * (2*i))
+            res |= vsrc << (8 * width * (2*i + 1))
             consumed += 2 * width
             if consumed >= limit:
                 break
         return res
-
 
     def i_punpcklbw(self, op, width=1, off=0, override=False):
         name = self.getRealRegisterNameByIdx(op.opers[0].reg)
@@ -2387,20 +2390,11 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setOperValue(op, 0, res)
 
     def i_pcmpeqb(self, op, width=1, off=0):
-        res = 0
-        dest = self.getOperValue(op, off)
-        src = self.getOperValue(op, off+1)
-        packed = zip(yieldPacked(dest, op.opers[off].tsize, width),
-                     yieldPacked(src, op.opers[off+1].tsize, width))
-
         eql = e_bits.u_maxes[width]
-        for idx, (lft, rgt) in enumerate(packed):
-            if lft == rgt:
-                cmp = eql
-            else:
-                cmp = 0
-            res |= cmp << (width * idx)
-        self.setOperValue(op, 0, res)
+
+        def cmpr(a, b):
+            return eql if a == b else 0
+        self._simdcmpr(op, cmpr, width, off)
 
     def i_pcmpeqw(self, op):
         self.i_pcmpeqb(op, width=2, off=0)
@@ -2519,7 +2513,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         mask = e_bits.u_maxes[width]
 
         valus = zip(yieldPacked(src1, tsize, width),
-                    yieldPacked(src1, tsize, width))
+                    yieldPacked(src2, tsize, width))
 
         for idx, (lft, rgt) in enumerate(valus):
             s = (lft - rgt) & mask
@@ -2559,7 +2553,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         res = 0
         bitwidth = width * 8
         valus = zip(yieldPacked(src1, tsize, width),
-                    yieldPacked(src1, tsize, width))
+                    yieldPacked(src2, tsize, width))
 
         shigh = e_bits.signed((2 ** (bitwidth - 1)) - 1, width)
         slow = e_bits.signed((2 ** (bitwidth - 1)), width)
@@ -2570,6 +2564,8 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             elif s < slow:
                 s = slow
             res |= s << (idx * bitwidth)
+
+        self.setOperValue(op, 0, res)
 
     def i_psubsw(self, op):
         self.i_psubsb(op, width=2)
@@ -2631,7 +2627,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_pextrd(self, op):
         self.i_pextrb(op, width=4)
-        
+
     def i_vpcext(self, op):
         # expected behavior: EBX is set to 0 if Virtual PC is detected or an exception is raised
         # in a malware sample with an anti-vm check using this instruction, vpcext is followed by a "test ebx, ebx" and exception handling code. 

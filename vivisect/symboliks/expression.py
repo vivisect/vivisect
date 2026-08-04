@@ -5,30 +5,31 @@ constraints from humon input.
 '''
 import ast
 
+import vivisect.const as v_const
+
+import vivisect.symboliks.common as v_s_com
 import vivisect.symboliks.effects as v_s_eff
 
-from vivisect.symboliks.common import *
-
 op2op = {
-    ast.Pow: o_pow,
-    ast.Add: o_add,
-    ast.Sub: o_sub,
-    ast.Div: o_div,
-    ast.Mult: o_mul,
-    ast.BitOr: o_or,
-    ast.BitAnd: o_and,
-    ast.BitXor: o_xor,
-    ast.LShift: o_lshift,
-    ast.RShift: o_rshift,
+    ast.Pow: v_s_com.o_pow,
+    ast.Add: v_s_com.o_add,
+    ast.Sub: v_s_com.o_sub,
+    ast.Div: v_s_com.o_div,
+    ast.Mult: v_s_com.o_mul,
+    ast.BitOr: v_s_com.o_or,
+    ast.BitAnd: v_s_com.o_and,
+    ast.BitXor: v_s_com.o_xor,
+    ast.LShift: v_s_com.o_lshift,
+    ast.RShift: v_s_com.o_rshift,
 }
 
 cmp2cons = {
-    ast.LtE: le,
-    ast.GtE: ge,
-    ast.Lt: lt,
-    ast.Gt: gt,
-    ast.Eq: eq,
-    ast.NotEq: ne,
+    ast.LtE: v_s_com.le,
+    ast.GtE: v_s_com.ge,
+    ast.Lt: v_s_com.lt,
+    ast.Gt: v_s_com.gt,
+    ast.Eq: v_s_com.eq,
+    ast.NotEq: v_s_com.ne,
 }
 
 defexp = {}
@@ -70,7 +71,7 @@ class SymbolikExpressionParser:
 
         if isinstance(a, ast.Assign):
             if len(a.targets) != 1:
-                raise Expression('Unsupported multi-asignment: %s' % ast.dump(a))
+                raise Exception('Unsupported multi-asignment: %s' % ast.dump(a))
             if not isinstance(a.targets[0], ast.Name):
                 raise Exception('Unsupported Asigment: %s' % ast.dump(a))
 
@@ -95,10 +96,10 @@ class SymbolikExpressionParser:
 
             # assume basic width promotion
             widths = []
-            if not left.symtype == SYMT_CONST:
+            if not left.symtype == v_const.SYMT_CONST:
                 widths.append(left.getWidth())
 
-            if not right.symtype == SYMT_CONST:
+            if not right.symtype == v_const.SYMT_CONST:
                 widths.append(right.getWidth())
 
             if not widths:
@@ -113,36 +114,35 @@ class SymbolikExpressionParser:
             return myop(left, right, width)
 
         if isinstance(a, ast.Name):
-            return Var(a.id, self._sym_defwidth)
+            return v_s_com.Var(a.id, self._sym_defwidth)
 
-        if isinstance(a, ast.Num):
-            return Const(a.n, self._sym_defwidth)
+        if isinstance(a, ast.Constant):
+            if not isinstance(a.value, int):
+                raise Exception('Unsupported constant type: %s' % type(a.value))
+            return v_s_com.Const(a.value, self._sym_defwidth)
 
         if isinstance(a, ast.Subscript):
             # value is what's being subscripted
             # slice is either Slice or Index
             # For "index" we assume they mean to specify width
             slclass = a.slice.__class__
-            # TODO: ast.Index is deprecated as of python 3.9 and will be removed in future versions
-            if slclass == ast.Constant or slclass == ast.Index:
+            # TODO: support ast.Name for variable assignment?
+            if slclass == ast.Constant:
                 ival = a.slice.value
-                # TODO: ast.Num is deprecated as of python 3.9 and will be removed in future versions
-                if type(ival) == ast.Num:
-                    ival = ival.n
-                elif type(ival) == int:
+                if isinstance(ival, int):
                     pass
-                elif type(ival) is ast.Constant:
+                elif isinstance(ival, ast.Constant):
                     ival = ival.value
                 else:
                     raise Exception('Unsupported Expression (symbolik width index)')
 
                 # Override width for "value"
                 value = self.astToSymboliks(a.value)
-                if value.symtype == SYMT_VAR:
-                    return Var(value.name, ival)
+                if value.symtype == v_const.SYMT_VAR:
+                    return v_s_com.Var(value.name, ival)
 
-                if value.symtype == SYMT_CONST:
-                    return Const(value.value, ival)
+                if value.symtype == v_const.SYMT_CONST:
+                    return v_s_com.Const(value.value, ival)
 
                 raise Exception('Unsupported Expression (symbolik width on %s)' % value.__class__.__name__)
 
@@ -158,20 +158,20 @@ class SymbolikExpressionParser:
                     # A memory slice expression
                     symaddr = self.astToSymboliks(a.slice.lower)
                     symsize = self.astToSymboliks(a.slice.upper)
-                    return Mem(symaddr, symsize)
+                    return v_s_com.Mem(symaddr, symsize)
 
             raise Exception('Unsupported Subscript: %s' % ast.dump(a))
 
         if isinstance(a, ast.Call):
             funcsym = self.astToSymboliks(a.func)
-            argsyms = [ self.astToSymboliks(a) for a in a.args ]
-            return Call(funcsym, self._sym_defwidth, argsyms=argsyms)
+            argsyms = [self.astToSymboliks(a) for a in a.args]
+            return v_s_com.Call(funcsym, self._sym_defwidth, argsyms=argsyms)
 
         if isinstance(a, ast.Attribute):
             # handle module.function viv style symbols
             if not isinstance(a.value, ast.Name):
                 raise Exception('Unsupported Attribute Base: %s' % ast.dump(a))
-            symname = '%s.%s' % (a.value.id,a.attr)
-            return Var(symname, self._sym_defwidth)
+            symname = '%s.%s' % (a.value.id, a.attr)
+            return v_s_com.Var(symname, self._sym_defwidth)
 
         raise Exception('Unsupported AST Element: %s' % ast.dump(a))

@@ -8,7 +8,7 @@ import collections
 
 import vqt.hotkeys as vq_hotkey
 import vqt.saveable as vq_save
-import envi.expression as e_expr
+import envi.exc as e_exc
 import envi.memcanvas as e_memcanvas
 import envi.qt.memory as e_qt_memory
 import vivisect.qt.views as viv_q_views
@@ -547,7 +547,7 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
                 sym = self.vw.getSymByAddr(addr)
                 if sym is not None:
                     menustr += ' - %s' % repr(sym)
-            except e_expr.ExpressionFail:
+            except e_exc.ExpressionException:
                 menustr = "UNKNOWN-Exception (%r)" % expr
 
             history.append((menustr, expr))

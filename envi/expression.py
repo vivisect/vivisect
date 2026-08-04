@@ -1,21 +1,7 @@
 """
 Unified expression helpers.
 """
-
-
-class ExpressionFail(Exception):
-    def __init__(self, pycode, exception):
-        Exception.__init__(self)
-        self.pycode = pycode
-        self.exception = exception
-
-    def __repr__(self):
-        return "ExpressionFail: %r is not a valid expression in this context (%r)" % \
-                (self.pycode, self.exception)
-
-    def __str__(self):
-        return self.__repr__()
-
+import envi.exc as e_exc
 
 def evaluate(pycode, locvars):
     try:
@@ -37,7 +23,7 @@ def evaluate(pycode, locvars):
             val = eval(pycode, {}, locvars)
 
         except Exception as e:
-            raise ExpressionFail(pycode, e)
+            raise e_exc.ExpressionException(pycode, e)
 
     return val
 
@@ -58,8 +44,7 @@ class ExpressionLocals(dict):
             if ret is not None:
                 if ret.symtype == 3:
                     return ret
-                else:
-                    return ret.value
+                return ret.value
         return dict.__getitem__(self, name)
 
     get = __getitem__
@@ -106,7 +91,7 @@ class MemoryExpressionLocals(ExpressionLocals):
         """
         map = self.memobj.getMemoryMap(address)
         if not map:
-            raise Exception("ERROR - un-mapped address in mapbase()")
+            raise e_exc.UnmappedAddress('mapbase')
         return map[0]
 
     def maplen(self, address):
@@ -116,7 +101,7 @@ class MemoryExpressionLocals(ExpressionLocals):
         """
         map = self.memobj.getMemoryMap(address)
         if not map:
-            raise Exception("ERROR - un-mapped address in maplen()")
+            raise e_exc.UnmappedAddress('maplen')
         return map[1]
 
     def ispoi(self, addr):

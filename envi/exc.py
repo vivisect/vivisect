@@ -272,3 +272,20 @@ class InvalidFile(Exception):
 
     def __repr__(self):
         return f"Invalid File: {self.file}"
+
+class ExpressionException(Exception):
+    def __init__(self, pycode, exception):
+        Exception.__init__(self)
+        self.pycode = pycode
+        self.exception = exception
+
+    def __repr__(self):
+        return "%r is not a valid expression in this context (%r)" %  (self.pycode, self.exception)
+
+    def __str__(self):
+        return self.__repr__()
+
+class UnmappedAddress(Exception):
+    def __init__(self, loc):
+        super().__init__(f"Unmapped address in {loc}")
+        self.loc = loc

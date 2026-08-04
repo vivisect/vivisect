@@ -92,7 +92,7 @@ def main(argv):
         fbytes = fd.read()
         for offset, i in carve(fbytes):
             print('OFFSET: %d (xor: %d)' % (offset, i))
-            p = CarvedPE(fbytes, offset, chr(i))
+            p = CarvedPE(fbytes, offset, i.to_bytes())
             print('SIZE: %d' % p.getFileSize())
 
 

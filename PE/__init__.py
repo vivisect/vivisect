@@ -250,7 +250,7 @@ class VS_VERSIONINFO:
         offset += 6
         offset, vinfosig = self._eatStringAndAlign(bytes, offset)
         if vinfosig != 'VS_VERSION_INFO':
-            Exception('Invalid VS_VERSION_INFO signature!: %s' % repr(vinfosig))
+            raise Exception('Invalid VS_VERSION_INFO signature!: %s' % repr(vinfosig))
 
         if valsize and valsize >= len(vs_pe.VS_FIXEDFILEINFO()):
             ffinfo = vs_pe.VS_FIXEDFILEINFO()
@@ -1227,7 +1227,7 @@ class PE(object):
         if e is None:
             return None
 
-        return self.readAtRva(e.Name, 128).split('\x00')[0]
+        return self.readAtRva(e.Name, 128).split(b'\x00')[0]
 
     def parseExports(self):
 
@@ -1284,7 +1284,7 @@ class PE(object):
 
                 ordl = ordlist[i]
                 nameoff = self.rvaToOffset(namelist[i])
-                if ordl > len(funclist):
+                if ordl >= len(funclist):
                     self.IMAGE_EXPORT_DIRECTORY = None
                     return
 

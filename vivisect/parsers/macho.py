@@ -95,8 +95,6 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
     macho.vsParse(filebytes)
     # find the lowest loadable address, then get an offset so we can apply it later
     fakebase, size = getMemBaseAndSize(vw, macho, baseaddr=baseaddr)
-    offset = baseaddr - fakebase
-    logger.debug('initial file baseva: 0x%x  size: 0x%x (address offset: 0x%x)', fakebase, size, offset)
 
     # Determine base address to load into
     # We fake them to *much* higher than norm so pointer tests do better...
@@ -111,6 +109,9 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         logger.info("baseaddr (0x%x) is in use.  Finding appropriate address base.", baseaddr)
         baseaddr = vw.findFreeMemoryBlock(size, fakebase)
         logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
+
+    offset = baseaddr - fakebase
+    logger.debug('initial file baseva: 0x%x  size: 0x%x (address offset: 0x%x)', fakebase, size, offset)
 
     if filename is None:
         filename = 'macho_%.8x' % baseaddr  # FIXME more than one!

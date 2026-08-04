@@ -56,7 +56,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
             if op.iflags & envi.IF_RET:
                 self.returns = True
                 if len(op.opers):
-                    if hasattr(op.opers, 'imm'):
+                    if hasattr(op.opers[0], 'imm'):
                         self.retbytes = op.opers[0].imm
 
             if op.opcode == INS_MOV:

@@ -80,7 +80,7 @@ def is_parity(val):
     while val:
         s ^= val & 1
         val = val >> 1
-    return (not s)
+    return not s
 
 parity_table = []
 for i in range(256):
@@ -242,11 +242,11 @@ def byteswap(value, size):
     return ret
 
 hex_fmt = {
-    0:'0x%.1x',
-    1:"0x%.2x",
-    2:"0x%.4x",
-    4:"0x%.8x",
-    8:"0x%.16x",
+    0: "0x%.1x",
+    1: "0x%.2x",
+    2: "0x%.4x",
+    4: "0x%.8x",
+    8: "0x%.16x",
 }
 
 def intwidth(val):
@@ -258,7 +258,10 @@ def intwidth(val):
         val = val >> 8
     return ret
 
+# TODO: Do any of these deserve to live since hex and bin are built-in to python?
 def hex(value, size=None):
+    neg = value < 0
+    value = abs(value)
     if size is None:
         size = intwidth(value)
 
@@ -270,11 +273,13 @@ def hex(value, size=None):
     while value:
         x.append('%.2x' % (value & 0xff))
         value = value >> 8
+
+    if not x:
+        return '0x0'
+
     x.reverse()
-    return '0x%.s' % ''.join(x)
 
-
-    return hex_fmt.get(size) % value
+    return ('-' if neg else '') + '0x%s' % ''.join(x)
 
 def binrepr(intval, bitwidth=None):
     '''
@@ -284,6 +289,8 @@ def binrepr(intval, bitwidth=None):
     while intval:
         ret.append(str(intval & 0x1))
         intval >>= 1
+    if not ret:
+        return '0'
     ret.reverse()
     binstr = ''.join(ret)
     if bitwidth is not None:
@@ -363,4 +370,3 @@ def align(origsize, alignment):
         return origsize
     else:
         return origsize + (alignment - remainder)
-

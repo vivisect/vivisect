@@ -14,7 +14,7 @@ class Watchpoint(vt_bp.Breakpoint):
     Breakpoints and handled almost exactly the same way...
     """
     def __init__(self, addr, expression=None, size=4, perms="rw"):
-        super().__init__(self, addr, expression=expression)
+        super().__init__(addr, expression=expression)
         self.wpsize = size
         self.wpperms = perms
 
@@ -57,7 +57,7 @@ class PageWatchpoint(Watchpoint):
     NOTE: These *must* be added page aligned
     """
     def __init__(self, addr, expression=None, size=4, watchread=False):
-        super().__init__(self, addr, expression=expression, size=size, perms='rw')
+        super().__init__(addr, expression=expression, size=size, perms='rw')
         self._orig_perms = None
         self._new_perms = e_const.MM_READ
         if watchread:

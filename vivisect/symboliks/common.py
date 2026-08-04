@@ -3,10 +3,11 @@ import operator
 import functools
 import itertools
 
-import vstruct
 import envi.bits as e_bits
 
-from vivisect.const import *
+import vivisect.const as v_const
+
+import vstruct
 
 def symcache(f):
     def docache(*args, **kwargs):
@@ -61,7 +62,7 @@ def getSymbolikImport(vw, impname):
     mod = vw.loadModule(modbase)
     return vstruct.resolve(mod, nameparts)
 
-def cb_astNodeCount(path,obj,ctx):
+def cb_astNodeCount(path, obj, ctx):
     ctx['count'] += 1
     if len(path) > ctx['depth']:
         ctx['depth'] = len(path)
@@ -422,7 +423,7 @@ class cnot(SymbolikBase):
     Mostly used to wrap the reverse of a contraint which is based on
     a variable.
     '''
-    symtype = SYMT_NOT
+    symtype = v_const.SYMT_NOT
 
     def __init__(self, v1):
         SymbolikBase.__init__(self)
@@ -441,7 +442,7 @@ class cnot(SymbolikBase):
 
     def update(self, emu):
         v1 = self.kids[0].update(emu=emu)
-        if v1.symtype & SYMT_CON:
+        if v1.symtype & v_const.SYMT_CON:
             return v1.reverse()
         return cnot(v1)
 
@@ -456,10 +457,10 @@ class cnot(SymbolikBase):
         #self.kids[0] = self.kids[0].reduce(emu=emu)
 
         kidzero = self.kids[0]
-        if kidzero.symtype == SYMT_CON:
+        if kidzero.symtype == v_const.SYMT_CON:
             return kidzero.reverse()
 
-        if kidzero.symtype == SYMT_NOT:
+        if kidzero.symtype == v_const.SYMT_NOT:
             return self.kids[0].kids[0]
 
     def getWidth(self):
@@ -470,7 +471,7 @@ class Call(SymbolikBase):
     This represents the return value of an instance of a call to
     a function.
     '''
-    symtype = SYMT_CALL
+    symtype = v_const.SYMT_CALL
 
     def __init__(self, funcsym, width, argsyms=[]):
         SymbolikBase.__init__(self)
@@ -537,7 +538,7 @@ class Mem(SymbolikBase):
     This is effectivly a cop-out for symbolic states read in from
     memory which has not been initialized yet.
     '''
-    symtype = SYMT_MEM
+    symtype = v_const.SYMT_MEM
 
     def __init__(self, symaddr, symsize):
         SymbolikBase.__init__(self)
@@ -592,7 +593,7 @@ class Mem(SymbolikBase):
 
 class Var(SymbolikBase):
 
-    symtype = SYMT_VAR
+    symtype = v_const.SYMT_VAR
 
     def __init__(self, name, width):
         SymbolikBase.__init__(self)
@@ -651,7 +652,7 @@ class LookupVar(Var):
     data to be tracked between simple effects and applied effects.
     '''
 
-    symtype = SYMT_LOOKUP
+    symtype = v_const.SYMT_LOOKUP
 
     def __init__(self, prefix, offset, lookupdict, width):
         Var.__init__(self, prefix, width)
@@ -705,7 +706,7 @@ class Arg(SymbolikBase):
     An "Arg" is a special kind of variable used to facilitate cross
     function boundary solving.
     '''
-    symtype = SYMT_ARG
+    symtype = v_const.SYMT_ARG
 
     def __init__(self, idx, width):
         SymbolikBase.__init__(self)
@@ -741,7 +742,7 @@ class Arg(SymbolikBase):
 
 class Const(SymbolikBase):
 
-    symtype     = SYMT_CONST
+    symtype     = v_const.SYMT_CONST
     discrete    = True
 
     def __init__(self, value, width, ptrname=None, constname=None):
@@ -891,66 +892,66 @@ class Operator(SymbolikBase):
 class o_add(Operator):
     oper        = operator.add
     operstr     = '+'
-    symtype     = SYMT_OPER_ADD
+    symtype     = v_const.SYMT_OPER_ADD
     commutative = True
 
 class o_sub(Operator):
     oper        = operator.sub
     operstr     = '-'
-    symtype     = SYMT_OPER_SUB
+    symtype     = v_const.SYMT_OPER_SUB
 
 class o_xor(Operator):
     oper        = operator.xor
     operstr     = '^'
-    symtype     = SYMT_OPER_XOR
+    symtype     = v_const.SYMT_OPER_XOR
     commutative = True
 
 class o_and(Operator):
     oper        = operator.and_
     operstr     = '&'
-    symtype     = SYMT_OPER_AND
+    symtype     = v_const.SYMT_OPER_AND
     commutative = True
 
 class o_or(Operator):
     oper        = operator.or_
     operstr     = '|'
-    symtype     = SYMT_OPER_OR
+    symtype     = v_const.SYMT_OPER_OR
     commutative = True
 
 class o_mul(Operator):
     oper        = operator.mul
     operstr     = '*'
-    symtype     = SYMT_OPER_MUL
+    symtype     = v_const.SYMT_OPER_MUL
     commutative = True
 
 class o_div(Operator):
     oper        = operator.floordiv
     operstr     = '/'
-    symtype     = SYMT_OPER_DIV
+    symtype     = v_const.SYMT_OPER_DIV
 
 class o_mod(Operator):
     oper        = operator.mod
     operstr     = '%'
-    symtype     = SYMT_OPER_MOD
+    symtype     = v_const.SYMT_OPER_MOD
 
 class o_lshift(Operator):
     oper        = operator.lshift
     operstr     = '<<'
-    symtype     = SYMT_OPER_LSHIFT
+    symtype     = v_const.SYMT_OPER_LSHIFT
 
 class o_rshift(Operator):
     oper        = operator.rshift
     operstr     = '>>'
-    symtype     = SYMT_OPER_RSHIFT
+    symtype     = v_const.SYMT_OPER_RSHIFT
 
 class o_pow(Operator):
     oper        = operator.pow
     operstr     = '**'
-    symtype     = SYMT_OPER_POW
+    symtype     = v_const.SYMT_OPER_POW
 
 # introduce the concept of a modifier?  or keep this an operator?
 class o_sextend(SymbolikBase):
-    symtype = SYMT_SEXT
+    symtype = v_const.SYMT_SEXT
 
     def __init__(self, v1, tgtsz):
         SymbolikBase.__init__(self)
@@ -1041,49 +1042,49 @@ def oppose(c1, c2):
 class eq(Constraint):
     oper = operator.eq
     operstr = '=='
-    symtype = SYMT_CON_EQ
+    symtype = v_const.SYMT_CON_EQ
 
 
 class ne(Constraint):
     oper = operator.ne
     operstr = '!='
-    symtype = SYMT_CON_NE
+    symtype = v_const.SYMT_CON_NE
 
 
 class le(Constraint):
     oper = operator.le
     operstr = '<='
-    symtype = SYMT_CON_LE
+    symtype = v_const.SYMT_CON_LE
 
 
 class gt(Constraint):
     oper = operator.gt
     operstr = '>'
-    symtype = SYMT_CON_GT
+    symtype = v_const.SYMT_CON_GT
 
 
 class lt(Constraint):
     oper = operator.lt
     operstr = '<'
-    symtype = SYMT_CON_LT
+    symtype = v_const.SYMT_CON_LT
 
 
 class ge(Constraint):
     oper = operator.ge
     operstr = '>='
-    symtype = SYMT_CON_GE
+    symtype = v_const.SYMT_CON_GE
 
 
 class UNK(Constraint):
     operstr = 'UNK'
-    symtype = SYMT_CON_UNK
+    symtype = v_const.SYMT_CON_UNK
     def oper(self, v1, v2):
         raise Exception('Attempted reduce/solve on UNK, which has no oper')
 
 
 class NOTUNK(Constraint):
     operstr = '!UNK'
-    symtype = SYMT_CON_NOTUNK
+    symtype = v_const.SYMT_CON_NOTUNK
     def oper(self, v1, v2):
         raise Exception('Attempted reduce/solve on NOUNK, which has no oper')
 
@@ -1092,4 +1093,3 @@ oppose(ne, eq)
 oppose(le, gt)
 oppose(lt, ge)
 oppose(UNK, NOTUNK)
-
