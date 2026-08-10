@@ -3167,6 +3167,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             raise v_exc.InvalidVaSet(name)
         self._fireEvent(v_const.VWE_DELVASETROW, (name, va))
 
+    def addDebugInfo(self, name, info):
+        self._fireEvent(VWE_DEBUGADD, (name, info))
 #################################################################
 #
 #  Shared Workspace APIs

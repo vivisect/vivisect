@@ -11,6 +11,7 @@ import envi.const as e_const
 import vivisect.exc as v_exc
 import vivisect.const as v_const
 import vivisect.parsers as v_parsers
+import vivisect.parsers.dwarf as v_p_dwarf
 
 import vstruct.defs.constants.elf as vdc_elf
 
@@ -801,6 +802,11 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         logger.info('adding pointer 0x%x -> 0x%x', va, tva)
         vw.setVaSetRow('PointersFromFile', (va, tva, fname, pname))
 
+    abbr = elf.getSection('.debug_abbrev')
+    info = elf.getSection('.debug_info')
+    if abbr and info:
+        dwarf = v_p_dwarf.parseDwarf(vw, elf)
+        v_p_dwarf.addDwarfToWorkspace(vw, dwarf)
     return fname
 
 
