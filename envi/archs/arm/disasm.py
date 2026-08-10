@@ -1,5 +1,6 @@
 import sys
 import struct
+import logging
 import traceback
 
 import envi
@@ -7,7 +8,14 @@ import envi.bits as e_bits
 
 from envi.archs.arm.const import *
 from envi.archs.arm.regs import *
+# symboliks modules imported in defs..
+from vivisect.symboliks.common import Const, Var
 
+logger = logging.getLogger(__name__)
+
+
+# FIXME: TODO: ARM Symboliks (enough to successfully handle most switchcases)
+# FIXME:   codeflow currently misses some switchcases
 # FIXME:   codeflow needs to identify the following pattern as a call with fallthrough
 #          (currently identifying the xref and making the fallthrough into a function):
 #           mov lr, pc
@@ -119,12 +127,43 @@ def sh_rrx(num, shval, size=4, emu=None):
     retval = (half1 | half2 | (oldC << (32-shval))) & e_bits.u_maxes[size]
     return retval
 
+def symsh_lsl(num, shval, size=4, emu=None):
+    return (num& Const(e_bits.u_maxes[size], size)) << shval
+
+def symsh_lsr(num, shval, size=4, emu=None):
+    return (num& Const(e_bits.u_maxes[size], size)) >> shval
+
+def symsh_asr(num, shval, size=4, emu=None):
+    return num >> shval
+
+def symsh_ror(num, shval, size=4, emu=None):
+    return ((num >> shval) | (num << ((8*size)-shval))) & Const(e_bits.u_maxes[size], size)
+
+def symsh_rrx(num, shval, size=4, emu=None):
+    # shval should always be 0
+    newC = num & Const(1, 1)
+    oldC = Var('eflags_c')
+
+    half1 = (num) >> 1
+    half2 = oldC<<(31)
+
+    retval = (half1 | half2 | (oldC << (Const(32,1)-shval)))
+    return retval
+
 shifters = (
     sh_lsl,
     sh_lsr,
     sh_asr,
     sh_ror,
     sh_rrx,
+)
+
+symshifters = (
+    symsh_lsl,
+    symsh_lsr,
+    symsh_asr,
+    symsh_ror,
+    symsh_rrx,
 )
 
 
@@ -4432,6 +4471,38 @@ class ArmOperand(envi.Operand):
     def getOperAddr(self, op, emu=None):
         return None
 
+    def getOperObj(self, op, xlator):
+        '''
+        Translate the specified operand to a symbol compatible with
+        the symbolic translation system.
+
+        Returns a tuple: (OperObj, AfterEffs)
+        where:
+            OperObj is the symbolic operand
+            AfterEffs is a list of effects which may be applied after this
+                    this allows for ARM's Post-Indexed processing, etc...
+                    None by default
+        '''
+        if self.isReg():
+            return xlator.getRegObj(self.reg)
+
+        elif self.isDeref():
+            addrsym, aftereffs = self.getOperAddrObj(op, idx, xlator)
+            return xlator.effReadMemory(addrsym, Const(self.tsize, xlator._psize))
+
+        elif self.isImmed():
+            ret = self.getOperValue(op, self)
+            return Const(ret, xlator._psize)
+
+        raise Exception('Unknown operand class: %s' % self.__class__.__name__)
+
+    def getOperAddrObj(self, op, xlator):
+        logger.info("ArmOperand: subclass must implement getOperAddrObj, (%r)", self.__class__)
+        return None, None
+
+
+
+
 class ArmRegOper(ArmOperand):
     ''' register operand.  see "addressing mode 1 - data processing operands - register" '''
 
@@ -4473,6 +4544,11 @@ class ArmRegOper(ArmOperand):
         if emu is None:
             return None
         emu.setRegister(self.reg, val)
+
+    def setOperObj(self, op, emu=None, val=None):
+        if emu is None:
+            return None
+        emu.setRegObj(self.reg, val)
 
     def getFloatValue(self, emu, elmtsz=None, elmtidx=None):
         '''
@@ -4593,6 +4669,21 @@ class ArmRegScalarOper(ArmRegOper):
         raise Exception("Scalar Accessors Not Implemented")
         emu.setRegister(self.reg, val)
 
+    def getOperAddr(self, op, emu=None):
+        return None
+
+    #def getOperAddrObj(self, op, xlator):
+        #from vivisect.symboliks.common import Const, Var
+        #reg = Var(self._reg_ctx.getRegisterName(oper.reg), oper.tsize)
+        #if oper.index == 0:
+            #base = reg
+        #elif oper.index > 0:
+            #base = o_add(reg, Const(oper.index, self._psize), self._psize)
+        #else: # oper.index < 0:
+            #base = o_sub(reg, Const(abs(oper.index), self._psize), self._psize)
+
+        #return base, None
+
     def render(self, mcanv, op, idx):
         rname = rctx.getRegisterName(self.reg)
         mcanv.addNameText(rname, typename='registers')
@@ -4684,6 +4775,12 @@ class ArmRegShiftImmOper(ArmOperand):
         if emu is None:
             return None
         return shifters[self.shtype](emu.getRegister(self.reg), self.shimm, emu=emu)
+
+    def getOperObj(self, op, xlator):
+        '''
+        Overridden
+        '''
+        return symshifters[self.shtype](xlator.getRegObj(self.reg), Const(self.shimm, 1), emu=xlator)
 
     def render(self, mcanv, op, idx):
         rname = arm_regs[self.reg]
@@ -4905,6 +5002,42 @@ class ArmScaledOffsetOper(ArmOperand):
 
         return emu.getRegister(self.base_reg)
 
+    def getOperAddrObj(self, op, xlator):
+        from vivisect.symboliks.common import Const, Var
+        secondary = None
+
+        base_reg = Var(xlator._reg_ctx.getRegisterName(oper.base_reg), oper.tsize)
+        offset_reg = Var(xlator._reg_ctx.getRegisterName(oper.offset_reg), oper.tsize)
+
+        pom = (self.pubwl>>3) & 1
+
+        #addval = shifters[self.shtype]( emu.getRegister( self.offset_reg ), self.shval )
+        if self.shval:
+            addval = shifters[self.shtype]( xlator.getRegObj(self.offset_reg), Const(self.shval, self.tsize))
+
+        # in a symboliks world, don't want to save as much processing time on the front end, 
+        # but simplify the output.  unfortunately, that means there are less tricks.
+        if pom:
+            addr = base_reg + addval
+        else:
+            addr = base_reg - addval
+
+
+        # if pre-indexed, we incremement/decrement the register before determining the OperAddr
+        if (self.pubwl & 0x12 == 0x12):
+            # pre-indexed...
+            if update: 
+                secondary = (self.base_reg, addr)
+            return addr, secondary
+
+        elif (self.pubwl & 0x12 == 0):
+            # post-indexed... still write it but return the original value
+            secondary = (base_reg, addr)
+            return base_reg, secondary
+
+        # non-indexed...  just return the addr, update nothing
+        return addr, None
+
     def render(self, mcanv, op, idx):
         pom = ('-','')[(self.pubwl>>3)&1]
         idxing = self.pubwl & 0x12
@@ -5020,6 +5153,36 @@ class ArmRegOffsetOper(ArmOperand):
             return base
 
         return addr
+
+    def getOperAddrObj(self, op, xlator):
+        from vivisect.symboliks.common import Const, Var
+        secondary = None
+
+        base_reg = Var(self._reg_ctx.getRegisterName(self.base_reg), self.tsize)
+        #base_reg2 = xlator.getRegObj(oper.base_reg)
+        #print base_reg == base_reg2, base_reg, base_reg2
+        offset_reg = Var(self._reg_ctx.getRegisterName(self.offset_reg), self.tsize)
+        #offset_reg2 = xlator.getRegObj(oper.offset_reg)
+        #print offset_reg == offset_reg2, offset_reg, offset_reg2
+
+        pom = (self.pubwl>>3) & 1
+
+        # in a symboliks world, don't want to save as much processing time on the front end, 
+        # but simplify the output.  unfortunately, that means there are less tricks.
+        if pom:
+            addr = base_reg + offset_reg
+        else:
+            addr = base_reg - offset_reg
+
+
+        # if pre-indexed, we incremement/decrement the register before determining the OperAddr
+        if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
+            secondary = (self.base_reg, addr)
+
+        if (self.pubwl & 0x10 == 0): # not indexed
+            return base, None
+
+        return addr, secondary
 
     def render(self, mcanv, op, idx):
         pom = ('-','')[(self.pubwl>>3)&1]
@@ -5154,6 +5317,30 @@ class ArmImmOffsetOper(ArmOperand):
             return base
 
         return addr
+
+    def getOperAddrObj(self, op, idx, xlator):
+        from vivisect.symboliks.common import Const, Var
+        if self.base_reg == REG_PC:
+            base = Const(self.va, self.psize)
+        else:
+            base = Var(xlator._reg_ctx.getRegisterName(self.base_reg), self.psize)
+
+        pubwl = self.pubwl >> 3
+        u = pubwl & 1
+        if u:
+            addr = (base + Const(self.offset, self.psize)) & Const(e_bits.u_maxes[self.psize], self.psize)
+        else:
+            addr = (base - Const(self.offset, self.psize)) & Const(e_bits.u_maxes[self.psize], self.psize)
+
+
+        if (self.pubwl & 0x2 or not self.pubwl & 0x10):  # write-back if (P==0 || W==1)
+            secondary = ( self.base_reg, addr)
+
+        if (self.pubwl & 0x10 == 0): # not indexed
+            return base, secondary
+
+        return addr, secondary
+
 
     def render(self, mcanv, op, idx):
         u = (self.pubwl>>3)&1
@@ -5517,6 +5704,15 @@ class ArmRegListOper(ArmOperand):
             #FIXME: check processor mode (abort, system, user, etc... use banked registers?)
             if self.val & (1<<regidx):
                 reg = emu.getRegister(regidx)
+                reglist.append(reg)
+        return reglist
+
+    def getOperObj(self, op, xlator=None):
+        reglist = []
+        for regidx in range(16):
+            #FIXME: check processor mode (abort, system, user, etc... use banked registers?)
+            if self.val & (1<<regidx):
+                reg = xlator.getRegObj(regidx)
                 reglist.append(reg)
         return reglist
 
