@@ -879,7 +879,7 @@ class PE(object):
             self.imports = []
             return
 
-        self.imports = self.parseImportTable(x, irva, flavor="import table", uses_rva=True)
+        self.imports = self.IMAGE_IMPORT_DIRECTORY = self.parseImportTable(x, irva, flavor="import table", uses_rva=True)
 
     def parseDelayImports(self):
         didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
@@ -898,7 +898,7 @@ class PE(object):
         if not uses_rva:
             logger.debug("delayed imports: delay import table uses VAs (unusual, might be VS6)")
 
-        self.delayImports = self.parseImportTable(x, irva, flavor="delay import table", uses_rva=uses_rva)
+        self.delayImports = self.IMAGE_DELAY_IMPORT_DIRECTORY =  self.parseImportTable(x, irva, flavor="delay import table", uses_rva=uses_rva)
 
     def doesDelayImportTableUseRVAs(self, x, irva):
         """
@@ -1348,7 +1348,7 @@ class PE(object):
         se = vstruct.getStructure('pe.SignatureEntry')
         se.vsParse(bytez)
 
-        if se.magic != "\x00\x02\x02\x00":
+        if se.magic != b"\x00\x02\x02\x00":
             return None
 
         return se

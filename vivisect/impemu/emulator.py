@@ -1,4 +1,5 @@
 import struct
+import logging
 import itertools
 
 import envi
@@ -12,7 +13,6 @@ import visgraph.pathcore as vg_path
 import vivisect.exc as v_exc
 import vivisect.const as v_const
 
-import logging
 logger = logging.getLogger(__name__)
 
 # Pre-initialize a default stack size
@@ -208,6 +208,7 @@ class WorkspaceEmulator:
             # Create some pre-made taints for positive stack indexes
             # NOTE: This is *ugly* for speed....
             taints = [self.setVivTaint('funcstack', i * self.psize) for i in range(20)]
+            # TODO: should we have an endian param
             taintbytes = b''.join([e_bits.buildbytes(taint, self.psize) for taint in taints])
 
             self.stack_pointer -= len(taintbytes)
@@ -334,12 +335,11 @@ class WorkspaceEmulator:
         return self.newCodePathNode(node, bva)
 
     def checkBranches(self, starteip, endeip, op):
-        """
+        '''
         This routine gets the current branch list for this opcode, adds branch
         entries to the current path, and updates current path as needed
         (returns a list of (va, CodePath) tuples.
-        """
-        '''
+
         So I've kinda gone back and forth on this one a bit. On one hand, the emulator
         should be free to iterate over things as it needs. On the other, it's operating with
         imperfect information as to what's a valid path and what's not.
@@ -514,7 +514,7 @@ class WorkspaceEmulator:
                     # the todo list and go around again...
                     if not iscall:
                         blist = self.checkBranches(starteip, endeip, op)
-                        if len(blist):
+                        if blist:
                             # pc in the snap will be wrong, but over-ridden at restore
                             esnap = self.getEmuSnap()
                             for bva, bpath in blist:

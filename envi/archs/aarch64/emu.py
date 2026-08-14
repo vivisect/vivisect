@@ -561,6 +561,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
             self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
             self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
 
+    # this is also defined literally right above this. Which one is correct?
     def i_rsb(self, op):
         # Src op gets sign extended to dst
         src1 = self.getOperValue(op, 1)

@@ -7203,7 +7203,7 @@ def p_simd_scalar_tworeg_misc(opval, va):
                 iflags |= IF_X
             else:
                 return p_undef(opval, va)
-        if subcode == 0b00010 or 0b00100:
+        if subcode == 0b00010 or subcode == 0b00100:
             width_spec = bhsd_table[size]
             width_spec2 = bhsd_table[size + 1]
             if size == 0b11:

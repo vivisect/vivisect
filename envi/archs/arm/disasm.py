@@ -67,6 +67,7 @@ iencmul_codes = {
 
     # type 2 multiplys
 
+    # TODO: There's some key duplication in here. Need to determin which is correct
     0b011100000001: ("smuad",  INS_SMUAD, (0, 4, 2), 0),
     0b011100000011: ("smuadx", INS_SMUADX, (0, 4, 2), 0),
     0b011100000101: ("smusd",  INS_SMUSD, (0, 4, 2), 0),
