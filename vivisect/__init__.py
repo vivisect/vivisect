@@ -2756,19 +2756,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             if not makeuniq:
                 raise v_exc.DuplicateName(oldva, va, name)
 
-            logger.debug('makeName: %r already lives at 0x%x', name, oldva)
             # tack a number on the end
             index = self.va_by_name_hits.get(name, 0)
             newname = "%s_%d" % (name, index)
+            logger.debug('makeName: %r already lives at 0x%x, naming it %s', name, oldva, newname)
 
             newoldva = self.vaByName(newname)
             if newoldva == va:
-                return name
+                return newname
 
-            self.va_by_name_hits[name] = index + 1
-            name = newname
+            self._fireEvent(v_const.VWE_SETNAME, (va, newname, name))
+            return newname
 
-        self._fireEvent(v_const.VWE_SETNAME, (va, name))
+        self._fireEvent(v_const.VWE_SETNAME, (va, name, name))
         return name
 
     def saveWorkspace(self, fullsave=True, filename=None):

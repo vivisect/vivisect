@@ -294,7 +294,7 @@ class CodeFlowContext(object):
                 self._cf_blocked.pop(fva, None)
                 self.addEntryPoint(fva, arch=othrarch)
             else:
-                fallback[fva] = (pva, arch)
+                fallback[fva] = (pva, othrarch)
         self._cf_blocked = fallback
 
         return list(calls_from.keys())

@@ -133,7 +133,4 @@ e_reg.addLocalStatusMetas(l, H8Meta, H8StatMeta, 'CCR')
 
 class H8RegisterContext(e_reg.RegisterContext):
     def __init__(self):
-        e_reg.RegisterContext.__init__(self)
-        self.loadRegDef(h8_regs)
-        self.loadRegMetas(H8Meta, statmetas=H8StatMeta)
-        self.setRegisterIndexes(REG_PC, h8_const.REG_SP, REG_CCR)
+        e_reg.RegisterContext.__init__(self, regdef=h8_regs, metas=H8Meta, statmetas=H8StatMeta, pcindex=REG_PC, spindex=h8_const.REG_SP, srindex=REG_CCR)

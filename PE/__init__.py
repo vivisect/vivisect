@@ -874,19 +874,19 @@ class PE(object):
 
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = idir.VirtualAddress
-        x = self.readStructAtRva(irva, 'pe.IMAGE_IMPORT_DIRECTORY', check=True)
+        self.IMAGE_IMPORT_DIRECTORY = x = self.readStructAtRva(irva, 'pe.IMAGE_IMPORT_DIRECTORY', check=True)
         if x is None:
             self.imports = []
             return
 
-        self.imports = self.IMAGE_IMPORT_DIRECTORY = self.parseImportTable(x, irva, flavor="import table", uses_rva=True)
+        self.imports = self.parseImportTable(x, irva, flavor="import table", uses_rva=True)
 
     def parseDelayImports(self):
         didir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
 
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = didir.VirtualAddress
-        x = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
+        self.IMAGE_DELAY_IMPORT_DIRECTORY = x = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
         if x is None:
             self.delayImports = []
             return
@@ -898,7 +898,7 @@ class PE(object):
         if not uses_rva:
             logger.debug("delayed imports: delay import table uses VAs (unusual, might be VS6)")
 
-        self.delayImports = self.IMAGE_DELAY_IMPORT_DIRECTORY =  self.parseImportTable(x, irva, flavor="delay import table", uses_rva=uses_rva)
+        self.delayImports = self.parseImportTable(x, irva, flavor="delay import table", uses_rva=uses_rva)
 
     def doesDelayImportTableUseRVAs(self, x, irva):
         """

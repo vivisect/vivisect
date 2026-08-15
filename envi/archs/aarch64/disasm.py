@@ -1,5 +1,5 @@
 '''
-A disasm file for the AArch64 Architectcre, ARMv8.
+A disasm file for the AArch64 Architecture, ARMv8.
 '''
 import logging
 logger = logging.getLogger(__name__)
