@@ -2,7 +2,6 @@ import logging
 
 import envi
 import envi.archs.aarch64.emu as e_aarch64
-from envi.archs.aarch64.regs import *
 
 import vivisect.impemu.emulator as v_i_emulator
 

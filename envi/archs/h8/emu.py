@@ -124,7 +124,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
 
     def __init__(self, advanced=True):
         H8Module.__init__(self)
-        envi.Emulator.__init__(self, self)
+        envi.Emulator.__init__(self, 'h8')
         h8_regs.H8RegisterContext.__init__(self)
 
         self.state = CPUSTATE_RESET

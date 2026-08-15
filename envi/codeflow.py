@@ -146,7 +146,7 @@ class CodeFlowContext(object):
         startva = va
         self._cf_blocks.append(va)
         cf_eps = collections.OrderedDict()
-        while len(optodo):
+        while optodo:
 
             todo, arch = optodo.pop()
 
@@ -292,9 +292,9 @@ class CodeFlowContext(object):
             if fva not in self._cf_blocks and not self._mem.isFunction(fva):
                 self._funcs.pop(fva, None)
                 self._cf_blocked.pop(fva, None)
-                self.addEntryPoint(pva, arch=othrarch)
+                self.addEntryPoint(fva, arch=othrarch)
             else:
-                fallback[fva] = arch
+                fallback[fva] = (pva, arch)
         self._cf_blocked = fallback
 
         return list(calls_from.keys())

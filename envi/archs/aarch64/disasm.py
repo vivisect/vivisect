@@ -1,5 +1,5 @@
 '''
-A disasm file for the AArch64 Architecture, ARMv8.
+A disasm file for the AArch64 Architectcre, ARMv8.
 '''
 import logging
 logger = logging.getLogger(__name__)
@@ -6059,6 +6059,8 @@ def p_simd_across_lanes(opval, va):
 def p_simd_copy(opval, va):
     '''
     AdvSIMD copy
+
+    TODO: This function is all kinds of horked up
     '''
     iflags = 0
 
@@ -6118,6 +6120,7 @@ def p_simd_copy(opval, va):
                 )
         elif imm4 == 0b0011:
             mnem = 'ins'
+            # INS_INS is not a thing
             opcode = INS_INS
             if imm5 & 0x0f == 0b00000:
                 width_spec1 = 'RESERVED'
@@ -8180,7 +8183,6 @@ class A64RegOper(A64Operand, envi.RegisterOper):
     def repr(self, op):
         return rctx.getRegisterName(self.reg)
 
-
     def getOperAddr(self, op, emu=None):
         """
         System registers don't have addresses.
@@ -8590,6 +8592,7 @@ class A64NameOper(A64Operand):
     '''
     Subclass of A64Operand. Name operand class
     '''
+    # TODO: You need to implement getOperValue
     def __init__(self, instype, val=0):
         self.val = val
 
@@ -8611,10 +8614,10 @@ class A64NameOper(A64Operand):
                 raise Exception("Invalid instype in A64NameOper constructor!")
 
             self.mnem = sys_alias_op_tables[tabind].get(val, 'undefined')
-            
+
         else:
             self.mnem = 'c' + str(val)
-    
+
     def repr(self, op):
         return self.mnem
 
@@ -9119,7 +9122,7 @@ class A64Disasm:
 
         opcode, mnem, olist, flags, simdflags = self.doDecode(va, opval, bytez, offset)
 
-        if mnem == None or type(mnem) == int:
+        if mnem is None or type(mnem) is int:
             raise envi.InvalidInstruction(mesg="mnem == %r!  0x%x" % (mnem, opval),
                     bytez=bytez[offset:offset+4], va=va)
 

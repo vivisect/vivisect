@@ -16,7 +16,6 @@ class A64Module(envi.ArchitectureModule):
         self._arch_dis = A64Disasm()
 
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
-        self._arch_reg = self.archGetRegCtx()
 
     def archGetRegCtx(self):
         return A64RegisterContext()

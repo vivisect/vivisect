@@ -8,13 +8,13 @@ import envi.const as e_const
 
 class RegisterContext:
 
-    def __init__(self, regdef=(), metas=(), pcindex=None, spindex=None, srindex=None):
+    def __init__(self, regdef=(), metas=(), statmetas=None, pcindex=None, spindex=None, srindex=None):
         """
         Hand in a register definition which consists of
         a list of (<name>, <width>) tuples.
         """
         self.loadRegDef(regdef)
-        self.loadRegMetas(metas)
+        self.loadRegMetas(metas, statmetas=statmetas)
         self.setRegisterIndexes(pcindex, spindex, srindex=srindex)
 
         self._rctx_dirty = False

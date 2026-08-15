@@ -11,6 +11,7 @@ import importlib
 import contextlib
 
 from envi.exc import *
+from envi.const import *
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ ARCH_MIPS64      = 22 << 16
 
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
+
+# These *have* to be here, lest we hit a circular import, which would be unhorked by moving them into const.py
+import envi.bits as e_bits
+import envi.memory as e_mem
+import envi.registers as e_reg
 
 arch_defs = {
     ARCH_I386:      {
@@ -348,12 +354,6 @@ BR_TABLE = 1<<3  # The branch target is the base of a pointer array of jmp/call 
 BR_FALL  = 1<<4  # The branch is a "fall through" to the next instruction
 BR_ARCH  = 1<<5  # The branch *switches opcode formats*. ( ARCH_FOO in high bits )
 
-from envi.const import *
-import envi.bits as e_bits
-import envi.memory as e_mem
-import envi.registers as e_reg
-import envi.memcanvas as e_canvas
-
 class ArchitectureModule:
     """
     An architecture module implementes methods to deal
@@ -371,7 +371,6 @@ class ArchitectureModule:
         self.badops = []
 
         self.initRegGroups()
-
 
     def initRegGroups(self):
         '''
@@ -825,11 +824,14 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     implemented mostly for user-space emulation of
     protected mode execution.
     """
-    def __init__(self, archmod=None):
+    def __init__(self, archname):
 
         self.metadata = {}
-        e_mem.MemoryObject.__init__(self, arch=archmod._arch_id)
-        e_reg.RegisterContext.__init__(self)
+        e_mem.MemoryObject.__init__(self, arch=getArchByName(archname))
+
+        # Not particularly necessary since each inheriting class is expected to
+        # be an instance of its own register context
+        # e_reg.RegisterContext.__init__(self)
 
         self._emu_segments = [(0, 0xffffffff)]
         self._emu_call_convs = {}

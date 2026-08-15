@@ -91,7 +91,7 @@ class Amd64Emulator(Amd64RegisterContext, e_i386.IntelEmulator):
 
     def __init__(self):
         archmod = Amd64Module()
-        e_i386.IntelEmulator.__init__(self, archmod=archmod)
+        e_i386.IntelEmulator.__init__(self, 'amd64')
         # The above sets up the intel reg context, so we smash over it
         Amd64RegisterContext.__init__(self)
         # For the format calls in reading memory

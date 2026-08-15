@@ -108,7 +108,4 @@ e_reg.addLocalMetas(l, i386meta)
 
 class i386RegisterContext(e_reg.RegisterContext):
     def __init__(self):
-        e_reg.RegisterContext.__init__(self)
-        self.loadRegDef(i386regs)
-        self.loadRegMetas(i386meta, statmetas=statmetas)
-        self.setRegisterIndexes(REG_EIP, REG_ESP, srindex=REG_EFLAGS)
+        e_reg.RegisterContext.__init__(self, regdef=i386regs, metas=i386meta, statmetas=statmetas, pcindex=REG_EIP, spindex=REG_ESP, srindex=REG_EFLAGS)

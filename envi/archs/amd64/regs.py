@@ -148,9 +148,7 @@ RMETA_LOW32 = 0x00200000
 
 class Amd64RegisterContext(e_reg.RegisterContext):
     def __init__(self):
-        self.loadRegDef(amd64regs)
-        self.loadRegMetas(amd64meta, statmetas=statmetas)
-        self.setRegisterIndexes(REG_RIP, REG_RSP, srindex=REG_EFLAGS)
+        e_reg.RegisterContext.__init__(regdef=amd64regs, metas=amd64meta, statmetas=statmetas, pcindex=REG_RIP, spindex=REG_RSP, srindex=REG_EFLAGS)
 
     def setRegister(self, index, value):
         # NOTE: A special override is needed here because setting "eax" automagicall
@@ -158,4 +156,3 @@ class Amd64RegisterContext(e_reg.RegisterContext):
         if (index & 0xffff0000) == RMETA_LOW32:
             index = index & 0xffff
         e_reg.RegisterContext.setRegister(self, index, value)
-

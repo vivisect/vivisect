@@ -120,7 +120,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     flagidx = REG_EFLAGS
     accumreg = { 1:REG_AL, 2:REG_AX, 4:REG_EAX }
-    def __init__(self, archmod=None):
+    def __init__(self, archname='i386'):
         self.__rep_prefix_handlers__ = {
             PREFIX_REP: self.doRepzPrefix,
             PREFIX_REPZ: self.doRepzPrefix,
@@ -130,10 +130,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
         # Set ourself up as an arch module *and* register context
         #i386Module.__init__(self)
-        if archmod is None:
-            archmod = i386Module()
-
-        envi.Emulator.__init__(self, archmod=archmod)
+        envi.Emulator.__init__(self, archname)
         self.initEmuOpt('i386:repmax', 0, 'Specify value > 0 to short circuit rep prefix')
 
         for i in range(6):
@@ -2637,4 +2634,4 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_salc(self, op):
         cf = self.getFlag(EFLAGS_CF)
         self.setRegister(REG_AL, 0xff if cf else 0)
-    # hlt, fcomp? fucomip? callf? fadd? subsd
+    # hlt, fcomp? fucomip? callf? fadd? subsd? comiss?

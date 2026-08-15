@@ -36,7 +36,4 @@ e_reg.addLocalMetas(l, registers_meta)
 
 class Msp430RegisterContext(e_reg.RegisterContext):
     def __init__(self):
-        e_reg.RegisterContext.__init__(self)
-        self.loadRegDef(registers_info)
-        self.loadRegMetas([], statmetas=status_meta)
-        self.setRegisterIndexes(REG_PC, REG_SP, srindex=REG_SR)
+        e_reg.RegisterContext.__init__(self, regdef=registers_info, statmetas=status_meta, pcindex=REG_PC, spindex=REG_SP, srindex=REG_SR)

@@ -968,6 +968,10 @@ system_registers = [
 ]
 
 # fill in the gaps (HACK)
+# This hack gets 32k things loaded into a register context on every emulator build
+# on non-trivial binaries this floods memory and gets us OOM killed
+# When we implement any of the instructions that touch any of these, we'll have to find a better way for this
+'''
 cache = {(t, u, v, w, x):1 for s,t,u,v,w,x,y in system_registers}
 for x in range(0x8000, 0x10000):
     op0 = 2 | (x >> 14) & 1
@@ -984,6 +988,7 @@ for x in range(0x8000, 0x10000):
 
     system_registers.append(("s%d_%d_c%d_c%d_%d" % (op0, op1, crn, crm, op2), op0, op1, crn, crm, op2, "Undefined / Implementation Specific"))
 cache = None    # cleanup, no need for 32k items
+'''
 
 # Build lookup dictionaries for fast access
 sysreg_by_encoding = {}
@@ -1001,4 +1006,3 @@ def get_sysreg_by_encoding(op0, op1, crn, crm, op2):
 def get_sysreg_by_name(name):
     """Get system register encoding by name."""
     return sysreg_by_name.get(name.upper())
-

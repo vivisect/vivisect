@@ -424,7 +424,6 @@ class WorkspaceEmulator:
         will emulate, but only inside the given function.  You may specify a stopva
         to return once that location is hit.
         """
-
         self.funcva = funcva
         # Let the current (should be base also) path know where we are starting
         vg_path.setNodeProp(self.curpath, 'bva', funcva)
@@ -432,7 +431,7 @@ class WorkspaceEmulator:
         todo = [(funcva, self.getEmuSnap(), self.path)]
         vw = self.vw  # Save a dereference many many times
 
-        while len(todo):
+        while todo:
 
             va, esnap, self.curpath = todo.pop()
 

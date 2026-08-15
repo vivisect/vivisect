@@ -139,6 +139,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         self.cfctx = viv_base.VivCodeFlowContext(self)
 
+        self.va_by_name_hits = {}
         self.va_by_name = {}
         self.name_by_va = {}
         self.codeblocks_by_funcva = {}
@@ -2230,11 +2231,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
     def _getSubstrings(self, va, size, ltyp):
         # rip through the desired memory range to populate any substrings
+        done = set()
         subs = set()
         end = va + size
+        # TODO: do we really need to step by 1? can we just step by the size of the substrings?
         for offs in range(va, end, 1):
             loc = self.getLocation(offs, range=True)
-            if loc and loc[v_const.L_LTYPE] == v_const.LOC_STRING and loc[v_const.L_VA] > va:
+            if not loc:
+                continue
+
+            if loc[v_const.L_VA] in done:
+                continue
+
+            done.add(loc[v_const.L_VA])
+            if loc[v_const.L_LTYPE] == ltyp and loc[v_const.L_VA] > va:
                 subs.add((loc[v_const.L_VA], loc[v_const.L_SIZE]))
                 if loc[v_const.L_TINFO]:
                     subs = subs.union(set(loc[v_const.L_TINFO]))
@@ -2748,18 +2758,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
             logger.debug('makeName: %r already lives at 0x%x', name, oldva)
             # tack a number on the end
-            index = 0
+            index = self.va_by_name_hits.get(name, 0)
             newname = "%s_%d" % (name, index)
-            newoldva = self.vaByName(newname)
-            while self.vaByName(newname) not in (None, newname):
-                # if we run into the va we're naming, that's the name still
-                if newoldva == va:
-                    return newname
-                logger.debug('makeName: %r already lives at 0x%x', newname, newoldva)
-                index += 1
-                newname = "%s_%d" % (name, index)
-                newoldva = self.vaByName(newname)
 
+            newoldva = self.vaByName(newname)
+            if newoldva == va:
+                return name
+
+            self.va_by_name_hits[name] = index + 1
             name = newname
 
         self._fireEvent(v_const.VWE_SETNAME, (va, name))
