@@ -1,4 +1,7 @@
+import io
 import logging
+import struct
+import unittest
 
 import PE
 import envi.const as e_const
@@ -621,3 +624,209 @@ class PETests(v_t_utils.VivTest):
         self.assertIn("PDB Path: 'dbghelp.pdb'", pe_repr)
         self.assertIn("00000000 (08)   Name: .rsrc", pe_repr)
         self.assertIn("00000048 (02)     MajorSubsystemVersion: 0x00000005 (5)", pe_repr)
+
+
+_SCN_CODE = PE.IMAGE_SCN_CNT_CODE | PE.IMAGE_SCN_MEM_EXECUTE | PE.IMAGE_SCN_MEM_READ
+_SCN_DATA = PE.IMAGE_SCN_CNT_INITIALIZED_DATA | PE.IMAGE_SCN_MEM_READ
+_SCN_IDATA = PE.IMAGE_SCN_CNT_INITIALIZED_DATA | PE.IMAGE_SCN_MEM_READ | PE.IMAGE_SCN_MEM_WRITE
+
+_SECTION_SPECS = (
+    (b'.text', 0x1000, 0x1000, 0x200, 0x400, _SCN_CODE),
+    (b'.rdata', 0x1000, 0x2000, 0x200, 0x600, _SCN_DATA),
+    (b'.rsrc', 0x1000, 0x3000, 0x200, 0x800, _SCN_DATA),
+    (b'.didat', 0x3000, 0x4000, 0x200, 0xA00, _SCN_IDATA),
+)
+
+
+def _pack_section(name, vsize, va, rawsize, rawptr, chars):
+    return struct.pack('<8sIIIIIIHHI', name.ljust(8, b'\x00'), vsize, va, rawsize, rawptr, 0, 0, 0, 0, chars)
+
+
+def _build_pe_with_dir_count(n_rva_and_sizes, pe32p=False):
+    '''
+    Minimal PE whose SizeOfOptionalHeader still covers 16 data directories
+    while NumberOfRvaAndSizes is independently set. That mismatch is what
+    used to slide the section table into the last directories / .text name.
+    '''
+    e_lfanew = 0x80
+    n_sections = 4
+    dos = bytearray(e_lfanew)
+    dos[0:2] = b'MZ'
+    struct.pack_into('<I', dos, 0x3C, e_lfanew)
+
+    if pe32p:
+        sizeof_optional = 0xF0
+        coff = struct.pack(
+            '<HHIIIHH',
+            PE.IMAGE_FILE_MACHINE_AMD64,
+            n_sections,
+            0,
+            0,
+            0,
+            sizeof_optional,
+            PE.IMAGE_FILE_EXECUTABLE_IMAGE | PE.IMAGE_FILE_LARGE_ADDRESS_AWARE,
+        )
+        opt = struct.pack(
+            '<HBBIIII I QII HHHHHH I III HH QQ QQ II',
+            PE.PE32PLUS_MAGIC,
+            14,
+            0,
+            0x1000,
+            0x2000,
+            0,
+            0x1000,
+            0x1000,
+            0x400000,
+            0x1000,
+            0x200,
+            6,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0,
+            0x7000,
+            0x400,
+            0,
+            PE.IMAGE_SUBSYSTEM_WINDOWS_CUI,
+            0,
+            0x100000,
+            0x1000,
+            0x100000,
+            0x1000,
+            0,
+            n_rva_and_sizes,
+        )
+    else:
+        sizeof_optional = 0xE0
+        coff = struct.pack(
+            '<HHIIIHH',
+            PE.IMAGE_FILE_MACHINE_I386,
+            n_sections,
+            0,
+            0,
+            0,
+            sizeof_optional,
+            PE.IMAGE_FILE_EXECUTABLE_IMAGE | PE.IMAGE_FILE_32BIT_MACHINE,
+        )
+        opt = struct.pack(
+            '<HBBIIIII IIII HHHHHH I III HH IIIIII',
+            PE.PE32_MAGIC,
+            14,
+            0,
+            0x1000,
+            0x2000,
+            0,
+            0x1000,
+            0x1000,
+            0x2000,
+            0x400000,
+            0x1000,
+            0x200,
+            6,
+            0,
+            0,
+            0,
+            6,
+            0,
+            0,
+            0x7000,
+            0x400,
+            0,
+            PE.IMAGE_SUBSYSTEM_WINDOWS_CUI,
+            0,
+            0x100000,
+            0x1000,
+            0x100000,
+            0x1000,
+            0,
+            n_rva_and_sizes,
+        )
+
+    opt += b'\x00' * (16 * 8)
+    if len(opt) != sizeof_optional:
+        raise AssertionError('optional header packed to %d, expected %d' % (len(opt), sizeof_optional))
+
+    shdrs = b''.join(_pack_section(*spec) for spec in _SECTION_SPECS)
+    raw = bytes(dos) + b'PE\x00\x00' + coff + opt + shdrs
+    raw = raw.ljust(0x400, b'\x00')
+    raw += b'\xC3'.ljust(0x200, b'\x00')
+    raw += b'\x00' * 0x600
+    return bytes(raw)
+
+
+class PESectionHeaderOffsetTests(unittest.TestCase):
+    '''
+    Section-table offset must follow SizeOfOptionalHeader, not NumberOfRvaAndSizes.
+    '''
+
+    def _assert_expected_sections(self, pe):
+        want_off = pe.getSectionTableOffset()
+        spec_off = (
+            pe.IMAGE_DOS_HEADER.e_lfanew
+            + 4
+            + len(pe.IMAGE_NT_HEADERS.FileHeader)
+            + pe.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader
+        )
+        self.assertEqual(want_off, spec_off)
+        secs = pe.getSections()
+        self.assertEqual(len(secs), 4)
+        for sec, spec in zip(secs, _SECTION_SPECS):
+            name, vsize, va, rawsize, rawptr, chars = spec
+            self.assertEqual(sec.Name.strip('\x00'), name.decode('ascii'))
+            self.assertEqual(sec.VirtualSize, vsize)
+            self.assertEqual(sec.VirtualAddress, va)
+            self.assertEqual(sec.SizeOfRawData, rawsize)
+            self.assertEqual(sec.PointerToRawData, rawptr)
+            self.assertEqual(sec.Characteristics, chars)
+            self.assertEqual(sec.vsGetMeta('Offset'), want_off)
+            want_off += 40
+
+    def _assert_bounded_maps(self, blob):
+        vw = vivisect.VivWorkspace()
+        vw.loadFromFd(io.BytesIO(blob))
+        maps = vw.getMemoryMaps()
+        self.assertTrue(maps)
+        for mapva, msize, _perms, _fname in maps:
+            self.assertLessEqual(msize, 0x4000, 'map at 0x%x grew to 0x%x' % (mapva, msize))
+        span = max(m[0] + m[1] for m in maps) - min(m[0] for m in maps)
+        self.assertLessEqual(span, 0x8000)
+        names = [seg[2].strip('\x00') for seg in vw.getSegments()]
+        self.assertEqual(names, ['PE_Header', '.text', '.rdata', '.rsrc', '.didat'])
+        return vw
+
+    def test_valid_pe32_sixteen_directories(self):
+        blob = _build_pe_with_dir_count(16, pe32p=False)
+        pe = PE.peFromBytes(blob)
+        self.assertEqual(pe.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes, 16)
+        self._assert_expected_sections(pe)
+        self._assert_bounded_maps(blob)
+
+    def test_pe32_numberofrvaandsizes_15_keeps_section_table(self):
+        blob = _build_pe_with_dir_count(15, pe32p=False)
+        pe = PE.peFromBytes(blob)
+        self.assertEqual(pe.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes, 15)
+        self.assertEqual(pe.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader, 0xE0)
+        self._assert_expected_sections(pe)
+        self.assertNotEqual(pe.sections[0].VirtualSize, 0x7865742e)
+        self._assert_bounded_maps(blob)
+
+    def test_pe32_numberofrvaandsizes_14_does_not_read_text_name_as_rawsize(self):
+        blob = _build_pe_with_dir_count(14, pe32p=False)
+        pe = PE.peFromBytes(blob)
+        self.assertEqual(pe.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes, 14)
+        self._assert_expected_sections(pe)
+        sec0 = pe.sections[0]
+        self.assertNotEqual(sec0.SizeOfRawData, 0x7865742e)
+        self.assertNotEqual(sec0.PointerToRawData, 0x74)
+        self.assertNotEqual(pe.sections[1].VirtualAddress, 0x60000020)
+        self._assert_bounded_maps(blob)
+
+    def test_pe32p_numberofrvaandsizes_mismatch(self):
+        blob = _build_pe_with_dir_count(15, pe32p=True)
+        pe = PE.peFromBytes(blob)
+        self.assertTrue(pe.pe32p)
+        self.assertEqual(pe.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader, 0xF0)
+        self._assert_expected_sections(pe)
+        self._assert_bounded_maps(blob)

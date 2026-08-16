@@ -740,12 +740,25 @@ class PE(object):
 
                 offset += len(dirent)
 
+    def getSectionTableOffset(self):
+        '''
+        File offset of the section header table.
+
+        The PE spec places section headers immediately after the optional
+        header. SizeOfOptionalHeader is the authoritative length; the
+        NumberOfRvaAndSizes field can disagree and must not relocate the table.
+        '''
+        return (
+            self.IMAGE_DOS_HEADER.e_lfanew
+            + 4
+            + len(self.IMAGE_NT_HEADERS.FileHeader)
+            + self.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader
+        )
+
     def parseSections(self):
 
         self.sections = []
-        off = self.IMAGE_DOS_HEADER.e_lfanew + len(self.IMAGE_NT_HEADERS)
-        off -= len(self.IMAGE_NT_HEADERS.OptionalHeader.DataDirectory)
-        off += self.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes * len(vstruct.getStructure("pe.IMAGE_DATA_DIRECTORY"))
+        off = self.getSectionTableOffset()
 
         secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
         hdrsize = secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections

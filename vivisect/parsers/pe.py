@@ -186,7 +186,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
     secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
 
-    sec_offset = pe.IMAGE_DOS_HEADER.e_lfanew + 4 + len(pe.IMAGE_NT_HEADERS.FileHeader) + pe.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader 
+    sec_offset = pe.getSectionTableOffset()
 
     if sec_offset != curr_offset:
         header_size = sec_offset + pe.IMAGE_NT_HEADERS.FileHeader.NumberOfSections * secsize
