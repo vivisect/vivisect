@@ -20,7 +20,7 @@ cxxfiltok = False
 try:
     import cxxfilt
     cxxfiltok = True
-except ModuleNotFoundError:
+except Exception:
     pass
 
 

@@ -1,3 +1,4 @@
+import envi
 import envi.bits as e_bits
 import envi.registers as e_reg
 
@@ -299,7 +300,13 @@ def getRegDataIdx(idx):
 
 class ArmRegisterContext(e_reg.RegisterContext):
     def __init__(self):
-        e_reg.RegisterContext.__init__(self, regdef=reg_table_data, metas=arm_metas, statmetas=arm_status_metas, pcindex=REG_PC, spindex=REG_SP)
+        e_reg.RegisterContext.__init__(self,
+                                       regdef=reg_table_data,
+                                       metas=arm_metas,
+                                       statmetas=arm_status_metas,
+                                       pcindex=REG_PC,
+                                       spindex=REG_SP,
+                                       id=envi.ARCH_ARMV7)
 
     def getProcMode(self):
         '''

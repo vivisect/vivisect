@@ -377,7 +377,11 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.xrefs_by_from[fromva].remove(einfo)
 
     def _handleSETNAME(self, einfo):
-        va, name = einfo
+        if len(einfo) == 2:
+            va, name = einfo
+            basename = None
+        else:
+            va, name, basename = einfo
         if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
@@ -390,6 +394,10 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
             self.va_by_name[name] = va
             self.name_by_va[va] = name
+
+        if basename is not None:
+            indx = self.va_by_name_hits.get(basename, 0)
+            self.va_by_name_hits[basename] = indx + 1
 
         if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)

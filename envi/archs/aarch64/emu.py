@@ -134,8 +134,7 @@ class A64Emulator(A64RegisterContext, envi.Emulator):
         # FIXME: this should be None's, and added in for each real coproc... but this will work for now.
         self.coprocs = [CoProcEmulator() for x in range(16)]       
 
-        #seglist = [ (0,0xffffffff) for x in range(6) ]
-        # this ends up doubling initting us as register context, which seems like A Bad Thing (TM)
+        # seglist = [ (0,0xffffffff) for x in range(6) ]
         envi.Emulator.__init__(self, 'a64')
 
         A64RegisterContext.__init__(self)
@@ -663,5 +662,3 @@ class A64Emulator(A64RegisterContext, envi.Emulator):
         cpnum = op.opers[0]
         coproc = self._getCoProc(cpnum)
         coproc.mcrr(op.opers)
-
-

@@ -1,3 +1,4 @@
+import envi
 import envi.registers as e_reg
 
 from envi.archs.msp430.const import *
@@ -36,4 +37,10 @@ e_reg.addLocalMetas(l, registers_meta)
 
 class Msp430RegisterContext(e_reg.RegisterContext):
     def __init__(self):
-        e_reg.RegisterContext.__init__(self, regdef=registers_info, statmetas=status_meta, pcindex=REG_PC, spindex=REG_SP, srindex=REG_SR)
+        e_reg.RegisterContext.__init__(self,
+                                       regdef=registers_info,
+                                       statmetas=status_meta,
+                                       pcindex=REG_PC,
+                                       spindex=REG_SP,
+                                       srindex=REG_SR,
+                                       id=envi.ARCH_MSP430)

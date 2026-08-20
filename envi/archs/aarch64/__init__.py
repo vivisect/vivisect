@@ -52,3 +52,4 @@ class A64Module(envi.ArchitectureModule):
 
 # Initialize system register lookup tables when module loads
 initialize_sysreg_support()
+from envi.archs.aarch64.emu import A64Emulator
