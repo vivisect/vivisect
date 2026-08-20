@@ -1,3 +1,5 @@
+import envi
+
 from envi.archs.aarch64.const import *
 from envi.archs.aarch64 import sysregs
 
@@ -203,7 +205,8 @@ class A64RegisterContext(e_reg.RegisterContext):
                                        metas=aarch64_metas,
                                        statmetas=aarch64_status_metas,
                                        pcindex=REG_PC,
-                                       spindex=REG_SP)
+                                       spindex=REG_SP,
+                                       id=envi.ARCH_A64)
 
 # TODO: We really need a better way to smuggle register contexts to operands/disassembling
 # and maybe we move this into disasm?

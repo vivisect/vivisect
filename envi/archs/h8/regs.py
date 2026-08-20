@@ -1,5 +1,7 @@
-import envi.archs.h8.const as h8_const
+import envi
 import envi.registers as e_reg
+
+import envi.archs.h8.const as h8_const
 
 h8_regs = (
     ('er0', 32),
@@ -133,4 +135,11 @@ e_reg.addLocalStatusMetas(l, H8Meta, H8StatMeta, 'CCR')
 
 class H8RegisterContext(e_reg.RegisterContext):
     def __init__(self):
-        e_reg.RegisterContext.__init__(self, regdef=h8_regs, metas=H8Meta, statmetas=H8StatMeta, pcindex=REG_PC, spindex=h8_const.REG_SP, srindex=REG_CCR)
+        e_reg.RegisterContext.__init__(self,
+                                       regdef=h8_regs,
+                                       metas=H8Meta,
+                                       statmetas=H8StatMeta,
+                                       pcindex=REG_PC,
+                                       spindex=h8_const.REG_SP,
+                                       srindex=REG_CCR,
+                                       id=envi.ARCH_H8)

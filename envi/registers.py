@@ -6,16 +6,31 @@ access information about objects which contain registers
 import envi.exc as e_exc
 import envi.const as e_const
 
+REGDEFS = {}
+
 class RegisterContext:
 
-    def __init__(self, regdef=(), metas=(), statmetas=None, pcindex=None, spindex=None, srindex=None):
+    def __init__(self, regdef=(), metas=(), statmetas=None, pcindex=None, spindex=None, srindex=None, id=None):
         """
         Hand in a register definition which consists of
         a list of (<name>, <width>) tuples.
         """
-        self.loadRegDef(regdef)
-        self.loadRegMetas(metas, statmetas=statmetas)
-        self.setRegisterIndexes(pcindex, spindex, srindex=srindex)
+        cached = None
+        if id is not None:
+            cached = REGDEFS.get(id)
+
+        # TODO: There's still a lot of waste in register context construction, especially around
+        # Emulators inheriting from IMemory and Imemory constructing its own archmods
+        if cached is not None:
+            cached = REGDEFS.get(id)
+            self._rctx_regdef, self._rctx_names, self._rctx_ids, self._rctx_widths, self._rctx_masks, self._rctx_pcindex, self._rctx_spindex, self._rctx_srindex = cached
+            self._rctx_vals = [0] * len(self._rctx_regdef)
+        else:
+            self.loadRegDef(regdef)
+            self.loadRegMetas(metas, statmetas=statmetas)
+            self.setRegisterIndexes(pcindex, spindex, srindex=srindex)
+            if id is not None:
+                REGDEFS[id] = (self._rctx_regdef, self._rctx_names, self._rctx_ids, self._rctx_widths, self._rctx_masks, self._rctx_pcindex, self._rctx_spindex, self._rctx_srindex)
 
         self._rctx_dirty = False
 

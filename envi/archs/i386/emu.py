@@ -128,15 +128,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             PREFIX_REP_SIMD: self.doRepSIMDPrefix,
         }
 
-        # Set ourself up as an arch module *and* register context
-        #i386Module.__init__(self)
         envi.Emulator.__init__(self, archname)
+        if archname == 'i386':
+            i386RegisterContext.__init__(self)
+
+        # Set ourself up as an arch module *and* register context
         self.initEmuOpt('i386:repmax', 0, 'Specify value > 0 to short circuit rep prefix')
 
         for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
-
-        i386RegisterContext.__init__(self)
 
         # Add our known calling conventions
         self.addCallingConvention('stdcall', stdcall)
@@ -2634,4 +2634,4 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_salc(self, op):
         cf = self.getFlag(EFLAGS_CF)
         self.setRegister(REG_AL, 0xff if cf else 0)
-    # hlt, fcomp? fucomip? callf? fadd? subsd? comiss?
+    # hlt, fcomp? fucomip? callf? fadd? subsd? comiss? maxss? divsd? comisd/ucomisd?
