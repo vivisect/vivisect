@@ -139,7 +139,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         self.cfctx = viv_base.VivCodeFlowContext(self)
 
-        self.va_by_name_hits = {}
+        self.va_by_name_last = {}
         self.va_by_name = {}
         self.name_by_va = {}
         self.codeblocks_by_funcva = {}
@@ -1857,7 +1857,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         if rtype:
             return [xtup for xtup in self.xrefs if xtup[v_const.XR_RTYPE] == rtype]
-        return self.xrefs
+        return list(self.xrefs)
 
     def getXrefsFrom(self, va, rtype=None):
         """
@@ -2233,21 +2233,23 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # rip through the desired memory range to populate any substrings
         done = set()
         subs = set()
+        start = va
         end = va + size
-        # TODO: do we really need to step by 1? can we just step by the size of the substrings?
-        for offs in range(va, end, 1):
-            loc = self.getLocation(offs, range=True)
+        while va < end:
+            loc = self.getLocation(va, range=True)
             if not loc:
+                va += 1
                 continue
 
+            va += loc[v_const.L_SIZE]
             if loc[v_const.L_VA] in done:
                 continue
 
             done.add(loc[v_const.L_VA])
-            if loc[v_const.L_LTYPE] == ltyp and loc[v_const.L_VA] > va:
+            if loc[v_const.L_LTYPE] == ltyp and loc[v_const.L_VA] > start:
                 subs.add((loc[v_const.L_VA], loc[v_const.L_SIZE]))
                 if loc[v_const.L_TINFO]:
-                    subs = subs.union(set(loc[v_const.L_TINFO]))
+                    subs.update(set(loc[v_const.L_TINFO]))
         return list(subs)
 
     def _getStrTinfo(self, va, size, subs):
@@ -2561,7 +2563,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         to provide a complete accounting of linear workspace.
         """
         ret = []
-        endva = va+size
+        endva = va + size
         undefva = None
         while va < endva:
             ltup = self.getLocation(va)
@@ -2757,18 +2759,20 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 raise v_exc.DuplicateName(oldva, va, name)
 
             # tack a number on the end
-            index = self.va_by_name_hits.get(name, 0)
+            index = self.va_by_name_last.get(name, 1)
             newname = "%s_%d" % (name, index)
             logger.debug('makeName: %r already lives at 0x%x, naming it %s', name, oldva, newname)
 
+            # this is wrong. For the same va we need to check the thing before us?
+            # That feels like a hack though.
             newoldva = self.vaByName(newname)
             if newoldva == va:
                 return newname
 
-            self._fireEvent(v_const.VWE_SETNAME, (va, newname, name))
+            self._fireEvent(v_const.VWE_SETNAME, (va, newname))
             return newname
 
-        self._fireEvent(v_const.VWE_SETNAME, (va, name, name))
+        self._fireEvent(v_const.VWE_SETNAME, (va, name))
         return name
 
     def saveWorkspace(self, fullsave=True, filename=None):

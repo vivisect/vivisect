@@ -128,11 +128,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
             PREFIX_REP_SIMD: self.doRepSIMDPrefix,
         }
 
+        # Set ourself up as an arch module *and* register context
         envi.Emulator.__init__(self, archname)
-        if archname == 'i386':
+        adef = envi.arch_defs[envi.ARCH_I386]
+        if archname == adef['name'] or archname in envi.arch_defs[envi.ARCH_I386]['aliases']:
             i386RegisterContext.__init__(self)
 
-        # Set ourself up as an arch module *and* register context
         self.initEmuOpt('i386:repmax', 0, 'Specify value > 0 to short circuit rep prefix')
 
         for i in range(6):

@@ -968,9 +968,8 @@ system_registers = [
 ]
 
 # fill in the gaps (HACK)
-# This hack gets 32k things loaded into a register context on every emulator build
-# on non-trivial binaries this floods memory and gets us OOM killed
 # TODO: we can just use a set?
+# TODO: Make you a sparse map or something. Save a ton of memory and time
 cache = {(t, u, v, w, x):1 for s,t,u,v,w,x,y in system_registers}
 for x in range(0x8000, 0x10000):
     op0 = 2 | (x >> 14) & 1

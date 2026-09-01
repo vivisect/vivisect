@@ -109,7 +109,6 @@ e_reg.addLocalMetas(l, i386meta)
 
 class i386RegisterContext(e_reg.RegisterContext):
     def __init__(self):
-        # we could probably be even cheaper and just use a number like the envi.ARCH_I386
         e_reg.RegisterContext.__init__(self,
                                        regdef=i386regs,
                                        metas=i386meta,

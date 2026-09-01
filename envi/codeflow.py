@@ -355,7 +355,9 @@ class CodeFlowContext(object):
         analyzing the same function twice.  If a function is misidentified
         flushFunction() is used to clear that function from the tracked _funcs
         '''
+        # TODO: can we just pop this instead?
         self._funcs[fva] = None
+        self._fcalls[fva] = None
 
     def addDynamicBranchHandler(self, cb):
         '''

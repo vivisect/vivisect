@@ -211,6 +211,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # FIXME delete xrefs
         lva, lsize, ltype, linfo = loc
         self.locmap.setMapLookup(lva, lsize, None)
+        # remove is expensive here :(
         self.loclist.remove(loc)
 
     def _handleADDSEGMENT(self, einfo):
@@ -262,6 +263,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.reloc_by_va.pop(rva, None)
         delidx = -1
 
+        data = 0  # TODO: A better default? this is only here so data is defined for RTYPE_BASEPTR
         for idx, (fn, off, typ, data, size) in enumerate(self.relocations):
             if fn == fname and off == ptroff and typ == rtyp:
                 delidx = idx
@@ -375,6 +377,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         fromva, tova, reftype, refflags = einfo
         self.xrefs_by_to[tova].remove(einfo)
         self.xrefs_by_from[fromva].remove(einfo)
+        self.xrefs.remove(einfo)
 
     def _handleSETNAME(self, einfo):
         if len(einfo) == 2:
@@ -382,6 +385,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             basename = None
         else:
             va, name, basename = einfo
+
         if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
@@ -396,8 +400,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self.name_by_va[va] = name
 
         if basename is not None:
-            indx = self.va_by_name_hits.get(basename, 0)
-            self.va_by_name_hits[basename] = indx + 1
+            indx = self.va_by_name_last.get(basename, 0)
+            self.va_by_name_last[basename] = indx + 1
 
         if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)
