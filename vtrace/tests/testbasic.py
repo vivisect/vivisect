@@ -44,18 +44,20 @@ class VtraceBasicTest(vt_tests.VtraceProcessTest):
     def test_vtrace_exename(self):
         exename = self.trace.getExe()
         self.assertTrue(os.path.isfile(exename))
-        self.assertTrue(exename.lower().find('python') != -1)
+        self.assertTrue(exename.lower().find('python3') != -1)
 
     def test_vtrace_mmaps(self):
         pymapfound = False
         for va, size, perms, fname in self.trace.getMemoryMaps():
-            if fname.lower().find('python') != -1:
+            if fname.lower().find('python3') != -1:
                 pymapfound = True
                 break
         self.assertTrue(pymapfound)
 
 
-# All of the above "simple" tests should also work in the "exec" case
+# All of the above "simple" tests should also work in the "exec" case, but we
+# need to change the breakpoint symbols because the different launch method
+# changes the available symbols for some platforms
 class VtraceBasicExecTest(VtraceBasicTest, vt_tests.VtraceExecTest):
     breakpoints = {
         'windows': 'ntdll.NtTerminateProcess',

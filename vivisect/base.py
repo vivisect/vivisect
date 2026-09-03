@@ -690,6 +690,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _mcb_Architecture(self, name, value):
         archid = envi.getArchByName(value)
         try:
+
             # Some of the ENVI archs defined may have architecture modules that 
             # are still in progress
             self.setMemArchitecture(archid)
@@ -706,6 +707,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         defcall = self.arch.getArchDefaultCall()
         if defcall:
             self.setMeta('DefaultCall', defcall)
+
+        self.arch.archMarkupVW(self)
 
         self.notifyLoadEvent()
 
@@ -744,6 +747,24 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.vprint('Workspace was Saved to Server: %s' % wshost)
         self.vprint('(You must close this local copy and work from the server to stay in sync.)')
 
+    def _mcb_PpcVlePages(self, name, maps):
+        """
+        Each time the PPC VLE Pages meta gets set we need to update the VLE
+        configuration information in all PPC architecture modules.
+        """
+        ppc_archs = (
+            envi.ARCH_PPC_E32,
+            envi.ARCH_PPC_E64,
+            envi.ARCH_PPC_S32,
+            envi.ARCH_PPC_S64,
+            envi.ARCH_PPCVLE,
+            envi.ARCH_PPC_D,
+        )
+
+        for arch in ppc_archs:
+            arch_idx = arch >> 16
+            self.imem_archs[arch_idx].setVleMaps(maps)
+
     def _fmcb_Thunk(self, funcva, th, thunkname):
         # If the function being made a thunk is registered
         # in NoReturnApis, update codeflow...
@@ -764,7 +785,7 @@ def trackDynBranches(cfctx, op, vw, bflags, branches):
     '''
     track dynamic branches
     '''
-    # FIXME: do we want to filter anything out?  
+    # FIXME: do we want to filter anything out?
     #  jmp edx
     #  jmp dword [ebx + 68]
     #  call eax

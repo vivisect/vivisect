@@ -3659,6 +3659,7 @@ libc_data = {
     ],
 
     'names': [
+        (0x2400000, 'libc_2_27.bss_temp'),
         (0x2020fe0, 'libc_2_27.plt_memmove_0'),
         (0x2020ff0, 'libc_2_27.plt_gettimeofday'),
         (0x2021000, 'libc_2_27.plt_strnlen'),

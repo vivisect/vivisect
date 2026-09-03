@@ -146,6 +146,7 @@ chown_data = {
     ],
 
     'names': [
+        (0x2220000, 'chown.bss_temp'),
         (0x2001d38, 'chown.init_function'),
         (0x2001d60, 'chown.plt_endgrent'),
         (0x2001d70, 'chown.plt___uflow'),

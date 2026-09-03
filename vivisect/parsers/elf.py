@@ -81,6 +81,8 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
     '''
     memmaps = []
 
+    platform = elf.getPlatform()
+
     addbase, baseoff, baseaddr = getAddBaseAddr(elf, baseaddr)
 
     pgms = elf.getPheaders()
@@ -93,7 +95,14 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
             bytez += b'\x00' * (pgm.p_memsz - pgm.p_filesz)
             pva = pgm.p_vaddr
             pva += baseoff
-            memmaps.append((pva, pgm.p_flags & 0x7, fname, bytez, e_const.PAGE_SIZE))
+
+            # For posix-type platforms we should use the same page size that the 
+            # loader will use: 0x1000 (e_const.PAGE_SIZE). If the platform is 
+            # unknown use the alignmetn specified in the program header.
+            if platform == 'unknown':
+                memmaps.append((pva, pgm.p_flags & 0x7, fname, bytez, pgm.p_align))
+            else:
+                memmaps.append((pva, pgm.p_flags & 0x7, fname, bytez, e_const.PAGE_SIZE))
         else:
             logger.info('Skipping: %s', pgm)
 
@@ -220,8 +229,35 @@ arch_names = {
     Elf.EM_386: 'i386',
     Elf.EM_X86_64: 'amd64',
     Elf.EM_MSP430: 'msp430',
+    Elf.EM_PPCE: 'ppc32-embedded',
+    Elf.EM_PPC64E: 'ppc-embedded',
+    Elf.EM_PPC: 'ppc32-server',
+    Elf.EM_PPC64: 'ppc-server',
+    Elf.EM_ARM_AARCH64: 'aarch64',
     Elf.EM_ARM_A64: 'a64',
 }
+
+ppc_arch_names = (
+    'ppc32-embedded',
+    'ppc-embedded',
+    'ppc32-server',
+    'ppc-server',
+)
+
+
+def getArchName(elf):
+    machine = elf.e_machine
+    if machine == Elf.EM_PPC64 and elf.e_flags & Elf.EF_PPC_EMB:
+        machine = Elf.EM_PPC64E
+    elif machine == Elf.EM_PPC and elf.e_flags & Elf.EF_PPC_EMB:
+        machine = Elf.EM_PPCE
+    arch = arch_names.get(machine)
+
+    if arch is None:
+       raise Exception("Unsupported Architecture: %d\n", elf.e_machine)
+
+    return arch
+
 
 archcalls = {
     'i386': 'cdecl',
@@ -229,6 +265,10 @@ archcalls = {
     'arm': 'armcall',
     'thumb': 'armcall',
     'thumb16': 'armcall',
+    'ppc32-embedded': 'ppccall',
+    'ppc-embedded': 'ppccall',
+    'ppc32-server': 'ppccall',
+    'ppc-server': 'ppccall',
     'a64': 'a64call',
 }
 
@@ -273,9 +313,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     baseaddr = vw.findFreeMemoryBlock(size, baseaddr)
     logger.debug("loading %r (size: 0x%x) at 0x%x", filename, size, baseaddr)
 
-    arch = arch_names.get(elf.e_machine)
-    if isinstance(arch, dict):
-        arch = arch.get(elf.bits)
+    arch = getArchName(elf)
     if arch is None:
         raise Exception("Unsupported Architecture: %d (%d bits)\n" % (elf.e_machine, elf.bits))
 
@@ -363,7 +401,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     # since getFileByVa is based on segments, and ELF Sections seldom cover all the
     # loadable memory space.... we'll add PT_LOAD Program Headers, only at the
-    # end.  If we add them first, they're always the matching segments.  At the 
+    # end.  If we add them first, they're always the matching segments.  At the
     # end, they make more of a default segment
     pcount = 0
     if vw.getFileByVa(baseaddr) is None:
@@ -471,6 +509,54 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         elif sname == ".dynsym":
             [s for s in makeSymbolTable(vw, sva, sva+size)]
 
+        elif sname in (".bss",):
+            if vw.getName(fname + '.bss_temp') is None:
+                align = sec.sh_addralign
+                sz = ((align-1 + sec.sh_size) // align) * align
+
+                # Manually find a free memory segment, we can't use the return 
+                # of addMemoryMap because it returns the size not the base 
+                # address.
+                base = vw.getFreeMemAddr(sz)
+
+                logger.debug('creating bss_temp memory @ %#x-%#x', base, base+sz)
+                sz = vw.addMemoryMap(base, 7, fname, b'\0' * sz)
+
+                vw.addSegment(base, sz, '.bss_temp', fname)
+                vw.makeName(base, fname + ".bss_temp")
+
+        elif sname in (".sbss", ".sdata"):
+            if vw.getName('_SDA_BASE_') is None:
+                align = sec.sh_addralign
+                sz = ((align-1 + sec.sh_size) // align) * align
+
+                # Manually find a free memory segment, we can't use the return 
+                # of addMemoryMap because it returns the size not the base 
+                # address.
+                base = vw.getFreeMemAddr(sz)
+
+                logger.debug('creating sda_base memory @ %#x-%#x', base, base+sz)
+                sz = vw.addMemoryMap(base, 7, fname, b'\0' * sz)
+
+                vw.addSegment(base, sz, '.sda_base', fname)
+                vw.makeName(base, "_SDA_BASE_")
+
+        elif sname in (".sbss2", ".sdata2"):
+            if vw.getName('_SDA2_BASE_') is None:
+                align = sec.sh_addralign
+                sz = ((align-1 + sec.sh_size) // align) * align
+
+                # Manually find a free memory segment, we can't use the return 
+                # of addMemoryMap because it returns the size not the base 
+                # address.
+                base = vw.getFreeMemAddr(sz)
+
+                logger.debug('creating sda2_base memory @ %#x-%#x', base, base+sz)
+                sz = vw.addMemoryMap(base, 7, fname, b'\0' * sz)
+
+                vw.addSegment(base, sz, '.sda2_base', fname)
+                vw.makeName(base, "_SDA2_BASE_")
+
         # If the section is really a string table, do it
         if sec.sh_type == Elf.SHT_STRTAB:
             makeStringTable(vw, sva, sva+size)
@@ -486,6 +572,47 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         if sec.sh_flags & Elf.SHF_STRINGS:
             makeStringTable(vw, sva, sva+size)
+
+    # Now that the program and section headers have been parsed, if this is a
+    # PowerPC 32-bit ELF we need to check for VLE flags
+    if arch in ppc_arch_names:
+        vle_pages = vw.getMeta('PpcVlePages')
+        if vle_pages is None:
+            vle_pages = []
+
+        # Loop through each loaded program header and if the load section is
+        # marked as VLE, or it maps back to a section that is marked as VLE,
+        # then track it
+        vle_flags = []
+        secs = elf.getSections()
+        for phdr in elf.getPheaders():
+            # Find any loadable and executable sections and keep track if they
+            # are VLE or not.
+            if phdr.p_type == Elf.PT_LOAD and phdr.p_flags & Elf.PF_X:
+                vle = int(bool(phdr.p_flags & Elf.PF_PPC_VLE))
+                vle_flags.append(vle)
+                vle_pages.append((phdr.p_vaddr, phdr.p_align, vle))
+
+        # Update the VLE pages
+        logger.info("Adding PowerPC VLE pages %s" % vle_pages)
+
+        vw.setMeta('PpcVlePages', vle_pages)
+
+
+        # If all of the loaded and executable sections are VLE, then change this
+        # to be ppc-vle, if only some are ensure it is ppc32-embedded, otherwise
+        # leave it unchanged.
+        if all(vle_flags):
+            new_arch = 'ppc-vle'
+            logger.info("Updating arch from %s to %s" % (arch, new_arch))
+            vw.setMeta('Architecture', new_arch)
+            arch = new_arch
+
+        elif any(vle_flags) and arch != 'ppc32-embedded':
+            new_arch = 'ppc32-embedded'
+            logger.info("Updating arch from %s to %s" % (arch, new_arch))
+            vw.setMeta('Architecture', new_arch)
+            arch = new_arch
 
     # get "Dynamics" based items, like NEEDED libraries (dependencies)
     elfmeta = {}
@@ -599,10 +726,13 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 if section:
                     sva += section.sh_addr
 
+        sym_type = Elf.st_info_type.get(s.getInfoType(), s.st_info)
+        sym_bind = Elf.st_info_bind.get(s.getInfoBind(), s.st_other)
+        
         dmglname = demangle(s.name)
         logger.debug('symbol val: 0x%x\ttype: %r\tbind: %r\t name: %r', sva,
-                                                                        Elf.st_info_type.get(s.getInfoType(), s.st_info),
-                                                                        Elf.st_info_bind.get(s.getInfoBind(), s.st_other),
+                                                                        sym_type,
+                                                                        sym_bind,
                                                                         s.name)
 
         symtype = s.getInfoType()
@@ -831,7 +961,6 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
             logger.debug('relocs: 0x%x: %s (%s)', rlva, dmglname, name)
             if arch in ('i386', 'amd64'):
                 if name:
-                    #if dmglname == 
                     if rtype == Elf.R_X86_64_IRELATIVE:
                         # before making import, let's fix up the pointer as a BASEPTR Relocation
                         ptr = r.r_addend

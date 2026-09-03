@@ -5,3 +5,4 @@ msgpack>=1.0.0,<2.0.0
 pycparser>=2.20
 pyqt6>=6.5.0
 pyqt6-webengine>=6.5.0
+lxml>=4.8.0
