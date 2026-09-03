@@ -30,22 +30,36 @@ class mach_o(vstruct.VStruct):
         return self.mach_header.vsGetMeta('psize')
 
     def getSymbols(self):
+        '''
+        Parse the symbol table and return a list of (name, value, type, sect, desc)
+        tuples.  Uses nlist64 for 64-bit Mach-O and nlist for 32-bit.
+        '''
         if self._symbols is not None:
             return self._symbols
 
         self._symbols = []
+        psize = self.getPointerSize()
+        is_64 = (psize == 8)
+
         for fname, vs in self.load_commands:
             if vs.cmd != LC_SYMTAB:
                 continue
             strbytes = self._raw_bytes[vs.stroff:vs.stroff+vs.strsize]
-            strtab = strbytes.split('\x00')
             offset = vs.symoff
             for i in range(vs.nsyms):
-                n = nlist() # FIXME 64!
+                if is_64:
+                    n = nlist64()
+                else:
+                    n = nlist()
                 offset = n.vsParse(self._raw_bytes, offset)
-                #symstr = strtab[n.n_strx]
-                # FIXME this is slow!
-                symstr = strbytes[n.n_strx:].split('\x00', 1)[0]
+                # Extract the symbol name from the string table at n_strx
+                if n.n_strx < len(strbytes):
+                    symstr = strbytes[n.n_strx:].split('\x00', 1)[0]
+                else:
+                    symstr = ''
+                self._symbols.append((symstr, n.n_value, n.n_type, n.n_sect, n.n_desc))
+
+        return self._symbols
 
     def getEntryPoints(self):
         if self._entrypoints is not None:

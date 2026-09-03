@@ -8,6 +8,8 @@ import vstruct.defs.macho as vs_macho
 import vstruct.defs.macho.fat as vsm_fat
 import vstruct.defs.macho.const as vsm_const
 
+from vivisect.demangle import demangle
+
 logger = logging.getLogger(__name__)
 
 
@@ -174,6 +176,46 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
         ptr = baseaddr + soff
         logger.debug("adding entrypoint: 0x%x (off: 0x%x/0x%x)", va, ptr, soff)
         vw.makePointer(ptr, follow=False)
+
+    # Apply symbols from the symbol table and demangle C++ names.
+    # This was previously missing entirely — Mach-O symbols were never
+    # applied to the workspace.
+    try:
+        symbols = macho.getSymbols()
+    except Exception as e:
+        logger.warning('Error parsing Mach-O symbols: %r', e)
+        symbols = []
+
+    for symname, symval, symtype, symsect, symdesc in symbols:
+        # Skip stab/debug symbols (N_STAB mask)
+        if symtype & 0xe0:
+            continue
+
+        # Skip undefined symbols (n_value == 0, N_UNDF type)
+        if symval == 0:
+            continue
+
+        va = symval + offset
+        if not vw.isValidPointer(va):
+            continue
+
+        # Skip symbols with empty names
+        if not symname:
+            continue
+
+        # Demangle C++ symbols (Itanium _Z prefix, ObjC _OBJC_ prefix, etc.)
+        dmglname = demangle(symname)
+        if dmglname != symname:
+            # Preserve original mangled name as a comment
+            vw.setComment(va, symname)
+            name_to_apply = dmglname
+        else:
+            name_to_apply = symname
+
+        try:
+            vw.makeName(va, name_to_apply, filelocal=True, makeuniq=True)
+        except Exception as e:
+            logger.debug('macho makeName failed for %r: %r', name_to_apply, e)
 
     return fname
 
