@@ -400,8 +400,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self.name_by_va[va] = name
 
         if basename is not None:
-            indx = self.va_by_name_last.get(basename, 0)
-            self.va_by_name_last[basename] = indx + 1
+            indx = self.names_hits.get(basename, 0)
+            self.names_hits[basename] = indx + 1
 
         if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)

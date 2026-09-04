@@ -204,7 +204,7 @@ class Amd64SymbolikTranslator(vsym_i386.IntelSymbolikTranslator):
         return self._movs(op, width=8)
 
     def i_stosq(self, op):
-        return self._stos(op, width=8)
+        return self.i_stosb(op, width=8)
 
     def i_cmpsq(self, op):
         return self._cmps(op, width=8)

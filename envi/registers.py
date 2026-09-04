@@ -121,7 +121,7 @@ class RegisterContext:
         offset into the real register value.  The RegisterContext will take
         care of accesses after that.
         """
-        newidx = (offset << 24) | (width << 16) + idx
+        newidx = (offset << 24) | (width << 16) | (idx & 0xFFFF)
         self._rctx_names[name] = newidx
         self._rctx_ids[newidx] = name
 

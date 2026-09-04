@@ -139,7 +139,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         self.cfctx = viv_base.VivCodeFlowContext(self)
 
-        self.va_by_name_last = {}
+        self.names_hits = {}
         self.va_by_name = {}
         self.name_by_va = {}
         self.codeblocks_by_funcva = {}
@@ -1376,9 +1376,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             try:
                 op = self.parseOpcode(va, arch=arch)
             except e_exc.InvalidInstruction as msg:
-                # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
-                logger.warning("Invalid Instruct Attempt At:", hex(va), e_common.hexify(bytez))
+                logger.warning("Invalid Instruction Attempt At 0x%x: %s", hex(va), e_common.hexify(bytez))
                 raise v_exc.InvalidLocation(va, str(msg))
             except Exception as msg:
                 raise v_exc.InvalidLocation(va, str(msg))
@@ -2229,7 +2228,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytes = self.getByteDef(va)
         return e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
 
-    def _getSubstrings(self, va, size, ltyp):
+    def _getSubstrings(self, va, size, styp):
         # rip through the desired memory range to populate any substrings
         done = set()
         subs = set()
@@ -2241,12 +2240,14 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 va += 1
                 continue
 
-            va += loc[v_const.L_SIZE]
-            if loc[v_const.L_VA] in done:
+            lva, lsize, ltyp, linfo = loc
+            if lva in done:
+                va += 1
                 continue
 
-            done.add(loc[v_const.L_VA])
-            if loc[v_const.L_LTYPE] == ltyp and loc[v_const.L_VA] > start:
+            va = max(lva + lsize, va + 1)
+            done.add(lva)
+            if ltyp == styp and lva > start:
                 subs.add((loc[v_const.L_VA], loc[v_const.L_SIZE]))
                 if loc[v_const.L_TINFO]:
                     subs.update(set(loc[v_const.L_TINFO]))
@@ -2740,6 +2741,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         default behavior is to fail on duplicate (False).
         """
+        # TODO: makeuniq name feels backwards?
         if filelocal:
             segtup = self.getSegment(va)
             if segtup is None:
@@ -2759,7 +2761,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 raise v_exc.DuplicateName(oldva, va, name)
 
             # tack a number on the end
-            index = self.va_by_name_last.get(name, 1)
+            index = self.names_hits.get(name, 1)
             newname = "%s_%d" % (name, index)
             logger.debug('makeName: %r already lives at 0x%x, naming it %s', name, oldva, newname)
 

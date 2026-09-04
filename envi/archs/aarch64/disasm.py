@@ -9349,6 +9349,7 @@ class A64SysRegOper(A64RegOper):
             return f"<A64SysRegOper {self.reg} idx={self.reg} " \
                    f"S{self.op0}_{self.op1}_C{self.crn}_C{self.crm}_{self.op2}>"
         else:
+            # TODO: _reg_name isn't a thing
             return f"<A64SysRegOper {self._reg_name} (unknown) " \
                    f"S{self.op0}_{self.op1}_C{self.crn}_C{self.crm}_{self.op2}>"
 
