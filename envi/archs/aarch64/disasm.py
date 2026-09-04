@@ -349,8 +349,8 @@ def p_addsub_imm(opval, va):
             mnem = 'cmn'
             opcode = INS_CMN
 
-        # Resets iflags to remove a previous S flag, which is incorrect for this mnem 
-        iflags = 0
+        # CMP/CMN are the implicit-S aliases of SUBS/ADDS: keep the
+        # IF_PSR_S flag set above instead of resetting it to 0.
 
         # Setting size based on sf
         # Must be done here, before rd is changed
@@ -509,7 +509,8 @@ def p_log_imm(opval, va):
                 A64RegOper(rn, va, size=size),
                 A64ImmOper(imm, 0, S_LSL, va, size),
             )
-            return opcode, mnem, olist, 0, 0
+            # TST is the alias of ANDS (opc=0b11): it must set NZCV.
+            return opcode, mnem, olist, IF_PSR_S, 0
 
         mnem = 'and'
         opcode = INS_AND
@@ -2929,7 +2930,10 @@ def p_log_shft_reg(opval, va):
             mnem = 'and'
             opcode = INS_AND
 
-            if rd == 0b11111:
+            # TST is the alias of ANDS (opc=0b11) with Rd=11111.  An AND
+            # with Rd=11111 ("and xzr, ...") is a legal instruction that
+            # must NOT set flags, so only alias when opc == 0b11.
+            if rd == 0b11111 and opc == 0b11:
                 mnem = 'tst'
                 opcode = INS_TST
 
@@ -2972,8 +2976,8 @@ def p_log_shft_reg(opval, va):
     )
 
     if opcode == INS_TST:
-        # Removes S flag
-        iflags &= ~IF_PSR_S
+        # TST is the alias of ANDS with Rd=ZR, which sets NZCV, so
+        # keep the IF_PSR_S flag set above.
 
         olist = (
             A64RegWithZROper(rn, va, size=size),
@@ -3045,7 +3049,8 @@ def p_addsub_shft_reg(opval, va):
             mnem = 'cmn'
             opcode = INS_CMN
 
-        iflags = 0
+        # CMP/CMN are the implicit-S aliases of SUBS/ADDS: keep the
+        # IF_PSR_S flag set above instead of resetting it to 0.
 
         # Checking for ZR register in rn
         if rn == 0b11111:
@@ -3120,7 +3125,10 @@ def p_addsub_ext_reg(opval, va):
             mnem = 'sub'
             opcode = INS_SUB
 
-    if s == 0b1 and opcount == 3:    # not used with aliases
+    # CMP/CMN (the Rd==SP aliases with opcount 2) are implicit-S:
+    # they are SUBS/ADDS with the flags set, so IF_PSR_S applies to
+    # them as well as to the explicit SUBS/ADDS forms.
+    if s == 0b1:
         iflags |= IF_PSR_S
 
     if extoper & 0b011 == 0b011:
@@ -8223,20 +8231,26 @@ def extname(exttype):
 
 def extend(val, exttype, shift=0, tgtsz=64):
     '''
-    Shifts (if shift > 0)
-    Then Extends to tgtsz (in bits)
-    Starting size, and whether it's sign-extended are from exttype
+    Extends val to tgtsz (in bits) per exttype, then shifts left by
+    shift bits (AArch64 extends the register before applying the shift).
+
+    exttype: 0-3 = unsigned (UXTB/UXTH/UXTW/UXTX), 4-7 = signed
+    (SXTB/SXTH/SXTW/SXTX), 8 = LSL (no extension, just shift).
+    Source width in bits is 8 << (exttype & 0x3).
     '''
-    val <<= shift
+    if exttype == EXT_LSL:
+        return val << shift
 
-    if exttype >= 4:
-        # unsigned, do nothing
-        return val
+    srcsz = 8 << (exttype & 0x3)   # 8, 16, 32, or 64 bits
 
-    startsz = (2**exttype)   # 0=1, 1=2, 2=4, 3=8
-    startsz <<= 3   # * 8 for bits
-    startsz += shift
-    return e_bits.bsign_extend(val, startsz, tgtsz)
+    if exttype & 0x4:
+        # signed: mask to the source width, then sign extend
+        val = e_bits.bsign_extend(val & ((1 << srcsz) - 1), srcsz, tgtsz)
+    else:
+        # unsigned: zero-extend by masking to the source width
+        val &= (1 << srcsz) - 1
+
+    return val << shift
 
 
 class A64RegExtOper(A64RegOper):
@@ -8879,6 +8893,11 @@ class A64SveMemOper(A64DerefOperand):
 class A64Opcode(envi.Opcode):
     _def_arch = envi.ARCH_A64
 
+    # Mnemonics that are already implicit-S aliases (CMP/CMN/TST/NGC are
+    # SUBS/ADDS/ANDS/SBC with the S flag baked in).  Their names must not
+    # get an 's' suffix when IF_PSR_S is set.
+    _always_s_mnems = ('cmp', 'cmn', 'tst', 'ngc')
+
     def __init__(self, va, opcode, mnem, prefixes, size, operands, iflags=0, simdflags=0):
         """
         constructor for the basic Envi Opcode object.  Arguments as follows:
@@ -8954,7 +8973,7 @@ class A64Opcode(envi.Opcode):
             if self.iflags & IF_16:
                 mnem += '16'
 
-            if self.iflags & IF_PSR_S:
+            if self.iflags & IF_PSR_S and self.mnem not in self._always_s_mnems:
                 mnem += 's'
 
             if self.iflags & IFP_S:
@@ -9015,7 +9034,7 @@ class A64Opcode(envi.Opcode):
             if self.iflags & IF_16:
                 mnem += '16'
 
-            if self.iflags & IF_PSR_S:
+            if self.iflags & IF_PSR_S and self.mnem not in self._always_s_mnems:
                 mnem += 's'
             
             if self.iflags & IFP_S:

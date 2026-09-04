@@ -360,17 +360,18 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
 
         return self.intSubBase(src1, src2, Sflag)
 
-    def intSubBase(self, src1, src2, Sflag=0, rd=0):
+    def intSubBase(self, src1, src2, Sflag=0, rd=0, size=4):
         # So we can either do a BUNCH of crazyness with xor and shifting to
         # get the necessary flags here, *or* we can just do both a signed and
         # unsigned sub and use the results.
+        # size is in bytes (4 for W ops, 8 for X ops) and sets the width the
+        # NZCV flags are computed at (previously hardcoded to 32-bit).
 
+        udst = e_bits.unsigned(src1, size)
+        usrc = e_bits.unsigned(src2, size)
 
-        udst = e_bits.unsigned(src1, 4)
-        usrc = e_bits.unsigned(src2, 4)
-
-        sdst = e_bits.signed(src1, 4)
-        ssrc = e_bits.signed(src2, 4)
+        sdst = e_bits.signed(src1, size)
+        ssrc = e_bits.signed(src2, size)
 
         ures = udst - usrc
         sres = sdst - ssrc
@@ -383,10 +384,10 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
                     self.setCPSR(self.getSPSR(curmode))
                 else:
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, 4))
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, size))
             self.setFlag(PSR_Z_bit, not ures)
-            self.setFlag(PSR_C_bit, not e_bits.is_unsigned_carry(ures, 4))
-            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, 4))
+            self.setFlag(PSR_C_bit, not e_bits.is_unsigned_carry(ures, size))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, size))
 
         return ures
 
@@ -476,31 +477,25 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
             self.setOperValue(op, 0, None)
             return
 
-        dsize = op.opers[0].tsize
-        ssize = op.opers[1].tsize
-        s2size = op.opers[2].tsize
+        size = op.opers[0].size
 
-        usrc1 = e_bits.unsigned(src1, 4)
-        usrc2 = e_bits.unsigned(src2, 4)
-        ssrc1 = e_bits.signed(src1, 4)
-        ssrc2 = e_bits.signed(src2, 4)
+        usrc1 = e_bits.unsigned(src1, size)
+        usrc2 = e_bits.unsigned(src2, size)
+        ssrc1 = e_bits.signed(src1, size)
+        ssrc2 = e_bits.signed(src2, size)
 
-        ures = usrc1 + usrc2
+        rawsum = usrc1 + usrc2
+        ures = rawsum & e_bits.u_maxes[size]
         sres = ssrc1 + ssrc2
 
 
         self.setOperValue(op, 0, ures)
 
-        curmode = self.getProcMode()
-        if op.iflags & IF_S:
-            if op.opers[0].reg == 15 and (curmode != PM_sys and curmode != PM_usr):
-                self.setCPSR(self.getSPSR(curmode))
-            else:
-                raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+        if op.iflags & IF_PSR_S:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, size))
             self.setFlag(PSR_Z_bit, not ures)
-            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
-            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
+            self.setFlag(PSR_C_bit, rawsum > e_bits.u_maxes[size])
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, size))
 
     def i_b(self, op):
         '''
@@ -518,12 +513,12 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src1 = self.getOperValue(op, 0)
         src2 = self.getOperValue(op, 1)
 
-        dsize = op.opers[0].tsize
+        size = op.opers[0].size
         ures = src1 & src2
 
-        self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
+        self.setFlag(PSR_N_bit, e_bits.is_signed(ures, size))
         self.setFlag(PSR_Z_bit, (0,1)[ures==0])
-        self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
+        self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, size))
         
     def i_rsb(self, op):
         src1 = self.getOperValue(op, 1)
@@ -584,7 +579,7 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
             self.undefFlags()
             return None
 
-        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg, op.opers[0].size)
         self.setOperValue(op, 0, res)
 
     i_subs = i_sub
@@ -623,9 +618,34 @@ class A64Emulator(A64Module, A64RegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 1)
         Sflag = op.iflags & IF_PSR_S
 
-        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg, op.opers[0].size)
 
     i_cmps = i_cmp
+
+    def i_cmn(self, op):
+        # CMN is the implicit-S alias of ADDS: it always sets NZCV from
+        # the sum of its two source operands (there is no destination).
+        src1 = self.getOperValue(op, 0)
+        src2 = self.getOperValue(op, 1)
+
+        if src1 is None or src2 is None:
+            self.undefFlags()
+            return
+
+        size = op.opers[0].size
+        udst = e_bits.unsigned(src1, size)
+        usrc = e_bits.unsigned(src2, size)
+        sdst = e_bits.signed(src1, size)
+        ssrc = e_bits.signed(src2, size)
+
+        rawsum = udst + usrc
+        ures = rawsum & e_bits.u_maxes[size]
+        sres = sdst + ssrc
+
+        self.setFlag(PSR_N_bit, e_bits.is_signed(ures, size))
+        self.setFlag(PSR_Z_bit, not ures)
+        self.setFlag(PSR_C_bit, rawsum > e_bits.u_maxes[size])
+        self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, size))
 
 
     # Coprocessor Instructions
