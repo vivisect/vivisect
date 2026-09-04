@@ -260,6 +260,13 @@ class VivSymbolikFuncPane(e_q_memory.EnviNavMixin, vq_save.SaveableWidget, QWidg
                     self.memcanvas.addText('\n')
                 continue
 
+            if effect.efftype == EFFTYPE_DEBUG:
+                effect.walkTree(self.addVivNames, ctx=(emu, self.symctx))
+                self.memcanvas.addVaText('0x%.8x: ' % effect.va, effect.va)
+                effect.render(self.memcanvas, vw=self.vw)
+                self.memcanvas.addText('\n')
+                continue
+
         vqtevent('viv:colormap', colormap)
 
         retsym = emu.getFunctionReturn()

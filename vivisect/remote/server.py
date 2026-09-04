@@ -202,8 +202,9 @@ class VivServer:
 
     @e_threads.maintthread(30)
     def _saveWorkspaceThread(self):
-        for wsinfo in self.wsdict.values():
+        for wsinfo in list(self.wsdict.values()):
             lock, path, events, users, leaders, leaderloc = wsinfo
+
             if events:
                 with lock:
                     wsinfo[2] = []  # start a new events list...
@@ -242,7 +243,7 @@ class VivServer:
     def _loadWorkspaces(self):
 
         # First, ditch any that are missing
-        for wsname in self.wsdict.keys():
+        for wsname in list(self.wsdict.keys()):
             wsinfo = self.wsdict.get(wsname)
             if not os.path.isfile(wsinfo[1]):
                 self.wsdict.pop(wsname, None)
@@ -337,7 +338,7 @@ class VivServer:
                     leaders[uuid] = (user, fname)
 
             # SPEED HACK
-            [q.append(evtup) for chan, q in users.items() if chan != skip]
+            [q.append(evtup) for (chan, q) in list(users.items()) if chan != skip]
 
     def createEventChannel(self, wsname):
         wsinfo = self._req_wsinfo(wsname)
