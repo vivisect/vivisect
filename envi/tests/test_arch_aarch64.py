@@ -4416,6 +4416,17 @@ class A64InstructionSet(unittest.TestCase):
         op = am.archParseOpcode(unhexlify('d3f021e3'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
+    def test_a64nameoper_getopervalue(self):
+        # A64NameOper should resolve its value without an emulator instead
+        # of raising NotImplementedError (upstream #732).
+        import envi.archs.aarch64.disasm as a64_disasm
+        for instype, val in ((a64_disasm.INS_IC, 1),
+                             (a64_disasm.INS_DSB, 4),
+                             (a64_disasm.INS_SYS, 7)):
+            oper = a64_disasm.A64NameOper(instype, val)
+            # must not raise
+            self.assertEqual(oper.getOperValue(None), val)
+
     def test_BigEndian(self):       #FIXME: revamp for Aarch64
         return
         am = aarch64.A64Module()

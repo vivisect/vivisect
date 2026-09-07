@@ -68,7 +68,7 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                         if isinstance(oper1, e_a64.A64RegOper) and oper1.reg == REG_PC:
                             self.last_lr_pc = starteip
 
-            elif op.opcode == INS_ADD and op.opers[0].reg == REG_PC:
+            elif op.opcode == INS_ADD and isinstance(op.opers[0], e_a64.A64RegOper) and op.opers[0].reg == REG_PC:
                 # simple branch code
                 if emu.vw.getVaSetRow('SwitchCases', op.va) is None:
                     base, tbl = analyzeADDPC(emu, op, starteip, self)
@@ -330,7 +330,11 @@ def analyzeTB(emu, op, starteip, amon):
 def analyzeADDPC(emu, op, starteip, emumon):
     count = None
 
-    reg = op.opers[-1].reg
+    # opers: [xd, pc, #imm] — the switch-case comparison register is xd (oper[0]).
+    # oper[-1] is the immediate offset and has no '.reg', so guard the access.
+    if not isinstance(op.opers[0], e_a64.A64RegOper):
+        return None, None
+    reg = op.opers[0].reg
     cb = emu.vw.getCodeBlock(op.va)
     if cb is None:
         return None, None
@@ -365,12 +369,11 @@ def analyzeADDPC(emu, op, starteip, emumon):
     tbl = []
     for x in range(count):
         base = op.opers[-2].getOperValue(op, emu)
-        base_reg = op.opers[-1].reg
-        emu.setRegister(base_reg, x)
-        idx = op.opers[-1].getOperValue(op, emu)
-        nexttgt = base + idx
-        #logger.debug("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
-        tbl.append((base+idx, x))
+        # opers[-1] is the immediate offset (no '.reg'); the loop index
+        # register is xd (oper[0]) set above in ``reg``.
+        emu.setRegister(reg, x)
+        nexttgt = base + x
+        tbl.append((base+x, x))
         emu.vw.makeCode(nexttgt)
         emu.vw.addXref(starteip, nexttgt, REF_CODE)
 
@@ -392,7 +395,9 @@ def analyzeSUBPC(emu, op, starteip, emumon):
         return None, None
 
     off = 0
-    reg = op.opers[1].reg
+    if not isinstance(op.opers[0], e_a64.A64RegOper):
+        return None, None
+    reg = op.opers[0].reg
     cbva, cbsz, cbfva = cb
     while off < cbsz:
         top = emu.vw.parseOpcode(cbva+off)
@@ -422,14 +427,11 @@ def analyzeSUBPC(emu, op, starteip, emumon):
     tbl = []
 
     base = op.opers[-2].getOperValue(op, emu)
-    base_reg = op.opers[1].reg
 
     for x in range(count):
-        emu.setRegister(base_reg, x)
-        idx = op.opers[-1].getOperValue(op, emu)
-        nexttgt = base - idx
-        #logger.debug("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
-        tbl.append((base+idx, x))
+        emu.setRegister(reg, x)
+        nexttgt = base - x
+        tbl.append((base+x, x))
         emu.vw.makeCode(nexttgt)
         emu.vw.addXref(starteip, nexttgt, REF_CODE)
 
