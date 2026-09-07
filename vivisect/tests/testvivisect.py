@@ -31,19 +31,17 @@ def isint(x):
 class VivisectTest(v_t_utils.VivTest):
     @classmethod
     def setUpClass(cls):
-        #cls.firefox_vw = helpers.getTestWorkspace('windows', 'amd64', 'firefox.exe')
-        #cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
-        #cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
-        #cls.sh_vw = helpers.getTestWorkspace('linux', 'arm', 'sh')
+        cls.firefox_vw = helpers.getTestWorkspace('windows', 'amd64', 'firefox.exe')
+        cls.chgrp_vw = helpers.getTestWorkspace('linux', 'i386', 'chgrp.llvm')
+        cls.vdir_vw = helpers.getTestWorkspace('linux', 'i386', 'vdir.llvm')
+        cls.sh_vw = helpers.getTestWorkspace('linux', 'arm', 'sh')
         cls.chown_vw = helpers.getTestWorkspace('linux', 'amd64', 'chown')
 
-        '''
         for vw in cls.vdir_vw, cls.chgrp_vw, cls.firefox_vw:
             oldcanv = vw.canvas
             vw.canvas = e_mcanvas.StringMemoryCanvas(vw)
             vw.canvas.renderers = oldcanv.renderers
             vw.canvas.setRenderer('viv')
-        '''
 
     def test_xrefs_types(self):
         '''
@@ -1609,16 +1607,15 @@ class VivisectTest(v_t_utils.VivTest):
             otherva = 0x020081a9
 
             name = "stuff hut"
-            names = []
 
-            # a colliding name
-            vw.makeName(otherva, 'stuff hut_3')
+            # some colliding names
+            self.eq('stuff hut_3', vw.makeName(otherva, 'stuff hut_3'))
+            self.eq('stuff hut_4', vw.makeName(otherva + 4, 'stuff hut_4'))
 
-            names.append(vw.makeName(va, name))
-            names.append(vw.makeName(otherva, name, makeuniq=True))
-            for i in range(1, 10, 1):
-                names.append(vw.makeName(va + 4 * i, name, makeuniq=True))
+            base = vw.makeName(va, name)
+            self.eq(base, 'stuff hut')
 
-            #names.append(vw.makeName(va * 2, name))
-            #breakpoint()
-            #print('wat')
+            self.eq('stuff hut_1', vw.makeName(va + 4, name, makeuniq=True))
+
+            self.eq('stuff hut_2', vw.makeName(va + 8, name, makeuniq=True))
+            self.eq('stuff hut_5', vw.makeName(va + 12, name, makeuniq=True))

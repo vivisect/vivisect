@@ -1377,7 +1377,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 op = self.parseOpcode(va, arch=arch)
             except e_exc.InvalidInstruction as msg:
                 bytez = self.readMemory(va, 16)
-                logger.warning("Invalid Instruction Attempt At 0x%x: %s", hex(va), e_common.hexify(bytez))
+                logger.warning("Invalid Instruction Attempt At 0x%x: %s", va, e_common.hexify(bytez))
                 raise v_exc.InvalidLocation(va, str(msg))
             except Exception as msg:
                 raise v_exc.InvalidLocation(va, str(msg))
@@ -2746,35 +2746,41 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             segtup = self.getSegment(va)
             if segtup is None:
                 self.vprint("Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name))
-            if segtup is not None:
+            else:
                 fname = segtup[v_const.SEG_FNAME]
                 if fname is not None:
                     name = "%s.%s" % (fname, name)
 
         oldva = self.vaByName(name)
         # If that's already the name, ignore the event
+        # TODO: maybe this should return the name? Just to be consistent?
         if oldva == va:
             return
 
         if oldva is not None:
             if not makeuniq:
                 raise v_exc.DuplicateName(oldva, va, name)
+            logger.debug('makeName: %r already lives at 0x%x', name, oldva)
 
             # tack a number on the end
             index = self.names_hits.get(name, 1)
-            newname = "%s_%d" % (name, index)
+            newname = f"{name}_{index}"
+            newoldva = self.vaByName(newname)
+            while self.vaByName(newname) is not None:
+                # if we run into the va we're naming, that's the name still
+                if newoldva == va:
+                    return newname
+                logger.debug('makeName: %r already lives at 0x%x', newname, newoldva)
+                index += 1
+                newname = f"{name}_{index}"
+                newoldva = self.vaByName(newname)
+
             logger.debug('makeName: %r already lives at 0x%x, naming it %s', name, oldva, newname)
 
-            # this is wrong. For the same va we need to check the thing before us?
-            # That feels like a hack though.
-            newoldva = self.vaByName(newname)
-            if newoldva == va:
-                return newname
-
-            self._fireEvent(v_const.VWE_SETNAME, (va, newname))
+            self._fireEvent(v_const.VWE_SETNAME, (va, newname, name, index))
             return newname
 
-        self._fireEvent(v_const.VWE_SETNAME, (va, name))
+        self._fireEvent(v_const.VWE_SETNAME, (va, name, None, None))
         return name
 
     def saveWorkspace(self, fullsave=True, filename=None):

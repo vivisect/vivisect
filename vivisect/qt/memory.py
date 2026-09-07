@@ -675,7 +675,12 @@ class VQVivMemoryView(e_mem_qt.VQMemoryWindow, viv_base.VivEventCore):
 
     @idlethread
     def VWE_SETNAME(self, vw, event, einfo):
-        va, name = einfo
+        if len(einfo) == 2:
+            va, name = einfo
+            basename = None
+            baseindx = None
+        else:
+            va, name, basename, baseindx = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
         for fromva, tova, rtype, rflag in self.vw.getXrefsTo(va):
             self.mem_canvas.renderMemoryUpdate(fromva, 1)
