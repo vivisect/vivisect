@@ -6023,7 +6023,7 @@ def p_simd_across_lanes(opval, va):
             opcode = INS_MAX
             mnem = 'max'
         else:
-            opcocde = INS_MIN
+            opcode = INS_MIN
             mnem = 'min'
         iflags |= IFP_F
         iflags |= IF_N
@@ -6042,7 +6042,7 @@ def p_simd_across_lanes(opval, va):
             opcode = INS_MAX
             mnem = 'max'
         else:
-            opcocde = INS_MIN
+            opcode = INS_MIN
             mnem = 'min'
         iflags |= IFP_F
         iflags |= IF_V
@@ -8168,7 +8168,7 @@ class A64RegOper(A64Operand, envi.RegisterOper):
     Subclass of A64Operand. X-bit Register operand class (including Zero-Reg)
     '''
     def __init__(self, reg, va=0, oflags=0, size=8):
-        if reg == None:
+        if reg is None:
             raise envi.InvalidInstruction(mesg="None Reg Type!",
                     bytez=b'f00!', va=va)
 
