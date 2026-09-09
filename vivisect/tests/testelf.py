@@ -3,8 +3,11 @@ import logging
 import platform
 import unittest
 
+import envi.exc as e_exc
+import vivisect
 import Elf
 import vivisect.cli as viv_cli
+import vivisect.parsers.elf as v_parsers_elf
 import vivisect.tests.helpers as helpers
 import vivisect.analysis.elf as vae
 import vivisect.analysis.elf.elfplt as vaeep
@@ -23,6 +26,38 @@ from vivisect.tests import qnx_arm_ksh_data
 from vivisect.tests import openbsd_amd64_ls_data
 
 logger = logging.getLogger(__name__)
+
+
+class MockStringTableWorkspace:
+    def __init__(self):
+        self.readable = {
+            0x1000: 'A',
+            0x1001: 'B',
+            0x1002: 'C',
+            0x1003: '\x00',
+        }
+        self.string_calls = []
+
+    def readMemory(self, va, size):
+        if size != 1 or va not in self.readable:
+            raise envi.SegmentationViolation(va, 'Bad Memory Read (invalid memory address)')
+        return self.readable[va]
+
+    def isLocation(self, va):
+        return False
+
+    def makeString(self, va):
+        self.string_calls.append(va)
+        return (va, 4, v_const.LOC_STRING, None)
+
+
+class ELFStringTableRegressionTests(unittest.TestCase):
+    def test_make_string_table_handles_unmapped_tail(self):
+        vw = MockStringTableWorkspace()
+
+        v_parsers_elf.makeStringTable(vw, 0x1000, 0x1008)
+
+        self.assertEqual(vw.string_calls, [0x1000])
 
 
 def do_analyze(vw):
