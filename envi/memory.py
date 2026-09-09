@@ -515,7 +515,7 @@ class MemoryObject(IMemory):
                     # we ran into a memory map.  adjust.
                     good = False
                     tmpva = mmendva
-                    tmpva += map_align_nmask
+                    tmpva += map_align_nmask + 1
                     tmpva &= map_align_mask
                     break
 
