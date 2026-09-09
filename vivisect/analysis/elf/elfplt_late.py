@@ -28,15 +28,15 @@ logger = logging.getLogger(__name__)
 def analyze(vw):
     logger.info('ELFPLT late-analysis')
 
-    for pltva, pltsz in elfplt.getPLTs(vw):
+    for pltva, pltsz, pltfile in elfplt.getPLTs(vw):
         try:
-            analyzePLT(vw, pltva, pltsz)
+            analyzePLT(vw, pltva, pltsz, pltfile)
 
         except Exception as e:
             logger.warning("Error in PLT-late analysis: %r", e, exc_info=True)
 
 
-def analyzePLT(vw, pltva, pltsz):
+def analyzePLT(vw, pltva, pltsz, fname):
     '''
     Analyze a specific PLT section (there are often more than one and they often
     different in format)
@@ -56,7 +56,6 @@ def analyzePLT(vw, pltva, pltsz):
     '''
     logger.info("PLT Section -  Address: 0x%x  Size: %d", pltva, pltsz)
     gotva = gotsz = None
-    fname = vw.getFileByVa(pltva)
 
     # find functions currently defined in this PLT
     curpltset = set()
@@ -103,16 +102,17 @@ def analyzePLT(vw, pltva, pltsz):
     if None not in (gotva, gotsz):
         logger.debug("GOT/size: 0x%x/0x%x", gotva, gotsz)
 
+    plts = elfplt.getPLTs(vw)
     # GOT-XREF-Offset method
     if len(jmpheur):
-        fillPLTviaGOTXrefs(vw, jmpheur, pltva, pltsz)
+        fillPLTviaGOTXrefs(vw, jmpheur, plts, pltva, pltsz)
 
     else:
         logger.info("analyzePLT(0x%x, 0x%x) skipping GOT-XREF-Offset method: no existing functions found", pltva, pltsz)
 
     # PLT-Func-Distance method
     if len(distanceheur):
-        fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz)
+        fillPLTGaps(vw, curplts, distanceheur, plts, pltva, pltsz)
 
     else:
         logger.info("skipping analyzePLT(0x%x, 0x%x) (PLT-Func-Distance method): no existing functions found", pltva, pltsz)
@@ -120,7 +120,7 @@ def analyzePLT(vw, pltva, pltsz):
     logger.info("elfplt_late (done): pltva: 0x%x, %d", pltva, pltsz)
 
 
-def fillPLTviaGOTXrefs(vw, jmpheur, pltva, pltsz):
+def fillPLTviaGOTXrefs(vw, jmpheur, plts, pltva, pltsz):
     '''
     This PLT-placement algorithm measures the distance from the start of known good
     PLT functions and the GOT-referencing branch.  The only weakness is that this
@@ -142,13 +142,14 @@ def fillPLTviaGOTXrefs(vw, jmpheur, pltva, pltsz):
     # locations that aren't in a function
     logger.info("Scanning for Xrefs into the GOT to determine PLT function starts")
     offset = 0
+    gots = elfplt.getGOTs(vw)
     while offset < pltsz:
         locva, lsz, ltype, ltinfo = vw.getLocation(pltva + offset)
 
         xrefsfrom = vw.getXrefsFrom(locva)
         toGOT = False
         for xrfr, xrto, xrtype, xrtinfo in xrefsfrom:
-            if isGOT(vw, xrto):
+            if isGOT(vw, gots, xrto):
                 # make sure we're pointing at a valid import
                 toloc = vw.getLocation(xrto)
                 if toloc is None:
@@ -169,7 +170,7 @@ def fillPLTviaGOTXrefs(vw, jmpheur, pltva, pltsz):
 
                 # if our intended location is not currently part of a PLT function, make it one
                 curfuncva = vw.getFunction(funcstartva)
-                if curfuncva is None or not isPLT(vw, curfuncva):
+                if curfuncva is None or not isPLT(plts, curfuncva):
                     vw.makeFunction(funcstartva)
                 else:
                     logger.debug("attempting to make function at 0x%x, which is already a member of 0x%x",
@@ -178,7 +179,7 @@ def fillPLTviaGOTXrefs(vw, jmpheur, pltva, pltsz):
         offset += lsz
 
 
-def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
+def fillPLTGaps(vw, curplts, distanceheur, plts, pltva, pltsz):
     '''
     This PLT-placement algorithm measures the distance between known good PLT entries
     and then attempts to identify divisors (up to 16 splits) which would make
@@ -260,7 +261,7 @@ def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
             logger.log(e_common.SHITE, "tmpva: 0x%x", tmpva)
             # check if already in a PLT function (ignore if it's part of some other func)
             curfunc = vw.getFunction(tmpva)
-            if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
+            if curfunc is not None and (curfunc == tmpva or isPLT(plts, curfunc)):
                 tmpva -= funcdist
                 continue
 
@@ -269,7 +270,7 @@ def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
             leftovers = tmpva - funcdist - pltva
             if leftovers != 0 and leftovers < funcdist:
                 logger.debug('skip 0x%x: too close to beginning of PLT', tmpva)
-                tmpva -= funcdist 
+                tmpva -= funcdist
                 continue
             
             # if standard start of plt mnemonic is different...
@@ -292,46 +293,43 @@ def fillPLTGaps(vw, curplts, distanceheur, pltva, pltsz):
             logger.log(e_common.SHITE, "tmpva: 0x%x", tmpva)
             # check if already in a PLT function
             curfunc = vw.getFunction(tmpva)
-            if curfunc is not None and (curfunc == tmpva or isPLT(vw, curfunc)):
+            if curfunc is not None and (curfunc == tmpva or isPLT(plts, curfunc)):
                 #logger.debug('skip 0x%x: already function', tmpva)
-                tmpva += funcdist 
+                tmpva += funcdist
                 continue
 
             # if standard start of plt mnemonic is different...
             op = vw.parseOpcode(tmpva)
             if op.mnem != stdmnem:
                 logger.debug('skip 0x%x: WRONG MNEM! (is %r   should be: %r)', tmpva, op.mnem, stdmnem)
-                tmpva += funcdist 
+                tmpva += funcdist
                 continue
 
             logger.info("New PLT Function! 0x%x", tmpva)
             vw.makeFunction(tmpva)
 
-            tmpva += funcdist 
+            tmpva += funcdist
 
-def isGOT(vw, va):
+# both of these reparse everything every time.
+def isGOT(vw, gots, va):
     '''
     Check a VA to see if it resides in one of this file's GOT sections
-    (uses elfplt.getGOTs()
     '''
     fname = vw.getFileByVa(va)
-    gots = elfplt.getGOTs(vw)
-
-    for gotva, gotsz in gots.get(fname):
-        if gotva <= va < gotva+gotsz:
-            return True
+    gotinfo = gots.get(fname)
+    if gotinfo:
+        for gotva, gotsz in gots.get(fname):
+            if gotva <= va < gotva + gotsz:
+                return True
 
     return False
 
-def isPLT(vw, va):
+def isPLT(plts, va):
     '''
     Check a VA to see if it resides in one of this workspace's PLT sections
-    (uses elfplt.getPLTs()
     '''
-    plts = elfplt.getPLTs(vw)
-
-    for pltva, pltsz in plts:
-        if pltva <= va < pltva+pltsz:
+    for pltva, pltsz, fname in plts:
+        if pltva <= va < pltva + pltsz:
             return True
 
     return False

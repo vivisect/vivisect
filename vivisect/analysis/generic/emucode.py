@@ -117,7 +117,6 @@ class watcher(viv_imp_monitor.EmulationMonitor):
             self.hasret = True
             emu.stopEmu()
 
-
 def analyze(vw):
 
     flist = vw.getFunctions()
@@ -127,8 +126,8 @@ def analyze(vw):
         docode = []
         bcode = []
 
-        vatodo = set([va for va, name in vw.getNames() if vw.getLocation(va) is None and va not in tried])
-        vatodo = vatodo.union([tova for _, tova, _, _ in vw.getXrefs(rtype=v_const.REF_PTR) if vw.getLocation(tova) is None and tova not in tried])
+        vatodo = set([va for va, name in vw.getNames() if va not in tried and vw.getLocation(va) is None])
+        vatodo = vatodo.union([tova for _, tova, _, _ in vw.getXrefs(rtype=v_const.REF_PTR) if tova not in tried and vw.getLocation(tova) is None])
         for va in vatodo:
             loc = vw.getLocation(va)
             if loc is not None:

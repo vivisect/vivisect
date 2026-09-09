@@ -360,7 +360,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         sname = sec.getName()
         size = sec.sh_size
         if sec.sh_addr == 0:
-            continue # Skip non-memory mapped sections
+            continue  # Skip non-memory mapped sections
 
         sva = sec.sh_addr
         sva += baseoff

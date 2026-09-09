@@ -211,6 +211,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # FIXME delete xrefs
         lva, lsize, ltype, linfo = loc
         self.locmap.setMapLookup(lva, lsize, None)
+        # remove is expensive here :(
         self.loclist.remove(loc)
 
     def _handleADDSEGMENT(self, einfo):
@@ -262,6 +263,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.reloc_by_va.pop(rva, None)
         delidx = -1
 
+        data = -1  # TODO: A better default? this is only here so data is defined for RTYPE_BASEPTR
         for idx, (fn, off, typ, data, size) in enumerate(self.relocations):
             if fn == fname and off == ptroff and typ == rtyp:
                 delidx = idx
@@ -271,7 +273,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self.relocations.pop(delidx)
 
         if full:
-            if rtyp == v_const.RTYPE_BASEPTR:
+            if rtyp == v_const.RTYPE_BASEPTR and data >= -1:
                 ptr = imgbase + data
                 ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
                 self._handleDELXREF((rva, ptr, v_const.REF_PTR, 0))
@@ -375,13 +377,16 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         fromva, tova, reftype, refflags = einfo
         self.xrefs_by_to[tova].remove(einfo)
         self.xrefs_by_from[fromva].remove(einfo)
+        self.xrefs.remove(einfo)
 
     def _handleSETNAME(self, einfo):
         if len(einfo) == 2:
             va, name = einfo
             basename = None
+            baseindx = None
         else:
-            va, name, basename = einfo
+            va, name, basename, baseindx = einfo
+
         if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
@@ -396,8 +401,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self.name_by_va[va] = name
 
         if basename is not None:
-            indx = self.va_by_name_hits.get(basename, 0)
-            self.va_by_name_hits[basename] = indx + 1
+            self.names_hits[basename] = baseindx
 
         if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)

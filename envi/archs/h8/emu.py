@@ -184,7 +184,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
 
                 addr = (intval * 4) + 0xc
 
-            isrAddr = self.readMemortPtr(addr)
+            isrAddr = self.readMemoryPtr(addr)
         else:
             if intval != 0:
                 val = self.getStatusRegister()
@@ -216,7 +216,7 @@ class H8Emulator(H8Module, h8_regs.H8RegisterContext, envi.Emulator):
 
                 addr = (intval * 4) + 0xa
 
-            isrAddr = self.readMemortPtr(addr)
+            isrAddr = self.readMemoryPtr(addr)
         else:
             if intval != 0:
                 self.doPush(self.getStatusRegister())

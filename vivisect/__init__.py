@@ -139,7 +139,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         self.cfctx = viv_base.VivCodeFlowContext(self)
 
-        self.va_by_name_hits = {}
+        self.names_hits = {}
         self.va_by_name = {}
         self.name_by_va = {}
         self.codeblocks_by_funcva = {}
@@ -1376,9 +1376,8 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             try:
                 op = self.parseOpcode(va, arch=arch)
             except e_exc.InvalidInstruction as msg:
-                # FIXME something is just not right about this...
                 bytez = self.readMemory(va, 16)
-                logger.warning("Invalid Instruct Attempt At:", hex(va), e_common.hexify(bytez))
+                logger.warning("Invalid Instruction Attempt At 0x%x: %s", va, e_common.hexify(bytez))
                 raise v_exc.InvalidLocation(va, str(msg))
             except Exception as msg:
                 raise v_exc.InvalidLocation(va, str(msg))
@@ -1857,7 +1856,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         if rtype:
             return [xtup for xtup in self.xrefs if xtup[v_const.XR_RTYPE] == rtype]
-        return self.xrefs
+        return list(self.xrefs)
 
     def getXrefsFrom(self, va, rtype=None):
         """
@@ -2229,25 +2228,29 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         offset, bytes = self.getByteDef(va)
         return e_bits.parsebytes(bytes, offset, size, bigend=self.bigend)
 
-    def _getSubstrings(self, va, size, ltyp):
+    def _getSubstrings(self, va, size, styp):
         # rip through the desired memory range to populate any substrings
         done = set()
         subs = set()
+        start = va
         end = va + size
-        # TODO: do we really need to step by 1? can we just step by the size of the substrings?
-        for offs in range(va, end, 1):
-            loc = self.getLocation(offs, range=True)
+        while va < end:
+            loc = self.getLocation(va, range=True)
             if not loc:
+                va += 1
                 continue
 
-            if loc[v_const.L_VA] in done:
+            lva, lsize, ltyp, linfo = loc
+            if lva in done:
+                va += 1
                 continue
 
-            done.add(loc[v_const.L_VA])
-            if loc[v_const.L_LTYPE] == ltyp and loc[v_const.L_VA] > va:
+            va = max(lva + lsize, va + 1)
+            done.add(lva)
+            if ltyp == styp and lva > start:
                 subs.add((loc[v_const.L_VA], loc[v_const.L_SIZE]))
                 if loc[v_const.L_TINFO]:
-                    subs = subs.union(set(loc[v_const.L_TINFO]))
+                    subs.update(set(loc[v_const.L_TINFO]))
         return list(subs)
 
     def _getStrTinfo(self, va, size, subs):
@@ -2561,7 +2564,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         to provide a complete accounting of linear workspace.
         """
         ret = []
-        endva = va+size
+        endva = va + size
         undefva = None
         while va < endva:
             ltup = self.getLocation(va)
@@ -2738,37 +2741,46 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
 
         default behavior is to fail on duplicate (False).
         """
+        # TODO: makeuniq name feels backwards?
         if filelocal:
             segtup = self.getSegment(va)
             if segtup is None:
                 self.vprint("Failed to find file for 0x%.8x (%s) (and filelocal == True!)"  % (va, name))
-            if segtup is not None:
+            else:
                 fname = segtup[v_const.SEG_FNAME]
                 if fname is not None:
                     name = "%s.%s" % (fname, name)
 
         oldva = self.vaByName(name)
         # If that's already the name, ignore the event
+        # TODO: maybe this should return the name? Just to be consistent?
         if oldva == va:
             return
 
         if oldva is not None:
             if not makeuniq:
                 raise v_exc.DuplicateName(oldva, va, name)
+            logger.debug('makeName: %r already lives at 0x%x', name, oldva)
 
             # tack a number on the end
-            index = self.va_by_name_hits.get(name, 0)
-            newname = "%s_%d" % (name, index)
+            index = self.names_hits.get(name, 1)
+            newname = f"{name}_{index}"
+            newoldva = self.vaByName(newname)
+            while self.vaByName(newname) is not None:
+                # if we run into the va we're naming, that's the name still
+                if newoldva == va:
+                    return newname
+                logger.debug('makeName: %r already lives at 0x%x', newname, newoldva)
+                index += 1
+                newname = f"{name}_{index}"
+                newoldva = self.vaByName(newname)
+
             logger.debug('makeName: %r already lives at 0x%x, naming it %s', name, oldva, newname)
 
-            newoldva = self.vaByName(newname)
-            if newoldva == va:
-                return newname
-
-            self._fireEvent(v_const.VWE_SETNAME, (va, newname, name))
+            self._fireEvent(v_const.VWE_SETNAME, (va, newname, name, index))
             return newname
 
-        self._fireEvent(v_const.VWE_SETNAME, (va, name, name))
+        self._fireEvent(v_const.VWE_SETNAME, (va, name, None, None))
         return name
 
     def saveWorkspace(self, fullsave=True, filename=None):

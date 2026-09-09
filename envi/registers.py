@@ -22,15 +22,14 @@ class RegisterContext:
         # TODO: There's still a lot of waste in register context construction, especially around
         # Emulators inheriting from IMemory and Imemory constructing its own archmods
         if cached is not None:
-            cached = REGDEFS.get(id)
-            self._rctx_regdef, self._rctx_names, self._rctx_ids, self._rctx_widths, self._rctx_masks, self._rctx_pcindex, self._rctx_spindex, self._rctx_srindex = cached
+            self._rctx_regdef, self._rctx_names, self._rctx_ids, self._rctx_widths, self._rctx_masks, self._rctx_pcindex, self._rctx_spindex, self._rctx_srindex, self._rctx_regmetas, self._rctx_statmetas = cached
             self._rctx_vals = [0] * len(self._rctx_regdef)
         else:
             self.loadRegDef(regdef)
             self.loadRegMetas(metas, statmetas=statmetas)
             self.setRegisterIndexes(pcindex, spindex, srindex=srindex)
             if id is not None:
-                REGDEFS[id] = (self._rctx_regdef, self._rctx_names, self._rctx_ids, self._rctx_widths, self._rctx_masks, self._rctx_pcindex, self._rctx_spindex, self._rctx_srindex)
+                REGDEFS[id] = (self._rctx_regdef, self._rctx_names, self._rctx_ids, self._rctx_widths, self._rctx_masks, self._rctx_pcindex, self._rctx_spindex, self._rctx_srindex, self._rctx_regmetas, self._rctx_statmetas)
 
         self._rctx_dirty = False
 
@@ -122,7 +121,7 @@ class RegisterContext:
         offset into the real register value.  The RegisterContext will take
         care of accesses after that.
         """
-        newidx = (offset << 24) + (width << 16) + idx
+        newidx = (offset << 24) | (width << 16) | (idx & 0xFFFF)
         self._rctx_names[name] = newidx
         self._rctx_ids[newidx] = name
 
@@ -181,7 +180,7 @@ class RegisterContext:
         self.setRegisterSnap(snap)
 
     def getRegisterName(self, index):
-        return self._rctx_ids.get(index,"REG%.8x" % index)
+        return self._rctx_ids.get(index, "REG%.8x" % index)
 
     def getProgramCounter(self):
         """
@@ -341,7 +340,7 @@ class RegisterContext:
         Translate a register value to the meta register value
         (used when getting a meta register)
         '''
-        ridx = index & 0xffff
+        # ridx = index & 0xffff
         offset = (index >> 24) & 0xff
         width  = (index >> 16) & 0xff
 
