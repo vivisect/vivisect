@@ -203,7 +203,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
         self.int_handlers = {}
 
-        envi.Emulator.__init__(self, ArmModule())
+        envi.Emulator.__init__(self, 'arm')
 
         ArmRegisterContext.__init__(self)
 

@@ -67,8 +67,8 @@ def analyze(vw):
         logger.warning('skipping initial PLT section analysis for QNX binary.')
         return
 
-    for sva, ssize in getPLTs(vw):
-        analyzePLT(vw, sva, ssize)
+    for sva, ssize, sfile in getPLTs(vw):
+        analyzePLT(vw, sva, ssize, sfile)
 
 
 def getGOTByFilename(vw, filename):
@@ -153,7 +153,7 @@ def getPLTs(vw):
     # Thought:  This is DT_PLTGOT, although each ELF will/may have their own DT_PLTGOT.
     for va, size, name, fname in vw.getSegments():
         if name.startswith(".plt") or name == '.rela.plt':
-            plts.append((va, size))
+            plts.append((va, size, fname))
 
     # pull GOT info from Dynamics
     for fname in vw.getFiles():
@@ -166,23 +166,26 @@ def getPLTs(vw):
             if FPLT is None or FPLTSZ is None:
                 continue
 
-            if vw.getFileMeta(fname, 'addbase'):
-                imgbase = vw.getFileMeta(fname, 'imagebase')
-                logger.debug('Adding Imagebase: 0x%x', imgbase)
-                FPLT += imgbase
+            # TODO: This is double adding the base?
+            #if vw.getFileMeta(fname, 'addbase'):
+                #imgbase = vw.getFileMeta(fname, 'imagebase')
+                #logger.debug('Adding Imagebase: 0x%x', imgbase)
+                #breakpoint()
+                #FPLT += imgbase
 
+            # TODO: a set or dict would be faster here
             newish = True
-            for pltva, pltsize in plts:
+            for pltva, pltsize, pltname in plts:
                 if FPLT == pltva:
                     newish = False
 
             if newish:
-                plts.append((FPLT, FPLTSZ))
+                plts.append((FPLT, FPLTSZ, fname))
 
     return plts
 
 
-def analyzePLT(vw, ssva, ssize):
+def analyzePLT(vw, ssva, ssize, sfile):
     try:
         '''
         analyze an entire section designated as "PLT" or "PLTGOT"
@@ -190,7 +193,7 @@ def analyzePLT(vw, ssva, ssize):
         emu = None
         sva = ssva
         nextseg = sva + ssize
-        gotva, gotsize = getGOTByFilename(vw, vw.getFileByVa(ssva))
+        gotva, gotsize = getGOTByFilename(vw, sfile)
 
         ###### make code for every opcode in PLT
         # make and parse opcodes.  keep track of unconditional branches
@@ -210,6 +213,7 @@ def analyzePLT(vw, ssva, ssize):
             if vw.getLocation(sva) is None:
                 logger.debug('making code: 0x%x', sva)
                 try:
+                    # TODO: we're occasionally double adding the imgbase?
                     vw.makeCode(sva)
                 except Exception:
                     logger.exception('0x%x: exception', sva)
@@ -309,7 +313,7 @@ def analyzeFunction(vw, funcva):
     # check to make sure we're in the PLT
     plts = getPLTs(vw)
     isplt = False
-    for pltva, pltsz in plts:
+    for pltva, pltsz, fname in plts:
         if pltva <= funcva < (pltva + pltsz):
             isplt = True
             segva = pltva

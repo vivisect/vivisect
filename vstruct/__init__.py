@@ -517,8 +517,8 @@ class VUnion(VStruct):
         field is set by the parser.
         """
         ret = offset
-        for fname,fobj in self.vsGetFields():
-            ret = max(offset, fobj.vsParse(sbytes, offset=offset))
+        for fname, fobj in self.vsGetFields():
+            ret = max(ret, fobj.vsParse(sbytes, offset=offset))
             callback = getattr(self, 'pcb_%s' % fname, None)
             if callback is not None:
                 callback()
@@ -595,6 +595,7 @@ def getModuleNames():
 
 def getStructNames(modname):
     ret = []
+    # TODO: DO you work? I think this should be resolvepath?
     mod = resolve(vs_defs, modname)
     if mod is None:
         return ret

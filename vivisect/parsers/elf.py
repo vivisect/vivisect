@@ -16,6 +16,13 @@ import vstruct.defs.constants.elf as vdc_elf
 
 from io import BytesIO
 
+cxxfiltok = False
+try:
+    import cxxfilt
+    cxxfiltok = True
+except Exception:
+    pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -131,18 +138,17 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
 def makeStringTable(vw, va, maxva):
 
     while va < maxva:
-        if vw.readMemory(va, 1) == "\x00":
+        if vw.readMemory(va, 1) == b"\x00":
             va += 1
             continue
-        else:
-            try:
-                if vw.isLocation(va):
-                    return
-                sloc = vw.makeString(va)
-                va += sloc[v_const.L_SIZE]
-            except Exception as e:
-                logger.warning("makeStringTable\t%r", e)
+        try:
+            if vw.isLocation(va):
                 return
+            sloc = vw.makeString(va)
+            va += sloc[v_const.L_SIZE]
+        except Exception as e:
+            logger.warning("makeStringTable\t%r", e)
+            return
 
 def makeSymbolTable(vw, va, maxva):
     ret = []
@@ -354,7 +360,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         sname = sec.getName()
         size = sec.sh_size
         if sec.sh_addr == 0:
-            continue # Skip non-memory mapped sections
+            continue  # Skip non-memory mapped sections
 
         sva = sec.sh_addr
         sva += baseoff
@@ -924,6 +930,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     # otherwise, we have to check the stored value for number or instruction
                     # if it's an instruction, we have to use the immediate value and then
                     # figure out if it's negative based on the instruction!
+                    temp = 0
                     try:
                         temp = vw.readMemoryPtr(rlva)
                         if rtype in Elf.r_armclasses[Elf.R_ARMCLASS_DATA] or rtype in Elf.r_armclasses[Elf.R_ARMCLASS_MISC]:
@@ -1059,6 +1066,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     # otherwise, we have to check the stored value for number or instruction
                     # if it's an instruction, we have to use the immediate value and then
                     # figure out if it's negative based on the instruction!
+                    temp = 0
                     try:
                         temp = vw.readMemoryPtr(rlva)
                         if rtype in Elf.r_armclasses[Elf.R_ARMCLASS_DATA] or rtype in Elf.r_armclasses[Elf.R_ARMCLASS_MISC]:
@@ -1215,14 +1223,11 @@ def demangle(name):
     '''
     name = normName(name)
 
-    try:
-        import cxxfilt
-        name = cxxfilt.demangle(name)
-    except ModuleNotFoundError:
-        # NOT USEFUL
-        pass
-    except Exception as e:
-        logger.debug('failed to demangle name (%r): %r', name, e)
+    if cxxfiltok:
+        try:
+            name = cxxfilt.demangle(name)
+        except Exception as e:
+            logger.debug('failed to demangle name (%r): %r', name, e)
 
     return name
 
