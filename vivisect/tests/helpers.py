@@ -62,7 +62,7 @@ def getTestWorkspace(*paths, vw=None):
     vw.analyze()
     return vw
 
-def getTestWorkspace_nocache(*paths, vw=None):
+def getTestWorkspace_nocache(*paths, vw=None, analyze=True):
     testdir = os.getenv('VIVTESTFILES')
     if not testdir:
         raise unittest.SkipTest('VIVTESTFILES env var not found!')
@@ -76,5 +76,6 @@ def getTestWorkspace_nocache(*paths, vw=None):
 
 
     vw.loadFromFile(fpath)
-    vw.analyze()
+    if analyze:
+        vw.analyze()
     return vw
