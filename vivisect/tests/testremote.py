@@ -156,6 +156,18 @@ class VivisectRemoteTests(unittest.TestCase):
 
                 self.assertEqual(rmtvw2.getLeaderInfo(testuuid), ('rakuy0', "rakuy0's moving castle"))
 
+                # make sure rmtvw also processes the leader event before
+                # reading do_leaders which accesses the local cache
+                retry = 0
+                while retry < 5:
+                    ldrsess = rmtvw.getLeaderSessions().get(testuuid)
+                    if ldrsess:
+                        user, fname = ldrsess
+                        if user == 'rakuy0':
+                            break
+                    retry += 1
+                    time.sleep(.1)
+                    sys.stderr.write('%d' % retry)
 
                 # test the CLI:
                 rmtvw.canvas = e_mcanvas.StringMemoryCanvas(rmtvw)
