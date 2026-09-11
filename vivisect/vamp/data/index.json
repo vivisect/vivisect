@@ -1,0 +1,521 @@
+{
+  "format_version": 1,
+  "sig_set_count": 57,
+  "total_signatures": 195366,
+  "total_masked": 178391,
+  "sig_sets": [
+    {
+      "library": "glibc",
+      "version": "2.27",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 3649,
+      "masked_count": 3467,
+      "file": "glibc_2.27_aarch64.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.27",
+      "arch": "arm",
+      "platform": "linux",
+      "sig_count": 3449,
+      "masked_count": 3271,
+      "file": "glibc_2.27_arm.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.27",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 3571,
+      "masked_count": 3399,
+      "file": "glibc_2.27_x64.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.31",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 3748,
+      "masked_count": 3544,
+      "file": "glibc_2.31_aarch64.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.31",
+      "arch": "arm",
+      "platform": "linux",
+      "sig_count": 3591,
+      "masked_count": 3385,
+      "file": "glibc_2.31_arm.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.31",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 3925,
+      "masked_count": 3708,
+      "file": "glibc_2.31_x64.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.35",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 4208,
+      "masked_count": 3942,
+      "file": "glibc_2.35_aarch64.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.35",
+      "arch": "arm",
+      "platform": "linux",
+      "sig_count": 4127,
+      "masked_count": 3906,
+      "file": "glibc_2.35_arm.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.35",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 4515,
+      "masked_count": 4244,
+      "file": "glibc_2.35_x64.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.39",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 4541,
+      "masked_count": 4190,
+      "file": "glibc_2.39_aarch64.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.39",
+      "arch": "arm",
+      "platform": "linux",
+      "sig_count": 4299,
+      "masked_count": 4006,
+      "file": "glibc_2.39_arm.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.39",
+      "arch": "i386",
+      "platform": "linux",
+      "sig_count": 4528,
+      "masked_count": 4300,
+      "file": "glibc_2.39_i386.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.39",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 4711,
+      "masked_count": 4432,
+      "file": "glibc_2.39_x64.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.43",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 4611,
+      "masked_count": 4243,
+      "file": "glibc_2.43_aarch64.json"
+    },
+    {
+      "library": "glibc",
+      "version": "2.43",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 4763,
+      "masked_count": 4457,
+      "file": "glibc_2.43_x64.json"
+    },
+    {
+      "library": "glibc_crypt",
+      "version": "2.39",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 122,
+      "masked_count": 117,
+      "file": "glibc_crypt_2.39_x64.json"
+    },
+    {
+      "library": "glibc_resolv",
+      "version": "2.39",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 63,
+      "masked_count": 57,
+      "file": "glibc_resolv_2.39_x64.json"
+    },
+    {
+      "library": "json-c",
+      "version": "0.17",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 171,
+      "masked_count": 158,
+      "file": "jsonc_0.17_x64.json"
+    },
+    {
+      "library": "libbz2",
+      "version": "1.0.8",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 43,
+      "masked_count": 42,
+      "file": "libbz2_1.0.8_x64.json"
+    },
+    {
+      "library": "libcurl",
+      "version": "8.5.0",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 1290,
+      "masked_count": 1208,
+      "file": "libcurl_8.5.0_x64.json"
+    },
+    {
+      "library": "libexpat",
+      "version": "2.6.1",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 291,
+      "masked_count": 288,
+      "file": "libexpat_2.6.1_x64.json"
+    },
+    {
+      "library": "libffi",
+      "version": "3.4.6",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 59,
+      "masked_count": 59,
+      "file": "libffi_3.4.6_x64.json"
+    },
+    {
+      "library": "libgcc",
+      "version": "13.3.0",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 601,
+      "masked_count": 485,
+      "file": "libgcc_13.3.0_x64.json"
+    },
+    {
+      "library": "liblz4",
+      "version": "1.9.4",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 161,
+      "masked_count": 138,
+      "file": "liblz4_1.9.4_x64.json"
+    },
+    {
+      "library": "liblzma",
+      "version": "5.4.5",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 353,
+      "masked_count": 336,
+      "file": "liblzma_5.4.5_x64.json"
+    },
+    {
+      "library": "libprotobuf",
+      "version": "3.21.12",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 6899,
+      "masked_count": 6239,
+      "file": "libprotobuf_3.21.12_x64.json"
+    },
+    {
+      "library": "snappy",
+      "version": "1.1.10",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 67,
+      "masked_count": 55,
+      "file": "libsnappy_1.1.10_x64.json"
+    },
+    {
+      "library": "libstdc++",
+      "version": "13.3.0",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 6066,
+      "masked_count": 5361,
+      "file": "libstdcpp_13.3.0_x64.json"
+    },
+    {
+      "library": "libstdc++",
+      "version": "14.2.0",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 6070,
+      "masked_count": 5366,
+      "file": "libstdcpp_14.2.0_x64.json"
+    },
+    {
+      "library": "libuv",
+      "version": "1.48.0",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 517,
+      "masked_count": 468,
+      "file": "libuv_1.48.0_x64.json"
+    },
+    {
+      "library": "zstd",
+      "version": "1.5.5",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 798,
+      "masked_count": 685,
+      "file": "libzstd_1.5.5_x64.json"
+    },
+    {
+      "library": "msvc",
+      "version": "vs2005-2019",
+      "arch": "amd64",
+      "platform": "windows",
+      "sig_count": 5,
+      "masked_count": 3,
+      "file": "msvc_x64.json"
+    },
+    {
+      "library": "msvc",
+      "version": "vs6-2019",
+      "arch": "i386",
+      "platform": "windows",
+      "sig_count": 14,
+      "masked_count": 7,
+      "file": "msvc_x86.json"
+    },
+    {
+      "library": "musl",
+      "version": "1.2.4",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 1910,
+      "masked_count": 1668,
+      "file": "musl_1.2.4_aarch64.json"
+    },
+    {
+      "library": "musl",
+      "version": "1.2.4",
+      "arch": "arm",
+      "platform": "linux",
+      "sig_count": 1990,
+      "masked_count": 1961,
+      "file": "musl_1.2.4_arm.json"
+    },
+    {
+      "library": "musl",
+      "version": "1.2.4",
+      "arch": "i386",
+      "platform": "linux",
+      "sig_count": 1876,
+      "masked_count": 1761,
+      "file": "musl_1.2.4_i386.json"
+    },
+    {
+      "library": "musl",
+      "version": "1.2.4",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 1798,
+      "masked_count": 1664,
+      "file": "musl_1.2.4_x64.json"
+    },
+    {
+      "library": "openssl",
+      "version": "1.0.2g",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 4031,
+      "masked_count": 3806,
+      "file": "openssl_1.0.2g_x64.json"
+    },
+    {
+      "library": "openssl",
+      "version": "1.1.1f",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 5159,
+      "masked_count": 4363,
+      "file": "openssl_1.1.1f_aarch64.json"
+    },
+    {
+      "library": "openssl",
+      "version": "1.1.1f",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 6371,
+      "masked_count": 5520,
+      "file": "openssl_1.1.1f_x64.json"
+    },
+    {
+      "library": "openssl",
+      "version": "3.0.13",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 10603,
+      "masked_count": 9650,
+      "file": "openssl_3.0.13_aarch64.json"
+    },
+    {
+      "library": "openssl",
+      "version": "3.0.13",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 10873,
+      "masked_count": 9869,
+      "file": "openssl_3.0.13_x64.json"
+    },
+    {
+      "library": "openssl",
+      "version": "3.0.2",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 10792,
+      "masked_count": 9789,
+      "file": "openssl_3.0.2_x64.json"
+    },
+    {
+      "library": "openssl",
+      "version": "3.4.1",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 11520,
+      "masked_count": 10468,
+      "file": "openssl_3.4.1_x64.json"
+    },
+    {
+      "library": "openssl",
+      "version": "3.5.5",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 13032,
+      "masked_count": 11940,
+      "file": "openssl_3.5.5_aarch64.json"
+    },
+    {
+      "library": "openssl",
+      "version": "3.5.5",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 13070,
+      "masked_count": 11972,
+      "file": "openssl_3.5.5_x64.json"
+    },
+    {
+      "library": "openssl-ssl",
+      "version": "1.0.2g",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 595,
+      "masked_count": 547,
+      "file": "openssl_ssl_1.0.2g_x64.json"
+    },
+    {
+      "library": "openssl-ssl",
+      "version": "1.1.1f",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 1139,
+      "masked_count": 950,
+      "file": "openssl_ssl_1.1.1f_aarch64.json"
+    },
+    {
+      "library": "openssl-ssl",
+      "version": "1.1.1f",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 1188,
+      "masked_count": 998,
+      "file": "openssl_ssl_1.1.1f_x64.json"
+    },
+    {
+      "library": "openssl-ssl",
+      "version": "3.0.13",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 1250,
+      "masked_count": 1054,
+      "file": "openssl_ssl_3.0.13_aarch64.json"
+    },
+    {
+      "library": "openssl-ssl",
+      "version": "3.0.13",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 1248,
+      "masked_count": 1048,
+      "file": "openssl_ssl_3.0.13_x64.json"
+    },
+    {
+      "library": "openssl-ssl",
+      "version": "3.0.2",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 1244,
+      "masked_count": 1048,
+      "file": "openssl_ssl_3.0.2_x64.json"
+    },
+    {
+      "library": "openssl-ssl",
+      "version": "3.4.1",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 2167,
+      "masked_count": 1879,
+      "file": "openssl_ssl_3.4.1_x64.json"
+    },
+    {
+      "library": "openssl-ssl",
+      "version": "3.5.5",
+      "arch": "aarch64",
+      "platform": "linux",
+      "sig_count": 2422,
+      "masked_count": 2112,
+      "file": "openssl_ssl_3.5.5_aarch64.json"
+    },
+    {
+      "library": "openssl-ssl",
+      "version": "3.5.5",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 2386,
+      "masked_count": 2078,
+      "file": "openssl_ssl_3.5.5_x64.json"
+    },
+    {
+      "library": "sqlite",
+      "version": "3.45.1",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 2748,
+      "masked_count": 2554,
+      "file": "sqlite_3.45.1_x64.json"
+    },
+    {
+      "library": "zlib",
+      "version": "1.3",
+      "arch": "amd64",
+      "platform": "linux",
+      "sig_count": 128,
+      "masked_count": 126,
+      "file": "zlib_1.3_x64.json"
+    }
+  ]
+}

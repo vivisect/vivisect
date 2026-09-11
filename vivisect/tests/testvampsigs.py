@@ -135,3 +135,199 @@ class VampSigTests(unittest.TestCase):
 
         opcodes = '8bff558bec81ec28030000a300000000890d00000000891500000000891d00000000893500000000893d00000000668c1500000000668c0d00000000668c1d00000000668c0500000000668c2500000000668c2d000000009c'
         self.assertEqual(self.run_test(opcodes), 'ntdll.report_gsfailure')
+
+
+class VampJsonTests(unittest.TestCase):
+    '''
+    Tests for the JSON-based VAMP signature infrastructure:
+    serialization, loading, filtering, deduplication, and the
+    generic analysis module.
+    '''
+
+    def test_json_roundtrip(self):
+        '''Test that a sigset can be serialized to JSON and loaded back.'''
+        import tempfile
+        import os
+        import vivisect.vamp as v_vamp
+
+        sigset = v_vamp.serializeSigSet(
+            library='testlib', version='1.0', arch='amd64',
+            platform='linux', compiler='gcc-9', compiled_flags='-O2',
+            binary_sha256='abc123',
+            signatures=[
+                {'name': 'testlib.func_a', 'bytes': '90909090cccc',
+                 'mask': 'ffffffffffff', 'func_size': 6,
+                 'first_block_size': 6, 'reloc_count': 0,
+                 'masked_ratio': 0.0, 'confidence': 'high'},
+                {'name': 'testlib.func_b', 'bytes': '554889e5',
+                 'mask': 'ffffffff', 'func_size': 4,
+                 'first_block_size': 4, 'reloc_count': 0,
+                 'masked_ratio': 0.0, 'confidence': 'low'},
+            ]
+        )
+
+        # Write to temp file
+        tmpdir = tempfile.mkdtemp()
+        filepath = os.path.join(tmpdir, 'test_sig.json')
+        v_vamp.saveSigSet(filepath, sigset)
+
+        # Load it back
+        tree, meta = v_vamp.loadSigSet(filepath)
+        self.assertEqual(len(tree.sigs), 2)
+        self.assertEqual(meta['library'], 'testlib')
+        self.assertEqual(meta['version'], '1.0')
+        self.assertEqual(meta['arch'], 'amd64')
+
+        # Verify the sigs match
+        import binascii
+        bytez = binascii.unhexlify('90909090cccc')
+        match = tree.getSignature(bytez, offset=0)
+        self.assertEqual(match, 'testlib.func_a')
+
+        # Clean up
+        os.unlink(filepath)
+        os.rmdir(tmpdir)
+
+    def test_format_version_check(self):
+        '''Test that loading rejects unsupported format versions.'''
+        import tempfile
+        import os
+        import json
+        import vivisect.vamp as v_vamp
+
+        bad_data = {
+            'format_version': 999,
+            'library': 'test', 'signatures': []
+        }
+        tmpdir = tempfile.mkdtemp()
+        filepath = os.path.join(tmpdir, 'bad_sig.json')
+        with open(filepath, 'w') as f:
+            json.dump(bad_data, f)
+
+        with self.assertRaises(ValueError):
+            v_vamp.loadSigSet(filepath)
+
+        os.unlink(filepath)
+        os.rmdir(tmpdir)
+
+    def test_filter_sigs(self):
+        '''Test signature filtering by length and confidence.'''
+        import vivisect.vamp as v_vamp
+
+        sigset = {
+            'format_version': 1,
+            'library': 'test',
+            'signatures': [
+                {'name': 'short', 'bytes': '9090', 'mask': 'ffff',
+                 'first_block_size': 2, 'masked_ratio': 0.0,
+                 'confidence': 'high'},
+                {'name': 'medium', 'bytes': '9090909090909090', 'mask': 'ffffffff',
+                 'first_block_size': 8, 'masked_ratio': 0.0,
+                 'confidence': 'medium'},
+                {'name': 'long_high', 'bytes': '90909090909090909090909090909090',
+                 'mask': 'ffffffffffffffffffffffffffffffff',
+                 'first_block_size': 16, 'masked_ratio': 0.0,
+                 'confidence': 'high'},
+                {'name': 'too_masked', 'bytes': '9090909090909090',
+                 'mask': 'ff000000ff000000',
+                 'first_block_size': 8, 'masked_ratio': 0.75,
+                 'confidence': 'low'},
+            ]
+        }
+
+        # Filter: min_length=8, max_masked=0.50, min_confidence='low'
+        filtered = v_vamp.filterSigs(sigset, min_length=8, max_masked_ratio=0.50,
+                                     min_confidence='low')
+        names = [s['name'] for s in filtered['signatures']]
+        self.assertIn('medium', names)
+        self.assertIn('long_high', names)
+        self.assertNotIn('short', names)  # too short
+        self.assertNotIn('too_masked', names)  # too masked
+
+        # Filter: min_confidence='high'
+        filtered = v_vamp.filterSigs(sigset, min_length=1, max_masked_ratio=1.0,
+                                     min_confidence='high')
+        names = [s['name'] for s in filtered['signatures']]
+        self.assertIn('long_high', names)
+        self.assertNotIn('medium', names)
+
+    def test_dedup_sigs(self):
+        '''Test that duplicate signatures are removed.'''
+        import vivisect.vamp as v_vamp
+
+        sigset = {
+            'format_version': 1,
+            'library': 'test',
+            'signatures': [
+                {'name': 'func_a', 'bytes': '90909090', 'mask': 'ffffffff'},
+                {'name': 'func_b', 'bytes': '90909090', 'mask': 'ffffffff'},  # dup
+                {'name': 'func_c', 'bytes': 'cccccccc', 'mask': 'ffffffff'},
+            ]
+        }
+
+        deduped = v_vamp.dedupSigs(sigset)
+        self.assertEqual(len(deduped['signatures']), 2)
+        self.assertIn('dedup_conflicts', deduped)
+        self.assertEqual(len(deduped['dedup_conflicts']), 1)
+
+    def test_load_all_sig_sets(self):
+        '''Test that loadAllSigSets finds the MSVC JSON data files.'''
+        import vivisect.vamp as v_vamp
+
+        sets = v_vamp.loadAllSigSets()
+        self.assertGreaterEqual(len(sets), 1, "Should find at least one sig set")
+
+        for tree, meta, filepath in sets:
+            self.assertGreater(len(tree.sigs), 0, "Each set should have sigs")
+            self.assertIn('library', meta)
+            self.assertIn('version', meta)
+
+    def test_load_sig_set_index(self):
+        '''Test that the index file can be loaded.'''
+        import vivisect.vamp as v_vamp
+
+        index = v_vamp.loadSigSetIndex()
+        self.assertIn('sig_sets', index)
+        self.assertGreaterEqual(len(index['sig_sets']), 1)
+
+    def test_msvc_json_backward_compat(self):
+        '''Test that the refactored MSVC module still matches signatures.'''
+        import vivisect.vamp.msvc as v_msvc
+
+        vs = v_msvc.VisualStudioVamp()
+        # Should have loaded sigs (either from JSON or fallback)
+        self.assertGreater(len(vs.sigs), 0)
+
+        # Test a known signature match
+        import binascii
+        bytez = binascii.unhexlify('680000000064a10000000050')
+        match = vs.getSignature(bytez, offset=0)
+        self.assertEqual(match, 'ntdll.seh3_prolog')
+
+    def test_generic_vamp_analysis(self):
+        '''Test that the generic VAMP analysis module can match sigs.'''
+        import vivisect
+        import envi.const as e_const
+        import vivisect.analysis.generic.vamp as gvamp
+
+        # Create a workspace with the generic vamp module
+        vw = vivisect.VivWorkspace()
+        vw.setMeta('Architecture', 'i386')
+        vw.setMeta('Platform', 'windows')
+        vw.setMeta('Format', 'pe')
+
+        vw.addFuncAnalysisModule("vivisect.analysis.generic.vamp")
+
+        # Put seh3_prolog opcodes into an executable memory map
+        mapbase = 0x400000
+        bufferpgsz = 2 * 4096
+        vw.addMemoryMap(mapbase - bufferpgsz, e_const.MM_RWX,
+                        'test', '@' * bufferpgsz)
+        bytez = bytes(bytearray.fromhex('680000000064a10000000050'))
+        vw.addMemoryMap(mapbase, e_const.MM_RWX, 'test', bytez)
+        vw.addSegment(mapbase, len(bytez), 'test_code_%x' % mapbase, 'test')
+
+        fva = mapbase
+        vw.makeFunction(fva)
+        thunk = vw.getFunctionMeta(fva, 'Thunk')
+        self.assertEqual(thunk, 'ntdll.seh3_prolog')

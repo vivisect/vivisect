@@ -1,11 +1,18 @@
 """
 envi.bytesig signatures for Microsoft Visual Studio
+
+This module provides backward-compatible access to the MSVC VAMP signature
+set. Signatures are now stored in JSON format under vamp/data/msvc_*.json
+and loaded at runtime. The original hardcoded sigs are preserved as a
+fallback for environments where the data files may not be present.
 """
 import binascii
+import os
 
 import envi.bytesig as e_bytesig
 
-sigs = [
+# Original hardcoded signatures — kept as fallback
+_sigs_fallback = [
     ('680000000064a10000000050', 'ff00000000ffffffffffffff', 'ntdll.seh3_prolog'),
     ('8b4df064890d00000000595f5e5bc951c3', None, 'ntdll.seh3_epilog'),
     ('680000000064ff35000000008b442410', 'ff00000000ffffffffffffffffffffff', 'ntdll.seh4_prolog'),
@@ -26,7 +33,6 @@ sigs = [
     # Seen in 64-bit samples using VS 2017, 2019.
     ('4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd3f27317664181e200f04d8d9b00f0ffff41c603004d3bd3f275ef4c8b14244c8b5c24084883c410f2c3', None, 'ntdll._alloca_probe'),
 
-#    ('3b0d000000000f85afdc0200c3', 'ffff00000000ffffffffffffff', 'ntdll.security_check_cookie'),
     # 32-bit assembly used in VS 2005, 2008, 2010, 2012, 2013.
     ('3b0d000000007502f3c3e9', 'ffff00000000ffffffffff','ntdll.security_check_cookie'),
     # 32-bit assembly used in VS 2015, 2017 (includes bnd opcodes).
@@ -48,18 +54,50 @@ sigs = [
     ),
 
     ('6aff5064a100000000508b44240c64892500000000896c240c8d6c240c50c3',None, 'ntdll.eh_prolog'),
-
 ]
+
+# Path to JSON data files
+_data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+
 
 class VisualStudioVamp(e_bytesig.SignatureTree):
 
     def __init__(self):
         e_bytesig.SignatureTree.__init__(self)
-        for bytez, masks, fname in sigs:
+        # Try loading from JSON data files first, fall back to hardcoded sigs
+        loaded = self._load_from_json_files()
+        if not loaded:
+            self._load_fallback_sigs()
+
+    def _load_from_json_files(self):
+        """Load all MSVC JSON sig files and add them to this tree.
+        Returns True if any sigs were loaded, False otherwise."""
+        import json
+        loaded_any = False
+        for fname in ('msvc_x86.json', 'msvc_x64.json'):
+            filepath = os.path.join(_data_dir, fname)
+            if not os.path.isfile(filepath):
+                continue
+            try:
+                with open(filepath, 'r') as f:
+                    data = json.load(f)
+                for sig in data.get('signatures', []):
+                    bytez = binascii.unhexlify(sig['bytes'])
+                    mask = binascii.unhexlify(sig['mask']) if sig.get('mask') else None
+                    self.addSignature(bytez, masks=mask, val=sig['name'])
+                loaded_any = True
+            except Exception:
+                continue
+        return loaded_any
+
+    def _load_fallback_sigs(self):
+        """Load the hardcoded fallback signatures."""
+        for bytez, masks, fname in _sigs_fallback:
             bytez = binascii.unhexlify(bytez)
             if masks is not None:
                 masks = binascii.unhexlify(masks)
             self.addSignature(bytez, masks=masks, val=fname)
+
 
 # seh3_prolog
 #.text:0x7c8024d6  68c09a837c       push kernel32.seh3_handler
@@ -80,7 +118,7 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
 #.text:0x7c802504  8945f8           mov dword [ebp - 8],eax
 #.text:0x7c802507  8d45f0           lea eax,dword [ebp - 16]
 #.text:0x7c80250a  64a300000000     fs: mov dword [0x00000000],eax
-#.text:0x7c802510  c3               ret 
+#.text:0x7c802510  c3               ret
 
 # seh3_epilog
 #.text:0x7c802511  8b4df0           mov ecx,dword [ebp - 16]
@@ -89,9 +127,9 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
 #.text:0x7c80251c  5f               pop edi
 #.text:0x7c80251d  5e               pop esi
 #.text:0x7c80251e  5b               pop ebx
-#.text:0x7c80251f  c9               leave 
+#.text:0x7c80251f  c9               leave
 #.text:0x7c802520  51               push ecx
-#.text:0x7c802521  c3               ret 
+#.text:0x7c802521  c3               ret
 
 
 # seh4_prolog
@@ -115,7 +153,7 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
 #.text:0x004023c8  8945f8           mov dword [ebp - 8],eax
 #.text:0x004023cb  8d45f0           lea eax,dword [ebp - 16]
 #.text:0x004023ce  64a300000000     fs: mov dword [0x00000000],eax
-#.text:0x004023d4  c3               ret 
+#.text:0x004023d4  c3               ret
 
 # seh4_epilog
 #.text:0x004025e9  8b4df0           mov ecx,dword [ebp - 16]
@@ -128,7 +166,7 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
 #.text:0x004025f8  8be5             mov esp,ebp
 #.text:0x004025fa  5d               pop ebp
 #.text:0x004025fb  51               push ecx
-#.text:0x004025fc  c3               ret 
+#.text:0x004025fc  c3               ret
 
 # gs_prolog_chunk
 #.text:0x00409362  a11cc04000       mov eax,dword [GS_COOKIE]
@@ -140,7 +178,7 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
 # GS Epilog (is ecx ok chunk)
 #.text:0x0040119a  3b0d1cc04000     cmp ecx,dword [GS_COOKIE]
 #.text:0x004011a0  7502             jnz loc_004011a4
-#.text:0x004011a2  f3c3             rep: ret 
+#.text:0x004011a2  f3c3             rep: ret
 #.text:0x004011a4  loc_004011a4: [1 XREFS]
 #.text:0x004011a4  e903160000       jmp loc_004027ac
 
@@ -156,6 +194,4 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
 #896c240c         mov dword [esp + local_1],ebp     ; Put old EBP into saved EIP spot (esp now delta 16 total)
 #8d6c240c         lea ebp,dword [esp + local_1]     ; Make ebp point to itself
 #50               push eax
-#c3               ret 
-
-
+#c3               ret
