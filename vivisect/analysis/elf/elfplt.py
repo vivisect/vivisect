@@ -166,13 +166,6 @@ def getPLTs(vw):
             if FPLT is None or FPLTSZ is None:
                 continue
 
-            # TODO: This is double adding the base?
-            #if vw.getFileMeta(fname, 'addbase'):
-                #imgbase = vw.getFileMeta(fname, 'imagebase')
-                #logger.debug('Adding Imagebase: 0x%x', imgbase)
-                #breakpoint()
-                #FPLT += imgbase
-
             # TODO: a set or dict would be faster here
             newish = True
             for pltva, pltsize, pltname in plts:

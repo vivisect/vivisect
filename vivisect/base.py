@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 Mostly this is a place to scuttle away some of the inner workings
 of a workspace, so the outer facing API is a little cleaner.
 """
-class VivEventCore(object):
+class VivEventCore:
     '''
     A class to facilitate event monitoring in the viv workspace.
     '''
@@ -272,12 +272,11 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if delidx >= 0:
             self.relocations.pop(delidx)
 
-        if full:
-            if rtyp == v_const.RTYPE_BASEPTR and data >= -1:
-                ptr = imgbase + data
-                ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
-                self._handleDELXREF((rva, ptr, v_const.REF_PTR, 0))
-                self._handleDELLOCATION((rva, self.psize, v_const.LOC_POINTER, ptr))
+        if full and rtyp == v_const.RTYPE_BASEPTR and data >= 0:
+            ptr = imgbase + data
+            ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
+            self._handleDELXREF((rva, ptr, v_const.REF_PTR, 0))
+            self._handleDELLOCATION((rva, self.psize, v_const.LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
         logger.warning('DEPRECATED (ADDMODULE) ignored: %s', einfo)

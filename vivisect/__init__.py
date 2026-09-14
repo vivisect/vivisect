@@ -1873,7 +1873,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if xrefs is None:
             return ret
         if rtype is None:
-            return xrefs
+            return list(xrefs)
         return [xtup for xtup in xrefs if xtup[v_const.XR_RTYPE] == rtype]
 
     def getXrefsTo(self, va, rtype=None):
@@ -1887,7 +1887,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if xrefs is None:
             return ret
         if rtype is None:
-            return xrefs
+            return list(xrefs)
         return [xtup for xtup in xrefs if xtup[v_const.XR_RTYPE] == rtype]
 
     def addMemoryMap(self, va, perms, fname, bytes, align=None):

@@ -289,3 +289,13 @@ class UnmappedAddress(Exception):
     def __init__(self, loc):
         super().__init__(f"Unmapped address in {loc}")
         self.loc = loc
+
+class UnknownArgType(EnviException):
+    def __init__(self, argtype):
+        super().__init__("Unknown argument type: %d", argtype)
+        self.argtype = argtype
+
+class UnknownEmulatorOpt(EnviException):
+    def __init__(self, opt):
+        super().__init__("Unknown Emu Opt: %s", opt)
+        self.opt = opt

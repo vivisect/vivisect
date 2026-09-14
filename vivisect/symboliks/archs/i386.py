@@ -292,7 +292,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     i_addss = i_addsd
 
-    def i_vaddsd(self, off=0):
+    def i_vaddsd(self, op, off=0):
         self.i_addsd(op, off=1)
 
     def i_vaddss(self, op):

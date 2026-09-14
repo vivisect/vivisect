@@ -931,6 +931,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def FPToFixed(operand, M, fraction_bits, unsigned, round_towards_zero, fpscr_controlled):
         if fpscr_controlled:
+            # TODO: Should this be REG_FPSCR?
             fpscr_val = FPSCR 
         else:
             fpscr_val = StandardFPSCRValue()
@@ -993,6 +994,7 @@ class ArmEmulator(ArmRegisterContext, envi.Emulator):
 
     def FixedToFP(self, operand, N, fraction_bits, unsigned, round_to_nearest, fpscr_controlled):
         if fpscr_controlled:
+            # TODO: Should this be REG_FPSCR?
             fpscr_val = FPSCR 
         else:
             fpscr_val = StandardFPSCRValue()

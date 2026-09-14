@@ -1914,7 +1914,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_stosw(self, op):
         ax = self.getRegister(REG_AX)
         edi = self.getRegister(REG_EDI)
-        base,size = self._emu_segments[SEG_ES]
+        base, size = self._emu_segments[SEG_ES]
         self.writeMemory(base+edi, struct.pack("<H", ax))
         if self.getFlag(EFLAGS_DF):
             edi -= 2
@@ -1924,13 +1924,12 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     def i_stosd(self, op):
         if op.prefixes & PREFIX_REX_W:
-            eax = self.getRegister(REG_RAX)
-            edi = self.getRegister(REG_RDI)
             step = 8
         else:
-            eax = self.getRegister(REG_EAX)
-            edi = self.getRegister(REG_EDI)
             step = 4
+
+        eax = self.getRegister(REG_EAX)
+        edi = self.getRegister(REG_EDI)
 
         base, size = self._emu_segments[SEG_ES]
         self.writeMemory(base+edi, struct.pack("<L", eax))
