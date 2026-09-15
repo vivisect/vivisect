@@ -10,6 +10,7 @@ class StructParser:
 
         self.psize = psize
         self.pclass = vs_prim.v_ptr32
+        self.typedefs = {}  # TODO:  PLUM these into substitutions
 
         self.cls_parsers = {
             c_ast.Decl:             self.c_getVsDecl,
@@ -21,26 +22,44 @@ class StructParser:
             c_ast.TypeDecl:         self.c_getVsType,
             c_ast.ArrayDecl:        self.c_getVsArray,
             c_ast.IdentifierType:   self.c_getIdentType,
+            c_ast.Typedef:          self.c_getTypeDef,
         }
 
         self.vs_ctypes = {
             ('char',):                  vs_prim.v_int8,
+            ('s8',):                    vs_prim.v_int8,
+            ('u8',):                    vs_prim.v_uint8,
             ('unsigned','char'):        vs_prim.v_uint8,
+            ('uchar',):                 vs_prim.v_uint8,
+            ('int8_t',):                vs_prim.v_int8,
+            ('uint8_t',):               vs_prim.v_uint8,
 
             ('short',):                 vs_prim.v_int16,
             ('short','int'):            vs_prim.v_int16,
+            ('s16',):                   vs_prim.v_int16,
+            ('int16_t',):               vs_prim.v_int16,
 
-            ('unsigned', 'short',):     vs_prim.v_uint16,
-            ('unsigned', 'short','int'):vs_prim.v_uint16,
+            ('ushort',):                vs_prim.v_uint16,
+            ('unsigned','short'):       vs_prim.v_uint16,
+            ('unsigned','short','int'): vs_prim.v_uint16,
+            ('u16',):                   vs_prim.v_uint16,
+            ('uint16_t',):              vs_prim.v_uint16,
 
             ('int',):                   vs_prim.v_int32,
-            ('unsigned','int',):        vs_prim.v_uint32,
+            ('s32',):                   vs_prim.v_int32,
+            ('int32_t',):               vs_prim.v_int32,
+            ('unsigned','int'):         vs_prim.v_uint32,
+            ('u32',):                   vs_prim.v_uint32,
+            ('uint',):                  vs_prim.v_uint32,
+            ('ulong',):                 vs_prim.v_uint32,
 
             ('long',):                  vs_prim.v_int32,
             ('long','int'):             vs_prim.v_int32,
+            ('int32_t',):               vs_prim.v_int32,
 
-            ('unsigned','long',):       vs_prim.v_uint32,
+            ('unsigned','long'):        vs_prim.v_uint32,
             ('unsigned','long','int'):  vs_prim.v_uint32,
+            ('uint32_t',):              vs_prim.v_uint32,
         }
 
         if psize == 8:
@@ -49,10 +68,17 @@ class StructParser:
                 ('long',):                    vs_prim.v_int64,
                 ('long', 'int'):              vs_prim.v_int64,
                 ('long', 'long'):             vs_prim.v_int64,
+                ('int64_t',):                 vs_prim.v_int64,
 
+                ('ulonglong',):               vs_prim.v_uint64,
                 ('unsigned', 'long',):        vs_prim.v_uint64,
                 ('unsigned', 'long', 'int'):  vs_prim.v_uint64,
                 ('unsigned', 'long', 'long'): vs_prim.v_uint64,
+
+                ('s64',):                     vs_prim.v_int64,
+                ('int64_t',):                 vs_prim.v_int64,
+                ('u64',):                     vs_prim.v_uint64,
+                ('uint64_t',):                vs_prim.v_uint64,
             })
 
     def _getVsChildElements(self, astelem):
@@ -114,8 +140,19 @@ class StructParser:
     def c_getFuncDecl(self, felem):
         raise NotImplementedError("Implement function declaration parsing!")
 
+    def c_getTypeDef(self, tdelem):
+        extnm, elem = tdelem
+        self.typedefs[elem.name] = elem
+        return None, None
+
     def parseStructSource(self, src):
-        src = preProcessSource( src )
+        # TODO:  add in the existing Structure Namespaces and other structures here
+        if self.psize < 8:
+            src = preProcessSource( prepend + src )
+        else:
+            src = preProcessSource( prepend + prepend64 + src )
+
+        # src = preProcessSource( src )
         parser = c_parser.CParser()
         ast = parser.parse(src)
         #ast.show()
@@ -124,22 +161,72 @@ class StructParser:
             xname, decl =  self._getVsElement( child )
             yield decl
 
+prepend = '''
+typedef char           s8;
+typedef short          s16;
+typedef int            s32;
+typedef long           s64;
+
+typedef unsigned char           u8;
+typedef unsigned short          u16;
+typedef unsigned int            u32;
+typedef unsigned long           u64;
+
+typedef unsigned char           u_char;
+typedef unsigned short          u_short;
+typedef unsigned int            u_int;
+typedef unsigned long           u_long;
+
+typedef unsigned char           unchar;
+typedef unsigned short          ushort;
+typedef unsigned int            uint;
+typedef unsigned long           ulong;
+
+typedef u8                      u_int8_t;
+typedef s8                      int8_t;
+typedef u16                     u_int16_t;
+typedef s16                     int16_t;
+typedef u32                     u_int32_t;
+typedef s32                     int32_t;
+
+
+typedef u8                      uint8_t;
+typedef u16                     uint16_t;
+typedef u32                     uint32_t;
+'''
+prepend64 = '''
+typedef u64                     uint64_t;
+typedef u64                     u_int64_t;
+typedef s64                     int64_t;
+'''
+
 def preProcessSource( src ):
     '''
     Carry out some *very* basic pre-processor parsing on the given source.
 
     (only function now is remove "//" style comments!)
     '''
+    src = clean_code(src, True, True)
     lines = src.splitlines()
     return '\n'.join( [ line.split('//')[0] for line in lines ] )
 
-def ctorFromCSource(src, psize=4, bigend=False):
+def ctorsFromCSource(src, psize=4, bigend=False):
     '''
-    Parse and return a callable constructor for the
+    Parse and return all callable constructors for the
     input C structure source.
     '''
     p = StructParser(psize=psize, bigend=bigend)
-    return list(p.parseStructSource( src ))[0]
+    return [s for s in p.parseStructSource(src) if s is not None]
+
+def ctorFromCSource(src, psize=4, bigend=False):
+    '''
+    Parse and return one callable constructor for the
+    input C structure source.
+    Returns None if no struct definition is found.
+    '''
+    result = ctorsFromCSource(src, psize, bigend)
+    if result:
+        return result[0]
 
 def vsFromCSource(src, psize=4, bigend=False):
     '''
@@ -173,3 +260,51 @@ class awesome(CVStruct):
         int *q;
     };
     '''
+
+# stolen from cod3monk's (https://github.com/cod3monk) PR to pycparser at https://github.com/eliben/pycparser/pull/103/files
+def clean_code(code, comments=True, macros=False):
+    """ Naive comment and macro striping from source code
+        comments:
+            If True, all comments are stripped from code
+        macros:
+            If True, all macros are stripped from code
+        Returns cleaned code. Line numbers are preserved with blank lines,
+        and multiline comments and macros are supported. BUT comments-like
+        strings are (wrongfuly) treated as comments.
+    """
+    if macros:
+        lines = code.split('\n')
+        in_macro = False
+        for i in range(len(lines)):
+            l = lines[i].strip()
+
+            if l.startswith('#') or in_macro:
+                lines[i] = ''
+                in_macro = l.endswith('\\')
+        code = '\n'.join(lines)
+        # TODO:  Parse and Apply macros
+
+    if comments:
+        idx = 0
+        comment_start = None
+        while idx < len(code)-1:
+            if comment_start is None:
+                if code[idx:idx+2] == '//':
+                    end_idx = code.find('\n', idx)
+                    if end_idx == -1:
+                        code = code[:idx]
+                    else:
+                        code = code[:idx]+code[end_idx:]
+                        idx -= end_idx - idx
+
+                elif code[idx:idx+2] == '/*':
+                    comment_start = idx
+
+            else:
+                if code[idx:idx+2] == '*/':
+                    code = code[:comment_start]+'\n'*code[comment_start:idx].count('\n')+code[idx+2:]
+                    idx -= idx - comment_start
+                    comment_start = None
+            idx += 1
+
+    return code
