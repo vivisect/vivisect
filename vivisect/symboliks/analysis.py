@@ -1,3 +1,5 @@
+import logging
+
 import visgraph.pathcore as vg_pathcore
 import visgraph.graphcore as v_graphcore
 
@@ -9,6 +11,8 @@ import vivisect.symboliks.common as vsym_common
 import vivisect.symboliks.effects as vsym_effects
 import vivisect.symboliks.emulator as vsym_emulator
 
+
+logger = logging.getLogger(__name__)
 
 class SymbolikFunctionGraph(v_graphcore.HierGraph):
 
@@ -702,5 +706,11 @@ def getSymbolikAnalysisContext(vw, consolve=False):
     elif arch == 'amd64':
         import vivisect.symboliks.archs.amd64 as vsym_amd64
         return vsym_amd64.Amd64SymbolikAnalysisContext(vw, consolve=consolve)
+
+    elif arch == 'arm':
+        import vivisect.symboliks.archs.arm32 as vsym_arm32
+        return vsym_arm32.A32SymbolikAnalysisContext(vw)
+
+    logger.warn("Architecture Symboliks subsystem not implemented: %r", arch)
 
     return None
