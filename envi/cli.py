@@ -412,6 +412,7 @@ class EnviCli(Cmd):
 
                 optval = newval
                 cfg[optname] = newval
+                self.config._handleCallback(pathstring, newval)
 
             self.vprint('%s.%s=%s' % ('.'.join(subnames), optname, json.dumps(optval)))
 
