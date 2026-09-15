@@ -3,6 +3,7 @@ import unittest
 import itertools
 import threading
 import logging
+from unittest import mock
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,30 @@ import cobra.auth.shadowfile as c_auth_shadow
 
 import cobra.tests as c_tests
 
+
+def _start_msgpack_cobra_server(portnum, max_attempts=10):
+    errors = []
+
+    for _ in range(max_attempts):
+        port = next(portnum)
+        try:
+            daemon = cobra.startCobraServer(host="", port=port, sslca=None, sslcrt=None, sslkey=None, msgpack=True)
+            return port, daemon
+        except Exception as e:
+            errors.append((port, e))
+            logger.warning("exception starting cobra server on port %d: %r", port, e)
+
+    port, error = errors[-1]
+    raise RuntimeError("unable to start cobra server after %d attempts; last port=%d" % (max_attempts, port)) from error
+
 class CobraBasicTest(unittest.TestCase):
+
+    def test_start_msgpack_cobra_server_retries_are_bounded(self):
+        with mock.patch('cobra.startCobraServer', side_effect=RuntimeError('boom')) as start_server:
+            with self.assertRaises(RuntimeError):
+                _start_msgpack_cobra_server(itertools.count(60651), max_attempts=3)
+
+        self.assertEqual(start_server.call_count, 3)
 
     def test_cobra_proxy(self):
 
@@ -111,20 +135,14 @@ class CobraBasicTest(unittest.TestCase):
     #def test_cobra_ssl(self):
     #def test_cobra_ssl_clientcert(self):
     def test_cobra_helpers(self):
+        import msgpack
+
         portnum = itertools.count(60651)
 
         testobj = c_tests.TestObject()
 
         # test startCobraServer
-        port = None
-        daemon = None
-        while daemon is None:
-            try:
-                port = next(portnum)
-                daemon = cobra.startCobraServer(host="", port=port, sslca=None, sslcrt=None, sslkey=None, msgpack=True)
-
-            except Exception as e:
-                logger.warning("exception starting cobra server: %r", e)
+        port, daemon = _start_msgpack_cobra_server(portnum)
 
         objname = daemon.shareObject( testobj )
         tproxy = cobra.CobraProxy('cobra://localhost:%d/%s?msgpack=1' % (port, objname))

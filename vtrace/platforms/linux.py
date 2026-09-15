@@ -514,6 +514,8 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
         attachThread() so callers in notifiers may call it (because
         it's also gotta be thread wrapped).
         """
+        self._validateThreadId(tid)
+
         if not attached:
             if v_posix.ptrace(PT_ATTACH, tid, 0, 0) != 0:
                 raise Exception("ERROR ptrace attach failed for thread %d" % tid)
@@ -524,6 +526,24 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
 
         self.setupPtraceOptions(tid)
         self.pthreads.append(tid)
+
+    def _validateThreadId(self, tid):
+        if tid <= 0:
+            raise vtrace.PlatformException('ERROR: Invalid threadid chosen: %d' % tid)
+
+    def _attachThreadFromEvent(self, tid):
+        if tid is None or tid <= 0:
+            logger.warning('Ignoring invalid thread event tid: %r', tid)
+            return
+
+        self.attachThread(tid, attached=True)
+
+    def _getStoppedThreadFallback(self):
+        for tid in self._stopped_cache:
+            if tid > 0 and tid not in self.pthreads:
+                return tid
+
+        return None
 
     @v_base.threadwrap
     def setupPtraceOptions(self, tid):
@@ -602,7 +622,7 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
                 # Handle a new thread here!
                 newtid = self.getPtraceEvent()
                 # print('CLONE (new tid: %d)' % newtid)
-                self.attachThread(newtid, attached=True)
+                self._attachThreadFromEvent(newtid)
 
             elif sig == signal.SIGSTOP and tid != self.pid:
                 #print('OMG IM THE NEW THREAD! %d' % tid)
@@ -620,9 +640,11 @@ class LinuxMixin(v_posix.PtraceMixin, v_posix.PosixMixin):
 
                 elif self._stopped_hack:
                     newtid = self.getPtraceEvent(tid)
+                    if newtid <= 0:
+                        newtid = self._getStoppedThreadFallback()
                     #print("WHY DID WE GET *ANOTHER* STOP?: %d" % tid)
                     #print('PTRACE EVENT: %d' % newtid)
-                    self.attachThread(newtid, attached=True)
+                    self._attachThreadFromEvent(newtid)
 
                 else: # on first attach...
                     self._stopped_hack = True
