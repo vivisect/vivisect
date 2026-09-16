@@ -298,7 +298,11 @@ class DwarfInfo:
                     name = self.strtable[indx:].split(b'\x00', 1)[0]
                     self.secmap[name.decode('utf-8')] = sec
         # TODO: abbrevByIndex seems like a good idea, but who consumes it realistically?
-        self.abbrevByIndex, self.abbrevByOffset = self._parseDebugAbbrev()
+        self.abbrevByIndex = None
+        self.abbrevByOffset = None
+        retn = self._parseDebugAbbrev()
+        if retn is not None:
+            self.abbrevByIndex, self.abbrevByOffset = retn
         self.stroffsets = self._preprocStrOffsets()
 
         self.info = self._parseDebugInfo()
@@ -464,13 +468,7 @@ class DwarfInfo:
                     if pns:
                         ct['parent'] = pns
                     vw.addDebugInfo('class', ct)
-            elif child.tag == v_d_dwarf.DW_TAG_imported_declaration:
-                imp = self._resolveDwarfType(cu, cuidx, child, byoffset)
-                if imp:
-                    if pns:
-                        imp['parent'] = pns
-                    vw.addDebugInfo('import', imp)
-            elif child.tag == v_d_dwarf.DW_TAG_imported_module:
+            elif child.tag == v_d_dwarf.DW_TAG_imported_declaration or child.tag == v_d_dwarf.DW_TAG_imported_module:
                 imp = self._resolveDwarfType(cu, cuidx, child, byoffset)
                 if imp:
                     if pns:
@@ -772,15 +770,12 @@ class DwarfInfo:
             vsData = v_s_prim.v_int64(bigend=self.vw.bigend)
             vsData.vsParse(bytez)
 
-        elif form == v_d_dwarf.DW_FORM_rnglistx:
+        elif form == v_d_dwarf.DW_FORM_rnglistx or form == v_d_dwarf.DW_FORM_strx:
             vsData = v_d_dwarf.v_uleb()
             vsData.vsParse(bytez)
 
         # these are all indexes into the .debug_str_offsets section. All of
         # those are DW_FORM_strp
-        elif form == v_d_dwarf.DW_FORM_strx:
-            vsData = v_d_dwarf.v_uleb()
-            vsData.vsParse(bytez)
         elif form == v_d_dwarf.DW_FORM_strx1:
             vsData = v_s_prim.v_uint8()
             vsData.vsParse(bytez)
@@ -834,12 +829,12 @@ class DwarfInfo:
         version = v_s_prim.v_uint32(bigend=vw.bigend)
         version.vsParse(byts)
         if version == 0xFFFFFFFF:
-            consumed += 4
             headerctor = v_d_dwarf.Dwarf64CompileHeader
             self.is64BitDwarf = True
         else:
             headerctor = v_d_dwarf.Dwarf32CompileHeader
             # So it says it's 12 bytes, but the first 4 are ffffffff
+
         while consumed < len(byts):
             # Parse the compile unit header
             # we can have 32 bit dwarf in a 64 bit binary and the way they dynamic repr that
@@ -1083,11 +1078,14 @@ class DwarfInfo:
 
 def parseDwarf(vw, pbin, strtab=b''):
     # First parse out type information from the .debug_abbrev section
-    return DwarfInfo(vw, pbin, strtab)
+    try:
+        return DwarfInfo(vw, pbin, strtab)
+    except Exception:
+        logger.exception('Parsing DWARF ran into bug:')
 
 
 def addDwarfToWorkspace(vw, dwarf):
     try:
         dwarf.addToWorkspace(vw)
     except Exception:
-        logger.exception("DWARF parsing ran into bug:")
+        logger.exception("Adding DWARF to workspace ran into bug:")

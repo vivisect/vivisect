@@ -95,15 +95,14 @@ class v_sleb(v_prim):
     def vsEmit(self):
         pass
 
-# A Block is 
 class v_form_block(vstruct.VStruct):
     def __init__(self, length=-1):
         vstruct.VStruct.__init__(self, bigend=False)
         if length == 1:
             self.length = v_uint8()
-        if length == 2:
+        elif length == 2:
             self.length = v_uint16()
-        if length == 4:
+        elif length == 4:
             self.length = v_uint32()
         else:
             self.length = v_uleb()
@@ -269,8 +268,10 @@ class Dwarf64TypeHeader(vstruct.VStruct):
 
 # TODO: Yea. This should echo the 32bit version.
 class Dwarf64UnitLineHeader(vstruct.VStruct):
-    def __init__(self, bigend=False):
+    def __init__(self, dinfo, bigend=False):
         vstruct.VStruct.__init__(self)
+
+        self._dwarf_info = dinfo
 
 
 # DWARF Debugging info Enums
@@ -433,7 +434,7 @@ DW_AT_signature = 0x69  # V4
 DW_AT_main_subprogram = 0x6a  # V4
 DW_AT_data_bit_offset = 0x6b  # V4
 DW_AT_const_expr = 0x6c  # V4
-DW_AT_enum_class = 0xd  # V4
+DW_AT_enum_class = 0x6d  # V4
 DW_AT_linkage_name = 0x6e  # V4
 # v5 only. can appear in v4 as gnu extensions
 DW_AT_string_length_bit_size = 0x6f

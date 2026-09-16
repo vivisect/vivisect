@@ -87,7 +87,7 @@ class DebugStructure(DebugBase):
 
         self.parameters = []
         for param in info.get('parameters', ()):
-            self.members.append(DebugParam(**param))
+            self.parameters.append(DebugParam(**param))
 
 class DebugLocal(DebugBase):
     def __init__(self, **info):

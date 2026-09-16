@@ -497,7 +497,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             vw.addLibraryDependancy(name)
         else:
             logger.debug("DYNAMIC:\t%r", d)
-        
+
         dval = d.d_value
         if d.d_tag in Elf.dt_rebase and addbase:
             dval += baseoff
@@ -804,7 +804,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
     abbr = elf.getSection('.debug_abbrev')
     info = elf.getSection('.debug_info')
-    if abbr and info:
+    if abbr and info and vw.config.viv.parsers.dwarf.enabled:
         dwarf = v_p_dwarf.parseDwarf(vw, elf)
         v_p_dwarf.addDwarfToWorkspace(vw, dwarf)
     return fname
