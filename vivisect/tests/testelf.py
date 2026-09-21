@@ -30,7 +30,6 @@ def do_analyze(vw):
         try:
             mod.analyze(vw)
         except Exception as e:
-            import traceback
             logging.warning("ERROR in analysis module: (%r): %r", mod, e, exc_info=1)
 
 def cmpnames(x, y):
