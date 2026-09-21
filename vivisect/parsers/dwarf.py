@@ -366,7 +366,7 @@ class DwarfInfo:
                     res = self._resolveDwarfType(cu, cuidx, impstruct, byoffset)
                     if res:
                         info['import'] = res
-            elif name == 'file':
+            elif name == 'decl_file':
                 file = self.files[cuidx][rval]
                 filename = file.get('valu')
                 info['file'] = filename
@@ -387,6 +387,8 @@ class DwarfInfo:
                 info['call_column'] = rval
             elif name == 'encoding':
                 info['encoding'] = rval
+            else:
+                print('unhandled')
 
             # DW_AT_const_value?
             # DW_AT_default_value?
@@ -992,17 +994,9 @@ class DwarfInfo:
                 # this with the vstruct def. But that means handing the Dwarf obj
                 # down into the vstruct parse, which isn't a line I'm quite ready
                 # to cross
-                for info in self._getContentStrings(header.directories,
-                                                    header.directory_entry_format,
-                                                    utf8=utf8):
-                    dirs.append(info)
-                self.dirs.append(dirs)
+                self.dirs.append(list(self._getContentStrings(header.directories, header.directory_entry_format, utf8=utf8)))
 
-                for info in self._getContentStrings(header.file_names,
-                                                    header.file_names_entry_formats,
-                                                    utf8=utf8):
-                    files.append(info)
-                self.files.append(files)
+                self.files.append(list(self._getContentStrings(header.file_names, header.file_names_entry_formats, utf8=utf8)))
             # directly following the header is the byts of the line program.
 
             self.linesms.append(LineStateMachine(byts, consumed, header, bigend=vw.bigend))

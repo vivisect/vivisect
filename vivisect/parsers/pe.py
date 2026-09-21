@@ -572,7 +572,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         coffstrs = symoff + len(elems)
         strtab = pe.readAtOffset(coffstrs, 128)
         names = strtab.split(b'\x00')
-        if b'.debug_info' in names and b'.debug_abbrev' in names:
+        if b'.debug_info' in names and b'.debug_abbrev' in names and vw.config.viv.parsers.dwarf.enabled:
             dwarf = v_p_dwarf.parseDwarf(vw, pe, strtab)
             v_p_dwarf.addDwarfToWorkspace(vw, dwarf)
 
