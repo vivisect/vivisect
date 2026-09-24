@@ -582,7 +582,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 base = pgm.p_vaddr
                 continue
 
-            # TODO: use min?
             base = min(pgm.p_vaddr, base)
 
         if base is None:
