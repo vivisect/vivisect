@@ -1923,10 +1923,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setRegister(REG_EDI, edi)
 
     def i_stosd(self, op):
-        if op.prefixes & PREFIX_REX_W:
-            step = 8
-        else:
-            step = 4
+        step = 4
 
         eax = self.getRegister(REG_EAX)
         edi = self.getRegister(REG_EDI)
@@ -1938,10 +1935,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         else:
             edi += step
 
-        if op.prefixes & PREFIX_REX_W:
-            self.setRegister(REG_RDI, edi)
-        else:
-            self.setRegister(REG_EDI, edi)
+        self.setRegister(REG_EDI, edi)
 
     # We include all the possible SETcc names just in case somebody
     # gets hinkey with the disassembler.

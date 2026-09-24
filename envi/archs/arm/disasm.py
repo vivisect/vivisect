@@ -4487,8 +4487,9 @@ class ArmRegOper(ArmOperand):
         if elmtsz is None:
             elmtsz = self.getWidth()
 
-        ifmt = e_bits.getFormat(elmtsz, big_endian=emu.getEndian()==e_const.ENDIAN_MSB)
-        ffmt = e_bits.getFloatFormat(elmntsz, big_endian=emu.getEndian()==e_const.ENDIAN_MSB)
+        endian = emu.getEndian() == e_const.ENDIAN_MSB
+        ifmt = e_bits.getFormat(elmtsz, big_endian=endian)
+        ffmt = e_bits.getFloatFormat(elmtsz, big_endian=endian)
 
         # get the 16-/32-/64-bit integer value
         metaval = emu.getRegister(self.reg)

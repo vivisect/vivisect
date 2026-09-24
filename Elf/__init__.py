@@ -488,9 +488,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self._doDynRelocs(jmprel, pltrelsz, cls)
 
     def _doDynRelocs(self, rva, relsz, cls=None):
-        # So...why?
-        syms = self.getDynSyms()
-
         if cls is None:
             cls = self._cls_reloc
 
@@ -586,8 +583,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 continue
 
             # TODO: use min?
-            if pgm.p_vaddr < base:
-                base = pgm.p_vaddr
+            base = min(pgm.p_vaddr, base)
 
         if base is None:
             if self.isRelocatable():
@@ -697,6 +693,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.readAtOffset(sec.sh_offset, sec.sh_size)
 
     def getStrtabString(self, offset, section=".strtab"):
+        # TODO: we really need to cache this so we're not constantly re-reading things from disk
         sec = self.getSection(section)
         bytes = self.readAtOffset(sec.sh_offset, sec.sh_size)
         index = bytes.find(b"\x00", offset)

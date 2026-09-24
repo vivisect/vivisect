@@ -1468,6 +1468,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         # base, size = self.segments[SEG_ES]
         di = Var(self.__destp__, self._psize)
         mod = Const(width, self._psize) * (Const(1, self._psize) - Const(2, self._psize) * Var('eflags_df', self._psize))
+        # TODO: Maybe not hardcode eax here (for amd64)?
         self.effWriteMemory(di, Const(self._psize, self._psize), Var('eax', self._psize))
         self.effSetVariable(self.__destp__, di + mod)
 

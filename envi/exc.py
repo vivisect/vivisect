@@ -292,10 +292,10 @@ class UnmappedAddress(Exception):
 
 class UnknownArgType(EnviException):
     def __init__(self, argtype):
-        super().__init__("Unknown argument type: %d", argtype)
+        super().__init__("Unknown argument type: %d" % argtype)
         self.argtype = argtype
 
 class UnknownEmulatorOpt(EnviException):
     def __init__(self, opt):
-        super().__init__("Unknown Emu Opt: %s", opt)
+        super().__init__("Unknown Emu Opt: %s" % opt)
         self.opt = opt
