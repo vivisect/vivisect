@@ -968,6 +968,8 @@ system_registers = [
 ]
 
 # fill in the gaps (HACK)
+# TODO: we can just use a set?
+# TODO: Make you a sparse map or something. Save a ton of memory and time
 cache = {(t, u, v, w, x):1 for s,t,u,v,w,x,y in system_registers}
 for x in range(0x8000, 0x10000):
     op0 = 2 | (x >> 14) & 1
@@ -975,7 +977,7 @@ for x in range(0x8000, 0x10000):
     crn = (x >> 7) & 0xf
     crm = (x >> 3) & 0xf
     op2 = x & 7
-    
+
     y = (op0, op1, crn, crm, op2)
     if cache.get(y):
         continue
@@ -1001,4 +1003,3 @@ def get_sysreg_by_encoding(op0, op1, crn, crm, op2):
 def get_sysreg_by_name(name):
     """Get system register encoding by name."""
     return sysreg_by_name.get(name.upper())
-

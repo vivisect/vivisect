@@ -18,7 +18,6 @@ class ArmModule(envi.ArchitectureModule):
         self._arch_thumb_dis = eatd.ThumbDisasm()
 
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
-        self._arch_reg = self.archGetRegCtx()
 
         # pre-generate this list
         self.badoplist = [self.archParseOpcode(badop, 0, 0) for badop in self._arch_badopbytes]
@@ -92,7 +91,6 @@ class ThumbModule(envi.ArchitectureModule):
         self._arch_dis = eatd.ThumbDisasm(doModeSwitch=False)
 
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
-        self._arch_reg = self.archGetRegCtx()
         #armVersion mask should be set here if needed
 
         # pre-generating bad-ops list

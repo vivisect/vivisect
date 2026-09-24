@@ -86,11 +86,6 @@ class SetVariable(SymbolikEffect):
     def __str__(self):
         return '%s = %s' % (self.varname, str(self.symobj))
 
-    def render(self, canvas, vw):
-        canvas.addNameText(self.varname)
-        canvas.addText(' = ')
-        self.symobj.render(canvas, vw)
-
     def __eq__(self, other):
         if other is None:
             return False

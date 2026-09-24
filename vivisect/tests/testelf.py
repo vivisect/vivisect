@@ -109,7 +109,7 @@ class ELFTests(unittest.TestCase):
 
     def do_check_elfplt(self, vw):
         # Test ELFPLT entries to be uniform and all functions created
-        for pltva, pltsz in vaeep.getPLTs(vw):
+        for pltva, pltsz, pltfile in vaeep.getPLTs(vw):
             # first get all the known functions that are in this PLT section
             curplts = []
             for fva in vw.getFunctions():

@@ -311,9 +311,10 @@ class EnviConfig:
         return self.cfginfo.get(key, default)
 
     def pop(self, key, default=None):
-        return self.cfginfo.pop(key, default)
+        retn = self.cfginfo.pop(key, default)
         if self.autosave:
             self.saveConfigFile()
+        return retn
 
     def keys(self):
         return self.cfginfo.keys()

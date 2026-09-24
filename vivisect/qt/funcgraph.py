@@ -624,7 +624,12 @@ class VQVivFuncgraphView(vq_hotkey.HotKeyMixin, e_qt_memory.EnviNavMixin, QWidge
 
     @idlethread
     def VWE_SETNAME(self, vw, event, einfo):
-        va, name = einfo
+        if len(einfo) == 2:
+            va, name = einfo
+            basename = None
+            baseindx = None
+        else:
+            va, name, basename, baseindx = einfo
         self.mem_canvas.renderMemoryUpdate(va, 1)
         for fromva, tova, rtype, rflag in self.vw.getXrefsTo(va):
             self.mem_canvas.renderMemoryUpdate(fromva, 1)

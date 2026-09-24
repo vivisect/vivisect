@@ -35,7 +35,7 @@ class GIF_IMAGE_DESCRIPTOR(vstruct.VStruct):
         self.img_top    = v_uint16()
         self.img_width  = v_uint16()
         self.img_height = v_uint16()
-        self.flags      = v_uing8()
+        self.flags      = v_uint8()
 
 class GIF8XA(vstruct.VStruct):
 

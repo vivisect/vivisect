@@ -12,7 +12,7 @@ MIRE = 7
 LOG_LEVELS = (
     logging.CRITICAL,
     logging.ERROR,
-    logging.WARN,
+    logging.WARNING,
     logging.INFO,
     logging.DEBUG,
     EMULOG,

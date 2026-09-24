@@ -1,3 +1,4 @@
+# TODO: what's the difference between you and sysregs.py?
 sys_regs = [
     	("osdtrrx_el1", 64),
         ("dbgbvr0_el1", 64),

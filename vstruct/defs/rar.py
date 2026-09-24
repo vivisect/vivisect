@@ -1,9 +1,12 @@
 import os
 import sys
+import logging
 import binascii
 
 import vstruct
 from vstruct.primitives import *
+
+logger = logging.getLogger(__name__)
 
 #HEAD_TYPE_MARKER        = 0x72          #marker block
 #HEAD_TYPE_ARCHIVE       = 0x73          #archive header

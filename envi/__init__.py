@@ -11,6 +11,7 @@ import importlib
 import contextlib
 
 from envi.exc import *
+from envi.const import *
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ ARCH_MIPS64      = 22 << 16
 
 ARCH_MASK        = 0xffff0000   # Masked into IF_FOO and BR_FOO values
 
+
+# These *have* to be here, lest we hit a circular import, which would be unhorked by moving them into const.py
+import envi.bits as e_bits
+import envi.memory as e_mem
+import envi.registers as e_reg
 
 arch_defs = {
     ARCH_I386:      {
@@ -348,12 +354,6 @@ BR_TABLE = 1<<3  # The branch target is the base of a pointer array of jmp/call 
 BR_FALL  = 1<<4  # The branch is a "fall through" to the next instruction
 BR_ARCH  = 1<<5  # The branch *switches opcode formats*. ( ARCH_FOO in high bits )
 
-from envi.const import *
-import envi.bits as e_bits
-import envi.memory as e_mem
-import envi.registers as e_reg
-import envi.memcanvas as e_canvas
-
 class ArchitectureModule:
     """
     An architecture module implementes methods to deal
@@ -371,7 +371,6 @@ class ArchitectureModule:
         self.badops = []
 
         self.initRegGroups()
-
 
     def initRegGroups(self):
         '''
@@ -637,10 +636,7 @@ class Operand:
         return not op == self
 
     def __eq__(self, oper):
-        if not isinstance(oper, self.__class__):
-            return False
-        #FIXME each one will need this...
-        return True
+        return isinstance(oper, self.__class__)
 
 class DerefOper(Operand):
 
@@ -783,8 +779,7 @@ class Opcode:
         Override when architecture makes use of odd operands like the program
         counter, which returns a real value even without an emulator.
         '''
-        for oidx, o in enumerate(self.opers):
-            yield (oidx, o)
+        yield from enumerate(self.opers)
 
     def render(self, mcanv):
         """
@@ -825,11 +820,14 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     implemented mostly for user-space emulation of
     protected mode execution.
     """
-    def __init__(self, archmod=None):
+    def __init__(self, archname):
 
         self.metadata = {}
-        e_mem.MemoryObject.__init__(self, arch=archmod._arch_id)
-        e_reg.RegisterContext.__init__(self)
+        e_mem.MemoryObject.__init__(self, arch=getArchByName(archname))
+
+        # Not particularly necessary since each inheriting class is expected to
+        # be an instance of its own register context
+        # e_reg.RegisterContext.__init__(self)
 
         self._emu_segments = [(0, 0xffffffff)]
         self._emu_call_convs = {}
@@ -858,7 +856,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         Set a (previously initialized) emulator option.
         '''
         if opt not in self._emu_opts:
-            raise Exception('Unknown Emu Opt: %s' % opt)
+            raise UnknownEmulatorOpt(opt)
         self._emu_opts[opt] = val
 
     def getEmuOpt(self, opt):
@@ -867,7 +865,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         ( emu impls may directly access _emu_opts for speed )
         '''
         if opt not in self._emu_opts:
-            raise Exception('Unknown Emu Opt: %s' % opt)
+            raise UnknownEmulatorOpt(opt)
         return self._emu_opts.get(opt)
 
     def getMeta(self, name, default=None):
@@ -1023,9 +1021,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         self._emu_call_convs[name] = obj
 
     def hasCallingConvention(self, name):
-        if self._emu_call_convs.get(name) is not None:
-            return True
-        return False
+        return self._emu_call_convs.get(name) is not None
 
     def getCallingConvention(self, name):
         return self._emu_call_convs.get(name)
@@ -1259,7 +1255,7 @@ class CallingConvention:
                 if argc != 0:
                     raise Exception('wrong num of args from readMemoryFormat')
             else:
-                raise Exception('unknown argument type')
+                raise UnknownArgType(arg_type)
 
         return args
 
@@ -1305,7 +1301,7 @@ class CallingConvention:
                 if argc != 0:
                     raise Exception('wrong num of args from readMemoryFormat')
             else:
-                raise Exception('unknown argument type')
+                raise UnknownArgType(arg_type)
 
     def setCallArgs(self, emu, args):
         '''
@@ -1330,7 +1326,7 @@ class CallingConvention:
             sp = emu.getStackCounter() + rvalue
             ra = emu.readMemoryFormat(sp, '<P')[0]
         else:
-            raise Exception('unknown argument type')
+            raise UnknownArgType(arg_type)
 
         return ra
 
@@ -1347,7 +1343,7 @@ class CallingConvention:
             sp = emu.getStackCounter() + rvalue
             rv = emu.readMemoryFormat(sp, '<P')[0]
         else:
-            raise Exception('unknown argument type')
+            raise UnknownArgType(arg_type)
 
         return rv
 
@@ -1364,7 +1360,7 @@ class CallingConvention:
             sp = emu.getStackCounter() + rvalue
             emu.writeMemoryFormat(sp, '<P', ra)
         else:
-            raise Exception('unknown argument type')
+            raise UnknownArgType(arg_type)
 
     def setReturnValue(self, emu, rv):
         '''
@@ -1377,7 +1373,7 @@ class CallingConvention:
             sp = emu.getStackCounter() + rvalue
             emu.writeMemoryFormat(sp, '<P', rv)
         else:
-            raise Exception('unknown argument type')
+            raise UnknownArgType(arg_type)
 
     def allocateReturnAddress(self, emu):
         '''
@@ -1446,7 +1442,7 @@ class CallingConvention:
                     delta = self._dealloc(delta, argc)
                     argc = 0
                 else:
-                    raise Exception('unknown argument type')
+                    raise UnknownArgType(arg_type)
 
         emu.setStackCounter(emu.getStackCounter() + delta)
         return delta
@@ -1504,7 +1500,6 @@ class CallingConvention:
 
         Expects to be called at the function entrypoint.
         '''
-        sp = emu.getStackCounter()
         ip = self.getReturnAddress(emu)
         self.deallocateCallSpace(emu, argc)
 
@@ -1556,6 +1551,7 @@ def getCurrentArch():
     width = struct.calcsize("P")
     mach = platform.machine()   # 'i386','ppc', etc...
 
+    ret = None
     if width == 4:
         ret = arch_xlate_32.get(mach)
 
@@ -1572,7 +1568,7 @@ def getRealArchName(name):
     Returns the official Architecture Name given an architecture name (which could be an alias, 
     like x86_64 for amd64)
     """
-    for arch, adict in arch_defs.items():
+    for adict in arch_defs.values():
         rname = adict.get('name')
         if name == rname:
             return rname
