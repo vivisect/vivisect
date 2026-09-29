@@ -6023,7 +6023,7 @@ def p_simd_across_lanes(opval, va):
             opcode = INS_MAX
             mnem = 'max'
         else:
-            opcocde = INS_MIN
+            opcode = INS_MIN
             mnem = 'min'
         iflags |= IFP_F
         iflags |= IF_N
@@ -6042,7 +6042,7 @@ def p_simd_across_lanes(opval, va):
             opcode = INS_MAX
             mnem = 'max'
         else:
-            opcocde = INS_MIN
+            opcode = INS_MIN
             mnem = 'min'
         iflags |= IFP_F
         iflags |= IF_V
@@ -6059,6 +6059,8 @@ def p_simd_across_lanes(opval, va):
 def p_simd_copy(opval, va):
     '''
     AdvSIMD copy
+
+    TODO: This function is all kinds of horked up
     '''
     iflags = 0
 
@@ -6118,6 +6120,7 @@ def p_simd_copy(opval, va):
                 )
         elif imm4 == 0b0011:
             mnem = 'ins'
+            # INS_INS is not a thing
             opcode = INS_INS
             if imm5 & 0x0f == 0b00000:
                 width_spec1 = 'RESERVED'
@@ -7203,7 +7206,7 @@ def p_simd_scalar_tworeg_misc(opval, va):
                 iflags |= IF_X
             else:
                 return p_undef(opval, va)
-        if subcode == 0b00010 or 0b00100:
+        if subcode == 0b00010 or subcode == 0b00100:
             width_spec = bhsd_table[size]
             width_spec2 = bhsd_table[size + 1]
             if size == 0b11:
@@ -8165,7 +8168,7 @@ class A64RegOper(A64Operand, envi.RegisterOper):
     Subclass of A64Operand. X-bit Register operand class (including Zero-Reg)
     '''
     def __init__(self, reg, va=0, oflags=0, size=8):
-        if reg == None:
+        if reg is None:
             raise envi.InvalidInstruction(mesg="None Reg Type!",
                     bytez=b'f00!', va=va)
 
@@ -8179,7 +8182,6 @@ class A64RegOper(A64Operand, envi.RegisterOper):
 
     def repr(self, op):
         return rctx.getRegisterName(self.reg)
-
 
     def getOperAddr(self, op, emu=None):
         """
@@ -8590,6 +8592,7 @@ class A64NameOper(A64Operand):
     '''
     Subclass of A64Operand. Name operand class
     '''
+    # TODO: You need to implement getOperValue
     def __init__(self, instype, val=0):
         self.val = val
 
@@ -8611,10 +8614,10 @@ class A64NameOper(A64Operand):
                 raise Exception("Invalid instype in A64NameOper constructor!")
 
             self.mnem = sys_alias_op_tables[tabind].get(val, 'undefined')
-            
+
         else:
             self.mnem = 'c' + str(val)
-    
+
     def repr(self, op):
         return self.mnem
 
@@ -9119,7 +9122,7 @@ class A64Disasm:
 
         opcode, mnem, olist, flags, simdflags = self.doDecode(va, opval, bytez, offset)
 
-        if mnem == None or type(mnem) == int:
+        if mnem is None or type(mnem) is int:
             raise envi.InvalidInstruction(mesg="mnem == %r!  0x%x" % (mnem, opval),
                     bytez=bytez[offset:offset+4], va=va)
 
@@ -9346,6 +9349,7 @@ class A64SysRegOper(A64RegOper):
             return f"<A64SysRegOper {self.reg} idx={self.reg} " \
                    f"S{self.op0}_{self.op1}_C{self.crn}_C{self.crm}_{self.op2}>"
         else:
+            # TODO: _reg_name isn't a thing
             return f"<A64SysRegOper {self._reg_name} (unknown) " \
                    f"S{self.op0}_{self.op1}_C{self.crn}_C{self.crm}_{self.op2}>"
 

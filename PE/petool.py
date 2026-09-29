@@ -3,6 +3,8 @@ For now, all this does is rename files to their exportname and version info.
 (more to come is likely)
 '''
 
+
+# TODO: you need an entry point in pyproject.toml to actually be useful
 import sys
 import code
 import optparse

@@ -1,12 +1,15 @@
 '''
 Parser objects for the Intel Hex file format.
 '''
+import logging
 import binascii
 
 import envi.const as e_const
 
 import vstruct
 from vstruct.primitives import *
+
+logger = logging.getLogger(__name__)
 
 IHEX_REC_DATA           = 0
 IHEX_REC_EOF            = 1

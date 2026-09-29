@@ -402,6 +402,7 @@ def _iterPcapNgFile(fd, reuse=False):
         elif header.blocktype == PCAPNG_BLOCKTYPE_SIMPLE_PACKET:
             spb = PCAPNG_SIMPLE_PACKET_BLOCK(bigend)
             roff = spb.vsParse(body)
+            # TODO: iface isn't necessarily defined here?
             tup = _parsePcapngPacketBytes(iface.linktype, spb)
             if tup is not None:
                 #if it is None, just fall through & read next block

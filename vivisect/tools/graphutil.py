@@ -35,13 +35,13 @@ def getNodeWeightHisto(g):
 
     # create default dict
     for cb, weight in sorted(nodeweights.items(), key=lambda x: x[1]):
-        if not len(g.getRefsFromByNid(cb)):
+        if not g.getRefsFromByNid(cb):
             # leaves is a tuple of (cb, current path, visited nodes)
             # these are our leaf nodes
-            leaves[weight].append((cb, list(), set()))
+            leaves[weight].append((cb, [], set()))
 
         # create histogram
-        weights_to_cb[weight].append((cb, list(), set()))
+        weights_to_cb[weight].append((cb, [], set()))
 
     return weights_to_cb, nodeweights, leaves
 
@@ -53,7 +53,7 @@ def getLongPath(g):
     weights_to_cb, cb_to_weights, todo = getNodeWeightHisto(g)
 
     # unique root node code blocks
-    rootnodes = set([cb for cb, nprops in g.getHierRootNodes()])
+    rootnodes = {cb for cb, nprops in g.getHierRootNodes()}
     leafmax = 0
     if len(todo):
         leafmax = max(todo.keys())
@@ -114,7 +114,7 @@ def getLongPath(g):
 def _nodeedge(tnode):
     nid = vg_pathcore.getNodeProp(tnode, 'nid')
     eid = vg_pathcore.getNodeProp(tnode, 'eid')
-    return nid,eid
+    return nid, eid
 
 def _nodeedgeloop(tnode):
     nid = vg_pathcore.getNodeProp(tnode, 'nid')
@@ -141,7 +141,7 @@ def getCoveragePaths(fgraph, maxpath=None):
 
         while todo:
 
-            node,cpath = todo.pop()
+            node, cpath = todo.pop()
             refsfrom = fgraph.getRefsFrom(node)
 
             # Record that we have visited this node...
@@ -150,7 +150,7 @@ def getCoveragePaths(fgraph, maxpath=None):
             # This is a leaf node!
             if not refsfrom:
                 path = vg_pathcore.getPathToNode(cpath)
-                yield [ _nodeedge(n) for n in path ]
+                yield [_nodeedge(n) for n in path]
 
                 pathcnt += 1
                 if maxpath is not None and pathcnt >= maxpath:
@@ -161,7 +161,7 @@ def getCoveragePaths(fgraph, maxpath=None):
                 # If we're branching to a visited node, return the path as is
                 if nodedone.get(toid):
                     path = vg_pathcore.getPathToNode(cpath)
-                    yield [ _nodeedge(n) for n in path ]
+                    yield [_nodeedge(n) for n in path]
 
                     # Check if that was the last path we should yield
                     pathcnt += 1
@@ -173,7 +173,7 @@ def getCoveragePaths(fgraph, maxpath=None):
 
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=toid, eid=eid)
                 tonode = fgraph.getNode(toid)
-                todo.append((tonode,npath))
+                todo.append((tonode, npath))
 
 def getCodePathsThru(fgraph, tgtcbva, loopcnt=0, maxpath=None):
     '''
@@ -242,7 +242,7 @@ def getCodePathsTo(fgraph, tocbva, loopcnt=0, maxpath=None):
 
 def getCodePathsFrom(fgraph, fromcbva, loopcnt=0, maxpath=None):
     '''
-    Yields all the paths through the hierarchical graph beginning with 
+    Yields all the paths through the hierarchical graph beginning with
     "fromcbva", which is traced to all terminating points.  Specify a loopcnt
     to allow loop paths to be generated with the given "loop iteration count"
 
@@ -325,13 +325,13 @@ def getCodePaths(fgraph, loopcnt=0, maxpath=None):
 
 def walkCodePaths(fgraph, callback, loopcnt=0, maxpath=None):
     '''
-    walkCodePaths is a path generator which uses a callback function to determine the 
-    viability of each particular path.  This approach allows the calling function 
+    walkCodePaths is a path generator which uses a callback function to determine the
+    viability of each particular path.  This approach allows the calling function
     (eg. walkSymbolikPaths) to do in-generator checks/processing and trim paths which
     are simply not possible/desireable.
 
     Callbacks will receive the current path, the current edge, and the new path node.
-    For root nodes, the current path and edge will be None types.  
+    For root nodes, the current path and edge will be None types.
     '''
     pathcnt = 0
     routed = fgraph.getMeta('Routed', False)
@@ -743,8 +743,8 @@ class PathGenerator:
 
     def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
-        Yields all the paths through the hierarchical graph starting at the 
-        "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
+        Yields all the paths through the hierarchical graph starting at the
+        "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop
         paths to be generated with the given "loop iteration count"
 
         Example:
@@ -759,10 +759,10 @@ class PathGenerator:
         frcbva = getGraphNodeByVa(fgraph, fromva)
 
         preRouteGraph(fgraph, fromva, tova)
-        
+
         pnode = vg_pathcore.newPathNode(nid=tocbva, eid=None)
 
-        todo = [(tocbva,pnode), ]
+        todo = [(tocbva, pnode), ]
 
         maxtime = None
         if timeout:
@@ -801,9 +801,10 @@ class PathGenerator:
                 if loops > loopcnt:
                     continue
 
+                # TODO: What if eid is already set?
                 vg_pathcore.setNodeProp(cpath, 'eid', eid)
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=fromid, eid=None)
-                todo.append((fromid,npath))
+                todo.append((fromid, npath))
 
         self.__go__ = False
 
@@ -836,7 +837,7 @@ class PathGenerator:
 
         loopcount = 0
 
-        todo = [(frcbva,pnode,loopcount), ]
+        todo = [(frcbva, pnode, loopcount), ]
 
         maxtime = None
         if timeout:
@@ -849,7 +850,7 @@ class PathGenerator:
             if not self.__go__:
                 raise PathForceQuitException(pathcnt)
 
-            nodeid,cpath,loopcount = todo.pop()
+            nodeid, cpath, loopcount = todo.pop()
 
             # This is the root node!
             if nodeid == tocbva:
@@ -878,7 +879,8 @@ class PathGenerator:
                         continue
 
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=toid, eid=eid)
-                todo.append((toid,npath,loopcount))
+                # Should this be loopcount? Or should we restart it at 0?
+                todo.append((toid, npath, loopcount))
 
             vg_pathcore.trimPath(cpath)
 

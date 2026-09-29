@@ -1,9 +1,8 @@
-import sys
 import struct
-import traceback
 
 import envi
 import envi.bits as e_bits
+import envi.const as e_const
 
 from envi.archs.arm.const import *
 from envi.archs.arm.regs import *
@@ -67,6 +66,7 @@ iencmul_codes = {
 
     # type 2 multiplys
 
+    # TODO: There's some key duplication in here. Need to determine which is correct
     0b011100000001: ("smuad",  INS_SMUAD, (0, 4, 2), 0),
     0b011100000011: ("smuadx", INS_SMUADX, (0, 4, 2), 0),
     0b011100000101: ("smusd",  INS_SMUSD, (0, 4, 2), 0),
@@ -4487,8 +4487,9 @@ class ArmRegOper(ArmOperand):
         if elmtsz is None:
             elmtsz = self.getWidth()
 
-        ifmt = e_bits.getFormat(elmtsz, big_endian=emu.getEndian()==ENDIAN_MSB)
-        ffmt = e_bits.getFloatFormat(elmntsz, big_endian=emu.getEndian()==ENDIAN_MSB)
+        endian = emu.getEndian() == e_const.ENDIAN_MSB
+        ifmt = e_bits.getFormat(elmtsz, big_endian=endian)
+        ffmt = e_bits.getFloatFormat(elmtsz, big_endian=endian)
 
         # get the 16-/32-/64-bit integer value
         metaval = emu.getRegister(self.reg)

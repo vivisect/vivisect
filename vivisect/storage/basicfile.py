@@ -61,4 +61,3 @@ def vivEventsFromFile(filename):
 def loadWorkspace(vw, filename):
     events = vivEventsFromFile(filename)
     vw.importWorkspace(events)
-    return

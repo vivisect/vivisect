@@ -14,7 +14,6 @@ class H8Module(envi.ArchitectureModule):
     def __init__(self, name='h8'):
         envi.ArchitectureModule.__init__(self, name, maxinst=4)
         import envi.archs.h8.disasm as h8_disasm
-        self._arch_reg = self.archGetRegCtx()
         self._arch_dis = h8_disasm.H8Disasm()
         self._arch_memreg = {}
         self._arch_memreg.update(memreg_h8s)

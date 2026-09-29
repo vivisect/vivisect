@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 Mostly this is a place to scuttle away some of the inner workings
 of a workspace, so the outer facing API is a little cleaner.
 """
-class VivEventCore(object):
+class VivEventCore:
     '''
     A class to facilitate event monitoring in the viv workspace.
     '''
@@ -211,6 +211,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # FIXME delete xrefs
         lva, lsize, ltype, linfo = loc
         self.locmap.setMapLookup(lva, lsize, None)
+        # remove is expensive here :(
         self.loclist.remove(loc)
 
     def _handleADDSEGMENT(self, einfo):
@@ -262,6 +263,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.reloc_by_va.pop(rva, None)
         delidx = -1
 
+        data = -1  # TODO: A better default? this is only here so data is defined for RTYPE_BASEPTR
         for idx, (fn, off, typ, data, size) in enumerate(self.relocations):
             if fn == fname and off == ptroff and typ == rtyp:
                 delidx = idx
@@ -270,12 +272,11 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         if delidx >= 0:
             self.relocations.pop(delidx)
 
-        if full:
-            if rtyp == v_const.RTYPE_BASEPTR:
-                ptr = imgbase + data
-                ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
-                self._handleDELXREF((rva, ptr, v_const.REF_PTR, 0))
-                self._handleDELLOCATION((rva, self.psize, v_const.LOC_POINTER, ptr))
+        if full and rtyp == v_const.RTYPE_BASEPTR and data >= 0:
+            ptr = imgbase + data
+            ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
+            self._handleDELXREF((rva, ptr, v_const.REF_PTR, 0))
+            self._handleDELLOCATION((rva, self.psize, v_const.LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
         logger.warning('DEPRECATED (ADDMODULE) ignored: %s', einfo)
@@ -375,9 +376,16 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         fromva, tova, reftype, refflags = einfo
         self.xrefs_by_to[tova].remove(einfo)
         self.xrefs_by_from[fromva].remove(einfo)
+        self.xrefs.remove(einfo)
 
     def _handleSETNAME(self, einfo):
-        va, name = einfo
+        if len(einfo) == 2:
+            va, name = einfo
+            basename = None
+            baseindx = None
+        else:
+            va, name, basename, baseindx = einfo
+
         if name is None:
             oldname = self.name_by_va.pop(va, None)
             self.va_by_name.pop(oldname, None)
@@ -390,6 +398,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
             self.va_by_name[name] = va
             self.name_by_va[va] = name
+
+        if basename is not None:
+            self.names_hits[basename] = baseindx
 
         if self.isFunction(va):
             fnode = self._call_graph.getFunctionNode(va)

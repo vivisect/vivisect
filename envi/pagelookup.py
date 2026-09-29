@@ -17,6 +17,7 @@ class PageLookup:
     space which will also NOT eat *all* the RAMS like a straight
     dictionary full of millions of entries would.
     '''
+    # TODO: Does anybody use you?
 
     def __init__(self):
         self._page_dict = pagedict()

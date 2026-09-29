@@ -120,7 +120,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
 
     flagidx = REG_EFLAGS
     accumreg = { 1:REG_AL, 2:REG_AX, 4:REG_EAX }
-    def __init__(self, archmod=None):
+    def __init__(self, archname='i386'):
         self.__rep_prefix_handlers__ = {
             PREFIX_REP: self.doRepzPrefix,
             PREFIX_REPZ: self.doRepzPrefix,
@@ -129,17 +129,15 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         }
 
         # Set ourself up as an arch module *and* register context
-        #i386Module.__init__(self)
-        if archmod is None:
-            archmod = i386Module()
+        envi.Emulator.__init__(self, archname)
+        adef = envi.arch_defs[envi.ARCH_I386]
+        if archname == adef['name'] or archname in envi.arch_defs[envi.ARCH_I386]['aliases']:
+            i386RegisterContext.__init__(self)
 
-        envi.Emulator.__init__(self, archmod=archmod)
         self.initEmuOpt('i386:repmax', 0, 'Specify value > 0 to short circuit rep prefix')
 
         for i in range(6):
             self.setSegmentInfo(i, 0, 0xffffffff)
-
-        i386RegisterContext.__init__(self)
 
         # Add our known calling conventions
         self.addCallingConvention('stdcall', stdcall)
@@ -1916,7 +1914,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_stosw(self, op):
         ax = self.getRegister(REG_AX)
         edi = self.getRegister(REG_EDI)
-        base,size = self._emu_segments[SEG_ES]
+        base, size = self._emu_segments[SEG_ES]
         self.writeMemory(base+edi, struct.pack("<H", ax))
         if self.getFlag(EFLAGS_DF):
             edi -= 2
@@ -1925,14 +1923,10 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         self.setRegister(REG_EDI, edi)
 
     def i_stosd(self, op):
-        if op.prefixes & PREFIX_REX_W:
-            eax = self.getRegister(REG_RAX)
-            edi = self.getRegister(REG_RDI)
-            step = 8
-        else:
-            eax = self.getRegister(REG_EAX)
-            edi = self.getRegister(REG_EDI)
-            step = 4
+        step = 4
+
+        eax = self.getRegister(REG_EAX)
+        edi = self.getRegister(REG_EDI)
 
         base, size = self._emu_segments[SEG_ES]
         self.writeMemory(base+edi, struct.pack("<L", eax))
@@ -1941,10 +1935,7 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
         else:
             edi += step
 
-        if op.prefixes & PREFIX_REX_W:
-            self.setRegister(REG_RDI, edi)
-        else:
-            self.setRegister(REG_EDI, edi)
+        self.setRegister(REG_EDI, edi)
 
     # We include all the possible SETcc names just in case somebody
     # gets hinkey with the disassembler.
@@ -2637,4 +2628,4 @@ class IntelEmulator(i386RegisterContext, envi.Emulator):
     def i_salc(self, op):
         cf = self.getFlag(EFLAGS_CF)
         self.setRegister(REG_AL, 0xff if cf else 0)
-    # hlt, fcomp? fucomip? callf? fadd? subsd
+    # hlt, fcomp? fucomip? callf? fadd? subsd? comiss? maxss? divsd? comisd/ucomisd?
