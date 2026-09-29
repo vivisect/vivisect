@@ -1326,7 +1326,7 @@ class CallingConvention:
             sp = emu.getStackCounter() + rvalue
             ra = emu.readMemoryFormat(sp, '<P')[0]
         else:
-            raise UnknownArgType(arg_type)
+            raise UnknownArgType(rtype)
 
         return ra
 
@@ -1343,7 +1343,7 @@ class CallingConvention:
             sp = emu.getStackCounter() + rvalue
             rv = emu.readMemoryFormat(sp, '<P')[0]
         else:
-            raise UnknownArgType(arg_type)
+            raise UnknownArgType(rtype)
 
         return rv
 
@@ -1360,7 +1360,7 @@ class CallingConvention:
             sp = emu.getStackCounter() + rvalue
             emu.writeMemoryFormat(sp, '<P', ra)
         else:
-            raise UnknownArgType(arg_type)
+            raise UnknownArgType(rtype)
 
     def setReturnValue(self, emu, rv):
         '''
@@ -1373,7 +1373,7 @@ class CallingConvention:
             sp = emu.getStackCounter() + rvalue
             emu.writeMemoryFormat(sp, '<P', rv)
         else:
-            raise UnknownArgType(arg_type)
+            raise UnknownArgType(rtype)
 
     def allocateReturnAddress(self, emu):
         '''
