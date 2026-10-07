@@ -438,7 +438,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         sva += baseoff
 
         # if we've already defined a location at this address, skip it. (eg. DYNAMICS)
-        if vw.getLocation(sva) == sva:
+        loc = vw.getLocation(sva)
+        if loc is not None and loc[v_const.L_VA] == sva:
             continue
 
         if sname == ".interp":

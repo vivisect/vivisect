@@ -171,16 +171,16 @@ def ormask(v,c):
 def andmask(v,c):
     vwidth = v.getWidth()
     if c == 0:
-        return Const(0,vwidth)
+        return Const(0, vwidth)
 
     umax = e_bits.u_maxes[vwidth]
     if umax == c:
         return v
 
     if umax & c == 0:
-        return Const(0,vwidth)
+        return Const(0, vwidth)
 
-    return v & Const(c,vwidth)
+    return v & Const(c, vwidth)
 
 def mulbase(v, c):
     vwidth = v.getWidth()
@@ -188,13 +188,13 @@ def mulbase(v, c):
         return Const(0, vwidth)
     if c == 1:
         return v
-    return v * Const(c,vwidth)
+    return v * Const(c, vwidth)
 
 def divbase_vc(v, c):
     vwidth = v.getWidth()
     if c == 1:
         return v
-    return v / Const(c,vwidth)
+    return v / Const(c, vwidth)
 
 def divbase_cv(c, v):
     vwidth = v.getWidth()

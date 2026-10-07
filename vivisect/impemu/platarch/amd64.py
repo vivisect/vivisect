@@ -3,6 +3,8 @@ import logging
 import envi.archs.amd64 as e_amd64
 import vivisect.impemu.emulator as v_i_emulator
 
+from envi.const import RMETA_NMASK
+
 logger = logging.getLogger(__name__)
 ########################################################################
 #
@@ -38,10 +40,17 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
         """
         Return the current value of the specified register index.
         """
-        value = e_amd64.Amd64Emulator.getRegister(self, index)
+        rval = value = e_amd64.Amd64Emulator.getRegister(self, index)
 
         if self.op is None:
             return value
+
+        ridx = index
+        if self.isMetaRegister(index):
+            ridx = index & RMETA_NMASK
+            # use the value of the real register (not the meta register) for _useVirtAddr
+            # but ultimately return the meta register value
+            rval = e_amd64.Amd64Emulator.getRegister(self, ridx)
 
         # this is broken, but works enough to keep for now.  if we
         # run into new 64-bit calling conventions, we may need to fix
@@ -50,7 +59,8 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
             return value
 
         if self.isRegUse(self.op, index):
-            self._useVirtAddr(value)
+            self._useVirtAddr(rval)
+
         return value
 
     def isRegUse(self, op, ridx):

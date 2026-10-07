@@ -153,3 +153,12 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(vw.getLocation(0x6105), (0x6105, 3, 5, None))
         self.assertEqual(vw.getLocation(0x610a), (0x610a, 3, 5, None))
 
+    def test_mpfile_reopen(self):
+        # reopen
+        mpfile = tempfile.NamedTemporaryFile(delete=False)
+
+        try:
+            pass
+        finally:
+            mpfile.close()
+            os.unlink(mpfile.name)

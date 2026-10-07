@@ -48,3 +48,6 @@ class EnviBitsTest(unittest.TestCase):
         self.assertEqual(0, e_bits.msb_minus_one(0xbfffffff, 4))
         self.assertEqual(1, e_bits.msb_minus_one(0x4000000000000000, 8))
         self.assertEqual(0, e_bits.msb_minus_one(0xbfffffffffffffff, 8))
+
+    def test_is_signed_helpers(self):
+        pass

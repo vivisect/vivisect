@@ -49,7 +49,6 @@ def getRootNode(pnode):
 
     Example: root = getRootNode(branchnode)
     '''
-    ret = pnode
     while pnode[0] is not None:
         pnode = pnode[0]
     return pnode
@@ -188,7 +187,7 @@ def trimPath(pnode):
     current node could be trimmed because it looks like it doesn't have any children.
     '''
     while True:
-        p = getNodeParent(pnode)
+        p = pnode[0]
 
         # if we don't have a parent, we're done
         if p is None:

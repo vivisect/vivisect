@@ -140,12 +140,12 @@ class DnsNameLabel(vstruct.VStruct):
     '''
     A DNS Name component.
     '''
-    def __init__(self, label=''):
+    def __init__(self, label=b''):
         vstruct.VStruct.__init__(self)
         self._nametype = 0
-        self._pointer  = 0
-        self.length = v_uint8( len(label) )
-        self.label  = v_bytes( vbytes=label )
+        self._pointer = 0
+        self.length = v_uint8(len(label))
+        self.label  = v_bytes(vbytes=label)
 
     def pcb_length(self):
         size = self.length

@@ -34,18 +34,19 @@ class mach_o(vstruct.VStruct):
             return self._symbols
 
         self._symbols = []
+        # TODO: this should actually populate the symbols. need to revist this
         for fname, vs in self.load_commands:
             if vs.cmd != LC_SYMTAB:
                 continue
             strbytes = self._raw_bytes[vs.stroff:vs.stroff+vs.strsize]
-            strtab = strbytes.split('\x00')
+            strtab = strbytes.split(b'\x00')
             offset = vs.symoff
             for i in range(vs.nsyms):
                 n = nlist() # FIXME 64!
                 offset = n.vsParse(self._raw_bytes, offset)
                 #symstr = strtab[n.n_strx]
                 # FIXME this is slow!
-                symstr = strbytes[n.n_strx:].split('\x00', 1)[0]
+                symstr = strbytes[n.n_strx:].split(b'\x00', 1)[0]
 
     def getEntryPoints(self):
         if self._entrypoints is not None:
@@ -56,7 +57,10 @@ class mach_o(vstruct.VStruct):
         for fname, vs in self.load_commands:
             if vs.cmd in (LC_MAIN, LC_UNIXTHREAD):
                 eoff = len(vs)
-                psize = vs.flavor
+                if vs.cmd == LC_UNIXTHREAD:
+                    psize = vs.flavor
+                else:
+                    psize = 4
                 bigend = self.vsGetEndian()
 
                 fmt = e_bits.getFormat(psize, bigend)

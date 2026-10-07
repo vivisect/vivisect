@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 Mostly this is a place to scuttle away some of the inner workings
 of a workspace, so the outer facing API is a little cleaner.
 """
-class VivEventCore(object):
+class VivEventCore:
     '''
     A class to facilitate event monitoring in the viv workspace.
     '''
@@ -793,8 +793,13 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             return
 
         # Update the location def for NOFALL bit
+        # but save the xrefs off first because delLocation nukes those
+        xrefs = vw.getXrefsFrom(lva)
         vw.delLocation(lva)
+
         vw.addLocation(lva, lsize, ltype, linfo | envi.IF_NOFALL)
+        for xfrom, xto, xtyp, xflags in xrefs:
+            vw.addXref(xfrom, xto, xtyp, xflags)
 
         vw.setVaSetRow('NoReturnCalls', (lva,))
 

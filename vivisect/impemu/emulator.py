@@ -27,6 +27,8 @@ def imphook(impname):
 
     return imptemp
 
+clshooks = {}
+
 class WorkspaceEmulator:
 
     taintregs = []
@@ -163,16 +165,22 @@ class WorkspaceEmulator:
             regval = self.setVivTaint('uninitreg', regidx)
             self.setRegister(regidx, regval)
 
-        for name in dir(self):
-            val = getattr(self, name, None)
-            if val is None:
-                continue
+        clsname = self.__class__.__name__
+        hooks = clshooks.get(clsname)
+        if hooks is None:
+            for name in dir(self):
+                val = getattr(self, name, None)
+                if val is None:
+                    continue
 
-            impname = getattr(val, '__imphook__', None)
-            if impname is None:
-                continue
+                impname = getattr(val, '__imphook__', None)
+                if impname is None:
+                    continue
 
-            self.hooks[impname] = val
+                self.hooks[impname] = val
+            clshooks[clsname] = self.hooks
+        else:
+            self.hooks = hooks
 
         self.stack_map_mask = None
         self.stack_map_base = None

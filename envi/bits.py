@@ -121,17 +121,15 @@ def is_signed_carry(value, size, src):
     smax = s_maxes[size]
     if value > smax > src:
         return True
-    if value < -smax < -src:
-        return True
-    return False
+
+    return value < -smax < -src
 
 def is_signed_overflow(value, size):
     smax = s_maxes[size]
     if value > smax:
         return True
-    if value < -smax:
-        return True
-    return False
+
+    return value < -smax
 
 def is_unsigned_carry(value, size):
     umax = u_maxes[size]

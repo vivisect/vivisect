@@ -53,7 +53,7 @@ def getLongPath(g):
     weights_to_cb, cb_to_weights, todo = getNodeWeightHisto(g)
 
     # unique root node code blocks
-    rootnodes = set([cb for cb, nprops in g.getHierRootNodes()])
+    rootnodes = {cb for cb, nprops in g.getHierRootNodes()}
     leafmax = 0
     if len(todo):
         leafmax = max(todo.keys())
@@ -743,8 +743,8 @@ class PathGenerator:
 
     def getFuncCbRoutedPaths_genback(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
-        Yields all the paths through the hierarchical graph starting at the 
-        "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
+        Yields all the paths through the hierarchical graph starting at the
+        "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop
         paths to be generated with the given "loop iteration count"
 
         Example:
@@ -759,7 +759,7 @@ class PathGenerator:
         frcbva = getGraphNodeByVa(fgraph, fromva)
 
         preRouteGraph(fgraph, fromva, tova)
-        
+
         pnode = vg_pathcore.newPathNode(nid=tocbva, eid=None)
 
         todo = [(tocbva,pnode), ]
@@ -803,14 +803,14 @@ class PathGenerator:
 
                 vg_pathcore.setNodeProp(cpath, 'eid', eid)
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=fromid, eid=None)
-                todo.append((fromid,npath))
+                todo.append((fromid, npath))
 
         self.__go__ = False
 
     def getFuncCbRoutedPaths(self, fromva, tova, loopcnt=0, maxpath=None, timeout=None):
         '''
-        Yields all the paths through the hierarchical graph starting at the 
-        "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop 
+        Yields all the paths through the hierarchical graph starting at the
+        "root nodes" and ending at tocbva.  Specify a loopcnt to allow loop
         paths to be generated with the given "loop iteration count"
 
         Example:
@@ -836,7 +836,7 @@ class PathGenerator:
 
         loopcount = 0
 
-        todo = [(frcbva,pnode,loopcount), ]
+        todo = [(frcbva, pnode, loopcount), ]
 
         maxtime = None
         if timeout:
@@ -849,7 +849,7 @@ class PathGenerator:
             if not self.__go__:
                 raise PathForceQuitException(pathcnt)
 
-            nodeid,cpath,loopcount = todo.pop()
+            nodeid, cpath, loopcount = todo.pop()
 
             # This is the root node!
             if nodeid == tocbva:
@@ -878,11 +878,12 @@ class PathGenerator:
                         continue
 
                 npath = vg_pathcore.newPathNode(parent=cpath, nid=toid, eid=eid)
-                todo.append((toid,npath,loopcount))
+                todo.append((toid, npath, loopcount))
 
             vg_pathcore.trimPath(cpath)
 
         self.__go__ = False
+
 
 def pathGenConvert(pathgen):
     '''

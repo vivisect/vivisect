@@ -198,6 +198,9 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         # TODO: This shouldn't be backwards from all the others. va should be first
         self.addVaSet("Null Offset Functions", (("Comment", v_const.VASET_STRING), ("va", v_const.VASET_ADDRESS)))
 
+        self.runtimes = collections.defaultdict(float)
+        self.runcalls = collections.defaultdict(int)
+
     def vprint(self, msg):
         logger.info(msg)
 
@@ -838,28 +841,39 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         starttime = time.time()
         # Now lets engage any analysis modules.  If any modules return
         # true, they managed to change things and we should run again...
+        curtime = starttime
         for mname in self.amodlist:
             mod = self.amods.get(mname)
-            self.vprint("Extended Analysis: %s" % mod.__name__)
+            modname = mod.__name__
+            self.vprint("Extended Analysis: %s" % modname)
             try:
                 mod.analyze(self)
             except Exception as e:
-                self.vprint("Extended Analysis Exception %s: %s" % (mod.__name__, e))
+                self.vprint("Extended Analysis Exception %s: %s" % (modname, e))
+            nexttime = time.time()
+            self.vprint("Extended Analysis: %s (took %f seconds)" % (modname, nexttime - curtime))
+            curtime = nexttime
 
         endtime = time.time()
-        self.vprint('...analysis complete! (%d sec)' % (endtime-starttime))
+        self.vprint('...analysis complete! (%d sec)' % (endtime - starttime))
         self.printDiscoveredStats()
         self._fireEvent(v_const.VWE_AUTOANALFIN, (endtime, starttime))
 
     def analyzeFunction(self, fva):
         for fmname in self.fmodlist:
             fmod = self.fmods.get(fmname)
+            fmodname = fmod.__name__
             try:
+                curtime = time.time()
                 fmod.analyzeFunction(self, fva)
+                nexttime = time.time()
+                self.runtimes[fmodname] += nexttime - curtime
+                self.runcalls[fmodname] += 1
+                curtime = nexttime
             except Exception:
-                self.vprint("Function Analysis Exception for function 0x%x, module: %s" % (fva, fmod.__name__))
+                self.vprint("Function Analysis Exception for function 0x%x, module: %s" % (fva, fmodname))
                 self.vprint("Exception Traceback: %s" % traceback.format_exc())
-                self.setFunctionMeta(fva, "%s fail" % fmod.__name__, traceback.format_exc())
+                self.setFunctionMeta(fva, "%s fail" % fmodname, traceback.format_exc())
 
     def getStats(self):
         stats = {
@@ -881,6 +895,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
          numNumbers,
          numPointers,
          numVtables) = self.getDiscoveredInfo()
+
+
+        for modname, total in self.runtimes.items():
+            avgcall = total / self.runcalls[modname]
+            self.vprint('%s took %f total seconds across %d calls (avg: %f)' % (modname, total, self.runcalls[modname], avgcall))
 
         percentage = disc*100.0/(disc+undisc) if disc or undisc else 0
         self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (percentage, disc, disc+undisc))
@@ -1262,7 +1281,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         if cb[v_const.CB_FUNCVA] == newfva:
             return
 
-        self.delCodeBlock(cb)
+        self.delCodeBlock(cb[v_const.CB_VA])
         self.addCodeBlock(cb[v_const.CB_VA], cb[v_const.CB_SIZE], newfva)
 
     def splitJumpTable(self, callingVa, prevRefVa, newTablAddr, rebase=False, psize=4):
@@ -2497,9 +2516,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         """
         Return True if the va represents a location already.
         """
-        if self.getLocation(va, range=range) is not None:
-            return True
-        return False
+        return self.getLocation(va, range=range) is not None
 
     def isLocType(self, va, ltype):
         """
@@ -2580,9 +2597,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         This will raise InvalidLocation if the va is not
         an exact match for the beginning of a location.
         """
-        loc = self.getLocation(va)
+        loc = self.getLocation(va, range=False)
         if loc is None:
             raise v_exc.InvalidLocation(va)
+
         # remove xrefs from this location
         for xref in self.getXrefsFrom(va):
             self.delXref(xref)

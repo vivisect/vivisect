@@ -264,6 +264,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         # dmax = e_bits.s_maxes[dsize]
         # ssize = op.opers[1].tsize
 
+        # TODO: Use these?
         smax, umax = self.__get_dest_maxes(op)
 
         add = o_add(v1, v2, dsize)
@@ -1175,10 +1176,10 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         return eq(Var('eflags_eq', self._psize), Const(x, self._psize))
 
     def _overflow_eq(self, x):
-        return eq(Var('eflags_eq', self._psize), Const(x, self._psize))
+        return eq(Var('eflags_of', self._psize), Const(x, self._psize))
 
     def _signed_eq(self, x):
-        return eq(Var('eflags_eq', self._psize), Const(x, self._psize))
+        return eq(Var('eflags_sf', self._psize), Const(x, self._psize))
 
     def _parity_eq(self, x):
         return eq(Var('eflags_pf', self._psize), Const(x, self._psize))
@@ -1202,7 +1203,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_setg(self, op):
         signed = eq(Var('eflags_sf', self._psize), Var('eflags_of', self._psize))
-        self.setOperObj(op, 0, self._overflow_eq(0) & signed)
+        self.setOperObj(op, 0, self._zero_eq(0) & signed)
 
     def i_setge(self, op):
         signed = eq(Var('eflags_sf', self._psize), Var('eflags_of', self._psize))
@@ -1213,7 +1214,6 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, not_signed)
 
     def i_setle(self, op):
-        equal = eq(Var('eflags_eq', self._psize), Const(1, self._psize))
         not_signed = ne(Var('eflags_sf', self._psize), Var('eflags_of', self._psize))
         self.setOperObj(op, 0, self._zero_eq(1) | not_signed)
 
@@ -1240,7 +1240,8 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         self.setOperObj(op, 0, self._overflow_eq(0))
 
     def i_setnp(self, op):
-        self.setOperObj(op, 0, ne(self._parity_eq(1)))
+        self.setOperObj(op, 0, self._parity_eq(0))
+
     i_setpo = i_setnp
 
     def i_setns(self, op):
@@ -1249,7 +1250,7 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_setnz = i_setne
 
     def i_seto(self, op):
-        self.setOperObj(op, 0, self._overflow_eq(0))
+        self.setOperObj(op, 0, self._overflow_eq(1))
 
     def i_setp(self, op):
         self.setOperObj(op, 0, self._parity_eq(1))
