@@ -1,7 +1,10 @@
 import logging
+import struct
+import unittest
 
 import PE
 import envi.const as e_const
+import vstruct.defs.pe as vs_pe
 
 import vivisect
 import vivisect.const as viv_con
@@ -11,6 +14,63 @@ import vivisect.tests.helpers as helpers
 import vivisect.tests.utils as v_t_utils
 
 logger = logging.getLogger(__name__)
+
+
+def _build_minimal_pe_with_num_rva_and_sizes(num_rva_and_sizes=16):
+    dos = vs_pe.IMAGE_DOS_HEADER()
+    dos.e_magic = 0x5A4D
+    dos.e_lfanew = 0x80
+
+    nt = vs_pe.IMAGE_NT_HEADERS()
+    nt.Signature = b'PE\x00\x00'
+    nt.FileHeader.Machine = PE.IMAGE_FILE_MACHINE_I386
+    nt.FileHeader.NumberOfSections = 1
+    nt.FileHeader.SizeOfOptionalHeader = len(nt.OptionalHeader)
+    nt.FileHeader.Characteristics = PE.IMAGE_FILE_EXECUTABLE_IMAGE | PE.IMAGE_FILE_32BIT_MACHINE
+
+    nt.OptionalHeader.Magic = struct.pack('<H', PE.PE32_MAGIC)
+    nt.OptionalHeader.AddressOfEntryPoint = 0x1000
+    nt.OptionalHeader.BaseOfCode = 0x1000
+    nt.OptionalHeader.BaseOfData = 0x2000
+    nt.OptionalHeader.ImageBase = 0x400000
+    nt.OptionalHeader.SectionAlignment = 0x1000
+    nt.OptionalHeader.FileAlignment = 0x200
+    nt.OptionalHeader.SizeOfImage = 0x2000
+    nt.OptionalHeader.SizeOfHeaders = 0x200
+    nt.OptionalHeader.Subsystem = PE.IMAGE_SUBSYSTEM_WINDOWS_CUI
+    nt.OptionalHeader.SizeOfStackReserve = 0x100000
+    nt.OptionalHeader.SizeOfStackCommit = 0x1000
+    nt.OptionalHeader.SizeOfHeapReserve = 0x100000
+    nt.OptionalHeader.SizeOfHeapCommit = 0x1000
+    nt.OptionalHeader.NumberOfRvaAndSizes = num_rva_and_sizes
+
+    sec = vs_pe.IMAGE_SECTION_HEADER()
+    sec.Name = b'.text\x00\x00\x00'
+    sec.VirtualSize = 0x1234
+    sec.VirtualAddress = 0x1000
+    sec.SizeOfRawData = 0x200
+    sec.PointerToRawData = 0x200
+    sec.Characteristics = 0x60000020
+
+    raw = bytearray(0x400)
+    raw[:len(dos)] = dos.vsEmit()
+    raw[dos.e_lfanew:dos.e_lfanew + len(nt)] = nt.vsEmit()
+    sec_off = dos.e_lfanew + 4 + len(nt.FileHeader) + nt.FileHeader.SizeOfOptionalHeader
+    raw[sec_off:sec_off + len(sec)] = sec.vsEmit()
+    return bytes(raw), sec_off
+
+
+class PEBugRegressionTests(unittest.TestCase):
+
+    def test_parse_sections_uses_size_of_optional_header_for_offset(self):
+        raw, expected_sec_off = _build_minimal_pe_with_num_rva_and_sizes(15)
+
+        pe = PE.peFromBytes(raw)
+
+        self.assertEqual(pe.sections[0].vsGetMeta('Offset'), expected_sec_off)
+        self.assertEqual(pe.sections[0].Name, '.text\x00\x00\x00')
+        self.assertEqual(pe.sections[0].VirtualSize, 0x1234)
+        self.assertEqual(pe.sections[0].VirtualAddress, 0x1000)
 
 
 class PETests(v_t_utils.VivTest):

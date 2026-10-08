@@ -743,9 +743,9 @@ class PE(object):
     def parseSections(self):
 
         self.sections = []
-        off = self.IMAGE_DOS_HEADER.e_lfanew + len(self.IMAGE_NT_HEADERS)
-        off -= len(self.IMAGE_NT_HEADERS.OptionalHeader.DataDirectory)
-        off += self.IMAGE_NT_HEADERS.OptionalHeader.NumberOfRvaAndSizes * len(vstruct.getStructure("pe.IMAGE_DATA_DIRECTORY"))
+        off = self.IMAGE_DOS_HEADER.e_lfanew + 4
+        off += len(self.IMAGE_NT_HEADERS.FileHeader)
+        off += self.IMAGE_NT_HEADERS.FileHeader.SizeOfOptionalHeader
 
         secsize = len(vstruct.getStructure("pe.IMAGE_SECTION_HEADER"))
         hdrsize = secsize * self.IMAGE_NT_HEADERS.FileHeader.NumberOfSections
