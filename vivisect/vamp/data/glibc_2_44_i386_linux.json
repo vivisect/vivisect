@@ -1,0 +1,14 @@
+{
+  "format_version": 1,
+  "library": "glibc",
+  "version": "2.44",
+  "arch": "i386",
+  "platform": "linux",
+  "compiler": "unknown",
+  "compiled_flags": "",
+  "source_url": null,
+  "binary_sha256": "668f997437cdf5bdf37dc6a9c5ab5dc489cd05e3bda36a255dc26a28755cb508",
+  "generated_at": "2026-10-12T10:02:42Z",
+  "generated_by": "vamp-gen-sigs",
+  "signatures": []
+}

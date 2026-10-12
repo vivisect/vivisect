@@ -1,0 +1,552 @@
+{
+  "format_version": 1,
+  "library": "snappy",
+  "version": "1.2.2",
+  "arch": "amd64",
+  "platform": "linux",
+  "compiler": "unknown",
+  "compiled_flags": "",
+  "source_url": null,
+  "binary_sha256": "cae2dd8bbbd386e3142525eb104bbc82e40551ff7b20f25a6eec220ad7df5e86",
+  "generated_at": "2026-10-12T10:03:03Z",
+  "generated_by": "vamp-gen-sigs",
+  "signatures": [
+    {
+      "name": "snappy._ZN6snappy4Sink15GetAppendBufferEmPc",
+      "bytes": "f30f1efa4889d0c3",
+      "mask": "ffffffffffffffff",
+      "func_size": 8,
+      "first_block_size": 8,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy4Sink23GetAppendBufferVariableEmmPcmPm",
+      "bytes": "f30f1efa4d89014889c8c3",
+      "mask": "ffffffffffffffffffffff",
+      "func_size": 11,
+      "first_block_size": 11,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZNK6snappy15ByteArraySource9AvailableEv",
+      "bytes": "f30f1efa488b4710c3",
+      "mask": "ffffffffffffffffff",
+      "func_size": 9,
+      "first_block_size": 9,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy15ByteArraySource4PeekEPm",
+      "bytes": "f30f1efa488b4710488906488b4708c3",
+      "mask": "ffffffffffffffffffffffffffffffff",
+      "func_size": 16,
+      "first_block_size": 16,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy15ByteArraySource4SkipEm",
+      "bytes": "f30f1efa4829771048017708c3",
+      "mask": "ffffffffffffffffffffffffff",
+      "func_size": 13,
+      "first_block_size": 13,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy22UncheckedByteArraySink15GetAppendBufferEmPc",
+      "bytes": "f30f1efa488b4708c3",
+      "mask": "ffffffffffffffffff",
+      "func_size": 9,
+      "first_block_size": 9,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy22UncheckedByteArraySink23GetAppendBufferVariableEmmPcmPm",
+      "bytes": "f30f1efa498911488b4708c3",
+      "mask": "ffffffffffffffffffffffff",
+      "func_size": 12,
+      "first_block_size": 12,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy22UncheckedByteArraySink6AppendEPKcm",
+      "bytes": "f30f1efa4889f9488b7f084800000000554889e54883ec1048894df0488955f8e800000000488b4df0488b55f8488b71084801d648897108c9c3660f1f4400004801d648897108c3",
+      "mask": "ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 72,
+      "first_block_size": 72,
+      "reloc_count": 1,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy4Sink22AppendAndTakeOwnershipEPcmPFvPvPKcmES2_",
+      "bytes": "f30f1efa554989f94889e54883ec30488b07488d3d00000000488b40104800000000498b790848000000004c8945d84c894de048894de8488955f0488975f8e8000000004c8b4de04c8b45d8488b4de8488b55f0498b7908488b75f84801d7498979084c89c7c9ffe10f1f80000000004c8945e04c89cf48894de8488955f0488975f8ffd04c8b45e0488b4de8488b55f0488b75f8c94c89c7ffe1",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 155,
+      "first_block_size": 155,
+      "reloc_count": 2,
+      "masked_ratio": 0.1032,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy22UncheckedByteArraySink22AppendAndTakeOwnershipEPcmPFvPvPKcmES2_",
+      "bytes": "f30f1efa554989f94889e5534889d34883ec28488b7f0848000000004c894de0488975e84c8945d848894dd0e800000000488b75e8488b7dd84889da488b4dd0ffd14c8b4de0498b71084801de488b5df849897108c9c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 87,
+      "first_block_size": 87,
+      "reloc_count": 1,
+      "masked_ratio": 0.092,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy19SnappySinkAllocator7DeleterEPvPKcm",
+      "bytes": "f30f1efa48000000004889f7e9000000000f1f8000000000c3",
+      "mask": "ffffffffff00000000ffffffff00000000ffffffffffffffff",
+      "func_size": 25,
+      "first_block_size": 25,
+      "reloc_count": 1,
+      "masked_ratio": 0.32,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy15ByteArraySourceD1Ev",
+      "bytes": "f30f1efa488b05000000004883c010488907e900000000",
+      "mask": "ffffffffffffff00000000ffffffffffffffff00000000",
+      "func_size": 23,
+      "first_block_size": 23,
+      "reloc_count": 1,
+      "masked_ratio": 0.3478,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy15ByteArraySourceD0Ev",
+      "bytes": "f30f1efa554889e54883ec1048897df8e800000000488b7df8be18000000c9e900000000",
+      "mask": "ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000",
+      "func_size": 36,
+      "first_block_size": 36,
+      "reloc_count": 1,
+      "masked_ratio": 0.2222,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy6SourceD0Ev",
+      "bytes": "f30f1efa554889e54883ec1048897df8e800000000488b7df8be08000000c9e900000000",
+      "mask": "ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000",
+      "func_size": 36,
+      "first_block_size": 36,
+      "reloc_count": 1,
+      "masked_ratio": 0.2222,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy22UncheckedByteArraySinkD0Ev",
+      "bytes": "f30f1efa554889e54883ec1048897df8e800000000488b7df8be10000000c9e900000000",
+      "mask": "ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000",
+      "func_size": 36,
+      "first_block_size": 36,
+      "reloc_count": 1,
+      "masked_ratio": 0.2222,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy6Varint8Append32EPNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEj",
+      "bytes": "f30f1efa554889e54883ec1064488b042528000000488945f831c08300000000408875f0ba0100000048b8feffffffffffff7f482b47084839d00f8200000000488d75f0e800000000488b45f864482b0425280000000f8500000000c9c3669089f189f083c980c1e80781feff3f00000000884df0ba0200000088000000009089f283c880c1ea0e81feffff000000004189d089f24183c880c1ea1581feffff000000000fb6d2450fb6c00fb6c00fb6c9c1e2084409c2c1e20809d0ba04000000c1e00809c88945f0e90000000066908855f2ba03000000884df08845f1e9000000000f1f44000083ca80c1ee1c884df08855f3ba050000008845f1448845f2",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 270,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1562,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy19MaxCompressedLengthEm",
+      "bytes": "f30f1efa48b8abaaaaaaaaaaaaaa48f7e748c1ea02488d443a20c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 27,
+      "first_block_size": 27,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy.snappy_max_compressed_length",
+      "bytes": "f30f1efae900000000",
+      "mask": "ffffffffff00000000",
+      "func_size": 9,
+      "first_block_size": 9,
+      "reloc_count": 0,
+      "masked_ratio": 0.4444,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy21GetUncompressedLengthEPKcmPm",
+      "bytes": "f30f1efa488d04374989d04839c70f83000000000fb61789d183e17f00000000488d570148000000000fb6770189f2c1e20781e2803f000009d18300000000488d570248000000000fb6770289f2c1e20e81e200c01f0009d18300000000488d570348000000000fb6770389f2c1e21581e20000e00f09d18300000000488d570448000000000fb6570431c08300000000c1e21c09d189c8498900b801000000c30f1f800000000031c0c3",
+      "mask": "ffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 171,
+      "first_block_size": 171,
+      "reloc_count": 5,
+      "masked_ratio": 0.2339,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy.snappy_uncompressed_length",
+      "bytes": "f30f1efa554889e5e8000000005d83f0010fb6c0c3",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffff",
+      "func_size": 21,
+      "first_block_size": 21,
+      "reloc_count": 0,
+      "masked_ratio": 0.1905,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy8internal13WorkingMemoryC1Em",
+      "bytes": "f30f1efa554889e541554989fd415441bc0000010053bb000001004883ec084839de480f46de4881fe00800000000041bc000200004881feff00000000008d43ff41bc02000000f30fbdc083f01fc44279f7e44d01e44889dfe8000000004a8d3c204801df498900000000e80000000049894500498945104c01e0498945184801d8498945204883c4085b415c415d5dc30f1f8000000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 157,
+      "first_block_size": 157,
+      "reloc_count": 3,
+      "masked_ratio": 0.1529,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy8internal13WorkingMemoryD1Ev",
+      "bytes": "f30f1efa488b7708488b3fe900000000",
+      "mask": "ffffffffffffffffffffffff00000000",
+      "func_size": 16,
+      "first_block_size": 16,
+      "reloc_count": 0,
+      "masked_ratio": 0.25,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZNK6snappy8internal13WorkingMemory12GetHashTableEmPi",
+      "bytes": "f30f1efa554889e541554989fd4154534889d34883ec0881fe00800000000081feff000000000083ee0141bc02000000f30fbdf683f61fc4c249f7d44989d44801d2498b7d1031f6e800000000448923498b45104883c4085b415c415d5dc39041bc00800000ba0000000000000f1f0041bc00010000ba000200000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000",
+      "func_size": 125,
+      "first_block_size": 125,
+      "reloc_count": 2,
+      "masked_ratio": 0.16,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy8internal16CompressFragmentEPKcmPcPti",
+      "bytes": "f30f1efa554989f94889d04889e541574156415541544989cc488d0c37534883ec2848894dc84883fe0e0f86000000008b5f01438d4c00fe4c8d7c37f14989f8895dbc498d70014c89ff498b50014829f74883ff0f0f8e00000000498d5805488975b04189f641bd0400000048895dc04529ce4589eb4183000000008b7dbc89fe438d1c1ef20f38f1f121ce450fb714346641891c344d01ca413b3a0f84000000004183c30148c1ea084500000000000000000f1f440000488b5dc0458d6b04488b134883c30448895dc0418300000000498d701141bd3100000000000f1f0041bd210000004c8d5e014d39df0f820000000089d789d3f20f38f1f921cf4c01",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 1561,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.1406,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy8internal26CompressFragmentDoubleHashEPKcmPcPtiS4_i",
+      "bytes": "f30f1efa55488d04374889e541574989d7415641554154534883ec4848894db8488945c04883fe0e0f8600000000488d4437f14d89ce4889fe49bd63a5bfdcbc1bcf00488945c8478d4c00fe4c8d56024c3955c80f82000000004c8b46014c8b65b8488d4e01bb010200004c89c2490fafd548c1ea314c21ca4c01f20fb7024989cb4929fb4801f86644891a44000000004169d0b179379ec1ea114421ca410fb704146645891c144801f8443b000f84000000004d8b0289d84c89d183c301c1e8094c89c24c01d0490fafd548c1ea314c21ca4c01f248390000000049000000000f1f80000000004c89f8488b7dc04839fe0f82000000004883c4485b415c41",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff",
+      "func_size": 2539,
+      "first_block_size": 256,
+      "reloc_count": 3,
+      "masked_ratio": 0.1094,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy9MemCopy64EPcPKvm",
+      "bytes": "f30f1efac5fff006c5fe7f07488300000000c5f877c3662e0f1f840000000000c5fff04620c5fe7f4720c5f877c3",
+      "mask": "ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 46,
+      "first_block_size": 46,
+      "reloc_count": 0,
+      "masked_ratio": 0.087,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy13ClearDeferredEPPKvPmPh",
+      "bytes": "f30f1efa48891748c70600000000c3",
+      "mask": "ffffffffffffffffffffffffffffff",
+      "func_size": 15,
+      "first_block_size": 15,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy12DeferMemCopyEPPKvPmS1_m",
+      "bytes": "f30f1efa48891748890ec3",
+      "mask": "ffffffffffffffffffffff",
+      "func_size": 11,
+      "first_block_size": 11,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy18SnappyDecompressor9RefillTagEv",
+      "bytes": "f30f1efa554889e54157415641554154534883ec28488b7708488b5f10644c8b3c25280000004c897dc84989ff4839f30f8400000000440fb62e41f600000000418000000000428d04ed0000000041bd010203054829f383e018c4427af7ed450fb6ed4d63ed4c000000004883fb040f860000000049897708b801000000488b55c864482b1425280000000f85000000004883c4285b415c415d415e415f5dc341c0ed024829f3450fb6ed4183ed3a4d63ed4c00000000498d47294889da4889c7488945b8e800000000498b3f498b7720488b07ff502049c747200000000000000f1f80000000004d89ec4929dc4939c44c0f47e0488b45b84c89e2488d3c18",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 466,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.1406,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy21GetUncompressedLengthEPNS_6SourceEPj",
+      "bytes": "f30f1efa554889e541574989ff4156488d45c04531f641554c8d2d000000004154534883ec2864488b1c252800000048895dc84889f3488945b8c70300000000498b07488b75b84c89ffff501848837d00000000440fb620498b07be010000004c89ffff50204489e083e07f89c143224c000000000fb6c0c4e209f7c0090345000000004983c60749830000000031db498b0731f64c89ffff5020488b45c864482b04252800000000004883c42889d85b415c415d415e415f5dc30f1f440000bb010000000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000",
+      "func_size": 204,
+      "first_block_size": 204,
+      "reloc_count": 4,
+      "masked_ratio": 0.1569,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy8CompressEPNS_6SourceEPNS_4SinkENS_18CompressionOptionsE",
+      "bytes": "f30f1efa554889e5415741564989fe415541544989f4534881ec9800000089956cffffff64488b042528000000488945c8488b07ff50104989c183f87f0f87000000008845c048c78558ffffff01000000498b1424488d0500000000488b4a104839c10f8500000000498b542408488d4dc04800000000488b8558ffffff4189c00000000031f689f083c6010fb63c0140883c024400000000498b542408669048039558ffffff4989542408488d7d904c89ce4c898d78ffffff4889bd50ffffffe8000000004c8b8d78ffffff4d85c90f8400000000488d45884d89cd48898578ffffff488d458448898548ff000000000f1f800000000031c083bd6cffffff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff",
+      "func_size": 1128,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.1406,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy8CompressEPNS_6SourceEPNS_4SinkE",
+      "bytes": "f30f1efaba01000000e900000000",
+      "mask": "ffffffffffffffffffff00000000",
+      "func_size": 14,
+      "first_block_size": 14,
+      "reloc_count": 0,
+      "masked_ratio": 0.2857,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy20RawUncompressToIOVecEPNS_6SourceEPK5iovecm",
+      "bytes": "f30f1efa554889f1c4e1f96ec74889e54157415641554154534881ecb8000000644c8b2425280000004c8965c84989d44885d20f84000000004c8b3e4c8b7608488d9560ffffff48c745a00000000031db48c745b0000000004989d5c645b80048899538ffffff4c89b548ffffff48898d40ffffff4889bd30ffffff4c89a528ffffff4531e4c5f97f4590488b074c89eeff50184883bd60ffffff000f8400000000488b7d90440fb630be01000000488b07ff50204489f0488d0d0000000083e07f89c6422234210f85000000000fb6c0c4e219f7c009c34500000000488b7d904983c4074989f8498300000000488b75b031db498b004c89c7ff5020488b45",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff",
+      "func_size": 1868,
+      "first_block_size": 256,
+      "reloc_count": 3,
+      "masked_ratio": 0.0938,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy20RawUncompressToIOVecEPKcmPK5iovecm",
+      "bytes": "f30f1efa554889f04889d64889e5534883ec3864488b142528000000488955e84889ca488b0d00000000488945e0488d5910c4e1f96ec3c4e3f922c701488d7dd0c5f97f45d0e800000000488d7dd08845cfe8000000000fb645cf488b55e864482b1425280000000000488b5df8c9c3e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffff00000000",
+      "func_size": 117,
+      "first_block_size": 117,
+      "reloc_count": 2,
+      "masked_ratio": 0.1709,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy13RawUncompressEPNS_6SourceEPc",
+      "bytes": "f30f1efa55c4e1f96ec74889e541574531ff41564989fe41554c8d2d0000000041545331db4881ec880000004889b550ffffff64488b042528000000488945c831c0488d8568ffffffc645b8004889b570ffffff48c745a00000000048c745b00000000048898558ffffffc5f97f4590488b07488bb558ffffffff50184883bd68ffffff000f8400000000488b7d90440fb620be01000000488b07ff50204489e083e07f89c64322743d000f85000000000fb6c0c4e201f7c009c34500000000488b7d904983c7074889f949830000000031db488b01488b75b04889cfff5020488b45c864482b0425280000000f85000000004881c48800000089d85b415c41",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 382,
+      "first_block_size": 256,
+      "reloc_count": 3,
+      "masked_ratio": 0.0938,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy13RawUncompressEPKcmPc",
+      "bytes": "f30f1efa554889e5534883ec3864488b042528000000488945e8488b0500000000488975e04889d64883c010c4e1f96ec0c4e3f922c701488d7dd0c5f97f45d0e800000000488d7dd08845cfe8000000000fb645cf488b55e864482b1425280000000000488b5df8c9c3e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffff00000000",
+      "func_size": 111,
+      "first_block_size": 111,
+      "reloc_count": 2,
+      "masked_ratio": 0.1802,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy.snappy_uncompress",
+      "bytes": "f30f1efa554889e541564989d64155488d55d041544989f4534889fb4883ec10644c8b2c25280000004c896dd84989cde80000000000000000488b4dd0b8020000004939000000004c89f24c89e64889dfe80000000000000000488b45d04989450031c0488b55d864482b14252800000000004883c4105b415c415d415e5dc3b8010000000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffffff00000000ffffffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ff00000000",
+      "func_size": 140,
+      "first_block_size": 140,
+      "reloc_count": 4,
+      "masked_ratio": 0.2286,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy10UncompressEPKcmPNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE",
+      "bytes": "f30f1efa554889e5415541544989f4534889fb4883ec18644c8b2c25280000004c896dd84989d5488d55d0e8000000000000000048bafeffffffffffff7f488b75d031c04800000000488b55d864482b14252800000000004883c4185b415c415d5dc30f1f44000031d24c89efe80000000031d249837d00000000498b55004c89e64889dfe8000000000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffff000000000000ff00000000",
+      "func_size": 145,
+      "first_block_size": 145,
+      "reloc_count": 4,
+      "masked_ratio": 0.2345,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy23IsValidCompressedBufferEPKcm",
+      "bytes": "f30f1efa554889e5534883ec4864488b042528000000488945e8488b0500000000488975e0488d75c04883c010c4e1f96ec0c4e3f922c701488d7dd0c5f97f45d0c5f9efc0c5f97f45c0e800000000488d7dd08845bfe8000000000fb645bf488b55e864482b1425280000000000488b5df8c9c3e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffff00000000",
+      "func_size": 121,
+      "first_block_size": 121,
+      "reloc_count": 2,
+      "masked_ratio": 0.1653,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy17IsValidCompressedEPNS_6SourceE",
+      "bytes": "f30f1efa55c5f9efc04889e54883ec2064488b042528000000488945f831c0488d75e0c5f97f45e0e800000000488b55f864482b1425280000000000c9c3e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffff00000000",
+      "func_size": 67,
+      "first_block_size": 67,
+      "reloc_count": 1,
+      "masked_ratio": 0.1791,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy11RawCompressEPKcmPcPmNS_18CompressionOptionsE",
+      "bytes": "f30f1efa554889e541564989d641554154534883ec30488b0500000000644c8b2c25280000004c896dd84989cd488975d0488d75b04883c010c4e1f96ec0488b0500000000c4e3f922c701488d7dc04883c010c5f97f45c0c4e1f96ec0c4e3f922c2014489c2c5f97f45b0e800000000488b45b8488d7db04c29f049894500e800000000488d7dc0e800000000488b45d864482b04252800000000004883c4305b415c415d415e5dc3e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000",
+      "func_size": 174,
+      "first_block_size": 174,
+      "reloc_count": 3,
+      "masked_ratio": 0.1609,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy11RawCompressEPKcmPcPm",
+      "bytes": "f30f1efa41b801000000e900000000",
+      "mask": "ffffffffffffffffffffff00000000",
+      "func_size": 15,
+      "first_block_size": 15,
+      "reloc_count": 0,
+      "masked_ratio": 0.2667,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy.snappy_compress",
+      "bytes": "f30f1efa554889e541574989ff4889f741564989d641554989cd4154534889f34883ec084c8b21e80000000049000000004c89e94c89f24889de4c89ffe8000000004883c40831c05b415c415d415e415f5dc30f1f4400004883c408b8020000005b415c415d415e415f5dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 108,
+      "first_block_size": 108,
+      "reloc_count": 1,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy20RawCompressFromIOVecEPK5iovecmPcPmNS_18CompressionOptionsE",
+      "bytes": "f30f1efa554889e5415741564989d641554c8d2d000000004154c4c1f96ed553c4e3e922cf014883ec48488b1500000000644c8b2425280000004c8965c84989ccc5f97f4da0488d5a10c4e1f96ec3c4c3f922c601480000000048c745b000000000c5f1efc9c5fa7f4db84489c2488d7590488d7da0c5f97f4590e800000000488b4598488d7d904c29f049890424e800000000488d7da04c896da0e800000000488b45c864482b04252800000000004883c4485b415c415d415e415f5dc390488b17488975c04889f8488955b0488b5708488955b848000000000f1f440000488b48184883c0104800000000488b10488975c0488945a8488955b048894db8",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff",
+      "func_size": 266,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.1406,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy8CompressEPKcmPNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEENS_18CompressionOptionsE",
+      "bytes": "f30f1efa554889e5415641554989fd4889f741544989f4534889d34883ec10644c8b3425280000004c8975d84189cee80000000031d24889df4889c6e800000000488d4dd048837b00000000488b134589f04c89e64c89efe800000000488b55d0488b4b084839d10f8200000000488b0348895308c6041000488b45d0488b55d864482b14252800000000004883c4105b415c415d415e5dc30f1f80000000004589f000000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000",
+      "func_size": 172,
+      "first_block_size": 172,
+      "reloc_count": 4,
+      "masked_ratio": 0.186,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy8CompressEPKcmPNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE",
+      "bytes": "f30f1efab901000000e900000000",
+      "mask": "ffffffffffffffffffff00000000",
+      "func_size": 14,
+      "first_block_size": 14,
+      "reloc_count": 0,
+      "masked_ratio": 0.2857,
+      "confidence": "medium"
+    },
+    {
+      "name": "snappy._ZN6snappy17CompressFromIOVecEPK5iovecmPNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEENS_18CompressionOptionsE",
+      "bytes": "f30f1efa554889e541564989fe41554989d54154534889f34883ec10644c8b2425280000004c8965d84189cc480000000048c1e3044889f8488d141f31db6690480358084883c01048000000004889dfe80000000031d24c89ef4889c6e800000000488d4dd049837d00000000498b55004589e04889de4c89f7e800000000488b55d0498b4d084839d10f8200000000498b450049895508c6041000488b45d0488b55d864482b14252800000000004883c4105b415c415d415e5dc30f1f40004589e000000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ff00000000",
+      "func_size": 204,
+      "first_block_size": 204,
+      "reloc_count": 5,
+      "masked_ratio": 0.1961,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy26UncompressAsMuchAsPossibleEPNS_6SourceEPNS_4SinkE",
+      "bytes": "f30f1efa55c5f9efc04889e541574531ff4156488d8518ffffff41554c8d2d0000000041545331db4881ecd8000000644c8b3425280000004c8975c84989fe4889b520ffffff48c78530ffffff0000000048c78548ffffff0000000048c745a00000000048c745b000000000c645b80048898508ffffff4c89f7c5fa7f8578ffffffc4c1f96ec6c5f97f4590488b07488bb508ffffffff50184883bd18ffffff000f8400000000488b7d90440fb620be01000000488b07ff50204489e083e07f89c143224c3d000f85000000000fb6c0c4e201f7c009c34500000000488b7d904983c7074889f8498300000000488b10488b75b04889c731dbff5220488b45c8",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff",
+      "func_size": 526,
+      "first_block_size": 256,
+      "reloc_count": 2,
+      "masked_ratio": 0.0781,
+      "confidence": "high"
+    },
+    {
+      "name": "snappy._ZN6snappy10UncompressEPNS_6SourceEPNS_4SinkE",
+      "bytes": "f30f1efa55c4e1f96ec74889e541574531ff415641554c8d2d0000000041545331db4883e4e04881ec0001000048897c24204c8d642440488974242864488b04252800000048898424f800000031c0c68424e80000000048c78424d00000000000000048c78424e000000000000000c5f97f8424c0000000488b074c89e6ff501848837c2440000f8400000000488bbc24c0000000440fb630be01000000488b07ff50204489f083e07f89c64322743d000f85000000000fb6c0c4e201f7c009c34500000000488bbc24c00000004983c7074889f849830000000031db488b104889c7488bb424e0000000ff5220488b8424f800000064482b0425280000000f",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 735,
+      "first_block_size": 256,
+      "reloc_count": 2,
+      "masked_ratio": 0.0781,
+      "confidence": "high"
+    }
+  ],
+  "dedup_conflicts": [
+    {
+      "bytes": "f30f1efa488b05000000004883c010488907e900000000",
+      "name1": "snappy._ZN6snappy15ByteArraySourceD1Ev",
+      "name2": "snappy._ZN6snappy15ByteArraySourceD2Ev"
+    },
+    {
+      "bytes": "f30f1efa488b05000000004883c010488907e900000000",
+      "name1": "snappy._ZN6snappy15ByteArraySourceD1Ev",
+      "name2": "snappy._ZN6snappy22UncheckedByteArraySinkD1Ev"
+    },
+    {
+      "bytes": "f30f1efa488b05000000004883c010488907e900000000",
+      "name1": "snappy._ZN6snappy15ByteArraySourceD1Ev",
+      "name2": "snappy._ZN6snappy22UncheckedByteArraySinkD2Ev"
+    },
+    {
+      "bytes": "f30f1efa554889e54883ec1048897df8e800000000488b7df8be08000000c9e900000000",
+      "name1": "snappy._ZN6snappy6SourceD0Ev",
+      "name2": "snappy._ZN6snappy4SinkD0Ev"
+    },
+    {
+      "bytes": "f30f1efa554889e541554989fd415441bc0000010053bb000001004883ec084839de480f46de4881fe00800000000041bc000200004881feff00000000008d43ff41bc02000000f30fbdc083f01fc44279f7e44d01e44889dfe8000000004a8d3c204801df498900000000e80000000049894500498945104c01e0498945184801d8498945204883c4085b415c415d5dc30f1f8000000000e800000000",
+      "name1": "snappy._ZN6snappy8internal13WorkingMemoryC1Em",
+      "name2": "snappy._ZN6snappy8internal13WorkingMemoryC2Em"
+    },
+    {
+      "bytes": "f30f1efa488b7708488b3fe900000000",
+      "name1": "snappy._ZN6snappy8internal13WorkingMemoryD1Ev",
+      "name2": "snappy._ZN6snappy8internal13WorkingMemoryD2Ev"
+    },
+    {
+      "bytes": "f30f1efa554889e5e8000000005d83f0010fb6c0c3",
+      "name1": "snappy.snappy_uncompressed_length",
+      "name2": "snappy.snappy_validate_compressed_buffer"
+    },
+    {
+      "bytes": "f30f1efa41b801000000e900000000",
+      "name1": "snappy._ZN6snappy11RawCompressEPKcmPcPm",
+      "name2": "snappy._ZN6snappy20RawCompressFromIOVecEPK5iovecmPcPm"
+    },
+    {
+      "bytes": "f30f1efab901000000e900000000",
+      "name1": "snappy._ZN6snappy8CompressEPKcmPNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE",
+      "name2": "snappy._ZN6snappy17CompressFromIOVecEPK5iovecmPNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE"
+    }
+  ]
+}

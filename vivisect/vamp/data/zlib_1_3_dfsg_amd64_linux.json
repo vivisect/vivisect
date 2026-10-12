@@ -1,0 +1,852 @@
+{
+  "format_version": 1,
+  "library": "zlib",
+  "version": "1.3.dfsg",
+  "arch": "amd64",
+  "platform": "linux",
+  "compiler": "unknown",
+  "compiled_flags": "",
+  "source_url": null,
+  "binary_sha256": "a92dc59c5ec5fe044c08d2eb2336d8892896beed904d4e36e65078d19db2c475",
+  "generated_at": "2026-10-12T10:02:59Z",
+  "generated_by": "vamp-gen-sigs",
+  "signatures": [
+    {
+      "name": "zlib.adler32_z",
+      "bytes": "f30f1efa554889f84889f148c1e8100fb7c04889e54157440fb7ff41564155415453488945b84883fa010f84000000004885f60f84000000004889d64883fa0f0f8600000000488d81b0150000488945b04881faaf1500000f8600000000488975a04881eeb0150000488b45b0488975a84c8d8050eaffff0f1f840000000000410fb600450fb670014983c010450fb668f2450fb660f34c01f8410fb658f4450fb658f54901c6410fb650f6450fb650f94d01f54c01f0450fb648fa450fb678ff4d01ec4c01e84c01e34c01e04901db4801d84a8d3c1a410fb650f74c01d848897dd0488b5dd0488d343a410fb650f8410fb678fb488975c84801d8488b5dc8",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 1716,
+      "first_block_size": 256,
+      "reloc_count": 2,
+      "masked_ratio": 0.0625,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.adler32",
+      "bytes": "f30f1efa89d2e900000000",
+      "mask": "ffffffffffffff00000000",
+      "func_size": 11,
+      "first_block_size": 11,
+      "reloc_count": 0,
+      "masked_ratio": 0.3636,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.adler32_combine",
+      "bytes": "f30f1efa4889f14989d0b8ffffffff4885d20f880000000048b8e7e29786708007800fb7f748c1ef1048f7ea4c89c04989f10fb7ff48c1f83f4c01c248c1fa0f4829c24869c2f1ff00004c89c2440fb7c148c1e9100fb7c94829c248b8cdc52f0de1000f004c0fafca4829d14801f949f7e14c89c84829d048d1e84801c248c1ea0f4869d2f1ff00004929d1baf0ff00004c01c9488d81f1ff00004900000000498d50ff4981e8f2ff00004881faf0ff0000490f47d04881e9f1ff0000483de1ff0100480f47c1483df0ff0000488d880f00ffff480f47c148c1e0104809d0c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 224,
+      "first_block_size": 224,
+      "reloc_count": 1,
+      "masked_ratio": 0.0357,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.get_crc_table",
+      "bytes": "f30f1efa488d0500000000c3",
+      "mask": "ffffffffffffff00000000ff",
+      "func_size": 12,
+      "first_block_size": 12,
+      "reloc_count": 0,
+      "masked_ratio": 0.3333,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.crc32_z",
+      "bytes": "f30f1efa4885f60f8400000000554889f1f7d74889e541574156415541544989d4534883fa2e0f860000000040f6c6070f84000000004c8d2d00000000000090f6c1070f84000000004883c1014889f8403279ff48c1e808400fb6ff418b7cbd004831c749830000000048894dd04189f949c7c7ffffffff48c745c8ffffffff31d231f64531c04531d2488d05000000000f1f8000000000488b59204589c989f64c33094833711889d24c8b71084589d24889f74c89ce4831d3410fb6d148c1ee388b14904d31d64c8b59103394b0001c00004589c04883c1284189d24c89ca4d31c30fb6f68b94b0000400004c89ce48c1ee10400fb6f64431d23394b00008",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffff000000000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 2798,
+      "first_block_size": 256,
+      "reloc_count": 3,
+      "masked_ratio": 0.1172,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.crc32_combine64",
+      "bytes": "f30f1efa554989f089fe4889e5534885d20f84000000004989d2bf0000008041bb03000000488d1d00000000000066904183c301490000000041f6000000004489d889fab90000008031ff83e01f448b000000000f1f400089d0d1ea83e001d1e9f7d8252083b8ed31c241000000008d41ff31d744000000004183c301490000000031c0b90000000000000f1f44000089f2d1ee83e201d1e9f7da81e22083b8ed31d6000000008d51ff31f000000000488b5df84431c0c9c3bf000000000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff000000000000ffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffff00000000",
+      "func_size": 192,
+      "first_block_size": 192,
+      "reloc_count": 6,
+      "masked_ratio": 0.2604,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.crc32_combine",
+      "bytes": "f30f1efae900000000",
+      "mask": "ffffffffff00000000",
+      "func_size": 9,
+      "first_block_size": 9,
+      "reloc_count": 0,
+      "masked_ratio": 0.4444,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.crc32_combine_gen64",
+      "bytes": "f30f1efab8000000804800000000b80000008041b9030000004c8d15000000000000660f1f4400004183c101480000000040f6000000004489ca89c1be0000008031c083e21f458b000000000f1f400089cad1e983e201d1eef7da81e22083b8ed31d141000000008d56ff31c844000000004183c1014800000000c3",
+      "mask": "ffffffffffffffffffff00000000ffffffffffffffffffffffffffff000000000000ffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffff00000000ff",
+      "func_size": 124,
+      "first_block_size": 124,
+      "reloc_count": 4,
+      "masked_ratio": 0.2742,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.crc32_combine_op",
+      "bytes": "f30f1efa31c041b8000000000000669089f9d1ef83e10141d1e8f7d981e12083b8ed31cf4400000000418d48ff31f80000000031f0c3",
+      "mask": "ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffff",
+      "func_size": 54,
+      "first_block_size": 54,
+      "reloc_count": 1,
+      "masked_ratio": 0.2222,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.deflateSetDictionary",
+      "bytes": "f30f1efa4885ff0f8400000000554889e54157415641554989fd4154534883ec1848837f40000f840000000048837f48000f84000000004c8b6738b8feffffff4d00000000493b000000004189d6418b5424084889f18300000000830000000083fa710f8f0000000083000000008d42bb48ba1100400004100000480fa3c20f83000000004885c90f8400000000418b5c2430b8feffffff830000000083000000004883c4185b415c415d415e415f5dc30f1f80000000004885c90f8400000000418b5c243083fb020f840000000083fb010f8400000000418bb424b400000085f60f850000000041c744243000000000418b4424504139c60f820000000085",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffff00000000ff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ff",
+      "func_size": 803,
+      "first_block_size": 256,
+      "reloc_count": 9,
+      "masked_ratio": 0.2812,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.deflateGetDictionary",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b47384800000000554889e54154534889d3bafeffffff48000000005b89d0415c5dc30f1f440000bafeffffff89d0c30f1f8400000000008b48084989f083000000008300000000830000000083000000008d51bb48b91100400004100000480f000000008b88ac0000008bb8b40000008b50508d343939d60f46d64189d44d0000000000000000480000000044892331d25b415c89d05dc30f1f800000000089ce89d24801fe4c89c74829d648037060e8000000000000bafeffffffe900000000660f1f44000081f99a0200000f85000000000000",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ff00000000ff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000ffffffffffff00000000ffffffffffffffffffffffffffff000000000000",
+      "func_size": 238,
+      "first_block_size": 238,
+      "reloc_count": 8,
+      "masked_ratio": 0.2857,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.deflateResetKeep",
+      "bytes": "f30f1efa4885ff0f8400000000554889e541544989fc5348837f40000f840000000048837f48000f8400000000488b5f38b8feffffff4885db0f8400000000483b3b0f85000000008b53088300000000830000000083fa710f8f0000000083fa440f8e000000008d42bb48ba1100400004100000480fa3c20f830000000049c744242800000000488b431049c74424100000000049c74424300000000041c744245802000000488943208b433048c743280000000000000000f7d889433083f8020f8400000000c743082a00000031d231f631ffe800000000488d3d0000000049894424604531c9488d0d000000004889bb680b0000488d83d4000000488d93",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffff00000000ff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff",
+      "func_size": 601,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2344,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.deflateReset",
+      "bytes": "f30f1efa554889e54154534889fbe8000000004189c4000000004489e05b415c5dc3660f1f440000488b5b3831c931f68b4350488b7b784801c0488943688b838400000083e80166890c47488d1400e800000000486393c4000000488d050000000048c7839800000000000000c7832c17000000000000c783a00000000200000048c1e20448c783a8000000000000004801d0c78380000000000000000fb750028993c00000000fb7108993cc0000000fb750040fb740068993d00000008983bc000000488b0500000000488983b40000004489e05b415c5dc3",
+      "mask": "ffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff",
+      "func_size": 218,
+      "first_block_size": 218,
+      "reloc_count": 2,
+      "masked_ratio": 0.0917,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.deflateSetHeader",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b4738bafeffffff480000000048000000008b480883000000008300000000830000000083000000008d51bb48b91100400004100000480f000000008378000000004889703831d289d0c30f1f440000bafeffffff89d0c381f99a02000000000000",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffff00000000ff00000000ffffffff00000000ff00000000ff00000000ff00000000ffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000",
+      "func_size": 122,
+      "first_block_size": 122,
+      "reloc_count": 6,
+      "masked_ratio": 0.4098,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.deflatePending",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b4738b9feffffff480000000048000000008b780883000000008300000000830000000083000000008d4fbb48bf1100400004100000480f000000004800000000488b4828890e48000000008b8034170000890231c989c8c30f1f8000000000b9feffffff89c8c381ff9a02000000000000",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffff00000000ff00000000ffffffff00000000ff00000000ff00000000ff00000000ffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000",
+      "func_size": 138,
+      "first_block_size": 138,
+      "reloc_count": 6,
+      "masked_ratio": 0.3913,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.deflatePrime",
+      "bytes": "f30f1efa480000000048837f0000000048837f000000004c8b473841b9feffffff4d0000000049000000004489c8c39041b9feffffff4489c8c3660f1f440000418b40084189d28300000000830000000083f8710f8f00000000830000000048ba110040000410000083e845480f0000000083fe100f8700000000498b40204883c002493980001700000f8200000000554189f141bb010000004889e553bb10000000418b9034170000410fb7b83017000000000f1f40008300000000498b5028498b4810488d72014989702840883c11418b8834170000410fb6b8311700008d51f8664189b8301700004189903417000089c141d3fa4129c10f8400000000",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 431,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2344,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.deflateTune",
+      "bytes": "f30f1efa4889f84189f1480000000048837f0000000048837f00000000488b7738bffeffffff480000000048000000008b4608830000000083000000008300000000830000000048bf110040000410000083e845480f0000000044898ecc00000031ff8996c0000000898ed0000000448986bc00000089f8c30f1f8000000000bffeffffff89f8c30f1f8400000000003d9a02000000000000",
+      "mask": "ffffffffffffffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffff00000000ff00000000ffffffff00000000ff00000000ff00000000ff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000",
+      "func_size": 153,
+      "first_block_size": 153,
+      "reloc_count": 5,
+      "masked_ratio": 0.3007,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.deflateBound",
+      "bytes": "f30f1efa4889f14889f24889f848c1e9034c8d4207488d4c0e0448c1ee084801f14889d648c1ee09488d3c314889d14889d648c1e90548c1ee074c01c14801f14889d648c1ee0b4801f14885c00f840000000048837840000f840000000048837848000f8400000000488b70384885f60f8400000000483b060f85000000008b4608830000000083000000008300000000830000000049b9110040000410000083e845490f000000008b463083f8010f84000000008300000000f7d84819c083e006448b4e54448b96880000004183f90f0f85000000004183fa0f0f85000000004889d14889d648c1ea1948c1e90c48c1ee0e4c01c14801f14801ca4801d0c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffff00000000ffffffffff00000000ffffffff00000000ff00000000ff00000000ff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 455,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2188,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.deflate",
+      "bytes": "f30f1efa4885ff0f8400000000554889e541574989ff415641554154534883ec2848837f0000000048837f00000000488b4738488945c848000000004800000000b8feffffff4883c4285b415c415d415e415f5dc30f1f008b40084189f48300000000830000000083f8710f8f00000000830000000048b911004000041000008d50bb480f0000000041830000000049837f18000f8400000000418b57080000000049833f000f84000000004183fc040f95c13d9a020000000084c90f8500000000458b5f204585db0f8400000000488b7dc848837f28008b774c4489674c0f850000000085d20f84000000003d9a0200000f840000000083f82a0f857c0500",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffff00000000ffffffffffffffff",
+      "func_size": 5676,
+      "first_block_size": 256,
+      "reloc_count": 10,
+      "masked_ratio": 0.3125,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.deflateParams",
+      "bytes": "f30f1efa4885ff0f8400000000554889e541574156415541544989fc534883ec0848837f0000000048837f00000000488b5f3848000000004800000000b8feffffff4883c4085b415c415d415e415f5dc30f1f80000000008b43084189f54189d68300000000830000000083f8710f8f00000000830000000048ba110040000410000083e845480f000000004183fdff0f84000000004183fd090f97c04183000000000000000048638bc40000004c8d3d000000004889ca48c1e104498b4c0f084439b3c80000000f8400000000837b00000000be050000004c89e7e80000000083f8fe0f8400000000418b7c240885ff0f85000000008b93b40000008b83ac",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffff0000000000000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffff",
+      "func_size": 1133,
+      "first_block_size": 256,
+      "reloc_count": 9,
+      "masked_ratio": 0.2969,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.deflateEnd",
+      "bytes": "f30f1efa4885ff0f8400000000554889e541545348837f40004889fb0f8400000000488b47484885c00f8400000000488b7738bafeffffff4885f60f8400000000483b3e0f8500000000448b66084183000000004183000000004183fc710f8f000000004183fc440f8e0000000048b91100400004100000418d5424bb480fa3d10f8300000000488b561048000000004889d6488b7b50ffd0488b7338488b4348488b567848000000004889d6488b7b50ffd0488b7338488b4348488b567048000000004889d6488b7b50ffd0488b7338488b4348488b566048000000004889d6488b7b50ffd0488b4348488b7338488b7b50ffd031d248c743380000000041",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffff00000000ffff00000000ffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 318,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2188,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.deflateInit2_",
+      "bytes": "f30f1efa554889e54157415641554189cd4154534883ec18488b45108b4d1844894dcc4885c00f84000000008038310f95c083f9700f95c108c80f85000000004989fc4885ff0f8400000000488b4f4048c74730000000004189f64589c74885c90f840000000049837c2448000f84000000004183feffbe06000000440f44f64585ed0f880000000041b9010000004183fd0f0f8f00000000418d77ff83fe080f870000000083fa080f85000000004183fd070f8e000000004183fd0f0f8f000000004585f60f88000000004183fe090f8f00000000837dcc040f870000000041830000000084c00f85000000004183fd08b80900000044894dc8498b7c2450",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffff00000000ffffffffffff00000000ffffffffffff00000000ffffffffff00000000ffffffffffff00000000ffffffffffff00000000ffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffff",
+      "func_size": 818,
+      "first_block_size": 256,
+      "reloc_count": 8,
+      "masked_ratio": 0.25,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.deflateInit_",
+      "bytes": "f30f1efa554531c941b8080000004889e551b90f00000052ba08000000e800000000c9c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffff",
+      "func_size": 36,
+      "first_block_size": 36,
+      "reloc_count": 0,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.deflateCopy",
+      "bytes": "f30f1efa4885f60f8400000000488b4e404885c90f840000000048837e48000f840000000055b8feffffff4889e541554154534883ec084c8b6e384d85ed0f8400000000493b75000f8500000000418b55084989fc8300000000830000000083fa710f8f0000000083fa440f8e000000008d42bb48ba1100400004100000480fa3c20f83000000004d85e40f8400000000f30f6f06ba40170000410f110424f30f6f4e10410f114c2410f30f6f5620410f11542420f30f6f5e30410f115c2430f30f6f6640410f11642440f30f6f6e50410f116c2450f30f6f7660498b7c2450be01000000410f11742460ffd14889c34885c00f84000000004989442438488d",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffff00000000ff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff",
+      "func_size": 671,
+      "first_block_size": 256,
+      "reloc_count": 6,
+      "masked_ratio": 0.1875,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateBackInit_",
+      "bytes": "f30f1efa4885c90f84000000008039310f85000000004183f8700f8500000000554889e541554154534889fb4883ec084885ff0f84000000004989d54885d20f84000000008d46f84189f483f8070f8700000000488b474048c7473000000000480000000048837b4800488b00000000baf81b0000be01000000ffd04885c00f8400000000ba010000004489e148894338d3e2c7401c008000004489603889503c4c89684848c7404000000000c780e81b00000100000031c04883c4085b415c415d5dc30f1f4000488d050000000048c74750000000004889474031ff48837b00000000488d350000000048897348e9000000000f1f4000b8faffffffc36690",
+      "mask": "ffffffffffffffffff00000000ffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffff00000000ffffffffffffffffffffffff",
+      "func_size": 270,
+      "first_block_size": 256,
+      "reloc_count": 6,
+      "masked_ratio": 0.2031,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateBack",
+      "bytes": "f30f1efa554889e54157415641554154534881eca8000000488955b8488d150000000048897da866480f6ec2488975b048894d984c89459064488b042528000000488945c8488d050000000066480f6ec8660f6cc10f298570ffffff4885ff0f84000000004c8b7f384d85ff0f8400000000488b0748c747300000000031db49c747083f3f000041c7474000000000488945c048000000008b5f08498b4748458b573c4531e44531f648894588b83f3f00002d3f3f00008300000000488d1500000000486304824801d03effe00f1f00c645a000418b573c41bcfeffffff4100000000488b75a8488b45c0895e08488906488b45c864482b0425280000000f85",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 5182,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.125,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateBackEnd",
+      "bytes": "f30f1efa4800000000554889e5534889fb4883ec08488b77384800000000488b47484800000000488b7f50ffd048c743380000000031c0488b5df8c9c3b8feff00000000b8feffffffc3",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff",
+      "func_size": 74,
+      "first_block_size": 74,
+      "reloc_count": 2,
+      "masked_ratio": 0.2162,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateResetKeep",
+      "bytes": "f30f1efa4885ff0f840000000048837f40000f840000000048837f48000f8400000000488b4738bafeffffff480000000048000000008b70088d8eccc0ffff830000000089d0c3660f1f8400000000008b501048c740280000000048c747280000000048c747100000000048c74730000000000000000083e20148895760488b150000000048c74008343f0000c7401c0080000048895014488d90580500004889909000000066480f6ec2488b1500000000660f6cc048c7403000000000488990e81b000031d248c7405000000000c74058000000000f11406889d0c30f1f00bafeffffff89d0c3",
+      "mask": "ffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 232,
+      "first_block_size": 232,
+      "reloc_count": 4,
+      "masked_ratio": 0.1552,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateReset",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b473848000000004800000000b8feffffffc30f1f4400008b48088d91ccc0ffff830000000048c7403c00000000c7404400000000e900000000",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000",
+      "func_size": 82,
+      "first_block_size": 82,
+      "reloc_count": 3,
+      "masked_ratio": 0.3415,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.inflateReset2",
+      "bytes": "f30f1efa4885ff0f8400000000554889e54156415541545348837f40004800000000488b474848000000004c8b6f384d00000000493b000000005bb8feffffff415c415d415e5dc30f1f840000000000418b4d088d91ccc0ffff83000000000000000083000000004189f683e60f41c1fe044189f44183000000000f1f4400008300000000f7de4531f64189f4ba01ff00004c0f00000000498b75484800000000453b00000000488b7b50ffd049c7454800000000458975104889df458965385b415c415d415e5de9000000000f1f00b8feffffffc3",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000ff00000000ffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff",
+      "func_size": 214,
+      "first_block_size": 214,
+      "reloc_count": 7,
+      "masked_ratio": 0.2617,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.inflateInit2_",
+      "bytes": "f30f1efa554889e541554154534883ec084885d20f8400000000803a310f850000000083f9700f85000000004889fb4885ff0f8400000000488b474048c74730000000004189f54885c00f8400000000488b7f5048837b00000000baf81b0000be01000000ffd04989c44885c00f8400000000488943384489ee4889df48891848c7404800000000c74008343f0000e8000000004189c500000000488b7b504c89e6ff534848c74338000000004883c4084489e85b415c415d5dc30f1f440000488d0d000000004889000000000f1f00488d050000000048c74750000000004889474031ffe900000000660f1f44000041bdfaff0000000041bdfcff00000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffff00000000",
+      "func_size": 264,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2344,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateInit_",
+      "bytes": "f30f1efa89d14889f2be0f000000e900000000",
+      "mask": "ffffffffffffffffffffffffffffff00000000",
+      "func_size": 19,
+      "first_block_size": 19,
+      "reloc_count": 0,
+      "masked_ratio": 0.2105,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflatePrime",
+      "bytes": "f30f1efa89f1480000000048837f0000000048837f00000000488b4738befeffffff480000000048000000008b780881ef343f0000830000000089f0c30f1f000000000000008300000000448b4058428d3c018300000000be0100000089785848d3e64489c183ee0121d6d3e648017050000000000f1f00befeffffff89f0c348c740500000000031f6c74058000000000000",
+      "mask": "ffffffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffff000000000000ff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 147,
+      "first_block_size": 147,
+      "reloc_count": 5,
+      "masked_ratio": 0.3129,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.inflate",
+      "bytes": "f30f1efa554889e54157415641554154534883ec688975b864488b042528000000488945c831c0480000000048837f4000490000000048837f000000004c8b7f384d00000000490000000041b8feffffff488b45c864482b0425280000000f85000000004883c4684489c05b415c415d415e415f5dc3662e0f1f840000000000418b57088d82ccc0ffff8300000000488b5f1848895db048000000004c8b37448b5f084d85f60f840000000081fa3f3f0000000041c74708403f0000b80c000000418b7d204d8b575044895da04589dc488d1500000000488d0d00000000418b5f5866480f6ec166480f6eca897da8897dbc660f6cc10f29459083f81e0f8748",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 8861,
+      "first_block_size": 256,
+      "reloc_count": 6,
+      "masked_ratio": 0.1875,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateEnd",
+      "bytes": "f30f1efa4885ff0f8400000000554889e5534889fb4883ec0848837f00000000488b47484800000000488b7738bafeffffff480000000048000000008b4e0881e9343f00008300000000488b5df889d0c9c3660f1f440000488b564848000000004889d6488b7f50ffd0488b4348488b7338488b7b50ffd031d248c7433800000000488b5df8c989d0c3660f1f440000bafeffffff488b5df8c989d0c30f1f00b8feffffffc3",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 166,
+      "first_block_size": 166,
+      "reloc_count": 3,
+      "masked_ratio": 0.1687,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateGetDictionary",
+      "bytes": "f30f1efa480000000048837f0000000048837f0000000055b8feffffff4889e54154534c8b67384d00000000493b000000004889f1418b7424084889d38d96ccc0ffff83000000005b415c5dc30f1f00418b5424400000000048000000004800000000418b44244089035b31c0415c5dc30f1f8000000000b8feffffffc36690418b7424444889cf29f24903742448e800000000418b542444498b7424484889c1418b4424404829d0488d3c01e8000000000000",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000",
+      "func_size": 180,
+      "first_block_size": 180,
+      "reloc_count": 5,
+      "masked_ratio": 0.2556,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.inflateSetDictionary",
+      "bytes": "f30f1efa4885ff0f8400000000554889e54156415541545348837f40004889fb0f840000000048837f48000f84000000004c8b7738b8feffffff4d0000000049000000004189d5418b56088d8accc0ffff83000000005b415c415d415e5dc390418b4e104989f40000000081fa3e3f0000000031d231f631ffe8000000004489ea4c89e64889c7e800000000493b00000000488b000000000f1f84000000000081fa3e3f000000004c89f74489e84489ea498d3404e8000000000000000041c74614010000005b415c415d415e5dc3905bb8feffffff415c415d415e5dc36690b8feffffffc3b8fdffffffe90000000041c74608523f0000b8fcffffffe954ff",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffff00000000ffffffffffffffffffff00000000ffff00000000ffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff",
+      "func_size": 258,
+      "first_block_size": 256,
+      "reloc_count": 8,
+      "masked_ratio": 0.25,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.inflateGetHeader",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b4738bafeffffff480000000048000000008b480881e9343f0000830000000089d0c30f1f440000f6400000000031d248897030c746480000000089d0c3662e0f1f840000000000bafeffffff89d0c3",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 104,
+      "first_block_size": 104,
+      "reloc_count": 3,
+      "masked_ratio": 0.2692,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.inflateSync",
+      "bytes": "f30f1efa554889e54157415641554154534883ec1864488b042528000000488945c831c04885ff0f840000000048837f40004889fb0f840000000048837f48000f84000000004c8b6738b8feffffff4d00000000493b00000000418b5424088d8accc0ffff8300000000660f1f440000488b55c864482b1425280000000f85000000004883c4185b415c415d415e415f5dc3660f1f440000448b47084585c00f8500000000418b44245883f8070f860000000081fa533f00000f840000000041c7442408533f0000498b54245089c183e0f883e107418944245848d3e249895424504889d18d78f88855c448c1e9088300000000884dc58d70f04889d148c1e9",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff",
+      "func_size": 848,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1719,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateSyncPoint",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b5738b8feffffff480000000048000000008b4a088db1ccc0ffff8300000000c30f1f800000000031c081f9413f000000008b525831c085d20f94c0c30f1f00b8feffffffc3",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 94,
+      "first_block_size": 94,
+      "reloc_count": 3,
+      "masked_ratio": 0.2979,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.inflateCopy",
+      "bytes": "f30f1efa4885f60f8400000000554889e541564155415453488b4e404889f34885c90f840000000048837e48000f84000000004c8b7638b8feffffff4d85f60f8400000000493b360f8500000000418b46082d343f000083f81f0f87000000004989fc4885ff0f8400000000488b7e50baf81b0000be01000000ffd14989c54885c00f84000000004d8b46484d85c00f8400000000418b4e38be01000000488b7b50ba01000000d3e6ff53404989c04885c00f8400000000f30f6f13498d7d084c89e94c89f64883e7f8498d9658050000410f111424f30f6f5b104829f94829ce81c1f81b0000410f115c2410f30f6f6320c1e903410f11642420f30f6f6b30",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 751,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1562,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateUndermine",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b5738b8feffffff480000000048000000008b72088d8eccc0ffff8300000000c30f1f8000000000c782e81b000001000000b8fdffffffc3b8feffffffc3",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 86,
+      "first_block_size": 86,
+      "reloc_count": 3,
+      "masked_ratio": 0.2791,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.inflateValidate",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b4738bafeffffff480000000048000000008b480881e9343f0000830000000089d0c30f1f4400008b5010000000000000000083ca0489501031d289d0c3662e0f1f84000000000083e2fb89501000000000660f1f440000bafeffffff89d0c3",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff",
+      "func_size": 120,
+      "first_block_size": 120,
+      "reloc_count": 4,
+      "masked_ratio": 0.3,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.inflateMark",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b573848c7c00000ffff480000000048000000008b4a088db1ccc0ffff8300000000c30f1f440000486382ec1b000048c1e01081f9433f0000000081f94c3f000000008bb2f01b00002b725c4801f0c30f1f84000000000048c7c00000ffffc30f1f8400000000008b525c4801d0c3",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 135,
+      "first_block_size": 135,
+      "reloc_count": 4,
+      "masked_ratio": 0.237,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.inflateCodesUsed",
+      "bytes": "f30f1efa480000000048837f0000000048837f00000000488b573848c7c0ffffffff480000000048000000008b72088d8eccc0ffff8300000000c30f1f440000488b8290000000488d8a580500004829c848c1f802c3662e0f1f84000000000048c7c0ffffffffc3",
+      "mask": "ffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 104,
+      "first_block_size": 104,
+      "reloc_count": 3,
+      "masked_ratio": 0.2308,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.zlibCompileFlags",
+      "bytes": "f30f1efab8a9000000c3",
+      "mask": "ffffffffffffffffffff",
+      "func_size": 10,
+      "first_block_size": 10,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.zError",
+      "bytes": "f30f1efab802000000488d150000000029f84898488b04c2c3",
+      "mask": "ffffffffffffffffffffffff00000000ffffffffffffffffff",
+      "func_size": 25,
+      "first_block_size": 25,
+      "reloc_count": 0,
+      "masked_ratio": 0.16,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.compress2",
+      "bytes": "f30f1efa55660fefc04889e541574989ff41564989ceb970000000415541544c8da550ffffff534889f34c89e74881ec980000004889b548ffffff4489c648899540ffffff488d150000000064488b042528000000488945c84889d8488b1b48c745a0000000000f29459048c70000000000e8000000004189c585c00f8500000000488b8540ffffff31d24c89bd68ffffffc78570ffffff0000000048898550ffffff31c0c78558ffffff0000000000000f1f8000000000b8ffffffff4939c6490f46c6898558ffffff4929c6400f94c64c89e7400fb6f6c1e602e8000000004189c7000000008b8570ffffff8b9558ffffff00000000b8ffffffff4839c348",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffff",
+      "func_size": 354,
+      "first_block_size": 256,
+      "reloc_count": 3,
+      "masked_ratio": 0.1094,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.compress",
+      "bytes": "f30f1efa41b8ffffffffe900000000",
+      "mask": "ffffffffffffffffffffff00000000",
+      "func_size": 15,
+      "first_block_size": 15,
+      "reloc_count": 0,
+      "masked_ratio": 0.2667,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.compressBound",
+      "bytes": "f30f1efa4889f84889fa48c1e80c48c1ea0e488d44070d48c1ef194801d04801f8c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 34,
+      "first_block_size": 34,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.uncompress2",
+      "bytes": "f30f1efa554889e541574989f741564989ce41554154534881ec98000000488b1e4c8b214889bd48ffffff64488b042528000000488945c831c04885db0f840000000048c706000000004c8dad50ffffff48899550ffffff660fefc0ba70000000488d35000000004c89ef0f294590c78558ffffff0000000048c745a000000000e800000000898544ffffff85c00f8500000000488b8548ffffffc78570ffffff0000000048898568ffffff000000008b8570ffffff00000000b8ffffffff4839c3480f46c3898570ffffff4829c38b8558ffffff00000000b8ffffffff4939c4490f46c4898558ffffff4929c431f64c89efe80000000089c2000000008b8d",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffff",
+      "func_size": 537,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.1406,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.uncompress",
+      "bytes": "f30f1efa554889e54883ec1048894df8488d4df8e800000000c9c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff00000000ffff",
+      "func_size": 27,
+      "first_block_size": 27,
+      "reloc_count": 0,
+      "masked_ratio": 0.1481,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzopen",
+      "bytes": "f30f1efa4889f2beffffffffe900000000",
+      "mask": "ffffffffffffffffffffffffff00000000",
+      "func_size": 17,
+      "first_block_size": 17,
+      "reloc_count": 0,
+      "masked_ratio": 0.2353,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzdopen",
+      "bytes": "f30f1efa554889e541554154534883ec0883000000004189fcbf130000004989f5e8000000004889c348000000004589e1b9130000004889c7ba020000004c8d0500000000be1300000031c0e8000000004c89ea4489e64889dfe8000000004889df4989c4e8000000004883c4084c89e05b415c415d5dc30f1f8400000000004883c4084531e45b4c89e0415c415d5dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 145,
+      "first_block_size": 145,
+      "reloc_count": 3,
+      "masked_ratio": 0.1931,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzbuffer",
+      "bytes": "f30f1efa48000000008b47183d4f1c000000003db179000000008b4728000000008d043600000000b80800000039c60f42f031c089772cc30f1f840000000000b8ffffffffc3",
+      "mask": "ffffffffff00000000ffffffffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 70,
+      "first_block_size": 70,
+      "reloc_count": 2,
+      "masked_ratio": 0.2857,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzrewind",
+      "bytes": "f30f1efa4885ff0f8400000000554889e5534889fb4883ec08817f184f1c00000f85000000008b47740000000083f8fb0f8500000000488b73488b7b1c31d2e800000000488300000000817b184f1c0000c703000000000000c7436000000000488b7b78c74370000000004800000000837b0000000048c7437800000000c743740000000031c048c7431000000000c7838800000000000000488b5df8c9c390e8000000000000660f1f84000000000048c7435000000000c743440000000000000f1f8000000000b8ffff0000000083c8ffc3",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffff00000000ffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffff",
+      "func_size": 211,
+      "first_block_size": 211,
+      "reloc_count": 6,
+      "masked_ratio": 0.237,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzseek64",
+      "bytes": "f30f1efa4885ff0f8400000000554889e541544989f4538b47184889fb3d4f1c000000003db17900000f85000000008b4b740000000083f9fb0f850000000083fa010f8700000000000000008b5370000000004c036368c74370000000003d4f1c000000004d85e40f8800000000488b43104d00000000c74370010000004c8963684c01e05b415c5dc3660f1f440000c74370000000004c2b63103d4f1c00000000837b4401488b000000004d000000008b1331f64889d14c0000000089d64c89e14489e24429e64801c8480153084929cc8933488900000000660f1f4400004c89e148000000004d000000005b48c7c0ffffffff415c5dc30f1f8000000000",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffff00000000ffffffffff00000000ffffffffff0000000000000000ffffff00000000ffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffff",
+      "func_size": 429,
+      "first_block_size": 256,
+      "reloc_count": 9,
+      "masked_ratio": 0.2812,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gztell64",
+      "bytes": "f30f1efa48000000008b47183d4f1c000000003db179000000008b5770488b47100000000048034768c3660f1f44000048c7c0ffffffffc3",
+      "mask": "ffffffffff00000000ffffffffffff00000000ffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff",
+      "func_size": 56,
+      "first_block_size": 56,
+      "reloc_count": 2,
+      "masked_ratio": 0.2857,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzoffset64",
+      "bytes": "f30f1efa4800000000554889e5534889fb4883ec088b47183d4f1c000000003db179000000008b7b1c31f6ba01000000e800000000488300000000817b184f1c000000008b93880000004829d0488b5df8c9c30f1f44000048c7c0ffff000000004883c8ffc3",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffff00000000ffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff",
+      "func_size": 102,
+      "first_block_size": 102,
+      "reloc_count": 3,
+      "masked_ratio": 0.2745,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzeof",
+      "bytes": "f30f1efa31c04800000000817f184f1c00000000c30f1f008b4754c3",
+      "mask": "ffffffffffffff00000000ffffffffff00000000ffffffffffffffff",
+      "func_size": 28,
+      "first_block_size": 28,
+      "reloc_count": 1,
+      "masked_ratio": 0.2857,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzerror",
+      "bytes": "f30f1efa48000000008b571881fa4f1c0000000031c081fab1790000000048000000008b47748906837f74fc488d05000000000000488b4778488d15000000004885c0480f44c2c30f1f84000000000031c0c3",
+      "mask": "ffffffffff00000000ffffffffffffff00000000ffffffffffff00000000ff00000000ffffffffffffffffffffffff000000000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff",
+      "func_size": 83,
+      "first_block_size": 83,
+      "reloc_count": 3,
+      "masked_ratio": 0.3133,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzclearerr",
+      "bytes": "f30f1efa4800000000554889e5534889fb4883ec088b47183d4f1c000000003db17900000000488b5df8c9c30f1f40003d4f1c00000000488b7b784800000000837b0000000048c7437800000000c7437400000000488b5df8c9c30f1f440000e8000000000000660f1f84000000000048c74350000000000000660f1f440000c3",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffff00000000ffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000ffffffffffffffffffffffffffffff00000000ffffffffffffff",
+      "func_size": 129,
+      "first_block_size": 129,
+      "reloc_count": 4,
+      "masked_ratio": 0.2636,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzread",
+      "bytes": "f30f1efa4800000000554889e5534889fb4883ec08817f184f1c000000008b47740000000083000000000000000089d24889dfe800000000000000008b5374000000008300000000488b5df8c9c3488b7b784800000000e80000000048c7437800000000c70300000000488d35000000004889dfc74374feffffffe800000000b8ffff0000000083c8ffc3",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffff00000000ff0000000000000000ffffffffffff0000000000000000ffffff00000000ff00000000ffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffff00000000ffffffff",
+      "func_size": 139,
+      "first_block_size": 139,
+      "reloc_count": 7,
+      "masked_ratio": 0.4029,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzfread",
+      "bytes": "f30f1efa48000000008179184f1c00000000554889e5534889f34883ec188b417400000000830000000000000000669048000000004889d0480000000048000000004889c24889fe4889cfe80000000031d248f7f3488b5df8c9c30f1f44000031c0c3488b7978480000000048894de8e800000000488b4de848c7417800000000c70100000000488d35000000004889cfc74174feffffffe80000000000000000",
+      "mask": "ffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffff00000000ff0000000000000000ffffff00000000ffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff0000000000000000",
+      "func_size": 161,
+      "first_block_size": 161,
+      "reloc_count": 7,
+      "masked_ratio": 0.3478,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzgetc",
+      "bytes": "f30f1efa554889e54883ec1064488b042528000000488945f831c04800000000817f184f1c000000008b47740000000083000000008b070000000083e80148834710018907488b4708488d5001488957080fb600488b55f864482b1425280000000000c9c30f1f00488d75f7ba01000000e80000000048000000000fb6000000000f1f8000000000b8ffff00000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffff00000000ff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ff00000000ffff00000000ffffffffffffffffffff00000000ff00000000",
+      "func_size": 148,
+      "first_block_size": 148,
+      "reloc_count": 5,
+      "masked_ratio": 0.2973,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzungetc",
+      "bytes": "f30f1efa4885f60f8400000000554889e5415453817e184f1c000048000000005bb8ffffffff415c5dc3660f1f4400008b4e444189fc85c90f840000000066908b43740000000083000000008b43700000000045000000008b43288b338d0c000000000039ce0f8400000000488b4308488b7b384839f80f8400000000488d50ff83c601893348895308448860ff488b43104883e801488943104489e0c74354000000005b415c5dc30f1f8000000000488b4338c70301000000488d4408ff48894308448820488b4310488300000000c7437000000000488b73684889dfe80000000083f8ff0f8500000000e9000000000f1f80000000008b1685d20f853eff",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ff00000000ffffff00000000ff00000000ffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffff",
+      "func_size": 406,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2188,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzgets",
+      "bytes": "f30f1efa554889e541574156415541544189d4534883ec184885f6488975c00f94c085d20f9ec208d00f85000000004889fb4885ff0f8400000000817f184f1c00000f85000000008b47740000000083f8fb0f85000000008b437085c00f85000000004183ec01448965cc0f84000000008b034c8b6dc085c00f8400000000908b4dcc4c8b7b08be0a00000039c14c89ff0f46c14189c44c89e2e80000000048000000004c29f84c89ef4c89fe448d70014c89f24d01f5e8000000004429334c0173084c017310488b45c0490000000041c64500004883c4185b415c415d415e415f5dc30f1f4000c7437000000000488b73684889dfe80000000083f8ff0f85",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffff00000000ffffff00000000ffffffffff00000000ffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff",
+      "func_size": 361,
+      "first_block_size": 256,
+      "reloc_count": 6,
+      "masked_ratio": 0.2031,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzdirect",
+      "bytes": "f30f1efa4800000000817f184f1c000000008b4740c3662e0f1f8400000000008b5744000000008b0700000000554889e54883ec1048897df8e800000000488b7df88b4740c9c3660f1f84000000000031c0c3",
+      "mask": "ffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 83,
+      "first_block_size": 83,
+      "reloc_count": 2,
+      "masked_ratio": 0.241,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzclose_r",
+      "bytes": "f30f1efa554889e541554154534883ec084885ff0f8400000000817f184f1c00004889fb0f85000000008b472800000000448b6374488b7b784183000000004885ff0f84000000004183fcfc41bc00000000000048c7437800000000c7437400000000488b7b20e8000000008b7b1ce8000000004889df4189c5e8000000004585edb8ffffffff440f45e04883c4084489e05b415c415d5dc30f1f80000000004800000000e80000000000000f1f4000488dbf80000000e800000000488b7b38e800000000488b7b30e800000000e9000000000f1f4400004531e4e90000000041bcfeff00000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff000000000000ffffffffffffffffffffffff00000000ffffffffff00000000ffffffffff00000000ff00000000ffffffffffffffffff00000000ffffffff00000000",
+      "func_size": 232,
+      "first_block_size": 232,
+      "reloc_count": 8,
+      "masked_ratio": 0.3017,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzclose",
+      "bytes": "f30f1efa4800000000817f184f1c00000000e900000000660f1f840000000000e900000000b8feffffffc3",
+      "mask": "ffffffffff00000000ffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffff",
+      "func_size": 43,
+      "first_block_size": 43,
+      "reloc_count": 2,
+      "masked_ratio": 0.3721,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzwrite",
+      "bytes": "f30f1efa4800000000554889e5534889fb4883ec08817f18b17900000000488b5df831c0c9c3662e0f1f8400000000008b4774000000000000000089d2e800000000488b5df8c9c30f1f840000000000488b7f784800000000e80000000048c7437800000000c70300000000488d35000000004889dfc74374fdffffffe80000000000000f1f400031c0c3",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff0000000000000000ffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff000000000000ffffffffffffff",
+      "func_size": 139,
+      "first_block_size": 139,
+      "reloc_count": 4,
+      "masked_ratio": 0.2734,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzfwrite",
+      "bytes": "f30f1efa4800000000817918b179000000008b417400000000554889e5534889f34883ec1848000000004889d0480000000048000000004889c24889fe4889cfe80000000031d248f7f3488b5df8c9c331c0c3488b7978480000000048894de8e800000000488b4de848c7417800000000c70100000000488d35000000004889cfc74174feffffffe80000000000000000",
+      "mask": "ffffffffff00000000ffffffffff00000000ffffff00000000ffffffffffffffffffffffffff00000000ffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff0000000000000000",
+      "func_size": 145,
+      "first_block_size": 145,
+      "reloc_count": 6,
+      "masked_ratio": 0.331,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzputc",
+      "bytes": "f30f1efa554889e541544883ec2864488b042528000000488945e831c04885ff0f8400000000817f18b17900000f85000000008b577485d20f85000000008b47704189f4000000008b4f28000000008b9788000000488b4730000000004889878000000031d289d244882410410fb6c483878800000001488347000000006690480397800000004829c200000000488d75e7ba01000000448865e7e800000000488300000000410fb6c4488b55e864482b14252800000000004c8b65f8c9c390c7477000000000488b776848897dd8e800000000488b7dd883f8ff0f85000000000f1f8000000000b8ffff00000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffff00000000ffffffffffff00000000ffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffff00000000ff00000000",
+      "func_size": 244,
+      "first_block_size": 244,
+      "reloc_count": 7,
+      "masked_ratio": 0.2459,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzputs",
+      "bytes": "f30f1efa554889e5415641554154534885ff0f8400000000817f18b179000049000000008b4774000000004889f74989f5e8000000004889c34189c60000000048c1000000004889da4c89ee4c89e7e80000000048000000005b4489f0415c415d415e5dc30f1f00498b7c24784800000000e80000000049c74424780000000041c7042400000000488d35000000004c89e741c7442474feffffffe80000000041beffff00000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffff00000000ffffffffffffff00000000ffffffffffff00000000ffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffff00000000",
+      "func_size": 168,
+      "first_block_size": 168,
+      "reloc_count": 6,
+      "masked_ratio": 0.3095,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzvprintf",
+      "bytes": "f30f1efa554889e5415641554154534885ff0f8400000000817f18b17900004889fb0f85000000008b4f7485c90f85000000004989d58b57284989f485d20f84000000008b437085c00f85000000008b838800000000000000488b93800000004c8d34028b43284d89e04d89e948c7c1ffffffffba020000004c89f783e80141c60406008b7328e8000000004189c400000000448b6b284400000000418d45ff41803c00000000448bb3880000004963c4480143104501e64489b38800000045000000005b4489e0415c415d415e5dc3488b533048899380000000e900000000e80000000083f8ff0f8500000000448b63745b4489e0415c415d415e5dc36690",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffff",
+      "func_size": 387,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2188,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzprintf",
+      "bytes": "f30f1efa554889e54881ecd000000048899560ffffff48898d68ffffff4c898570ffffff4c898d78ffffff000000000f2945800f294d900f2955a00f295db00f2965c00f296dd00f2975e00f297df064488b04252800000048898548ffffff31c0488d4510488d9530ffffffc78530ffffff1000000048898538ffffff488d8550ffffffc78534ffffff3000000048898540ffffffe800000000488b9548ffffff64482b1425280000000000c9c3e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffff00000000",
+      "func_size": 179,
+      "first_block_size": 179,
+      "reloc_count": 2,
+      "masked_ratio": 0.0894,
+      "confidence": "high"
+    },
+    {
+      "name": "zlib.gzflush",
+      "bytes": "f30f1efa4800000000554889e5415453817f18b179000048000000008b5774000000004189f483000000008b4770000000004489e64889dfe8000000008b43745b415c5dc30f1f00c7477000000000488b7768e8000000008300000000000090b8feff00000000b8feffffffc3",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffff00000000ffffffff00000000ffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ff000000000000ffffffff00000000ffffffffffff",
+      "func_size": 109,
+      "first_block_size": 109,
+      "reloc_count": 4,
+      "masked_ratio": 0.3486,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzsetparams",
+      "bytes": "f30f1efa554889e5415641554154534885ff0f8400000000817f18b17900004889fb0f85000000008b7f7485ff0f8500000000448b73404585f60f85000000004189f44189d539000000008b4b70000000008b5328000000008b838800000000000000be050000004889dfe8000000008300000000488dbb800000004489ea4489e6e8000000004489635844896b5c5b4489f0415c415d415e5dc30f1f44000039000000008b4b7000000000c7437000000000488b73684889dfe8000000008300000000448b73745b415c415d4489f0415e5dc30f1f400041befeff00000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffff00000000ffffff00000000ffffff00000000ffffffffffff00000000ffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 224,
+      "first_block_size": 224,
+      "reloc_count": 8,
+      "masked_ratio": 0.2857,
+      "confidence": "medium"
+    },
+    {
+      "name": "zlib.gzclose_w",
+      "bytes": "f30f1efa554889e541554154534883ec084885ff0f8400000000817f18b17900004889fb0f85000000008b4f7085c90f85000000004531edbe040000004889dfe8000000008300000000448b6b748b5328000000008b434085c00f8400000000488b7b30e800000000488b7b784800000000837b0000000048c7437800000000c7437400000000488b7b20e8000000008b7b1ce8000000004889df4189c483f8ff450f45e5e8000000004883c4084489e05b415c415d5dc30f1f840000000000e8000000000000660f1f840000000000c7477000000000488b7768e80000000083f8ff0f8500000000448b6b74e900000000660f1f440000488dbb80000000e8",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffff00000000ff00000000ffffffffffffff00000000ffffffffffffff00000000ffffffffff00000000ffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff000000000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffff",
+      "func_size": 288,
+      "first_block_size": 256,
+      "reloc_count": 8,
+      "masked_ratio": 0.2734,
+      "confidence": "medium"
+    }
+  ],
+  "dedup_conflicts": [
+    {
+      "bytes": "f30f1efa4889f14989d0b8ffffffff4885d20f880000000048b8e7e29786708007800fb7f748c1ef1048f7ea4c89c04989f10fb7ff48c1f83f4c01c248c1fa0f4829c24869c2f1ff00004c89c2440fb7c148c1e9100fb7c94829c248b8cdc52f0de1000f004c0fafca4829d14801f949f7e14c89c84829d048d1e84801c248c1ea0f4869d2f1ff00004929d1baf0ff00004c01c9488d81f1ff00004900000000498d50ff4981e8f2ff00004881faf0ff0000490f47d04881e9f1ff0000483de1ff0100480f47c1483df0ff0000488d880f00ffff480f47c148c1e0104809d0c3",
+      "name1": "zlib.adler32_combine",
+      "name2": "zlib.adler32_combine64"
+    },
+    {
+      "bytes": "f30f1efa89d2e900000000",
+      "name1": "zlib.adler32",
+      "name2": "zlib.crc32"
+    },
+    {
+      "bytes": "f30f1efae900000000",
+      "name1": "zlib.crc32_combine",
+      "name2": "zlib.crc32_combine_gen"
+    },
+    {
+      "bytes": "f30f1efa488d0500000000c3",
+      "name1": "zlib.get_crc_table",
+      "name2": "zlib.zlibVersion"
+    },
+    {
+      "bytes": "f30f1efa4889f2beffffffffe900000000",
+      "name1": "zlib.gzopen",
+      "name2": "zlib.gzopen64"
+    },
+    {
+      "bytes": "f30f1efae900000000",
+      "name1": "zlib.crc32_combine",
+      "name2": "zlib.gzseek"
+    },
+    {
+      "bytes": "f30f1efae900000000",
+      "name1": "zlib.crc32_combine",
+      "name2": "zlib.gztell"
+    },
+    {
+      "bytes": "f30f1efae900000000",
+      "name1": "zlib.crc32_combine",
+      "name2": "zlib.gzoffset"
+    },
+    {
+      "bytes": "f30f1efae900000000",
+      "name1": "zlib.crc32_combine",
+      "name2": "zlib.gzgetc_"
+    }
+  ]
+}

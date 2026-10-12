@@ -1,0 +1,307 @@
+{
+  "format_version": 1,
+  "library": "glibc",
+  "version": "2.44",
+  "arch": "amd64",
+  "platform": "linux",
+  "compiler": "unknown",
+  "compiled_flags": "",
+  "source_url": null,
+  "binary_sha256": "b0ab7b6fceaf6e2d105c09e35b0009cafeb13c5cd7de5119c9d3392dbaacc8fa",
+  "generated_at": "2026-10-12T10:02:30Z",
+  "generated_by": "vamp-gen-sigs",
+  "signatures": [
+    {
+      "name": "glibc._ZGVcN4v_acos",
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff",
+      "func_size": 61,
+      "first_block_size": 61,
+      "reloc_count": 1,
+      "masked_ratio": 0.1311,
+      "confidence": "high"
+    },
+    {
+      "name": "glibc._ZGVcN4vv_atan2",
+      "bytes": "f30f1efa554889e54883e4e04883ec40c5fc290424c5fc294c2420c5f877e800000000c5f8284c2430c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff",
+      "func_size": 73,
+      "first_block_size": 73,
+      "reloc_count": 1,
+      "masked_ratio": 0.1096,
+      "confidence": "high"
+    },
+    {
+      "name": "glibc._ZGVcN4vvv_sincos",
+      "bytes": "f30f1efa554889e54883e4e04881eca0000000c5fd11442440488d3c24c5fa7f4f60c5fa7f5770c5fa7f9f80000000c5fa7fa790000000488d742420c5f877e800000000c5fa6f442450488d7c2410488d742430e800000000488b542460488b7424684c8b4424704c8b542478488b0424488b4c2408488b7c24104c8b4c241848890248890e488b842480000000488b8c24880000004989384d890a488bbc24900000004c8b8c24980000004c8b5c2420488b542428488b7424304c8b4424384c89184889114889374d89014889ec5dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 209,
+      "first_block_size": 209,
+      "reloc_count": 1,
+      "masked_ratio": 0.0383,
+      "confidence": "high"
+    },
+    {
+      "name": "glibc._ZGVcN8vvv_sincosf",
+      "bytes": "f30f1efa554889e54883e4e04881ece0000000c5fc11442440488d3c24c5fa7f4f60c5fa7f5770c5fa7f9f80000000c5fa7fa790000000c5fa7fafa0000000488d742420c5fa7fb690000000c5fa7fbea0000000c5f877e800000000c5fa6f442450488d7c2410488d742430e800000000488b542460488b7424684c8b4424704c8b5424788b04248b4c24048b7c2408448b4c240c8902890e488b842480000000488b8c248800000041893845890a488bbc24900000004c8b8c2498000000448b5c24108b5424148b742418448b44241c44891889114c8b9c24a0000000488b9424a80000008937458901488bb424b00000004c8b8424b8000000448b542420",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 335,
+      "first_block_size": 256,
+      "reloc_count": 1,
+      "masked_ratio": 0.0312,
+      "confidence": "high"
+    }
+  ],
+  "dedup_conflicts": [
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_acosh"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_asin"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_asinh"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_atan"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_atanh"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_cbrt"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_cos"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_cosh"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_erf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_erfc"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_exp"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_exp10"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_exp2"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_expm1"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec40c5fc290424c5fc294c2420c5f877e800000000c5f8284c2430c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4vv_atan2",
+      "name2": "glibc._ZGVcN4vv_hypot"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_log"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_log10"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_log1p"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_log2"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec40c5fc290424c5fc294c2420c5f877e800000000c5f8284c2430c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4vv_atan2",
+      "name2": "glibc._ZGVcN4vv_pow"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_sin"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_sinh"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_tan"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN4v_tanh"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_acosf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_acoshf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_asinf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_asinhf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_atanf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec40c5fc290424c5fc294c2420c5f877e800000000c5f8284c2430c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4vv_atan2",
+      "name2": "glibc._ZGVcN8vv_atan2f"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_atanhf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_cbrtf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_cosf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_coshf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_erff"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_erfcf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_expf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_exp10f"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_exp2f"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_expm1f"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec40c5fc290424c5fc294c2420c5f877e800000000c5f8284c2430c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4vv_atan2",
+      "name2": "glibc._ZGVcN8vv_hypotf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_logf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_log10f"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_log1pf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_log2f"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec40c5fc290424c5fc294c2420c5f877e800000000c5f8284c2430c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4vv_atan2",
+      "name2": "glibc._ZGVcN8vv_powf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_sinf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_sinhf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_tanf"
+    },
+    {
+      "bytes": "f30f1efa554889e54883e4e04883ec20c5fc290424c5f877e800000000c5f8290424c5f828442410e800000000c5f8280c24c4e37518c0014889ec5dc3",
+      "name1": "glibc._ZGVcN4v_acos",
+      "name2": "glibc._ZGVcN8v_tanhf"
+    }
+  ]
+}
