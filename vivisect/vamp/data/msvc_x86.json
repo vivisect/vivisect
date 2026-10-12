@@ -1,0 +1,155 @@
+{
+  "format_version": 1,
+  "library": "msvc",
+  "version": "vs6-2019",
+  "arch": "i386",
+  "platform": "windows",
+  "compiler": "msvc",
+  "compiled_flags": "",
+  "source_url": null,
+  "binary_sha256": "",
+  "generated_at": "2026-08-09T00:00:00Z",
+  "generated_by": "manual-curation",
+  "signatures": [
+    {
+      "name": "ntdll.seh3_prolog",
+      "bytes": "680000000064a10000000050",
+      "mask": "ff00000000ffffffffffffff",
+      "func_size": 12,
+      "first_block_size": 12,
+      "reloc_count": 1,
+      "masked_ratio": 0.3333,
+      "confidence": "medium"
+    },
+    {
+      "name": "ntdll.seh3_epilog",
+      "bytes": "8b4df064890d00000000595f5e5bc951c3",
+      "mask": null,
+      "func_size": 17,
+      "first_block_size": 17,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll.seh4_prolog",
+      "bytes": "680000000064ff35000000008b442410",
+      "mask": "ff00000000ffffffffffffffffffffff",
+      "func_size": 16,
+      "first_block_size": 16,
+      "reloc_count": 1,
+      "masked_ratio": 0.25,
+      "confidence": "medium"
+    },
+    {
+      "name": "ntdll.seh4_epilog",
+      "bytes": "8b4df064890d00000000595f5f5e5b8be55d51c3",
+      "mask": null,
+      "func_size": 20,
+      "first_block_size": 20,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll.seh4_epilog",
+      "bytes": "8b4df064890d00000000595f5f5e5b8be55d51f2c3",
+      "mask": null,
+      "func_size": 21,
+      "first_block_size": 21,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll.gs_prolog",
+      "bytes": "a10000000033c58945fc",
+      "mask": "ff00000000ffffffffff",
+      "func_size": 10,
+      "first_block_size": 10,
+      "reloc_count": 1,
+      "masked_ratio": 0.4,
+      "confidence": "medium"
+    },
+    {
+      "name": "ntdll._alloca_probe",
+      "bytes": "513d001000008d4c2408721481e9001000002d0010000085013d0010000073ec2bc88bc485018be18b088b400450c3",
+      "mask": null,
+      "func_size": 47,
+      "first_block_size": 47,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll._alloca_probe",
+      "bytes": "518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8720a8bc159948b00890424c32d001000008500ebe9",
+      "mask": null,
+      "func_size": 43,
+      "first_block_size": 43,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll._alloca_probe",
+      "bytes": "518d4c24042bc81bc0f7d023c88bc42500f0ffff3bc8f2720b8bc159948b00890424f2c32d001000008500ebe7",
+      "mask": null,
+      "func_size": 45,
+      "first_block_size": 45,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll.security_check_cookie",
+      "bytes": "3b0d000000007502f3c3e9",
+      "mask": "ffff00000000ffffffffff",
+      "func_size": 11,
+      "first_block_size": 11,
+      "reloc_count": 1,
+      "masked_ratio": 0.3636,
+      "confidence": "medium"
+    },
+    {
+      "name": "ntdll.security_check_cookie",
+      "bytes": "3b0d00000000f27502f2c3f2e9",
+      "mask": "ffff00000000ffffffffffffff",
+      "func_size": 13,
+      "first_block_size": 13,
+      "reloc_count": 1,
+      "masked_ratio": 0.3077,
+      "confidence": "medium"
+    },
+    {
+      "name": "ntdll.report_gsfailure",
+      "bytes": "8bff558bec5151a300000000890d00000000891500000000891d00000000893500000000893d000000008c15000000008c0d000000008c1d000000008c05000000008c25000000008c2d000000009c",
+      "mask": "ffffffffffffffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ff",
+      "func_size": 79,
+      "first_block_size": 79,
+      "reloc_count": 12,
+      "masked_ratio": 0.6076,
+      "confidence": "low"
+    },
+    {
+      "name": "ntdll.report_gsfailure",
+      "bytes": "8bff558bec81ec28030000a300000000890d00000000891500000000891d00000000893500000000893d00000000668c1500000000668c0d00000000668c1d00000000668c0500000000668c2500000000668c2d000000009c",
+      "mask": "ffffffffffffffffffffffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ff",
+      "func_size": 89,
+      "first_block_size": 89,
+      "reloc_count": 12,
+      "masked_ratio": 0.5393,
+      "confidence": "low"
+    },
+    {
+      "name": "ntdll.eh_prolog",
+      "bytes": "6aff5064a100000000508b44240c64892500000000896c240c8d6c240c50c3",
+      "mask": null,
+      "func_size": 31,
+      "first_block_size": 31,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    }
+  ]
+}

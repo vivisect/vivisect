@@ -765,6 +765,89 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
         self.vprint("SIGNATURE: %s" % e_common.hexify(sig))
         self.vprint("MASK: %s" % e_common.hexify(mask))
 
+    def do_vampload(self, line):
+        '''
+        Load a VAMP signature set from a JSON file.
+
+        Usage: vampload <filepath>
+        '''
+        if not line:
+            return self.do_help("vampload")
+
+        filepath = line.strip()
+        try:
+            import envi.bytesig as e_bytesig
+            tree, meta = viv_vamp.loadSigSet(filepath)
+            # Store the tree so it can be used by analysis
+            if not hasattr(self, '_vamp_trees'):
+                self._vamp_trees = []
+            self._vamp_trees.append((tree, meta))
+            self.vprint("Loaded %d signatures for %s %s (%s/%s) from %s" %
+                        (len(tree.sigs), meta.get('library', '?'),
+                         meta.get('version', '?'), meta.get('arch', '?'),
+                         meta.get('platform', '?'), filepath))
+        except Exception as e:
+            self.vprint("Error loading sig set: %s" % e)
+
+    def do_vamplist(self, line):
+        '''
+        List all loaded VAMP signature sets and available data files.
+
+        Usage: vamplist
+        '''
+        # Show loaded trees
+        if hasattr(self, '_vamp_trees') and self._vamp_trees:
+            self.vprint("Loaded VAMP signature sets:")
+            for i, (tree, meta) in enumerate(self._vamp_trees):
+                self.vprint("  [%d] %s %s (%s/%s) — %d signatures" %
+                            (i, meta.get('library', '?'), meta.get('version', '?'),
+                             meta.get('arch', '?'), meta.get('platform', '?'),
+                             len(tree.sigs)))
+        else:
+            self.vprint("No VAMP signature sets loaded (use 'vampload' to load one).")
+
+        # Show available data files
+        import os
+        data_dir = os.path.join(os.path.dirname(viv_vamp.__file__), 'data')
+        if os.path.isdir(data_dir):
+            files = [f for f in sorted(os.listdir(data_dir)) if f.endswith('.json')]
+            if files:
+                self.vprint("\nAvailable sig files in %s:" % data_dir)
+                for fname in files:
+                    self.vprint("  %s" % fname)
+
+    def do_vampmatch(self, line):
+        '''
+        Check a function against all loaded VAMP signature sets.
+
+        Usage: vampmatch <funcva>
+        '''
+        if not line:
+            return self.do_help("vampmatch")
+
+        va = self.parseExpression(line)
+        fva = self.getFunction(va)
+        if fva is None:
+            self.vprint("Invalid Function Address: 0x%.8x (%s)" % (va, line))
+            return
+
+        if not hasattr(self, '_vamp_trees') or not self._vamp_trees:
+            self.vprint("No VAMP signature sets loaded (use 'vampload' to load one).")
+            return
+
+        offset, bytes_data = self.getByteDef(fva)
+        any_match = False
+        for i, (tree, meta) in enumerate(self._vamp_trees):
+            match = tree.getSignature(bytes_data, offset=offset)
+            if match is not None:
+                self.vprint("Match in set [%d] %s %s: %s" %
+                            (i, meta.get('library', '?'),
+                             meta.get('version', '?'), match))
+                any_match = True
+
+        if not any_match:
+            self.vprint("No VAMP signature match for 0x%.8x" % fva)
+
     def do_vdb(self, line):
         '''
         Execute vdb GUI from within vivisect (allowing special hooks between them...)

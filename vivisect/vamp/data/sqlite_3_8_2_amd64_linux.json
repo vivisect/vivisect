@@ -1,0 +1,1672 @@
+{
+  "format_version": 1,
+  "library": "sqlite",
+  "version": "3.8.2",
+  "arch": "amd64",
+  "platform": "linux",
+  "compiler": "unknown",
+  "compiled_flags": "",
+  "source_url": null,
+  "binary_sha256": "4c2d0bb8ad7fc3eee470d240e10a7c19a8506c6d987df2616b0469fa2ab4a96e",
+  "generated_at": "2026-10-12T10:03:01Z",
+  "generated_by": "vamp-gen-sigs",
+  "signatures": [
+    {
+      "name": "sqlite.sqlite3_compileoption_get",
+      "bytes": "8300000000488d05000000004863ff488b04f8c30f1f400031c0c3",
+      "mask": "ff00000000ffffff00000000ffffffffffffffffffffffffffffff",
+      "func_size": 27,
+      "first_block_size": 27,
+      "reloc_count": 1,
+      "masked_ratio": 0.2963,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_mutex_free",
+      "bytes": "4800000000488b0500000000ffe06690f3c3",
+      "mask": "ff00000000ffffff00000000ffffffffffff",
+      "func_size": 18,
+      "first_block_size": 18,
+      "reloc_count": 1,
+      "masked_ratio": 0.4444,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_mutex_try",
+      "bytes": "4800000000488b0500000000ffe0669031c0c3",
+      "mask": "ff00000000ffffff00000000ffffffffffffff",
+      "func_size": 19,
+      "first_block_size": 19,
+      "reloc_count": 1,
+      "masked_ratio": 0.4211,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_vfs_unregister",
+      "bytes": "554889fd5331db4883ec088b050000000000000000bf02000000ff15000000004889c34889dfe8000000004889efe8000000004889dfe8000000004883c40831c05b5dc3",
+      "mask": "ffffffffffffffffffffffffff0000000000000000ffffffffffffff00000000ffffffffffffff00000000ffffffff00000000ffffffff00000000ffffffffffffffffff",
+      "func_size": 68,
+      "first_block_size": 68,
+      "reloc_count": 3,
+      "masked_ratio": 0.3529,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_stricmp",
+      "bytes": "0fb607000000000fb60e488d15000000000fb604020fb60c0a000000000000900fb64e010fb604020fb60c0a000000004c89c64883c7010fb6074c8d4601000000000fb646010fb60c0231c029c8c30fb606488d15000000000fb60c0200000000",
+      "mask": "ffffff00000000ffffffffffff00000000ffffffffffffffff000000000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000",
+      "func_size": 97,
+      "first_block_size": 97,
+      "reloc_count": 3,
+      "masked_ratio": 0.3093,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_strnicmp",
+      "bytes": "85d28d000000000fb61700000000440fb606488d0d00000000460fb614014438000000000000662e0f1f8400000000000fb61700000000440fb606460fb60c0144380000000083e8014883c7014883c601830000000031c0c30f1f8000000000000000000fb6070fb60e488d15000000000fb604020fb6140a29d0c3",
+      "mask": "ffffff00000000ffffff00000000ffffffffffffff00000000ffffffffffffff000000000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffff",
+      "func_size": 124,
+      "first_block_size": 124,
+      "reloc_count": 4,
+      "masked_ratio": 0.3065,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_compileoption_used",
+      "bytes": "4157488d3500000000ba070000004156415541544989fc55534883ec08e800000000498d54240785c04c0f44e24d85e40f840000000041803c000000004c89e04883c00180000000004c29e04189c54181e5ffffff3f488d1d000000004c8d35000000004d63fd660f1f840000000000488b2b4489ea4c89e74889eee80000000000000000420fb6443d00488d1500000000803c000000004883c3084c000000004883c40831c05b5d415c415d415e415fc3660f1f44000045000000000f1f004883c408b8010000005b5d415c415d415e415fc3",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffffff00000000ffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 212,
+      "first_block_size": 212,
+      "reloc_count": 6,
+      "masked_ratio": 0.2453,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_enable_shared_cache",
+      "bytes": "893d0000000031c0c3",
+      "mask": "ffff00000000ffffff",
+      "func_size": 9,
+      "first_block_size": 9,
+      "reloc_count": 0,
+      "masked_ratio": 0.4444,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_sql",
+      "bytes": "4800000000f6879f000000000000488b87f0000000c3662e0f1f84000000000031c0c3",
+      "mask": "ff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 35,
+      "first_block_size": 35,
+      "reloc_count": 1,
+      "masked_ratio": 0.2286,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_expired",
+      "bytes": "48000000000fb6879e000000c0e80583e001c30f1f440000b801000000c3",
+      "mask": "ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 30,
+      "first_block_size": 30,
+      "reloc_count": 0,
+      "masked_ratio": 0.1333,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_user_data",
+      "bytes": "488b07488b4008c3",
+      "mask": "ffffffffffffffff",
+      "func_size": 8,
+      "first_block_size": 8,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_get_auxdata",
+      "bytes": "488b4750488b803001000048000000008b000000000f1f00488b40184800000000000000003900000000488b40086690c30f1f800000000031c0c3",
+      "mask": "ffffffffffffffffffffffff00000000ff00000000ffffffffffffffff0000000000000000ff00000000ffffffffffffffffffffffffffffffffff",
+      "func_size": 59,
+      "first_block_size": 59,
+      "reloc_count": 2,
+      "masked_ratio": 0.339,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_aggregate_count",
+      "bytes": "488b47408b4020c3",
+      "mask": "ffffffffffffffff",
+      "func_size": 8,
+      "first_block_size": 8,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_column_count",
+      "bytes": "48000000000fb74748c3660f1f44000031c0c3",
+      "mask": "ff00000000ffffffffffffffffffffffffffff",
+      "func_size": 19,
+      "first_block_size": 19,
+      "reloc_count": 0,
+      "masked_ratio": 0.2105,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_data_count",
+      "bytes": "480000000048837f000000000fb74748c30f1f800000000031c0c3",
+      "mask": "ff00000000ffffff00000000ffffffffffffffffffffffffffffff",
+      "func_size": 27,
+      "first_block_size": 27,
+      "reloc_count": 1,
+      "masked_ratio": 0.2963,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_column_decltype",
+      "bytes": "488d1500000000b901000000e900000000",
+      "mask": "ffffff00000000ffffffffffff00000000",
+      "func_size": 17,
+      "first_block_size": 17,
+      "reloc_count": 1,
+      "masked_ratio": 0.4706,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_column_database_name",
+      "bytes": "488d1500000000b902000000e900000000",
+      "mask": "ffffff00000000ffffffffffff00000000",
+      "func_size": 17,
+      "first_block_size": 17,
+      "reloc_count": 1,
+      "masked_ratio": 0.4706,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_column_table_name",
+      "bytes": "488d1500000000b903000000e900000000",
+      "mask": "ffffff00000000ffffffffffff00000000",
+      "func_size": 17,
+      "first_block_size": 17,
+      "reloc_count": 1,
+      "masked_ratio": 0.4706,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_column_origin_name",
+      "bytes": "488d1500000000b904000000e900000000",
+      "mask": "ffffff00000000ffffffffffff00000000",
+      "func_size": 17,
+      "first_block_size": 17,
+      "reloc_count": 1,
+      "masked_ratio": 0.4706,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_parameter_count",
+      "bytes": "48000000008b8788000000c30f1f400031c0c3",
+      "mask": "ff00000000ffffffffffffffffffffffffffff",
+      "func_size": 19,
+      "first_block_size": 19,
+      "reloc_count": 0,
+      "masked_ratio": 0.2105,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_parameter_name",
+      "bytes": "4800000000000000003bb78c0000000000488b87800000004863f6488b44f0f8c30f1f800000000031c0c3",
+      "mask": "ff0000000000000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 43,
+      "first_block_size": 43,
+      "reloc_count": 1,
+      "masked_ratio": 0.2791,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_db_handle",
+      "bytes": "4800000000488b07c30f1f800000000031c0c3",
+      "mask": "ff00000000ffffffffffffffffffffffffffff",
+      "func_size": 19,
+      "first_block_size": 19,
+      "reloc_count": 0,
+      "masked_ratio": 0.2105,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_stmt_readonly",
+      "bytes": "48000000000fb6879f00000083e001c3b801000000c3",
+      "mask": "ff00000000ffffffffffffffffffffffffffffffffff",
+      "func_size": 22,
+      "first_block_size": 22,
+      "reloc_count": 0,
+      "masked_ratio": 0.1818,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_stmt_busy",
+      "bytes": "31c048000000008b97940000000000000031c0817f50a30df2bd0f94c0c36690f3c3",
+      "mask": "ffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffff",
+      "func_size": 34,
+      "first_block_size": 34,
+      "reloc_count": 1,
+      "masked_ratio": 0.2353,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_next_stmt",
+      "bytes": "554889f5534889fb4883ec08488b7f18e8000000004800000000488b6d68488b7b18e8000000004883c4084889e85b5dc30f1f8000000000488b00000000",
+      "mask": "ffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 62,
+      "first_block_size": 62,
+      "reloc_count": 2,
+      "masked_ratio": 0.2581,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_stmt_status",
+      "bytes": "4863f685d2488d0cb78b81b00000000000c781b000000000000000f3c3",
+      "mask": "ffffffffffffffffffffffffff00000000ffffffffffffffffffffffff",
+      "func_size": 29,
+      "first_block_size": 29,
+      "reloc_count": 0,
+      "masked_ratio": 0.1379,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_blob_bytes",
+      "bytes": "480000000048837f000000008b4704c331c0c3",
+      "mask": "ff00000000ffffff00000000ffffffffffffff",
+      "func_size": 19,
+      "first_block_size": 19,
+      "reloc_count": 1,
+      "masked_ratio": 0.4211,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_set_authorizer",
+      "bytes": "41544989d4554889f5534889fb488b7f18e800000000488b43084889ab700100004c89a37801000048000000000f1f0080889e00000020488b40684800000000488b7b18e8000000005b5d31c0415cc3",
+      "mask": "ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffff",
+      "func_size": 80,
+      "first_block_size": 80,
+      "reloc_count": 2,
+      "masked_ratio": 0.2,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_vtab_on_conflict",
+      "bytes": "0fb64754488d150000000083e80148980fb60402c3",
+      "mask": "ffffffffffffff00000000ffffffffffffffffffff",
+      "func_size": 21,
+      "first_block_size": 21,
+      "reloc_count": 0,
+      "masked_ratio": 0.1905,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_complete",
+      "bytes": "415741564155415455534889fb4883ec180fb60f84c90f84000000004c8d250000000031ed49bd040000000400000049be000002000000020049bf01000000010000000f1f4400008d41f73c570f8700000000488d15000000000fb6c0486304824801c2ffe2662e0f1f8400000000000fb64b01b80200000080000000000fb6030000000000000000b82d0000000000000000000fb643014883c30100000000000000000fb64b01b8010000004898488d15000000004883c301488d04e884c90fb60000000031c04080fd010f94c04883c4185b5d415c415d415e415fc366900fb64301488d53014889d3000000000000000000000f1f00000000004883c301",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff0000000000000000ffffff0000000000000000ffffffffffffffff0000000000000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000ffffff00000000ffffffff",
+      "func_size": 930,
+      "first_block_size": 256,
+      "reloc_count": 8,
+      "masked_ratio": 0.2578,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_libversion",
+      "bytes": "488b0500000000c3",
+      "mask": "ffffff00000000ff",
+      "func_size": 8,
+      "first_block_size": 8,
+      "reloc_count": 0,
+      "masked_ratio": 0.5,
+      "confidence": "low"
+    },
+    {
+      "name": "sqlite.sqlite3_sourceid",
+      "bytes": "488d0500000000c3",
+      "mask": "ffffff00000000ff",
+      "func_size": 8,
+      "first_block_size": 8,
+      "reloc_count": 0,
+      "masked_ratio": 0.5,
+      "confidence": "low"
+    },
+    {
+      "name": "sqlite.sqlite3_busy_handler",
+      "bytes": "41544989d4554889f5534889fb488b7f18e800000000488b7b184889ab980200004c89a3a0020000c783a802000000000000c783f802000000000000e8000000005b5d31c0415cc3",
+      "mask": "ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff",
+      "func_size": 72,
+      "first_block_size": 72,
+      "reloc_count": 1,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_progress_handler",
+      "bytes": "41554989d541544989cc5589f5534889fb4883ec08488b7f18e800000000000000004c89ab8001000089ab900100004c89a388010000488b7b184883c4085b5d415c415de9000000000f1f800000000048c7838001000000000000c783900100000000000048c78388010000000000000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 114,
+      "first_block_size": 114,
+      "reloc_count": 2,
+      "masked_ratio": 0.1404,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_interrupt",
+      "bytes": "c7873801000001000000c3",
+      "mask": "ffffffffffffffffffffff",
+      "func_size": 11,
+      "first_block_size": 11,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_trace",
+      "bytes": "41554989d541544989f455534889fb4883ec08488b7f18e800000000488b7b18488babc00000004c89a3b80000004c89abc0000000e8000000004883c4084889e85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff",
+      "func_size": 72,
+      "first_block_size": 72,
+      "reloc_count": 1,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_profile",
+      "bytes": "41554989d541544989f455534889fb4883ec08488b7f18e800000000488b7b18488babd00000004c89a3c80000004c89abd0000000e8000000004883c4084889e85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff",
+      "func_size": 72,
+      "first_block_size": 72,
+      "reloc_count": 1,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_commit_hook",
+      "bytes": "41554989d541544989f455534889fb4883ec08488b7f18e800000000488b7b18488babd80000004c89a3e00000004c89abd8000000e8000000004883c4084889e85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff",
+      "func_size": 72,
+      "first_block_size": 72,
+      "reloc_count": 1,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_update_hook",
+      "bytes": "41554989d541544989f455534889fb4883ec08488b7f18e800000000488b7b18488babf80000004c89a3000100004c89abf8000000e8000000004883c4084889e85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff",
+      "func_size": 72,
+      "first_block_size": 72,
+      "reloc_count": 1,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_rollback_hook",
+      "bytes": "41554989d541544989f455534889fb4883ec08488b7f18e800000000488b7b18488babe80000004c89a3f00000004c89abe8000000e8000000004883c4084889e85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff",
+      "func_size": 72,
+      "first_block_size": 72,
+      "reloc_count": 1,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_wal_hook",
+      "bytes": "41554989d541544989f455534889fb4883ec08488b7f18e800000000488b7b18488bab100100004c89a3080100004c89ab10010000e8000000004883c4084889e85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff",
+      "func_size": 72,
+      "first_block_size": 72,
+      "reloc_count": 1,
+      "masked_ratio": 0.1111,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_limit",
+      "bytes": "83000000004863f685d2488d0cb78b00000000488d3d000000008b34b739d60f4ed6895168c3662e0f1f840000000000b8ffffffff0f1f00f3c3",
+      "mask": "ff00000000ffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 58,
+      "first_block_size": 58,
+      "reloc_count": 1,
+      "masked_ratio": 0.2069,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_collation_needed",
+      "bytes": "41544989d4554889f5534889fb488b7f18e800000000488b7b184c89a3180100004889ab2801000048c7832001000000000000e8000000005b5d31c0415cc3",
+      "mask": "ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff",
+      "func_size": 63,
+      "first_block_size": 63,
+      "reloc_count": 1,
+      "masked_ratio": 0.127,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_collation_needed16",
+      "bytes": "41544989d4554889f5534889fb488b7f18e800000000488b7b184c89a3200100004889ab2801000048c7831801000000000000e8000000005b5d31c0415cc3",
+      "mask": "ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff",
+      "func_size": 63,
+      "first_block_size": 63,
+      "reloc_count": 1,
+      "masked_ratio": 0.127,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_extended_result_codes",
+      "bytes": "5589f5534889fb4883ec08488b7f18e80000000083fd01488b7b1819c0250001000083e801894348e8000000004883c40831c05b5dc3",
+      "mask": "ffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff",
+      "func_size": 54,
+      "first_block_size": 54,
+      "reloc_count": 1,
+      "masked_ratio": 0.1481,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_db_filename",
+      "bytes": "4883ec08e8000000004800000000488b4008488b10488d0500000000807a00000000488b82d00000004883c408c3669000000000",
+      "mask": "ffffffffff00000000ff00000000ffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffff00000000",
+      "func_size": 52,
+      "first_block_size": 52,
+      "reloc_count": 2,
+      "masked_ratio": 0.3846,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_db_readonly",
+      "bytes": "4883ec08e8000000004800000000488b4008488b000fb640114883c408c3b8ffff00000000",
+      "mask": "ffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 37,
+      "first_block_size": 37,
+      "reloc_count": 1,
+      "masked_ratio": 0.3243,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_uri_parameter",
+      "bytes": "4885ff0f84000000004154554889f553803f000f84000000004889f80f1f40004883c00180000000004829f825ffffff3f4883c001488d1c07440fb6234584e40f84000000004889ee4889dfe8000000004500000000662e0f1f8400000000004889da0f1f4400004883c20180000000004829da81e2ffffff3f4883c2014801d300000000480000000080000000004889d9660f1f4400004883c10180000000004829d981e1ffffff3f4883c1014801cb0fb603000000004189c44889ee4889dfe8000000004500000000ba010000004801d3000000004889d85b5d415cc390b9010000004801cb0fb603000000005b5d31c0415cc3b801000000e900000000",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ff00000000ff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000",
+      "func_size": 259,
+      "first_block_size": 256,
+      "reloc_count": 8,
+      "masked_ratio": 0.2656,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_uri_int64",
+      "bytes": "534889d34883ec10e800000000480000000080000000004889c1660f1f4400004883c10180000000004829c189ca81e2ffffff3f488d742408b9010000004889c7e80000000085c0480f445c24084883c4104889d85bc300000000",
+      "mask": "ffffffffffffffffff00000000ff00000000ff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 91,
+      "first_block_size": 91,
+      "reloc_count": 3,
+      "masked_ratio": 0.2637,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_parameter_index",
+      "bytes": "480000000080000000004889f20f1f004883c20180000000004829f281e2ffffff3fe900000000660f1f84000000000031d2e900000000",
+      "mask": "ff00000000ff00000000ffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffff00000000",
+      "func_size": 55,
+      "first_block_size": 55,
+      "reloc_count": 2,
+      "masked_ratio": 0.3636,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_set_auxdata",
+      "bytes": "41574989d741564989ce415541544989fc5589f5534883ec0885f64c8b6f500f8800000000498b9d3001000048000000008b00000000662e0f1f840000000000488b5b184800000000000000003900000000488b43104800000000488b7b08ffd04c897b084c8973104883c4085b5d415c415d415e415fc30f1f840000000000498b7d00be20000000e8000000004885c04800000000418b442458896b048903498b85300100004889431849899d3001000041807c240000000041c744245c0000000041c64424000000000f1f4400004d000000004883c4084c89f04c89ff5b5d415c415d415e415fffe0",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffff0000000000000000ff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 235,
+      "first_block_size": 235,
+      "reloc_count": 6,
+      "masked_ratio": 0.2043,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_result_error_nomem",
+      "bytes": "534889fb488d7f08e800000000488b4308c7435c07000000c6436101c64050015bc3",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 34,
+      "first_block_size": 34,
+      "reloc_count": 0,
+      "masked_ratio": 0.1176,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_free_table",
+      "bytes": "480000000041544c8d67f85553488b47f8830000000083e8024889fb488d6cc7080f1f8000000000488b3b4800000000e8000000004883c30848000000005b5d4c89e7415ce900000000660f1f440000f3c3",
+      "mask": "ff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffff00000000ffffffffffffffff00000000ffffffffffffffff",
+      "func_size": 82,
+      "first_block_size": 82,
+      "reloc_count": 3,
+      "masked_ratio": 0.2927,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_db_release_memory",
+      "bytes": "41544989fc5531ed53488b7f1831dbe8000000004c89e7e800000000418b442428000000000f1f00498b442420488b4428084800000000488b4008488b00488b8010010000488b78404800000000ff150000000083c3014883c52041395c000000004c89e7e800000000498b7c2418e8000000005b5d31c0415cc3",
+      "mask": "ffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffffff",
+      "func_size": 123,
+      "first_block_size": 123,
+      "reloc_count": 4,
+      "masked_ratio": 0.2927,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_file_control",
+      "bytes": "41564989ce41554189d5415441bc01000000554889fd53488b7f184889f3e8000000004889de4889efe8000000004885c048000000004889c7e800000000488b43084183fd07488b00488b00000000488b0741bc0c00000048000000004c89f24489eeff50504189c44889dfe800000000488b7d18e8000000005b5d4489e0415c415d415ec3662e0f1f84000000000049893e4500000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffff00000000ffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 152,
+      "first_block_size": 152,
+      "reloc_count": 4,
+      "masked_ratio": 0.2368,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_clear_bindings",
+      "bytes": "415541544531e4554889fd5331db4883ec08488b074c8b68184c89efe8000000008b8d88000000000000000f1f4400004889df48037d784183c401e800000000488b4578ba0100000066895418244883c3384439a5880000000000f6859f0000000000008b851401000000000000808d9e000000204c89efe8000000004883c40831c05b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 138,
+      "first_block_size": 138,
+      "reloc_count": 3,
+      "masked_ratio": 0.2029,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_result_int",
+      "bytes": "554863ee534889fb488d7f084883ec08e800000000b80400000048896b20c6432e016689432c4883c4085b5dc3",
+      "mask": "ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 45,
+      "first_block_size": 45,
+      "reloc_count": 0,
+      "masked_ratio": 0.0889,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_result_int64",
+      "bytes": "554889f5534889fb488d7f084883ec08e800000000b80400000048896b20c6432e016689432c4883c4085b5dc3",
+      "mask": "ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 45,
+      "first_block_size": 45,
+      "reloc_count": 0,
+      "masked_ratio": 0.0889,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_result_zeroblob",
+      "bytes": "5589f5534889fb488d7f084883ec08e800000000b810400000c6432e04c74328000000006689432c31c085ed0f49c5c6432f018943204883c4085b5dc3",
+      "mask": "ffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 61,
+      "first_block_size": 61,
+      "reloc_count": 0,
+      "masked_ratio": 0.0656,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_transfer_bindings",
+      "bytes": "8b86880000003987880000000000b801000000c30f1f4000f6869f0000000000008b961401000000000000808e9e00000020f6879f0000000000008b871401000000000000808f9e00000020e900000000",
+      "mask": "ffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffff00000000",
+      "func_size": 81,
+      "first_block_size": 81,
+      "reloc_count": 3,
+      "masked_ratio": 0.2963,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_value_numeric_type",
+      "bytes": "530fb647264889fb000000005bc36690e8000000000fb77b24488d7326e8000000000fb643265bc3",
+      "mask": "ffffffffffffffff00000000ffffffffff00000000ffffffffffffffffff00000000ffffffffffff",
+      "func_size": 40,
+      "first_block_size": 40,
+      "reloc_count": 1,
+      "masked_ratio": 0.3,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_uri_boolean",
+      "bytes": "5389d3e80000000031d285db0f95c24800000000be010000004889c7e80000000031d284c00f95c289d05bc3",
+      "mask": "ffffffff00000000ffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffff",
+      "func_size": 44,
+      "first_block_size": 44,
+      "reloc_count": 1,
+      "masked_ratio": 0.2727,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_db_status",
+      "bytes": "41574989cf4156415541544589c4554889fd5389f34883ec28488b7f1848891424e80000000083fb0a0f8700000000488d050000000089da486314904801d0ffe00f1f80000000008b4d2831c031f631d2000000008d7bf94863ff48c1e70290488b4d20488b4c01084800000000488b49084889fb48031903b3f00000004500000000c783f00000000000000083c2014883c0203900000000488b042441c7070000000031db00000000660f1f44000041c707000000004883bd1003000000b8010000000f8e00000000488b0c2431db8901660f1f440000488b7d18e8000000004883c42889d85b5d415c415d415e415fc3660f1f4400008b8544010000488b",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 991,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1562,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_db_config",
+      "bytes": "4883ec5881fee9030000488d442460488954243048894c24384c894424404c894c24484889442410488d442420c7442408100000004889440000000081feea030000000081feeb0300000f8400000000b8010000004883c458c3660f1f440000448b8744010000488b442418c7442408280000004585c0488b70108b50188b4820b8050000000000e8000000004883c458c3660f1f44000031c98b54240883fa300f83000000008d7208488b4424184189d083fe2f89742408468b04000f870000000083c2104801f0895424084183f800488b108b772c0f8e00000000488d05000000004189c8468b54c0044109f24489d04489572c00000000488b47084885",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffff",
+      "func_size": 412,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1562,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_errstr",
+      "bytes": "81ff0402000000000000660f1f440000488d0500000000c3",
+      "mask": "ffffffff000000000000ffffffffffffffffff00000000ff",
+      "func_size": 24,
+      "first_block_size": 24,
+      "reloc_count": 1,
+      "masked_ratio": 0.4167,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_busy_timeout",
+      "bytes": "5589f5534889fb4883ec0800000000488d35000000004889fae80000000089abf80200004883c40831c05b5dc30f1f0031d231f6e8000000004883c40831c05b5dc3",
+      "mask": "ffffffffffffffffffffff00000000ffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff",
+      "func_size": 66,
+      "first_block_size": 66,
+      "reloc_count": 2,
+      "masked_ratio": 0.2424,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_wal_autocheckpoint",
+      "bytes": "4883ec08000000004863d6488d3500000000e80000000031c04883c408c3669031d231f6e80000000031c04883c408c3",
+      "mask": "ffffffff00000000ffffffffffff00000000ff00000000ffffffffffffffffffffffffffff00000000ffffffffffffff",
+      "func_size": 48,
+      "first_block_size": 48,
+      "reloc_count": 2,
+      "masked_ratio": 0.3333,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_strglob",
+      "bytes": "488d15000000004883ec0831c9e80000000085c00f94c04883c4080fb6c0c3",
+      "mask": "ffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 31,
+      "first_block_size": 31,
+      "reloc_count": 1,
+      "masked_ratio": 0.2581,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_enable_load_extension",
+      "bytes": "5589f5534889fb4883ec08488b7f18e8000000000000000081632cffffbfff488b7b18e8000000004883c40831c05b5dc30f1f8000000000814b2c000000000000",
+      "mask": "ffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 65,
+      "first_block_size": 65,
+      "reloc_count": 2,
+      "masked_ratio": 0.2462,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_cancel_auto_extension",
+      "bytes": "5531ed534889fb4883ec088b050000000085c00f85000000004889efe800000000448b0500000000418300000000488b15000000004963c04489c148c1e003488d3402488d5402f8488b3e48000000000000660f1f4400004889d64883ea0848390000000083e901830000000031db4889efe8000000004883c40889d85b5dc34489050000000048893ebb0100000000000f1f8000000000bf02000000ff15000000004889c5e900000000",
+      "mask": "ffffffffffffffffffffffffff00000000ffffffff00000000ffffffff00000000ffffff00000000ffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff000000000000ffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffff00000000",
+      "func_size": 171,
+      "first_block_size": 171,
+      "reloc_count": 7,
+      "masked_ratio": 0.3392,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_config",
+      "bytes": "4883ec588b05000000004889742428488954243048894c24384c8944244085c04c894c00000000488d44246083ff16c7442408080000004889442410488d44242048894400000000488d050000000089ff486314b84801d0ffe0660f1f440000bf29d20100e8000000004883c458c390b8010000000000660f1f840000000000c705ea14290000000000c705e414290000000000000000000f1f8400000000008b44240883f8300f830000000048034424188b008905000000000000000066908b44240883f8300f83000000004803442418488b00488b1048891500000000488b500848891500000000488b501048891500000000488b501848891500000000",
+      "mask": "ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffff0000000000000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff0000000000000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffff00000000ffffffffffffff00000000",
+      "func_size": 2123,
+      "first_block_size": 256,
+      "reloc_count": 8,
+      "masked_ratio": 0.2656,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_initialize",
+      "bytes": "8b150000000031c000000000f3c36690415448833d7e0000000055530f8400000000ff150000000085c089c30f8500000000448b15000000004531e44585d20f85000000004c89e7e800000000448b0d00000000c705320e290000000000450000000048833d3500000000c7051f0e2900000000000f84000000004c89e783052300000000e800000000488b3d00000000e80000000048833dea000000000f8400000000488b3d00000000e8000000004c89e7e8000000008b050000000083e80185c08905000000000f8e000000004c89e7e80000000089d85b5d415cf3c39048833d60000000000f8400000000448b0500000000488d150000000031c0b907",
+      "mask": "ffff00000000ffff00000000ffffffffffffffffffff00000000ffffffff00000000ffff00000000ffffffffffff00000000ffffff00000000ffffffffffffffff00000000ffffffff00000000ffffff00000000ffffffffffff00000000ff00000000ffffffff00000000ffffffffffff00000000ffff00000000ffffffffffff00000000ff00000000ffffff00000000ff00000000ffffffff00000000ffff00000000ffffff00000000ff00000000ffffffff00000000ffff00000000ffffffffffffff00000000ffff00000000ffffffff00000000ffffffffffffffffffffffffff00000000ffff00000000ffffff00000000ffffff00000000ffffffff",
+      "func_size": 1481,
+      "first_block_size": 256,
+      "reloc_count": 16,
+      "masked_ratio": 0.5,
+      "confidence": "low"
+    },
+    {
+      "name": "sqlite.sqlite3_vfs_find",
+      "bytes": "4154554889fd53e800000000000000008b05000000004531e4000000004c89e7e800000000488b1d000000004800000000480000000000000f1f840000000000488b5b104800000000488b73184889efe800000000000000004c89e7e8000000004889d85b5d415cc30f1f8000000000bf02000000ff150000000049000000005b5d31c0415cc3",
+      "mask": "ffffffffffffffff0000000000000000ffff00000000ffffff00000000ffffffff00000000ffffff00000000ff00000000ff000000000000ffffffffffffffffffffffffff00000000ffffffffffffffff0000000000000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffff",
+      "func_size": 135,
+      "first_block_size": 135,
+      "reloc_count": 7,
+      "masked_ratio": 0.4296,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_randomness",
+      "bytes": "41564531f6415541544989f4555389fb4881ec1001000064488b042528000000488984240801000031c08b050000000085c00f85000000004c89f7e800000000803d59000000000f840000000085db448d000000000fb605000000000fb60d000000004c8d05000000008d58014489d84d8d54040189de660f1f840000000000400fb6c64983c40183c601410fb654000301d10fb6f9450fb64c380345884c0003418854380341025400034d39d40fb6d2410fb6441003418844000000004101db880d0000000044881d000000004c89f7e800000000488b8424080100006448330425280000000f85000000004881c4100100005b5d415c415d415ec30f1f00",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffff00000000ffffff00000000ffff00000000ffffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff",
+      "func_size": 447,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2188,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_sleep",
+      "bytes": "5389fb31ffe80000000031d2480000000069f3e80300004889c7ff5070bad34d621089c1f7eac1f91fc1fa0629ca89d05bc3",
+      "mask": "ffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 50,
+      "first_block_size": 50,
+      "reloc_count": 1,
+      "masked_ratio": 0.16,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_vfs_register",
+      "bytes": "41544189f455534889fbe800000000000000008b050000000031ed000000004889efe8000000004889dfe8000000004585e4488b050000000000004889431048891d000000004889efe80000000031c05b5d415cc30f1f004800000000488b5010488953104889000000000f1f440000bf02000000ff15000000004800000000",
+      "mask": "ffffffffffffffffffffff0000000000000000ffff00000000ffff00000000ffffffff00000000ffffffff00000000ffffffffffff000000000000ffffffffffffff00000000ffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ff00000000",
+      "func_size": 128,
+      "first_block_size": 128,
+      "reloc_count": 6,
+      "masked_ratio": 0.4219,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_os_init",
+      "bytes": "488d3d000000004883ec08be01000000e800000000488d3d0000000031f6e800000000488d3d0000000031f6e800000000488d3d0000000031f6e80000000031c04883c408c3",
+      "mask": "ffffff00000000ffffffffffffffffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffff00000000ffffffffffffff",
+      "func_size": 70,
+      "first_block_size": 70,
+      "reloc_count": 4,
+      "masked_ratio": 0.4571,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_mutex_alloc",
+      "bytes": "5389fbe8000000000000000089df488b05000000005bffe00f1f84000000000031c05bc3",
+      "mask": "ffffffff0000000000000000ffffffffff00000000ffffffffffffffffffffffffffffff",
+      "func_size": 36,
+      "first_block_size": 36,
+      "reloc_count": 1,
+      "masked_ratio": 0.3333,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_malloc",
+      "bytes": "5389fbe8000000000000000089df5be9000000000f1f400031c05bc3",
+      "mask": "ffffffff0000000000000000ffffffff00000000ffffffffffffffff",
+      "func_size": 28,
+      "first_block_size": 28,
+      "reloc_count": 1,
+      "masked_ratio": 0.4286,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_test_control",
+      "bytes": "415783ef0541564155415455534883ec7883ff0f488d8424b00000004889742448488954245048894c24584c894424604889442430488d4424404c894c2468c74424280800000048894424380f8700000000488d0500000000486314b84801d0ffe0660f1f4400008b44242883f8300f830000000048034424388b004531ed8905000000000000660f1f840000000000488d0500000000488d3500000000b9200000004531ed4889c7f348a50fb7066689070fb60500000000880500000000904883c4784489e85b5d415c415d415e415fc3660f1f440000488d0500000000488d3500000000b9200000004531ed4889c7f348a50fb7066689070f0000000029",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff000000000000ffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ff",
+      "func_size": 1877,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1797,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_realloc",
+      "bytes": "5589f5534889fb4883ec08e800000000000000004883c4084889df89ee5b5de9000000000f1f40004883c40831c05b5dc3",
+      "mask": "ffffffffffffffffffffffff0000000000000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 49,
+      "first_block_size": 49,
+      "reloc_count": 1,
+      "masked_ratio": 0.2449,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_result_value",
+      "bytes": "4883c708e900000000",
+      "mask": "ffffffffff00000000",
+      "func_size": 9,
+      "first_block_size": 9,
+      "reloc_count": 0,
+      "masked_ratio": 0.4444,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_result_error",
+      "bytes": "c7475c01000000c647610149c7c0ffffffff4883c708b901000000e900000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 32,
+      "first_block_size": 32,
+      "reloc_count": 0,
+      "masked_ratio": 0.125,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_result_error16",
+      "bytes": "c7475c01000000c647610149c7c0ffffffff4883c708b902000000e900000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 32,
+      "first_block_size": 32,
+      "reloc_count": 0,
+      "masked_ratio": 0.125,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_result_error_code",
+      "bytes": "534889fb89f7f6432c0189735cc6430000000081ff04020000488d35000000000000488d7b084531c0b9010000005bbaffffffffe9000000000f1f8000000000e8000000004800000000660f1f4400005bc3",
+      "mask": "ffffffffffffffffffffffffffffff00000000ffffffffffffffffff000000000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ff00000000ffffffffffffffff",
+      "func_size": 82,
+      "first_block_size": 82,
+      "reloc_count": 2,
+      "masked_ratio": 0.2683,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_result_error_toobig",
+      "bytes": "488d3500000000c7475c12000000c64761014531c04883c708b901000000baffffffffe900000000",
+      "mask": "ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 40,
+      "first_block_size": 40,
+      "reloc_count": 1,
+      "masked_ratio": 0.2,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_result_text",
+      "bytes": "4989c8b901000000e900000000",
+      "mask": "ffffffffffffffffff00000000",
+      "func_size": 13,
+      "first_block_size": 13,
+      "reloc_count": 0,
+      "masked_ratio": 0.3077,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_result_text16",
+      "bytes": "4989c8b902000000e900000000",
+      "mask": "ffffffffffffffffff00000000",
+      "func_size": 13,
+      "first_block_size": 13,
+      "reloc_count": 0,
+      "masked_ratio": 0.3077,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_result_text16be",
+      "bytes": "4989c8b903000000e900000000",
+      "mask": "ffffffffffffffffff00000000",
+      "func_size": 13,
+      "first_block_size": 13,
+      "reloc_count": 0,
+      "masked_ratio": 0.3077,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_aggregate_context",
+      "bytes": "4154554889fd53488b5f40f6430000000085f6410000000031d24889dfe800000000b80020000066894324488b450048894318488b430848000000004963d431f64889c7e800000000488b43085b5d415cc3660f1f4400004889dfe800000000ba0100000048c743080000000031c0668953245b5d415cc3",
+      "mask": "ffffffffffffffffffffffffff00000000ffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 120,
+      "first_block_size": 120,
+      "reloc_count": 3,
+      "masked_ratio": 0.2,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_vsnprintf",
+      "bytes": "85ff4800000000534883ec304889742408488974241031f6897c241c4889e748c7042400000000c744241800000000c744242000000000c644242500c644242400e8000000004889e7e8000000004883c4305bf3c3",
+      "mask": "ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffff",
+      "func_size": 85,
+      "first_block_size": 85,
+      "reloc_count": 1,
+      "masked_ratio": 0.1412,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_snprintf",
+      "bytes": "4881ecd800000084c048894c24384c894424404c894c000000000f294424500f294c24600f295424700f299c24800000000f29a424900000000f29ac24a00000000f29b424b00000000f29bc24c0000000488d8424e0000000488d4c24084889442410488d442420c744240818000000c744240c300000004889442418e8000000004881c4d8000000c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff",
+      "func_size": 138,
+      "first_block_size": 138,
+      "reloc_count": 1,
+      "masked_ratio": 0.058,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_value_text",
+      "bytes": "be01000000e900000000",
+      "mask": "ffffffffffff00000000",
+      "func_size": 10,
+      "first_block_size": 10,
+      "reloc_count": 0,
+      "masked_ratio": 0.4,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_value_blob",
+      "bytes": "534889fbf64300000000e8000000000fb743248b532083e0fd83c8106689432431c000000000488b43085bc30f1f40005be900000000",
+      "mask": "ffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000",
+      "func_size": 54,
+      "first_block_size": 54,
+      "reloc_count": 2,
+      "masked_ratio": 0.2963,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_value_text16",
+      "bytes": "be02000000e900000000",
+      "mask": "ffffffffffff00000000",
+      "func_size": 10,
+      "first_block_size": 10,
+      "reloc_count": 0,
+      "masked_ratio": 0.4,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_value_text16be",
+      "bytes": "be03000000e900000000",
+      "mask": "ffffffffffff00000000",
+      "func_size": 10,
+      "first_block_size": 10,
+      "reloc_count": 0,
+      "masked_ratio": 0.4,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_log",
+      "bytes": "4881ecd800000084c0488954243048894c24384c894424404c894c000000000f294424500f294c24600f295424700f299c24800000000f29a424900000000f29ac24a00000000f29b424b00000000f29bc24c000000048833d82000000000000488d8424e0000000488d542408c744240810000000c744240c300000004889442410488d4424204889442418e8000000004881c4d8000000c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff",
+      "func_size": 153,
+      "first_block_size": 153,
+      "reloc_count": 1,
+      "masked_ratio": 0.0915,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_status",
+      "bytes": "8300000000488d05000000004863ff448b04b84883c70885c94489068b74b80800000000448944b80831c0c30f1f4000bf8c3600000000",
+      "mask": "ff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000",
+      "func_size": 55,
+      "first_block_size": 55,
+      "reloc_count": 2,
+      "masked_ratio": 0.2909,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_memory_used",
+      "bytes": "4883ec1831c931ff488d54240c488d742408e80000000048634424084883c418c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff",
+      "func_size": 33,
+      "first_block_size": 33,
+      "reloc_count": 0,
+      "masked_ratio": 0.1212,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_memory_highwater",
+      "bytes": "4883ec1889f931ff488d54240c488d742408e800000000486344240c4883c418c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff",
+      "func_size": 33,
+      "first_block_size": 33,
+      "reloc_count": 0,
+      "masked_ratio": 0.1212,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_errcode",
+      "bytes": "4885ff534800000000e80000000000000000807b00000000b8070000005bc3908b43482343445bc30f1f8400000000005bbf6bd80100e900000000",
+      "mask": "ffffffffff00000000ff0000000000000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 59,
+      "first_block_size": 59,
+      "reloc_count": 2,
+      "masked_ratio": 0.339,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_extended_errcode",
+      "bytes": "4885ff534800000000e80000000000000000807b00000000b8070000005bc3908b43445bc30f1f005bbf74d80100e900000000",
+      "mask": "ffffffffff00000000ff0000000000000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 51,
+      "first_block_size": 51,
+      "reloc_count": 2,
+      "masked_ratio": 0.3922,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_errmsg",
+      "bytes": "55534889fb4883ec084800000000e80000000000000000488b7b18488d2d00000000e800000000807b00000000488b7b18e8000000004883c4084889e85b5dc3bf26d80100e8000000003d0402000000004883c40889c75b5de90000000066904883c408488d05000000005b5dc366904883c408488d05000000005b5dc36690488bbb30010000e8000000004885c048000000008b7b44488d2d0000000081ff040200000000e8000000004889c5e900000000",
+      "mask": "ffffffffffffffffffff00000000ff0000000000000000ffffffffffffff00000000ff00000000ffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffff00000000ff00000000ffffffff00000000",
+      "func_size": 179,
+      "first_block_size": 179,
+      "reloc_count": 9,
+      "masked_ratio": 0.4022,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_errmsg16",
+      "bytes": "55488d1500000000534889fb4883ec084800000000e80000000085c0488d150000000000004883c4084889d05b5dc390488b7b18488d2d00000000e800000000807b00000000488b7b18e8000000004883c4084889ea5b4889d05dc30f1f4000488bbb30010000e8000000004885c04800000000c64300000000660f1f4400008b7b44488d350000000081ff040200000000e8000000004889c6488bbb3001000048000000004531c0b901000000baffffffffe800000000488bbb30010000e8000000004800000000",
+      "mask": "ffffffff00000000ffffffffffffffffff00000000ff00000000ffffffffff000000000000ffffffffffffffffffffffffffffffffffff00000000ff00000000ffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffff00000000ffffffffffffffffffffffff00000000ffffffff00000000ff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ff00000000",
+      "func_size": 201,
+      "first_block_size": 201,
+      "reloc_count": 9,
+      "masked_ratio": 0.3682,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_create_module",
+      "bytes": "4531c0e900000000",
+      "mask": "ffffffff00000000",
+      "func_size": 8,
+      "first_block_size": 8,
+      "reloc_count": 0,
+      "masked_ratio": 0.5,
+      "confidence": "low"
+    },
+    {
+      "name": "sqlite.sqlite3_create_function_v2",
+      "bytes": "41574d89cf41564189ce41554189d54154554c89c5534889fb4883ec28488b7f184889742418e80000000048837c2470000f8400000000be180000004889dfe8000000004885c04989c40f8400000000488b44247049896c24104489ea488b7424184d89f94989e84489f14889df4989442408488b4424684c896424104889442408488b44246048890424e800000000418b1424000000004889df89c6e800000000488b7b1889442418e8000000008b4424184883c4285b5d415c415d415e415fc3660f1f440000894424184889efff5424704c89e64889dfe8000000008b44000000000f1f4000488b442468488b7424184d89f948c7442410000000004989",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 313,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1562,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_create_function",
+      "bytes": "4883ec28488b44243848c7442410000000004889442408488b44243048890424e8000000004883c428c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff",
+      "func_size": 42,
+      "first_block_size": 42,
+      "reloc_count": 0,
+      "masked_ratio": 0.0952,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_overload_function",
+      "bytes": "415541544189d4554889fd534889f34883ec28480000000080000000004889f04883c00180000000004829d84189c54181e5ffffff3f488b7d18e8000000004531c94889de41b8010000004489e14489ea4889efe80000000031f648000000004889efe800000000488b7d1889c3e8000000004883c42889d85b5d415c415dc345000000000f1f004c8d0d000000004889de48c74424100000000048c74424080000000048c70424000000004531c0b9010000004489e24889efe80000000000000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000",
+      "func_size": 195,
+      "first_block_size": 195,
+      "reloc_count": 6,
+      "masked_ratio": 0.2462,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_create_function16",
+      "bytes": "41554189cd41544189d4554889f5534889fb4883ec38488b7f184c894424284c894c2420e8000000004889ee4889dfbaffffffffe8000000004889c5488b4424684c8b4c24204c8b4424284489e94489e24889ee4889df48c7442410000000004889442408488b44246048890424e8000000004889ee4189c44889dfe8000000004489e64889dfe800000000488b7b1889c5e8000000004883c43889e85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 164,
+      "first_block_size": 164,
+      "reloc_count": 3,
+      "masked_ratio": 0.1463,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_column_double",
+      "bytes": "534889fb4883ec10e8000000004889c7e8000000004889dff20f11442408e800000000f20f104424084883c4105bc3",
+      "mask": "ffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffff",
+      "func_size": 47,
+      "first_block_size": 47,
+      "reloc_count": 1,
+      "masked_ratio": 0.2553,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_column_int",
+      "bytes": "55534889fb4883ec08e8000000004889c7e8000000004889df89c5e8000000004883c40889e85b5dc3",
+      "mask": "ffffffffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffffffffff",
+      "func_size": 41,
+      "first_block_size": 41,
+      "reloc_count": 1,
+      "masked_ratio": 0.2927,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_column_int64",
+      "bytes": "55534889fb4883ec08e8000000004889c7e8000000004889df4889c5e8000000004883c4084889e85b5dc3",
+      "mask": "ffffffffffffffffffff00000000ffffffff00000000ffffffffffffff00000000ffffffffffffffffffff",
+      "func_size": 43,
+      "first_block_size": 43,
+      "reloc_count": 1,
+      "masked_ratio": 0.2791,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_column_value",
+      "bytes": "554889fd534883ec08e8000000004889c30fb74024f60000000080e4f780cc10668943244889efe8000000004883c4084889d85b5dc3",
+      "mask": "ffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffff",
+      "func_size": 54,
+      "first_block_size": 54,
+      "reloc_count": 1,
+      "masked_ratio": 0.2222,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_double",
+      "bytes": "554863ee89ee534889fb4883ec18f20f110424e80000000000000000488d14ed0000000048c1e5068944240cf20f1004244829d5488b5378488d7c2ac8e800000000488b13488b7a18e8000000008b44240c4883c4185b5dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffff",
+      "func_size": 89,
+      "first_block_size": 89,
+      "reloc_count": 2,
+      "masked_ratio": 0.1798,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_int64",
+      "bytes": "41544989d4554863ee89ee534889fb4883ec10e80000000000000000488d14ed0000000048c1e5068944240c4829d5488b5378488d6c2ac84889efe800000000b8040000004c896518c645260166894524488b13488b7a18e8000000008b44240c4883c4105b5d415cc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 106,
+      "first_block_size": 106,
+      "reloc_count": 2,
+      "masked_ratio": 0.1509,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_int",
+      "bytes": "4863d2e900000000",
+      "mask": "ffffffff00000000",
+      "func_size": 8,
+      "first_block_size": 8,
+      "reloc_count": 0,
+      "masked_ratio": 0.5,
+      "confidence": "low"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_null",
+      "bytes": "534889fb4883ec10e80000000000000000488b138944240c488b7a18e8000000008b44240c4883c4105bc3",
+      "mask": "ffffffffffffffffff0000000000000000ffffffffffffffffffffffff00000000ffffffffffffffffffff",
+      "func_size": 43,
+      "first_block_size": 43,
+      "reloc_count": 1,
+      "masked_ratio": 0.2791,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_zeroblob",
+      "bytes": "41554189d541544c63e64489e6554889fd534883ec08e80000000085c0000000004a8d04e50000000049c1e4064929c4488b45784e8d6420c84c89e7e8000000004585edb81040000041c644242604440f48eb66418944242441c74424200000000045896c241841c644242701488b4500488b7818e8000000004883c40889d85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 135,
+      "first_block_size": 135,
+      "reloc_count": 2,
+      "masked_ratio": 0.1185,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_vtab_config",
+      "bytes": "5589f5534889fb4883ec584889542430488b7f18e800000000488d44247083fd01c7442408100000004889442410488d44242048894400000000488b83b00100004800000000488b542418488b0031ed8b521088501c488b7b18e8000000004883c45889e85b5dc30f1f840000000000bfa6a50100e80000000089c50000000031d289ee4889df31c0e8000000000000bf9ea50100e80000000000000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffff000000000000ffffffffffff0000000000000000",
+      "func_size": 158,
+      "first_block_size": 158,
+      "reloc_count": 4,
+      "masked_ratio": 0.2405,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_create_collation",
+      "bytes": "41554189d541544989cc554889f5534889fb4883ec18488b7f184c89442408e8000000004c8b442408410fb6d54c89e14531c94889ee4889dfe8000000004889df89c6e800000000488b7b1889c5e8000000004883c41889e85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 96,
+      "first_block_size": 96,
+      "reloc_count": 2,
+      "masked_ratio": 0.1667,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_create_collation_v2",
+      "bytes": "41554189d541544989cc554889f5534889fb4883ec18488b7f184c894424084c890c24e8000000004c8b0c244c8b442408410fb6d54c89e14889ee4889dfe8000000004889df89c6e800000000488b7b1889c5e8000000004883c41889e85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 101,
+      "first_block_size": 101,
+      "reloc_count": 2,
+      "masked_ratio": 0.1584,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_create_collation16",
+      "bytes": "41574d89c741564989ce41554189d541544531e4554889f5534889fb4883ec08488b7f18e8000000004889eebaffffffff4889dfe8000000004885c048000000004889c64889df410fb6d54531c94d89f84c89f1e8000000004889ee4889df4189c4e8000000004489e64889dfe800000000488b7b1889c5e8000000004883c40889e85b5d415c415d415e415fc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffff",
+      "func_size": 142,
+      "first_block_size": 142,
+      "reloc_count": 3,
+      "masked_ratio": 0.1972,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_unlock_notify",
+      "bytes": "554889f5534889fb4883ec18488b7f184889542408e800000000e8000000004800000000488b93200300004885d20f84000000004839d34800000000000066904800000000488b802803000048000000004885c00f8400000000e800000000488d1500000000bd0600000089ee4889df31c0e800000000488b7b18e8000000004883c41889e85b5dc30f1f8000000000488b150000000048000000004800000000e900000000662e0f1f84000000000048000000004889c2488b8240030000480000000048c783200300000000000048c783280300000000000048c783380300000000000048c7833003000000000000e80000000031ed31d2e9000000004881",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ff00000000ffffffffffffffffffffffff00000000ffffffff000000000000ffffff00000000ffffffffffffffff00000000ffffffffff00000000ff00000000ffffff00000000ffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffff00000000ff00000000ff00000000ff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffff",
+      "func_size": 509,
+      "first_block_size": 256,
+      "reloc_count": 10,
+      "masked_ratio": 0.3203,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_blob",
+      "bytes": "4531c9e900000000",
+      "mask": "ffffffff00000000",
+      "func_size": 8,
+      "first_block_size": 8,
+      "reloc_count": 0,
+      "masked_ratio": 0.5,
+      "confidence": "low"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_text",
+      "bytes": "41b901000000e900000000",
+      "mask": "ffffffffffffff00000000",
+      "func_size": 11,
+      "first_block_size": 11,
+      "reloc_count": 0,
+      "masked_ratio": 0.3636,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_text16",
+      "bytes": "41b902000000e900000000",
+      "mask": "ffffffffffffff00000000",
+      "func_size": 11,
+      "first_block_size": 11,
+      "reloc_count": 0,
+      "masked_ratio": 0.3636,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_bind_value",
+      "bytes": "0fb642260000000000000000000000000000f642000000008b5218e900000000488b4208440fb64a2749c7c0ffffffff8b4a204889c2e9000000000f1f44000000000000488b5218e9000000000f1f00e9000000000f1f00f20f104210e900000000660f1f4400008b4a20488b520849c7c0ffffffffe900000000",
+      "mask": "ffffffff0000000000000000000000000000ffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffff00000000ffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 123,
+      "first_block_size": 123,
+      "reloc_count": 5,
+      "masked_ratio": 0.374,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_backup_step",
+      "bytes": "41574989ff41564155415455534883ec58488b472089742408488b7818e800000000498b7f28e800000000498b074800000000488b7818e800000000498b07458b7730418d56fb830000000045000000004800000000488b7818e800000000498b7f28e800000000498b4720488b7818e8000000004883c4584489f05b5d415c415d415e415fc3660f1f840000000000498b4f28498b7f084885c0488b5108488b7708488b1a48891c24488b1e48895c00000000807a24020f8400000000418b471485c00f8400000000807910000f8400000000498b4708488b5108be01000000c744242c00000000488b480831c0488b39807f09058b5a308b4930895c2428",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffff00000000ffffffffff00000000ffffffffffffffffffffffff00000000ff00000000ff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 1807,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2188,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_backup_init",
+      "bytes": "41564989ce41554989f541544989d4554889fd53488b7a18e800000000488b7d18e8000000004939ec0f8400000000bf48000000e8000000004885c04889c30f84000000004c89f24c89e64889efe8000000004c89ea488943284889ee4889efe800000000488b53284889430848892b4c896320c7431801000000c7433c0000000048000000004800000000488b520831c94889c78b7230baffffffffe8000000008300000000488b432883401801488b7d18e800000000498b7c2418e8000000004889d85b5d415c415d415ec36690488d1500000000be010000004c89e731c031dbe8000000000000660f1f4400004889df31dbe80000000000000f1f4000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffff00000000ffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff000000000000ffffffffffffffffffffffff000000000000ffffffff",
+      "func_size": 277,
+      "first_block_size": 256,
+      "reloc_count": 8,
+      "masked_ratio": 0.2656,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_backup_finish",
+      "bytes": "415431c04885ff55534889fb0f84000000004c8b6720498b7c2418e800000000488b7b28e800000000488b034800000000488b7818e800000000488300000000488b4328836818018b433c00000000488b7b0831f6e8000000008b6b30b800000000488b3b83fd650f44e831d289eee800000000488b3b4800000000e800000000488b7b28e8000000004883000000004889dfe8000000004c89e7e80000000089e85b5d415cc3660f1f840000000000488b4328488b4008488b00488b507048000000000000662e0f1f8400000000004889c2488b424048000000004883c240488b4b4048890ae900000000488d00000000",
+      "mask": "ffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffff00000000ffffffff00000000ffffffffff00000000ffff00000000ffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ff00000000ffffffffff00000000ffff00000000ffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffff00000000",
+      "func_size": 242,
+      "first_block_size": 242,
+      "reloc_count": 9,
+      "masked_ratio": 0.3223,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_finalize",
+      "bytes": "554889fd534883ec084800000000488b1f4800000000488b7b18e8000000004889efe8000000004889df89c6e8000000004889df89c5e8000000004883c40889e85b5dc30f1f40004883c40831c05b5dc30f1f8000000000488d3500000000bf1500000031c0e8000000004883c408bfe6fb00005b5de900000000",
+      "mask": "ffffffffffffffffffff00000000ffffffff00000000ffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffff00000000",
+      "func_size": 123,
+      "first_block_size": 123,
+      "reloc_count": 4,
+      "masked_ratio": 0.2927,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_blob_close",
+      "bytes": "41544531e44885ff55534800000000488b6f20488b7d18e800000000488b7b18e8000000004889ef4889de4189c4e800000000488b7d18e8000000005b5d4489e0415cc3",
+      "mask": "ffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffff",
+      "func_size": 68,
+      "first_block_size": 68,
+      "reloc_count": 2,
+      "masked_ratio": 0.2941,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_reset",
+      "bytes": "5531ed534889fb4883ec084800000000488b07488b7818e8000000004889dfe800000000488b3bc74350a30df2bd89c6c78394000000ffffffffc7839800000000000000c6839c00000002c783a000000000000000c7839000000001000000c6839d000000ffc783ac0000000000000048c783d800000000000000e80000000089c5488b03488b7818e8000000004883c40889e85b5dc3",
+      "mask": "ffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffff",
+      "func_size": 151,
+      "first_block_size": 151,
+      "reloc_count": 2,
+      "masked_ratio": 0.1325,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_wal_checkpoint_v2",
+      "bytes": "554889f5534889fb4883ec284800000000c701ffffffff4d0000000041c700ffffffff83fa02b81500000000004883c4285b5dc30f1f4000488b7b184c8944241848894c24108954240ce8000000004885edbe0a0000008b54240c488b4c24104c8b4400000000807d000000004889dfe80000000031d289c589c64889df31c0e80000000089ee4889dfe800000000488b7b1889c5e8000000004883c42889e85b5dc30f1f4400004889ee4889dfe80000000085c089c68b54240c488b4c24104c8b4400000000488d15000000004889e9be010000004889df31c0bd01000000e8000000000000",
+      "mask": "ffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffff00000000ffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffff000000000000",
+      "func_size": 231,
+      "first_block_size": 231,
+      "reloc_count": 7,
+      "masked_ratio": 0.2511,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_wal_checkpoint",
+      "bytes": "4531c031c931d2e900000000",
+      "mask": "ffffffffffffffff00000000",
+      "func_size": 12,
+      "first_block_size": 12,
+      "reloc_count": 0,
+      "masked_ratio": 0.3333,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_soft_heap_limit64",
+      "bytes": "5548c7c5ffffffff534889fb4883ec08e80000000000000000488b3d00000000e800000000488b3d00000000488b2d00000000e80000000048000000000000488d3d000000004889da31f6e800000000e8000000004829d8480000000089c781e7ffffff7fe8000000004883c4084889e85b5dc30f1f400031d231f631ffe8000000000000",
+      "mask": "ffffffffffffffffffffffffffffffffff0000000000000000ffffff00000000ff00000000ffffff00000000ffffff00000000ff00000000ff000000000000ffffff00000000ffffffffffff00000000ff00000000ffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff000000000000",
+      "func_size": 133,
+      "first_block_size": 133,
+      "reloc_count": 7,
+      "masked_ratio": 0.4511,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_soft_heap_limit",
+      "bytes": "31c085ff0f49c74863f8e900000000",
+      "mask": "ffffffffffffffffffffff00000000",
+      "func_size": 15,
+      "first_block_size": 15,
+      "reloc_count": 0,
+      "masked_ratio": 0.2667,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_vmprintf",
+      "bytes": "41544989f4554889fd534883c48064488b042528000000488944247831c0e8000000004189c031c04500000000488d4424304889e74c89e14889ea31f648c704240000000048894424084889442410c744241800000000c744241c46000000c744242000ca9a3bc644242500c644242402e8000000004889e7e800000000488b54247864483314252800000000004883ec805b5d415cc3e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffff00000000",
+      "func_size": 156,
+      "first_block_size": 156,
+      "reloc_count": 3,
+      "masked_ratio": 0.1538,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_mprintf",
+      "bytes": "534881ecd000000084c04889742428488954243048894c24384c894424404c894c000000000f294424500f294c24600f295424700f299c24800000000f29a424900000000f29ac24a00000000f29b424b00000000f29bc24c00000004889fbe80000000089c231c000000000488d8424e0000000488d7424084889dfc744240808000000c744240c300000004889442410488d4424204889442418e8000000004881c4d00000005bc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff",
+      "func_size": 169,
+      "first_block_size": 169,
+      "reloc_count": 2,
+      "masked_ratio": 0.0947,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_prepare",
+      "bytes": "4883ec184989c931c94c8904244531c0e8000000004883c418c3",
+      "mask": "ffffffffffffffffffffffffffffffffff00000000ffffffffff",
+      "func_size": 26,
+      "first_block_size": 26,
+      "reloc_count": 0,
+      "masked_ratio": 0.1538,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_prepare_v2",
+      "bytes": "4883ec184989c9b9010000004c8904244531c0e8000000004883c418c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff00000000ffffffffff",
+      "func_size": 29,
+      "first_block_size": 29,
+      "reloc_count": 0,
+      "masked_ratio": 0.1379,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_exec",
+      "bytes": "41574989d741564155415455534889f34883ec5848897c240848894c24104c8944243848c744244800000000e80000000085c00f84000000004c8b742408488d05000000004885db480f44d8498b7e18e80000000031c031d231f64c89f7e800000000488d4424404889442428488d4424484889442430803b000f84000000004c8b442428488b4c2430baffffffff488b7c24084889de48c744244800000000e80000000085c04189c40f8500000000488b7c2448488b5c24404800000000e80000000089c3c1e00431ed83c001c7442420000000004531ed894424244863c348c1e00348894424180f1f8000000000488b7c2448e8000000004d85ff4189c4",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff",
+      "func_size": 976,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1719,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_step",
+      "bytes": "4157415641554989fd415455534881ec88000000e80000000085c00f8500000000498b45004c8d7c247841be1a000000488b78184889442418e800000000498d45584180a59f000000f74889442430498d85c8000000488944242841817d50a30d000000004c89efe800000000498b5d00807b0000000041c7859800000007000000bd070000004c8b7c241889ee4c89ffe800000000498b7f1889c3e80000000089d84881c4880000005b5d415c415d415e415fc30f1f00418b9594000000410fb6859e00000085d20f8e00000000a8030f84000000004d8b6510498b45004c89e54889442410488300000000be080000004889efe8000000004183bd980000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffff",
+      "func_size": 3512,
+      "first_block_size": 256,
+      "reloc_count": 6,
+      "masked_ratio": 0.1875,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_blob_reopen",
+      "bytes": "4155415455534889fb4883ec184885ff0f8400000000488b6f204989f541bc04000000488b7d18e80000000048837b00000000488d5424084c89ee4889dfe80000000085c041000000004489e64889efe800000000488b7d1889c3e8000000004883c41889d85b5d415c415dc30f1f00488b4c2408488d050000000031d24489e64889ef4885c9480f45d031c0e800000000488b7424084889efe80000000000000f1f8000000000bfd11e0100e8000000004883c4185b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffff00000000ffffff00000000ffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff000000000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffff",
+      "func_size": 189,
+      "first_block_size": 189,
+      "reloc_count": 5,
+      "masked_ratio": 0.2434,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_blob_open",
+      "bytes": "415741564589ce41554154554889cd534889fb4883ec78488b8424b0000000488974243048895424204c8944243848c74424680000000048c70000000000488b7f18e800000000be280000004889dfe8000000004885c04989c50f8400000000bea00200004889dfe8000000004885c04889c648894424080f840000000031c04585f6c7442454040000000f95c0c744245019000000c74424280000000089c783c003297c24548944241c488d0440897c241048c1e00348894424584889f083e0014889442440488d44246848894424480f1f800000000048837c244000488b7c2408baa00200000f850000000040f6c7020f850000000040f6c7040f85c201",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffff",
+      "func_size": 1776,
+      "first_block_size": 256,
+      "reloc_count": 3,
+      "masked_ratio": 0.1094,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_table_column_metadata",
+      "bytes": "415741564989f641554d89cd41544d89c455534889fb4883ec48488b7f18488954242048894c242848c744243800000000e8000000004889dfe800000000488d7424384889dfe80000000085c089c50f840000000041bf01000000c7042400000000c744241c00000000c7442410000000004531f648c7442408000000004889dfe8000000004d00000000488b442408498904244d000000004d8975004883bc2480000000000000488b8424800000008b4c241089084883bc2488000000000000488b8424880000008b54241c89104883bc2490000000000000488b8424900000008b0c2489084584ff0f8500000000488b4c2438488d050000000031d24885",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffff",
+      "func_size": 828,
+      "first_block_size": 256,
+      "reloc_count": 6,
+      "masked_ratio": 0.1875,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_prepare16",
+      "bytes": "4d89c14989c831c9e900000000",
+      "mask": "ffffffffffffffffff00000000",
+      "func_size": 13,
+      "first_block_size": 13,
+      "reloc_count": 0,
+      "masked_ratio": 0.3077,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_prepare16_v2",
+      "bytes": "4d89c14989c8b901000000e900000000",
+      "mask": "ffffffffffffffffffffffff00000000",
+      "func_size": 16,
+      "first_block_size": 16,
+      "reloc_count": 0,
+      "masked_ratio": 0.25,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_declare_vtab",
+      "bytes": "41564989f64155415455534889fb4883ec10488b7f1848c744240800000000e800000000488b83b00100004885c00f84000000004c8b68084d85ed0f8400000000bea00200004889df41bc07000000e8000000004885c04889c50f8400000000488d542408c6801202000001488918c780f8010000010000004c89f64889c7e80000000000000000488b85400200004800000000807b50000f8400000000488b4c2408488d050000000031d2be010000004889df41bc010000004885c9480f45d031c0e800000000488b7424084889dfe800000000488b7d10c68512020000004800000000e800000000488bb5400200004889dfe800000000488bb568010000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffff00000000ffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffff00000000ffffffffffffff",
+      "func_size": 481,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2344,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_load_extension",
+      "bytes": "415741564989ce41554989fd41544989f455534883ec38488b7f1848891424e8000000004d85e4498b5d0048c7442428000000000f840000000041803c24000f84000000004c89e00f1f8400000000004883c00180000000004c29e025ffffff3f89442418052c0100004d85f6894424140f840000000049c7060000000041f6452e400f8400000000488b0c24488d05000000004c89e64889df4885c9480f45c14889442408ff53484885c04800000000488d1500000000488d3d0000000031c04c89e6e8000000004885c04989c70f84000000004889c64889dfff53484c89ff4889c5e8000000004885ed0f8400000000488b5424084889ee4889dfff5358",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffff00000000ffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffff",
+      "func_size": 1330,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2188,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_get_table",
+      "bytes": "41574989f741564989fe41554989d541544d89c4554889cd534c89cb4883ec384d85c048c70200000000000041c700000000004800000000c7450000000000480000000048c70300000000bfa000000048c744240800000000c744241400000000c744241800000000c744241c01000000c744241014000000c744242000000000e8000000004885c0488904240f8400000000488d15000000004c89fe48c700000000004889e14989d84c89f7e800000000486354241c4189c7488b04244180ff044889100f8400000000488b7c2408e8000000004585ff0f85000000008b74241c39742410488b04240f8f000000004883c0084d85e44989000000008b4424",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffff",
+      "func_size": 519,
+      "first_block_size": 256,
+      "reloc_count": 6,
+      "masked_ratio": 0.1875,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_auto_extension",
+      "bytes": "415455534889fbe80000000085c089c50f85000000008b05000000004531e4000000004c89e7e8000000008b35000000008300000000488b3d000000004800000000488d4f0800000000660f1f4400004883c10848390000000083c201000000008d34f508000000e80000000048000000008b1500000000488905000000004863ca83c20148891cc8891500000000904c89e7e8000000005b89e85d415cc390bf02000000ff15000000004989c4e9000000000000488b3d0000000000006690bd070000000000",
+      "mask": "ffffffffffffffff00000000ffffffffffff00000000ffff00000000ffffff00000000ffffffff00000000ffff00000000ff00000000ffffff00000000ff00000000ffffffff00000000ffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffff00000000ff00000000ffff00000000ffffff00000000ffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffff000000000000ffffff000000000000ffffffffff00000000",
+      "func_size": 199,
+      "first_block_size": 199,
+      "reloc_count": 11,
+      "masked_ratio": 0.4623,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_reset_auto_extension",
+      "bytes": "53e800000000000000008b050000000031db000000004889dfe800000000488b3d00000000e8000000004889df48c7058041220000000000c7056e412200000000005be9000000000f1f8400000000005bc3660f1f440000bf02000000ff15000000004800000000",
+      "mask": "ffff0000000000000000ffff00000000ffff00000000ffffffff00000000ffffff00000000ff00000000ffffffffffffffffffff00000000ffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000",
+      "func_size": 104,
+      "first_block_size": 104,
+      "reloc_count": 6,
+      "masked_ratio": 0.4615,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_shutdown",
+      "bytes": "4883ec088b350000000085f60f85000000008b0d0000000000000000488b05000000004800000000488b3d00000000ffd0c7056d252200000000008b1500000000000000008b050000000000000000488b05000000004800000000ffd0c705392522000000000031c04883c408c36690488b05000000004800000000488b3d00000000ffd0488d150000000031c0b907000000c70507252200000000004889d7f348ab488b050000000048c70000000000488b050000000048c7000000000000000f1f8000000000e800000000e800000000c705bc24220000000000e900000000",
+      "mask": "ffffffffffff00000000ffffffff00000000ffff0000000000000000ffffff00000000ff00000000ffffff00000000ffffffffffffffff00000000ffff0000000000000000ffff0000000000000000ffffff00000000ff00000000ffffffffffffffff00000000ffffffffffffffffffffffff00000000ff00000000ffffff00000000ffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffff00000000ff00000000ffffffffffff00000000ff00000000",
+      "func_size": 225,
+      "first_block_size": 225,
+      "reloc_count": 13,
+      "masked_ratio": 0.48,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_complete16",
+      "bytes": "41544989fc5553e80000000085c00000000089d85b5d415cc30f1f800000000031ffe8000000004885c048000000004531c0b902000000baffffffff4c89e64889c7e800000000be010000004889efbb07000000e80000000048000000004889c7e8000000000fb6d84889efe80000000089d85b5d415cc3",
+      "mask": "ffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ff00000000ffffffff00000000ffffffffffffff00000000ffffffffffffff",
+      "func_size": 120,
+      "first_block_size": 120,
+      "reloc_count": 4,
+      "masked_ratio": 0.3,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_open",
+      "bytes": "31c9ba06000000e900000000",
+      "mask": "ffffffffffffffff00000000",
+      "func_size": 12,
+      "first_block_size": 12,
+      "reloc_count": 0,
+      "masked_ratio": 0.3333,
+      "confidence": "medium"
+    },
+    {
+      "name": "sqlite.sqlite3_open16",
+      "bytes": "41554989fd4154554889f5534883ec0848c70600000000e80000000085c0000000004883c40889d85b5d415c415dc39031ffe8000000004885c049000000004531c0b902000000baffffffff4c89ee4889c7e800000000be010000004c89e7bb07000000e800000000480000000031c9ba060000004889ee4889c7e80000000085c00f00000000488b450031db488b4020488b4018f64000000000c6407102904c89e7e8000000004883c40889d85b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffff",
+      "func_size": 181,
+      "first_block_size": 181,
+      "reloc_count": 5,
+      "masked_ratio": 0.2431,
+      "confidence": "high"
+    },
+    {
+      "name": "sqlite.sqlite3_rtree_geometry_callback",
+      "bytes": "41554989d541544989cc554889f5534889fbbf100000004883ec28e8000000004989c0b8070000004d00000000488d05000000004c8d0d000000004d89284d896008b90500000048c744240800000000488944241048c7042400000000baffffffff4889ee4889dfe8000000004883c4285b5d415c415dc3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffff00000000ffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff",
+      "func_size": 120,
+      "first_block_size": 120,
+      "reloc_count": 2,
+      "masked_ratio": 0.1667,
+      "confidence": "high"
+    }
+  ],
+  "dedup_conflicts": [
+    {
+      "bytes": "4800000000488b0500000000ffe06690f3c3",
+      "name1": "sqlite.sqlite3_mutex_free",
+      "name2": "sqlite.sqlite3_mutex_enter"
+    },
+    {
+      "bytes": "4800000000488b0500000000ffe06690f3c3",
+      "name1": "sqlite.sqlite3_mutex_free",
+      "name2": "sqlite.sqlite3_mutex_leave"
+    },
+    {
+      "bytes": "488d1500000000b901000000e900000000",
+      "name1": "sqlite.sqlite3_column_decltype",
+      "name2": "sqlite.sqlite3_column_decltype16"
+    },
+    {
+      "bytes": "488d1500000000b902000000e900000000",
+      "name1": "sqlite.sqlite3_column_database_name",
+      "name2": "sqlite.sqlite3_column_database_name16"
+    },
+    {
+      "bytes": "488d1500000000b903000000e900000000",
+      "name1": "sqlite.sqlite3_column_table_name",
+      "name2": "sqlite.sqlite3_column_table_name16"
+    },
+    {
+      "bytes": "488d1500000000b904000000e900000000",
+      "name1": "sqlite.sqlite3_column_origin_name",
+      "name2": "sqlite.sqlite3_column_origin_name16"
+    },
+    {
+      "bytes": "4989c8b902000000e900000000",
+      "name1": "sqlite.sqlite3_result_text16",
+      "name2": "sqlite.sqlite3_result_text16le"
+    },
+    {
+      "bytes": "be02000000e900000000",
+      "name1": "sqlite.sqlite3_value_text16",
+      "name2": "sqlite.sqlite3_value_text16le"
+    },
+    {
+      "bytes": "55534889fb4883ec08e8000000004889c7e8000000004889df89c5e8000000004883c40889e85b5dc3",
+      "name1": "sqlite.sqlite3_column_int",
+      "name2": "sqlite.sqlite3_column_type"
+    },
+    {
+      "bytes": "55534889fb4883ec08e8000000004889c7e8000000004889df89c5e8000000004883c40889e85b5dc3",
+      "name1": "sqlite.sqlite3_column_int",
+      "name2": "sqlite.sqlite3_column_bytes"
+    },
+    {
+      "bytes": "55534889fb4883ec08e8000000004889c7e8000000004889df89c5e8000000004883c40889e85b5dc3",
+      "name1": "sqlite.sqlite3_column_int",
+      "name2": "sqlite.sqlite3_column_bytes16"
+    },
+    {
+      "bytes": "55534889fb4883ec08e8000000004889c7e8000000004889df4889c5e8000000004883c4084889e85b5dc3",
+      "name1": "sqlite.sqlite3_column_int64",
+      "name2": "sqlite.sqlite3_column_blob"
+    },
+    {
+      "bytes": "55534889fb4883ec08e8000000004889c7e8000000004889df4889c5e8000000004883c4084889e85b5dc3",
+      "name1": "sqlite.sqlite3_column_int64",
+      "name2": "sqlite.sqlite3_column_text"
+    },
+    {
+      "bytes": "55534889fb4883ec08e8000000004889c7e8000000004889df4889c5e8000000004883c4084889e85b5dc3",
+      "name1": "sqlite.sqlite3_column_int64",
+      "name2": "sqlite.sqlite3_column_text16"
+    },
+    {
+      "bytes": "be01000000e900000000",
+      "name1": "sqlite.sqlite3_value_text",
+      "name2": "sqlite.sqlite3_close_v2"
+    }
+  ]
+}
