@@ -36,6 +36,7 @@ class Blob(vstruct.VStruct):
 
 class CodePageString(vstruct.VStruct):
     def __init__(self):
+        # TODO: unicode is not defined here. and not an arg to vstruct
         vstruct.VStruct.__init__(self, unicode=False)
         self.size = v_uint32()
         if unicode:

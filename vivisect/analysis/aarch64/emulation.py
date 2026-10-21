@@ -313,7 +313,7 @@ def analyzeTB(emu, op, starteip, amon):
     for ova, nextoff in tbl:
         nexttgt = base + nextoff
         emu.vw.makeNumber(ova, 2)
-        emu.vw.makeCode(nexttgt, arch=ARCH_A64)
+        emu.vw.makeCode(nexttgt, arch=envi.ARCH_A64)
         # check xrefs fist?
         emu.vw.addXref(op.va, nexttgt, REF_CODE)
 

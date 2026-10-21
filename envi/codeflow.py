@@ -96,8 +96,7 @@ class CodeFlowContext(object):
         if codeflow finds a branch to a non-discrete value (eg: to a register)
         we handle it here. By default, we simply track the dynamic branch in a global
         VaSet which is added to every workspace.
-        '''
-        '''
+
         When code-flow analysis runs into an indirect branch it doesn't know
         what to do with, the architecture can take a crack at it.
         '''
@@ -147,7 +146,7 @@ class CodeFlowContext(object):
         startva = va
         self._cf_blocks.append(va)
         cf_eps = collections.OrderedDict()
-        while len(optodo):
+        while optodo:
 
             todo, arch = optodo.pop()
 
@@ -219,6 +218,9 @@ class CodeFlowContext(object):
 
                         bva = self._mem.readMemoryPtr(bva)
 
+                    if bva is None:
+                        continue
+
                     # TODO: Combine these checks with some bithackery to save a function call tree?
                     if not self._mem.probeMemory(bva, 1, e_const.MM_EXEC):
                         continue
@@ -286,13 +288,13 @@ class CodeFlowContext(object):
 
         fallback = collections.OrderedDict()
         items = list(self._cf_blocked.items())
-        for fva, othrarch in items:
+        for fva, (pva, othrarch) in items:
             if fva not in self._cf_blocks and not self._mem.isFunction(fva):
                 self._funcs.pop(fva, None)
                 self._cf_blocked.pop(fva, None)
                 self.addEntryPoint(fva, arch=othrarch)
             else:
-                fallback[fva] = arch
+                fallback[fva] = (pva, othrarch)
         self._cf_blocked = fallback
 
         return list(calls_from.keys())
@@ -353,7 +355,9 @@ class CodeFlowContext(object):
         analyzing the same function twice.  If a function is misidentified
         flushFunction() is used to clear that function from the tracked _funcs
         '''
+        # TODO: can we just pop this instead?
         self._funcs[fva] = None
+        self._fcalls[fva] = None
 
     def addDynamicBranchHandler(self, cb):
         '''

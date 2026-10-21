@@ -267,6 +267,7 @@ class GRADIENT(VStruct):
 class FOCALGRADIENT(GRADIENT):
     def __init__(self,shape=4):
         GRADIENT.__init__(self)
+        # TODO: FIXED8 isn't a thing
         self.FocalPoint = FIXED8()
 
 FILL_SOLID              = 0x00

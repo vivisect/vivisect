@@ -33,7 +33,7 @@ VWE_DELCODEBLOCK    = 16 # FIXME IMPLEMENT
 VWE_ADDXREF         = 17 # (fromva, tova, reftype)
 VWE_DELXREF         = 18 # (fromva, tova, reftype)
 
-VWE_SETNAME         = 19 # (va, name)
+VWE_SETNAME         = 19 # (va, name, basename, index)
 
 VWE_ADDMMAP         = 20 # (va, perms, bytes) #OMG MAYBE BIG
 VWE_DELMMAP         = 21 # FIXME IMPLEMENT

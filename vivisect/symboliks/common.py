@@ -473,7 +473,9 @@ class Call(SymbolikBase):
     '''
     symtype = v_const.SYMT_CALL
 
-    def __init__(self, funcsym, width, argsyms=[]):
+    def __init__(self, funcsym, width, argsyms=None):
+        if argsyms is None:
+            argsyms = []
         SymbolikBase.__init__(self)
         self.width = width
         self.setSymKid(0, funcsym)

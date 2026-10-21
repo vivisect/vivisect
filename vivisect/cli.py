@@ -898,9 +898,10 @@ class VivCli(e_cli.EnviCli, vivisect.VivWorkspace):
 
         sva = self.parseExpression(argv[0])
         ssize = self.parseExpression(argv[1])
+        sfile = self.getFileByVa(sva)
 
         import vivisect.analysis.elf.elfplt as vaee
-        vaee.analyzePLT(self, sva, ssize)
+        vaee.analyzePLT(self, sva, ssize, sfile)
 
     def do_plt_function(self, line):
         '''

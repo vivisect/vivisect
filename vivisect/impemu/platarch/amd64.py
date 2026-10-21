@@ -73,10 +73,8 @@ class Amd64WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_amd64.Amd64Emulat
             # xor register initialization
             return False
 
-        else:
-            # if op mnem is in blacklist, it's not a use either
-            for nonuse_mnem in non_use_mnems:
-                if nonuse_mnem in repr(op):
-                    return False
+        # if op mnem is in blacklist, it's not a use either
+        if op.mnem in non_use_mnems:
+            return False
 
         return True

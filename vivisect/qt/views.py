@@ -213,7 +213,12 @@ class VQVivFunctionsView(VQVivTreeView):
         self.vivDelRow(fva)
 
     def VWE_SETNAME(self, vw, event, einfo):
-        va, name = einfo
+        if len(einfo) == 2:
+            va, name = einfo
+            basename = None
+            baseindx = None
+        else:
+            va, name, basename, baseindx = einfo
         self.vivSetData(va, 0, name)
 
     def vivAddFunction(self, fva):
@@ -382,12 +387,16 @@ class VQVivNamesView(VQVivTreeView):
             self.vivAddName(name)
 
     def VWE_SETNAME(self, vw, event, einfo):
-        va, name = einfo
-        #self.vivSetData(va, 1, name)
         self.vivAddName(einfo)
 
     def vivAddName(self, nifo):
-        va, name = nifo
+        if len(nifo) == 2:
+            va, name = nifo
+            basename = None
+            baseindx = None
+        else:
+            va, name, basename, baseindx = nifo
+
         if self.vivGetData(va, 0) is None:
             self.vivAddRow(va, '0x%.8x' % va, name)
         else:

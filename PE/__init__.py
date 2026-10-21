@@ -874,7 +874,7 @@ class PE(object):
 
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = idir.VirtualAddress
-        x = self.readStructAtRva(irva, 'pe.IMAGE_IMPORT_DIRECTORY', check=True)
+        self.IMAGE_IMPORT_DIRECTORY = x = self.readStructAtRva(irva, 'pe.IMAGE_IMPORT_DIRECTORY', check=True)
         if x is None:
             self.imports = []
             return
@@ -886,7 +886,7 @@ class PE(object):
 
         # RP BUG FIX - invalid IAT entry will point of range of file
         irva = didir.VirtualAddress
-        x = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
+        self.IMAGE_DELAY_IMPORT_DIRECTORY = x = self.readStructAtRva(irva, 'pe.IMAGE_DELAY_IMPORT_DIRECTORY', check=True)
         if x is None:
             self.delayImports = []
             return
@@ -1348,7 +1348,7 @@ class PE(object):
         se = vstruct.getStructure('pe.SignatureEntry')
         se.vsParse(bytez)
 
-        if se.magic != "\x00\x02\x02\x00":
+        if se.magic != b"\x00\x02\x02\x00":
             return None
 
         return se

@@ -16,6 +16,13 @@ import vstruct.defs.constants.elf as vdc_elf
 
 from io import BytesIO
 
+cxxfiltok = False
+try:
+    import cxxfilt
+    cxxfiltok = True
+except Exception:
+    pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -58,20 +65,18 @@ def getMemBaseAndSize(vw, elf, baseaddr=None):
         if mapva < baseaddr:
             baseaddr = mapva & -e_const.PAGE_SIZE   # align to page-size
         endva = mapva + len(mbytes)
-        if endva > topmem:
-            topmem = endva
+        topmem = max(endva, topmem)
 
     size = topmem - baseaddr
 
     if baseaddr == 0 and not elf.isRelocatable():
         baseaddr = vw.config.viv.parsers.elf.baseaddr
-        
+
     if savebase:
         # if we provided a baseaddr, override what the file wants
         baseaddr = savebase
-        
-    return baseaddr, size
 
+    return baseaddr, size
 
 
 def getMemoryMapInfo(elf, fname=None, baseaddr=None):
@@ -116,7 +121,7 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
 
             merged.append( maps[i] )
 
-        for offset,size,align in merged:
+        for offset, size, align in merged:
             bytez = elf.readAtOffset(offset,size)
             memmaps.append((baseaddr + offset, 0x7, fname, bytez, align))
 
@@ -127,22 +132,20 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
     return memmaps
 
 
-
 def makeStringTable(vw, va, maxva):
 
     while va < maxva:
-        if vw.readMemory(va, 1) == "\x00":
+        if vw.readMemory(va, 1) == b"\x00":
             va += 1
             continue
-        else:
-            try:
-                if vw.isLocation(va):
-                    return
-                sloc = vw.makeString(va)
-                va += sloc[v_const.L_SIZE]
-            except Exception as e:
-                logger.warning("makeStringTable\t%r", e)
+        try:
+            if vw.isLocation(va):
                 return
+            sloc = vw.makeString(va)
+            va += sloc[v_const.L_SIZE]
+        except Exception as e:
+            logger.warning("makeStringTable\t%r", e)
+            return
 
 def makeSymbolTable(vw, va, maxva):
     ret = []
@@ -332,29 +335,24 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     fname = vw.addFile(filename.lower(), baseaddr, md5hash)
     vw.setFileMeta(fname, 'sha256', sha256)
     vw.setFileMeta(fname, 'relro', getRelRo(elf))
-    vw.setFileMeta(fname, 'canaries', hasStackCanaries(vw))
     vw.setFileMeta(fname, 'nx', hasNX(elf))
     vw.setFileMeta(fname, 'pie', hasPIE(elf))
     vw.setFileMeta(fname, 'rpath', hasRPATH(elf))
     vw.setFileMeta(fname, 'runpath', hasRUNPATH(elf))
     vw.setFileMeta(fname, 'stripped', isStripped(elf))
 
-    secnames = []
-    for sec in elf.getSections():
-        secnames.append(sec.getName())
-
-    secs = elf.getSections()
 
     for mmapva, mmperms, mfname, mbytez, malign in getMemoryMapInfo(elf, fname, baseaddr):
         logger.debug("vw.addMemoryMap(0x%x, 0x%x, %r, 0x%x, 0x%x)", mmapva, mmperms, mfname, len(mbytez), malign)
         vw.addMemoryMap(mmapva, mmperms, mfname, mbytez, malign)
 
     # First add all section definitions so we have them
+    secs = elf.getSections()
     for sec in secs:
         sname = sec.getName()
         size = sec.sh_size
         if sec.sh_addr == 0:
-            continue # Skip non-memory mapped sections
+            continue  # Skip non-memory mapped sections
 
         sva = sec.sh_addr
         sva += baseoff
@@ -513,6 +511,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     # (ie. not using Section Headers) may not get all the symbols.  Some ELF's simply list too
     # small a space using SYMTAB and SYMTABSZ
     postfix = applyRelocs(elf, vw, addbase, baseoff)
+
+    # imports are built by applyRelocs
+    vw.setFileMeta(fname, 'canaries', hasStackCanaries(vw))
 
     # process Dynamic Symbols - this must happen *after* relocations, which can expand the size of this
     for s in elf.getDynSyms():
@@ -736,16 +737,13 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                                    sva)
 
         # if the symbol has a value of 0, it is likely a relocation point which gets updated
-        sname = demangle(s.name)
         if sva == 0:
             for reloc in relocs:
                 rname = demangle(reloc.name)
-                if rname == sname:
+                if rname == dmglname:
                     sva = reloc.r_offset
                     logger.info('sva==0, using relocation name: %x: %r', sva, rname)
                     break
-
-        dmglname = demangle(sname)
 
         # TODO: make use of _ZTSN (typeinfo) and _ZTVN (vtable) entries if name demangles cleanly
 
@@ -753,8 +751,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         if vw.isValidPointer(sva) and len(dmglname):
             try:
                 if s.getInfoBind() == Elf.STB_WEAK:
-                    logger.info('WEAK symbol: 0x%x: %r', sva, sname)
-                    vw.setVaSetRow('WeakSymbols', (sname, sva))
+                    logger.info('WEAK symbol: 0x%x: %r', sva, dmglname)
+                    vw.setVaSetRow('WeakSymbols', (dmglname, sva))
                     dmglname = '__weak_' + dmglname
 
                 if sva in impvas or sva in expvas:
@@ -765,7 +763,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     vw.makeName(sva, dmglname, filelocal=True, makeuniq=True)
 
             except Exception as e:
-                logger.warning("%s" % str(e))
+                logger.warning(str(e))
 
         if s.getInfoType() == Elf.STT_FUNC:
             new_functions.append(("STT_FUNC", sva))
@@ -779,7 +777,6 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     if elfHdrAtOffset0 and vw.isValidPointer(baseaddr):
         sname = 'elf.Elf%d' % (vw.getPointerSize() * 8)
         vw.makeStructure(baseaddr, sname)
-
 
 
     # mark all the entry points for analysis later
@@ -924,6 +921,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     # otherwise, we have to check the stored value for number or instruction
                     # if it's an instruction, we have to use the immediate value and then
                     # figure out if it's negative based on the instruction!
+                    temp = 0
                     try:
                         temp = vw.readMemoryPtr(rlva)
                         if rtype in Elf.r_armclasses[Elf.R_ARMCLASS_DATA] or rtype in Elf.r_armclasses[Elf.R_ARMCLASS_MISC]:
@@ -1059,6 +1057,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     # otherwise, we have to check the stored value for number or instruction
                     # if it's an instruction, we have to use the immediate value and then
                     # figure out if it's negative based on the instruction!
+                    temp = 0
                     try:
                         temp = vw.readMemoryPtr(rlva)
                         if rtype in Elf.r_armclasses[Elf.R_ARMCLASS_DATA] or rtype in Elf.r_armclasses[Elf.R_ARMCLASS_MISC]:
@@ -1196,9 +1195,7 @@ def isPLT(vw, va):
     seg = vw.getSegment(va)
     if seg is None:
         return False
-    if seg[2].startswith('.plt'):
-        return True
-    return False
+    return seg[2].startswith('.plt')
 
 def normName(name):
     '''
@@ -1215,14 +1212,11 @@ def demangle(name):
     '''
     name = normName(name)
 
-    try:
-        import cxxfilt
-        name = cxxfilt.demangle(name)
-    except ModuleNotFoundError:
-        # NOT USEFUL
-        pass
-    except Exception as e:
-        logger.debug('failed to demangle name (%r): %r', name, e)
+    if cxxfiltok:
+        try:
+            name = cxxfilt.demangle(name)
+        except Exception as e:
+            logger.debug('failed to demangle name (%r): %r', name, e)
 
     return name
 

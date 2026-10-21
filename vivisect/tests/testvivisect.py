@@ -1601,3 +1601,21 @@ class VivisectTest(v_t_utils.VivTest):
             with vw.getAdminRights():
                 vw.writeMemory(base, oldmem)
 
+    def test_makeName_idempotent(self):
+        with self.snap(self.chown_vw) as vw:
+            va = 0x0200728b
+            otherva = 0x020081a9
+
+            name = "stuff hut"
+
+            # some colliding names
+            self.eq('stuff hut_3', vw.makeName(otherva, 'stuff hut_3'))
+            self.eq('stuff hut_4', vw.makeName(otherva + 4, 'stuff hut_4'))
+
+            base = vw.makeName(va, name)
+            self.eq(base, 'stuff hut')
+
+            self.eq('stuff hut_1', vw.makeName(va + 4, name, makeuniq=True))
+
+            self.eq('stuff hut_2', vw.makeName(va + 8, name, makeuniq=True))
+            self.eq('stuff hut_5', vw.makeName(va + 12, name, makeuniq=True))

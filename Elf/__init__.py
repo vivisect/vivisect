@@ -21,7 +21,6 @@ Send bug reports to rakuyo or at1as in the issue tracker
 import io
 import logging
 
-from stat import *
 from Elf.elf_lookup import *
 import vstruct
 import vstruct.defs.elf as vs_elf
@@ -66,7 +65,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self.bits = 64
             self.psize = 8
 
-            self._cls_reloc  = vs_elf.Elf64Reloc
+            self._cls_reloc = vs_elf.Elf64Reloc
             self._cls_reloca = vs_elf.Elf64Reloca
             self._cls_symbol = vs_elf.Elf64Symbol
             self._cls_section = vs_elf.Elf64Section
@@ -489,8 +488,6 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             self._doDynRelocs(jmprel, pltrelsz, cls)
 
     def _doDynRelocs(self, rva, relsz, cls=None):
-        syms = self.getDynSyms()
-
         if cls is None:
             cls = self._cls_reloc
 
@@ -499,13 +496,13 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         count, remain = divmod(relsz, len(reloc))
 
         relocs = reloc * count
-        vstruct.VArray(elems=relocs).vsParse(relbytes,fast=True)
+        vstruct.VArray(elems=relocs).vsParse(relbytes, fast=True)
 
         for reloc in relocs:
             index = reloc.getSymTabIndex()
             sym = self.getDynSymbol(index)
             if sym is not None:
-                reloc.setName( sym.getName() )
+                reloc.setName(sym.getName())
             self.relocs.append((None, reloc))
             self.relocvas.add((None, reloc.r_offset))
 
@@ -585,8 +582,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 base = pgm.p_vaddr
                 continue
 
-            if pgm.p_vaddr < base:
-                base = pgm.p_vaddr
+            base = min(pgm.p_vaddr, base)
 
         if base is None:
             if self.isRelocatable():
@@ -696,6 +692,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         return self.readAtOffset(sec.sh_offset, sec.sh_size)
 
     def getStrtabString(self, offset, section=".strtab"):
+        # TODO: we really need to cache this so we're not constantly re-reading things from disk
         sec = self.getSection(section)
         bytes = self.readAtOffset(sec.sh_offset, sec.sh_size)
         index = bytes.find(b"\x00", offset)

@@ -86,7 +86,7 @@ def analyzeFunction(vw, fva):
 
             if vw.getFunctionMeta(fva, 'PIE_reg') is None:
                 vw.setFunctionMeta(fva, 'PIE_reg', reg)
-                vw.setComment(op.va, 'Position Indendent Code Register Set: %s' % vw.arch._arch_reg.getRegisterName(reg))
+                vw.setComment(op.va, 'Position Indendent Code Register Set: %s' % emu.getRegisterName(reg))
 
             if vw.getMeta('PIE_GOT') is None:
                 vw.setMeta('PIE_GOT', got)
