@@ -233,7 +233,6 @@ arch_names = {
     Elf.EM_PPC64E: 'ppc-embedded',
     Elf.EM_PPC: 'ppc32-server',
     Elf.EM_PPC64: 'ppc-server',
-    Elf.EM_ARM_AARCH64: 'aarch64',
     Elf.EM_ARM_A64: 'a64',
 }
 
