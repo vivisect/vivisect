@@ -1468,9 +1468,9 @@ class IntelSymbolikTranslator(vsym_trans.SymbolikTranslator):
         # base, size = self.segments[SEG_ES]
         di = Var(self.__destp__, self._psize)
         mod = Const(width, self._psize) * (Const(1, self._psize) - Const(2, self._psize) * Var('eflags_df', self._psize))
-        # TODO: Maybe not hardcode eax here (for amd64)?
-        self.effWriteMemory(di, Const(self._psize, self._psize), Var('eax', self._psize))
-        self.effSetVariable(self.__destp__, di + mod)
+RIGHT_AX = (None, None, None, None, 'eax',  None, None, None, 'rax')[self._psize]  # this could be something initialized in __init__ for the Translator, potentially with a different name, and possible with all the major shared variables
+self.effWriteMemory(di, Const(self._psize, self._psize), Var(RIGHT_AX, self._psize))
+self.effSetVariable(self.__destp__, di + mod)
 
     def i_stosd(self, op):
         return self.i_stosb(op, width=4)
