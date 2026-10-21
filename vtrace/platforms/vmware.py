@@ -32,14 +32,14 @@ import vtrace.archs.i386 as vt_i386
 import vtrace.platforms.base as vt_base
 import vtrace.platforms.win32 as vt_win32
 import vtrace.platforms.winkern as vt_winkern
-import vtrace.platforms.gdbstub as vt_gdbstub
+import vtrace.platforms.gdb_client as vt_gdb_client
 
 logger = logging.getLogger(__name__)
 
-class VMWareMixin(vt_gdbstub.GdbStubMixin):
+class VMWareMixin(vt_gdb_client.GdbStubMixin):
 
     def __init__(self, host=None, port=None):
-        vt_gdbstub.GdbStubMixin.__init__(self, host=host, port=port)
+        vt_gdb_client.GdbStubMixin.__init__(self, host=host, port=port)
         self.bigmask = e_bits.u_maxes[ self.getPointerSize() ]
 
 class VMWare32WindowsTrace(

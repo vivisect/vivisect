@@ -146,14 +146,15 @@ class AnalysisMonitor(EmulationMonitor):
 
                     self.operrefs.append((starteip, i, operva, o.tsize, stackoff, discrete))
 
-        if op.iflags & BRANCH_FLAGS:
-            oper = op.opers[0]
-            if oper.isDeref() or oper.isReg():
-                for cb in self._dynamic_branch_handlers:
-                    try:
-                        cb(self, emu, op, starteip)
-                    except Exception as e:
-                        logger.exception('error with dyn branch handler (%s) (%s)', cb, e)
+        if op.iflags & BRANCH_FLAGS:  # handle "branch to inherent register" such as bctr (ppc)
+            for tgt, bflags in op.getBranches():    # ignoring emu, so we correctly identify the dynamic branch
+                if tgt is None:
+                    for cb in self._dynamic_branch_handlers:
+                        logger.debug("dynamic branch cb: %r\top: 0x%x  %r", cb, op.va, op)
+                        try:
+                            cb(self, emu, op, starteip)
+                        except Exception as e:
+                            logger.exception('error with dyn branch handler (%s) (%s)', cb, e)
 
     def apicall(self, emu, op, pc, api, argv):
         rettype, retname, convname, callname, callargs = api
@@ -180,7 +181,7 @@ class AnalysisMonitor(EmulationMonitor):
                 self.vw.setComment(arg, argtype, check=True)
                 if not self.vw.isLocation(arg):
                     if argname == 'funcptr':
-                        logger.debug('discovered new function: 0x%x', arg)
+                        logger.debug('discovered new function (apicall): 0x%x', arg)
                         self.vw.makeFunction(arg)
 
                     # FIXME make an API for this? ( the name parsing )

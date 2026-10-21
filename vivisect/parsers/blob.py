@@ -4,15 +4,6 @@ import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
 
 
-archcalls = {
-    'i386': 'cdecl',
-    'amd64': 'sysvamd64call',
-    'arm': 'armcall',
-    'thumb': 'armcall',
-    'thumb16': 'armcall',
-}
-
-
 def parseFd(vw, fd, filename=None, baseaddr=None):
     fd.seek(0)
     arch = vw.config.viv.parsers.blob.arch
