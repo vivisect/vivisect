@@ -39,29 +39,51 @@ SIG_FORMAT_VERSION = 1
 _PACKAGE_DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
-def getSigDataDir():
+def getSigDataDirs():
     """
-    Determine the VAMP signature data directory using a search order:
-    
-    1. VAMP_SIG_DIR environment variable
-    2. ~/.viv/vamp-sigs/data/ (default user directory)
-    3. vivisect/vamp/data/ (package-level, for bundled MSVC sigs)
-    
-    Returns the first directory that exists, or the package-level directory
-    as a final fallback (even if empty — it may contain bundled sigs).
+    Determine the VAMP signature data directories using a search order.
+
+    VAMP_SIG_DIR may contain a colon-separated list of directories
+    (PATH-style). All existing directories are returned, in order.
+
+    Search order:
+    1. VAMP_SIG_DIR environment variable (colon-separated, each dir must exist)
+    2. ~/.viv/vamp-sigs/data/ (default user directory, if it exists)
+    3. vivisect/vamp/data/ (package-level, always included for bundled MSVC sigs)
+
+    Returns: list of existing directory paths. The package-level directory is
+    always included as the last entry (even if empty — it may contain bundled
+    sigs or just a README).
     """
-    # 1. Environment variable
-    env_dir = os.environ.get('VAMP_SIG_DIR')
-    if env_dir and os.path.isdir(env_dir):
-        return env_dir
+    dirs = []
+
+    # 1. Environment variable (colon-separated, PATH-style)
+    env_val = os.environ.get('VAMP_SIG_DIR')
+    if env_val:
+        for d in env_val.split(':'):
+            d = d.strip()
+            if d and os.path.isdir(d) and d not in dirs:
+                dirs.append(d)
 
     # 2. Default user directory: ~/.viv/vamp-sigs/data/
     home_dir = os.path.expanduser('~/.viv/vamp-sigs/data')
-    if os.path.isdir(home_dir):
-        return home_dir
+    if os.path.isdir(home_dir) and home_dir not in dirs:
+        dirs.append(home_dir)
 
-    # 3. Package-level fallback (bundled MSVC sigs)
-    return _PACKAGE_DATA_DIR
+    # 3. Package-level fallback (bundled MSVC sigs) — always included
+    if _PACKAGE_DATA_DIR not in dirs:
+        dirs.append(_PACKAGE_DATA_DIR)
+
+    return dirs
+
+
+def getSigDataDir():
+    """
+    Backward-compat shim: returns the first data directory.
+    Use getSigDataDirs() for multi-directory support.
+    """
+    dirs = getSigDataDirs()
+    return dirs[0] if dirs else _PACKAGE_DATA_DIR
 
 
 def genSigAndMask(vw, funcva):
@@ -220,48 +242,90 @@ def loadSigSet(filepath):
 
 def loadAllSigSets(data_dir=None):
     """
-    Load all JSON signature files from the data directory.
+    Load all JSON signature files from the data directory(ies).
+
+    If data_dir is None, searches all directories from getSigDataDirs().
+    If data_dir is a string, searches only that directory.
+    If data_dir is a list, searches each directory in the list.
 
     Returns: list of (SignatureTree, metadata_dict, filepath) tuples
     """
     if data_dir is None:
-        data_dir = getSigDataDir()
+        data_dirs = getSigDataDirs()
+    elif isinstance(data_dir, str):
+        data_dirs = [data_dir]
+    elif isinstance(data_dir, list):
+        data_dirs = data_dir
+    else:
+        data_dirs = [data_dir]
 
     results = []
-    if not os.path.isdir(data_dir):
-        return results
-
-    for fname in sorted(os.listdir(data_dir)):
-        if not fname.endswith('.json'):
+    seen_files = set()
+    for data_dir in data_dirs:
+        if not os.path.isdir(data_dir):
             continue
-        if fname == 'index.json':
-            continue
-        filepath = os.path.join(data_dir, fname)
-        try:
-            tree, meta = loadSigSet(filepath)
-            results.append((tree, meta, filepath))
-        except Exception as e:
-            # Skip files that fail to load — don't crash the whole pipeline
-            continue
+        for fname in sorted(os.listdir(data_dir)):
+            if not fname.endswith('.json'):
+                continue
+            if fname == 'index.json':
+                continue
+            filepath = os.path.join(data_dir, fname)
+            # Skip duplicate files (same path seen in an earlier dir)
+            if filepath in seen_files:
+                continue
+            seen_files.add(filepath)
+            try:
+                tree, meta = loadSigSet(filepath)
+                results.append((tree, meta, filepath))
+            except Exception as e:
+                # Skip files that fail to load — don't crash the whole pipeline
+                continue
 
     return results
 
 
 def loadSigSetIndex(data_dir=None):
     """
-    Load the master index file (data/index.json) if it exists.
+    Load the master index file(s) from the data directory(ies).
 
-    Returns: dict with 'sig_sets' list, or empty dict if no index exists.
+    If data_dir is None, merges index.json from all directories in
+    getSigDataDirs(). If data_dir is specified, loads only that directory's
+    index.
+
+    Returns: dict with 'sig_sets' list (merged from all directories),
+    or empty dict if no index exists anywhere.
     """
     if data_dir is None:
-        data_dir = getSigDataDir()
+        data_dirs = getSigDataDirs()
+    elif isinstance(data_dir, str):
+        data_dirs = [data_dir]
+    elif isinstance(data_dir, list):
+        data_dirs = data_dir
+    else:
+        data_dirs = [data_dir]
 
-    index_path = os.path.join(data_dir, 'index.json')
-    if not os.path.isfile(index_path):
-        return {}
+    merged = {'sig_sets': [], 'sig_set_count': 0, 'total_signatures': 0}
+    seen_files = set()
 
-    with open(index_path, 'r') as f:
-        return json.load(f)
+    for data_dir in data_dirs:
+        index_path = os.path.join(data_dir, 'index.json')
+        if not os.path.isfile(index_path):
+            continue
+        try:
+            with open(index_path, 'r') as f:
+                idx = json.load(f)
+        except Exception:
+            continue
+        for entry in idx.get('sig_sets', []):
+            fname = entry.get('file', '')
+            if fname in seen_files:
+                continue
+            seen_files.add(fname)
+            merged['sig_sets'].append(entry)
+        merged['sig_set_count'] = len(merged['sig_sets'])
+        merged['total_signatures'] += idx.get('total_signatures', 0)
+
+    return merged
 
 
 def updateSigSetIndex(data_dir=None):

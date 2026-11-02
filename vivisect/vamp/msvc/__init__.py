@@ -71,23 +71,29 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
 
     def _load_from_json_files(self):
         """Load all MSVC JSON sig files and add them to this tree.
+        Searches all directories from getSigDataDirs(). First match wins
+        per filename (earlier directories take priority).
         Returns True if any sigs were loaded, False otherwise."""
         import json
         loaded_any = False
+        data_dirs = v_vamp.getSigDataDirs()
         for fname in ('msvc_x86.json', 'msvc_x64.json'):
-            filepath = os.path.join(v_vamp.getSigDataDir(), fname)
-            if not os.path.isfile(filepath):
-                continue
-            try:
-                with open(filepath, 'r') as f:
-                    data = json.load(f)
-                for sig in data.get('signatures', []):
-                    bytez = binascii.unhexlify(sig['bytes'])
-                    mask = binascii.unhexlify(sig['mask']) if sig.get('mask') else None
-                    self.addSignature(bytez, masks=mask, val=sig['name'])
-                loaded_any = True
-            except Exception:
-                continue
+            # Search directories in priority order — first match wins
+            for data_dir in data_dirs:
+                filepath = os.path.join(data_dir, fname)
+                if not os.path.isfile(filepath):
+                    continue
+                try:
+                    with open(filepath, 'r') as f:
+                        data = json.load(f)
+                    for sig in data.get('signatures', []):
+                        bytez = binascii.unhexlify(sig['bytes'])
+                        mask = binascii.unhexlify(sig['mask']) if sig.get('mask') else None
+                        self.addSignature(bytez, masks=mask, val=sig['name'])
+                    loaded_any = True
+                except Exception:
+                    continue
+                break  # Found this file, don't search later dirs
         return loaded_any
 
     def _load_fallback_sigs(self):
