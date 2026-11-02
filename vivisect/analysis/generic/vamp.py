@@ -77,7 +77,7 @@ def _get_sigtree(arch, platform):
     sig_meta = {}  # name -> metadata dict
     loaded = 0
 
-    data_dir = os.path.join(os.path.dirname(v_vamp.__file__), 'data')
+    data_dir = v_vamp.getSigDataDir()
     if os.path.isdir(data_dir):
         for fname in sorted(os.listdir(data_dir)):
             if not fname.endswith('.json') or fname == 'index.json':

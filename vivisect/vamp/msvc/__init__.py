@@ -56,8 +56,8 @@ _sigs_fallback = [
     ('6aff5064a100000000508b44240c64892500000000896c240c8d6c240c50c3',None, 'ntdll.eh_prolog'),
 ]
 
-# Path to JSON data files
-_data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+# Path to JSON data files — use configurable data directory
+import vivisect.vamp as v_vamp
 
 
 class VisualStudioVamp(e_bytesig.SignatureTree):
@@ -75,7 +75,7 @@ class VisualStudioVamp(e_bytesig.SignatureTree):
         import json
         loaded_any = False
         for fname in ('msvc_x86.json', 'msvc_x64.json'):
-            filepath = os.path.join(_data_dir, fname)
+            filepath = os.path.join(v_vamp.getSigDataDir(), fname)
             if not os.path.isfile(filepath):
                 continue
             try:

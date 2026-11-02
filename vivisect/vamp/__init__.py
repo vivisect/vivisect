@@ -35,8 +35,33 @@ import vivisect.const as v_const
 # Format version for JSON signature files
 SIG_FORMAT_VERSION = 1
 
-# Directory containing JSON signature databases
-_DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+# Package-level data directory (for bundled MSVC sigs only)
+_PACKAGE_DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
+
+def getSigDataDir():
+    """
+    Determine the VAMP signature data directory using a search order:
+    
+    1. VAMP_SIG_DIR environment variable
+    2. ~/.viv/vamp-sigs/data/ (default user directory)
+    3. vivisect/vamp/data/ (package-level, for bundled MSVC sigs)
+    
+    Returns the first directory that exists, or the package-level directory
+    as a final fallback (even if empty — it may contain bundled sigs).
+    """
+    # 1. Environment variable
+    env_dir = os.environ.get('VAMP_SIG_DIR')
+    if env_dir and os.path.isdir(env_dir):
+        return env_dir
+
+    # 2. Default user directory: ~/.viv/vamp-sigs/data/
+    home_dir = os.path.expanduser('~/.viv/vamp-sigs/data')
+    if os.path.isdir(home_dir):
+        return home_dir
+
+    # 3. Package-level fallback (bundled MSVC sigs)
+    return _PACKAGE_DATA_DIR
 
 
 def genSigAndMask(vw, funcva):
@@ -200,7 +225,7 @@ def loadAllSigSets(data_dir=None):
     Returns: list of (SignatureTree, metadata_dict, filepath) tuples
     """
     if data_dir is None:
-        data_dir = _DATA_DIR
+        data_dir = getSigDataDir()
 
     results = []
     if not os.path.isdir(data_dir):
@@ -229,7 +254,7 @@ def loadSigSetIndex(data_dir=None):
     Returns: dict with 'sig_sets' list, or empty dict if no index exists.
     """
     if data_dir is None:
-        data_dir = _DATA_DIR
+        data_dir = getSigDataDir()
 
     index_path = os.path.join(data_dir, 'index.json')
     if not os.path.isfile(index_path):
@@ -247,7 +272,7 @@ def updateSigSetIndex(data_dir=None):
     Returns: the index dict that was written.
     """
     if data_dir is None:
-        data_dir = _DATA_DIR
+        data_dir = getSigDataDir()
 
     sig_sets = []
     if os.path.isdir(data_dir):
