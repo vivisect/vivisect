@@ -4875,10 +4875,10 @@ class A64InstructionSet(unittest.TestCase):
                 emu.setRegisterByName(tgt, val)
             except e_exc.InvalidRegisterName as e:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if type(tgt) is str and tgt.startswith("PSR_"):
                     # it's a flag
                     emu.setFlag(eval(tgt), val)
-                elif type(tgt) == int:
+                elif type(tgt) is int:
                     # it's an address
                     #For this couldn't we set a temp value equal to endian and write that? Assuming byte order is issue with this one
                     emu.writeMemValue(tgt, val, 1) # limited to 1-byte writes currently
@@ -4900,7 +4900,7 @@ class A64InstructionSet(unittest.TestCase):
                     raise Exception("FAILED(reg): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
             except e_exc.InvalidRegisterName as e:
                 # it's not a register
-                if type(tgt) == str and tgt.startswith("PSR_"):
+                if type(tgt) is str and tgt.startswith("PSR_"):
                     # it's a flag
                     testval = emu.getFlag(eval(tgt))
                     if testval == val:
@@ -4908,7 +4908,7 @@ class A64InstructionSet(unittest.TestCase):
                         success = 0
                     else:
                         raise Exception("FAILED(flag): (%r test#%d)  %s  !=  0x%x (observed: 0x%x) \n\t(setters: %r)\n\t(test: %r)" % (op, tidx, tgt, val, testval, settersrepr, testsrepr))
-                elif type(tgt) == int:
+                elif type(tgt) is int:
                     # it's an address
                     testval = emu.readMemValue(tgt, 1)
                     if testval == val:

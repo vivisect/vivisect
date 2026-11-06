@@ -8,6 +8,7 @@ This will *actually* make pointers!
 import logging
 logger = logging.getLogger(__name__)
 
+# TODO: I believe this has been superseded by pointers.py. We can probably slate this for deletion
 
 def analyze(vw):
 

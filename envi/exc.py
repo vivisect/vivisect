@@ -118,7 +118,7 @@ class ModuleLoadFailure(EnviException):
     def __repr__(self):
         component = self.component
         if self.message:
-            component = "%s: %s" % (component, message)
+            component = "%s: %s" % (component, self.message)
 
         return component
 
@@ -264,3 +264,28 @@ class GeneralProtection(EnviException):
     def __init__(self, op):
         EnviException.__init__(self, 'General Protection exception (0x%.8x: %s)' % (op.va, str(op)))
         self.op = op
+
+class InvalidFile(Exception):
+    def __init__(self, file):
+        self.file = file
+        Exception.__init__(self)
+
+    def __repr__(self):
+        return f"Invalid File: {self.file}"
+
+class ExpressionException(Exception):
+    def __init__(self, pycode, exception):
+        Exception.__init__(self)
+        self.pycode = pycode
+        self.exception = exception
+
+    def __repr__(self):
+        return "%r is not a valid expression in this context (%r)" %  (self.pycode, self.exception)
+
+    def __str__(self):
+        return self.__repr__()
+
+class UnmappedAddress(Exception):
+    def __init__(self, loc):
+        super().__init__(f"Unmapped address in {loc}")
+        self.loc = loc

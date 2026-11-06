@@ -123,7 +123,7 @@ class VStructBuilder:
             return self.buildVStruct(tname)
 
         if tsize not in TSIZES:
-            return v_bytes(size=tsize)
+            return vs_prim.v_bytes(size=tsize)
 
         return prim_types[tsize]()
 

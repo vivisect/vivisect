@@ -3,7 +3,7 @@ import vivisect.base as viv_base
 import envi.qt.memory as e_q_memory
 import vivisect.qt.ctxmenu as v_q_ctxmenu
 
-from PyQt5.QtWidgets import QMenu
+from PyQt6.QtWidgets import QMenu
 
 from vqt.main import *
 from vqt.common import *
@@ -52,7 +52,7 @@ class VQVivTreeView(vq_tree.VQTreeView, viv_base.VivEventCore):
             expr = pnode.rowdata[self._viv_navcol]
             v_q_ctxmenu.buildContextMenu(self.vw, expr=expr, menu=menu)
 
-        menu.exec_(event.globalPos())
+        menu.exec(event.globalPos())
 
     def vivAddRow(self, va, *row):
         node = self.model().append(row)

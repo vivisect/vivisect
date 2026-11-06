@@ -1,12 +1,14 @@
 import visgraph.pathcore as vg_pathcore
+import visgraph.graphcore as v_graphcore
+
+import vivisect.const as v_const
+
 import vivisect.tools.graphutil as viv_graph
+
+import vivisect.symboliks.common as vsym_common
 import vivisect.symboliks.effects as vsym_effects
 import vivisect.symboliks.emulator as vsym_emulator
 
-from vivisect.const import *
-from vivisect.symboliks.common import *
-
-import visgraph.graphcore as v_graphcore
 
 class SymbolikFunctionGraph(v_graphcore.HierGraph):
 
@@ -68,7 +70,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         '''
         self.stackbase = stackbase
         self.stacksize = stacksize
-        spsym = Const(stackbase, self.__width__)
+        spsym = vsym_common.Const(stackbase, self.__width__)
         self.setStackCounter(spsym)
 
     def setStackSize(self, stacksize):
@@ -158,7 +160,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         if apictx is None:
             raise Exception('No API context for function %x' % fva)
 
-        ccname = apictx[API_CCONV]
+        ccname = apictx[v_const.API_CCONV]
         self.cconv = self.getCallingConvention(ccname)
         if self.cconv is None:
             raise Exception('Unknown CallingConvention (%s) for: 0x%.8x' % (ccname, fva))
@@ -166,7 +168,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
         if args is None:
             # Initialize arguments by setting variables based on their arg indexes
             argc = len(self._sym_vw.getFunctionArgs(fva))
-            args = [Var('arg%d' % i, self.__width__) for i in range(argc)]
+            args = [vsym_common.Var('arg%d' % i, self.__width__) for i in range(argc)]
 
         self.cconv.setSymbolikArgs(self, args)
 
@@ -218,7 +220,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
                     argv = (('int', None), ('int', None), ('int', None), ('int', None))
                     apictx = ('int', None, defcall, fname, argv)
 
-                ccname = apictx[API_CCONV]
+                ccname = apictx[v_const.API_CCONV]
 
                 cconv = self.getCallingConvention(ccname)
                 # Either way, if we have a calling convention and a function def
@@ -271,7 +273,7 @@ class SymbolikFunctionEmulator(vsym_emulator.SymbolikEmulator):
                 # TODO: yuck. take ez way out and use width on emu.
                 # should get return value def from cc and set width according
                 # to width of that?
-                fret = Call(funcsym, self.__width__, symargs)
+                fret = vsym_common.Call(funcsym, self.__width__, symargs)
             cconv.setSymbolikReturn(self, fret, argv, precall=True)
 
         return symargs
@@ -464,8 +466,9 @@ class SymbolikAnalysisContext:
         for emu, effs in spaths:
             # we have symboliks up to the codeblock, but not into it.
             seffs = graph.getNodeProps(tocb[0]).get('symbolik_effects')
-            for idx in range(len(seffs)):
-                if tova == seffs[idx].va:
+            idx = 0
+            for idx, seff in enumerate(seffs):
+                if tova == seff.va:
                     break
             effs.extend(emu.applyEffects(seffs[:idx+1]))
             yield emu, effs
@@ -542,7 +545,7 @@ class SymbolikAnalysisContext:
 
             # We have survived constraints!
             node2 = graph.getNode(edge[2])
-            neweffs = node2[1].get('symbolik_effects',())
+            neweffs = node2[1].get('symbolik_effects', ())
             neweffs = emu.applyEffects(neweffs)
             patheffs.extend(neweffs)
             return True
@@ -563,7 +566,7 @@ class SymbolikAnalysisContext:
 
         if args is None:
             argdef = self.vw.getFunctionArgs(fva)
-            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
+            args = [vsym_common.Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
         if paths is None:
             paths = viv_graph.getCodePaths(graph, maxpath=maxpath)
@@ -631,7 +634,7 @@ class SymbolikAnalysisContext:
         '''
         if args is None:
             argdef = self.vw.getFunctionArgs( fva )
-            args = [Arg(i, width=self.vw.psize) for i in range(len(argdef))]
+            args = [vsym_common.Arg(i, width=self.vw.psize) for i in range(len(argdef))]
 
         for emu, effects in self.getSymbolikPaths(fva, args=args):
 

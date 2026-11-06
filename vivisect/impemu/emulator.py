@@ -5,14 +5,12 @@ import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.const as e_const
-import envi.common as e_common
 import envi.memory as e_memory
 
 import visgraph.pathcore as vg_path
 
 import vivisect.exc as v_exc
-
-from vivisect.const import *
+import vivisect.const as v_const
 
 import logging
 logger = logging.getLogger(__name__)
@@ -351,7 +349,7 @@ class WorkspaceEmulator:
         paths = set()
         # if we've already hunted this location down, know it's a table, and we've resolved it
         # step carefully so we don't conflate tables together
-        xrefs = vw.getXrefsFrom(op.va, rtype=REF_CODE)
+        xrefs = vw.getXrefsFrom(op.va, rtype=v_const.REF_CODE)
         for bva, bflags in op.getBranches(emu=None):
             if bflags & envi.BR_TABLE and vw.getLocation(op.va) and len(xrefs):
                 for xrfrom, xrto, xrtype, xrflags in xrefs:
@@ -572,21 +570,21 @@ class WorkspaceEmulator:
 
             taint = self.getVivTaint(va)
             if taint:
-                tva,ttype,tinfo = taint
+                tva, ttype, tinfo = taint
 
                 if ttype == 'import':
-                    lva,lsize,ltype,linfo = tinfo
-                    ret = vw.getImpApi( linfo )
+                    lva, lsize, ltype, linfo = tinfo
+                    ret = vw.getImpApi(linfo)
 
                 elif ttype == 'dynfunc':
-                    libname,funcname = tinfo
-                    ret = vw.getImpApi('%s.%s' % (libname,funcname))
+                    libname, funcname = tinfo
+                    ret = vw.getImpApi('%s.%s' % (libname, funcname))
 
                 if ret:
                     return ret
 
         defcall = vw.getMeta("DefaultCall")
-        return ('int', None, defcall, 'UnknownApi', () )
+        return ('int', None, defcall, 'UnknownApi', ())
 
     def nextVivTaint(self):
         # One page into the new taint range
@@ -598,7 +596,7 @@ class WorkspaceEmulator:
         the created taint.
         '''
         va = self.nextVivTaint()
-        self.taints[ va & self.taintmask ] = (va,typename,taint)
+        self.taints[va & self.taintmask] = (va, typename, taint)
         return va
 
     def getVivTaint(self, va):
@@ -606,7 +604,7 @@ class WorkspaceEmulator:
         Retrieve a previously registered taint ( this will automagically
         mask values down and allow you to retrieve "near taint" values.)
         '''
-        return self.taints.get( va & self.taintmask )
+        return self.taints.get(va & self.taintmask)
 
     def reprVivTaint(self, taint):
         '''
@@ -704,7 +702,7 @@ class WorkspaceEmulator:
 
     def writeMemory(self, va, bytes):
         """
-        Try to write the bytes to the memory object, otherwise, dont'
+        Try to write the bytes to the memory object, otherwise, don't
         complain...
         """
         if self.logwrite:
@@ -736,7 +734,7 @@ class WorkspaceEmulator:
         loc = self.vw.getLocation(va)
         if loc is not None:
             lva, lsize, ltype, ltinfo = loc
-            if ltype == LOC_IMPORT and lsize == size:  # They just read an import.
+            if ltype == v_const.LOC_IMPORT and lsize == size:  # They just read an import.
                 ret = self.setVivTaint('import', loc)
                 return e_bits.buildbytes(ret, lsize)
 

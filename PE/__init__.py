@@ -250,7 +250,7 @@ class VS_VERSIONINFO:
         offset += 6
         offset, vinfosig = self._eatStringAndAlign(bytes, offset)
         if vinfosig != 'VS_VERSION_INFO':
-            Exception('Invalid VS_VERSION_INFO signature!: %s' % repr(vinfosig))
+            raise Exception('Invalid VS_VERSION_INFO signature!: %s' % repr(vinfosig))
 
         if valsize and valsize >= len(vs_pe.VS_FIXEDFILEINFO()):
             ffinfo = vs_pe.VS_FIXEDFILEINFO()
@@ -308,7 +308,6 @@ class VS_VERSIONINFO:
         return xoffset
 
     def _varTable(self, bytes, offset, size):
-        xmax = offset + size
         xoffset = offset
         mysize, valsize, valtype = struct.unpack('<HHH', bytes[xoffset:xoffset+6])
         xoffset += 6
@@ -636,7 +635,6 @@ class PE(object):
         '''
         ddir = self.getDataDirectory(IMAGE_DIRECTORY_ENTRY_DEBUG)
         drva = ddir.VirtualAddress
-        dsize = ddir.Size
         d = self.readStructAtRva(drva, 'pe.IMAGE_DEBUG_DIRECTORY', check=True)
         if d is None:
             return None
@@ -1229,7 +1227,7 @@ class PE(object):
         if e is None:
             return None
 
-        return self.readAtRva(e.Name, 128).split('\x00')[0]
+        return self.readAtRva(e.Name, 128).split(b'\x00')[0]
 
     def parseExports(self):
 
@@ -1286,12 +1284,12 @@ class PE(object):
 
                 ordl = ordlist[i]
                 nameoff = self.rvaToOffset(namelist[i])
-                if ordl > len(funclist):
+                if ordl >= len(funclist):
                     self.IMAGE_EXPORT_DIRECTORY = None
                     return
 
                 funcoff = funclist[ordl]
-                ffoff = self.rvaToOffset(funcoff)
+                #ffoff = self.rvaToOffset(funcoff)
 
                 name = None
 
@@ -1372,7 +1370,8 @@ class PE(object):
         substrate = sig.pkcs7
         contentInfo, rest = pyasn1.codec.der.decoder.decode(substrate, asn1Spec=pyasn1_modules.rfc2315.ContentInfo())
 
-        if rest: substrate = substrate[:-len(rest)]
+        if rest:
+            substrate = substrate[:-len(rest)]
 
         contentType = contentInfo.getComponentByName('contentType')
 

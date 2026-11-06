@@ -22,7 +22,7 @@ def analyzeFunction(vw, funcva):
     brefs = []
     size = 0
     opcount = 0
-    while len(todo):
+    while todo:
 
         start = todo.pop()
 
@@ -131,7 +131,7 @@ def analyzeFunction(vw, funcva):
     brefs.sort()
     brefs.reverse()
     bcnt = 0
-    while len(brefs):
+    while brefs:
         bva, isbegin = brefs.pop()
         if not isbegin:
             continue

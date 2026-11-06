@@ -3,7 +3,6 @@ Code for hooking import address tables by making them invalid
 pointers and catching the exceptions...
 '''
 import PE
-import vtrace
 import vtrace.watchpoints as vt_watchpoints
 
 class IatHook(vt_watchpoints.Watchpoint):
@@ -74,13 +73,13 @@ def hookIat(trace, libname, implib='*', impfunc='*', fast=False):
         if ilib != implib and implib != '*':
             continue
 
-        if ifunc.lower() != impfunc and impfunc!='*':
+        if ifunc.lower() != impfunc and impfunc != '*':
             continue
 
         iatname = '%s.%s.%s' % (libname, ilib, ifunc)
         wp = IatHook(baseaddr + rva, iatname)
         wp.fastbreak = fast
         bpid = trace.addBreakpoint(wp)
-        ret.append( (iatname, bpid) )
+        ret.append((iatname, bpid))
 
     return ret

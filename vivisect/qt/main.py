@@ -27,8 +27,8 @@ import vivisect.qt.symboliks as viv_q_symboliks
 import vivisect.remote.share as viv_share
 import vivisect.analysis.generic.symswitchcase as symswitch
 
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QInputDialog
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QInputDialog
 
 from vqt.common import *
 from vivisect.const import *
@@ -36,8 +36,8 @@ from envi.threads import firethread
 from vqt.main import getOpenFileName, getSaveFileName
 from vqt.saveable import compat_isNone
 
-dock_top = QtCore.Qt.TopDockWidgetArea
-dock_right = QtCore.Qt.RightDockWidgetArea
+dock_top = QtCore.Qt.DockWidgetArea.TopDockWidgetArea
+dock_right = QtCore.Qt.DockWidgetArea.RightDockWidgetArea
 
 
 class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
@@ -106,7 +106,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
         fname = os.path.basename(self.vw.getMeta('StorageName', 'Unknown'))
         self.setWindowTitle('Vivisect: %s' % fname)
-        self.windowState = QtCore.Qt.WindowNoState
+        self.windowState = QtCore.Qt.WindowState.WindowNoState
 
         self.addHotKey('ctrl+o', 'file:open')
         self.addHotKeyTarget('file:open', self._menuFileOpen)
@@ -610,7 +610,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
     def _menuViewLayoutsLoadBase(self):
         dirname = os.path.dirname(viv_q_views.__file__) 
         fname = os.sep.join([dirname, "default.lyt"])
-        settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
+        settings = QtCore.QSettings(fname, QtCore.QSettings.Format.IniFormat)
         self.vqRestoreGuiSettings(settings)
 
     def _menuViewLayoutsLoad(self):
@@ -618,7 +618,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if fname is None:
             return
 
-        settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
+        settings = QtCore.QSettings(fname, QtCore.QSettings.Format.IniFormat)
         self.vqRestoreGuiSettings(settings)
 
     def _menuViewLayoutsSave(self):
@@ -626,7 +626,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         if fname is None or not len(fname):
             return
 
-        settings = QtCore.QSettings(fname, QtCore.QSettings.IniFormat)
+        settings = QtCore.QSettings(fname, QtCore.QSettings.Format.IniFormat)
         self.vqSaveGuiSettings(settings)
 
     def _menuViewLayoutsSetDefault(self):
@@ -670,7 +670,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
         viv_q_remote.openServerAndWorkspace(self.vw, parent=self)
 
     def _menuToolsPython(self):
-        self.vqBuildDockWidget('VQPythonView', area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VQPythonView', area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     def _menuViewStrings(self):
         self.newStringsView()
@@ -702,39 +702,39 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     @idlethread
     def newPythonView(self, floating=False):
-        self.vqBuildDockWidget('VQPythonView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VQPythonView', floating=floating, area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     @idlethread
     def newStringsView(self, floating=False):
-        self.vqBuildDockWidget('VQVivStringsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VQVivStringsView', floating=floating, area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     @idlethread
     def newStructsView(self, floating=False):
-        self.vqBuildDockWidget('VQVivStructsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VQVivStructsView', floating=floating, area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     @idlethread
     def newSegmentsView(self, floating=False):
-        self.vqBuildDockWidget('VQVivSegmentsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VQVivSegmentsView', floating=floating, area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     @idlethread
     def newImportsView(self, floating=False):
-        self.vqBuildDockWidget('VQVivImportsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VQVivImportsView', floating=floating, area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     @idlethread
     def newExportsView(self, floating=False):
-        self.vqBuildDockWidget('VQVivExportsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VQVivExportsView', floating=floating, area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     @idlethread
     def newFunctionsView(self, floating=False):
-        self.vqBuildDockWidget('VQVivFunctionsView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VQVivFunctionsView', floating=floating, area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     @idlethread
     def newNamesView(self, floating=False):
-        self.vqBuildDockWidget('VQVivNamesView', floating=floating, area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VQVivNamesView', floating=floating, area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     @idlethread
     def newMemoryView(self, name='viv', floating=False, expr=None):
-        dock, widget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
+        dock, widget = self.vqBuildDockWidget('VQVivMemoryView', floating=floating, area=QtCore.Qt.DockWidgetArea.TopDockWidgetArea)
         widget.setMemWindowName(name)
         if expr is None:
             expr = self._getFirstFileBase()
@@ -762,7 +762,7 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     @idlethread
     def newFuncGraphView(self, name=None, floating=False, expr=None):
-        dock, widget = self.vqBuildDockWidget('VQVivFuncgraphView', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
+        dock, widget = self.vqBuildDockWidget('VQVivFuncgraphView', floating=floating, area=QtCore.Qt.DockWidgetArea.TopDockWidgetArea)
         if name is not None:
             widget.setMemWindowName(name)
         if expr is not None:
@@ -770,24 +770,24 @@ class VQVivMainWindow(viv_base.VivEventDist, vq_app.VQMainCmdWindow):
 
     @idlethread
     def newSymbolikFuncView(self, floating=False):
-        self.vqBuildDockWidget('VivSymbolikFuncPane', floating=floating, area=QtCore.Qt.TopDockWidgetArea)
+        self.vqBuildDockWidget('VivSymbolikFuncPane', floating=floating, area=QtCore.Qt.DockWidgetArea.TopDockWidgetArea)
 
 
     def _menuWindowFullscreen(self):
-        if not self.windowState & QtCore.Qt.WindowFullScreen:
-            self.windowState = QtCore.Qt.WindowFullScreen
+        if not self.windowState & QtCore.Qt.WindowState.WindowFullScreen:
+            self.windowState = QtCore.Qt.WindowState.WindowFullScreen
             self.showFullScreen()
         else:
             self._menuWindowNormal()
 
     def _menuWindowMaximize(self):
-        if not self.windowState & QtCore.Qt.WindowMaximized:
-            self.windowState = QtCore.Qt.WindowMaximized
+        if not self.windowState & QtCore.Qt.WindowState.WindowMaximized:
+            self.windowState = QtCore.Qt.WindowState.WindowMaximized
             self.showMaximized()
 
     def _menuWindowNormal(self):
-        if not self.windowState & QtCore.Qt.WindowNoState:
-            self.windowState = QtCore.Qt.WindowNoState
+        if not self.windowState & QtCore.Qt.WindowState.WindowNoState:
+            self.windowState = QtCore.Qt.WindowState.WindowNoState
             self.showNormal()
 
     @vq_main.idlethread

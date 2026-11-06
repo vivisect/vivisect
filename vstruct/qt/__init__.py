@@ -3,7 +3,7 @@ Some utils for QT code which uses vstruct...
 '''
 import vqt.tree as vq_tree
 
-from PyQt5.QtWidgets import *
+from PyQt6.QtWidgets import *
 
 from vqt.main import idlethreadsync
 
@@ -85,7 +85,7 @@ class VQStructSelectDialog(QDialog):
 @idlethreadsync
 def selectStructure(vsbuilder, parent=None):
     d = VQStructSelectDialog(vsbuilder, parent=parent)
-    r = d.exec_()
+    r = d.exec()
     return d.structname
 
 class VQStructNamespacesView(vq_tree.VQTreeView):
@@ -171,6 +171,6 @@ class VQStructNamespaceDialog(QDialog):
 @idlethreadsync
 def selectStructNamespace(parent=None):
     d = VQStructNamespaceDialog(parent=parent)
-    r = d.exec_()
+    r = d.exec()
     return d.modinfo
 

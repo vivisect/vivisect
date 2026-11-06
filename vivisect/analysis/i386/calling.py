@@ -8,7 +8,7 @@ import collections
 import vivisect.impemu.monitor as viv_imp_monitor
 
 import vivisect.exc as v_exc
-from vivisect.const import *
+import vivisect.const as v_const
 
 import vivisect.analysis.generic.switchcase as vag_switch
 
@@ -67,7 +67,6 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
 
             self.operrefs.append((starteip, i, operva, o.tsize, stackoff, discrete))
 
-
         # Do return related stuff before we execute the opcode
         if op.isReturn():
             self.endstack = emu.getStackCounter()
@@ -77,7 +76,7 @@ class AnalysisMonitor(viv_imp_monitor.AnalysisMonitor):
 
 def buildFunctionApi(vw, fva, emu, emumon, stkstart):
     # More than 40 args?  no way...
-    argc = stackargs = (int(emumon.stackmax) >> 2)
+    argc = stackargs = int(emumon.stackmax) >> 2
     if argc > 40:
         emumon.logAnomaly(emu, fva, 'Crazy Stack Offset Touched: 0x%.8x' % emumon.stackmax)
         argc = 0
@@ -88,7 +87,7 @@ def buildFunctionApi(vw, fva, emu, emumon, stkstart):
         callconv = "stdcall"
         argc = emumon.retbytes >> 2
 
-    stackidx = 0  # arg index of first *stack* arg
+    #stackidx = 0  # arg index of first *stack* arg
 
     # Log registers we used but didn't init
     # but don't take into account ebp and esp
@@ -154,6 +153,6 @@ def analyzeFunction(vw, fva):
 
     # Register our stack args as function locals
     for i in range(stcount):
-        vw.setFunctionLocal(fva, baseoff + ( i * 4 ), LSYM_FARG, i+stackidx)
+        vw.setFunctionLocal(fva, baseoff + ( i * 4 ), v_const.LSYM_FARG, i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)

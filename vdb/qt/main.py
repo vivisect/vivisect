@@ -2,8 +2,8 @@ import cmd
 import logging
 import collections
 
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import *
 
 import envi.cli
 import vtrace.qt
@@ -196,7 +196,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         vq_app.VQMainCmdWindow.__init__(self, 'Vdb', db)
 
         tbar = VdbToolBar(db, self._db_t, parent=self)
-        self.addToolBar(QtCore.Qt.TopToolBarArea, tbar)
+        self.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, tbar)
 
         self.vqAddMenuField('&File.&Open', self.menuFileOpen)
         self.vqAddMenuField('&File.&Quit', self.menuFileQuit)
@@ -359,11 +359,11 @@ class VdbWindow(vq_app.VQMainCmdWindow):
 
     @vq_hotkeys.hotkey('vdb:view:threads')
     def menuViewThreads(self):
-        self.vqBuildDockWidget('VdbThreadsWindow', area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VdbThreadsWindow', area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     @vq_hotkeys.hotkey('vdb:view:registers')
     def menuViewRegisters(self):
-        self.vqBuildDockWidget('VdbRegistersWindow', area=QtCore.Qt.RightDockWidgetArea)
+        self.vqBuildDockWidget('VdbRegistersWindow', area=QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
 
     def menuViewLayoutsLoad(self):
         fname = getOpenFileName(self, 'Load Layout')
@@ -372,7 +372,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
 
         self.vqClearDockWidgets()
 
-        settings = QtCore.QSettings(str(fname), QtCore.QSettings.IniFormat)
+        settings = QtCore.QSettings(str(fname), QtCore.QSettings.Format.IniFormat)
         self.vqRestoreGuiSettings(settings)
 
     def menuViewLayoutsSave(self):
@@ -380,7 +380,7 @@ class VdbWindow(vq_app.VQMainCmdWindow):
         if fname is None:
             return
 
-        settings = QtCore.QSettings(str(fname), QtCore.QSettings.IniFormat)
+        settings = QtCore.QSettings(str(fname), QtCore.QSettings.Format.IniFormat)
         self.vqSaveGuiSettings(settings)
 
     def menuViewLayoutsClear(self):

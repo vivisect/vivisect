@@ -7,6 +7,7 @@ import PE.carve as pe_carve
 import vstruct
 import vivisect
 import vivisect.exc as v_exc
+import vivisect.const as v_const
 import vivisect.parsers as v_parsers
 # Steal symbol parsing from vtrace
 import vtrace  # needed only for setting the logging level
@@ -16,8 +17,6 @@ import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.const as e_const
 import envi.symstore.symcache as e_symcache
-
-from vivisect.const import *
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +76,8 @@ archcalls = {
 
 # map PE relocation types to vivisect types where possible
 relmap = {
-    PE.IMAGE_REL_BASED_HIGHLOW: (vivisect.RTYPE_BASEOFF, 4),
-    PE.IMAGE_REL_BASED_DIR64: (vivisect.RTYPE_BASEOFF, 8),
+    PE.IMAGE_REL_BASED_HIGHLOW: (v_const.RTYPE_BASEOFF, 4),
+    PE.IMAGE_REL_BASED_DIR64: (v_const.RTYPE_BASEOFF, 8),
 }
 
 
@@ -175,12 +174,12 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # Setup some va sets used by windows analysis modules
     # these will already exist for Multi-file workspaces
     vaSetNames = vw.getVaSetNames()
-    if not 'Library Loads' in vaSetNames:
-        vw.addVaSet("Library Loads", (("Address", VASET_ADDRESS), ("Library", VASET_STRING)))
-    if not 'pe:ordinals' in vaSetNames:
-        vw.addVaSet('pe:ordinals', (('Address', VASET_ADDRESS), ('Ordinal', VASET_INTEGER)))
-    if not 'DelayImports' in vaSetNames:
-        vw.addVaSet('DelayImports', (('Address', VASET_ADDRESS), ('DelayImport', VASET_STRING)))
+    if 'Library Loads' not in vaSetNames:
+        vw.addVaSet("Library Loads", (("Address", v_const.VASET_ADDRESS), ("Library", v_const.VASET_STRING)))
+    if 'pe:ordinals' not in vaSetNames:
+        vw.addVaSet('pe:ordinals', (('Address', v_const.VASET_ADDRESS), ('Ordinal', v_const.VASET_INTEGER)))
+    if 'DelayImports' not in vaSetNames:
+        vw.addVaSet('DelayImports', (('Address', v_const.VASET_ADDRESS), ('DelayImport', v_const.VASET_STRING)))
 
     # SizeOfHeaders spoofable...
     curr_offset = pe.IMAGE_DOS_HEADER.e_lfanew + len(pe.IMAGE_NT_HEADERS)
@@ -203,7 +202,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     secalign = pe.IMAGE_NT_HEADERS.OptionalHeader.SectionAlignment
     filealign = pe.IMAGE_NT_HEADERS.OptionalHeader.FileAlignment
     subsys_majver = pe.IMAGE_NT_HEADERS.OptionalHeader.MajorSubsystemVersion
-    subsys_minver = pe.IMAGE_NT_HEADERS.OptionalHeader.MinorSubsystemVersion
+    #subsys_minver = pe.IMAGE_NT_HEADERS.OptionalHeader.MinorSubsystemVersion
 
     if secalign == 0:
         raise v_exc.CorruptPeFile("section alignment is zero")
@@ -221,7 +220,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         raise Exception("We only support PE exe's")
 
     if not vw.isLocation(baseaddr + magicaddr):
-        padloc = vw.makePad(baseaddr + magicaddr, 4)
+        vw.makePad(baseaddr + magicaddr, 4)
 
     ifhdr_va = baseaddr + magicaddr + 4
     ifstruct = vw.makeStructure(ifhdr_va, "pe.IMAGE_FILE_HEADER")
@@ -264,7 +263,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         if chars & PE.IMAGE_SCN_MEM_READ:
             mapflags |= e_const.MM_READ
 
-            isrsrc = (sec.VirtualAddress == ddir.VirtualAddress)
+            isrsrc = sec.VirtualAddress == ddir.VirtualAddress
             if isrsrc and not loadrsrc:
                 continue
 
@@ -364,7 +363,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         except Exception as e:
             logger.warning("Error Loading Section (%s size:%d rva:%.8x offset: %d): %s", secname, secfsize, secrva, secoff, e)
 
-    vw.addExport(entry, EXP_FUNCTION, '__entry', fname)
+    vw.addExport(entry, v_const.EXP_FUNCTION, '__entry', fname)
     vw.addEntryPoint(entry)
 
     # store the actual reloc section virtual address
@@ -435,7 +434,6 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
     # vw.addNoReturnApiRegex("^msvcr.*\._c_exit$")
     vw.addNoReturnApi("ntoskrnl.KeBugCheckEx")
 
-
     exports = pe.getExports()
     for rva, ord, name in exports:
         eva = rva + baseaddr
@@ -446,7 +444,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
         try:
             vw.setVaSetRow('pe:ordinals', (eva, ord))
-            vw.addExport(eva, EXP_UNTYPED, name, fname)
+            vw.addExport(eva, v_const.EXP_UNTYPED, name, fname)
             if vw.probeMemory(eva, 1, e_const.MM_EXEC):
                 vw.addEntryPoint(eva)
         except Exception as e:
@@ -481,8 +479,8 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
                         sehva = baseaddr + h
                         vw.addEntryPoint(sehva)
                         #vw.hintFunction(sehva, meta={'SafeSEH':True})
-                except:
-                    vw.vprint("SEHandlerTable parse error")
+                except Exception as exc:
+                    vw.vprint("SEHandlerTable parse error: %s" % str(exc))
 
     # Last but not least, see if we have symbol support and use it if we do
     if vt_win32.dbghelp and filename:
@@ -576,14 +574,14 @@ def getMemBaseAndSize(vw, pe, baseaddr=None):
         baseaddr = pe.IMAGE_NT_HEADERS.OptionalHeader.ImageBase
 
     memmaps = [(baseaddr, e_const.MM_READ, '', 0x1000)]
-    codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
+    #codesize = pe.IMAGE_NT_HEADERS.OptionalHeader.SizeOfCode
     for idx, sec in enumerate(pe.sections):
         secrva = sec.VirtualAddress
-        secvsize = sec.VirtualSize
-        secfsize = sec.SizeOfRawData
+        #secvsize = sec.VirtualSize
+        #secfsize = sec.SizeOfRawData
         secbase = secrva + baseaddr
-        secname = sec.Name.strip("\x00")
-        secrvamax = secrva + secvsize
+        #secname = sec.Name.strip("\x00")
+        #secrvamax = secrva + secvsize
 
         if sec.VirtualSize == 0 or sec.SizeOfRawData == 0:
             if idx+1 >= len(pe.sections):

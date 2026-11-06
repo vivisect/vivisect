@@ -50,7 +50,7 @@ To retrieve all of the cross references in the workspace::
 
     vw.getXrefs()
 
-Which also takes an optional type paramter if you're only interested in certain types of cross references::
+Which also takes an optional type parameter if you're only interested in certain types of cross references::
 
     import vivisect.const as v_const
     vw.getXrefs(rtype=v_const.REF_CODE)

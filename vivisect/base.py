@@ -1,5 +1,4 @@
 import queue
-import base64
 import logging
 import traceback
 import threading
@@ -15,16 +14,14 @@ import vstruct.cparse as vs_cparse
 import vstruct.builder as vs_builder
 import vstruct.constants as vs_const
 
-import vivisect.const as viv_const
+import vivisect.exc as v_exc
+import vivisect.const as v_const
 import vivisect.impapi as viv_impapi
 import vivisect.parsers as viv_parsers
 import vivisect.analysis as viv_analysis
 import vivisect.codegraph as viv_codegraph
 
 from envi.threads import firethread
-
-from vivisect.exc import *
-from vivisect.const import *
 
 logger = logging.getLogger(__name__)
 
@@ -39,30 +36,30 @@ class VivEventCore(object):
 
     def __init__(self, vw=None, **kwargs):
         self._ve_vw = vw
-        self._ve_ehand = [None for x in range(VWE_MAX)]
-        self._ve_thand = [None for x in range(VTE_MAX)]
+        self._ve_ehand = [None for x in range(v_const.VWE_MAX)]
+        self._ve_thand = [None for x in range(v_const.VTE_MAX)]
         self._ve_lock = threading.Lock()
 
         # Find and put handler functions into the list
         for name in dir(self):
             if name.startswith('VWE_'):
-                idx = getattr(viv_const, name, None)
+                idx = getattr(v_const, name, None)
                 self._ve_ehand[idx] = getattr(self, name)
             if name.startswith('VTE_'):
-                idx = getattr(viv_const, name, None)
+                idx = getattr(v_const, name, None)
                 self._ve_thand[idx] = getattr(self, name)
 
     def _ve_fireEvent(self, event, edata):
         hlist = self._ve_ehand
-        if event & VTE_MASK:
-            event ^= VTE_MASK
+        if event & v_const.VTE_MASK:
+            event ^= v_const.VTE_MASK
             hlist = self._ve_thand
 
         h = hlist[event]
         if h is not None:
             try:
                 h(self._ve_vw, event, edata)
-            except Exception as e:
+            except Exception:
                 logger.error(traceback.format_exc())
 
     @firethread
@@ -71,25 +68,17 @@ class VivEventCore(object):
         try:
             etup = self._ve_vw.waitForEvent(chanid)
             while etup is not None:
-                self._ve_lock.acquire()
-                self._ve_lock.release()
-
-                self._ve_fireEvent(*etup)
+                with self._ve_lock:
+                    self._ve_fireEvent(*etup)
 
                 etup = self._ve_vw.waitForEvent(chanid)
 
         finally:
             self._ve_vw.deleteEventChannel(chanid)
 
-    def _ve_freezeEvents(self):
-        self._ve_lock.acquire()
-
-    def _ve_thawEvents(self):
-        self._ve_lock.release()
-
 vaset_xlate = {
-    int:VASET_ADDRESS,
-    str:VASET_STRING,
+    int: v_const.VASET_ADDRESS,
+    str: v_const.VASET_STRING,
 }
 
 class VivEventDist(VivEventCore):
@@ -97,13 +86,13 @@ class VivEventDist(VivEventCore):
     Similar to an event core, but does optimized distribution
     to a set of sub eventcore objects (think GUI windows...)
     '''
-    def __init__(self, vw=None, **kwargs):
+    def __init__(self, vw, **kwargs):
         if vw is None:
             raise Exception("VivEventDist requires a vw argument")
 
         VivEventCore.__init__(self, vw)
-        self._ve_subs = [ [] for x in range(VWE_MAX) ]
-        self._ve_tsubs = [ [] for x in range(VTE_MAX) ]
+        self._ve_subs = [[] for x in range(v_const.VWE_MAX)]
+        self._ve_tsubs = [[] for x in range(v_const.VTE_MAX)]
 
         self.addEventCore(self)
 
@@ -111,23 +100,23 @@ class VivEventDist(VivEventCore):
         self._ve_fireListener()
 
     def addEventCore(self, core):
-        for i in range(VWE_MAX):
+        for i in range(v_const.VWE_MAX):
             h = core._ve_ehand[i]
             if h is not None:
                 self._ve_subs[i].append(h)
 
-        for i in range(VTE_MAX):
+        for i in range(v_const.VTE_MAX):
             h = core._ve_thand[i]
             if h is not None:
                 self._ve_tsubs[i].append(h)
 
     def delEventCore(self, core):
-        for i in range(VWE_MAX):
+        for i in range(v_const.VWE_MAX):
             h = core._ve_ehand[i]
             if h is not None:
                 self._ve_subs[i].remove(h)
 
-        for i in range(VTE_MAX):
+        for i in range(v_const.VTE_MAX):
             h = core._ve_thand[i]
             if h is not None:
                 self._ve_tsubs[i].remove(h)
@@ -137,8 +126,8 @@ class VivEventDist(VivEventCore):
         We don't have events of our own, we just hand them down.
         '''
         subs = self._ve_subs
-        if event & VTE_MASK:
-            event ^= VTE_MASK
+        if event & v_const.VTE_MASK:
+            event ^= v_const.VTE_MASK
             subs = self._ve_tsubs
 
         hlist = subs[event]
@@ -213,7 +202,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.loclist.append(loc)
 
         # A few special handling cases...
-        if ltype == LOC_IMPORT:
+        if ltype == v_const.LOC_IMPORT:
             # Check if the import is registered in NoReturnApis
             if self.getMeta('NoReturnApis', {}).get(linfo.lower()):
                 self.cfctx.addNoReturnAddr(lva)
@@ -244,7 +233,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
         # RTYPE_BASERELOC assumes the memory is already accurate (eg. PE's unless rebased)
 
-        if rtype in REBASE_TYPES:
+        if rtype in v_const.REBASE_TYPES:
             # add imgbase and offset to pointer in memory
             # 'data' arg must be 'offset' number
             ptr = imgbase + data
@@ -256,14 +245,14 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
                 with self.getAdminRights():
                     self.writeMemValue(rva, ptr, size)
 
-        if rtype == RTYPE_BASEPTR:
+        if rtype == v_const.RTYPE_BASEPTR:
             # make it like a pointer (but one that could move with each load)
             #   self.addXref(va, tova, REF_PTR)
             #   ploc = self.addLocation(va, psize, LOC_POINTER)
             #   don't follow.  handle it later, once "known code" is analyzed
             ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
-            self._handleADDXREF((rva, ptr, REF_PTR, 0))
-            self._handleADDLOCATION((rva, size, LOC_POINTER, ptr))
+            self._handleADDXREF((rva, ptr, v_const.REF_PTR, 0))
+            self._handleADDLOCATION((rva, size, v_const.LOC_POINTER, ptr))
 
     def _handleDELRELOC(self, einfo):
         fname, rva, rtyp, full = einfo
@@ -282,11 +271,11 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             self.relocations.pop(delidx)
 
         if full:
-            if rtyp == RTYPE_BASEPTR:
+            if rtyp == v_const.RTYPE_BASEPTR:
                 ptr = imgbase + data
                 ptr, reftype, rflags = self.arch.archModifyXrefAddr(ptr, None, None)
-                self._handleDELXREF((rva, ptr, REF_PTR, 0))
-                self._handleDELLOCATION((rva, self.psize, LOC_POINTER, ptr))
+                self._handleDELXREF((rva, ptr, v_const.REF_PTR, 0))
+                self._handleDELLOCATION((rva, self.psize, v_const.LOC_POINTER, ptr))
 
     def _handleADDMODULE(self, einfo):
         logger.warning('DEPRECATED (ADDMODULE) ignored: %s', einfo)
@@ -327,7 +316,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
         # not every codeblock identifying as this function is stored in funcmeta
         for cb in self.getCodeBlocks():
-            if cb[CB_FUNCVA] == fva:
+            if cb[v_const.CB_FUNCVA] == fva:
                 self._handleDELCODEBLOCK(cb)
 
         self.funcmeta.pop(fva)
@@ -362,7 +351,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _handleDELCODEBLOCK(self, cb):
         va,size,funcva = cb
         self.codeblocks.remove(cb)
-        self.codeblocks_by_funcva.get(cb[CB_FUNCVA]).remove(cb)
+        self.codeblocks_by_funcva.get(cb[v_const.CB_FUNCVA]).remove(cb)
         self.blockmap.setMapLookup(va, size, None)
 
     def _handleADDXREF(self, einfo):
@@ -441,7 +430,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.exports_by_va[va] = einfo
 
     def _handleSETMETA(self, einfo):
-        name,value = einfo
+        name, value = einfo
         # See if there's a callback handler for this meta set.
         # For "meta namespaces" use the first part to find the
         # callback name....
@@ -460,7 +449,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     def _handleENDIAN(self, einfo):
         self.bigend = einfo
-        for arch in self.imem_archs:
+        for idx, arch in self.imem_archs.items():
             if not arch:
                 continue
             arch.setEndian(self.bigend)
@@ -513,9 +502,6 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _handleADDFSIG(self, einfo):
         raise NotImplementedError("FSIG is deprecated and should not be used")
 
-    def _handleFOLLOWME(self, va):
-        pass
-
     def _handleCHAT(self, msgtup):
         # FIXME make a GUI window for this...
         user, msg = msgtup
@@ -524,9 +510,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
     def _handleSYMHINT(self, msgtup):
         va, idx, hint = msgtup
         if hint is None:
-            self.symhints.pop((va,idx), None)
+            self.symhints.pop((va, idx), None)
         else:
-            self.symhints[(va,idx)] = hint
+            self.symhints[(va, idx)] = hint
 
     def _handleSETFUNCARGS(self, einfo):
         fva, args = einfo
@@ -550,58 +536,61 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             e_mem.MemoryObject.writeMemory(self, va, bytez)
 
     def _initEventHandlers(self):
-        self.ehand = [None for x in range(VWE_MAX)]
-        self.ehand[VWE_ADDLOCATION] = self._handleADDLOCATION
-        self.ehand[VWE_DELLOCATION] = self._handleDELLOCATION
-        self.ehand[VWE_ADDSEGMENT] = self._handleADDSEGMENT
-        self.ehand[VWE_DELSEGMENT] = None
-        self.ehand[VWE_ADDRELOC] = self._handleADDRELOC
-        self.ehand[VWE_DELRELOC] = self._handleDELRELOC
-        self.ehand[VWE_ADDMODULE] = self._handleADDMODULE
-        self.ehand[VWE_DELMODULE] = self._handleDELMODULE
-        self.ehand[VWE_ADDFMODULE] = self._handleADDFMODULE
-        self.ehand[VWE_DELFMODULE] = self._handleDELFMODULE
-        self.ehand[VWE_ADDFUNCTION] = self._handleADDFUNCTION
-        self.ehand[VWE_DELFUNCTION] = self._handleDELFUNCTION
-        self.ehand[VWE_SETFUNCARGS] = self._handleSETFUNCARGS
-        self.ehand[VWE_SETFUNCMETA] = self._handleSETFUNCMETA
-        self.ehand[VWE_ADDCODEBLOCK] = self._handleADDCODEBLOCK
-        self.ehand[VWE_DELCODEBLOCK] = self._handleDELCODEBLOCK
-        self.ehand[VWE_ADDXREF] = self._handleADDXREF
-        self.ehand[VWE_DELXREF] = self._handleDELXREF
-        self.ehand[VWE_SETNAME] = self._handleSETNAME
-        self.ehand[VWE_ADDMMAP] = self._handleADDMMAP
-        self.ehand[VWE_DELMMAP] = self._handleDELMMAP
-        self.ehand[VWE_ADDEXPORT] = self._handleADDEXPORT
-        self.ehand[VWE_DELEXPORT] = None
-        self.ehand[VWE_SETMETA] = self._handleSETMETA
-        self.ehand[VWE_COMMENT] = self._handleCOMMENT
-        self.ehand[VWE_ADDFILE] = self._handleADDFILE
-        self.ehand[VWE_DELFILE] = None
-        self.ehand[VWE_SETFILEMETA] = self._handleSETFILEMETA
-        self.ehand[VWE_ADDCOLOR] = self._handleADDCOLOR
-        self.ehand[VWE_DELCOLOR] = self._handleDELCOLOR
-        self.ehand[VWE_ADDVASET] = self._handleADDVASET
-        self.ehand[VWE_DELVASET] = self._handleDELVASET
-        self.ehand[VWE_SETVASETROW] = self._handleSETVASETROW
-        self.ehand[VWE_DELVASETROW] = self._handleDELVASETROW
-        self.ehand[VWE_ADDFSIG] = self._handleADDFSIG
-        self.ehand[VWE_ADDFREF] = self._handleADDFREF
-        self.ehand[VWE_DELFREF] = self._handleDELFREF
-        self.ehand[VWE_FOLLOWME] = self._handleFOLLOWME
-        self.ehand[VWE_CHAT]     = self._handleCHAT
-        self.ehand[VWE_SYMHINT]  = self._handleSYMHINT
-        self.ehand[VWE_AUTOANALFIN] = self._handleAUTOANALFIN
-        self.ehand[VWE_WRITEMEM] = self._handleWRITEMEM
-        self.ehand[VWE_ENDIAN] = self._handleENDIAN
+        self.ehand = [None for x in range(v_const.VWE_MAX)]
+        self.ehand[v_const.VWE_ADDLOCATION] = self._handleADDLOCATION
+        self.ehand[v_const.VWE_DELLOCATION] = self._handleDELLOCATION
+        self.ehand[v_const.VWE_ADDSEGMENT] = self._handleADDSEGMENT
+        self.ehand[v_const.VWE_DELSEGMENT] = None
+        self.ehand[v_const.VWE_ADDRELOC] = self._handleADDRELOC
+        self.ehand[v_const.VWE_DELRELOC] = self._handleDELRELOC
+        self.ehand[v_const.VWE_ADDMODULE] = self._handleADDMODULE
+        self.ehand[v_const.VWE_DELMODULE] = self._handleDELMODULE
+        self.ehand[v_const.VWE_ADDFMODULE] = self._handleADDFMODULE
+        self.ehand[v_const.VWE_DELFMODULE] = self._handleDELFMODULE
+        self.ehand[v_const.VWE_ADDFUNCTION] = self._handleADDFUNCTION
+        self.ehand[v_const.VWE_DELFUNCTION] = self._handleDELFUNCTION
+        self.ehand[v_const.VWE_SETFUNCARGS] = self._handleSETFUNCARGS
+        self.ehand[v_const.VWE_SETFUNCMETA] = self._handleSETFUNCMETA
+        self.ehand[v_const.VWE_ADDCODEBLOCK] = self._handleADDCODEBLOCK
+        self.ehand[v_const.VWE_DELCODEBLOCK] = self._handleDELCODEBLOCK
+        self.ehand[v_const.VWE_ADDXREF] = self._handleADDXREF
+        self.ehand[v_const.VWE_DELXREF] = self._handleDELXREF
+        self.ehand[v_const.VWE_SETNAME] = self._handleSETNAME
+        self.ehand[v_const.VWE_ADDMMAP] = self._handleADDMMAP
+        self.ehand[v_const.VWE_DELMMAP] = self._handleDELMMAP
+        self.ehand[v_const.VWE_ADDEXPORT] = self._handleADDEXPORT
+        self.ehand[v_const.VWE_DELEXPORT] = None
+        self.ehand[v_const.VWE_SETMETA] = self._handleSETMETA
+        self.ehand[v_const.VWE_COMMENT] = self._handleCOMMENT
+        self.ehand[v_const.VWE_ADDFILE] = self._handleADDFILE
+        self.ehand[v_const.VWE_DELFILE] = None
+        self.ehand[v_const.VWE_SETFILEMETA] = self._handleSETFILEMETA
+        self.ehand[v_const.VWE_ADDCOLOR] = self._handleADDCOLOR
+        self.ehand[v_const.VWE_DELCOLOR] = self._handleDELCOLOR
+        self.ehand[v_const.VWE_ADDVASET] = self._handleADDVASET
+        self.ehand[v_const.VWE_DELVASET] = self._handleDELVASET
+        self.ehand[v_const.VWE_SETVASETROW] = self._handleSETVASETROW
+        self.ehand[v_const.VWE_DELVASETROW] = self._handleDELVASETROW
+        self.ehand[v_const.VWE_ADDFSIG] = self._handleADDFSIG
+        self.ehand[v_const.VWE_ADDFREF] = self._handleADDFREF
+        self.ehand[v_const.VWE_DELFREF] = self._handleDELFREF
+        self.ehand[v_const.VWE_FOLLOWME] = self._handleEventFOLLOWME
+        self.ehand[v_const.VWE_CHAT] = self._handleCHAT
+        self.ehand[v_const.VWE_SYMHINT] = self._handleSYMHINT
+        self.ehand[v_const.VWE_AUTOANALFIN] = self._handleAUTOANALFIN
+        self.ehand[v_const.VWE_WRITEMEM] = self._handleWRITEMEM
+        self.ehand[v_const.VWE_ENDIAN] = self._handleENDIAN
 
-        self.thand = [None for x in range(VTE_MAX)]
-        self.thand[VTE_IAMLEADER] = self._handleIAMLEADER
-        self.thand[VTE_FOLLOWME] = self._handleFOLLOWME
-        self.thand[VTE_KILLLEADER] = self._handleKILLLEADER
-        self.thand[VTE_MODLEADER] = self._handleMODLEADER
+        self.thand = [None for x in range(v_const.VTE_MAX)]
+        self.thand[v_const.VTE_IAMLEADER] = self._handleIAMLEADER
+        self.thand[v_const.VTE_FOLLOWME] = self._handleTransFOLLOWME
+        self.thand[v_const.VTE_KILLLEADER] = self._handleKILLLEADER
+        self.thand[v_const.VTE_MODLEADER] = self._handleMODLEADER
 
-    def _handleFOLLOWME(self, event, einfo):
+    def _handleEventFOLLOWME(self, einfo):
+        pass
+
+    def _handleTransFOLLOWME(self, event, einfo):
         uuid, expr = einfo
         logger.debug("_handleFOLLOWME(%r, %r)", event, einfo)
         self.leaderloc[uuid] = expr
@@ -637,14 +626,14 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         '''
 
         try:
-            if event & VTE_MASK:
+            if event & v_const.VTE_MASK:
                 return self._fireTransEvent(event, einfo)
 
             # Do our main event processing
             self.ehand[event](einfo)
 
             # If we're supposed to call a server, do that.
-            if self.server is not None and local == False:
+            if self.server is not None and not local:
                 self.server._fireEvent(event, einfo, skip=self.rchan)
 
             # FIXME perhaps we should only process events *via* our server
@@ -656,16 +645,16 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
                     continue
                 try:
                     q.put_nowait((event, einfo))
-                except queue.Full as e:
+                except queue.Full:
                     logger.warning('Queue is full!')
 
-        except Exception as e:
+        except Exception:
             logger.error(traceback.format_exc())
 
     def _fireTransEvent(self, event, einfo):
         for q in self.chan_lookup.values():
             q.put((event, einfo))
-        return self.thand[event ^ VTE_MASK](event,einfo)
+        return self.thand[event ^ v_const.VTE_MASK](event, einfo)
 
     def _initFunction(self, funcva):
         # Internal function to initialize all datastructures necessary for
@@ -705,7 +694,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             # are still in progress
             self.setMemArchitecture(archid)
         except IndexError:
-            raise ArchModDefException(value) from None
+            raise v_exc.ArchModDefException(value) from None
 
         # This is for legacy stuff...
         #self.arch = envi.getArchModule(value)
@@ -745,8 +734,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         # All meta values in the "ustruct" namespace are user defined
         # structure defintions in C.
         sname = name.split(':')[1]
-        ctor = vs_cparse.ctorFromCSource( ssrc )
-        self.vsbuilder.addVStructCtor( sname, ctor )
+        ctor = vs_cparse.ctorFromCSource(ssrc)
+        self.vsbuilder.addVStructCtor(sname, ctor)
 
     def _mcb_GUID(self, name, guid):
         self._load_guid.set()
@@ -763,7 +752,7 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
 
     def _fmcb_CallsFrom(self, funcva, th, callsfrom):
         for va in callsfrom:
-            f2va = self.getFunction( va )
+            f2va = self.getFunction(va)
             if f2va is not None:
                 self._call_graph.getCallEdge( funcva, f2va )
 
@@ -795,12 +784,12 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
     def _cb_noflow(self, srcva, dstva):
         vw = self._mem
-        loc = vw.getLocation( srcva )
+        loc = vw.getLocation(srcva)
         if loc is None:
             return
 
-        lva,lsize,ltype,linfo = loc
-        if ltype != LOC_OP:
+        lva, lsize, ltype, linfo = loc
+        if ltype != v_const.LOC_OP:
             return
 
         # Update the location def for NOFALL bit
@@ -818,15 +807,14 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         loc = self._mem.getLocation(va)
         if loc is None:
 
-            # dont code flow through import calls
-            branches = [br for br in branches if not self._mem.isLocType(br[0], LOC_IMPORT)]
-
             self._mem.makeOpcode(op.va, op=op)
             # TODO: future home of makeOpcode branch/xref analysis
             if not self._mem.isNoReturnVa(op.va):
+                # dont code flow through import calls
+                branches = [br for br in branches if not self._mem.isLocType(br[0], v_const.LOC_IMPORT)]
                 return branches
 
-        elif loc[L_LTYPE] != LOC_OP:
+        elif loc[v_const.L_LTYPE] != v_const.LOC_OP:
             locrepr = self._mem.reprLocation(loc)
             logger.warning("_cb_opcode(0x%x): LOCATION ALREADY EXISTS: loc: %r", va, locrepr)
 
@@ -840,23 +828,23 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
         # This may be possible if an export/symbol was mistaken for
         # a function...
-        if not vw.isLocType(fva, LOC_OP):
+        if not vw.isLocType(fva, v_const.LOC_OP):
             return
 
         # If the function doesn't have a name, make one
         if vw.getName(fva) is None:
             vw.makeName(fva, "sub_%.8x" % fva)
 
-        vw._fireEvent(VWE_ADDFUNCTION, (fva,fmeta))
+        vw._fireEvent(v_const.VWE_ADDFUNCTION, (fva, fmeta))
 
         # Go through the function analysis modules in order
         vw.analyzeFunction(fva)
 
-        fname = vw.getName( fva )
+        fname = vw.getName(fva)
         if vw.getMeta('NoReturnApis').get( fname.lower() ):
             self._cf_noret[fva] = True
 
-        if len( vw.getFunctionBlocks( fva )) == 1:
+        if len( vw.getFunctionBlocks(fva)) == 1:
             return
 
         fmeta = vw.getFunctionMetaDict(fva)
@@ -876,4 +864,3 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
             self._mem.makePointer(tableva, tova=destva, follow=False)
 
         return True
-

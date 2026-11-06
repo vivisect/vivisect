@@ -14,6 +14,7 @@ commands:
           command: |
             python3 -m pip install -U wheel pip
             python3 -m pip install -r requirements.txt
+            python3 -m pip install pyqt6 pyqt6-webengine
 
   do_test_execution:
     description: "Execute unit tests via unittest"
@@ -38,6 +39,9 @@ commands:
             sudo dpkg --add-architecture i386
             sudo apt-get update
             sudo apt-get -qq install libc6:i386 libncurses5:i386 libstdc++6:i386
+            sudo apt-get -qq install libegl1 libgl1 libglib2.0-0 libfontconfig1 libxkbcommon0 libdbus-1-3
+            sudo apt-get -qq install libxdamage-dev
+            sudo apt-get -qq install libasound2 libnss3 libnspr4 libxcomposite1 libxrandr2 libgbm1 libcups2 libxshmfence1
 
       - do_python_setup
 
@@ -52,6 +56,7 @@ jobs:
         environment:
           VIVTESTFILES: /tmp/vivtestfiles
           PYVERS: 3.11
+          QT_QPA_PLATFORM: offscreen
 
     working_directory: ~/repo
 

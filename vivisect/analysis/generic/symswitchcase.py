@@ -4,29 +4,25 @@ which use pointer arithetic to determine code path for each case.
 
 This will not connect switch cases which are actually explicit cmp/jz in the code.
 '''
-import sys
 import time
 
 import logging
-logger = logging.getLogger(__name__)
 
 import envi
 import envi.exc as e_exc
 import envi.bits as e_bits
-import envi.archs.i386 as e_i386
 
-import vivisect
 import vivisect.exc as v_exc
-import vivisect.cli as viv_cli
+import vivisect.const as v_const
 import vivisect.tools.graphutil as viv_graph
-import vivisect.symboliks.emulator as vs_emu
-import vivisect.symboliks.analysis as vs_anal
-import vivisect.symboliks.substitution as vs_sub
 import vivisect.analysis.generic.codeblocks as vagc
 
-from vivisect.symboliks.common import *
+import vivisect.symboliks.common as vs_com
+import vivisect.symboliks.analysis as vs_anal
+
 from vivisect.tools.graphutil import PathForceQuitException
 
+logger = logging.getLogger(__name__)
 
 '''
 this analysis module takes a two stage approach to identifying and wiring up switch cases.
@@ -109,9 +105,9 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
             loc = self._sym_vw.getLocation(addrval)
             if loc is not None:
                 lva, lsize, ltype, linfo = loc
-                if ltype == vivisect.LOC_IMPORT:
+                if ltype == v_const.LOC_IMPORT:
                     # return name of import
-                    symval = Var(linfo, self.__width__)
+                    symval = vs_com.Var(linfo, self.__width__)
                     self.track(self.getMeta('va'), symaddr, symval)
                     return symval
 
@@ -126,14 +122,14 @@ class TrackingSymbolikEmulator(vs_anal.SymbolikFunctionEmulator):
                     fmt = e_bits.getFormat(size, self._sym_vw.getEndian(), signed=True)
                     val, = self._sym_vw.readMemoryFormat(addrval, fmt)
                     self.track(self.getMeta('va'), symaddr, val)
-                    return Const(val, size)
+                    return vs_com.Const(val, size)
 
                 # return string  (really?)
                 symval = self._sym_vw.readMemory(addrval, size)
                 self.track(self.getMeta('va'), symaddr, symval)
                 return symval
 
-        return Mem(symaddr, symsize)
+        return vs_com.Mem(symaddr, symsize)
 
 
 def contains(symobj, subobj):
@@ -162,8 +158,7 @@ def contains(symobj, subobj):
 
     ctx = {'compare':   subobj.solve(),
            'contains':  False,
-           'path':      ()
-           }
+           'path':      ()}
 
     symobj.walkTree(_cb_contains, ctx)
     return ctx['contains'], ctx['path']
@@ -177,18 +172,18 @@ def getUnknowns(symvar):
         walkTree callback for grabbing Var objects
         '''
         #logging.debug("... unk: %r", symobj)
-        if symobj.symtype == SYMT_VAR:
-            varlist = ctx.get(SYMT_VAR)
+        if symobj.symtype == v_const.SYMT_VAR:
+            varlist = ctx.get(v_const.SYMT_VAR)
             if symobj.name not in varlist:
                 varlist.append(symobj.name)
 
         # sometimes the index comes from a global or local variable...
-        if symobj.symtype == SYMT_MEM:
-            memlist = ctx.get(SYMT_MEM)
+        if symobj.symtype == v_const.SYMT_MEM:
+            memlist = ctx.get(v_const.SYMT_MEM)
             if symobj not in memlist:
                 memlist.append(symobj)
 
-    unks = {SYMT_VAR:[], SYMT_MEM:[]}
+    unks = {v_const.SYMT_VAR: [], v_const.SYMT_MEM: []}
     symvar.walkTree(_cb_grab_vars_n_mems, unks)
     return unks
 
@@ -218,7 +213,7 @@ def hasMul(symobj):
     Returns True or False based on whether the symobj AST has a "Mul" object
     '''
     def _cb_check_for_mul(path, symobj, ctx):
-        if symobj.symtype == SYMT_OPER_MUL:
+        if symobj.symtype == v_const.SYMT_OPER_MUL:
             ctx['inthere'] = True
 
     ctx = {'inthere': False}
@@ -234,21 +229,21 @@ def peelIdxOffset(symobj):
     offset = 0
     while True:
         # peel off o_subs and size-limiting o_ands and o_sextends
-        if isinstance(symobj, o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
+        if isinstance(symobj, vs_com.o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
             # this wrapper is a size-limiting bitmask
             pass
 
-        elif isinstance(symobj, o_sub):
+        elif isinstance(symobj, vs_com.o_sub):
             # this is an offset, used to rebase the index into a different pointer array
             if symobj.kids[1].isDiscrete():
                 offset += symobj.kids[1].solve()
 
-        elif isinstance(symobj, o_add):
+        elif isinstance(symobj, vs_com.o_add):
             # this is an offset, used to rebase the index into a different pointer array
             if symobj.kids[1].isDiscrete():
                 offset -= symobj.kids[1].solve()
 
-        elif isinstance(symobj, o_sextend):
+        elif isinstance(symobj, vs_com.o_sextend):
             # sign-extension is irrelevant for indexes
             pass
 
@@ -328,9 +323,9 @@ class ThunkReg:
         if oploc is None:
             regval += THUNK_BX_CALL_LEN 
         else:
-            regval += oploc[L_SIZE]
+            regval += oploc[v_const.L_SIZE]
 
-        regobj = Const(regval, vw.psize)
+        regobj = vs_com.Const(regval, vw.psize)
         reg = rctx.getRealRegisterName(self.regname)
         logger.debug("thunk_%s is being called! %s\t%s\t%s", reg, emu, symargs, regobj)
         emu.setSymVariable(reg, regobj)
@@ -368,11 +363,9 @@ class SwitchCase:
             self.sctx.addSymFuncCallback(fname, trobj.thunk_reg)
             logger.debug( "sctx.addSymFuncCallback(%s, thunk_reg)" % fname)
 
-
         self._sgraph = None
         self._codepath = None
         self._codepathgen = None
-
 
         try:
             self.max_instr_count = vw.config.viv.analysis.symswitchcase.max_instr_count
@@ -388,8 +381,6 @@ class SwitchCase:
             self.min_func_instr_size = 10
 
         self.clearCache()
-
-
 
     def clearCache(self):
         '''
@@ -408,7 +399,6 @@ class SwitchCase:
         self.baseIdx = None
 
         self.jmpsymvar = None
-
 
     def analyze(self):
         '''
@@ -441,7 +431,6 @@ class SwitchCase:
         tgtsym = jmpsymvar.update(emu)
         return tgtsym
 
-
     def getSymIdx(self):
         '''
         returns the symbolik index register, and the type of object
@@ -453,17 +442,17 @@ class SwitchCase:
 
         cspath, aspath, fullpath = self.getSymbolikParts()
 
-        for unk in unks.get(SYMT_VAR):
+        for unk in unks.get(v_const.SYMT_VAR):
             unkvar = cspath[0].getSymVariable(unk)
             if unkvar.isDiscrete():
                 continue
-            return (SYMT_VAR, unk)
+            return (v_const.SYMT_VAR, unk)
 
-        for unk in unks.get(SYMT_MEM):
+        for unk in unks.get(v_const.SYMT_MEM):
             unkvar = cspath[0].getSymVariable(unk)
             if unkvar.isDiscrete():
                 continue
-            return (SYMT_MEM, unk)
+            return (v_const.SYMT_MEM, unk)
 
         raise v_exc.SymIdxNotFoundException(cspath, aspath)
 
@@ -476,12 +465,12 @@ class SwitchCase:
         '''
         csp, asp, fullp = self.getSymbolikParts()
 
-        cons = [eff for eff in fullp[1] if eff.efftype==EFFTYPE_CONSTRAIN]
+        cons = [eff for eff in fullp[1] if eff.efftype==v_const.EFFTYPE_CONSTRAIN]
         [con.reduce() for con in cons]
         return cons
 
     def getBoundingCons(self, cplxIdx):
-        return [con for con in self.getConstraints() if contains(con, cplxIdx)[0] ]
+        return [con for con in self.getConstraints() if contains(con, cplxIdx)[0]]
 
     def getSymbolikJmpBlock(self, emuclass=vs_anal.SymbolikFunctionEmulator):
         '''
@@ -568,11 +557,12 @@ class SwitchCase:
         '''
         symtype, smplIdx = self.getSymIdx()
 
+        cplxIdx = None
         (csemu, cseffs), asp, fullp = self.getSymbolikParts()
-        if symtype == SYMT_VAR:
+        if symtype == v_const.SYMT_VAR:
             cplxIdx = csemu.getSymVariable(smplIdx)
 
-        elif symtype == SYMT_MEM:
+        elif symtype == v_const.SYMT_MEM:
             symloc, symsz = smplIdx.kids
             cplxIdx = csemu.readSymMemory(symloc.update(csemu), symsz)
 
@@ -592,7 +582,7 @@ class SwitchCase:
             '''
             This is for troubleshooting and analysis only.
             '''
-            logger.debug( ' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
+            logger.debug(' PATH: %r\n SYMOBJ: %r\n CTX: %r\n' % (path, symobj, ctx))
 
         def _cb_mark_longpath(path, symobj, ctx):
             '''
@@ -620,8 +610,7 @@ class SwitchCase:
         longpath = ctx.get('longpath')
 
         # now compare the long path against constraints that contain it.  find sweet spot
-        count = last = None
-        which = None
+        count = None
         offset = 0
 
         # peel back the constraints to remove any incidental modifications to the index variable
@@ -629,26 +618,26 @@ class SwitchCase:
         #  in order to make all pointer/offset arrays 0-based, the index gets modified (subtracted)
 
 
-        # HACK: this is left-handed, and based on the longpath.  it may also benefit from actual comparing with the 
+        # HACK: this is left-handed, and based on the longpath.  it may also benefit from actual comparing with the
         # known index.
         #logging.info("LONGPATH: " + '\n'.join([repr(x) for x in longpath]))
         for symobj in longpath:
-            last = count
             count = len(self.getBoundingCons(symobj))
             logger.debug(" longpath constraints %d: %r" % (count, symobj))
 
             # peel off o_subs and size-limiting o_ands and o_sextends
-            if isinstance(symobj, o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
-                mask = symobj.kids[1].solve()
-                pass    # this wrapper is a size-limiting bitmask
+            if isinstance(symobj, vs_com.o_and) and symobj.kids[1].isDiscrete() and symobj.kids[1].solve() in e_bits.u_maxes:
+                # TODO: Okay. So what do we do here? We're solving but throwing the result away
+                #mask = symobj.kids[1].solve()
+                pass
 
-            elif isinstance(symobj, o_sub):
+            elif isinstance(symobj, vs_com.o_sub):
                 offset += symobj.kids[1].solve() # this is an offset, used to rebase the index into a different pointer array
 
-            elif isinstance(symobj, o_add):
+            elif isinstance(symobj, vs_com.o_add):
                 offset -= symobj.kids[1].solve() # this is an offset, used to rebase the index into a different pointer array
 
-            elif isinstance(symobj, o_sextend):
+            elif isinstance(symobj, vs_com.o_sextend):
                 pass # sign-extension is irrelevant for indexes
 
             # anything else and we're done peeling
@@ -669,21 +658,21 @@ class SwitchCase:
         '''
         retcons = []
         baseIdx, baseoff = self.getBaseSymIdx()
-        SKIPS = (SYMT_CON_GT, SYMT_CON_GE, SYMT_CON_LT, SYMT_CON_LE)
+        SKIPS = (v_const.SYMT_CON_GT, v_const.SYMT_CON_GE, v_const.SYMT_CON_LT, v_const.SYMT_CON_LE)
 
         for con in self.getBoundingCons(baseIdx): # merge the two
             cons = con.cons
 
-            if not cons.symtype in SKIPS:
+            if cons.symtype not in SKIPS:
                 #logger.debug("SKIPPING NON-LIMITING: cons = %s", repr(cons))
                 #return None, None, None
                 continue
 
-            if cons.kids[1].symtype == SYMT_CONST:
+            if cons.kids[1].symtype == v_const.SYMT_CONST:
                 symvar = cons.kids[0]
                 symcmp = cons.kids[1]
 
-            elif cons.kids[0].symtype == SYMT_CONST:
+            elif cons.kids[0].symtype == v_const.SYMT_CONST:
                 symcmp = cons.kids[0]
                 symvar = cons.kids[1]
 
@@ -697,7 +686,7 @@ class SwitchCase:
                 logger.debug("Ignoring Constraint not based on Index: %r" % cons)
                 continue
 
-            if cons.symtype == SYMT_CON_LT and symcmp.solve() == 0:
+            if cons.symtype == v_const.SYMT_CON_LT and symcmp.solve() == 0:
                 #logger.debug("SKIPPING Constraint Checking for Zero: %r" % cons)
                 continue
 
@@ -748,32 +737,32 @@ class SwitchCase:
                 for con, stype, offset in self.getNormalizedConstraints():
 
                     #conthing, consoff = peelIdxOffset(symvar)
-                    if stype == SYMT_CON_GT: # this is setting the lower bound
+                    if stype == v_const.SYMT_CON_GT: # this is setting the lower bound
                         newlower = offset + 1
                         if newlower > lower:
                             logger.info("==setting a lower bound:  %s -> %s", lower, newlower)
                             lower = newlower
 
-                    elif stype == SYMT_CON_GE: # this is setting the lower bound
+                    elif stype == v_const.SYMT_CON_GE: # this is setting the lower bound
                         newlower = offset
                         if newlower > lower:
                             logger.info("==setting a lower bound:  %s -> %s", lower, newlower)
                             lower = newlower
 
-                    elif stype == SYMT_CON_LT: # this is setting the upper bound
+                    elif stype == v_const.SYMT_CON_LT: # this is setting the upper bound
                         newupper = offset - 1
                         if upper is None or newupper < upper and newupper > 0:
                             logger.info("==setting a upper bound:  %s -> %s", upper, newupper)
                             upper = newupper
 
-                    elif stype == SYMT_CON_LE: # this is setting the upper bound
+                    elif stype == v_const.SYMT_CON_LE: # this is setting the upper bound
                         newupper = offset
                         if upper is None or newupper < upper and newupper > 0:
                             logger.info("==setting a upper bound:  %s -> %s", upper, newupper)
                             upper = newupper
 
                     else:
-                        logger.info("Unhandled comparator:  %s\n", repr(cons))
+                        logger.info("Unhandled comparator:  %s\n", repr(con))
 
                 logger.info("Determined bounds: %r %r\n" % (lower, upper))
         except StopIteration:
@@ -812,12 +801,10 @@ class SwitchCase:
         idxtype, symIdx = self.getSymIdx()
 
         # set our index to 0, to get the base of pointer/offset arrays
-        semu.setSymVariable(symIdx, Const(0, 8))
+        semu.setSymVariable(symIdx, vs_com.Const(0, 8))
 
         for eff in aseffs:
-            startlen = len(semu.getTrackInfo())
-
-            if eff.efftype == EFFTYPE_READMEM:
+            if eff.efftype == v_const.EFFTYPE_READMEM:
                 if eff.va == self.jmpva:
                     continue
 
@@ -833,11 +820,7 @@ class SwitchCase:
                     size = target.getWidth()
                     derefs.append((eff.va, symaddr, solution, target.solve(), size))
 
-            endlen = len(semu.getTrackInfo())
-
         return derefs
-
-
 
     #### higher level functionality
     def makeSwitch(self):
@@ -917,7 +900,6 @@ class SwitchCase:
             # determine deref-ops...  uses TrackingSymbolikEmulator
             # iterCases
             cases = {}
-            memrefs = []
             for idx, addr in self.iterCases():
                 logger.info("0x%x analyzeSwitch: idx: %s \t address: 0x%x", self.jmpva, idx, addr)
 
@@ -957,10 +939,10 @@ class SwitchCase:
                 if caselist is None:
                     caselist = []
                     cases[addr] = caselist
-                caselist.append( idx )
+                caselist.append(idx)
 
                 # make the connections
-                vw.addXref(self.jmpva, addr, vivisect.REF_CODE)
+                vw.addXref(self.jmpva, addr, v_const.REF_CODE)
                 nloc = vw.getLocation(addr)
                 if nloc is None:
                     vw.makeCode(addr)
@@ -1012,7 +994,7 @@ class SwitchCase:
 
         for va, symaddr, addr, tgt, sz in self.getDerefs():
             # first make the xref from opcode to data:
-            self.vw.addXref(va, addr, REF_DATA)
+            self.vw.addXref(va, addr, v_const.REF_DATA)
 
             if sz == self.vw.psize and self.vw.isValidPointer(tgt):
                 for count in range(upper-lower+1):
@@ -1043,14 +1025,13 @@ class SwitchCase:
         symemu.setSymSnapshot(csemu.getSymSnapshot())
 
         logger.debug("jmpva: 0x%x\t\tsymidx: %r", self.jmpva, symidx)   # TODO: we return either a Var name string or a SymObj (for Mem types)... should we just stick with the symbolik object?  since we're removing the ties to getSymVariable() and moving to replaceObj() and our nifty 'jmpidx' variable.
-        if idxtype == SYMT_VAR:
-            symidx = Var(symidx, self.vw.psize)
-        replaceObj(jmptgt, symidx, Var('jmpidx', symidx.getWidth()))
+        if idxtype == v_const.SYMT_VAR:
+            symidx = vs_com.Var(symidx, self.vw.psize)
+        replaceObj(jmptgt, symidx, vs_com.Var('jmpidx', symidx.getWidth()))
         #workJmpTgt = jmptgt.update(emu=symemu)
 
-
         for idx in range(lower-offset, upper-offset+1):
-            symemu.setSymVariable('jmpidx', Const(idx, 8))
+            symemu.setSymVariable('jmpidx', vs_com.Const(idx, 8))
             workJmpTgt = jmptgt.update(emu=symemu)  # would "jmptgt.solve(vals={'jmpidx': idx})" work?
             logger.info(" itercases: workJmpTgt: %r (0x%x)", workJmpTgt, self.jmpva)
             coderef = workJmpTgt.solve(emu=symemu, vals={symidx:idx})
@@ -1123,7 +1104,6 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
     logger.info("link_up(0x%x, 0x%x, %d, 0x%x, %r, %r)", jmpva, array, count, baseoff, baseva, itemsize)
 
     cases = {}
-    memrefs = []
     for idx in range(count):
         # handle specific itemsize if not pointer sized
 
@@ -1182,10 +1162,10 @@ def link_up(vw, jmpva, array, count, baseoff, baseva=None, itemsize=None):
         if caselist is None:
             caselist = []
             cases[addr] = caselist
-        caselist.append( idx )
+        caselist.append(idx)
 
         # make the connections
-        vw.addXref(jmpva, addr, vivisect.REF_CODE)
+        vw.addXref(jmpva, addr, v_const.REF_CODE)
         nloc = vw.getLocation(addr)
         if nloc is None:
             vw.makeCode(addr)

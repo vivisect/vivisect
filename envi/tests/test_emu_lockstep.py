@@ -1,9 +1,8 @@
-import types
 import unittest
 import vtrace.tests as vt_tests
 from vtrace.lockstep import LockStepper
 
-
+# TODO: This file probably belongs in vtrace/tests
 
 breakpoints = {
     ('windows', 'i386'): ('ntdll.RtlAllocateHeap', 500),

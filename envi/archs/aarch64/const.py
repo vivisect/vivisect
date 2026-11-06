@@ -1,6 +1,3 @@
-
-
-
 MODE_ARM        = 0
 MODE_THUMB      = 1
 MODE_JAZELLE    = 2

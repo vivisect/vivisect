@@ -206,7 +206,7 @@ def vads(db,line):
     vadroot = t.parseExpression(line)
 
     vads = list(walkVads(db,t,vadroot))
-    vads.sort(cmp=lambda x,y: cmp(x[1].StartingVpn,y[1].StartingVpn))
+    vads.sort(key=lambda x: x[1].StartingVpn)
 
     for va,vad in vads:
         start = vad.StartingVpn << t.getMeta('PAGE_SHIFT')

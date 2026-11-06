@@ -5911,7 +5911,7 @@ class ArmDisasm:
 
         #Get opcode, base mnem, operator list and flags
         opcode, mnem, olist, flags, simdflags = self.doDecode(va, opval, bytez, offset)
-        if mnem is None or type(mnem) == int:
+        if mnem is None or type(mnem) is int:
             raise Exception("Decode Error:  mnem == %r (not valid)!  opcode number=0x%x (at 0x%x)" % (mnem, opval, va))
 
         # Ok...  if we're a non-conditional branch, *or* we manipulate PC unconditionally,

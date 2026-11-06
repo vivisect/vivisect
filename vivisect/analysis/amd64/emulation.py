@@ -2,9 +2,9 @@ import vivisect.exc as v_exc
 import vivisect.impemu.monitor as viv_monitor
 
 import envi
-import envi.archs.amd64 as e_amd64
+import envi.archs.amd64.regs as e_amd64_regs
 
-from vivisect.const import *
+import vivisect.const as v_const
 
 import vivisect.analysis.generic.switchcase as vag_switch
 
@@ -31,20 +31,20 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
 
 ##### FIXME: this should be all done through the calling convention
 sysvamd64argnames = {
-    0: ('rdi', e_amd64.REG_RDI),
-    1: ('rsi', e_amd64.REG_RSI),
-    2: ('rdx', e_amd64.REG_RDX),
-    3: ('rcx', e_amd64.REG_RCX),
-    4: ('r8',  e_amd64.REG_R8),
-    5: ('r9',  e_amd64.REG_R9),
+    0: ('rdi', e_amd64_regs.REG_RDI),
+    1: ('rsi', e_amd64_regs.REG_RSI),
+    2: ('rdx', e_amd64_regs.REG_RDX),
+    3: ('rcx', e_amd64_regs.REG_RCX),
+    4: ('r8',  e_amd64_regs.REG_R8),
+    5: ('r9',  e_amd64_regs.REG_R9),
 }
 
 
 msx64argnames = {
-    0: ('rcx', e_amd64.REG_RCX),
-    1: ('rdx', e_amd64.REG_RDX),
-    2: ('r8',  e_amd64.REG_R8),
-    3: ('r9',  e_amd64.REG_R9),
+    0: ('rcx', e_amd64_regs.REG_RCX),
+    1: ('rdx', e_amd64_regs.REG_RDX),
+    2: ('r8',  e_amd64_regs.REG_R8),
+    3: ('r9',  e_amd64_regs.REG_R9),
 }
 
 
@@ -87,10 +87,10 @@ def buildFunctionApi(vw, fva, emu, emumon):
                 argc = targc
 
         # Add the shadow space "locals"
-        vw.setFunctionLocal(fva, 8,  LSYM_NAME, ('void *', 'shadow0'))
-        vw.setFunctionLocal(fva, 16, LSYM_NAME, ('void *', 'shadow1'))
-        vw.setFunctionLocal(fva, 24, LSYM_NAME, ('void *', 'shadow2'))
-        vw.setFunctionLocal(fva, 32, LSYM_NAME, ('void *', 'shadow3'))
+        vw.setFunctionLocal(fva, 8,  v_const.LSYM_NAME, ('void *', 'shadow0'))
+        vw.setFunctionLocal(fva, 16, v_const.LSYM_NAME, ('void *', 'shadow1'))
+        vw.setFunctionLocal(fva, 24, v_const.LSYM_NAME, ('void *', 'shadow2'))
+        vw.setFunctionLocal(fva, 32, v_const.LSYM_NAME, ('void *', 'shadow3'))
 
     elif callconv == 'sysvamd64call':
         if emumon.stackmax > 0:
@@ -130,6 +130,6 @@ def analyzeFunction(vw, fva):
 
     # Register our stack args as function locals
     for i in range(stcount):
-        vw.setFunctionLocal(fva, baseoff + (i * 8), LSYM_FARG, i+stackidx)
+        vw.setFunctionLocal(fva, baseoff + (i * 8), v_const.LSYM_FARG, i+stackidx)
 
     emumon.addAnalysisResults(vw, emu)

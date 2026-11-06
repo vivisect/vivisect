@@ -9,7 +9,6 @@ import envi.archs.i386.opconst as e_i386const
 
 import vtrace
 import vtrace.exc as v_exc
-import vtrace.util as vutil
 import vtrace.snapshot as v_snapshot
 import vtrace.platforms.base as v_base
 
@@ -335,7 +334,8 @@ def parseOpcode(self, va, arch=envi.ARCH_DEFAULT):
     leads to a bunch of partial read errors that I don't feel like dealing with right now.
     '''
     byts = self.readMemory(va, 16)
-    return self.imem_archs[(arch & envi.ARCH_MASK) >> 16].archParseOpcode(byts, 0, va)
+    amod = self.getMemArchModule(arch=arch)
+    return amod.archParseOpcode(byts, 0, va)
 
 
 ###### TraceEmulator fusion magic

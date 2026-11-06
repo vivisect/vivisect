@@ -99,7 +99,7 @@ def getFuncMaps(vw, fva):
     vas.sort()
 
     maps = []
-    perms = 'e_mem.MM_RWX'
+    perms = 'e_const.MM_RWX'
     lastva = startva = vas[0]
     #print (vas)
     for va in vas:
@@ -167,6 +167,7 @@ def printFuncBlocks(vw, fva, fakebase=None):
 we allow this to be run as a script from within Vivisect in order to easily extract relevant memory for a function
 '''
 if globals().get('vw') is not None:
+    # meant to be run from the UI via `script`. Consider moving to a better home.
     va = vw.parseExpression(argv[1])
     fva = vw.getFunction(va)
     vprint("analyzing Funcva (0x%x) for provided va (0x%x)" % (va, fva))

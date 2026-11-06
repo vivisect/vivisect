@@ -1,5 +1,4 @@
 import logging
-import unittest
 
 import PE
 import envi.const as e_const
@@ -598,7 +597,6 @@ class PETests(v_t_utils.VivTest):
 
     def test_bad_pe_sectname(self):
         vw = helpers.getTestWorkspace('windows', 'i386', 'HelloSection-err.exe')
-        segs = vw.getSegments()
         pesections = [
             # about as blunt and direct of a name as we can get
             "[invalid name] b'\\xfftext\\x00\\x00\\x00'",
@@ -613,3 +611,13 @@ class PETests(v_t_utils.VivTest):
         self.len(sections, 5)
         for name in pesections:
             self.isin(name, sections)
+
+    def test_repr(self):
+        path = helpers.getTestPath('windows','amd64','dbghelp.dll')
+        pe = PE.peFromFileName(path)
+        pe_repr = repr(pe)
+
+        self.assertIn("DllName: 'dbghelp.dll'", pe_repr)
+        self.assertIn("PDB Path: 'dbghelp.pdb'", pe_repr)
+        self.assertIn("00000000 (08)   Name: .rsrc", pe_repr)
+        self.assertIn("00000048 (02)     MajorSubsystemVersion: 0x00000005 (5)", pe_repr)

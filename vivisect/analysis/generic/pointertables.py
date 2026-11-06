@@ -5,8 +5,7 @@ instructions.  However, if they are pointer-length aligned *and* back-to-back
 they are probably really pointers...
 """
 
-from vivisect.const import *
-
+import vivisect.const as v_const
 
 def handleArray(vw, plist):
     tlist = []
@@ -16,7 +15,7 @@ def handleArray(vw, plist):
             vw.makePointer(va)
         loctup = vw.getLocation(targ)
         if loctup is not None:
-            ltype = loctup[L_LTYPE]
+            ltype = loctup[v_const.L_LTYPE]
             if ltype not in tlist:
                 tlist.append(ltype)
 
@@ -37,18 +36,18 @@ def analyze(vw):
             if lastva != va - align:
                 nloc = vw.getLocation(lastva+align)
                 while nloc is not None:
-                    if nloc[L_LTYPE] != LOC_POINTER:
+                    if nloc[v_const.L_LTYPE] != v_const.LOC_POINTER:
                         break
-                    lva = nloc[L_VA]
+                    lva = nloc[v_const.L_VA]
                     plist.append((lva, vw.castPointer(lva)))
-                    nloc = vw.getLocation(lva + nloc[L_SIZE])
+                    nloc = vw.getLocation(lva + nloc[v_const.L_SIZE])
 
             if lastva != va - align:
                 if len(plist) > rlen:
                     handleArray(vw, plist)
                 plist = []
 
-        plist.append((va,pval))
+        plist.append((va, pval))
 
     # Handle possible last plist
     if len(plist) > rlen:

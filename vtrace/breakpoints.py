@@ -99,7 +99,7 @@ class Breakpoint:
             try:
                 self.address = trace.parseExpression(self.vte)
 
-            except Exception as e:
+            except Exception:
                 # this will happen with unresolved breakpoints.  
                 # depending on when resolution happens, the library may not have loaded yet.
                 if not self._complained:

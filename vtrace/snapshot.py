@@ -169,11 +169,10 @@ def takeSnapshot(trace):
     Take a snapshot of the process from the current state and return
     a reference to a tracer which wraps a "snapshot" or "core file".
     '''
-    sd = dict()
-    orig_thread = trace.getMeta("ThreadId")
+    sd = {}
 
-    regs = dict()
-    stacktrace = dict()
+    regs = {}
+    stacktrace = {}
 
     for thrid, tdata in trace.getThreads().items():
         ctx = trace.getRegisterContext(thrid)

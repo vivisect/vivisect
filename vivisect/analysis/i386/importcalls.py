@@ -1,11 +1,10 @@
-
 """
 An analysis module that looks for likely *code* pointers by
 checking for them to be pointing to imports and having
 "call [deref]" bytes before them.
 """
 
-from vivisect.const import *
+import vivisect.const as v_const
 
 
 def analyze(vw):
@@ -16,14 +15,14 @@ def analyze(vw):
         if loc is None:
             continue
 
-        if loc[L_LTYPE] != LOC_IMPORT:
+        if loc[v_const.L_LTYPE] != v_const.LOC_IMPORT:
             continue
 
-        offset, bytes = vw.getByteDef(va)
+        offset, byts = vw.getByteDef(va)
         if offset < 2:
             continue
 
-        if bytes[offset-2:offset] == b"\xff\x15":  # call [importloc]
+        if byts[offset-2:offset] == b"\xff\x15":  # call [importloc]
             # If there's a pointer here, remove it.
             if vw.getLocation(va):
                 vw.delLocation(va)

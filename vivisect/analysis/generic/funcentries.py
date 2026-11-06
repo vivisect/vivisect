@@ -9,10 +9,11 @@ that the code this finds is dead...
 import logging
 import traceback
 
-import envi
-import envi.memory as e_mem
+import envi.exc as e_exc
 import envi.const as e_const
-import vivisect
+
+import vivisect.exc as v_exc
+import vivisect.const as v_const
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def analyze(vw):
             va = mapva + i
             loctup = vw.getLocation(va)
             if loctup is not None:
-                i += loctup[vivisect.L_SIZE]
+                i += loctup[v_const.L_SIZE]
                 continue
 
             i += 1
@@ -51,11 +52,11 @@ def analyze(vw):
                     logger.debug('discovered new function (by signature): 0x%x', va)
                     vw.makeFunction(va)
 
-            except vivisect.InvalidLocation as msg:
+            except v_exc.InvalidLocation as msg:
                 logger.error("InvalidLocation: %s", msg)
-            except envi.InvalidInstruction:
+            except e_exc.InvalidInstruction:
                 continue
-            except envi.EnviException as msg:
+            except e_exc.EnviException as msg:
                 logger.error("%s: %s" % (msg.__class__.__name__, msg))
             except Exception:
                 logger.error(traceback.format_exc())

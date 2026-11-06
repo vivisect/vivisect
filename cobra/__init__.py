@@ -324,10 +324,6 @@ class SocketBuilder:
 
     def __call__(self):
 
-        host = self.host
-        port = self.port
-        timeout = self.timeout
-
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if self.timeout is not None:
             sock.settimeout(self.timeout)
@@ -421,6 +417,8 @@ class CobraClientSocket(CobraSocket):
         while self.retrymax is None or self.retries < self.retrymax:
             logger.info("COBRA: Reconnection Attempt\n")
             try:
+                if self.socket:
+                    self.socket.close()
 
                 self.socket = self.sockctor()
 

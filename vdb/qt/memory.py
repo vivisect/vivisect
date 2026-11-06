@@ -7,8 +7,8 @@ import envi.qt.memcanvas
 from vqt.main import *
 from vqt.common import *
 
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QApplication
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QApplication
 
 class VDBACT:
 
@@ -63,7 +63,7 @@ class VdbMemoryCanvas(envi.qt.memcanvas.VQMemoryCanvas):
         self._menuFollow(self._canv_curva)
 
     def mouseDoubleClickEvent(self, event):
-        if event.button() != QtCore.Qt.LeftButton:
+        if event.button() != QtCore.Qt.MouseButton.LeftButton:
             return
 
         self._menuFollow(self._canv_curva)

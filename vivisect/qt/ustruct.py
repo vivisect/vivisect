@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QTextEdit, QDialogButtonBox, QMessageBox
+from PyQt6.QtWidgets import QWidget, QTextEdit, QDialogButtonBox, QMessageBox
 
 from vqt.basics import *
 
@@ -33,7 +33,7 @@ class UserStructEditor(QWidget):
         self.srcedit.setText(ssrc)
         self.srcedit.textChanged.connect(self._text_changed)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Save, parent=self)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save, parent=self)
         buttons.accepted.connect(self._save_event)
 
         self._set_title()
@@ -60,7 +60,7 @@ class UserStructEditor(QWidget):
             self._v_changed = False
             self._set_title()
         except Exception as e:
-            QMessageBox.warning(self, 'Syntax Error', str(e), QMessageBox.Ok)
+            QMessageBox.warning(self, 'Syntax Error', str(e), QMessageBox.StandardButton.Ok)
 
     def _text_changed(self):
         self._v_changed = True

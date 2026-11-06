@@ -4,16 +4,15 @@ import traceback
 import collections
 
 import Elf
-import Elf.elf_lookup as elf_lookup
 
-import envi.exc as e_exc
 import envi.bits as e_bits
 import envi.const as e_const
 
-import vivisect
+import vivisect.exc as v_exc
+import vivisect.const as v_const
 import vivisect.parsers as v_parsers
 
-from vivisect.const import *
+import vstruct.defs.constants.elf as vdc_elf
 
 from io import BytesIO
 
@@ -43,7 +42,7 @@ def parseFd(vw, fd, filename=None, baseaddr=None):
     return loadElfIntoWorkspace(vw, elf, filename=filename, baseaddr=baseaddr)
 
 def parseMemory(vw, memobj, baseaddr):
-    raise Exception('FIXME implement parseMemory for elf!')
+    raise NotImplementedError('FIXME implement parseMemory for elf!')
 
 def getMemBaseAndSize(vw, elf, baseaddr=None):
     '''
@@ -108,6 +107,7 @@ def getMemoryMapInfo(elf, fname=None, baseaddr=None):
         maps.sort()
 
         merged = []
+        # TODO: We have enumerate. use it.
         for i in range(len(maps)):
 
             if merged and maps[i][0] == (merged[-1][0] + merged[-1][1]):
@@ -138,8 +138,8 @@ def makeStringTable(vw, va, maxva):
             try:
                 if vw.isLocation(va):
                     return
-                l = vw.makeString(va)
-                va += l[vivisect.L_SIZE]
+                sloc = vw.makeString(va)
+                va += sloc[v_const.L_SIZE]
             except Exception as e:
                 logger.warning("makeStringTable\t%r", e)
                 return
@@ -168,6 +168,7 @@ def makeDynamicTable(vw, va, maxva, baseoff=0):
             break
     return ret
 
+# TODO: how is baseoff supposed to be used?
 def makeRelocTable(vw, va, maxva, baseoff, addend=False):
     if addend:
         sname = 'elf.Elf%dReloca' % (vw.getPointerSize() * 8)
@@ -186,15 +187,14 @@ def makeFunctionTable(elf, vw, tbladdr, size, tblname, funcs, ptrs, baseoff=0):
 
     # If the provided buffer is shorter than the standard pointer size, use the
     # buffer length
-    if size < psize:
-        psize = size
+    psize = min(psize, size)
 
     fmtgrps = e_bits.fmt_chars[vw.getEndian()]
     pfmt = fmtgrps[psize]
 
     if size % psize != 0:
         # If the table size isn't a multiple of the pointer size, round down.
-        # It doesn't really make sense for this to be the case, 
+        # It doesn't really make sense for this to be the case,
         # but this is seen in a small number of real world samples.
         size -= (size % psize)
 
@@ -532,7 +532,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                 (stype == Elf.STT_GNU_IFUNC and arch in ('i386', 'amd64')):   # HACK: linux is what we're really after.
             try:
                 new_functions.append(("DynSym: STT_FUNC", sva))
-                vw.addExport(sva, EXP_FUNCTION, dmglname, fname, makeuniq=True)
+                vw.addExport(sva, v_const.EXP_FUNCTION, dmglname, fname, makeuniq=True)
                 vw.setComment(sva, s.name)
             except Exception as e:
                 vw.vprint('addExport Failure: (%s) %s' % (s.name, e))
@@ -540,7 +540,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         elif stype == Elf.STT_OBJECT:
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, dmglname, fname, makeuniq=True)
+                    vw.addExport(sva, v_const.EXP_DATA, dmglname, fname, makeuniq=True)
                     vw.setComment(sva, s.name)
                 except Exception:
                     vw.vprint('STT_OBJECT Warning: %s' % traceback.format_exc())
@@ -553,7 +553,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if vw.isValidPointer(sva):
                 try:
                     new_functions.append(("DynSym: STT_HIOS", sva))
-                    vw.addExport(sva, EXP_FUNCTION, dmglname, fname, makeuniq=True)
+                    vw.addExport(sva, v_const.EXP_FUNCTION, dmglname, fname, makeuniq=True)
                     vw.setComment(sva, s.name)
                 except Exception:
                     vw.vprint('STT_HIOS Warning:\n%s' % traceback.format_exc())
@@ -563,7 +563,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             sva += baseoff
             if vw.isValidPointer(sva):
                 try:
-                    vw.addExport(sva, EXP_DATA, dmglname, fname, makeuniq=True)
+                    vw.addExport(sva, v_const.EXP_DATA, dmglname, fname, makeuniq=True)
                     vw.setComment(sva, s.name)
                 except Exception:
                     vw.vprint('STT_MDPROC Warning:\n%s' % traceback.format_exc())
@@ -573,13 +573,13 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
 
         if dmglname in postfix:
             for rlva, addend in postfix[dmglname]:
-                vw.addRelocation(rlva, RTYPE_BASEPTR, sva + addend - baseoff)
+                vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, sva + addend - baseoff)
 
     vaSetNames = vw.getVaSetNames()
-    if not 'FileSymbols' in vaSetNames:
-        vw.addVaSet("FileSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
-    if not 'WeakSymbols' in vaSetNames:
-        vw.addVaSet("WeakSymbols", (("Name", VASET_STRING), ("va", VASET_ADDRESS)))
+    if 'FileSymbols' not in vaSetNames:
+        vw.addVaSet("FileSymbols", (("Name", v_const.VASET_STRING), ("va", v_const.VASET_ADDRESS)))
+    if 'WeakSymbols' not in vaSetNames:
+        vw.addVaSet("WeakSymbols", (("Name", v_const.VASET_STRING), ("va", v_const.VASET_ADDRESS)))
 
     # apply symbols to workspace (if any)
     relocs = [r for idx, r in elf.getRelocs()]
@@ -589,9 +589,9 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
         sva = s.st_value
         shndx = s.st_shndx
         if elf.isRelocatable():
-            if shndx == elf_lookup.SHN_ABS:
+            if shndx == vdc_elf.SHN_ABS:
                 pass
-            elif shndx in elf_lookup.shn_special_section_indices:
+            elif shndx in vdc_elf.shn_special_section_indices:
                 # TODO: We should do things with SHN_ABS
                 pass
             else:
@@ -640,13 +640,13 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
             if sva == 0x0:
                 # if the address of the symbol is 0x0,
                 # then it is probably an extern object, like the environ pointer provided by glibc.
-                logger.debug("STT_OBJECT symbol %s@0x%x has address 0x0: skipping.", 
+                logger.debug("STT_OBJECT symbol %s@0x%x has address 0x0: skipping.",
                              symname or "",
                              sva)
             elif not vw.isValidPointer(sva):
-                # if the address of the symbol is invalid, 
+                # if the address of the symbol is invalid,
                 # this is weird, but we'll try to carry on.
-                logger.debug("STT_OBJECT symbol %s@0x%x has invalid address: skipping.", 
+                logger.debug("STT_OBJECT symbol %s@0x%x has invalid address: skipping.",
                              symname or "",
                              sva)
             else:
@@ -674,7 +674,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                         # or a null-initialized pointer, like `void *foo = NULL;`
                         # without analyzing how this data is used, we can't tell.
                         # so assume its a number for now.
-                        logger.debug("STT_OBJECT symbol %s@0x%x with zero size and NULL value: guessing number 0x0", 
+                        logger.debug("STT_OBJECT symbol %s@0x%x with zero size and NULL value: guessing number 0x0",
                                      symname or "",
                                      sva)
                         vw.makeNumber(sva, size=vw.getPointerSize())
@@ -700,17 +700,17 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                         # or a null-initialized pointer, like `void *foo = NULL;`
                         # without analyzing how this data is used, we can't tell.
                         # so assume its a number for now.
-                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size and NULL value: guessing number 0x0", 
+                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size and NULL value: guessing number 0x0",
                                      symname or "",
                                      sva)
                         vw.makeNumber(sva, size=vw.getPointerSize())
                     elif vw.isValidPointer(valu):
-                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing valid pointer", 
+                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing valid pointer",
                                      symname or "",
                                      sva)
                         new_pointers.append((sva, valu, symname or ""))
                     else:
-                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing number", 
+                        logger.debug("STT_OBJECT symbol %s@0x%x with pointer size: guessing number",
                                      symname or "",
                                      sva)
                         vw.makeNumber(sva, size=vw.getPointerSize())
@@ -726,12 +726,12 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     logger.debug("STT_OBJECT symbol %s@0x%x: guessing number", 
                                  symname or "",
                                  sva)
-                    # we don't really know how to interpret the data, 
+                    # we don't really know how to interpret the data,
                     # so fall back to a number.
                     vw.makeNumber(sva, size=s.st_size)
                 else:
                     # we really don't know what to do, and thats ok.
-                    logger.warning("STT_OBJECT symbol %s@0x%x with unaligned size: unknown data", 
+                    logger.warning("STT_OBJECT symbol %s@0x%x with unaligned size: unknown data",
                                    symname or "",
                                    sva)
 
@@ -773,7 +773,7 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
     eentry = baseoff + elf.e_entry
 
     if vw.isValidPointer(eentry):
-        vw.addExport(eentry, EXP_FUNCTION, '__entry', fname)
+        vw.addExport(eentry, v_const.EXP_FUNCTION, '__entry', fname)
         new_functions.append(("ELF Entry", eentry))
 
     if elfHdrAtOffset0 and vw.isValidPointer(baseaddr):
@@ -816,7 +816,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
         rlva = r.r_offset
         if elf.isRelocatable():
             container = elf.getSectionByIndex(secidx)
-            if container.sh_flags & elf_lookup.SHF_INFO_LINK:
+            if container.sh_flags & vdc_elf.SHF_INFO_LINK:
                 othr = elf.getSectionByIndex(container.sh_info)
                 if othr:
                     rlva += othr.sh_addr
@@ -835,7 +835,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     if rtype == Elf.R_X86_64_IRELATIVE:
                         # before making import, let's fix up the pointer as a BASEPTR Relocation
                         ptr = r.r_addend
-                        rloc = vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
+                        rloc = vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                         if rloc:
                             logger.info('Reloc: R_X86_64_IRELATIVE 0x%x', rlva)
 
@@ -846,7 +846,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
 
                     elif rtype == Elf.R_386_COPY:  # Also covers X86_64_COPY
                         # the linker is responsible for filling these in so we probably won't have these
-                        vw.addRelocation(rlva, RTYPE_BASERELOC, 0)
+                        vw.addRelocation(rlva, v_const.RTYPE_BASERELOC, 0)
 
                     elif rtype == Elf.R_386_32:  # Also covers X86_64_64
                         # a direct punch in plus an addend
@@ -865,24 +865,24 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     if rtype == Elf.R_386_RELATIVE: # R_X86_64_RELATIVE is the same number
                         ptr = vw.readMemoryPtr(rlva)
                         logger.info('R_386_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
+                        vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
 
                     elif arch == 'amd64' and rtype == Elf.R_X86_64_32S:
                         # the same as R_386_32 except we don't always get a name.
                         ptr = r.r_addend
                         symbol = elf.getSymbols()[r.getSymTabIndex()]
                         valu = symbol.st_value
-                        if symbol.getInfoType() == elf_lookup.STT_SECTION:
+                        if symbol.getInfoType() == vdc_elf.STT_SECTION:
                             ref = elf.getSectionByIndex(symbol.st_shndx)
                             if ref:
                                 valu = ref.sh_addr
-                        vw.addRelocation(rlva, RTYPE_BASEOFF, data=symbol.st_value + ptr, size=4)
+                        vw.addRelocation(rlva, v_const.RTYPE_BASEOFF, data=valu + ptr, size=4)
 
                     elif rtype == Elf.R_X86_64_IRELATIVE:
                         # first make it a relocation that is based on the imagebase
                         ptr = r.r_addend
                         logger.info('R_X86_64_IRELATIVE: adding Relocation 0x%x -> 0x%x (name: %r %r) ', rlva, ptr, name, dmglname)
-                        rloc = vw.addRelocation(rlva, RTYPE_BASEPTR, ptr)
+                        rloc = vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                         if rloc is not None:
                             continue
 
@@ -965,9 +965,9 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                         logger.info('R_ARM_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         # even if addRelocation fails, still make the name, same thing down in GLOB_DAT
                         if addbase:
-                            vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                            vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                         else:
-                            vw.addRelocation(rlva, vivisect.RTYPE_BASERELOC, ptr)
+                            vw.addRelocation(rlva, v_const.RTYPE_BASERELOC, ptr)
                         pname = "ptr_%s_%.8x" % (name, rlva)
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
@@ -992,9 +992,9 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     if ptr:
                         logger.info('R_ARM_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         if addbase:
-                            vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                            vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                         else:
-                            vw.addRelocation(rlva, vivisect.RTYPE_BASERELOC, ptr)
+                            vw.addRelocation(rlva, v_const.RTYPE_BASERELOC, ptr)
                         pname = "ptr_%s" % name
 
                         if vw.vaByName(pname) is None:
@@ -1016,7 +1016,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
 
                     if ptr:
                         logger.info('R_ARM_ABS32: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                         pname = "ptr_%s" % name
                         if vw.vaByName(pname) is None and len(name):
                             vw.makeName(rlva, pname)
@@ -1031,7 +1031,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                 elif rtype == Elf.R_ARM_RELATIVE:   # Adjust locations for the rebasing
                     ptr = vw.readMemoryPtr(rlva)
                     logger.info('R_ARM_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
-                    vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                    vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                     if len(name):
                         vw.makeName(rlva, dmglname, makeuniq=True)
                         if name != dmglname:
@@ -1100,9 +1100,9 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                         logger.info('R_AARCH64_JUMP_SLOT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         # even if addRelocation fails, still make the name, same thing down in GLOB_DAT
                         if addbase:
-                            vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                            vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                         else:
-                            vw.addRelocation(rlva, vivisect.RTYPE_BASERELOC, ptr)
+                            vw.addRelocation(rlva, v_const.RTYPE_BASERELOC, ptr)
                         pname = "ptr_%s_%.8x" % (name, rlva)
                         if vw.vaByName(pname) is None:
                             vw.makeName(rlva, pname)
@@ -1127,9 +1127,9 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                     if ptr:
                         logger.info('R_AARCH64_GLOB_DAT: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
                         if addbase:
-                            vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                            vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                         else:
-                            vw.addRelocation(rlva, vivisect.RTYPE_BASERELOC, ptr)
+                            vw.addRelocation(rlva, v_const.RTYPE_BASERELOC, ptr)
                         pname = "ptr_%s" % name
 
                         if vw.vaByName(pname) is None:
@@ -1151,7 +1151,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
 
                     if ptr:
                         logger.info('R_AARCH64_ABS64: adding Relocation 0x%x -> 0x%x (%s) ', rlva, ptr, dmglname)
-                        vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                        vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                         pname = "ptr_%s" % name
                         if vw.vaByName(pname) is None and len(name):
                             vw.makeName(rlva, pname)
@@ -1166,7 +1166,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                 elif rtype == Elf.R_AARCH64_RELATIVE:   # Adjust locations for the rebasing
                     ptr = vw.readMemoryPtr(rlva)
                     logger.info('R_AARCH64_RELATIVE: adding Relocation 0x%x -> 0x%x (name: %s) ', rlva, ptr, dmglname)
-                    vw.addRelocation(rlva, vivisect.RTYPE_BASEPTR, ptr)
+                    vw.addRelocation(rlva, v_const.RTYPE_BASEPTR, ptr)
                     if len(name):
                         vw.makeName(rlva, dmglname, makeuniq=True)
                         if name != dmglname:
@@ -1184,7 +1184,7 @@ def applyRelocs(elf, vw, addbase=False, baseoff=0):
                             vw.setComment(rlva, name)
 
 
-        except vivisect.InvalidLocation as e:
+        except v_exc.InvalidLocation as e:
             logger.warning("NOTE\t%r", e)
 
     return postfix
@@ -1218,6 +1218,9 @@ def demangle(name):
     try:
         import cxxfilt
         name = cxxfilt.demangle(name)
+    except ModuleNotFoundError:
+        # NOT USEFUL
+        pass
     except Exception as e:
         logger.debug('failed to demangle name (%r): %r', name, e)
 
@@ -1327,6 +1330,4 @@ Accesses which are impacted by these addresses/offsets:
 If a file isn't intended for relocation, this can cause problems because:
     * Pointers can be hard-coded into the instructions themselves
     * ELF headers/Dynamics can not understand the relocatable parts
-
-    
 '''

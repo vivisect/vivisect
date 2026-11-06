@@ -65,9 +65,8 @@ class i386WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_i386.IntelEmulator
             # xor register initialization
             return False
 
-        else:
-            # if op mnem is in blacklist, it's not a use either
-            if op.mnem in non_use_mnems:
-                return False
+        # if op mnem is in blacklist, it's not a use either
+        if op.mnem in non_use_mnems:
+            return False
 
         return True

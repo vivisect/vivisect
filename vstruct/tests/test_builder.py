@@ -1,8 +1,5 @@
-import os
-import binascii
 import unittest
 
-import vstruct
 import vstruct.cparse as vs_cparse
 import vstruct.builder as vs_builder
 

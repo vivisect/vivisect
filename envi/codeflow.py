@@ -5,8 +5,6 @@ import logging
 import collections
 
 import envi
-import envi.common as e_cmn
-import envi.memory as e_mem
 import envi.const as e_const
 
 logger = logging.getLogger(__name__)
@@ -181,7 +179,7 @@ class CodeFlowContext(object):
             # FIXME: if IF_BRANCH and not IF_COND and len(branches)<1: _cb_dynamic_branch()
             # FIXME: if IF_CALL and len(branches)<2: _cb_dynamic_branch()
 
-            while len(branches):
+            while branches:
 
                 bva, bflags = branches.pop()
 
@@ -221,6 +219,7 @@ class CodeFlowContext(object):
 
                         bva = self._mem.readMemoryPtr(bva)
 
+                    # TODO: Combine these checks with some bithackery to save a function call tree?
                     if not self._mem.probeMemory(bva, 1, e_const.MM_EXEC):
                         continue
 

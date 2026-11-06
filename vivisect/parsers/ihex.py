@@ -1,9 +1,11 @@
+import logging
+
 import envi
 import vstruct.defs.ihex as v_ihex
-import vivisect.parsers as v_parsers
-from vivisect.const import *
 
-import logging
+import vivisect.const as v_const
+import vivisect.parsers as v_parsers
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,6 +36,7 @@ def parseFile(vw, filename, baseaddr=None):
     offset = vw.config.viv.parsers.ihex.offset
     if not offset:
         offset = 0
+    # TODO: why are we overriding a config option here?
     vw.config.viv.parsers.ihex.offset = 0
 
     # might we make use of baseaddr, even though it's an IHEX?  for now, no.
@@ -55,17 +58,18 @@ def parseFile(vw, filename, baseaddr=None):
 
         for eva in ihex.getEntryPoints():
             if eva is not None:
-                vw.addExport(eva, EXP_FUNCTION, '__entry', fname, makeuniq=True)
+                vw.addExport(eva, v_const.EXP_FUNCTION, '__entry', fname, makeuniq=True)
                 logger.info('adding function from IHEX metadata: 0x%x (_entry)', eva)
                 vw.addEntryPoint(eva)
 
-        for addr, perms, notused, bytes in ihex.getMemoryMaps():
-            vw.addMemoryMap(addr, perms, fname, bytes)
-            vw.addSegment(addr, len(bytes), '%.8x' % addr, fname)
+        for addr, perms, _, byts in ihex.getMemoryMaps():
+            vw.addMemoryMap(addr, perms, fname, byts)
+            vw.addSegment(addr, len(byts), '%.8x' % addr, fname)
 
 
 def parseMemory(vw, memobj, baseaddr):
-    raise Exception('ihex loader cannot parse memory!')
+    raise NotImplementedError('ihex loader cannot parse memory!')
+
 
 def getMemBaseAndSize(vw, ihex, baseaddr=None):
     '''
@@ -78,16 +82,13 @@ def getMemBaseAndSize(vw, ihex, baseaddr=None):
     topmem = 0
 
     for mapva, mperms, mname, mbytes in memmaps:
-        if mapva < baseaddr:
-            baseaddr = mapva
+        baseaddr = min(baseaddr, mapva)
         endva = mapva + len(mbytes)
-        if endva > topmem:
-            topmem = endva
+        topmem = max(topmem, endva)
 
     size = topmem - baseaddr
     if savebase:
         # if we provided a baseaddr, override what the file wants
         baseaddr = savebase
-        
-    return baseaddr, size
 
+    return baseaddr, size

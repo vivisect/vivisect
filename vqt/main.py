@@ -5,8 +5,8 @@ import functools
 from queue import Queue
 from threading import current_thread
 
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import *
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import *
 
 import envi.threads as e_threads
 
@@ -206,7 +206,29 @@ def main():
     if not iAmQtSafeThread():
         raise Exception('main() must be called by same thread as startup()!')
 
-    qapp.exec_()
+    qapp.exec()
+    _shutdown()
+
+def _shutdown():
+    '''
+    Cleanly shut down the gui and worker threads so Qt doesn't
+    segfault during teardown (PyQt6 is strict about this).
+    '''
+    global ethread
+    global guiq
+    global workerq
+
+    # Send sentinel values to tell both threads to exit
+    guiq.append((None, None, None))
+    workerq.append((None, None, None))
+
+    # Wait for threads to finish (with timeout to avoid hanging)
+    if ethread is not None:
+        ethread.wait(2000)
+
+    # Prevent any further queued callbacks from firing
+    guiq.shutdown()
+    workerq.shutdown()
 
 def eatevents():
     global qapp

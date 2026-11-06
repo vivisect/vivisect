@@ -1,7 +1,7 @@
 '''
 A unified context menu builder for all address context clicks.
 '''
-from PyQt5.QtWidgets import QMenu
+from PyQt6.QtWidgets import QMenu
 
 import envi
 import envi.bits as e_bits

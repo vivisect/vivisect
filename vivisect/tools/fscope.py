@@ -2,7 +2,7 @@
 Home of the newer, cleaner iterators (yield based generators...)
 '''
 import envi
-import vivisect
+import vivisect.const as v_const
 
 
 def iterOps(vw, va):
@@ -31,7 +31,7 @@ def iterOps(vw, va):
                 # Go through the locations in this code block
                 lva, lsize, ltype, linfo = vw.getLocation(cbva)
                 for xrfrom, xrto, rtype, rflags in vw.getXrefsFrom(lva):
-                    if rtype != vivisect.REF_CODE:
+                    if rtype != v_const.REF_CODE:
                         continue
 
                     # Skip non-procedural branches
@@ -69,7 +69,7 @@ def getImportCalls(vw, va):
     for lva in iterOps(vw, va):
 
         for xrfrom, xrto, rtype, rflags in vw.getXrefsFrom(lva):
-            if rtype != vivisect.REF_CODE:
+            if rtype != v_const.REF_CODE:
                 continue
 
             # Skip non-procedural branches
@@ -81,7 +81,7 @@ def getImportCalls(vw, va):
                 loc = vw.getLocation(xrto)
                 if loc is not None:
                     drva, drsize, drtype, drinfo = loc
-                    if drtype == vivisect.LOC_IMPORT:
+                    if drtype == v_const.LOC_IMPORT:
                         ret.append((lva, drinfo))
     return ret
 
@@ -97,7 +97,7 @@ def getStringRefs(vw, va):
     ret = []
     for lva in iterOps(vw, va):
         for xrfrom, xrto, rtype, rflags in vw.getXrefsFrom(lva):
-            if rtype != vivisect.REF_PTR:
+            if rtype != v_const.REF_PTR:
                 continue
 
             ploc = vw.getLocation(xrto)
@@ -105,10 +105,10 @@ def getStringRefs(vw, va):
                 continue
 
             plva, plsize, pltype, plinfo = ploc
-            if pltype == vivisect.LOC_STRING:
+            if pltype == v_const.LOC_STRING:
                 r = vw.reprLocation(ploc)
                 ret.append((lva, plva, r))
-            elif pltype == vivisect.LOC_UNI:
+            elif pltype == v_const.LOC_UNI:
                 r = vw.reprLocation(ploc)
                 ret.append((lva, plva, r))
 
