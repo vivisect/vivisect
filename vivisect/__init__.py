@@ -2716,6 +2716,54 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             name = basename
         return name
 
+    def demangle(self, name, structured=False):
+        '''
+        Demangle a C++/Rust/D/Swift/JNI/ObjC mangled symbol name on demand.
+
+        This is the on-demand API — it can be called any time, not just
+        during binary loading.  Uses the vivisect.demangle library which
+        supports all major compiler mangling formats.
+
+        Args:
+            name (str): The mangled symbol name.
+            structured (bool): If True, return a DemangledSymbol object
+                with parsed components (scope, parameters, return type,
+                etc.).  If False (default), return the demangled string.
+
+        Returns:
+            str or DemangledSymbol: The demangled name, or the original
+            if demangling fails (graceful degradation).
+        '''
+        from vivisect.demangle import demangle as _demangle
+        return _demangle(name, structured=structured)
+
+    def demangleNameAtVa(self, va, apply=True):
+        '''
+        Demangle the name at a given VA and optionally apply the
+        demangled name to the workspace.
+
+        Args:
+            va (int): The virtual address of the symbol.
+            apply (bool): If True (default), update the workspace name
+                at this VA with the demangled result.
+
+        Returns:
+            str: The demangled name, or the original if demangling fails.
+        '''
+        curname = self.getName(va)
+        if curname is None:
+            return None
+
+        from vivisect.demangle import demangle as _demangle
+        newname = _demangle(curname)
+        if newname != curname:
+            # Preserve the _%.8x suffix if present
+            if curname.endswith("_%.8x" % va) and not newname.endswith("_%.8x" % va):
+                newname += ("_%.8x" % va)
+            if apply:
+                self.makeName(va, newname)
+        return newname
+
     def makeName(self, va, name, filelocal=False, makeuniq=False):
         """
         Set a readable name for the given location by va. There

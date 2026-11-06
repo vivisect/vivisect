@@ -14,6 +14,8 @@ import vivisect.parsers as v_parsers
 
 import vstruct.defs.constants.elf as vdc_elf
 
+import vivisect.demangle as v_demangle
+
 from io import BytesIO
 
 
@@ -1200,31 +1202,14 @@ def isPLT(vw, va):
         return True
     return False
 
-def normName(name):
-    '''
-    Normalize symbol names.  ie. drop the @@GOBBLEDEGOOK from the end
-    '''
-    atidx = name.find('@@')
-    if atidx > -1:
-        name = name[:atidx]
-    return name
-
 def demangle(name):
     '''
     Translate C++ mangled name back into the verbose C++ symbol name (with helpful type info)
+
+    Uses the vivisect.demangle library which supports Itanium (GCC/Clang),
+    MSVC, Rust, D, Swift, JNI, and Objective-C mangling formats.
     '''
-    name = normName(name)
-
-    try:
-        import cxxfilt
-        name = cxxfilt.demangle(name)
-    except ModuleNotFoundError:
-        # NOT USEFUL
-        pass
-    except Exception as e:
-        logger.debug('failed to demangle name (%r): %r', name, e)
-
-    return name
+    return v_demangle.demangle(name)
 
 def getRelRo(elf):
     status = 0
