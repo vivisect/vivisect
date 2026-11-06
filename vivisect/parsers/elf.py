@@ -1200,15 +1200,6 @@ def isPLT(vw, va):
         return True
     return False
 
-def normName(name):
-    '''
-    Normalize symbol names.  ie. drop the @@GOBBLEDEGOOK from the end
-    '''
-    atidx = name.find('@@')
-    if atidx > -1:
-        name = name[:atidx]
-    return name
-
 def demangle(name):
     '''
     Translate C++ mangled name back into the verbose C++ symbol name (with helpful type info)
@@ -1216,7 +1207,6 @@ def demangle(name):
     Uses the vivisect.demangle library which supports Itanium (GCC/Clang),
     MSVC, Rust, D, Swift, JNI, and Objective-C mangling formats.
     '''
-    name = normName(name)
     from vivisect.demangle import demangle as _demangle
     return _demangle(name)
 
