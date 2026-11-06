@@ -18,7 +18,7 @@ import envi.bits as e_bits
 import envi.const as e_const
 import envi.symstore.symcache as e_symcache
 
-from vivisect.demangle import demangle
+import vivisect.demangle as v_demangle
 
 logger = logging.getLogger(__name__)
 
@@ -446,7 +446,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
 
         # Demangle C++ symbols (MSVC ? prefix, Itanium _Z prefix, etc.)
         # This was previously missing — MSVC-mangled names passed through raw.
-        dmglname = demangle(name)
+        dmglname = v_demangle.demangle(name)
         if dmglname != name:
             # Preserve the original mangled name as a comment
             vw.setComment(eva, name)

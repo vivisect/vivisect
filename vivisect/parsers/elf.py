@@ -14,6 +14,8 @@ import vivisect.parsers as v_parsers
 
 import vstruct.defs.constants.elf as vdc_elf
 
+import vivisect.demangle as v_demangle
+
 from io import BytesIO
 
 
@@ -1207,8 +1209,7 @@ def demangle(name):
     Uses the vivisect.demangle library which supports Itanium (GCC/Clang),
     MSVC, Rust, D, Swift, JNI, and Objective-C mangling formats.
     '''
-    from vivisect.demangle import demangle as _demangle
-    return _demangle(name)
+    return v_demangle.demangle(name)
 
 def getRelRo(elf):
     status = 0

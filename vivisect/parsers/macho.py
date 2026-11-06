@@ -8,7 +8,7 @@ import vstruct.defs.macho as vs_macho
 import vstruct.defs.macho.fat as vsm_fat
 import vstruct.defs.macho.const as vsm_const
 
-from vivisect.demangle import demangle
+import vivisect.demangle as v_demangle
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +204,7 @@ def _loadMacho(vw, filebytes, filename=None, baseaddr=None):
             continue
 
         # Demangle C++ symbols (Itanium _Z prefix, ObjC _OBJC_ prefix, etc.)
-        dmglname = demangle(symname)
+        dmglname = v_demangle.demangle(symname)
         if dmglname != symname:
             # Preserve original mangled name as a comment
             vw.setComment(va, symname)
