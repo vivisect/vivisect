@@ -100,7 +100,8 @@ for simdreg in range(VFP_QWORD_REG_COUNT):
 REGS_PREDICATE_BASE_IDX = len(reg_data)
 #sve_preg_names = ['p%d' % i for i in range(16)]
 for pregidx in range(16):
-    reg_data.append(("p%d" % pregidx, 32))  # how big should this be??
+        reg_data.append(("p%d" % pregidx, 256))     # Predicate registers are scalable, from 16-bits to 256-bits
+                                                # based on the SVE register size (from 128-bits->2048-bits)
 
 
 l = locals()
