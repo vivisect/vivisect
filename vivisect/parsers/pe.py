@@ -18,6 +18,8 @@ import envi.bits as e_bits
 import envi.const as e_const
 import envi.symstore.symcache as e_symcache
 
+import vivisect.demangle as v_demangle
+
 logger = logging.getLogger(__name__)
 
 for mod in (PE, vtrace):
@@ -441,6 +443,14 @@ def loadPeIntoWorkspace(vw, pe, filename=None, baseaddr=None):
         # Functions exported by ordinal only have no name
         if not name:
             name = "Ordinal_" + str(ord)
+
+        # Demangle C++ symbols (MSVC ? prefix, Itanium _Z prefix, etc.)
+        # This was previously missing — MSVC-mangled names passed through raw.
+        dmglname = v_demangle.demangle(name)
+        if dmglname != name:
+            # Preserve the original mangled name as a comment
+            vw.setComment(eva, name)
+            name = dmglname
 
         try:
             vw.setVaSetRow('pe:ordinals', (eva, ord))
