@@ -16,7 +16,7 @@ tools pass around.
 
 from vivisect.demangle.common import DemangledSymbol, normalize_name
 
-__all__ = ['Symbol']
+__all__ = ["Symbol"]
 
 
 class Symbol:
@@ -58,21 +58,51 @@ class Symbol:
     """
 
     __slots__ = (
-        'original', 'demangled', 'stripped', 'format', 'kind',
-        'scope', 'name', 'is_template', 'template_args',
-        'is_member', 'is_static', 'is_virtual', 'access',
-        'calling_convention', 'return_type', 'parameters',
-        'cv_qualifiers', 'ref_qualifier', 'abi_tags',
-        'parse_warnings',
+        "original",
+        "demangled",
+        "stripped",
+        "format",
+        "kind",
+        "scope",
+        "name",
+        "is_template",
+        "template_args",
+        "is_member",
+        "is_static",
+        "is_virtual",
+        "access",
+        "calling_convention",
+        "return_type",
+        "parameters",
+        "cv_qualifiers",
+        "ref_qualifier",
+        "abi_tags",
+        "parse_warnings",
     )
 
-    def __init__(self, original='', demangled=None, format='unknown',
-                 kind='unknown', scope=None, name='', is_template=False,
-                 template_args=None, is_member=False, is_static=False,
-                 is_virtual=False, access=None, calling_convention=None,
-                 return_type=None, parameters=None, cv_qualifiers='',
-                 ref_qualifier='', abi_tags=None, stripped=None,
-                 parse_warnings=None):
+    def __init__(
+        self,
+        original="",
+        demangled=None,
+        format="unknown",
+        kind="unknown",
+        scope=None,
+        name="",
+        is_template=False,
+        template_args=None,
+        is_member=False,
+        is_static=False,
+        is_virtual=False,
+        access=None,
+        calling_convention=None,
+        return_type=None,
+        parameters=None,
+        cv_qualifiers="",
+        ref_qualifier="",
+        abi_tags=None,
+        stripped=None,
+        parse_warnings=None,
+    ):
         self.original = original
         self.demangled = demangled if demangled is not None else original
         self.stripped = stripped if stripped is not None else {}
@@ -152,8 +182,11 @@ class Symbol:
         return self.demangled
 
     def __repr__(self):
-        return '<Symbol format=%r kind=%r demangled=%r>' % (
-            self.format, self.kind, self.demangled)
+        return "<Symbol format=%r kind=%r demangled=%r>" % (
+            self.format,
+            self.kind,
+            self.demangled,
+        )
 
     def __eq__(self, other):
         if not isinstance(other, Symbol):

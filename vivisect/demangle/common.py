@@ -5,8 +5,9 @@ vivisect.demangle.common - Shared types and utilities for all demanglers.
 import re
 
 __all__ = [
-    'DemangledSymbol', 'DemangleError',
-    'normalize_name',
+    "DemangledSymbol",
+    "DemangleError",
+    "normalize_name",
 ]
 
 
@@ -17,6 +18,7 @@ class DemangleError(Exception):
     The public :func:`vivisect.demangle.demangle` wrapper catches this and
     returns the original mangled string (graceful degradation).
     """
+
     pass
 
 
@@ -54,21 +56,53 @@ class DemangledSymbol:
     """
 
     __slots__ = (
-        'format', 'full_name', 'kind', 'scope', 'name',
-        'is_template', 'template_args', 'is_member', 'is_static',
-        'is_virtual', 'access', 'calling_convention', 'return_type',
-        'parameters', 'cv_qualifiers', 'ref_qualifier',
-        'this_adjustment', 'abi_tags', 'storage_class',
-        'original_mangled', 'parse_warnings',
+        "format",
+        "full_name",
+        "kind",
+        "scope",
+        "name",
+        "is_template",
+        "template_args",
+        "is_member",
+        "is_static",
+        "is_virtual",
+        "access",
+        "calling_convention",
+        "return_type",
+        "parameters",
+        "cv_qualifiers",
+        "ref_qualifier",
+        "this_adjustment",
+        "abi_tags",
+        "storage_class",
+        "original_mangled",
+        "parse_warnings",
     )
 
-    def __init__(self, format=None, full_name='', name='', kind='unknown',
-                 scope=None, is_template=False, template_args=None,
-                 is_member=False, is_static=False, is_virtual=False,
-                 access=None, calling_convention=None, return_type=None,
-                 parameters=None, cv_qualifiers='', ref_qualifier='',
-                 this_adjustment=0, abi_tags=None, storage_class=None,
-                 original_mangled='', parse_warnings=None):
+    def __init__(
+        self,
+        format=None,
+        full_name="",
+        name="",
+        kind="unknown",
+        scope=None,
+        is_template=False,
+        template_args=None,
+        is_member=False,
+        is_static=False,
+        is_virtual=False,
+        access=None,
+        calling_convention=None,
+        return_type=None,
+        parameters=None,
+        cv_qualifiers="",
+        ref_qualifier="",
+        this_adjustment=0,
+        abi_tags=None,
+        storage_class=None,
+        original_mangled="",
+        parse_warnings=None,
+    ):
         self.format = format
         self.full_name = full_name
         self.kind = kind
@@ -92,8 +126,11 @@ class DemangledSymbol:
         self.parse_warnings = parse_warnings if parse_warnings is not None else []
 
     def __repr__(self):
-        return '<DemangledSymbol format=%r kind=%r full_name=%r>' % (
-            self.format, self.kind, self.full_name)
+        return "<DemangledSymbol format=%r kind=%r full_name=%r>" % (
+            self.format,
+            self.kind,
+            self.full_name,
+        )
 
     def __eq__(self, other):
         if not isinstance(other, DemangledSymbol):
@@ -113,7 +150,7 @@ class DemangledSymbol:
 
 # Regex for stripping ELF @@VERSION or @VERSION suffixes (e.g. @@GLIBC_2.4, @GLIBCXX_3.4)
 # @@ = default version, @ = non-default version (both are version tags)
-_VERSION_SUFFIX_RE = re.compile(r'@@?[A-Za-z0-9_.+-]+$')
+_VERSION_SUFFIX_RE = re.compile(r"@@?[A-Za-z0-9_.+-]+$")
 
 
 def normalize_name(name):
@@ -136,9 +173,9 @@ def normalize_name(name):
     # MSVC mangled symbols start with '?' and use @@ as a scope terminator,
     # so don't strip those.  Use the regex to only strip if the content after
     # @ looks like a version string (not just any @).
-    if not name.startswith('?'):
-        name = _VERSION_SUFFIX_RE.sub('', name)
+    if not name.startswith("?"):
+        name = _VERSION_SUFFIX_RE.sub("", name)
     # Strip trailing NUL
-    if name.endswith('\x00'):
+    if name.endswith("\x00"):
         name = name[:-1]
     return name

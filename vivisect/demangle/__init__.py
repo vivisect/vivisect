@@ -25,30 +25,39 @@ required internet access).  It works fully offline with no native
 dependencies.
 """
 
-from vivisect.demangle.common import DemangledSymbol, DemangleError, normalize_name
-from vivisect.demangle.itanium import demangle_itanium
-from vivisect.demangle.msvc import demangle_msvc
-from vivisect.demangle.rust import demangle_rust
+from vivisect.demangle.common import (DemangledSymbol, DemangleError,
+                                      normalize_name)
 from vivisect.demangle.dlang import demangle_d
-from vivisect.demangle.swift import demangle_swift
+from vivisect.demangle.itanium import demangle_itanium
 from vivisect.demangle.jni import demangle_jni
+from vivisect.demangle.msvc import demangle_msvc
 from vivisect.demangle.objc import demangle_objc
+from vivisect.demangle.rust import demangle_rust
+from vivisect.demangle.swift import demangle_swift
 
 __all__ = [
-    'demangle', 'detect_format',
-    'DemangledSymbol', 'DemangleError',
-    'FORMAT_ITANIUM', 'FORMAT_MSVC', 'FORMAT_RUST', 'FORMAT_D',
-    'FORMAT_SWIFT', 'FORMAT_JNI', 'FORMAT_OBJC', 'FORMAT_UNKNOWN',
+    "demangle",
+    "detect_format",
+    "DemangledSymbol",
+    "DemangleError",
+    "FORMAT_ITANIUM",
+    "FORMAT_MSVC",
+    "FORMAT_RUST",
+    "FORMAT_D",
+    "FORMAT_SWIFT",
+    "FORMAT_JNI",
+    "FORMAT_OBJC",
+    "FORMAT_UNKNOWN",
 ]
 
-FORMAT_ITANIUM = 'itanium'
-FORMAT_MSVC = 'msvc'
-FORMAT_RUST = 'rust'
-FORMAT_D = 'd'
-FORMAT_SWIFT = 'swift'
-FORMAT_JNI = 'jni'
-FORMAT_OBJC = 'objc'
-FORMAT_UNKNOWN = 'unknown'
+FORMAT_ITANIUM = "itanium"
+FORMAT_MSVC = "msvc"
+FORMAT_RUST = "rust"
+FORMAT_D = "d"
+FORMAT_SWIFT = "swift"
+FORMAT_JNI = "jni"
+FORMAT_OBJC = "objc"
+FORMAT_UNKNOWN = "unknown"
 
 # Dispatch table mapping format name -> demangle function.
 # Each function signature: demangle_xxx(mangled: str, structured: bool = False)
@@ -78,41 +87,45 @@ def detect_format(mangled):
         return FORMAT_UNKNOWN
 
     # Itanium: _Z prefix, or __Z prefix (old GCC/NM)
-    if mangled.startswith('_Z') or mangled.startswith('__Z'):
+    if mangled.startswith("_Z") or mangled.startswith("__Z"):
         # Rust legacy also uses _Z but with specific patterns (e.g. _ZN3foo...h<hex>E)
         # We try Itanium first; the Rust handler will fall back if Itanium parse
         # produces something that looks like a Rust hash suffix.
         return FORMAT_ITANIUM
 
     # MSVC: ? prefix
-    if mangled.startswith('?'):
+    if mangled.startswith("?"):
         return FORMAT_MSVC
 
     # Rust v0: _R prefix (RFC 2603)
-    if mangled.startswith('_R'):
+    if mangled.startswith("_R"):
         return FORMAT_RUST
 
     # D language: _D prefix followed by a digit (length-prefixed name) or 'main'
     # Must be tight to avoid matching common ELF symbols like _DYNAMIC, _DATA, etc.
-    if mangled.startswith('_D') and len(mangled) > 2:
-        if mangled[2].isdigit() or mangled[2:6] == 'main':
+    if mangled.startswith("_D") and len(mangled) > 2:
+        if mangled[2].isdigit() or mangled[2:6] == "main":
             return FORMAT_D
 
     # Swift: $s, $S, _T0, $e prefixes
-    if mangled.startswith('$s') or mangled.startswith('$S') or mangled.startswith('_T0'):
+    if (
+        mangled.startswith("$s")
+        or mangled.startswith("$S")
+        or mangled.startswith("_T0")
+    ):
         return FORMAT_SWIFT
     # Embedded Swift uses $e
-    if mangled.startswith('$e') and len(mangled) > 2:
+    if mangled.startswith("$e") and len(mangled) > 2:
         return FORMAT_SWIFT
 
     # Java/JNI: Java_ prefix
-    if mangled.startswith('Java_'):
+    if mangled.startswith("Java_"):
         return FORMAT_JNI
 
     # Objective-C: _OBJC_ prefix or +[/-[ method syntax
-    if mangled.startswith('_OBJC_'):
+    if mangled.startswith("_OBJC_"):
         return FORMAT_OBJC
-    if mangled.startswith('+[') or mangled.startswith('-['):
+    if mangled.startswith("+[") or mangled.startswith("-["):
         return FORMAT_OBJC
 
     return FORMAT_UNKNOWN
@@ -158,7 +171,7 @@ def demangle(mangled, fmt=None, structured=False):
                 full_name=normalized,
                 name=normalized,
                 original_mangled=mangled,
-                parse_warnings=['unknown mangling format'],
+                parse_warnings=["unknown mangling format"],
             )
         return normalized
 
@@ -175,6 +188,6 @@ def demangle(mangled, fmt=None, structured=False):
                 full_name=normalized,
                 name=normalized,
                 original_mangled=mangled,
-                parse_warnings=['demangle failed: %r' % e],
+                parse_warnings=["demangle failed: %r" % e],
             )
         return normalized

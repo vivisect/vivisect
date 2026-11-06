@@ -21,7 +21,7 @@ from vivisect.demangle.msvc.renderer import render
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['demangle_msvc']
+__all__ = ["demangle_msvc"]
 
 
 def demangle_msvc(mangled, structured=False):
@@ -51,20 +51,20 @@ def demangle_msvc(mangled, structured=False):
         demangled = render(ast_root)
         parse_warnings = parser.warnings
     except ParseError as e:
-        logger.debug('MSVC parser failed for %r: %r', mangled, e)
-        parse_warnings.append('parser error: %r' % e)
+        logger.debug("MSVC parser failed for %r: %r", mangled, e)
+        parse_warnings.append("parser error: %r" % e)
     except Exception as e:
-        logger.debug('MSVC parser exception for %r: %r', mangled, e)
-        parse_warnings.append('parser exception: %r' % e)
+        logger.debug("MSVC parser exception for %r: %r", mangled, e)
+        parse_warnings.append("parser exception: %r" % e)
 
     if demangled is None or demangled == mangled or not demangled:
         if structured:
             return DemangledSymbol(
-                format='msvc',
+                format="msvc",
                 full_name=original,
                 name=original,
                 original_mangled=original,
-                parse_warnings=parse_warnings or ['unable to demangle'],
+                parse_warnings=parse_warnings or ["unable to demangle"],
             )
         return original
 
@@ -79,7 +79,7 @@ def demangle_msvc(mangled, structured=False):
 def _build_structured(demangled, original, parse_warnings, ast_root=None):
     """Build a DemangledSymbol from the demangled string and AST."""
     sym = DemangledSymbol(
-        format='msvc',
+        format="msvc",
         full_name=demangled,
         original_mangled=original,
         parse_warnings=parse_warnings,
@@ -98,45 +98,45 @@ def _build_structured(demangled, original, parse_warnings, ast_root=None):
 def _parse_basic_structure(sym, demangled):
     """Best-effort extraction of basic structure from a demangled string."""
     # Check for common MSVC patterns
-    if '`vftable\'' in demangled:
-        sym.kind = 'vtable'
-    elif '`vbtable\'' in demangled:
-        sym.kind = 'vbtable'
-    elif '`RTTI' in demangled:
-        sym.kind = 'rtti'
-    elif 'ctor' in demangled:
-        sym.kind = 'ctor'
-    elif 'dtor' in demangled or '~' in demangled:
-        sym.kind = 'dtor'
-    elif 'operator' in demangled:
-        sym.kind = 'operator'
-    elif '(' in demangled:
-        sym.kind = 'function'
+    if "`vftable'" in demangled:
+        sym.kind = "vtable"
+    elif "`vbtable'" in demangled:
+        sym.kind = "vbtable"
+    elif "`RTTI" in demangled:
+        sym.kind = "rtti"
+    elif "ctor" in demangled:
+        sym.kind = "ctor"
+    elif "dtor" in demangled or "~" in demangled:
+        sym.kind = "dtor"
+    elif "operator" in demangled:
+        sym.kind = "operator"
+    elif "(" in demangled:
+        sym.kind = "function"
     else:
-        sym.kind = 'variable'
+        sym.kind = "variable"
 
     # Extract scope and name
-    if '::' in demangled:
+    if "::" in demangled:
         depth = 0
         split_pos = -1
         for i in range(len(demangled) - 1):
             c = demangled[i]
-            if c == '<':
+            if c == "<":
                 depth += 1
-            elif c == '>':
+            elif c == ">":
                 depth -= 1
-            elif depth == 0 and c == ':' and demangled[i + 1] == ':':
+            elif depth == 0 and c == ":" and demangled[i + 1] == ":":
                 split_pos = i
 
         if split_pos > -1:
-            sym.scope = demangled[:split_pos].split('::')
-            sym.name = demangled[split_pos + 2:]
+            sym.scope = demangled[:split_pos].split("::")
+            sym.name = demangled[split_pos + 2 :]
         else:
             sym.name = demangled
     else:
         sym.name = demangled
 
-    if '<' in sym.name:
+    if "<" in sym.name:
         sym.is_template = True
 
 
@@ -153,7 +153,7 @@ def _populate_from_ast(sym, ast_root):
             sym.name = _render_name_part(qname.basic_name)
 
     if isinstance(ast_root.type_info, ast.FunctionType):
-        sym.kind = 'function' if sym.kind == 'unknown' else sym.kind
+        sym.kind = "function" if sym.kind == "unknown" else sym.kind
         ti = ast_root.type_info
         if ti.access:
             sym.access = ti.access
@@ -163,13 +163,13 @@ def _populate_from_ast(sym, ast_root):
             sym.is_static = True
         if ti.is_virtual:
             sym.is_virtual = True
-        if ti.return_type and ti.return_type != 'void':
+        if ti.return_type and ti.return_type != "void":
             sym.return_type = ti.return_type
-        sym.parameters = [p for p in ti.parameters if p and p != 'void']
+        sym.parameters = [p for p in ti.parameters if p and p != "void"]
         if ti.cv_modifiers:
             sym.cv_qualifiers = ti.cv_modifiers
     elif isinstance(ast_root.type_info, ast.VariableInfo):
-        sym.kind = 'variable' if sym.kind == 'unknown' else sym.kind
+        sym.kind = "variable" if sym.kind == "unknown" else sym.kind
         ti = ast_root.type_info
         if ti.access:
             sym.access = ti.access
@@ -182,8 +182,9 @@ def _populate_from_ast(sym, ast_root):
 def _render_name_part(part):
     """Render a name part to string."""
     from vivisect.demangle.msvc import ast_nodes as ast
+
     if isinstance(part, ast.FragmentName):
         return part.name
-    if hasattr(part, 'name'):
+    if hasattr(part, "name"):
         return part.name
     return str(part)

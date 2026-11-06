@@ -16,7 +16,7 @@ from vivisect.demangle.common import DemangledSymbol, normalize_name
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['demangle_swift']
+__all__ = ["demangle_swift"]
 
 
 def demangle_swift(mangled, structured=False):
@@ -30,21 +30,21 @@ def demangle_swift(mangled, structured=False):
     try:
         demangled = _demangle_swift_basic(mangled)
         if demangled and demangled != mangled:
-            parse_warnings = ['basic Swift demangling (not full parser)']
+            parse_warnings = ["basic Swift demangling (not full parser)"]
         else:
             demangled = None
     except Exception as e:
-        logger.debug('Swift parser failed for %r: %r', mangled, e)
-        parse_warnings.append('parser error: %r' % e)
+        logger.debug("Swift parser failed for %r: %r", mangled, e)
+        parse_warnings.append("parser error: %r" % e)
 
     if demangled is None or not demangled:
         if structured:
             return DemangledSymbol(
-                format='swift',
+                format="swift",
                 full_name=original,
                 name=original,
                 original_mangled=original,
-                parse_warnings=parse_warnings or ['unable to demangle'],
+                parse_warnings=parse_warnings or ["unable to demangle"],
             )
         return original
 
@@ -52,7 +52,7 @@ def demangle_swift(mangled, structured=False):
         return demangled
 
     sym = DemangledSymbol(
-        format='swift',
+        format="swift",
         full_name=demangled,
         original_mangled=original,
         parse_warnings=parse_warnings,
@@ -67,11 +67,11 @@ def _demangle_swift_basic(mangled):
     Swift symbols use length-prefixed names for modules and functions.
     Pattern: $s<module_length><module><func_length><func>...
     """
-    if mangled.startswith('$s'):
+    if mangled.startswith("$s"):
         s = mangled[2:]
-    elif mangled.startswith('$S'):
+    elif mangled.startswith("$S"):
         s = mangled[2:]
-    elif mangled.startswith('_T0'):
+    elif mangled.startswith("_T0"):
         s = mangled[3:]
     else:
         return None
@@ -89,7 +89,7 @@ def _demangle_swift_basic(mangled):
         if length == 0 or pos + length > len(s):
             break
 
-        name = s[pos:pos + length]
+        name = s[pos : pos + length]
         pos += length
 
         name = _decode_swift_escapes(name)
@@ -100,23 +100,22 @@ def _demangle_swift_basic(mangled):
             pos += 1
 
     if parts:
-        return '.'.join(parts)
+        return ".".join(parts)
 
     return None
 
 
 def _decode_swift_escapes(s):
     """Decode Swift-specific escape sequences in names."""
-    s = re.sub(r'\$([0-9A-Fa-f]{2})\$',
-               lambda m: chr(int(m.group(1), 16)), s)
+    s = re.sub(r"\$([0-9A-Fa-f]{2})\$", lambda m: chr(int(m.group(1), 16)), s)
     return s
 
 
 def _parse_basic_structure(sym, demangled):
-    if '.' in demangled:
-        parts = demangled.rsplit('.', 1)
-        sym.scope = parts[0].split('.')
+    if "." in demangled:
+        parts = demangled.rsplit(".", 1)
+        sym.scope = parts[0].split(".")
         sym.name = parts[1]
     else:
         sym.name = demangled
-    sym.kind = 'function'
+    sym.kind = "function"

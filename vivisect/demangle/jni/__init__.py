@@ -25,9 +25,9 @@ from vivisect.demangle.common import DemangledSymbol
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['demangle_jni']
+__all__ = ["demangle_jni"]
 
-_JNI_PREFIX = 'Java_'
+_JNI_PREFIX = "Java_"
 
 
 def demangle_jni(mangled, structured=False):
@@ -49,68 +49,68 @@ def demangle_jni(mangled, structured=False):
     if not mangled.startswith(_JNI_PREFIX):
         if structured:
             return DemangledSymbol(
-                format='jni',
+                format="jni",
                 full_name=original,
                 name=original,
                 original_mangled=original,
-                parse_warnings=['not a JNI mangled name'],
+                parse_warnings=["not a JNI mangled name"],
             )
         return original
 
-    body = mangled[len(_JNI_PREFIX):]
+    body = mangled[len(_JNI_PREFIX) :]
 
     # Split on '__' to separate method name from signature (overloaded methods).
     # But '__' could also appear as part of an escape sequence, so we need
     # to be careful.  In practice, '__' as a separator appears between the
     # method name and the overloaded signature.
-    sig_idx = body.find('__')
+    sig_idx = body.find("__")
     if sig_idx > -1:
         name_part = body[:sig_idx]
-        sig_part = body[sig_idx + 2:]
+        sig_part = body[sig_idx + 2 :]
     else:
         name_part = body
-        sig_part = ''
+        sig_part = ""
 
     # Unmangle the class+method name (uses '.' as class separator)
-    demangled_name = _unmangle_jni_string(name_part, class_sep='.')
+    demangled_name = _unmangle_jni_string(name_part, class_sep=".")
 
     # Parse the signature if present (uses '/' as class separator)
     params = []
     if sig_part:
         # First unmangle the signature, then parse the type descriptors.
         # In the signature, '_' means '/' (Java package separator).
-        unmangled_sig = _unmangle_jni_string(sig_part, class_sep='/')
+        unmangled_sig = _unmangle_jni_string(sig_part, class_sep="/")
         params = _parse_jni_signature(unmangled_sig)
         # Format as: class.method(arg1, arg2)
-        last_dot = demangled_name.rfind('.')
+        last_dot = demangled_name.rfind(".")
         if last_dot > -1:
             class_name = demangled_name[:last_dot]
-            method = demangled_name[last_dot + 1:]
-            demangled_full = '%s.%s(%s)' % (class_name, method, ', '.join(params))
+            method = demangled_name[last_dot + 1 :]
+            demangled_full = "%s.%s(%s)" % (class_name, method, ", ".join(params))
         else:
-            demangled_full = '%s(%s)' % (demangled_name, ', '.join(params))
+            demangled_full = "%s(%s)" % (demangled_name, ", ".join(params))
     else:
         demangled_full = demangled_name
         # Try to split class.method
-        last_dot = demangled_name.rfind('.')
+        last_dot = demangled_name.rfind(".")
         if last_dot > -1:
             class_name = demangled_name[:last_dot]
-            method = demangled_name[last_dot + 1:]
-            demangled_full = '%s.%s' % (class_name, method)
+            method = demangled_name[last_dot + 1 :]
+            demangled_full = "%s.%s" % (class_name, method)
 
     if not structured:
         return demangled_full
 
     sym = DemangledSymbol(
-        format='jni',
+        format="jni",
         full_name=demangled_full,
-        kind='function',
+        kind="function",
         original_mangled=original,
         parameters=params,
     )
     # Split scope and name
-    if '.' in demangled_name:
-        parts = demangled_name.split('.')
+    if "." in demangled_name:
+        parts = demangled_name.split(".")
         sym.scope = parts[:-1]
         sym.name = parts[-1]
     else:
@@ -118,7 +118,7 @@ def demangle_jni(mangled, structured=False):
     return sym
 
 
-def _unmangle_jni_string(s, class_sep='.'):
+def _unmangle_jni_string(s, class_sep="."):
     """
     Unmangle a JNI class/method name string.
 
@@ -133,21 +133,21 @@ def _unmangle_jni_string(s, class_sep='.'):
     i = 0
     while i < len(s):
         c = s[i]
-        if c == '_':
+        if c == "_":
             if i + 1 < len(s):
                 next_c = s[i + 1]
-                if next_c == '1':
-                    result.append('_')
+                if next_c == "1":
+                    result.append("_")
                     i += 2
-                elif next_c == '2':
-                    result.append(';')
+                elif next_c == "2":
+                    result.append(";")
                     i += 2
-                elif next_c == '3':
-                    result.append('[')
+                elif next_c == "3":
+                    result.append("[")
                     i += 2
-                elif next_c == '0' and i + 5 < len(s):
+                elif next_c == "0" and i + 5 < len(s):
                     # Unicode: _0xxxx (4 hex digits)
-                    hex_str = s[i + 2:i + 6]
+                    hex_str = s[i + 2 : i + 6]
                     try:
                         result.append(chr(int(hex_str, 16)))
                         i += 6
@@ -164,7 +164,7 @@ def _unmangle_jni_string(s, class_sep='.'):
         else:
             result.append(c)
             i += 1
-    return ''.join(result)
+    return "".join(result)
 
 
 def _parse_jni_signature(sig):
@@ -178,9 +178,15 @@ def _parse_jni_signature(sig):
         V          for void (return type, not param)
     """
     type_map = {
-        'I': 'int', 'Z': 'boolean', 'B': 'byte', 'C': 'char',
-        'S': 'short', 'J': 'long', 'F': 'float', 'D': 'double',
-        'V': 'void',
+        "I": "int",
+        "Z": "boolean",
+        "B": "byte",
+        "C": "char",
+        "S": "short",
+        "J": "long",
+        "F": "float",
+        "D": "double",
+        "V": "void",
     }
 
     params = []
@@ -189,24 +195,24 @@ def _parse_jni_signature(sig):
         c = sig[i]
         # Array dimensions
         array_depth = 0
-        while c == '[':
+        while c == "[":
             array_depth += 1
             i += 1
             if i >= len(sig):
                 break
             c = sig[i]
 
-        if c == 'L':
+        if c == "L":
             # Object type: L<class>;
-            end = sig.find(';', i)
+            end = sig.find(";", i)
             if end > -1:
-                class_part = sig[i + 1:end].replace('/', '.')
+                class_part = sig[i + 1 : end].replace("/", ".")
                 # Unmangle JNI escapes in class names
                 class_part = _unmangle_jni_string(class_part)
                 type_str = class_part
                 i = end + 1
             else:
-                type_str = 'object'
+                type_str = "object"
                 i += 1
         elif c in type_map:
             type_str = type_map[c]
@@ -215,7 +221,7 @@ def _parse_jni_signature(sig):
             type_str = c
             i += 1
 
-        type_str += '[]' * array_depth
+        type_str += "[]" * array_depth
         params.append(type_str)
 
     return params

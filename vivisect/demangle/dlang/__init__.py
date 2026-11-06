@@ -14,7 +14,7 @@ from vivisect.demangle.common import DemangledSymbol, normalize_name
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['demangle_d']
+__all__ = ["demangle_d"]
 
 
 def demangle_d(mangled, structured=False):
@@ -30,17 +30,17 @@ def demangle_d(mangled, structured=False):
         demangled = parser.parse()
         parse_warnings = parser.warnings
     except Exception as e:
-        logger.debug('D parser failed for %r: %r', mangled, e)
-        parse_warnings.append('parser error: %r' % e)
+        logger.debug("D parser failed for %r: %r", mangled, e)
+        parse_warnings.append("parser error: %r" % e)
 
     if demangled is None or demangled == mangled or not demangled:
         if structured:
             return DemangledSymbol(
-                format='d',
+                format="d",
                 full_name=original,
                 name=original,
                 original_mangled=original,
-                parse_warnings=parse_warnings or ['unable to demangle'],
+                parse_warnings=parse_warnings or ["unable to demangle"],
             )
         return original
 
@@ -48,7 +48,7 @@ def demangle_d(mangled, structured=False):
         return demangled
 
     sym = DemangledSymbol(
-        format='d',
+        format="d",
         full_name=demangled,
         original_mangled=original,
         parse_warnings=parse_warnings,
@@ -61,14 +61,32 @@ class _DParser:
     """Parser for D language mangled symbols."""
 
     TYPE_MAP = {
-        'v': 'void', 'b': 'bool', 'y': 'byte', 'g': 'ubyte',
-        'h': 'short', 't': 'ushort', 'i': 'int', 'j': 'uint',
-        'k': 'long', 'm': 'ulong', 'l': 'real', 'f': 'float',
-        'd': 'double', 'e': 'real', 'c': 'ifloat', 'q': 'idouble',
-        'r': 'ireal', 'p': 'creal',
-        'a': 'char', 'u': 'wchar', 'w': 'dchar', 's': 'string',
-        'o': 'wstring', 'x': 'dstring',
-        'n': 'char[]', 'z': 'void',
+        "v": "void",
+        "b": "bool",
+        "y": "byte",
+        "g": "ubyte",
+        "h": "short",
+        "t": "ushort",
+        "i": "int",
+        "j": "uint",
+        "k": "long",
+        "m": "ulong",
+        "l": "real",
+        "f": "float",
+        "d": "double",
+        "e": "real",
+        "c": "ifloat",
+        "q": "idouble",
+        "r": "ireal",
+        "p": "creal",
+        "a": "char",
+        "u": "wchar",
+        "w": "dchar",
+        "s": "string",
+        "o": "wstring",
+        "x": "dstring",
+        "n": "char[]",
+        "z": "void",
     }
 
     def __init__(self, mangled):
@@ -79,19 +97,19 @@ class _DParser:
     def _peek(self, offset=0):
         idx = self.pos + offset
         if idx >= len(self.mangled):
-            return '\x00'
+            return "\x00"
         return self.mangled[idx]
 
     def _next(self):
         if self.pos >= len(self.mangled):
-            raise ValueError('unexpected end of input')
+            raise ValueError("unexpected end of input")
         ch = self.mangled[self.pos]
         self.pos += 1
         return ch
 
     def parse(self):
-        if not self.mangled.startswith('_D'):
-            raise ValueError('D symbols must start with _D')
+        if not self.mangled.startswith("_D"):
+            raise ValueError("D symbols must start with _D")
         self.pos = 2
 
         result = self._parse_mangled_name()
@@ -104,19 +122,19 @@ class _DParser:
             length = self._parse_number()
             if length == 0 or self.pos + length > len(self.mangled):
                 break
-            name = self.mangled[self.pos:self.pos + length]
+            name = self.mangled[self.pos : self.pos + length]
             self.pos += length
             name_parts.append(name)
 
-        name = '.'.join(name_parts) if name_parts else self.mangled[2:]
+        name = ".".join(name_parts) if name_parts else self.mangled[2:]
 
         if not self._at_end():
             type_str = self._parse_type()
             if type_str:
-                if type_str.startswith('('):
-                    return '%s%s' % (name, type_str)
+                if type_str.startswith("("):
+                    return "%s%s" % (name, type_str)
                 else:
-                    return '%s %s' % (type_str, name)
+                    return "%s %s" % (type_str, name)
 
         return name
 
@@ -133,50 +151,50 @@ class _DParser:
             self._next()
             return self.TYPE_MAP[ch]
 
-        if ch == 'P':
+        if ch == "P":
             self._next()
             inner = self._parse_type()
-            return '%s*' % inner
+            return "%s*" % inner
 
-        if ch == 'A':
+        if ch == "A":
             self._next()
             inner = self._parse_type()
-            return '%s[]' % inner
+            return "%s[]" % inner
 
-        if ch == 'G':
+        if ch == "G":
             self._next()
             n = self._parse_number()
             inner = self._parse_type()
-            return '%s[%d]' % (inner, n)
+            return "%s[%d]" % (inner, n)
 
-        if ch == 'F':
+        if ch == "F":
             self._next()
             params = []
-            while self._peek() != 'Z' and self._peek() != '\x00':
+            while self._peek() != "Z" and self._peek() != "\x00":
                 params.append(self._parse_type())
-            if self._peek() == 'Z':
+            if self._peek() == "Z":
                 self._next()
-            return '(%s)' % ', '.join(params)
+            return "(%s)" % ", ".join(params)
 
         if ch.isdigit():
             length = self._parse_number()
             if length > 0 and self.pos + length <= len(self.mangled):
-                name = self.mangled[self.pos:self.pos + length]
+                name = self.mangled[self.pos : self.pos + length]
                 self.pos += length
                 return name
 
         self._next()
-        return '?%s' % ch
+        return "?%s" % ch
 
     def _at_end(self):
         return self.pos >= len(self.mangled)
 
 
 def _parse_basic_structure(sym, demangled):
-    if '.' in demangled:
-        parts = demangled.rsplit('.', 1)
-        sym.scope = parts[0].split('.')
+    if "." in demangled:
+        parts = demangled.rsplit(".", 1)
+        sym.scope = parts[0].split(".")
         sym.name = parts[1]
     else:
         sym.name = demangled
-    sym.kind = 'function' if '(' in sym.name else 'variable'
+    sym.kind = "function" if "(" in sym.name else "variable"

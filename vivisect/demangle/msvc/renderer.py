@@ -6,17 +6,18 @@ matching Microsoft's undname output format.
 """
 
 import logging
+
 from vivisect.demangle.msvc import ast_nodes as ast
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['render']
+__all__ = ["render"]
 
 
 def render(symbol):
     """Render an MSVCSymbol AST into a demangled string."""
     if symbol is None:
-        return ''
+        return ""
 
     parts = []
 
@@ -54,39 +55,39 @@ def render(symbol):
         else:
             parts.append(vft_str)
 
-    result = ' '.join(parts)
+    result = " ".join(parts)
     return result.strip()
 
 
 def _build_prefix(type_info):
     """Build the access/storage modifier prefix."""
     if type_info is None:
-        return ''
+        return ""
 
     prefix_parts = []
 
     if isinstance(type_info, ast.FunctionType):
         if type_info.is_thunk:
-            prefix_parts.append('[thunk]:')
+            prefix_parts.append("[thunk]:")
         if type_info.access:
-            prefix_parts.append(type_info.access + ':')
+            prefix_parts.append(type_info.access + ":")
         if type_info.is_virtual:
-            prefix_parts.append('virtual')
+            prefix_parts.append("virtual")
         if type_info.is_static:
-            prefix_parts.append('static')
+            prefix_parts.append("static")
     elif isinstance(type_info, ast.VariableInfo):
         if type_info.access:
-            prefix_parts.append(type_info.access + ':')
+            prefix_parts.append(type_info.access + ":")
         if type_info.is_static:
-            prefix_parts.append('static')
+            prefix_parts.append("static")
 
-    return ' '.join(prefix_parts)
+    return " ".join(prefix_parts)
 
 
 def _render_qualified_name(qname):
     """Render a QualifiedName to string."""
     if qname is None:
-        return ''
+        return ""
 
     parts = []
 
@@ -98,7 +99,7 @@ def _render_qualified_name(qname):
     # Basic name
     parts.append(_render_name_component(qname.basic_name))
 
-    return '::'.join(parts)
+    return "::".join(parts)
 
 
 def _render_name_component(component):
@@ -109,10 +110,10 @@ def _render_name_component(component):
         return component.name
     elif isinstance(component, ast.TemplateName):
         base = _render_name_component(component.base_name)
-        args = ','.join(str(a) for a in component.args)
-        return '%s<%s>' % (base, args)
+        args = ",".join(str(a) for a in component.args)
+        return "%s<%s>" % (base, args)
     elif isinstance(component, ast.AnonymousNamespace):
-        return '`anonymous-namespace\''
+        return "`anonymous-namespace'"
     elif isinstance(component, str):
         return component
     else:
@@ -124,36 +125,36 @@ def _render_function_signature(func, name_str):
     parts = []
 
     # Return type — always show it, including void (matches MSVC undname output)
-    ret = func.return_type or ''
+    ret = func.return_type or ""
     if ret:
         parts.append(ret)
 
     # Calling convention
-    cc = func.calling_convention or ''
+    cc = func.calling_convention or ""
     if cc:
         parts.append(cc)
 
     # Function name (already rendered)
     parts.append(name_str)
 
-    result = ' '.join(parts)
+    result = " ".join(parts)
 
     # Parameters
     params = func.parameters
     if not params:
-        params_str = 'void'
+        params_str = "void"
     else:
-        param_strs = [p for p in params if p and p != 'void']
+        param_strs = [p for p in params if p and p != "void"]
         if not param_strs:
-            params_str = 'void'
+            params_str = "void"
         else:
-            params_str = ', '.join(param_strs)
+            params_str = ", ".join(param_strs)
 
-    result += '(%s)' % params_str
+    result += "(%s)" % params_str
 
     # CV modifiers (const/volatile on this pointer)
     if func.cv_modifiers:
-        result += ' ' + func.cv_modifiers
+        result += " " + func.cv_modifiers
 
     return result
 
@@ -161,10 +162,10 @@ def _render_function_signature(func, name_str):
 def _render_variable(var, name_str):
     """Render a variable: type name."""
     if var.is_guard:
-        return '`local static guard\'' if not name_str else name_str
-    var_type = var.var_type or ''
+        return "`local static guard'" if not name_str else name_str
+    var_type = var.var_type or ""
     if var_type:
-        return '%s %s' % (var_type, name_str)
+        return "%s %s" % (var_type, name_str)
     return name_str
 
 
@@ -172,5 +173,5 @@ def _render_vftable(vft, name_str):
     """Render a vtable/vbtable."""
     if vft.scope is not None:
         # VFTable with explicit scope
-        return 'const %s::`vftable\'' % _render_qualified_name(vft.scope)
-    return 'const %s::`vftable\'' % name_str
+        return "const %s::`vftable'" % _render_qualified_name(vft.scope)
+    return "const %s::`vftable'" % name_str
