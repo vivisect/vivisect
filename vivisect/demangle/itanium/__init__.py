@@ -15,9 +15,9 @@ Reference:
 import logging
 
 from vivisect.demangle.common import DemangledSymbol, normalize_name
-from vivisect.demangle.itanium.parser import ItaniumParser, ParseError
-from vivisect.demangle.itanium.renderer import render
 from vivisect.demangle.symbol import Symbol
+from vivisect.demangle.itanium.parser import ParseError, ItaniumParser
+from vivisect.demangle.itanium.renderer import render
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +50,7 @@ def demangle_itanium(mangled, structured=False):
     try:
         parser = ItaniumParser(mangled)
         ast_root = parser.parse()
-        demangled = render(
-            ast_root, subs=parser.subs, template_params=parser.template_subs
-        )
+        demangled = render(ast_root, subs=parser.subs, template_params=parser.template_subs)
         parse_warnings = parser.warnings
     except ParseError as e:
         logger.debug("pure-Python Itanium parser failed for %r: %r", mangled, e)
@@ -75,9 +73,7 @@ def demangle_itanium(mangled, structured=False):
                     # Prefer cxxfilt if the parser produced garbage
                     if "/*" in demangled:
                         demangled = cxx_result
-                        parse_warnings = [
-                            "cxxfilt fallback (parser produced placeholders)"
-                        ]
+                        parse_warnings = ["cxxfilt fallback (parser produced placeholders)"]
         except Exception as e:
             logger.debug("cxxfilt fallback failed for %r: %r", mangled, e)
 
@@ -249,14 +245,8 @@ def _populate_symbol_from_ast(sym, ast_root, subs):
         if isinstance(qualified, ast.NestedName):
             scope_parts = []
             for p in qualified.prefix:
-                r = (
-                    render(p, subs=subs)
-                    if not (isinstance(p, ast.UnqualifiedName) and p.kind == "template")
-                    else ""
-                )
-                if r and not (
-                    isinstance(p, ast.UnqualifiedName) and p.kind == "template"
-                ):
+                r = render(p, subs=subs) if not (isinstance(p, ast.UnqualifiedName) and p.kind == "template") else ""
+                if r and not (isinstance(p, ast.UnqualifiedName) and p.kind == "template"):
                     scope_parts.append(r)
             sym.scope = scope_parts
             sym.is_member = len(scope_parts) > 0

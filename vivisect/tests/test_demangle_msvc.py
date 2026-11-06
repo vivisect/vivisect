@@ -25,9 +25,9 @@ Tests cover:
 import unittest
 
 from vivisect.demangle import demangle, detect_format
-from vivisect.demangle.common import DemangledSymbol
 from vivisect.demangle.msvc import ast_nodes as ast
 from vivisect.demangle.msvc import demangle_msvc
+from vivisect.demangle.common import DemangledSymbol
 from vivisect.demangle.msvc.parser import MSVCParser, ParseError
 from vivisect.demangle.msvc.renderer import render
 
@@ -83,14 +83,10 @@ class TestMSVCNonMemberFunctions(unittest.TestCase):
         self.assertEqual(demangle_msvc("?func4@@YAXPAH@Z"), "void __cdecl func4(int*)")
 
     def test_const_pointer_param(self):
-        self.assertEqual(
-            demangle_msvc("?pfunc@@YAXPBH@Z"), "void __cdecl pfunc(const int*)"
-        )
+        self.assertEqual(demangle_msvc("?pfunc@@YAXPBH@Z"), "void __cdecl pfunc(const int*)")
 
     def test_multiple_int_params(self):
-        self.assertEqual(
-            demangle_msvc("?multi@@YAHHH@Z"), "int __cdecl multi(int, int)"
-        )
+        self.assertEqual(demangle_msvc("?multi@@YAHHH@Z"), "int __cdecl multi(int, int)")
 
     def test_three_params(self):
         result = demangle_msvc("?three@@YAHHHI@Z")
@@ -101,9 +97,7 @@ class TestMSVCNonMemberFunctions(unittest.TestCase):
         self.assertEqual(demangle_msvc("?cfunc@@YAXD@Z"), "void __cdecl cfunc(char)")
 
     def test_unsigned_int_param(self):
-        self.assertEqual(
-            demangle_msvc("?ufunc@@YAXI@Z"), "void __cdecl ufunc(unsigned int)"
-        )
+        self.assertEqual(demangle_msvc("?ufunc@@YAXI@Z"), "void __cdecl ufunc(unsigned int)")
 
     def test_long_param(self):
         self.assertEqual(demangle_msvc("?lfunc@@YAXJ@Z"), "void __cdecl lfunc(long)")
@@ -205,14 +199,10 @@ class TestMSVCOperators(unittest.TestCase):
     """Test operator demangling."""
 
     def test_operator_new(self):
-        self.assertEqual(
-            demangle_msvc("??2@YAPAXI@Z"), "void* __cdecl operator new(unsigned int)"
-        )
+        self.assertEqual(demangle_msvc("??2@YAPAXI@Z"), "void* __cdecl operator new(unsigned int)")
 
     def test_operator_delete(self):
-        self.assertEqual(
-            demangle_msvc("??3@YAXPAX@Z"), "void __cdecl operator delete(void*)"
-        )
+        self.assertEqual(demangle_msvc("??3@YAXPAX@Z"), "void __cdecl operator delete(void*)")
 
 
 class TestMSVCVariables(unittest.TestCase):
@@ -222,9 +212,7 @@ class TestMSVCVariables(unittest.TestCase):
         self.assertEqual(demangle_msvc("?myvar@@3HA"), "int myvar")
 
     def test_public_static_member_int(self):
-        self.assertEqual(
-            demangle_msvc("?svar@MyClass@@2HA"), "public: static int MyClass::svar"
-        )
+        self.assertEqual(demangle_msvc("?svar@MyClass@@2HA"), "public: static int MyClass::svar")
 
     def test_private_static_member_int(self):
         # 0 = private static
@@ -250,9 +238,7 @@ class TestMSVCUserDefinedTypes(unittest.TestCase):
         )
 
     def test_enum_param(self):
-        self.assertEqual(
-            demangle_msvc("?efunc@@YAXW4MyEnum@@@Z"), "void __cdecl efunc(enum MyEnum)"
-        )
+        self.assertEqual(demangle_msvc("?efunc@@YAXW4MyEnum@@@Z"), "void __cdecl efunc(enum MyEnum)")
 
     def test_union_param(self):
         result = demangle_msvc("?ufunc2@@YAXTMyUnion@@@Z")
@@ -264,9 +250,7 @@ class TestMSVCScope(unittest.TestCase):
     """Test namespace and nested class scope."""
 
     def test_namespace(self):
-        self.assertEqual(
-            demangle_msvc("?func@ns@@YAXH@Z"), "void __cdecl ns::func(int)"
-        )
+        self.assertEqual(demangle_msvc("?func@ns@@YAXH@Z"), "void __cdecl ns::func(int)")
 
     def test_nested_class(self):
         self.assertEqual(
@@ -325,9 +309,7 @@ class TestMSVCStructuredOutput(unittest.TestCase):
         sym = demangle_msvc("?bar@MyClass@@UAEXH@Z", structured=True)
         self.assertIsInstance(sym, DemangledSymbol)
         self.assertEqual(sym.format, "msvc")
-        self.assertEqual(
-            sym.full_name, "public: virtual void __thiscall MyClass::bar(int)"
-        )
+        self.assertEqual(sym.full_name, "public: virtual void __thiscall MyClass::bar(int)")
 
     def test_structured_constructor(self):
         sym = demangle_msvc("??0MyClass@@QAE@X@Z", structured=True)
@@ -337,9 +319,7 @@ class TestMSVCStructuredOutput(unittest.TestCase):
     def test_structured_destructor(self):
         sym = demangle_msvc("??1MyClass@@UAE@X@Z", structured=True)
         self.assertIsInstance(sym, DemangledSymbol)
-        self.assertEqual(
-            sym.full_name, "public: virtual __thiscall MyClass::~MyClass(void)"
-        )
+        self.assertEqual(sym.full_name, "public: virtual __thiscall MyClass::~MyClass(void)")
 
     def test_structured_vtable(self):
         sym = demangle_msvc("??_7MyClass@@6B@", structured=True)

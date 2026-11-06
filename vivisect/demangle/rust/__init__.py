@@ -9,8 +9,8 @@ Reference:
     - rustc-demangle crate
 """
 
-import logging
 import re
+import logging
 
 from vivisect.demangle.common import DemangledSymbol, normalize_name
 
@@ -191,9 +191,7 @@ class _RustV0Parser:
         name = name.replace("$LP$", "(")
         name = name.replace("$RP$", ")")
         name = name.replace("$C$", ",")
-        name = re.sub(
-            r"\$u([0-9a-fA-F]{2})\$", lambda m: chr(int(m.group(1), 16)), name
-        )
+        name = re.sub(r"\$u([0-9a-fA-F]{2})\$", lambda m: chr(int(m.group(1), 16)), name)
         return name
 
     def _parse_number(self):

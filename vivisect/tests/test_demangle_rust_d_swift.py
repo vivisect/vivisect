@@ -14,10 +14,10 @@ Tests cover:
 import unittest
 
 from vivisect.demangle import demangle, detect_format
-from vivisect.demangle.common import DemangledSymbol
-from vivisect.demangle.dlang import demangle_d
 from vivisect.demangle.rust import demangle_rust
+from vivisect.demangle.dlang import demangle_d
 from vivisect.demangle.swift import demangle_swift
+from vivisect.demangle.common import DemangledSymbol
 
 # ===== RUST TESTS =====
 

@@ -14,10 +14,20 @@ Tests cover:
 
 import unittest
 
-from vivisect.demangle import (FORMAT_D, FORMAT_ITANIUM, FORMAT_JNI,
-                               FORMAT_MSVC, FORMAT_OBJC, FORMAT_RUST,
-                               FORMAT_SWIFT, FORMAT_UNKNOWN, DemangledSymbol,
-                               DemangleError, demangle, detect_format)
+from vivisect.demangle import (
+    FORMAT_D,
+    FORMAT_JNI,
+    FORMAT_MSVC,
+    FORMAT_OBJC,
+    FORMAT_RUST,
+    FORMAT_SWIFT,
+    FORMAT_ITANIUM,
+    FORMAT_UNKNOWN,
+    DemangleError,
+    DemangledSymbol,
+    demangle,
+    detect_format,
+)
 from vivisect.demangle.common import normalize_name
 from vivisect.demangle.symbol import Symbol
 
@@ -81,9 +91,7 @@ class TestFormatDetection(unittest.TestCase):
         self.assertEqual(detect_format("Java_pkg_Cls_f"), FORMAT_JNI)
 
     def test_jni_overloaded(self):
-        self.assertEqual(
-            detect_format("Java_pkg_Cls_f__ILjava_lang_String_2"), FORMAT_JNI
-        )
+        self.assertEqual(detect_format("Java_pkg_Cls_f__ILjava_lang_String_2"), FORMAT_JNI)
 
     # --- ObjC ---
     def test_objc_class(self):
@@ -291,9 +299,7 @@ class TestSymbolClass(unittest.TestCase):
     """Test the Symbol wrapper class."""
 
     def test_construction(self):
-        sym = Symbol(
-            original="_Z3foov", demangled="foo()", format="itanium", kind="function"
-        )
+        sym = Symbol(original="_Z3foov", demangled="foo()", format="itanium", kind="function")
         self.assertEqual(sym.original, "_Z3foov")
         self.assertEqual(sym.demangled, "foo()")
         self.assertEqual(sym.format, "itanium")
@@ -336,9 +342,7 @@ class TestSymbolClass(unittest.TestCase):
         self.assertEqual(d["format"], "itanium")
 
     def test_structured_property(self):
-        sym = Symbol(
-            original="_Z3foov", demangled="foo()", format="itanium", kind="function"
-        )
+        sym = Symbol(original="_Z3foov", demangled="foo()", format="itanium", kind="function")
         dsym = sym.structured
         self.assertIsInstance(dsym, DemangledSymbol)
         self.assertEqual(dsym.format, "itanium")

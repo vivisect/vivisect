@@ -12,10 +12,20 @@ These tests verify:
 
 import unittest
 
-from vivisect.demangle import (FORMAT_D, FORMAT_ITANIUM, FORMAT_JNI,
-                               FORMAT_MSVC, FORMAT_OBJC, FORMAT_RUST,
-                               FORMAT_SWIFT, FORMAT_UNKNOWN, DemangledSymbol,
-                               DemangleError, demangle, detect_format)
+from vivisect.demangle import (
+    FORMAT_D,
+    FORMAT_JNI,
+    FORMAT_MSVC,
+    FORMAT_OBJC,
+    FORMAT_RUST,
+    FORMAT_SWIFT,
+    FORMAT_ITANIUM,
+    FORMAT_UNKNOWN,
+    DemangleError,
+    DemangledSymbol,
+    demangle,
+    detect_format,
+)
 from vivisect.demangle.common import normalize_name
 
 
@@ -48,9 +58,7 @@ class TestDetectFormat(unittest.TestCase):
 
     def test_jni_prefix(self):
         self.assertEqual(detect_format("Java_pkg_Cls_f"), FORMAT_JNI)
-        self.assertEqual(
-            detect_format("Java_pkg_Cls_f__ILjava_lang_String_2"), FORMAT_JNI
-        )
+        self.assertEqual(detect_format("Java_pkg_Cls_f__ILjava_lang_String_2"), FORMAT_JNI)
 
     def test_objc_prefix(self):
         self.assertEqual(detect_format("_OBJC_CLASS_$_NSObject"), FORMAT_OBJC)

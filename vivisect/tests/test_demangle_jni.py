@@ -16,9 +16,8 @@ Tests cover:
 import unittest
 
 from vivisect.demangle import demangle, detect_format
+from vivisect.demangle.jni import demangle_jni, _parse_jni_signature, _unmangle_jni_string
 from vivisect.demangle.common import DemangledSymbol
-from vivisect.demangle.jni import (_parse_jni_signature, _unmangle_jni_string,
-                                   demangle_jni)
 
 
 class TestJNIFunctionDemangle(unittest.TestCase):

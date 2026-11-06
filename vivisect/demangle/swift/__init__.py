@@ -9,8 +9,8 @@ Reference:
     - LLVM SwiftDemangle.cpp
 """
 
-import logging
 import re
+import logging
 
 from vivisect.demangle.common import DemangledSymbol, normalize_name
 

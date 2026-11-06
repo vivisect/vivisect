@@ -268,9 +268,7 @@ class Substitution(Node):
 
     def __init__(self, index=None, std_sub=None):
         self.index = index  # int: the substitution index (S_ = 0, S0_ = 1, ...)
-        self.std_sub = (
-            std_sub  # str: standard sub key ('t','a','b','s','i','o','d') or None
-        )
+        self.std_sub = std_sub  # str: standard sub key ('t','a','b','s','i','o','d') or None
 
     def __repr__(self):
         if self.std_sub:
@@ -292,9 +290,7 @@ class SpecialName(Node):
     """A special name: TV (vtable), TT (VTT), TI (typeinfo), TS (typeinfo name), GV (guard), etc."""
 
     def __init__(self, kind, target=None):
-        self.kind = (
-            kind  # str: 'vtable', 'VTT', 'typeinfo', 'typeinfo name', 'guard', etc.
-        )
+        self.kind = kind  # str: 'vtable', 'VTT', 'typeinfo', 'typeinfo name', 'guard', etc.
         self.target = target  # Node (the type or name this refers to)
 
     def children(self):

@@ -16,8 +16,8 @@ Tests cover:
 import unittest
 
 from vivisect.demangle import demangle, detect_format
-from vivisect.demangle.common import DemangledSymbol
 from vivisect.demangle.objc import demangle_objc
+from vivisect.demangle.common import DemangledSymbol
 
 
 class TestObjCClassRef(unittest.TestCase):
@@ -27,9 +27,7 @@ class TestObjCClassRef(unittest.TestCase):
         self.assertEqual(demangle_objc("_OBJC_CLASS_$_NSObject"), "NSObject")
 
     def test_custom_class(self):
-        self.assertEqual(
-            demangle_objc("_OBJC_CLASS_$_MyViewController"), "MyViewController"
-        )
+        self.assertEqual(demangle_objc("_OBJC_CLASS_$_MyViewController"), "MyViewController")
 
 
 class TestObjCMetaclassRef(unittest.TestCase):
@@ -74,9 +72,7 @@ class TestObjCMethodSyntax(unittest.TestCase):
         self.assertEqual(demangle_objc("-[NSObject init]"), "-[NSObject init]")
 
     def test_class_method_custom(self):
-        self.assertEqual(
-            demangle_objc("+[MyClass sharedInstance]"), "+[MyClass sharedInstance]"
-        )
+        self.assertEqual(demangle_objc("+[MyClass sharedInstance]"), "+[MyClass sharedInstance]")
 
     def test_instance_method_with_args(self):
         self.assertEqual(

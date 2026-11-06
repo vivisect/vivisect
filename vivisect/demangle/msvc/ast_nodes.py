@@ -251,9 +251,7 @@ class MSVCSymbol:
 
     __slots__ = ("qualified_name", "type_info", "is_embedded", "kind")
 
-    def __init__(
-        self, qualified_name=None, type_info=None, is_embedded=False, kind="unknown"
-    ):
+    def __init__(self, qualified_name=None, type_info=None, is_embedded=False, kind="unknown"):
         self.qualified_name = qualified_name
         self.type_info = type_info  # FunctionType, VariableInfo, VFTable, etc.
         self.is_embedded = is_embedded

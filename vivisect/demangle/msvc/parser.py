@@ -297,9 +297,7 @@ class MSVCParser:
                 else:
                     name = rtti_name
                 return ast.MSVCSymbol(
-                    qualified_name=ast.QualifiedName(
-                        [], ast.SpecialName(name, kind="rtti")
-                    ),
+                    qualified_name=ast.QualifiedName([], ast.SpecialName(name, kind="rtti")),
                     type_info=None,
                     kind="rtti",
                 )
@@ -419,9 +417,7 @@ class MSVCParser:
         # For constructor/destructor, the name is the class name from scope
         if isinstance(basic_name, ast.SpecialName):
             if basic_name.is_ctor and scope:
-                cls_name = (
-                    scope[-1].name if hasattr(scope[-1], "name") else str(scope[-1])
-                )
+                cls_name = scope[-1].name if hasattr(scope[-1], "name") else str(scope[-1])
                 basic_name.name = cls_name
             elif basic_name.is_dtor and scope:
                 base = scope[-1].name if hasattr(scope[-1], "name") else str(scope[-1])
@@ -578,9 +574,7 @@ class MSVCParser:
                 rtti_code = self._next()
                 rtti_num = int(rtti_code) if rtti_code.isdigit() else -1
                 if rtti_code in self.RTTI_NAMES:
-                    return ast.SpecialName(
-                        self.RTTI_NAMES[rtti_code], kind="rtti", rtti_number=rtti_num
-                    )
+                    return ast.SpecialName(self.RTTI_NAMES[rtti_code], kind="rtti", rtti_number=rtti_num)
                 if rtti_code == "1":
                     # RTTI Base Class Descriptor — has 4 encoded numbers
                     a = self._parse_encoded_number()
@@ -648,9 +642,7 @@ class MSVCParser:
                 var_type = None
                 if not self._at_end():
                     var_type = self._parse_data_type()
-                return ast.VariableInfo(
-                    access=access, is_static=is_static, var_type=var_type
-                )
+                return ast.VariableInfo(access=access, is_static=is_static, var_type=var_type)
 
         if code == "5":
             self._next()
@@ -1065,11 +1057,7 @@ class MSVCParser:
 
     def _render_template(self, tmpl):
         """Render a template name as a string."""
-        base = (
-            tmpl.base_name.name
-            if hasattr(tmpl.base_name, "name")
-            else str(tmpl.base_name)
-        )
+        base = tmpl.base_name.name if hasattr(tmpl.base_name, "name") else str(tmpl.base_name)
         args_str = ",".join(str(a) for a in tmpl.args)
         return "%s<%s>" % (base, args_str)
 

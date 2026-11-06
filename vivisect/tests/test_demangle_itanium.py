@@ -24,10 +24,10 @@ Tests cover:
 import unittest
 
 from vivisect.demangle import DemangledSymbol, demangle, detect_format
+from vivisect.demangle.itanium import grammar
 from vivisect.demangle.itanium import ast_nodes as ast
-from vivisect.demangle.itanium import (demangle_itanium,
-                                       demangle_itanium_symbol, grammar)
-from vivisect.demangle.itanium.parser import ItaniumParser, ParseError
+from vivisect.demangle.itanium import demangle_itanium, demangle_itanium_symbol
+from vivisect.demangle.itanium.parser import ParseError, ItaniumParser
 from vivisect.demangle.itanium.renderer import render
 
 

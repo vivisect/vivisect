@@ -17,8 +17,8 @@ Reference: Itanium C++ ABI section 5.1 (External Names)
 
 import logging
 
-from vivisect.demangle.itanium import ast_nodes as ast
 from vivisect.demangle.itanium import grammar
+from vivisect.demangle.itanium import ast_nodes as ast
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +79,7 @@ class ItaniumParser:
 
     def _expect_char(self, c):
         if self._peek() != c:
-            raise ParseError(
-                "expected %r at pos %d, got %r" % (c, self.pos, self._peek())
-            )
+            raise ParseError("expected %r at pos %d, got %r" % (c, self.pos, self._peek()))
         self.pos += 1
 
     def _consume_if(self, c):
@@ -127,9 +125,7 @@ class ItaniumParser:
 
     def _get_substitution(self, index):
         if index >= len(self.subs):
-            raise ParseError(
-                "substitution index %d out of range (have %d)" % (index, len(self.subs))
-            )
+            raise ParseError("substitution index %d out of range (have %d)" % (index, len(self.subs)))
         return self.subs[index]
 
     # --- Top-level grammar ---
@@ -245,10 +241,7 @@ class ItaniumParser:
                         # candidates. Only types and template-prefixes are.
                         return result
                     # St followed by an operator = std::operatorX
-                    if (
-                        node.std_sub == "t"
-                        and (self._peek() + self._peek(1)) in grammar.OPERATORS
-                    ):
+                    if node.std_sub == "t" and (self._peek() + self._peek(1)) in grammar.OPERATORS:
                         op = self._parse_unqualified_name()
                         # Check for template args after operator
                         if self._peek() == "I":
@@ -266,23 +259,17 @@ class ItaniumParser:
                     # Check for template args (template-template-param)
                     if self._peek() == "I":
                         targs = self._parse_template_args()
-                        result = ast.NestedName(
-                            [node], ast.UnqualifiedName("template", targs)
-                        )
+                        result = ast.NestedName([node], ast.UnqualifiedName("template", targs))
                         return result
                     return node
                 # Check for template args after a substitution
                 if self._peek() == "I":
                     targs = self._parse_template_args()
                     prefix_name = (
-                        grammar.STD_SUBS.get(node.std_sub, "std")
-                        if isinstance(node, ast.Substitution)
-                        else "std"
+                        grammar.STD_SUBS.get(node.std_sub, "std") if isinstance(node, ast.Substitution) else "std"
                     )
                     base = ast.SourceName(prefix_name)
-                    result = ast.NestedName(
-                        [base], ast.UnqualifiedName("template", targs)
-                    )
+                    result = ast.NestedName([base], ast.UnqualifiedName("template", targs))
                     return result
                 return node
 
@@ -402,17 +389,13 @@ class ItaniumParser:
                             if len(result) == 1:
                                 self._add_substitution(result[0])
                             else:
-                                self._add_substitution(
-                                    ast.NestedName(list(result[:-1]), result[-1])
-                                )
+                                self._add_substitution(ast.NestedName(list(result[:-1]), result[-1]))
                         targs = self._parse_template_args()
                         result.append(ast.UnqualifiedName("template", targs))
                         # Add the full template instantiation as sub
                         # (but NOT if this is the last component — function name)
                         if self._peek() != "E":
-                            template_full = ast.NestedName(
-                                list(result[:-1]), result[-1]
-                            )
+                            template_full = ast.NestedName(list(result[:-1]), result[-1])
                             self._add_substitution(template_full)
                     continue
                 break
@@ -432,9 +415,7 @@ class ItaniumParser:
                 if len(result) == 1:
                     self._add_substitution(result[0])
                 else:
-                    self._add_substitution(
-                        ast.NestedName(list(result[:-1]), result[-1])
-                    )
+                    self._add_substitution(ast.NestedName(list(result[:-1]), result[-1]))
 
                 targs = self._parse_template_args()
                 result.append(ast.UnqualifiedName("template", targs))
@@ -450,17 +431,11 @@ class ItaniumParser:
                 break
 
             # Add the current prefix chain to substitutions.
-            if not (
-                result
-                and isinstance(result[-1], ast.UnqualifiedName)
-                and result[-1].kind == "template"
-            ):
+            if not (result and isinstance(result[-1], ast.UnqualifiedName) and result[-1].kind == "template"):
                 if len(result) == 1:
                     self._add_substitution(result[0])
                 else:
-                    self._add_substitution(
-                        ast.NestedName(list(result[:-1]), result[-1])
-                    )
+                    self._add_substitution(ast.NestedName(list(result[:-1]), result[-1]))
 
         return result
 
@@ -526,9 +501,7 @@ class ItaniumParser:
                 op = ast.OperatorName(code, sym, nargs)
                 self.last_name = op
                 return ast.UnqualifiedName("operator", op)
-            raise ParseError(
-                "unknown operator code %r at pos %d" % (code, self.pos - 2)
-            )
+            raise ParseError("unknown operator code %r at pos %d" % (code, self.pos - 2))
 
         raise ParseError("cannot parse unqualified name at pos %d" % self.pos)
 
@@ -536,10 +509,7 @@ class ItaniumParser:
         """<source-name> ::= <positive length number> <identifier>"""
         length = self._parse_number()
         if self.pos + length > len(self.input):
-            raise ParseError(
-                "source name length %d exceeds remaining input at pos %d"
-                % (length, self.pos)
-            )
+            raise ParseError("source name length %d exceeds remaining input at pos %d" % (length, self.pos))
         name = self.input[self.pos : self.pos + length]
         self.pos += length
         return ast.SourceName(name)
@@ -629,11 +599,7 @@ class ItaniumParser:
             sub = self._parse_substitution(prefix=False)
             if sub is not None:
                 # St followed by a source-name = std::<source-name> (a class-enum type)
-                if (
-                    isinstance(sub, ast.Substitution)
-                    and sub.std_sub == "t"
-                    and self._peek().isdigit()
-                ):
+                if isinstance(sub, ast.Substitution) and sub.std_sub == "t" and self._peek().isdigit():
                     inner_name = self._parse_source_name()
                     # Check for template args after the name
                     if self._peek() == "I":
@@ -664,9 +630,7 @@ class ItaniumParser:
                 if self._peek() == "I":
                     targs = self._parse_template_args()
                     # Wrap in a template instantiation
-                    result = ast.NestedName(
-                        [sub], ast.UnqualifiedName("template", targs)
-                    )
+                    result = ast.NestedName([sub], ast.UnqualifiedName("template", targs))
                     # Add as substitution. Even for predefined subs (Sa, Sb),
                     # the full instantiation is added (binutils 2.42 behavior).
                     self._add_substitution(result)
@@ -801,10 +765,7 @@ class ItaniumParser:
         # Remaining types are parameters
         while not self._at_end() and self._peek() != "E":
             # Check if we've hit something that's clearly not a type
-            if (
-                not self._looks_like_type()
-                and self._peek() not in grammar.BUILTIN_TYPES
-            ):
+            if not self._looks_like_type() and self._peek() not in grammar.BUILTIN_TYPES:
                 break
             # Save position — _parse_type() may advance before failing
             saved_pos = self.pos
@@ -859,9 +820,7 @@ class ItaniumParser:
         self._expect_char("E")
         node = ast.TemplateArgs(args)
         # Store template args for T_ resolution
-        self.template_subs = [
-            a.value if isinstance(a, ast.TemplateArg) else a for a in args
-        ]
+        self.template_subs = [a.value if isinstance(a, ast.TemplateArg) else a for a in args]
         # NOTE: Template args themselves are NOT added to the substitution
         # table.  The template-prefix (name before the args) is the
         # substitution candidate, not the args.

@@ -8,8 +8,8 @@ the human-readable demangled name string, matching the output format of
 
 import logging
 
-from vivisect.demangle.itanium import ast_nodes as ast
 from vivisect.demangle.itanium import grammar
+from vivisect.demangle.itanium import ast_nodes as ast
 
 logger = logging.getLogger(__name__)
 
@@ -243,9 +243,7 @@ class Renderer:
             if parts:
                 # Check if last prefix element is ctor/dtor
                 last_prefix = prefix[-1] if prefix else None
-                if isinstance(
-                    last_prefix, ast.UnqualifiedName
-                ) and last_prefix.kind in ("ctor", "dtor"):
+                if isinstance(last_prefix, ast.UnqualifiedName) and last_prefix.kind in ("ctor", "dtor"):
                     class_name = self._get_class_name_from_prefix(prefix)
                     template_args = self.render(unq)
                     if class_name:
@@ -361,10 +359,7 @@ class Renderer:
             return str(node.value)
         if node.kind == "pack":
             if isinstance(node.value, list):
-                return ", ".join(
-                    self.render(a) if isinstance(a, ast.Node) else str(a)
-                    for a in node.value
-                )
+                return ", ".join(self.render(a) if isinstance(a, ast.Node) else str(a) for a in node.value)
             return str(node.value)
         if node.kind == "primary":
             return str(node.value)
@@ -391,9 +386,7 @@ class Renderer:
                 result += " " + target.ref
             return result
         # Check for CV-qualified function type (e.g., const function pointer)
-        if isinstance(target, ast.CVQualifiedType) and isinstance(
-            target.base, ast.FunctionType
-        ):
+        if isinstance(target, ast.CVQualifiedType) and isinstance(target.base, ast.FunctionType):
             inner = target.base
             bare = inner.bare_function
             if bare is None or not bare.types:

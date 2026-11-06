@@ -25,15 +25,14 @@ required internet access).  It works fully offline with no native
 dependencies.
 """
 
-from vivisect.demangle.common import (DemangledSymbol, DemangleError,
-                                      normalize_name)
-from vivisect.demangle.dlang import demangle_d
-from vivisect.demangle.itanium import demangle_itanium
 from vivisect.demangle.jni import demangle_jni
 from vivisect.demangle.msvc import demangle_msvc
 from vivisect.demangle.objc import demangle_objc
 from vivisect.demangle.rust import demangle_rust
+from vivisect.demangle.dlang import demangle_d
 from vivisect.demangle.swift import demangle_swift
+from vivisect.demangle.common import DemangleError, DemangledSymbol, normalize_name
+from vivisect.demangle.itanium import demangle_itanium
 
 __all__ = [
     "demangle",
@@ -108,11 +107,7 @@ def detect_format(mangled):
             return FORMAT_D
 
     # Swift: $s, $S, _T0, $e prefixes
-    if (
-        mangled.startswith("$s")
-        or mangled.startswith("$S")
-        or mangled.startswith("_T0")
-    ):
+    if mangled.startswith("$s") or mangled.startswith("$S") or mangled.startswith("_T0"):
         return FORMAT_SWIFT
     # Embedded Swift uses $e
     if mangled.startswith("$e") and len(mangled) > 2:
