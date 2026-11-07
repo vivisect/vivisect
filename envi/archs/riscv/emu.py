@@ -180,16 +180,29 @@ class RiscVAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, self.getOperValue(op, 0) ^ self.getOperValue(op, 1))
 
     def i_sl(self, op):
-        self.setOperValue(op, 0, self.getOperValue(op, 1) ^ self.getOperValue(op, 2))
+        # sll rd, rs1, rs2  /  slli rd, rs1, shamt  (logical shift left)
+        # shift amount is operand 2 (register rs2 or immediate shamt)
+        self.setOperValue(op, 0, self.getOperValue(op, 1) << self.getOperValue(op, 2))
 
     def i_c_sl(self, op):
-        self.setOperValue(op, 0, self.getOperValue(op, 0) ^ self.getOperValue(op, 1))
+        # c.slli rd, shamt  /  c.lui etc: logical shift left by immediate
+        self.setOperValue(op, 0, self.getOperValue(op, 0) << self.getOperValue(op, 1))
 
     def i_sr(self, op):
-        self.setOperValue(op, 0, self.getOperValue(op, 1) ^ self.getOperValue(op, 2))
+        # srl rd, rs1, rs2 / srli rd, rs1, shamt (logical shift right) and
+        # sra rd, rs1, rs2 / srai rd, rs1, shamt (arithmetic shift right).
+        # Signedness of the source operand (SIGNED flag / signed immediate)
+        # makes getOperValue return a signed value, so `>>` is arithmetic for
+        # sra/srai and logical for srl/srli automatically.
+        rs1 = self.getOperValue(op, 1)
+        shamt = self.getOperValue(op, 2)
+        self.setOperValue(op, 0, rs1 >> shamt)
 
     def i_c_sr(self, op):
-        self.setOperValue(op, 0, self.getOperValue(op, 0) ^ self.getOperValue(op, 1))
+        # c.srli rd, shamt / c.srai rd, shamt : compressed shift right
+        rs1 = self.getOperValue(op, 0)
+        shamt = self.getOperValue(op, 1)
+        self.setOperValue(op, 0, rs1 >> shamt)
 
     def i_sub(self, op):
         self.setOperValue(op, 0, self.getOperValue(op, 1) - self.getOperValue(op, 2))
@@ -203,56 +216,100 @@ class RiscVAbstractEmulator(envi.Emulator):
         self.setOperValue(op, 0, self.getOperValue(op, 1) * self.getOperValue(op, 2))
 
     def i_mulh(self, op):
-        # Store the upper XLEN-bits of the result
-        result = self.getOperValue(op, 1) * self.getOperValue(op, 2)
-        self.setOperValue(op, 0, result >> self.xlen)
+        # mulh / mulhsu / mulhu : store the upper XLEN bits of the 2*XLEN product.
+        # Signedness of each source is carried by the operand SIGNED/UNSIGNED
+        # flags; getOperValue already yields the correctly-interpreted value,
+        # and masking to 2*XLEN bits makes the `>> xlen` correct for every
+        # combination (signed*signed, signed*unsigned, unsigned*unsigned).
+        rs1_val = self.getOperValue(op, 1)
+        rs2_val = self.getOperValue(op, 2)
+        mulmask = (1 << (2 * self.xlen)) - 1
+        product = (rs1_val * rs2_val) & mulmask
+        self.setOperValue(op, 0, product >> self.xlen)
+
+    @staticmethod
+    def _trunc_div(a, b):
+        """RISC-V div/rem truncate toward zero (not floor like Python //)."""
+        if b == 0:
+            return None
+        sign = 1 if (a < 0) == (b < 0) else -1
+        return (abs(a) // abs(b)) * sign
 
     def i_div(self, op):
-        self.setOperValue(op, 0, self.getOperValue(op, 1) // self.getOperValue(op, 2))
+        # div (signed, SRC|SIGNED) / divu (unsigned, SRC|UNSIGNED) / divw
+        rs1_val = self.getOperValue(op, 1)
+        rs2_val = self.getOperValue(op, 2)
+
+        if rs2_val == 0:
+            # RISC-V: div by zero -> rd = all 1's (2^XLEN - 1)
+            self.setOperValue(op, 0, (1 << self.xlen) - 1)
+            return
+
+        signed = bool(op.opers[1].oflags & RISCV_OF.SIGNED)
+        if signed:
+            # div (signed): watch signed overflow MIN / -1 -> MIN
+            smin = -(1 << (self.xlen - 1))
+            if rs1_val == smin and rs2_val == -1:
+                self.setOperValue(op, 0, smin)
+                return
+            quot = self._trunc_div(rs1_val, rs2_val)
+        else:
+            # divu (unsigned)
+            quot = rs1_val // rs2_val
+        self.setOperValue(op, 0, quot)
 
     def i_rem(self, op):
-        self.setOperValue(op, 0, self.getOperValue(op, 1) % self.getOperValue(op, 2))
+        # rem (signed) / remu (unsigned) / remw
+        rs1_val = self.getOperValue(op, 1)
+        rs2_val = self.getOperValue(op, 2)
+
+        if rs2_val == 0:
+            # RISC-V: rem by zero -> rd = rs1
+            self.setOperValue(op, 0, rs1_val)
+            return
+
+        signed = bool(op.opers[1].oflags & RISCV_OF.SIGNED)
+        if signed:
+            smin = -(1 << (self.xlen - 1))
+            if rs1_val == smin and rs2_val == -1:
+                self.setOperValue(op, 0, 0)
+                return
+            quot = self._trunc_div(rs1_val, rs2_val)
+            self.setOperValue(op, 0, rs1_val - quot * rs2_val)
+        else:
+            # remu (unsigned)
+            self.setOperValue(op, 0, rs1_val % rs2_val)
 
     def i_slt(self, op):
-        if self.getOperValue(op, 0) < self.getOperValue(op, 1):
-            self.setOperValue(op, 0, 1)
-        else:
-            self.setOperValue(op, 0, 0)
+        # slt rd, rs1, rs2 (signed) or sltu rd, rs1, rs2 (unsigned).
+        # operands are [rd, rs1, rs2]; rs1/rs2 signedness is controlled by the
+        # operand SIGNED / UNSIGNED flags so getOperValue does the right thing.
+        rs1 = self.getOperValue(op, 1)
+        rs2 = self.getOperValue(op, 2)
+        self.setOperValue(op, 0, 1 if rs1 < rs2 else 0)
 
     def i_csrrw(self, op):
-        if op.opers[0].reg == REG_ZERO:
-            # Do nothing if the destination is X0
-            return
-
-        # CSR is the second param (oper 1)
-        self.setOperValue(op, 0, self.getOperValue(op, 1))
-        self.setOperValue(op, 1, self.getOperValue(op, 2))
+        # csrrw rd, rs1, csr :  rd = csr;  csr = rs1
+        # operands are [rd, rs1, csr]; the CSR is operand 2
+        csr_valu = self.getOperValue(op, 2)
+        self.setOperValue(op, 0, csr_valu)
+        self.setOperValue(op, 2, self.getOperValue(op, 1))
 
     def i_csrrc(self, op):
-        if op.opers[0].reg == REG_ZERO:
-            # Do nothing if the destination is X0
-            return
-
-        # CSR is the second param (oper 1)
-        value = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, value)
-
-        # Clear the bits that are set in rs2
-        mask = self.getOperValue(op, 2)
-        self.setOperValue(op, 1, value & ~mask)
+        # csrrc rd, rs1, csr :  rd = csr;  csr = csr & ~rs1
+        # operands are [rd, rs1, csr]; the CSR is operand 2
+        csr_valu = self.getOperValue(op, 2)
+        self.setOperValue(op, 0, csr_valu)
+        mask = self.getOperValue(op, 1)
+        self.setOperValue(op, 2, csr_valu & ~mask)
 
     def i_csrrs(self, op):
-        if op.opers[0].reg == REG_ZERO:
-            # Do nothing if the destination is X0
-            return
-
-        # CSR is the second param (oper 1)
-        value = self.getOperValue(op, 1)
-        self.setOperValue(op, 0, value)
-
-        # set the bits that are set in rs2
-        mask = self.getOperValue(op, 2)
-        self.setOperValue(op, 1, value | mask)
+        # csrrs rd, rs1, csr :  rd = csr;  csr = csr | rs1
+        # operands are [rd, rs1, csr]; the CSR is operand 2
+        csr_valu = self.getOperValue(op, 2)
+        self.setOperValue(op, 0, csr_valu)
+        mask = self.getOperValue(op, 1)
+        self.setOperValue(op, 2, csr_valu | mask)
 
     def i_load(self, op):
         self.setOperValue(op, 0, self.getOperValue(op, 1))
@@ -275,7 +332,7 @@ class RiscVAbstractEmulator(envi.Emulator):
     def i_fsgnjn(self, op):
         rs1_abs = op.opers[1].getAbs(op, self)
         rs2_neg_sign = op.opers[2].getNegSign(op, self)
-        op.opers[0].setRaw(op, self, rs2_sign | rs1_abs)
+        op.opers[0].setRaw(op, self, rs2_neg_sign | rs1_abs)
 
     def i_fsgnjx(self, op):
         rs1_abs = op.opers[1].getAbs(op, self)
@@ -336,7 +393,7 @@ class RiscVAbstractEmulator(envi.Emulator):
             self.setOperValue(op, 0, 8)
         elif src.isQNaN(op, self):
             self.setOperValue(op, 0, 9)
-        elif src.isSubnormal():
+        elif src.isSubnormal(op, self):
             if src.isNeg(op, self):
                 self.setOperValue(op, 0, 2)
             else:
