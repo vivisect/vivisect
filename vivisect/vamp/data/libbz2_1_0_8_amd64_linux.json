@@ -1,0 +1,335 @@
+{
+  "format_version": 1,
+  "library": "libbz2",
+  "version": "1.0.8",
+  "arch": "amd64",
+  "platform": "linux",
+  "compiler": "unknown",
+  "compiled_flags": "",
+  "source_url": null,
+  "binary_sha256": "b50520c0fdd6f3cf5f864cb3d2a920d36b7783cb59588b4b470fac5f31148369",
+  "generated_at": "2026-11-09T11:04:55Z",
+  "generated_by": "vamp-gen-sigs",
+  "signatures": [
+    {
+      "name": "libbz2.BZ2_hbAssignCodes",
+      "bytes": "f30f1efa4989fa4989f100000000448d5901450000000031f64963f80f1f400031c00f1f0066662e0f1f840000000000410fb60c01000000004189348283c6014883c001480000000083c20101f64100000000c3",
+      "mask": "ffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffff00000000ff",
+      "func_size": 84,
+      "first_block_size": 84,
+      "reloc_count": 2,
+      "masked_ratio": 0.2381,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_hbCreateDecodeTables",
+      "bytes": "f30f1efa554989fa4989f34889e541564155448b6d104154534489c34500000000458d71014585ed0f8e000000004489c64989d431ff4d63c50f1f800000000031c00f1f0066662e0f1f8400000000000fb61401000000004863d783c701418904944883c0014c0000000083c6014100000000c5f9efc0c4c17e7f4320c4c17e7f03c4c17e7f433c45000000004963d54801ca0f1f800000000066662e0f1f84000000000066662e0f1f8400000000000fb6014883c1014183448304014800000000418b13498d4304498d4b5c0f1f0003104883c0048950fc4800000000c5f9efc0c4c17e7f4220c4c17e7f02c4c17e7f423c44000000004863cb31c04889ca",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff",
+      "func_size": 431,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.1406,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bsInitWrite",
+      "bytes": "f30f1efa48c7878002000000000000c3",
+      "mask": "ffffffffffffffffffffffffffffffff",
+      "func_size": 16,
+      "first_block_size": 16,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzCompressInit",
+      "bytes": "f30f1efa4885ff0f840000000085f60f8e0000000083fe090f8f0000000081f9fa0000000f870000000055b81e0000004889e54157415641554989fd4154534883ec1885c90f45c18945cc488b47384885c00f840000000049837d40000f8400000000498b7d484189d74189f4ba01000000bed8d90000ffd04889c34885c00f84000000004569f4a0860100c5f9efc0ba010000004c8928c5fa7f4018498b7d4848c7402800000000428d34b50000000041ff5538498b7d48ba01000000428d34b5880000004889431841ff5538be04000400498b7d48ba010000004889432041ff5538488b7318488943284885f60f84000000004885c0488b43200f840301",
+      "mask": "ffffffffffffffffff00000000ffffffff00000000ffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff",
+      "func_size": 577,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.125,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzCompressEnd",
+      "bytes": "f30f1efa4800000000554889e54154534c8b67304889fb4d00000000493900000000498b7424184800000000488b7f48ff5340498b7424204800000000488b7b48ff5340498b7424284800000000488b7b48ff5340488b7330488b7b48ff534048c743300000000031c05b415c5dc390b8feff00000000b8feffffffc3",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff",
+      "func_size": 125,
+      "first_block_size": 125,
+      "reloc_count": 3,
+      "masked_ratio": 0.224,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzDecompressInit",
+      "bytes": "f30f1efa83fa010f97c04885ff0f94c108c80f850000000083fe040f8700000000554889e541554154534883ec08488b47384885c00f840000000048837f40000f84000000004189d44189f54889fbba01000000488b7f48be90fa0000ffd04885c00f8400000000c5f9efc048891848894330c740080a00000048c7402000000000c780740c00000000000048c7430c0000000048c7432400000000c5fa7f80500c0000c5f9efc0c4c37922c5014488602c48c780600c000000000000c5f9d6403031c04883c4085b415c415d5dc390488d05000000004889473848837f40000f8500000000488d0d0000000048894f40e900000000662e0f1f840000000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffff00000000ffffffffff00000000ffffffffffffffffffff",
+      "func_size": 269,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.1406,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_indexIntoF",
+      "bytes": "f30f1efa4189f8b9000100004889f7000000000f1f800000000066662e0f1f84000000000066662e0f1f84000000000089c189c829d083000000008d0411d1f84863f0443b0000000089c289c829d0830000000089d0c3",
+      "mask": "ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffff00000000ffffff",
+      "func_size": 87,
+      "first_block_size": 87,
+      "reloc_count": 2,
+      "masked_ratio": 0.1839,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzDecompressEnd",
+      "bytes": "f30f1efa4800000000554889e54154534c8b67304889fb4d00000000493900000000498bb424500c00004800000000488b7f48ff5340498bb424580c00004800000000488b7b48ff5340498bb424600c00004800000000488b7b48ff5340488b7330488b7b48ff534048c743300000000031c05b415c5dc30f1f840000000000b8feff00000000b8feffffffc3",
+      "mask": "ffffffffff00000000ffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff",
+      "func_size": 141,
+      "first_block_size": 141,
+      "reloc_count": 3,
+      "masked_ratio": 0.1986,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzWriteOpen",
+      "bytes": "f30f1efa554889e541574189d741564989f641554989fd41544189cc534489c34883ec184885ff0f84000000004885f60f84000000008d42ff83f8080f870000000083f9040f87000000004181f8fa0000000f870000000041c74500000000004c89f7e80000000085c00f8500000000bff0130000e8000000004989c14885c00f840000000041c745000000000085dbb81e0000004d8931c5f9efc00f44d8498db9981300004489e24489fe41c781e81300000000000041c681ec1300000089d941c781901300000000000041c681941300000149c781e013000000000000c4c17a7f81d01300004c894dc8e8000000004c8b4dc885c00f850000000041c781",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffff00000000ffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffff",
+      "func_size": 429,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1719,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzReadOpen",
+      "bytes": "f30f1efa554889e541564189ce41554189d541544989fc534c89c34883e4e04883ec2083f9010f97c04885f60f94c209d04183fd040f97c209d04885ff0f840000000084c00f85000000004585c90f84000000004d85c00f84000000004181f9881300000f870000000041c70424000000004889f7488974241844894c2414e800000000488b74241885c00f8500000000bff01300004889742418e800000000488b742418448b4c24144885c04889c10f840000000041c7042400000000c5f9efc0c681ec13000000c781e813000000000000488931c7819013000000000000c681941300000048c781e013000000000000c5fa7f81d01300004585c90f8e85",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 709,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.1406,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzReadClose",
+      "bytes": "f30f1efa4800000000c707000000004800000000c786e81300000000000080be9413000000000080beec1300000000004889f7e9000000000f1f840000000000c30f1f80000000004800000000c786e81300000000000080be94130000000000c786e8130000ffffffffc30f1f440000c707ffffffffc786e8130000ffffffffc30f1f800000000055488dbe981300004889e54883ec10488975f8e800000000488b7df8c9e900000000660f1f440000c3",
+      "mask": "ffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffff",
+      "func_size": 177,
+      "first_block_size": 177,
+      "reloc_count": 4,
+      "masked_ratio": 0.2034,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzReadGetUnused",
+      "bytes": "f30f1efa480000000083bee81300000000004800000000c707ffffffffc786e8130000ffffffffc30f1f840000000000480000000048000000004800000000c70700000000c786e8130000000000008b86a01300008901488b8698130000488902c3660f1f4400004800000000c707feffffffc30f1f40004800000000c707feffffffc786e8130000feffffffc3",
+      "mask": "ffffffffff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff",
+      "func_size": 142,
+      "first_block_size": 142,
+      "reloc_count": 4,
+      "masked_ratio": 0.2254,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzlibVersion",
+      "bytes": "f30f1efa488d0500000000c3",
+      "mask": "ffffffffffffff00000000ff",
+      "func_size": 12,
+      "first_block_size": 12,
+      "reloc_count": 0,
+      "masked_ratio": 0.3333,
+      "confidence": "medium"
+    },
+    {
+      "name": "libbz2.BZ2_bz__AssertH__fail",
+      "bytes": "f30f1efa554889e541545389fbe8000000004c8b250000000089d9488d15000000004989c0be0200000031c0498b3c24e80000000081fbef0300000000bf03000000e800000000498b0c24ba20040000be01000000488d3d00000000e8000000000000",
+      "mask": "ffffffffffffffffffffffffffff00000000ffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ff000000000000",
+      "func_size": 99,
+      "first_block_size": 99,
+      "reloc_count": 4,
+      "masked_ratio": 0.3434,
+      "confidence": "medium"
+    },
+    {
+      "name": "libbz2.BZ2_blockSort",
+      "bytes": "f30f1efa554889e54157415641554154534883ec28448b7f6c488b5f38644c8b2425280000004c8965c84989fc4c8b7728448b8f900200004181ff0f2700000f8e00000000c4c1796e4424584489fa4589f84889df4883ec0883e201498b7424404c89f1c5f96f0d00000000428d543a224863d2c4e27939c1c5f96f0d000000004801f2c4e2793dc1c5f97ec0448d68ffb8abaaaaaa4c0fafe8488d45c449c1ed21450fafef44896dc45044894dbce800000000448b4dbc5f448b55c441584183f9020f8f0000000045000000004183f9020f8400000000498b742420498b7c24184589c84489f94c89f2e80000000041c7442430ffffffff496354246c85d2",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff",
+      "func_size": 517,
+      "first_block_size": 256,
+      "reloc_count": 4,
+      "masked_ratio": 0.125,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_hbMakeCodeLengths",
+      "bytes": "f30f1efa554889e54157415641554154534883e4e04881ec0010000048830c24004881ecc004000048897c24284189d7644c8b2c25280000004c89ac24b81400004189cd85d20f8e000000008d42ff83f8060f86000000004489f9bf00010000c5e9efd24889f0c1e903c5f96edf488d94248404000048c1e105c4e27d58db4801f1669066662e0f1f84000000000066662e0f1f84000000000066662e0f1f84000000000066662e0f1f840000000000c5fe6f004883c0204883c220c5fd76cac5fd72f008c5f576cac4e3654cc010c5fe7f42e048000000004489fa83e2f841f6000000004863c283c201bf000100004829c24c8d8494800400008b0c8689ca",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 1928,
+      "first_block_size": 256,
+      "reloc_count": 2,
+      "masked_ratio": 0.0625,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_compressBlock",
+      "bytes": "f30f1efa4c8d5424084883e4e041ff72f8554889e541574156415541544152534889fb4881eca001000089b5e8feffff64488b042528000000488945c84863476c85c00f8e00000000448b87880200008b8f94020000c4637bf08f8c0200001f41f7d04531c14489878802000044898f8c0200008300000000c747740000000083bb90020000010f8f000000004889dfe8000000004863536c4889d0480353204889535083bb94020000010f840000000085c00f8e000000008b83840200008bb38002000083f8070f8e000000008b4b74488b43504863c9c1ee18408834088b43748b93840200008d4801b808000000c4e279f7b38002000089b3800200008d",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 19885,
+      "first_block_size": 256,
+      "reloc_count": 3,
+      "masked_ratio": 0.1094,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzCompress",
+      "bytes": "f30f1efa4885ff0f8400000000488b57304885d20f840000000048393a0f8500000000554889e54883ec108b4a0883000000000f8f0000000083f9010f840000000083f9020f850000000085f60f840000000083fe010f840000000083fe020f85000000008b4f08b804000000894a108942088b4a0883000000000f1f44000083fe010f85000000008b47083942100f85000000004889d7488955f8e800000000488b55f8b9020000008b7a1000000000817a5cff00000000008b726000000000c989c8c30f1f00830000000083fe020f85000000008b47083942100f85000000004889d7488955f8894df4e80000000000000000488b55f88b4a1000000000",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffff00000000ffff00000000ffffffffff00000000ffffffffff00000000ffffffff00000000ffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffff00000000ffffffffff00000000ffffff00000000ffffffffffffffff00000000ffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffff0000000000000000ffffffffffffff00000000",
+      "func_size": 426,
+      "first_block_size": 256,
+      "reloc_count": 11,
+      "masked_ratio": 0.3594,
+      "confidence": "medium"
+    },
+    {
+      "name": "libbz2.BZ2_bzWrite",
+      "bytes": "f30f1efa554889e54156415541544989fc534889f34883ec104800000000c707000000004800000000c786e8130000000000004885d20f840000000085c90f880000000080be94130000000f850000000041c70424ffffffffc783e8130000ffffffff4883c4105b415c415d415e5dc3c707feffffff4883c4105b415c415d415e5dc30f1f4400004800000000c786e81300000000000048000000000000000080be94130000000000488b3b894dd4488955d8e800000000488b55d88b4dd400000000c783e8130000faffffff4883c4105b415c415d415e5dc3660f1f44000041c70424feffffffc783e8130000feffffff4883c4105b415c415d415e5dc390",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff0000000000000000ffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 508,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1719,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzWriteClose64",
+      "bytes": "f30f1efa554889e54157415641554154534883ec384c8b75104885f60f840000000080be941300000000004800000000c707ffffffffc786e8130000ffffffff4883c4385b415c415d415e415f5dc39048897dc0488b3e4989cd4189d74c894db04889f34c8945b8e80000000085c00f85000000004d0000000041c7450000000000488b45b84800000000c70000000000488b45b04800000000c700000000004d0000000041c7060000000045000000004d000000008b83a413000041894500488b55b848000000008b83a81300008902488b4db048000000008b83bc13000089014d000000008b83c0130000418906488b45c04800000000c70000000000c7",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffff00000000ff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffffffffffffffffffffff00000000ffffffffffffff",
+      "func_size": 616,
+      "first_block_size": 256,
+      "reloc_count": 7,
+      "masked_ratio": 0.2344,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzWriteClose",
+      "bytes": "f30f1efa554d89c14531c04889e54883ec086a00e800000000585ac9c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff00000000ffffffff",
+      "func_size": 29,
+      "first_block_size": 29,
+      "reloc_count": 0,
+      "masked_ratio": 0.1379,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzBuffToBuffCompress",
+      "bytes": "f30f1efa554889e54157415641554154534883ec78898d6cffffff64488b0c252800000048894dc88b4d104885ff0f84000000004989f44885f60f84000000004989d74885d20f84000000004585c00f8e000000004183f8090f8f000000004585c90f88000000004183f9040f8f0000000081f9fa0000000f870000000085c9b81e000000c5f9efc04989fe0f44c84489ca4489c6c5fa7f45a8488dbd70ffffff48c745b800000000e80000000089c300000000488b45c864482b0425280000000f85000000004883c47889d85b415c415d415e415f5dc30f1f8400000000008b856cffffffbe020000004c897588488dbd70ffffff4c89bd70ffffff898578",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffff00000000ffffffffff00000000ffffffffffff00000000ffffffffff00000000ffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 373,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1719,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_decompress",
+      "bytes": "f30f1efa4c8d5424084883e4e041ff72f8554889e541574156415541544152534881eca00000008b4708488b0f644c8b1425280000004c8955c84989fa83f80a0f8400000000418b9a2cfa0000418bba60fa000083e80b418bb268fa00004d638224fa0000895db0418b9a3cfa0000897d80418bba70fa0000895d90418b9a40fa00008975bc418bb274fa0000895d94418b9a48fa0000897d84458b8a28fa0000895da4418b9a50fa0000897588458bba30fa0000895db8418b9a54fa0000458ba234fa0000458bb238fa0000895da0418b9a58fa0000c4c1796e8244fa0000458b9a64fa0000c4c1796e924cfa0000895d8cc4c1796e8a6cfa0000418b9a5c",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 12570,
+      "first_block_size": 256,
+      "reloc_count": 0,
+      "masked_ratio": 0.0156,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzDecompress",
+      "bytes": "f30f1efa554889e54157415641554154534883ec284885ff0f8400000000488b5f304885db0f840000000048393b0f85000000008b430883f8010f8400000000830000000083f8090f8f000000008300000000488b130fb643148b7a20807b2c000f840000000084c00f850000000085ff0f8400000000488db3480400000000488b42180fb6530c488b0d0000000088108b83700c000089c7c1e008c1ef1831fa0fb6d2330491488b138983700c00008b4220836b1001488342180183e8018342240189000000008342280185c00f8400000000448b43104500000000448bab50fa0000448b8b44040000458d5d014539d90f84000000000f8f00000000448b",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffff00000000ffffffffff00000000ffffffffffffffff00000000ff00000000ffffffffff00000000ff00000000ffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffff00000000ffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffff",
+      "func_size": 4146,
+      "first_block_size": 256,
+      "reloc_count": 8,
+      "masked_ratio": 0.2656,
+      "confidence": "medium"
+    },
+    {
+      "name": "libbz2.BZ2_bzRead",
+      "bytes": "f30f1efa4885ff0f8400000000c707000000004885f60f8400000000c786e8130000000000004885d20f840000000085c90f880000000080be94130000000f850000000085c90f8400000000554889e541574189cf415641554c8d6e0841544989fc534889f34883ec08898eb8130000488996b0130000660f1f840000000000488b3be80000000085c00f85000000008bb3a0130000000000004c8b334c89f7e80000000083000000004c89f689c7e800000000488b0b4c89efba88130000be01000000e800000000488b3b4989c6e80000000085c00f85000000004489b3901300004489b3a01300004c89ab98130000488dbb98130000e800000000a9fbff",
+      "mask": "ffffffffffffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffff00000000ffffffffffff00000000ffffffffffffff00000000ff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff",
+      "func_size": 650,
+      "first_block_size": 256,
+      "reloc_count": 8,
+      "masked_ratio": 0.25,
+      "confidence": "medium"
+    },
+    {
+      "name": "libbz2.BZ2_bzBuffToBuffDecompress",
+      "bytes": "f30f1efa554889e54157415641554154534883ec78898d6cffffff64488b042528000000488945c831c04885ff0f84000000004989f54885f60f84000000004885d24989d70f94c04183f8010f97c208d00f85000000004183f9040f8700000000c5f9efc04989fe4489c24489ce488dbd70ffffff48c745b800000000c5fa7f45a8e80000000089c300000000488b45c864482b0425280000000f85000000004883c47889d85b415c415d415e415f5dc30f1f80000000008b856cffffff488dbd70ffffff4c89bd70ffffff4c897588898578ffffff418b4500894590e800000000000000008300000000488dbd70ffffff89c3e80000000000000f1f440000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffff00000000ffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000ff00000000ffffffffffffffffffff000000000000ffffffffff",
+      "func_size": 367,
+      "first_block_size": 256,
+      "reloc_count": 5,
+      "masked_ratio": 0.1797,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzopen",
+      "bytes": "f30f1efa4889f231c9beffffffffe900000000",
+      "mask": "ffffffffffffffffffffffffffffff00000000",
+      "func_size": 19,
+      "first_block_size": 19,
+      "reloc_count": 0,
+      "masked_ratio": 0.2105,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzdopen",
+      "bytes": "f30f1efa4889f2b90100000089fe31ffe900000000",
+      "mask": "ffffffffffffffffffffffffffffffffff00000000",
+      "func_size": 21,
+      "first_block_size": 21,
+      "reloc_count": 0,
+      "masked_ratio": 0.1905,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzread",
+      "bytes": "f30f1efa554889e54883ec1064488b042528000000488945f831c083bfe813000000000089d14889f24889fe488d7df4e800000000f745f4fbff00000000488b55f864482b1425280000000000c9c390b8ffff00000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffff00000000ffffffffff00000000ffffffffffffffffffffff00000000ffffffffffff00000000ff00000000",
+      "func_size": 92,
+      "first_block_size": 92,
+      "reloc_count": 3,
+      "masked_ratio": 0.2609,
+      "confidence": "medium"
+    },
+    {
+      "name": "libbz2.BZ2_bzwrite",
+      "bytes": "f30f1efa554889f84889e553488d7de44883ec1864488b1c252800000048895de889d34889f24889c689d9e8000000008b45e40000000089d8488b55e864482b1425280000000000488b5df8c9c36690b8ffff00000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff00000000ffffffffffffffffffffffffff00000000ffffffffffffffffffffff00000000ff00000000",
+      "func_size": 92,
+      "first_block_size": 92,
+      "reloc_count": 2,
+      "masked_ratio": 0.2174,
+      "confidence": "high"
+    },
+    {
+      "name": "libbz2.BZ2_bzclose",
+      "bytes": "f30f1efa554889e5534883ec2864488b042528000000488945e831c048000000004889fe488b1f488d7de480be94130000000000e800000000488b05000000004800000000488b050000000048000000004889dfe800000000488b45e864482b0425280000000000488b5df8c9c366904531c031c931d2488975d8e8000000008b45e4488b75d8000000004531c031c9ba0100000031ffe8000000000000e800000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffff00000000ff00000000ffffff00000000ff00000000ffffff00000000ff00000000ffffffff00000000ffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff00000000ffffffffffffffffffffffffff000000000000ff00000000",
+      "func_size": 163,
+      "first_block_size": 163,
+      "reloc_count": 6,
+      "masked_ratio": 0.3313,
+      "confidence": "medium"
+    },
+    {
+      "name": "libbz2.BZ2_bzerror",
+      "bytes": "f30f1efa8b87e813000031d285c00f4fc2488d15000000008906f7d84898488b04c2c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffff",
+      "func_size": 35,
+      "first_block_size": 35,
+      "reloc_count": 0,
+      "masked_ratio": 0.1143,
+      "confidence": "high"
+    }
+  ]
+}
