@@ -3,14 +3,14 @@
 VAMP Weekly Sig Scanner
 
 Scans Ubuntu package archives for newer versions of tracked libraries,
-downloads them, generates VAMP signatures, and prepares a PR with the
-new/updated sig databases for https://github.com/vivisect/vivisect.
+downloads them, generates VAMP signatures, and pushes updates to the
+vamp-sigs repository (https://github.com/atlas0fd00m/vamp-sigs).
 
 This script is designed to run as a weekly cron job. It:
 1. Checks the Ubuntu package archive for new versions of tracked libraries
 2. Downloads any new/updated .deb packages
 3. Generates VAMP sigs using gen_elf_sigs.py
-4. Commits changes to a new branch on the fork
+4. Commits changes to a new branch on the fork (aragorn-1337/vamp-sigs)
 5. Pushes the branch (PR link printed for manual creation)
 
 Usage:
@@ -28,9 +28,9 @@ import urllib.request
 
 # --- Configuration ---
 
-# Repos
-FORK_REPO = 'git@github.com:aragorn-1337/vivisect.git'
-UPSTREAM_REPO = 'https://github.com/vivisect/vivisect.git'
+# Repos — sigs live in the separate vamp-sigs repo, not vivisect
+SIGS_FORK_REPO = 'git@github.com:aragorn-1337/vamp-sigs.git'
+SIGS_UPSTREAM_REPO = 'https://github.com/atlas0fd00m/vamp-sigs.git'
 BRANCH_PREFIX = 'vamp-sig-update'
 
 # Package archive URLs
@@ -75,10 +75,14 @@ TRACKED_LIBS = [
 
 # Paths (computed relative to this file)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# vivisect/vamp/tools/ -> vivisect/vamp/data
+# vivisect/vamp/tools/ -> vivisect/vamp/data (bundled MSVC sigs only)
 VAMP_DATA_DIR = os.path.join(SCRIPT_DIR, '..', 'data')
-# vivisect/vamp/tools/ -> repo root
-REPO_DIR = os.path.join(SCRIPT_DIR, '..', '..', '..')
+# vivisect/vamp/tools/ -> vivisect repo root
+VIVISECT_REPO_DIR = os.path.join(SCRIPT_DIR, '..', '..', '..')
+
+# vamp-sigs repo clone (for pushing sig updates)
+# Use a stable working clone alongside the vivisect repo
+SIGS_REPO_DIR = os.path.expanduser('~/.viv/vamp-sigs')
 
 # Working directory for downloads
 WORK_DIR = tempfile.mkdtemp(prefix='vamp-scan-')
@@ -143,7 +147,12 @@ def generate_sigs(so_path, library, version, arch, platform, output_path):
         '--platform', platform,
         '--output', output_path,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    # Set PYTHONPATH to repo root so gen_elf_sigs.py imports the repo-local
+    # vivisect/vamp instead of any stale editable install (e.g. from /tmp).
+    env = os.environ.copy()
+    repo_root = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
+    env['PYTHONPATH'] = repo_root + os.pathsep + env.get('PYTHONPATH', '')
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=env)
     if result.returncode != 0:
         print(f'  gen_elf_sigs FAILED: {result.stderr[:300]}')
         return False
@@ -165,13 +174,41 @@ def main():
 
     print('VAMP Weekly Sig Scanner')
     print(f'Work dir: {WORK_DIR}')
-    print(f'Output dir: {os.path.abspath(VAMP_DATA_DIR)}')
-    print(f'Repo dir: {os.path.abspath(REPO_DIR)}')
+    print(f'Vivisect repo: {os.path.abspath(VIVISECT_REPO_DIR)}')
+    print(f'Sigs repo: {SIGS_REPO_DIR}')
     print(f'Dry run: {dry_run}')
     print()
 
+    # Ensure the vamp-sigs repo is cloned and up to date
+    sigs_data_dir = os.path.join(SIGS_REPO_DIR, 'data')
+    if not os.path.isdir(SIGS_REPO_DIR):
+        print(f'Cloning vamp-sigs repo to {SIGS_REPO_DIR}...')
+        clone_result = subprocess.run(
+            ['git', 'clone', SIGS_FORK_REPO, SIGS_REPO_DIR],
+            capture_output=True, text=True,
+            env={**os.environ, 'GIT_SSH_COMMAND': 'ssh -i ~/.ssh/id_ed25519_github -o StrictHostKeyChecking=no'})
+        if clone_result.returncode != 0:
+            print(f'  CLONE FAILED: {clone_result.stderr[:300]}')
+            return
+        # Add upstream remote
+        subprocess.run(['git', 'remote', 'add', 'upstream', SIGS_UPSTREAM_REPO],
+                       cwd=SIGS_REPO_DIR, capture_output=True, text=True)
+    else:
+        # Fetch latest from upstream and update main
+        print('Updating vamp-sigs repo...')
+        subprocess.run(['git', 'fetch', 'upstream'], cwd=SIGS_REPO_DIR,
+                       capture_output=True, text=True,
+                       env={**os.environ, 'GIT_SSH_COMMAND': 'ssh -i ~/.ssh/id_ed25519_github -o StrictHostKeyChecking=no'})
+        subprocess.run(['git', 'checkout', 'main'], cwd=SIGS_REPO_DIR,
+                       capture_output=True, text=True)
+        subprocess.run(['git', 'merge', 'upstream/main'], cwd=SIGS_REPO_DIR,
+                       capture_output=True, text=True)
+        subprocess.run(['git', 'push', 'origin', 'main'], cwd=SIGS_REPO_DIR,
+                       capture_output=True, text=True,
+                       env={**os.environ, 'GIT_SSH_COMMAND': 'ssh -i ~/.ssh/id_ed25519_github -o StrictHostKeyChecking=no'})
+
     # Load current index to see what we already have
-    index_path = os.path.join(VAMP_DATA_DIR, 'index.json')
+    index_path = os.path.join(sigs_data_dir, 'index.json')
     current_versions = {}
     if os.path.exists(index_path):
         with open(index_path) as f:
@@ -253,7 +290,7 @@ def main():
                 lib_name = library
                 out_name = f'{library}_{version.replace(".", "_")}_{vamp_arch}_{platform}.json'
 
-            out_path = os.path.join(VAMP_DATA_DIR, out_name)
+            out_path = os.path.join(sigs_data_dir, out_name)
             print(f'  Generating sigs from {so_base}...')
             if generate_sigs(so_path, lib_name, version, vamp_arch, platform, out_path):
                 new_sigs.append(out_path)
@@ -262,31 +299,38 @@ def main():
     # Update index
     if new_sigs:
         print('\nUpdating index...')
-        sys.path.insert(0, os.path.abspath(REPO_DIR))
+        sys.path.insert(0, os.path.abspath(VIVISECT_REPO_DIR))
         import vivisect.vamp as v_vamp
-        idx = v_vamp.updateSigSetIndex()
+        idx = v_vamp.updateSigSetIndex(sigs_data_dir)
         print(f'Index updated: {len(idx["sig_sets"])} sig sets')
 
-        # Commit and push
-        print('\nCommitting changes...')
+        # Commit and push to vamp-sigs repo
+        print('\nCommitting changes to vamp-sigs repo...')
         branch_name = f'{BRANCH_PREFIX}-{hashlib.md5(str(sorted(new_sigs)).encode()).hexdigest()[:8]}'
 
-        subprocess.run(['git', 'checkout', 'master'], cwd=REPO_DIR, capture_output=True, text=True)
-        subprocess.run(['git', 'pull', 'origin', 'master'], cwd=REPO_DIR, capture_output=True, text=True)
-        subprocess.run(['git', 'checkout', '-b', branch_name], cwd=REPO_DIR, capture_output=True, text=True)
-        subprocess.run(['git', 'add', 'vivisect/vamp/data/'], cwd=REPO_DIR, capture_output=True, text=True)
+        git_env = {**os.environ, 'GIT_SSH_COMMAND': 'ssh -i ~/.ssh/id_ed25519_github -o StrictHostKeyChecking=no'}
+
+        subprocess.run(['git', 'checkout', 'main'], cwd=SIGS_REPO_DIR,
+                       capture_output=True, text=True)
+        subprocess.run(['git', 'pull', 'origin', 'main'], cwd=SIGS_REPO_DIR,
+                       capture_output=True, text=True, env=git_env)
+        subprocess.run(['git', 'checkout', '-b', branch_name], cwd=SIGS_REPO_DIR,
+                       capture_output=True, text=True)
+        subprocess.run(['git', 'add', 'data/'], cwd=SIGS_REPO_DIR,
+                       capture_output=True, text=True)
         commit_msg = (f'VAMP sig update: {len(new_sigs)} new/updated sig sets\n\n'
                       f'Auto-generated by weekly VAMP sig scanner.\n'
                       f'Updated: {", ".join(os.path.basename(s) for s in new_sigs)}')
         subprocess.run(['git', 'commit', '-m', commit_msg],
-                       cwd=REPO_DIR, capture_output=True, text=True)
+                       cwd=SIGS_REPO_DIR, capture_output=True, text=True)
         push_result = subprocess.run(['git', 'push', 'origin', branch_name],
-                                     cwd=REPO_DIR, capture_output=True, text=True)
+                                     cwd=SIGS_REPO_DIR, capture_output=True, text=True,
+                                     env=git_env)
         if push_result.returncode != 0:
             print(f'  PUSH FAILED: {push_result.stderr[:300]}')
         else:
             print(f'\nPushed branch: {branch_name}')
-            print(f'PR link: https://github.com/aragorn-1337/vivisect/pull/new/{branch_name}')
+            print(f'PR link: https://github.com/atlas0fd00m/vamp-sigs/pull/new/{branch_name}')
 
     print(f'\nDone. {len(new_sigs)} sig files updated.')
 

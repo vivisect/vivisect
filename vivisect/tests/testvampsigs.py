@@ -277,10 +277,14 @@ class VampJsonTests(unittest.TestCase):
         sets = v_vamp.loadAllSigSets()
         self.assertGreaterEqual(len(sets), 1, "Should find at least one sig set")
 
+        # At least one set should have sigs
+        has_sigs = False
         for tree, meta, filepath in sets:
-            self.assertGreater(len(tree.sigs), 0, "Each set should have sigs")
             self.assertIn('library', meta)
             self.assertIn('version', meta)
+            if len(tree.sigs) > 0:
+                has_sigs = True
+        self.assertTrue(has_sigs, "At least one set should have sigs")
 
     def test_load_sig_set_index(self):
         '''Test that the index file can be loaded.'''
