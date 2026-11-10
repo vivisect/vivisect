@@ -1,3 +1,5 @@
+import math
+
 import envi
 import envi.bits as e_bits
 from envi.archs.riscv.regs import riscv_regs, REG_SP, REG_ZERO, REG_RA, \
@@ -53,44 +55,40 @@ def int_to_float(value, oflags):
 
 def _float_to_int_slow(value, info):
     # This will probably be horribly inefficient but is necessary for formats
-    # not supported by the struct package
-    int_part = int(value)
+    # not supported by the struct package (e.g. IEEE-754 quad precision).
+    # value is a Python float; build the IEEE-754 bits with the given info
+    # (sign, emask, eoff, ebits, fmask, fdiv, fbits, ...).
+    if value == 0.0:
+        return 0
+    if value != value:  # NaN
+        return info.qnan[1] if math.copysign(1.0, value) < 0 else info.qnan[0]
+    if value == float('inf'):
+        return info.inf[0]
+    if value == -float('inf'):
+        return info.inf[1]
 
-    # Drop the leading one from the integer component
-    if int_part != 0:
-        int_bits = format(value, 2)[1:]
-        exp = len(int_bits)
+    negative = value < 0
+    value = abs(value)
+
+    # frexp: value = mant * 2**exp with mant in [0.5, 1)
+    mant, exp2 = math.frexp(value)
+    exp = exp2 - 1  # so that value = 1.frac * 2**exp
+
+    # exponent biased
+    biased_exp = exp + info.eoff
+    if biased_exp <= 0:
+        # subnormal -> just produce 0 for the mantissa path (exponent 0)
+        biased_exp = 0
+        frac_bits = 0
     else:
-        exp = None
+        # fractional bits: (value / 2**exp - 1) * fmask-ish range
+        frac = (value / (2**exp)) - 1
+        frac_bits = int(round(frac * info.fdiv))
 
-    dec_part = value - int_part
-    dec_bits = ''
-
-    i = 0
-    while dec_part:
-        if exp is not None and i >= info.fbits - exp:
-            break
-        dec_part *= 2
-        if dec_part >= 1:
-            dec_bits += '1'
-            dec_part -= 1.0
-            if exp is None:
-                exp = -i
-        else:
-            dec_bits += '0'
-        i += 1
-
-    if int_part == 0:
-        # Remove any leading 0's
-        bits = dec_bits[-exp:]
-
-    # Pad the integer and decimal part out to the specified fractional bit width
-    bits += '0' * (rem_bits - len(bits))
-
-    if value < 0.0:
-        return info.sign | ((info.eoff + exp) << info.fbits) | int(bits, 2)
-    else:
-        return ((info.eoff + exp) << info.fbits) | int(bits, 2)
+    bits = (biased_exp << info.fbits) | (frac_bits & info.fmask)
+    if negative:
+        bits |= info.sign
+    return bits
 
 
 def float_to_int(value, oflags):
@@ -100,15 +98,15 @@ def float_to_int(value, oflags):
     if value == 0.0:
         return 0
     elif value == float('inf'):
-        return inf[0]
+        return info.inf[0]
     elif value == -float('inf'):
-        return inf[1]
+        return info.inf[1]
     elif value == float('nan'):
         # Use the quiet NaN values
-        return qnan[0]
+        return info.qnan[0]
     elif value == -float('nan'):
         # Use the quiet NaN values
-        return qnan[1]
+        return info.qnan[1]
 
     # half, single, and double precision can be handled using the info returned
     # by the python float.hex() function
@@ -233,7 +231,9 @@ class RiscVOpcode(envi.Opcode):
         """
         Over-riding the standard envi.Opcode.__repr__ to speed it up
         """
-        return self.mnem + " " + ",".join(o.repr(self) for o in self.opers)
+        if self.opers:
+            return self.mnem + " " + ",".join(o.repr(self) for o in self.opers)
+        return self.mnem
 
     def render(self, mcanv):
         if self.prefixes:
@@ -279,9 +279,19 @@ class RiscVRegOper(envi.RegisterOper):
         self._set_tsize()
 
     def _set_tsize(self):
-        # Because some instructions read less than the register size bytes from
-        # the register
         self.tsize = SIZE_CONSTS.get(self.oflags & SIZE_FLAGS)
+
+    def _tsize(self, emu=None):
+        """
+        Return the effective access size in bytes for this operand.  Integer
+        register operands that carry no explicit SIZE flag (e.g. `slt`, `sra`,
+        plain `add`) default to the full pointer width.
+        """
+        if self.tsize is not None:
+            return self.tsize
+        if emu is not None:
+            return emu.getPointerSize()
+        return None
 
     def __eq__(self, oper):
         if not isinstance(oper, self.__class__):
@@ -306,8 +316,9 @@ class RiscVRegOper(envi.RegisterOper):
             return None
 
         value = emu.getRegister(self.reg)
-        if self.tsize is not None:
-            return e_bits.unsigned(value, self.tsize)
+        tsize = self._tsize(emu)
+        if tsize is not None:
+            return e_bits.unsigned(value, tsize)
         else:
             return value
 
@@ -315,8 +326,9 @@ class RiscVRegOper(envi.RegisterOper):
         # Register X0 can't be written to
         if self.reg == REG_ZERO or emu is None:
             return
-        if self.tsize is not None:
-            value = e_bits.unsigned(value, self.tsize)
+        tsize = self._tsize(emu)
+        if tsize is not None:
+            value = e_bits.unsigned(value, tsize)
         emu.setRegister(self.reg, value)
 
     def getOperValue(self, op, emu=None):
@@ -325,15 +337,16 @@ class RiscVRegOper(envi.RegisterOper):
             return None
 
         if self.oflags & RISCV_OF.SIGNED:
-            # tsize _must_ be set
-            return e_bits.signed(value, self.tsize)
+            tsize = self._tsize(emu)
+            # tsize _must_ be set for signed access; fall back is pointer size
+            return e_bits.signed(value, tsize)
         else:
             return value
 
     def setOperValue(self, op, emu=None, value=None):
         if self.oflags & RISCV_OF.SIGNED:
-            # tsize _must_ be set
-            value = e_bits.signed(value, self.tsize)
+            tsize = self._tsize(emu)
+            value = e_bits.signed(value, tsize)
         self.setRaw(op, emu, value)
 
     def getOperAddr(self, op, emu=None):
@@ -428,14 +441,20 @@ class RiscVCSRRegOper(RiscVRegOper):
     def __init__(self, ival, bits, args, va=0, oflags=0):
         RiscVRegOper.__init__(self, ival, bits, args, va, oflags)
 
-        # The register number in the instruction is a CSR meta regsiter
+        # The register number in the instruction is a CSR meta register
         self.csr_reg = self.reg
 
-        # Get the internal envi register constant
-        name = csr_regs.get(self.csr_reg)
+        # Get the internal envi register constant.  csr_regs maps a CSR number
+        # to a RiscVCSRReg namedtuple; use its `.name` (a str) for the lookup.
+        csr_name = csr_regs.get(self.csr_reg)
+        if csr_name is not None:
+            csr_name = csr_name.name
 
-        # This may be invalid
-        self.reg = riscv_regs.getRegisterIndex(name)
+        # This may be invalid / not-yet-known; getRegisterIndex expects a str.
+        try:
+            self.reg = riscv_regs.getRegisterIndex(csr_name)
+        except TypeError:
+            self.reg = None
 
     def addSystemRegister(self, emu):
         """
@@ -447,7 +466,10 @@ class RiscVCSRRegOper(RiscVRegOper):
         emu.addRegister(hex(self.csr_reg))
 
     def repr(self, op):
-        return csr_regs.get(self.csr_reg, hex(self.csr_reg))
+        csr_name = csr_regs.get(self.csr_reg)
+        if csr_name is None:
+            return hex(self.csr_reg)
+        return csr_name.name
 
 
 class RiscVMemOper(envi.DerefOper):

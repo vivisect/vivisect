@@ -38,7 +38,8 @@ class RiscVModule(envi.ArchitectureModule):
         return RiscVRegisterContext(description)
 
     def archGetNopInstr(self):
-        return b'\x00\x00\x00\x13' # NOP is emulated with addi x0, x0, 0
+        # NOP is emulated with addi x0, x0, 0 = 0x00000013, little-endian
+        return b'\x13\x00\x00\x00'
 
     def archGetRegisterGroups(self):
         groups = envi.ArchitectureModule.archGetRegisterGroups(self)
@@ -65,10 +66,10 @@ class RiscVModule(envi.ArchitectureModule):
 
     def getEmulator(self, endian=None, description=None):
         if endian is None:
-            endian = self.endian
+            endian = self.getEndian()
         if description is None:
             description = self.description
-        return RiscVEmulator(self, archname=self.getArchName(), description=description, endian=endian)
+        return RiscVEmulator(self.getArchName(), description, archmod=self, endian=endian)
 
 
 class RiscV32Module(RiscVModule):

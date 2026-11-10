@@ -14,9 +14,12 @@ logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
+# module-level emu so parseBytes() can reference it after start() runs
+emu = None
+
 
 def parseBytes(value, size=4):
-    if size ==4:
+    if size == 4:
         fmt = ('<I', '>I')[emu.getEndian()]
         data = struct.pack(fmt, value)
     else:
@@ -46,6 +49,7 @@ def start(_archname=None, _verbose=0):
     envi.common.initLogging(logger, level=level)
 
     print('workspace arch set to %s' % _archname)
+    global emu
     emu = vw.getEmulator()
 
     from IPython import embed
