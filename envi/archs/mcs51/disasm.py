@@ -86,6 +86,10 @@ class Mcs51DirectOper(envi.Operand):
             return False
         if other.imm != self.imm:
             return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
+            return False
         return True
 
 class Mcs51IndirectOper(envi.Operand):
@@ -144,8 +148,10 @@ class Mcs51IndirectOper(envi.Operand):
             return False
         if other.reg != self.reg:
             return False
-        #if other.disp != self.disp:
-            #return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
+            return False
         return True
 
 class Mcs51RegOper(envi.Operand):
@@ -177,6 +183,10 @@ class Mcs51RegOper(envi.Operand):
         if not isinstance(other, Mcs51RegOper):
             return False
         if other.reg != self.reg:
+            return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
             return False
         return True
 
@@ -214,6 +224,10 @@ class Mcs51ImmOper(envi.Operand):
             return False
         if other.imm != self.imm:
             return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
+            return False
         return True
 
 class Mcs51AddrOper(envi.Operand):
@@ -248,6 +262,10 @@ class Mcs51AddrOper(envi.Operand):
         if not isinstance(other, Mcs51AddrOper):
             return False
         if other.imm != self.imm:
+            return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
             return False
         return True
 
@@ -285,6 +303,10 @@ class Mcs51IndexedOper(envi.Operand):
             return False
         if other.basereg != self.basereg:
             return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
+            return False
         return True
 
 class Mcs51PcRelOper(envi.Operand):
@@ -318,6 +340,10 @@ class Mcs51PcRelOper(envi.Operand):
             return False
         if other.imm != self.imm:
             return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
+            return False
         return True
 
 class Mcs51BitOper(envi.Operand):
@@ -336,6 +362,10 @@ class Mcs51BitOper(envi.Operand):
         if other.base != self.base:
             return False
         if other.comp != self.comp:
+            return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
             return False
         return True
 
