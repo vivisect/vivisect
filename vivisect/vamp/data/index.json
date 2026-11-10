@@ -1,0 +1,24 @@
+{
+  "format_version": 1,
+  "sig_set_count": 2,
+  "total_signatures": 19,
+  "sig_sets": [
+    {
+      "library": "msvc",
+      "version": "vs2005-2019",
+      "arch": "amd64",
+      "platform": "windows",
+      "sig_count": 5,
+      "file": "msvc_x64.json"
+    },
+    {
+      "library": "msvc",
+      "version": "vs6-2019",
+      "arch": "i386",
+      "platform": "windows",
+      "sig_count": 14,
+      "file": "msvc_x86.json"
+    }
+  ],
+  "note": "Bundled MSVC sigs only. Full database: https://github.com/atlas0fd00m/vamp-sigs"
+}

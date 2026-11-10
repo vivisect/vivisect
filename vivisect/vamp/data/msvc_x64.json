@@ -1,0 +1,65 @@
+{
+  "format_version": 1,
+  "library": "msvc",
+  "version": "vs2005-2019",
+  "arch": "amd64",
+  "platform": "windows",
+  "compiler": "msvc",
+  "compiled_flags": "",
+  "source_url": null,
+  "binary_sha256": "",
+  "generated_at": "2026-08-09T00:00:00Z",
+  "generated_by": "manual-curation",
+  "signatures": [
+    {
+      "name": "ntdll._alloca_probe",
+      "bytes": "4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd37316664181e200f04d8d9b00f0ffff41c603004d3bd375f04c8b14244c8b5c24084883c410c3",
+      "mask": null,
+      "func_size": 78,
+      "first_block_size": 78,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll._alloca_probe",
+      "bytes": "4883ec104c8914244c895c24084d33db4c8d5424184c2bd04d0f42d3654c8b1c25100000004d3bd3f27317664181e200f04d8d9b00f0ffff41c603004d3bd3f275ef4c8b14244c8b5c24084883c410f2c3",
+      "mask": null,
+      "func_size": 81,
+      "first_block_size": 81,
+      "reloc_count": 0,
+      "masked_ratio": 0.0,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll.security_check_cookie_64",
+      "bytes": "483b0d00000000751148c1c11066f7c1ffff7502f3c348c1c910e9",
+      "mask": "ffffff00000000ffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 27,
+      "first_block_size": 27,
+      "reloc_count": 1,
+      "masked_ratio": 0.1481,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll.security_check_cookie_64",
+      "bytes": "483b0d00000000f2751148c1c11066f7c1fffff27502f2c348c1c910e9",
+      "mask": "ffffff00000000ffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 29,
+      "first_block_size": 29,
+      "reloc_count": 1,
+      "masked_ratio": 0.1379,
+      "confidence": "high"
+    },
+    {
+      "name": "ntdll.security_check_cookie_64",
+      "bytes": "483b0d00000000f2751248c1c11066f7c1fffff27502f2c348c1c910e9",
+      "mask": "ffffff00000000ffffffffffffffffffffffffffffffffffffffffffff",
+      "func_size": 29,
+      "first_block_size": 29,
+      "reloc_count": 1,
+      "masked_ratio": 0.1379,
+      "confidence": "high"
+    }
+  ]
+}
