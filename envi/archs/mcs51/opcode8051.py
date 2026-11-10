@@ -84,7 +84,7 @@ table_main = (
     ( INS_ORL, "orl", "OR register to accumulator", 0x4d, 1, 1, ( OP_A,OP_REGISTER | R5, ) ),
     ( INS_ORL, "orl", "OR register to accumulator", 0x4e, 1, 1, ( OP_A,OP_REGISTER | R6, ) ),
     ( INS_ORL, "orl", "OR register to accumulator", 0x4f, 1, 1, ( OP_A,OP_REGISTER | R7, ) ),
-    ( INS_JNC, "jnc", "Jump if carry flag is not set", 0x50, 2, 3, ( OP_None, ) ),
+    ( INS_JNC, "jnc", "Jump if carry flag is not set", 0x50, 2, 3, ( OP_REL, ) ),
     ( INS_ACALL, "acall", "Absolute subroutine call", 0x51, 2, 6, ( OP_ADDR11, ) ),
     ( INS_ANL, "anl", "AND accumulator to direct byte", 0x52, 2, 3, ( OP_DIRECT,OP_A, ) ),
     ( INS_ANL, "anl", "AND immediate data to direct byte", 0x53, 3, 4, ( OP_DIRECT,OP_IMMEDIATE | OPERANDSIZE_8, ) ),

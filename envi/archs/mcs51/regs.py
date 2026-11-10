@@ -19,13 +19,11 @@ def handlerSplitRegisterWrite(index, emu, value):
     locs is a tuple and fmt is the format string, eg "BB"
     BYTE ORDER MUST BE ?SB! (see DPTR)
     """
-    #FIXME: byte order?
-    rname, rloc, rmask, rfmt, rsz, rinit, intW, intR = e_reg.reg_table[index]
+    rname, rloc, rmask, rfmt, rsz, rinit, intW, intR = emu.reg_table[index]
     for idx in range(len(rloc)-1,-1,-1):
-        byte = "%c"%(value & 0xff)
-        value >>=8
+        byte = bytes([value & 0xff])
+        value >>= 8
         emu.writeMemory(rloc[idx], byte)
-    return bytes
 
 def handlerSplitRegisterRead(index, emu):
     """
@@ -34,12 +32,11 @@ def handlerSplitRegisterRead(index, emu):
     locs is a tuple and fmt is the format string, eg "BB"
     BYTE ORDER MUST BE ?SB! (see DPTR)
     """
-    #FIXME: byte order?
-    rname, rloc, rmask, rfmt, rsz, rinit, intW, intR = e_reg.reg_table[index]
-    bytes = []
+    rname, rloc, rmask, rfmt, rsz, rinit, intW, intR = emu.reg_table[index]
+    rawbytes = []
     for idx in range(len(rloc)):
-        bytes.append(emu.readMemory(rloc[idx], 1))
-    value, = struct.unpack(rfmt, "".join(bytes))
+        rawbytes.append(emu.readMemory(rloc[idx], 1))
+    value, = struct.unpack(rfmt, b"".join(rawbytes))
     return value
         
         
@@ -222,7 +219,7 @@ reg_table_chipcon = (
 reg_table = reg_table_chipcon
 
 REG_PC = len(reg_table_chipcon)-3
-REG_SP = 0x10
+REG_SP = 48
 REG_BP = None
 REG_DPTR = len(reg_table_chipcon)-2		# separated! 0xa0 0xb0
 REG_DPTR1 = len(reg_table_chipcon)-1		# separated! 0xc0 0xd0

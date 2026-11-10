@@ -30,57 +30,6 @@ IV_EXT1         = 0x0013
 IV_TIMER1       = 0x001b
 INTVECTOR_4     = 0x0023
 
-class StdCall(envi.CallingConvention):
-
-    def getCallArgs(self, emu, count):
-        esp = emu.getRegister(REG_ESP)
-        esp += 1 # For the saved eip
-        return struct.unpack("<%dB" % count, emu.readMemory(esp, count))
-
-class Cdecl(envi.CallingConvention):
-
-    def getCallArgs(self, emu, count):
-        esp = emu.getRegister(REG_ESP)
-        esp += 1 # For the saved eip
-        return struct.unpack("<%dB" % count, emu.readMemory(esp, count))
-
-    def setReturnValue(self, emu, value, ccinfo):
-        esp = emu.getRegister(REG_ESP)
-        eip = struct.unpack("B", emu.readMemory(esp, 1))[0]
-        esp += 1 # For the saved eip
-
-        emu.setRegister(REG_ESP, esp)
-        emu.setRegister(REG_EAX, value)
-        emu.setProgramCounter(eip)
-
-class ThisCall(envi.CallingConvention):
-
-    #FIXME do something about emulated argc vs our arg count...
-    def getCallArgs(self, emu, count):
-        #ret = [emu.getRegister(REG_ECX),]
-        esp = emu.getRegister(REG_ESP)
-        esp += 1 # For the saved eip
-        return struct.unpack("<%dB" % count, emu.readMemory(esp, count))
-
-    def setReturnValue(self, emu, value, ccinfo):
-        """
-        """
-        if ccinfo == None:
-            ccinfo = 0
-        # Our first arg (if any) is in a reg
-        esp = emu.getRegister(REG_ESP)
-        eip = struct.unpack("<B", emu.readMemory(esp, 1))[0]
-        esp += 1 # For the saved eip
-        esp += ccinfo # Cleanup saved args
-        emu.setRegister(REG_ESP, esp)
-        emu.setRegister(REG_EAX, value)
-        emu.setProgramCounter(eip)
-
-# Pre-make these and use the same instances for speed
-stdcall = StdCall()
-thiscall = ThisCall()
-cdecl = Cdecl()
-
 OPER_SRC = 1
 OPER_DST = 0
 
@@ -98,15 +47,12 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         Mcs51RegisterContext.__init__(self)
                 
         self.setupInternalMemMaps()
-        #self.initRegisters()
+        self.initRegisters()
         self.fp_exceptions = []
-        #self.addCallingConvention("stdcall", stdcall)
-        #self.addCallingConvention("thiscall", thiscall)
-        #self.addCallingConvention("cdecl", cdecl)
 
     
     def setupInternalMemMaps(self):
-        for mmap in xrange(0,len(self.segments)):
+        for mmap in range(0,len(self.segments)):
             bva,size,offset,name = self.segments[mmap]
             try:
                 self.addMemoryMap(bva+offset, 7, name, b"\x00"*(size))
@@ -117,7 +63,7 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         '''
         Set registers to their reset state as defined by the spec
         '''
-        for num in xrange(len(self.reg_table)):
+        for num in range(len(self.reg_table)):
             rname, rloc, rmask, rfmt, rsz, rinit, intW,intR = self.reg_table[num]
             self.setRegister(num, rinit)
 
@@ -208,9 +154,9 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         if size == 1:
             return struct.unpack("b", bytes)[0]
         elif size == 2:
-            return struct.unpack("<h", bytes)[0]
+            return struct.unpack(">h", bytes)[0]
         elif size == 4:
-            return struct.unpack("<l", bytes)[0]
+            return struct.unpack(">l", bytes)[0]
 
     def makeOpcode(self, pc):
         map = self._mem_bytelookup.get(pc & self._mem_mask)
@@ -239,12 +185,12 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
     def doPush(self, val):
         esp = self.getRegister(REG_SP)
         esp += 1
-        self.writeMemValue(esp, val, 1)
+        self.writeMemValue(SEG_IRAM_BASE + esp, val, 1)
         self.setRegister(REG_SP, esp)
-
+    
     def doPop(self):
         esp = self.getRegister(REG_SP)
-        val = self.readMemValue(esp, 1)
+        val = self.readMemValue(SEG_IRAM_BASE + esp, 1)
         self.setRegister(REG_SP, esp-1)
         return val
 
@@ -295,38 +241,6 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         self.setFlag(PSW_P, e_bits.is_parity_byte(ures))
 
         return ures
-
-    def logicalAnd(self, op):
-        dst = op.opers[OPER_DST].getOperValue(op, self)
-        src = op.opers[OPER_SRC].getOperValue(op, self)
-
-        # PDE
-        if dst == None or src == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
-            return
-
-        dsize = op.opers[OPER_DST].tsize
-        ssize = op.opers[OPER_SRC].tsize
-
-        # sign-extend an immediate if needed
-        if dsize != ssize:
-            src = e_bits.sign_extend(src, ssize, dsize)
-            ssize = dsize
-
-        # Make sure everybody's on the same bit page.
-        dst = e_bits.unsigned(dst, dsize)
-        src = e_bits.unsigned(src, ssize)
-
-        res = src & dst
-
-        self.setFlag(EFLAGS_AF, 0) # AF is undefined, but it seems like it is zeroed
-        self.setFlag(EFLAGS_OF, 0)
-        self.setFlag(EFLAGS_CF, 0)
-        self.setFlag(EFLAGS_SF, e_bits.is_signed(res, dsize))
-        self.setFlag(EFLAGS_ZF, not res)
-        self.setFlag(EFLAGS_PF, e_bits.is_parity_byte(res))
-        return res
 
     def addCallingConvention(self, name, obj):
         self.call_convs[name] = obj
@@ -397,7 +311,7 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         """
         pswtmp = self.getRegister(REG_PSW) >> 1
         parity = 0
-        for x in xrange(7):
+        for x in range(7):
             parity += pswtmp & 1
             pswtmp >>= 1
         parity = parity % 2
@@ -455,6 +369,12 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         if C:
             return val
     
+    def i_jnc(self, op):   #jmp if Carry bit is not set
+        val = op.opers[OPER_DST].getOperValue(op, self)
+        C = self.getFlag(PSW_C)
+        if not C:
+            return val
+    
     def i_jz(self, op):    #jmp if accumulator is zero
         val = op.opers[OPER_DST].getOperValue(op, self)
         A = self.getRegister(REG_A)
@@ -479,24 +399,24 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         dst = op.opers[OPER_DST].getOperValue(op, self)
         src = op.opers[OPER_SRC].getOperValue(op, self)
         if dst == src:
-            val = op.opers[OPER_DST].getOperValue(op, self)
             self.setFlag(PSW_C, 0)
-            return val
-            
+            return None  # fall through — do NOT branch when equal
         elif dst < src:
             self.setFlag(PSW_C, 1)
         else:
             self.setFlag(PSW_C, 0)
+        # Branch target is the REL operand (last operand)
+        return op.opers[-1].getOperValue(op, self)
 
     
     def i_acall(self, op):
-        # push PC on to the stack
-        pc = self.getRegister(REG_PC) + len(op)
-        self.doPush(pc&0xff)
-        self.doPush(pc>>8)
+        # push return address (PC + instruction size) on to the stack
+        pc = self.getRegister(REG_PC) + op.size
+        self.doPush(pc & 0xff)
+        self.doPush(pc >> 8)
         
-        # now jmp to new location
-        self.setRegister(REG_PC, op.opers[OPER_DST].getOperValue(op, self))
+        # now jmp to new location — return it so executeOpcode sets PC
+        return op.opers[OPER_DST].getOperValue(op, self)
 
     i_lcall = i_acall  # only difference is masked by ENVI: "lcall addr16"
 
@@ -512,28 +432,28 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
 
     def i_rr(self, op):
         A = self.getRegister(REG_A)
-        val = (A>>1 + ((A<<7) & 0xff))
+        val = ((A >> 1) | ((A & 1) << 7)) & 0xff
         self.setRegister(REG_A, val)
         
     def i_rrc(self, op):
         C = self.getFlag(PSW_C)
         A = self.getRegister(REG_A)
-        val = (C<<7) + (A >> 1) + ((A << 6) & 0x7f) 
-        C = A & 1
-        self.setFlag(PSW_C, C)
+        new_C = A & 1
+        val = ((C << 7) | (A >> 1)) & 0xff
+        self.setFlag(PSW_C, new_C)
         self.setRegister(REG_A, val)
         
     def i_rl(self, op):
         A = self.getRegister(REG_A)
-        val = (A>>7 + ((A<<1) & 0xff))
+        val = ((A << 1) & 0xff) | (A >> 7)
         self.setRegister(REG_A, val)
         
     def i_rlc(self, op):
         C = self.getFlag(PSW_C)
         A = self.getRegister(REG_A)
-        val = C + (A >> 6) + ((A << 1) & 0xfe) 
-        C = A >> 7
-        self.setFlag(PSW_C, C)
+        new_C = (A >> 7) & 1
+        val = ((A << 1) & 0xff) | (C & 1)
+        self.setFlag(PSW_C, new_C)
         self.setRegister(REG_A, val)
         
     def i_inc(self, op):
@@ -548,7 +468,7 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         width = op.opers[OPER_DST].tsize
         mask = e_bits.u_maxes[width]
         val -= 1
-        op.opers[OPER_DST].setOperValue(op, self, val&0xff)
+        op.opers[OPER_DST].setOperValue(op, self, val & mask)
     
     def i_ret(self, op):
         pc = self.doPop() << 8
@@ -605,12 +525,8 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
 
 
     def i_mov(self, op):
-        if isinstance(op.opers[0], Mcs51ImmOper) and isinstance(op.opers[1], Mcs51ImmOper):
-            val = op.opers[OPER_DST].getOperValue(op, self)
-            op.opers[OPER_SRC].setOperValue(op, self, val)
-        else:
-            val = op.opers[OPER_SRC].getOperValue(op, self)
-            op.opers[OPER_DST].setOperValue(op, self, val)
+        val = op.opers[OPER_SRC].getOperValue(op, self)
+        op.opers[OPER_DST].setOperValue(op, self, val)
         
     def i_movc(self, op):
         base, size, offset, name = self.segments[SEG_FLASH]
@@ -631,15 +547,19 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
             self.writeMemValue(dstaddr, val, 1)
 
     def i_setb(self, op):
-        global fixop, emu
-        #FIXME: this is borked.  wtf?
-        fixop = op
-        emu = self
-        raise ("FIXME NOW!: i_setb")
-        dst = op.opers[OPER_DST].getOperValue(op, self)
-        src = op.opers[OPER_SRC].getOperValue(op, self)
+        # SETB C: set carry flag. SETB bit: set the addressed bit.
+        oper = op.opers[OPER_DST]
+        if isinstance(oper, Mcs51BitOper):
+            oper.setOperValue(op, self, 1)
+        else:
+            # SETB C (carry flag bit operand)
+            oper.setOperValue(op, self, 1)
+        self.calculateParity()
 
     def i_da(self, op):
+        # Decimal Adjust A per 8051 spec:
+        # If (C==1) or (low nibble > 9), add 0x06 to A
+        # If (C==1) or (high nibble > 9 after first adjust), add 0x60 to A and set C
         C = self.getFlag(PSW_C)
         A = op.opers[0].getOperValue(op, self)
 
@@ -648,25 +568,23 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
             A += 6
 
         nib2 = A & 0xf0
-        if (nib2 > 0x90):
+        if C or (nib2 > 0x90):
             A += 0x60
-
-        op.opers[0].setOperValue(op, self, A)
-
-
-        if (A > 0x99):
             self.setFlag(PSW_C, 1)
+        # Note: carry is NOT cleared if not set — per 8051 spec, DA only sets C, never clears it
+
+        op.opers[0].setOperValue(op, self, A & 0xff)
 
 
     def i_xchd(self, op):
         dst = op.opers[OPER_DST].getOperValue(op, self)
         src = op.opers[OPER_SRC].getOperValue(op, self)
 
-        dst = (dst & 0xf0) + (src & 0xf)
-        src = (src & 0xf0) + (src & 0xf)
+        new_dst = (dst & 0xf0) + (src & 0xf)
+        new_src = (src & 0xf0) + (dst & 0xf)
 
-        op.opers[OPER_DST].setOperValue(op, self, dst)
-        op.opers[OPER_SRC].setOperValue(op, self, src)
+        op.opers[OPER_DST].setOperValue(op, self, new_dst)
+        op.opers[OPER_SRC].setOperValue(op, self, new_src)
 
 
     def i_add(self, op):#CHECKME: FLAGS (completed but scary)
@@ -685,10 +603,6 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         if dsize > ssize:
             src = e_bits.sign_extend(src, ssize, dsize)
             ssize = dsize
-
-        cf = 0
-        if self.getFlag(PSW_C):
-            cf = 1
 
         udst = e_bits.unsigned(dst, dsize)
         usrc = e_bits.unsigned(src, ssize)
@@ -741,45 +655,6 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
         op.opers[OPER_DST].setOperValue(op, self, ures & 0xff)
         self.calculateParity()
         
-    def i_subb(self, op):#CHECKME: FLAGS (completed but scary)
-        dst = op.opers[OPER_DST].getOperValue(op, self)
-        src = op.opers[OPER_SRC].getOperValue(op, self)
-        # PDE
-        if dst == None or src == None:
-            self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
-            return
-        
-        val = dst - src
-        op.opers[OPER_DST].setOperValue(op, self, val & 0xff)
-        
-        self.setFlag(PSW_OV, e_bits.is_signed_overflow(sres, dsize))
-        self.setFlag(PSW_AC, e_bits.is_aux_carry(usrc, udst))
-        self.setFlag(PSW_C, e_bits.is_unsigned_carry(ures, dsize))
-        
-        # Delete the following when confirmed correct bit settings for SUBB
-        ###FIXME: USE e_bits like add and addc
-        ### The Carry Bit (C) is set if a borrow was required for bit 7, otherwise it is cleared. In other words, if the unsigned value being subtracted is greater than the Accumulator the Carry Flag is set. (8052.com)
-        ##if src > dst:
-            ##self.setFlag(PSW_C, 1)
-        ##else:
-            ##self.setFlag(PSW_C, 0)
-        
-        ### The Auxillary Carry (AC) bit is set if a borrow was required for bit 3, otherwise it is cleared. In other words, the bit is set if the low nibble of the value being subtracted was greater than the low nibble of the Accumulator.(8052.com)
-        ##if (src&0xf) > (dst&0xf):   #lower nibble needs to borrow
-            ##self.setFlag(PSW_AC, 1)
-        ##else:
-            ##self.setFlag(PSW_AC, 0)
-
-        ### The Overflow (OV) bit is set if a borrow was required for bit 6 or for bit 7, but not both. In other words, the subtraction of two signed bytes resulted in a value outside the range of a signed byte (-128 to 127). Otherwise it is cleared.(8052.com)
-        ##if val & 0x80:  # FIXME: HACK, bit 6 or bit 7 borrow, but not both
-            ##self.setFlag(PSW_OV, 1)
-        ##else:
-            ##self.setFlag(PSW_OV, 0)
-
-
-        self.calculateParity()
-
     def i_subb(self, op):
         dst = op.opers[OPER_DST].getOperValue(op, self)
         src = op.opers[OPER_SRC].getOperValue(op, self)
@@ -803,53 +678,59 @@ class i8051Emulator(Mcs51Module, Mcs51RegisterContext, envi.Emulator):
 
 
     def i_mul(self, op):
-        dst = op.opers[OPER_DST].getOperValue(op, self)
-        src = op.opers[OPER_SRC].getOperValue(op, self)
+        # MUL AB: A * B -> A = low byte, B = high byte
+        dst = self.getRegister(REG_A)
+        src = self.getRegister(REG_B)
         # PDE
         if dst == None or src == None:
             self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
             return
         
         val = dst * src
-        op.opers[OPER_DST].setOperValue(op, self, (val & 0xff))
+        self.setRegister(REG_A, val & 0xff)
+        self.setRegister(REG_B, (val >> 8) & 0xff)
 
-        self.setFlag(PSW_OV, (val >> 8))
+        self.setFlag(PSW_OV, 1 if (val >> 8) else 0)
         self.setFlag(PSW_C, 0)
         self.calculateParity()
 
     def i_div(self, op):
-        dst = op.opers[OPER_DST].getOperValue(op, self)
-        src = op.opers[OPER_SRC].getOperValue(op, self)
+        # DIV AB: A / B -> A = quotient, B = remainder
+        dst = self.getRegister(REG_A)
+        src = self.getRegister(REG_B)
         # PDE
         if dst == None or src == None:
             self.undefFlags()
-            op.opers[OPER_DST].setOperValue(op, self, None)
             return
 
         if src == 0: # division by zero
             self.setFlag(PSW_OV, 1)
         else:
-            val = dst / src
+            val = dst // src
             rem = dst % src
-            op.opers[OPER_DST].setOperValue(op, self, val)
-            op.opers[OPER_SRC].setOperValue(op, self, rem)
+            self.setRegister(REG_A, val)
+            self.setRegister(REG_B, rem)
             self.setFlag(PSW_OV, 0)
 
         self.setFlag(PSW_C, 0)
         self.calculateParity()
 
     def i_cpl(self, op):
-        val = op.opers[OPER_DST].getOperValue(op, self)
-        val ^= 0xff
-        op.opers[OPER_DST].setOperValue(op, self, val)
+        oper = op.opers[OPER_DST]
+        val = oper.getOperValue(op, self)
+        if isinstance(oper, Mcs51BitOper):
+            # CPL C or CPL bit: toggle single bit
+            oper.setOperValue(op, self, 1 if val == 0 else 0)
+        else:
+            # CPL A: complement all 8 bits
+            oper.setOperValue(op, self, val ^ 0xff)
 
     def i_clr(self, op):
         op.opers[OPER_DST].setOperValue(op, self, 0)
 
     def i_swap(self, op):
         val = self.getRegister(REG_A)
-        self.setRegister(REG_A, e_bits.byteswap(val, 1))
+        self.setRegister(REG_A, ((val & 0x0f) << 4) | ((val & 0xf0) >> 4))
 
     def i_xch(self, op):
         dst = op.opers[OPER_DST].getOperValue(op, self)

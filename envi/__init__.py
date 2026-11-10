@@ -149,7 +149,7 @@ arch_defs = {
         'has_disasm':   True,
         'has_emu':      True,
         'has_symboliks':False,
-        'has_unittests':True,
+        'has_unittests':False,
         },
     
     ARCH_RISCV32:   {

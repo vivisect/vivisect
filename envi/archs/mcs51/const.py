@@ -14,8 +14,10 @@ SEG_SFR_BASE        = SEG_XRAM_BASE  + 0xdf00
 SEG_f00barRAM_BASE  = SEG_XRAM_BASE  + 0xf000
 
 seglist_8051 = ( 
-    (0x0,0x104,SEG_IRAM_BASE, "IRAM"),
-    (0x0,0x100,SEG_SFR_BASE, "SFR"),  #sfr is really 0x80-0xff, 0-0x80 are "Hardware RADIO/I2S Registers"
+    (0x0, 0x10000, SEG_FLASH_BASE, "FLASH-PROG-MEM"),  # 8051 has 64K code space
+    (0x0, 0x10000, SEG_XRAM_BASE, "XRAM"),             # 8051 has 64K external RAM
+    (0x0, 0x104, SEG_IRAM_BASE, "IRAM"),
+    (0x0, 0x100, SEG_SFR_BASE, "SFR"),  #sfr is really 0x80-0xff, 0-0x80 are "Hardware RADIO/I2S Registers"
 )
 
 seglist_1110 = ( 
@@ -240,7 +242,6 @@ nofall_types = [
     INS_JMP,
 ]
 branch_types = [    # if not also in nofall, it's a conditional branch
-    INS_NOP,
     INS_AJMP,
     INS_LJMP,
     INS_JBC,
@@ -269,6 +270,9 @@ op_flags.update({op: envi.IF_CALL for op in call_types})
 op_flags.update({op: envi.IF_NOFALL for op in nofall_types})
 op_flags.update({op: envi.IF_BRANCH | envi.IF_COND for op in branch_types})
 op_flags.update({op: envi.IF_BRANCH | envi.IF_NOFALL for op in brnofall_types})
+# RET/RETI must get IF_RET — apply last so it isn't clobbered by branch/nofall updates
+ret_types = [INS_RET, INS_RETI]
+op_flags.update({op: envi.IF_RET | envi.IF_NOFALL for op in ret_types})
 
 sizenames = (None, "BYTE ","WORD ",None,"DWORD ")
 

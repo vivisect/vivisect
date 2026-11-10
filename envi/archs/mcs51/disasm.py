@@ -42,7 +42,6 @@ class Mcs51DirectOper(envi.Operand):
         if name == None:
             return "%xh" % (self.imm)
         else:
-            print("CHECKME:")
             return name[0]
 
     def getOperValue(self, op, emu=None):
@@ -55,7 +54,12 @@ class Mcs51DirectOper(envi.Operand):
     def getOperAddr(self, op, emu=None):
         ret = self.imm
         if emu != None:
-            base, size, offset, name = emu.segments[SEG_IRAM]
+            if self.imm >= 0x80:
+                # SFR space
+                base, size, offset, name = emu.segments[SEG_SFR]
+            else:
+                # IRAM space
+                base, size, offset, name = emu.segments[SEG_IRAM]
             ret += offset
         return ret
 
@@ -81,6 +85,10 @@ class Mcs51DirectOper(envi.Operand):
         if not isinstance(other, Mcs51DirectOper):
             return False
         if other.imm != self.imm:
+            return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
             return False
         return True
 
@@ -108,8 +116,10 @@ class Mcs51IndirectOper(envi.Operand):
 
     def getOperAddr(self, op, emu):
         if emu == None: return None # This operand type requires an emulator
-        #base, size, offset, name = emu.segments[SEG_IRAM]  #CHECKME: Is this correct?
-        base, size, offset, name = emu.getSegmentInfo(op)  #CHECKME: Is this correct?
+        try:
+            base, size, offset, name = emu.segments[SEG_IRAM]
+        except (AttributeError, IndexError):
+            base, size, offset, name = emu.getSegmentInfo(op)
         rval = emu.getRegister(self.reg)
         return base + rval + offset
 
@@ -138,8 +148,10 @@ class Mcs51IndirectOper(envi.Operand):
             return False
         if other.reg != self.reg:
             return False
-        #if other.disp != self.disp:
-            #return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
+            return False
         return True
 
 class Mcs51RegOper(envi.Operand):
@@ -160,17 +172,21 @@ class Mcs51RegOper(envi.Operand):
         emu.setRegister(self.reg, value)
 
     def render(self, mcanv, op, idx):
+        name = self._dis_regctx.getRegisterName(self.reg)
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint != None:
-            mcanv.addNameText(name, typename="registers")
+            mcanv.addNameText(hint, typename="registers")
         else:
-            name = self._dis_regctx.getRegisterName(self.reg)
             mcanv.addNameText(name, typename="registers")
 
     def __eq__(self, other):
         if not isinstance(other, Mcs51RegOper):
             return False
         if other.reg != self.reg:
+            return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
             return False
         return True
 
@@ -208,6 +224,10 @@ class Mcs51ImmOper(envi.Operand):
             return False
         if other.imm != self.imm:
             return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
+            return False
         return True
 
 class Mcs51AddrOper(envi.Operand):
@@ -243,6 +263,10 @@ class Mcs51AddrOper(envi.Operand):
             return False
         if other.imm != self.imm:
             return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
+            return False
         return True
 
 
@@ -277,7 +301,11 @@ class Mcs51IndexedOper(envi.Operand):
     def __eq__(self, other):
         if not isinstance(other, Mcs51IndexedOper):
             return False
-        if other.imm != self.imm:
+        if other.basereg != self.basereg:
+            return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
             return False
         return True
 
@@ -291,13 +319,13 @@ class Mcs51PcRelOper(envi.Operand):
         self.tsize = 1
 
     def repr(self, op):
-        return "%.4xh" % ((self.imm + op.va + len(op)) & 0xffff)
+        return "%.4xh" % ((self.imm + op.va + op.size) & 0xffff)
 
     def getOperValue(self, op, emu=None):
-        return self.imm + op.va + len(op)
+        return self.imm + op.va + op.size
 
     def render(self, mcanv, op, idx):
-        value = self.imm + op.va + len(op)
+        value = self.imm + op.va + op.size
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint != None:
             mcanv.addVaText(hint)
@@ -311,6 +339,10 @@ class Mcs51PcRelOper(envi.Operand):
         if not isinstance(other, Mcs51PcRelOper):
             return False
         if other.imm != self.imm:
+            return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
             return False
         return True
 
@@ -326,10 +358,14 @@ class Mcs51BitOper(envi.Operand):
         if not isinstance(other, Mcs51BitOper):
             return False
         if other.bit != self.bit:
-            return False == 1
+            return False
         if other.base != self.base:
-            return False == 1
+            return False
         if other.comp != self.comp:
+            return False
+        if other.type != self.type:
+            return False
+        if other.tsize != self.tsize:
             return False
         return True
 
@@ -362,10 +398,20 @@ class Mcs51BitOper(envi.Operand):
         return emu.writeMemValue(self.getOperAddr(op, emu), byte , 1)
     
     def getOperAddr(self, op, emu):
-        base, size, offset, name = emu.getSegmentInfo(op)
         if self.base == None:
+            # PSW flag bit — address is the PSW register location
             return reg_table[REG_PSW][1]
         else:
+            # Bit-addressable RAM/SFR: base is the byte address
+            # For SFR addresses (>= 0x80), use SFR segment offset
+            # For IRAM bit addresses (0x20-0x7F), use IRAM segment offset
+            try:
+                if self.base >= 0x80:
+                    base, size, offset, name = emu.segments[SEG_SFR]
+                else:
+                    base, size, offset, name = emu.segments[SEG_IRAM]
+            except (AttributeError, IndexError):
+                base, size, offset, name = emu.getSegmentInfo(op)
             return self.base + offset
 
     def render(self, mcanv, op, idx):
@@ -460,7 +506,7 @@ class Mcs51Opcode(envi.Opcode):
         # Allow each of our operands to render
         imax = len(self.opers)
         lasti = imax - 1
-        for i in xrange(imax):
+        for i in range(imax):
             oper = self.opers[i]
             oper.render(mcanv, self, i)
             if i != lasti:
@@ -493,7 +539,7 @@ class Mcs51Disasm:
         prefixes = 0
         iflags = envi.ARCH_MCS51
         
-        obyte = ord(bytes[offset])
+        obyte = bytes[offset]
         #print "OBYTE",hex(obyte)
         opdesc = optable.table_main[obyte]
 
@@ -510,7 +556,7 @@ class Mcs51Disasm:
         opers = opdesc[6]
         # Begin parsing operands based off address method
         #print "%d opers"%len(opers)
-        for i in xrange(len(opers)):         # operands tuple
+        for i in range(len(opers)):         # operands tuple
             if (opers[i] == optable.OP_None):
                 #print "WTF, None operand??"
                 continue
@@ -556,8 +602,9 @@ class Mcs51Disasm:
             elif opertype == optable.OP_ADDR11:
                 osize = 1
                 loc = offset+operoffset
-                addr11 = struct.unpack("B", bytes[loc-1] )[0] >> 5
-                addr11 += struct.unpack("B", bytes[loc])[0]
+                # 8051 AJMP/ACALL: top 3 bits of opcode byte are addr[10:8],
+                # next byte is addr[7:0]. Target = (PC_page & 0xf800) | addr11
+                addr11 = ((obyte & 0xe0) << 3) | bytes[loc]
                 oper = Mcs51AddrOper(addr11)
                 
             elif opertype == optable.OP_ADDR16:
@@ -604,7 +651,7 @@ class Mcs51Disasm:
             elif opertype == optable.OP_bit:
                 osize = 1
                 loc = offset+operoffset
-                bitnum = struct.unpack("B", bytes[loc])[0]
+                bitnum = bytes[loc]
                 base = bitnum & 0xf8
                 bit = bitnum & 7
                 oper = Mcs51BitOper(bit, base=base)  #FIXME: NOT SURE HOW TO RECODE UPPER 5 bits!
@@ -614,7 +661,7 @@ class Mcs51Disasm:
                 osize = 1
                 loc = offset+operoffset
                 bitnum = struct.unpack(e_bits.be_fmt_chars[osize], bytes[loc:loc+osize])[0]
-                base = bitnum >> 3
+                base = bitnum & 0xf8
                 bit = bitnum & 7
                 oper = Mcs51BitOper(bit, base=base, comp=True)  # repr will need to split imm into upper 5 and lower 3 bits...  scale = 1 if "not" bit
                 #raise "How do I encode a OM_comp_bit?"
@@ -656,5 +703,5 @@ class Mcs51Disasm:
         return REG_BP
 
     def getRegisterName(self, regidx):
-        return reg_table[reg_table]
+        return reg_table[regidx][0]
 

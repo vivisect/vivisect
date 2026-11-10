@@ -52,7 +52,7 @@ class Mcs51WorkspaceEmulator(v_i_emulator.WorkspaceEmulator, e_mcs51.Mcs51Emulat
 
         # if first item is a set, then this is *not* an arg(register) use
         # (reg initialization)
-        if op.opcode == m51const.INS_XOR and op.opers[0] == op.opers[1]:
+        if op.opcode == m51const.INS_XRL and op.opers[0] == op.opers[1]:
             # xor register initialization
             return False
 
