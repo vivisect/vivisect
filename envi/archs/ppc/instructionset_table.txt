@@ -1,0 +1,1084 @@
+Mnemonic  Syntax  Category  Comments 
+add  rD,rA,rB  Base  — 
+add.  rD,rA,rB  Base  — 
+addb  rD,rA,rB  ISAT  — 
+addb.  rD,rA,rB  ISAT  — 
+addbss  rD,rA,rB  ISAT  — 
+addbss.  rD,rA,rB  ISAT  — 
+addbu  rD,rA,rB  ISAT  — 
+addbu.  rD,rA,rB  ISAT  — 
+addbus  rD,rA,rB  ISAT  — 
+addbus.  rD,rA,rB  ISAT  — 
+addc  rD,rA,rB  Base  — 
+addc.  rD,rA,rB  Base  — 
+addco  rD,rA,rB  Base  — 
+addco.  rD,rA,rB  Base  — 
+adde  rD,rA,rB  Base  — 
+adde.  rD,rA,rB  Base  — 
+addeo  rD,rA,rB  Base  — 
+addeo.  rD,rA,rB  Base  — 
+addh  rD,rA,rB  ISAT  — 
+addh.  rD,rA,rB  ISAT  — 
+addhss  rD,rA,rB  ISAT  — 
+addhss.  rD,rA,rB  ISAT  — 
+addhu  rD,rA,rB  ISAT  — 
+addhu.  rD,rA,rB  ISAT  — 
+addhus  rD,rA,rB  ISAT  — 
+addhus.  rD,rA,rB  ISAT  — 
+addi  rD,rA,SIMM  Base  — 
+addic  rD,rA,SIMM  Base  — 
+addic.  rD,rA,SIMM  Base  — 
+addis  rD,rA,SIMM  Base  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-85 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+addme  rD,rA  Base  — 
+addme.  rD,rA  Base  — 
+addmeo  rD,rA  Base  — 
+addmeo.  rD,rA  Base  — 
+addo  rD,rA,rB  Base  — 
+addo.  rD,rA,rB  Base  — 
+addw  rD,rA,rB  ISAT,64  — 
+addw.  rD,rA,rB  ISAT,64  — 
+addwss  rD,rA,rB  ISAT  — 
+addwss.  rD,rA,rB  ISAT  — 
+addwu  rD,rA,rB  ISAT,64  — 
+addwu.  rD,rA,rB  ISAT,64  — 
+addwus  rD,rA,rB  ISAT  — 
+addwus.  rD,rA,rB  ISAT  — 
+addze  rD,rA  Base  — 
+addze.  rD,rA  Base  — 
+addzeo  rD,rA  Base  — 
+addzeo.  rD,rA  Base  — 
+and  rA,rS,rB  Base  — 
+and.  rA,rS,rB  Base  — 
+andc  rA,rS,rB  Base  — 
+andc.  rA,rS,rB  Base  — 
+andi.  rA,rS,UIMM  Base  — 
+andis.  rA,rS,UIMM  Base  — 
+b  LI  Base  — 
+ba  LI  Base  — 
+bc  BO,BI,BD  Base  — 
+bca  BO,BI,BD  Base  — 
+bcctr  BO,BI  Base  — 
+bcctrl  BO,BI  Base  — 
+bcl  BO,BI,BD  Base  — 
+bcla  BO,BI,BD  Base  — 
+bclr  BO,BI  Base  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-86 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+bclrl  BO,BI  Base  — 
+bl  LI  Base  — 
+bla  LI  Base  — 
+bpermd  rA,rS,rB  64  — 
+brinc  rD,rA,rB  SP  SPE. See the SPE PEM. 
+cmp  crD,L,rA,rB  Base  — 
+cmpb  rA,rS,rB  Base  — 
+cmpi  crD,L,rA,SIMM  Base  — 
+cmpl  crD,L,rA,rB  Base  — 
+cmpli  crD,L,rA,UIMM  Base  — 
+cntlzd  rA,rS  64  — 
+cntlzd.  rA,rS  64  — 
+cntlzw  rA,rS  Base  — 
+cntlzw.  rA,rS  Base  — 
+crand  crbD,crbA,crbB  Base  — 
+crandc  crbD,crbA,crbB  Base  — 
+creqv  crbD,crbA,crbB  Base  — 
+crnand  crbD,crbA,crbB  Base  — 
+crnor  crbD,crbA,crbB  Base  — 
+cror  crbD,crbA,crbB  Base  — 
+crorc  crbD,crbA,crbB  Base  — 
+crxor  crbD,crbA,crbB  Base  — 
+dcba  rA,rB  Base  — 
+dcbal  rA,rB  DEO  — 
+dcbf  rA,rB  Base  — 
+dcbfep  rA,rB  E.PD  — 
+dcbi  rA,rB  Embedded  — 
+dcblc  CT,rA,rB  E.CL  — 
+dcblq.  CT,rA,rB  E.CL  — 
+dcbst  rA,rB  Base  — 
+dcbstep  rA,rB  E.PD  — 
+dcbt  TH,rA,rB  Base  — 
+dcbtep  TH,rA,rB  E.PD  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-87 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+dcbtls  CT,rA,rB  E.CL  — 
+dcbtst  CT,rA,rB  Base  — 
+dcbtstep  TH,rA,rB  E.PD  — 
+dcbtstls  CT,rA,rB  E.CL  — 
+dcbz  rA,rB  Base  — 
+dcbzep  rA,rB  E.PD  — 
+dcbzl  rA,rB  DEO  — 
+dcbzlep  rA,rB  E.PD, DEO External PID instruction when DEO implemented. 
+divd  rD,rA,rB  64  — 
+divd.  rD,rA,rB  64  — 
+divdo  rD,rA,rB  64  — 
+divdo.  rD,rA,rB  64  — 
+divdu  rD,rA,rB  64  — 
+divdu.  rD,rA,rB  64  — 
+divduo  rD,rA,rB  64  — 
+divduo.  rD,rA,rB  64  — 
+divw  rD,rA,rB  Base  — 
+divw.  rD,rA,rB  Base  — 
+divwo  rD,rA,rB  Base  — 
+divwo.  rD,rA,rB  Base  — 
+divwu  rD,rA,rB  Base  — 
+divwu.  rD,rA,rB  Base  — 
+divwuo  rD,rA,rB  Base  — 
+divwuo.  rD,rA,rB  Base  — 
+dnh  DUI,DUIS  E.ED  — 
+dsn  rA,rB  DS  — 
+efdabs  rD,rA  SP.FD  SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdadd  rD,rA,rB  SP.FD  SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdcfs  rD,rB  SP.FD  SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdcfsf  rD,rB  SP.FD  SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdcfsi  rD,rB  SP.FD  SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdcfuf  rD,rB  SP.FD  SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdcfui  rD,rB  SP.FD  SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-88 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+efdcmpeq crD,rA,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdcmpgt crD,rA,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdcmplt crD,rA,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdctsf rD,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdctsi rD,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdctsiz rD,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdctuf rD,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdctui rD,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdctuiz rD,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efddiv rD,rA,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdmul rD,rA,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdnabs rD,rA SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdneg rD,rA SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdsub rD,rA,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdtsteq crD,rA,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdtstgt crD,rA,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efdtstlt crD,rA,rB SP.FD SPE embedded scalar double-precision floating-point. See the SPE PEM. 
+efsabs rD,rA SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsadd rD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efscfsf rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efscfsi rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efscfuf rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efscfui rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efscmpeq crD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efscmpgt crD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efscmplt crD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsctsf rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsctsi rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsctsiz rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsctuf rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsctui rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsctuiz rD,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsdiv rD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+EREF: A Programmer’sReferenceManual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-89 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+efsmul rD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsnabs rD,rA SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efsneg rD,rA SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efssub rD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efststeq crD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efststgt crD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+efststlt crD,rA,rB SP.FS SPE embedded scalar single-precision floating-point. See the SPE PEM. 
+ehpriv OC E.HV — 
+eqv rA,rS,rB Base — 
+eqv. rA,rS,rB Base — 
+evabs rD,rA SP SPE. See the SPE PEM. 
+evaddiw rD,rB,UIMM SP SPE. See the SPE PEM. 
+evaddsmiaaw rD,rA SP SPE. See the SPE PEM. 
+evaddssiaaw rD,rA SP SPE. See the SPE PEM. 
+evaddumiaaw rD,rA SP SPE. See the SPE PEM. 
+evaddusiaaw rD,rA SP SPE. See the SPE PEM. 
+evaddw rD,rA,rB SP SPE. See the SPE PEM. 
+evand rD,rA,rB SP SPE. See the SPE PEM. 
+evandc rD,rA,rB SP SPE. See the SPE PEM. 
+evcmpeq crD,rA,rB SP SPE. See the SPE PEM. 
+evcmpgts crD,rA,rB SP SPE. See the SPE PEM. 
+evcmpgtu crD,rA,rB SP SPE. See the SPE PEM. 
+evcmplts crD,rA,rB SP SPE. See the SPE PEM. 
+evcmpltu crD,rA,rB SP SPE. See the SPE PEM. 
+evcntlsw rD,rA SP SPE. See the SPE PEM. 
+evcntlzw rD,rA SP SPE. See the SPE PEM. 
+evdivws rD,rA,rB SP SPE. See the SPE PEM. 
+evdivwu rD,rA,rB SP SPE. See the SPE PEM. 
+eveqv rD,rA,rB SP SPE. See the SPE PEM. 
+evextsb rD,rA SP SPE. See the SPE PEM. 
+evextsh rD,rA SP SPE. See the SPE PEM. 
+evfsabs rD,rA SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsadd rD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-90 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+evfscfsf rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfscfsi rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfscfuf rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfscfui rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfscmpeq crD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfscmpgt crD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfscmplt crD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsctsf rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsctsi rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsctsiz rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsctuf rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsctui rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsctuiz rD,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsdiv rD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsmul rD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsnabs rD,rA SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfsneg rD,rA SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfssub rD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfststeq crD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfststgt crD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evfststlt crD,rA,rB SP.FV SPE embedded vector single-precision floating-point. See the SPE PEM. 
+evldd rD,d(rA) SP SPE. See the SPE PEM. 
+evlddepx rD,rA,rB SP, E.PD External PID instruction when SPE implemented. 
+evlddx rD,rA,rB SP SPE. See the SPE PEM. 
+evldh rD,d(rA) SP SPE. See the SPE PEM. 
+evldhx rD,rA,rB SP SPE. See the SPE PEM. 
+evldw rD,d(rA) SP SPE. See the SPE PEM. 
+evldwx rD,rA,rB SP SPE. See the SPE PEM. 
+evlhhesplat rD,d(rA) SP SPE. See the SPE PEM. 
+evlhhesplatx rD,rA,rB SP SPE. See the SPE PEM. 
+evlhhossplat rD,d(rA) SP SPE. See the SPE PEM. 
+evlhhossplatx rD,rA,rB SP SPE. See the SPE PEM. 
+evlhhousplat rD,d(rA) SP SPE. See the SPE PEM. 
+EREF: A Programmer’s ReferenceManual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-91 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+evlhhousplatx rD,rA,rB SP SPE. See the SPE PEM. 
+evlwhe rD,d(rA) SP SPE. See the SPE PEM. 
+evlwhex rD,rA,rB SP SPE. See the SPE PEM. 
+evlwhos rD,d(rA) SP SPE. See the SPE PEM. 
+evlwhosx rD,rA,rB SP SPE. See the SPE PEM. 
+evlwhou rD,d(rA) SP SPE. See the SPE PEM. 
+evlwhoux rD,rA,rB SP SPE. See the SPE PEM. 
+evlwhsplat rD,d(rA) SP SPE. See the SPE PEM. 
+evlwhsplatx rD,rA,rB SP SPE. See the SPE PEM. 
+evlwwsplat rD,d(rA) SP SPE. See the SPE PEM. 
+evlwwsplatx rD,rA,rB SP SPE. See the SPE PEM. 
+evmergehi rD,rA,rB SP SPE. See the SPE PEM. 
+evmergehilo rD,rA,rB SP SPE. See the SPE PEM. 
+evmergelo rD,rA,rB SP SPE. See the SPE PEM. 
+evmergelohi rD,rA,rB SP SPE. See the SPE PEM. 
+evmhegsmfaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhegsmfan rD,rA,rB SP SPE. See the SPE PEM. 
+evmhegsmiaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhegsmian rD,rA,rB SP SPE. See the SPE PEM. 
+evmhegumiaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhegumian rD,rA,rB SP SPE. See the SPE PEM. 
+evmhesmf rD,rA,rB SP SPE. See the SPE PEM. 
+evmhesmfa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhesmfaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhesmfanw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhesmi rD,rA,rB SP SPE. See the SPE PEM. 
+evmhesmia rD,rA,rB SP SPE. See the SPE PEM. 
+evmhesmiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhesmianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhessf rD,rA,rB SP SPE. See the SPE PEM. 
+evmhessfa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhessfaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhessfanw rD,rA,rB SP SPE. See the SPE PEM. 
+EREF: A Programmer’sReferenceManual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-92 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+evmhessiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhessianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmheumi rD,rA,rB SP SPE. See the SPE PEM. 
+evmheumia rD,rA,rB SP SPE. See the SPE PEM. 
+evmheumiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmheumianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmheusiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmheusianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhogsmfaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhogsmfan rD,rA,rB SP SPE. See the SPE PEM. 
+evmhogsmiaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhogsmian rD,rA,rB SP SPE. See the SPE PEM. 
+evmhogumiaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhogumian rD,rA,rB SP SPE. See the SPE PEM. 
+evmhosmf rD,rA,rB SP SPE. See the SPE PEM. 
+evmhosmfa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhosmfaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhosmfanw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhosmi rD,rA,rB SP SPE. See the SPE PEM. 
+evmhosmia rD,rA,rB SP SPE. See the SPE PEM. 
+evmhosmiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhosmianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhossf rD,rA,rB SP SPE. See the SPE PEM. 
+evmhossfa rD,rA,rB SP SPE. See the SPE PEM. 
+evmhossfaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhossfanw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhossiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhossianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhoumi rD,rA,rB SP SPE. See the SPE PEM. 
+evmhoumia rD,rA,rB SP SPE. See the SPE PEM. 
+evmhoumiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhoumianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmhousiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+EREF: A Programmer’sReferenceManual for Freescale Power Architecture Processors, Rev.1 (EIS 2.1) 
+Freescale Semiconductor 5-93 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+evmhousianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmra rD,rA SP SPE. See the SPE PEM. 
+evmwhsmf rD,rA,rB SP SPE. See the SPE PEM. 
+evmwhsmfa rD,rA,rB SP SPE. See the SPE PEM. 
+evmwhsmi rD,rA,rB SP SPE. See the SPE PEM. 
+evmwhsmia rD,rA,rB SP SPE. See the SPE PEM. 
+evmwhssf rD,rA,rB SP SPE. See the SPE PEM. 
+evmwhssfa rD,rA,rB SP SPE. See the SPE PEM. 
+evmwhumi rD,rA,rB SP SPE. See the SPE PEM. 
+evmwhumia rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlsmiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlsmianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlssiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlssianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlumi rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlumia rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlumiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlumianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlusiaaw rD,rA,rB SP SPE. See the SPE PEM. 
+evmwlusianw rD,rA,rB SP SPE. See the SPE PEM. 
+evmwsmf rD,rA,rB SP SPE. See the SPE PEM. 
+evmwsmfa rD,rA,rB SP SPE. See the SPE PEM. 
+evmwsmfaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmwsmfan rD,rA,rB SP SPE. See the SPE PEM. 
+evmwsmi rD,rA,rB SP SPE. See the SPE PEM. 
+evmwsmia rD,rA,rB SP SPE. See the SPE PEM. 
+evmwsmiaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmwsmian rD,rA,rB SP SPE. See the SPE PEM. 
+evmwssf rD,rA,rB SP SPE. See the SPE PEM. 
+evmwssfa rD,rA,rB SP SPE. See the SPE PEM. 
+evmwssfaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmwssfan rD,rA,rB SP SPE. See the SPE PEM. 
+evmwumi rD,rA,rB SP SPE. See the SPE PEM. 
+EREF: A Programmer’sReferenceManual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-94 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+evmwumia rD,rA,rB SP SPE. See the SPE PEM. 
+evmwumiaa rD,rA,rB SP SPE. See the SPE PEM. 
+evmwumian rD,rA,rB SP SPE. See the SPE PEM. 
+evnand rD,rA,rB SP SPE. See the SPE PEM. 
+evneg rD,rA SP SPE. See the SPE PEM. 
+evnor rD,rA,rB SP SPE. See the SPE PEM. 
+evor rD,rA,rB SP SPE. See the SPE PEM. 
+evorc rD,rA,rB SP SPE. See the SPE PEM. 
+evrlw rD,rA,rB SP SPE. See the SPE PEM. 
+evrlwi rD,rA,UIMM SP SPE. See the SPE PEM. 
+evrndw rD,rA SP SPE. See the SPE PEM. 
+evsel rD,rA,rB,crfS SP SPE. See the SPE PEM. 
+evslw rD,rA,rB SP SPE. See the SPE PEM. 
+evslwi rD,rA,UIMM SP SPE. See the SPE PEM. 
+evsplatfi rD,SIMM SP SPE. See the SPE PEM. 
+evsplati rD,SIMM SP SPE. See the SPE PEM. 
+evsrwis rD,rA,UIMM SP SPE. See the SPE PEM. 
+evsrwiu rD,rA,UIMM SP SPE. See the SPE PEM. 
+evsrws rD,rA,rB SP SPE. See the SPE PEM. 
+evsrwu rD,rA,rB SP SPE. See the SPE PEM. 
+evstdd rS,d(rA) SP SPE. See the SPE PEM. 
+evstddepx rS,rA,rB SP, E.PD External PID instruction when SPE implemented. 
+evstddx rS,rA,rB SP SPE. See the SPE PEM. 
+evstdh rS,d(rA) SP SPE. See the SPE PEM. 
+evstdhx rS,rA,rB SP SPE. See the SPE PEM. 
+evstdw rS,d(rA) SP SPE. See the SPE PEM. 
+evstdwx rS,rA,rB SP SPE. See the SPE PEM. 
+evstwhe rS,d(rA) SP SPE. See the SPE PEM. 
+evstwhex rS,rA,rB SP SPE. See the SPE PEM. 
+evstwho rS,d(rA) SP SPE. See the SPE PEM. 
+evstwhox rS,rA,rB SP SPE. See the SPE PEM. 
+evstwwe rS,d(rA) SP SPE. See the SPE PEM. 
+evstwwex rS,rA,rB SP SPE. See the SPE PEM. 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-95 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+evstwwo  rS,d(rA)  SP  SPE. See the SPE PEM. 
+evstwwox  rS,rA,rB  SP  SPE. See the SPE PEM. 
+evsubfsmiaaw  rD,rA  SP  SPE. See the SPE PEM. 
+evsubfssiaaw  rD,rA  SP  SPE. See the SPE PEM. 
+evsubfumiaaw  rD,rA  SP  SPE. See the SPE PEM. 
+evsubfusiaaw  rD,rA  SP  SPE. See the SPE PEM. 
+evsubfw  rD,rA,rB  SP  SPE. See the SPE PEM. 
+evsubifw  rD,rB,UIMM  SP  SPE. See the SPE PEM. 
+evxor  rD,rA,rB  SP  SPE. See the SPE PEM. 
+extsb  rA,rS  Base  — 
+extsb.  rA,rS  Base  — 
+extsh  rA,rS  Base  — 
+extsh.  rA,rS  Base  — 
+extsw  rA,rS  64  — 
+extsw.  rA,rS  64  — 
+fabs  frD,frB  FP  — 
+fabs.  frD,frB  FP.R  — 
+fadd  frD,frA,frB  FP  — 
+fadd.  frD,frA,frB  FP.R  — 
+fadds  frD,frA,frB  FP  — 
+fadds.  frD,frA,frB  FP.R  — 
+fcfid  frD,frB  FP  — 
+fcfid.  frD,frB  FP.R  — 
+fcmpo  crD,frA,frB  FP  — 
+fcmpu  crD,frA,frB  FP  — 
+fctid  frD,frB  FP  — 
+fctid.  frD,frB  FP.R  — 
+fctidz  frD,frB  FP  — 
+fctidz.  frD,frB  FP.R  — 
+fctiw  frD,frB  FP  — 
+fctiw.  frD,frB  FP.R  — 
+fctiwz  frD,frB  FP  — 
+fctiwz.  frD,frB  FP.R  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-96 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+fdiv  frD,frA,frB  FP  — 
+fdiv.  frD,frA,frB  FP.R  — 
+fdivs  frD,frA,frB  FP  — 
+fdivs.  frD,frA,frB  FP.R  — 
+fmadd  frD,frA,frC,frB  FP  — 
+fmadd.  frD,frA,frC,frB  FP.R  — 
+fmadds  frD,frA,frC,frB  FP  — 
+fmadds.  frD,frA,frC,frB  FP.R  — 
+fmr  frD,frB  FP  — 
+fmr.  frD,frB  FP.R  — 
+fmsub  frD,frA,frC,frB  FP  — 
+fmsub.  frD,frA,frC,frB  FP.R  — 
+fmsubs  frD,frA,frC,frB  FP  — 
+fmsubs.  frD,frA,frC,frB  FP.R  — 
+fmul  frD,frA,frC  FP  — 
+fmul.  frD,frA,frC  FP.R  — 
+fmuls  frD,frA,frC  FP  — 
+fmuls.  frD,frA,frC  FP.R  — 
+fnabs  frD,frB  FP  — 
+fnabs.  frD,frB  FP.R  — 
+fneg  frD,frB  FP  — 
+fneg.  frD,frB  FP.R  — 
+fnmadd  frD,frA,frC,frB  FP  — 
+fnmadd.  frD,frA,frC,frB  FP.R  — 
+fnmadds  frD,frA,frC,frB  FP  — 
+fnmadds.  frD,frA,frC,frB  FP.R  — 
+fnmsub  frD,frA,frC,frB  FP  — 
+fnmsub.  frD,frA,frC,frB  FP.R  — 
+fnmsubs  frD,frA,frC,frB  FP  — 
+fnmsubs.  frD,frA,frC,frB  FP.R  — 
+fres  frD,frB  FP  — 
+fres.  frD,frB  FP.R  — 
+frsp  frD,frB  FP  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-97 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+frsp.  frD,frB  FP.R  — 
+frsqrte  frD,frB  FP  — 
+frsqrte.  frD,frB  FP.R  — 
+fsel  frD,frA,frC,frB  FP  — 
+fsel.  frD,frA,frC,frB  FP.R  — 
+fsub  frD,frA,frB  FP  — 
+fsub.  frD,frA,frB  FP.R  — 
+fsubs  frD,frA,frB  FP  — 
+fsubs.  frD,frA,frB  FP.R  — 
+icbi  rA,rB  Base  — 
+icbiep  rA,rB  E.PD  — 
+icblc  CT,rA,rB  E.CL  — 
+icblq.  CT,rA,rB  E.CL  — 
+icbt  CT,rA,rB  Base  — 
+icbtls  CT,rA,rB  E.CL  — 
+isel  rD,rA,rB,crbC  Base  — 
+isync  —  Base  — 
+lbarx  rD,rA,rB  ER  — 
+lbdx  rD,rA,rB  DS  — 
+lbepx  rD,rA,rB  E.PD  — 
+lbz  rD,d(rA)  Base  — 
+lbzu  rD,d(rA)  Base  — 
+lbzux  rD,rA,rB  Base  — 
+lbzx  rD,rA,rB  Base  — 
+ld  rD,d(rA)  64  — 
+ldarx  rD,rA,rB  64  — 
+ldbrx  rD,rA,rB  64  — 
+lddx  rD,rA,rB  64, DS  Decorated storage instruction when 64 implemented. 
+ldepx  rD,rA,rB  64, E.PD  External PID instruction when 64 implemented. 
+ldu  rD,d(rA)  64  — 
+ldux  rD,rA,rB  64  — 
+ldx  rD,rA,rB  64  — 
+lfd  frD,d(rA)  FP  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-98 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+lfddx  frD,rA,rB  FP, DS  Decorated storage instruction when FP implemented. 
+lfdepx  frD,rA,rB  FP, E.PD  External PID instruction when FP implemented. 
+lfdu  frD,d(rA)  FP  — 
+lfdux  frD,rA,rB  FP  — 
+lfdx  frD,rA,rB  FP  — 
+lfs  frD,d(rA)  FP  — 
+lfsu  frD,d(rA)  FP  — 
+lfsux  frD,rA,rB  FP  — 
+lfsx  frD,rA,rB  FP  — 
+lha  rD,d(rA)  Base  — 
+lharx  rD,rA,rB  ER  — 
+lhau  rD,d(rA)  Base  — 
+lhaux  rD,rA,rB  Base  — 
+lhax  rD,rA,rB  Base  — 
+lhbrx  rD,rA,rB  Base  — 
+lhdx  rD,rA,rB  DS  — 
+lhepx  rD,rA,rB  E.PD  — 
+lhz  rD,d(rA)  Base  — 
+lhzu  rD,d(rA)  Base  — 
+lhzux  rD,rA,rB  Base  — 
+lhzx  rD,rA,rB  Base  — 
+lmw  rD,d(rA)  Base  — 
+lvebx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvehx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvepx  vD,rA,rB  Vector,  External PID instruction when AltiVec implemented. 
+E.PD 
+lvepxl  vD,rA,rB  Vector,  External PID instruction when AltiVec implemented. 
+E.PD 
+lvewx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvexbx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvexhx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvexwx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvtlx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-99 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+lvtlxl  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvtrx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvtrxl  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvsl  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvsm  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvsr  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvswx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvswxl  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvx  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lvxl  vD,rA,rB  Vector  AltiVec. See the AltiVec PEM. 
+lwa  rD,d(rA)  64  — 
+lwarx  rD,rA,rB  Base  — 
+lwaux  rD,rA,rB  64  — 
+lwax  rD,rA,rB  64  — 
+lwbrx  rD,rA,rB  Base  — 
+lwdx  rD,rA,rB  DS  — 
+lwepx  rD,rA,rB  E.PD  — 
+lwz  rD,d(rA)  Base  — 
+lwzu  rD,d(rA)  Base  — 
+lwzux  rD,rA,rB  Base  — 
+lwzx  rD,rA,rB  Base  — 
+mbar  MO  Embedded  — 
+mcrf  crD,crfS  Base  — 
+mcrfs  crD,crfS  Base  — 
+mcrxr  crD  Base  — 
+mfcr  rD  Base  — 
+mfdcr  rD,DCRN  E.DC  — 
+mffs  frD  FP  — 
+mffs.  frD  FP.R  — 
+mfmsr  rD  Base  — 
+mfocrf  rD,CRM  Base  — 
+mfpmr  rD,PMRN  E.PM  — 
+mfspr  rD,SPR  Base  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-100 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+mftmr  rD,TMRN  EM.TM  — 
+mftb  rD,SPR  Base  — 
+mfvscr  vD  Vector  AltiVec. See the AltiVec PEM. 
+miso  —  Base  miso is an alias for or r26,r26,r26 
+msgclr  rB  E.PC  — 
+msgsnd  rB  E.PC  — 
+mtcrf  CRM,rS  Base  — 
+mtdcr  DCRN,rS  E.DC  — 
+mtfsb0  crbD_FP  FP  — 
+mtfsb0.  crbD_FP  FP.R  — 
+mtfsb1  crbD_FP  FP  — 
+mtfsb1.  crbD_FP  FP.R  — 
+mtfsf  FM,frB  FP  — 
+mtfsf.  FM,frB  FP.R  — 
+mtfsfi  crD_FP,FP_IMM  FP  — 
+mtfsfi.  crD_FP,FP_IMM  FP.R  — 
+mtmsr  rS  Base  — 
+mtocrf  CRM,rS  Base  — 
+mtpmr  PMRN,rS  E.PM  — 
+mtspr  SPR,rS  Base  — 
+mttmr  TMRN,rS  EM.TM  — 
+mtvscr  vB  Vector  AltiVec. See the AltiVec PEM. 
+mulhd  rD,rA,rB  64  — 
+mulhd.  rD,rA,rB  64  — 
+mulhdu  rD,rA,rB  64  — 
+mulhdu.  rD,rA,rB  64  — 
+mulhss  rD,rA,rB  ISAT  — 
+mulhss.  rD,rA,rB  ISAT  — 
+mulhus  rD,rA,rB  ISAT  — 
+mulhus.  rD,rA,rB  ISAT  — 
+mulhw  rD,rA,rB  Base  — 
+mulhw.  rD,rA,rB  Base  — 
+mulhwu  rD,rA,rB  Base  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-101 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+mulhwu.  rD,rA,rB  Base  — 
+mulld  rD,rA,rB  64  — 
+mulld.  rD,rA,rB  64  — 
+mulldo  rD,rA,rB  64  — 
+mulldo.  rD,rA,rB  64  — 
+mulli  rD,rA,SIMM  Base  — 
+mullw  rD,rA,rB  Base  — 
+mullw.  rD,rA,rB  Base  — 
+mullwo  rD,rA,rB  Base  — 
+mullwo.  rD,rA,rB  Base  — 
+mulwss  rD,rA,rB  ISAT  — 
+mulwss.  rD,rA,rB  ISAT  — 
+mulwus  rD,rA,rB  ISAT  — 
+mulwus.  rD,rA,rB  ISAT  — 
+mvidsplt  vD,rA,rB  Vector  — 
+mviwsplt  vD,rA,rB  Vector  — 
+nand  rA,rS,rB  Base  — 
+nand.  rA,rS,rB  Base  — 
+neg  rD,rA  Base  — 
+neg.  rD,rA  Base  — 
+nego  rD,rA  Base  — 
+nego.  rD,rA  Base  — 
+nor  rA,rS,rB  Base  — 
+nor.  rA,rS,rB  Base  — 
+or  rA,rS,rB  Base  — 
+or.  rA,rS,rB  Base  — 
+orc  rA,rS,rB  Base  — 
+orc.  rA,rS,rB  Base  — 
+ori  rA,rS,UIMM  Base  — 
+oris  rA,rS,UIMM  Base  — 
+popcntb  rA,rS  Base  — 
+popcntd  rA,rS  64  — 
+popcntw  rA,rS  Base  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-102 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+prtyd  rA,rS  64  — 
+prtyw  rA,rS  Base  — 
+rfci  —  Embedded  — 
+rfdi  —  E.ED  — 
+rfgi  —  E.HV  — 
+rfi  —  Embedded  — 
+rfmci  —  Embedded  — 
+rldcl  rA,rS,rB,MB  64  — 
+rldcl.  rA,rS,rB,MB  64  — 
+rldcr  rA,rS,rB,ME  64  — 
+rldcr.  rA,rS,rB,ME  64  — 
+rldic  rA,rS,SH,MB  64  — 
+rldic.  rA,rS,SH,MB  64  — 
+rldicl  rA,rS,SH,MB  64  — 
+rldicl.  rA,rS,SH,MB  64  — 
+rldicr  rA,rS,SH,ME  64  — 
+rldicr.  rA,rS,SH,ME  64  — 
+rldimi  rA,rS,SH,MB  64  — 
+rldimi.  rA,rS,SH,MB  64  — 
+rlwimi  rA,rS,SH,MB,ME  Base  — 
+rlwimi.  rA,rS,SH,MB,ME  Base  — 
+rlwinm  rA,rS,SH,MB,ME  Base  — 
+rlwinm.  rA,rS,SH,MB,ME  Base  — 
+rlwnm  rA,rS,rB,MB,ME  Base  — 
+rlwnm.  rA,rS,rB,MB,ME  Base  — 
+sat  rD,rA,SS,IU,OU,SA  ISAT  — 
+sat.  rD,rA,SS,IU,OU,SA  ISAT  — 
+sc  LEV  Base  — 
+sld  rA,rS,rB  64  — 
+sld.  rA,rS,rB  64  — 
+slw  rA,rS,rB  Base  — 
+slw.  rA,rS,rB  Base  — 
+srad  rA,rS,rB  64  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-103 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+srad.  rA,rS,rB  64  — 
+sradi  rA,rS,SH  64  — 
+sradi.  rA,rS,SH  64  — 
+sraw  rA,rS,rB  Base  — 
+sraw.  rA,rS,rB  Base  — 
+srawi  rA,rS,SH  Base  — 
+srawi.  rA,rS,SH  Base  — 
+srd  rA,rS,rB  64  — 
+srd.  rA,rS,rB  64  — 
+srw  rA,rS,rB  Base  — 
+srw.  rA,rS,rB  Base  — 
+stb  rS,d(rA)  Base  — 
+stbcx.  rS,rA,rB  ER  — 
+stbdx  rS,rA,rB  DS  — 
+stbepx  rS,rA,rB  E.PD  — 
+stbu  rS,d(rA)  Base  — 
+stbux  rS,rA,rB  Base  — 
+stbx  rS,rA,rB  Base  — 
+std  rS,d(rA)  64  — 
+stdbrx  rS,rA,rB  64  — 
+stdcx.  rS,rA,rB  64  — 
+stddx  rS,rA,rB  64, DS  Decorated storage instruction when 64 implemented. 
+stdepx  rS,rA,rB  64, E.PD  External PID instruction when 64 implemented. 
+stdu  rS,d(rA)  64  — 
+stdux  rS,rA,rB  64  — 
+stdx  rS,rA,rB  64  — 
+stfd  frS,d(rA)  FP  — 
+stfddx  frS,rA,rB  FP, DS  Decorated storage instruction when FP implemented. 
+stfdepx  frS,rA,rB  FP, E.PD  External PID instruction when FP implemented. 
+stfdu  frS,d(rA)  FP  — 
+stfdux  frS,rA,rB  FP  — 
+stfdx  frS,rA,rB  FP  — 
+stfiwx  frS,rA,rB  FP  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-104 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic Syntax Category  Comments 
+stfs frS,d(rA) FP  — 
+stfsu frS,d(rA) FP  — 
+stfsux frS,rA,rB FP  — 
+stfsx frS,rA,rB FP  — 
+sth rS,d(rA) Base  — 
+sthbrx rS,rA,rB Base  — 
+sthcx. rS,rA,rB ER  — 
+sthdx rS,rA,rB DS  — 
+sthepx rS,rA,rB E.PD  — 
+sthu rS,d(rA) Base  — 
+sthux rS,rA,rB Base  — 
+sthx rS,rA,rB Base  — 
+stmw rS,d(rA) Base  — 
+stvebx vS,rA,rB Vector  AltiVec. See the AltiVec PEM. 
+stvehx vS,rA,rB Vector  AltiVec. See the AltiVec PEM. 
+stvepx vS,rA,rB Vector,  External PID instruction when AltiVec implemented. 
+E.PD 
+stvepxl vS,rA,rB Vector,  External PID instruction when AltiVec implemented. 
+E.PD 
+stvewx vS,rA,rB Vector  AltiVec. See the AltiVec PEM. 
+stvexbx vS,rA,rB Vector  AltiVec. See the AltiVec PEM 
+stvexhx vS,rA,rB Vector  AltiVec. See the AltiVec PEM 
+stvexwx vS,rA,rB Vector  AltiVec. See the AltiVec PEM 
+stvflx vS,rA,rB Vector  AltiVec. See the AltiVec PEM 
+stvflxl vS,rA,rB Vector  AltiVec. See the AltiVec PEM 
+stvfrx vS,rA,rB Vector  AltiVec. See the AltiVec PEM 
+stvfrxl vS,rA,rB Vector  AltiVec. See the AltiVec PEM 
+stvswx vS,rA,rB Vector  AltiVec. See the AltiVec PEM 
+stvswxl vS,rA,rB Vector  AltiVec. See the AltiVec PEM 
+stvx vS,rA,rB Vector  AltiVec. See the AltiVec PEM. 
+stvxl vS,rA,rB Vector  AltiVec. See the AltiVec PEM. 
+stw rS,d(rA) Base  — 
+stwbrx rS,rA,rB Base  — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-105 
+
+Instruction Model 
+Table 5-56. Instruction Set(continued) 
+Mnemonic  Syntax  Category Comments 
+stwcx.  rS,rA,rB  Base — 
+stwdx  rS,rA,rB  DS — 
+stwepx  rS,rA,rB  E.PD — 
+stwu  rS,d(rA)  Base — 
+stwux  rS,rA,rB  Base — 
+stwx  rS,rA,rB  Base — 
+subf  rD,rA,rB  Base — 
+subf.  rD,rA,rB  Base — 
+subfb  rD,rA,rB  ISAT — 
+subfb.  rD,rA,rB  ISAT — 
+subfbss  rD,rA,rB  ISAT — 
+subfbss.  rD,rA,rB  ISAT — 
+subfbu  rD,rA,rB  ISAT — 
+subfbu.  rD,rA,rB  ISAT — 
+subfbus  rD,rA,rB  ISAT — 
+subfbus.  rD,rA,rB  ISAT — 
+subfc  rD,rA,rB  Base — 
+subfc.  rD,rA,rB  Base — 
+subfco  rD,rA,rB  Base — 
+subfco.  rD,rA,rB  Base — 
+subfe  rD,rA,rB  Base — 
+subfe.  rD,rA,rB  Base — 
+subfeo  rD,rA,rB  Base — 
+subfeo.  rD,rA,rB  Base — 
+subfh  rD,rA,rB  ISAT — 
+subfh.  rD,rA,rB  ISAT — 
+subfhss  rD,rA,rB  ISAT — 
+subfhss.  rD,rA,rB  ISAT — 
+subfhu  rD,rA,rB  ISAT — 
+subfhu.  rD,rA,rB  ISAT — 
+subfhus  rD,rA,rB  ISAT — 
+subfhus.  rD,rA,rB  ISAT — 
+subfic  rD,rA,SIMM  Base — 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-106 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56. Instruction Set (continued) 
+Mnemonic  Syntax  Category  Comments 
+subfme  rD,rA  Base  — 
+subfme.  rD,rA  Base  — 
+subfmeo  rD,rA  Base  — 
+subfmeo.  rD,rA  Base  — 
+subfo  rD,rA,rB  Base  — 
+subfo.  rD,rA,rB  Base  — 
+subfw  rD,rA,rB  ISAT,64  — 
+subfw.  rD,rA,rB  ISAT,64  — 
+subfwss  rD,rA,rB  ISAT  — 
+subfwss.  rD,rA,rB  ISAT  — 
+subfwu  rD,rA,rB  ISAT,64  — 
+subfwu.  rD,rA,rB  ISAT,64  — 
+subfwus  rD,rA,rB  ISAT  — 
+subfwus.  rD,rA,rB  ISAT  — 
+subfze  rD,rA  Base  — 
+subfze.  rD,rA  Base  — 
+subfzeo  rD,rA  Base  — 
+subfzeo.  rD,rA  Base  — 
+sync  L,E  Base  — 
+(msync) 
+(lwsync) 
+(hwsync) 
+(esync) 
+td  TO,rA,rB  64  — 
+tdi  TO,rA,SIMM  64  — 
+tlbilx  T,rA,rB  E.HV  — 
+tlbivax  rA,rB  Embedded  — 
+tlbre  —  Embedded  — 
+tlbsx  rA,rB  Embedded  — 
+tlbsync  —  Embedded  — 
+tlbwe  —  Embedded  — 
+tw  TO,rA,rB  Base  — 
+twi  TO,rA,SIMM  Base  — 
+vabsdub  vD,vA,vB  Vector  AltiVec. See the AltiVec PEM. 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+Freescale Semiconductor 5-107 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+vabsduh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vabsduw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vaddcuw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vaddfp vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vaddsbs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vaddshs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vaddsws vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vaddubm vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vaddubs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vadduhm vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vadduhs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vadduwm vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vadduws vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vand vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vandc vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vavgsb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vavgsh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vavgsw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vavgub vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vavguh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vavguw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcfsx vD,vB,UIMM Vector AltiVec. See the AltiVec PEM. 
+vcfux vD,vB,UIMM Vector AltiVec. See the AltiVec PEM. 
+vcmpbfpx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpbfpx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpeqfpx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpeqfpx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpequbx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpequbx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpequhx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpequhx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpequwx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpequwx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-108 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+vcmpgefpx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgefpx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtfpx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtfpx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtsbx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtsbx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtshx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtshx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtswx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtswx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtubx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtubx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtuhx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtuhx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtuwx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vcmpgtuwx. vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vctsxs vD,vB,UIMM Vector AltiVec. See the AltiVec PEM. 
+vctuxs vD,vB,UIMM Vector AltiVec. See the AltiVec PEM. 
+vexptefp vD,vB Vector AltiVec. See the AltiVec PEM. 
+vlogefp vD,vB Vector AltiVec. See the AltiVec PEM. 
+vmaddfp vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vmaxfp vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmaxsb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmaxsh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmaxsw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmaxub vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmaxuh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmaxuw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmhaddshs vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vmhraddshs vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vminfp vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vminsb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vminsh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+EREF: A Programmer’sReference Manual for Freescale Power Architecture Processors, Rev.1 (EIS 2.1) 
+Freescale Semiconductor 5-109 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+vminsw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vminub vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vminuh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vminuw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmladduhm vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vmrghb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmrghh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmrghw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmrglb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmrglh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmrglw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmsummbm vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vmsumshm vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vmsumshs vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vmsumubm vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vmsumuhm vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vmsumuhs vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vmulesb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmulesh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmuleub vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmuleuh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmulosb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmulosh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmuloub vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vmulouh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vnmsubfp vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vnor vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vor vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vperm vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vpkpx vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vpkshss vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vpkshus vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vpkswss vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev. 1 (EIS 2.1) 
+5-110 Freescale Semiconductor 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+vpkswus vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vpkuhum vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vpkuhus vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vpkuwum vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vpkuwus vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vrefp vD,vB Vector AltiVec. See the AltiVec PEM. 
+vrfim vD,vB Vector AltiVec. See the AltiVec PEM. 
+vrfin vD,vB Vector AltiVec. See the AltiVec PEM. 
+vrfip vD,vB Vector AltiVec. See the AltiVec PEM. 
+vrfiz vD,vB Vector AltiVec. See the AltiVec PEM. 
+vrlb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vrlh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vrlw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vrsqrtefp vD,vB Vector AltiVec. See the AltiVec PEM. 
+vsel vD,vA,vB,vC Vector AltiVec. See the AltiVec PEM. 
+vsl vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vslb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsldoi vD,vA,vB,SHB Vector AltiVec. See the AltiVec PEM. 
+vslh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vslo vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vslw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vspltb vD,vB,UIMM Vector AltiVec. See the AltiVec PEM. 
+vsplth vD,vB,UIMM Vector AltiVec. See the AltiVec PEM. 
+vspltisb vD,UIMM Vector AltiVec. See the AltiVec PEM. 
+vspltish vD,UIMM Vector AltiVec. See the AltiVec PEM. 
+vspltisw vD,UIMM Vector AltiVec. See the AltiVec PEM. 
+vspltw vD,vB,UIMM Vector AltiVec. See the AltiVec PEM. 
+vsr vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsrab vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsrah vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsraw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsrb vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsrh vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+EREF: A Programmer’s Reference Manual for Freescale Power Architecture Processors, Rev.1 (EIS 2.1) 
+Freescale Semiconductor 5-111 
+
+Instruction Model 
+Table 5-56.Instruction Set (continued) 
+Mnemonic Syntax Category Comments 
+vsro vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsrw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsubcuw vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsubfp vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsubsbs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsubshs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsubsws vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsububm vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsububs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsubuhm vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsubuhs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsubuwm vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsubuws vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsum2sws vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsum4sbs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsum4shs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsum4ubs vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vsumsws vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+vupkhpx vD,vB Vector AltiVec. See the AltiVec PEM. 
+vupkhsb vD,vB Vector AltiVec. See the AltiVec PEM. 
+vupkhsh vD,vB Vector AltiVec. See the AltiVec PEM. 
+vupklpx vD,vB Vector AltiVec. See the AltiVec PEM. 
+vupklsb vD,vB Vector AltiVec. See the AltiVec PEM. 
+vupklsh vD,vB Vector AltiVec. See the AltiVec PEM. 
+vxor vD,vA,vB Vector AltiVec. See the AltiVec PEM. 
+wait WC,WH WT — 
+wrtee rS Embedded — 
+wrteei E Embedded — 
+xor rA,rS,rB Base — 
+xor. rA,rS,rB Base — 
+xori rA,rS,UIMM Base — 
+xoris rA,rS,UIMM Base — 

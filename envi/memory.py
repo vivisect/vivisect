@@ -581,6 +581,23 @@ class MemoryObject(IMemory):
     def getMemoryMaps(self):
         return [mmap for mva, mmaxva, mmap, mbytes in self._map_defs]
 
+    @contextlib.contextmanager
+    def getAdminRights(self):
+        '''
+        Useful for accessing memory in ways not permitted by the map permissions
+
+        eg.
+
+        with mem.getAdminRights():
+            mem.writeMemory(addr, data)
+        '''
+        oldrights = self._supervisor
+        self._supervisor = True
+        try:
+            yield
+        finally:
+            self._supervisor = oldrights
+
     def readMemory(self, va, size, _origva=None):
         '''
         Read memory from maps stored in memory maps.

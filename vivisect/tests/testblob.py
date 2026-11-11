@@ -18,6 +18,7 @@ class BlobTests(unittest.TestCase):
         vw = viv_cli.VivCli()
         vw.config.viv.parsers.blob.arch = 'arm'
         vw.config.viv.parsers.blob.baseaddr = 0x200000
+        vw.config.viv.parsers.blob.bigend = False
         vw.loadFromFile(fn)
 
         vw.makeFunction(0x200001)
