@@ -140,6 +140,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self.cfctx = viv_base.VivCodeFlowContext(self)
 
         self.va_by_name = {}
+        # the next index to try when uniquifying a colliding name, by base name.
+        # this is only a hint: makeName still probes forward from it, so a stale
+        # entry costs an extra lookup and nothing else.
+        self._name_uniq_index = {}
         self.name_by_va = {}
         self.codeblocks_by_funcva = {}
         self.exports_by_va = {}
@@ -2747,11 +2751,16 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 raise v_exc.DuplicateName(oldva, va, name)
 
             logger.debug('makeName: %r already lives at 0x%x', name, oldva)
-            # tack a number on the end
-            index = 0
+            # tack a number on the end.
+            #
+            # resume from the last index used for this base name rather than
+            # restarting at 0. naming k symbols that share a name is otherwise
+            # O(k**2): a statically linked AArch64 binary can carry tens of
+            # thousands of '$d'/'$x' mapping symbols, which stalls the load.
+            index = self._name_uniq_index.get(name, 0)
             newname = "%s_%d" % (name, index)
             newoldva = self.vaByName(newname)
-            while self.vaByName(newname) not in (None, newname):
+            while newoldva is not None:
                 # if we run into the va we're naming, that's the name still
                 if newoldva == va:
                     return newname
@@ -2760,6 +2769,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 newname = "%s_%d" % (name, index)
                 newoldva = self.vaByName(newname)
 
+            self._name_uniq_index[name] = index
             name = newname
 
         self._fireEvent(v_const.VWE_SETNAME, (va, name))

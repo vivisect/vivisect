@@ -19,6 +19,21 @@ from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
+
+def isArmMappingSymbol(name):
+    '''
+    Is this an ARM/AArch64 mapping symbol?
+
+    Mapping symbols ($a, $t, $d and $x, each optionally followed by '.' and a
+    suffix) mark where code and data meet within a section. They are ABI
+    markers rather than identifiers, and a single binary can carry tens of
+    thousands of them all sharing one name.
+
+    See AAELF32 section 4.5.5 and AAELF64 section 4.5.4.
+    '''
+    return len(name) >= 2 and name[0] == '$' and name[1] in ('a', 't', 'd', 'x') and (len(name) == 2 or name[2] == '.')
+
+
 # FIXME: So this is terrible, but until we unite everything under one package
 # namespace to rule them all, we need this to avoid a stupid amount of logspam
 # but we can't just force things under
@@ -761,6 +776,8 @@ def loadElfIntoWorkspace(vw, elf, filename=None, baseaddr=None):
                     imps = [imp for imp in vw.getImports() if imp[0] == sva]
                     exps = [exp for exp in vw.getExports() if exp[0] == sva]
                     logger.debug('skipping Symbol naming for existing Import/Export: 0x%x (%r) (%r) (%r)', sva, s.name, imps, exps)
+                elif isArmMappingSymbol(s.name or ''):
+                    logger.debug('skipping ARM/AArch64 mapping symbol: 0x%x (%r)', sva, s.name)
                 else:
                     vw.makeName(sva, dmglname, filelocal=True, makeuniq=True)
 
