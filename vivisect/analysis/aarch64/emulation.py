@@ -68,20 +68,15 @@ class AnalysisMonitor(viv_monitor.AnalysisMonitor):
                         if isinstance(oper1, e_a64.A64RegOper) and oper1.reg == REG_PC:
                             self.last_lr_pc = starteip
 
-            elif op.opcode == INS_ADD and op.opers[0].reg == REG_PC:
-                # simple branch code
+            elif op.opcode == INS_ADRP:
+                # AArch64 jump tables are built from ADR/ADRP + (optionally
+                # LDR/ADD for the offset) + BR x<n>.  There is no PC-relative
+                # ADD on AArch64, so the old ADDPC path was dead Aarch32 code.
+                # See atlas0fd00m's PR735 review comment for the canonical
+                # ADRP/ADD table + LDR + BR idiom.
                 if emu.vw.getVaSetRow('SwitchCases', op.va) is None:
-                    base, tbl = analyzeADDPC(emu, op, starteip, self)
-                    if None not in (base, tbl):
-                        count = len(tbl)
-                        self.switchcases += 1
-                        emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count))
-
-            elif op.opcode == INS_SUB and isinstance(op.opers[0], e_a64.A64RegOper) and op.opers[0].reg == REG_PC:
-                # simple branch code
-                if emu.vw.getVaSetRow('SwitchCases', op.va) is None:
-                    base, tbl = analyzeSUBPC(emu, op, starteip, self)
-                    if None not in (base, tbl):
+                    base, tbl = analyzeADRP(emu, op, starteip, self)
+                    if base is not None and tbl is not None:
                         count = len(tbl)
                         self.switchcases += 1
                         emu.vw.setVaSetRow('SwitchCases', (op.va, op.va, count))
@@ -327,116 +322,119 @@ def analyzeTB(emu, op, starteip, amon):
 
     return base, tbl
 
-def analyzeADDPC(emu, op, starteip, emumon):
-    count = None
+def analyzeADRP(emu, op, starteip, emumon):
+    '''
+    Analyze the canonical AArch64 jump-table idiom:
 
-    reg = op.opers[-1].reg
+        adrp    x0, .Lswitch_table
+        add     x0, x0, :lo12:.Lswitch_table      (optional)
+        ldr     x1, [x0, x1, LSL #3]  (or ldrh for 16-bit tables)
+        br      x1
+
+    The ADRP operand is [A64RegOper(rd), A64ImmOper(base+imm)] where the
+    immediate already encodes the resolved PC-relative address (see
+    p_pc_addr in disasm.py).  We resolve the table base directly from the
+    immediate so no emulator-side PC arithmetic is needed (AArch64 has no
+    PC-relative ADD; the old analyzeADDPC was an Aarch32 remnant).
+
+    Returns (base, tbl) or (None, None) if this instruction is not a jump
+    table header (e.g. a plain data address load).
+    '''
+    if len(op.opers) != 2:
+        return None, None
+
+    # ADRP/ADR opers: [dst register, A64ImmOper(base + imm)]
+    if not isinstance(op.opers[1], e_a64.A64ImmOper):
+        return None, None
+
+    table_base = op.opers[1].getOperValue(op, emu)
+    if not emu.vw.isValidPointer(table_base):
+        return None, None
+
+    # Confirm the code block actually contains the jump-table idiom before
+    # treating this ADRP as a switch-case header.  A bare `adrp xN, addr` is
+    # an ordinary data address materialization and must be left alone.
     cb = emu.vw.getCodeBlock(op.va)
     if cb is None:
         return None, None
 
     cbva, cbsz, cbfva = cb
-    off = 0
-    while off < cbsz:
-        top = emu.vw.parseOpcode(cbva+off)
-        if top.opcode == INS_CMP:
-            # make sure this is a comparison for this register. 
-            # the comparison should be the size of the switch-case
-            for opidx in range(len(top.opers)):
-                oper = top.opers[opidx]
-                if isinstance(oper, e_a64.A64RegOper):
-                    if oper.reg != reg:
-                        continue
-
-                    #logger.debug("cmp op: ", top)
-                    cntoidx = (1,0)[opidx]
-                    cntoper = top.opers[cntoidx]
-                    #logger.debug("cntoper: %d, %r  %r" % (cntoidx, cntoper, vars(cntoper)))
-                    count = cntoper.getOperValue(top, emu)
-                    #logger.debug("count = ", count)
-
-        off += len(top)
-
-    if not count or count is None or count > 10000:
-        return None, None
-
-    #logger.debug("Making ADDPC SwitchCase (count=%d):" % count)
-    # wire up the switch-cases, name each one, etc...
-    tbl = []
-    for x in range(count):
-        base = op.opers[-2].getOperValue(op, emu)
-        base_reg = op.opers[-1].reg
-        emu.setRegister(base_reg, x)
-        idx = op.opers[-1].getOperValue(op, emu)
-        nexttgt = base + idx
-        #logger.debug("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
-        tbl.append((base+idx, x))
-        emu.vw.makeCode(nexttgt)
-        emu.vw.addXref(starteip, nexttgt, REF_CODE)
-
-        curname = emu.vw.getName(nexttgt)
-        if curname is None:
-            emu.vw.makeName(nexttgt, "case_%x_%x_%x" % (x, starteip, nexttgt))
-        else:
-            emu.vw.vprint("case_%x_%x_%x conflicts with existing name: %r" % (x, starteip, nexttgt, curname))
- 
-
-    return base, tbl
-
-
-def analyzeSUBPC(emu, op, starteip, emumon):
+    off = op.va - cbva
+    idxreg = None
+    table_reg = None
     count = None
-
-    cb = emu.vw.getCodeBlock(op.va)
-    if cb is None:
-        return None, None
-
-    off = 0
-    reg = op.opers[1].reg
-    cbva, cbsz, cbfva = cb
-    while off < cbsz:
-        top = emu.vw.parseOpcode(cbva+off)
-        if top.opcode == INS_CMP:
-            # make sure this is a comparison for this register. 
-            # the comparison should be the size of the switch-case
+    seen_br = False
+    lookahead = 0
+    while (cbva + off) < (cbva + cbsz) and lookahead < 32:
+        top = emu.vw.parseOpcode(cbva + off)
+        if top.opcode == INS_ADRP or top.opcode == INS_ADR:
+            if table_reg is None and isinstance(top.opers[0], e_a64.A64RegOper):
+                table_reg = top.opers[0].reg
+        elif top.opcode == INS_LDR and len(top.opers) > 1:
+            # ldr xN, [table_reg, idx_reg, LSL #3]  (64-bit absolute table)
+            oper = top.opers[1]
+            if isinstance(oper, e_a64.A64RegRegOffOper):
+                if oper.basereg == table_reg:
+                    idxreg = oper.offreg
+        elif top.opcode == INS_CMP:
+            # compare against EITHER the index register (from LDR) or the
+            # add/sub index register materialization
             for opidx in range(len(top.opers)):
                 oper = top.opers[opidx]
-                if isinstance(oper, e_a64.A64RegOper):
-                    if oper.reg != reg:
-                        continue
-
-                    #logger.debug("cmp op: ", top)
-                    cntoidx = (1,0)[opidx]
-                    cntoper = top.opers[cntoidx]
-                    #logger.debug("cntoper: %d, %r  %r" % (cntoidx, cntoper, vars(cntoper)))
-                    count = cntoper.getOperValue(top, emu)
-                    #logger.debug("count = ", count)
-
+                if not isinstance(oper, e_a64.A64RegOper):
+                    continue
+                reg = oper.reg
+                if reg == table_reg:
+                    continue
+                if (idxreg is None) or (reg == idxreg):
+                    cntoper = top.opers[(1, 0)[opidx]]
+                    cval = cntoper.getOperValue(top, emu)
+                    if cval is not None:
+                        count = cval
+                        idxreg = reg
+                    break
+        elif top.opcode == INS_BR:
+            seen_br = True
+            break
         off += len(top)
+        lookahead += 1
+
+    # Need: table-register load + index-register load + terminating BR.
+    if table_reg is None or idxreg is None or not seen_br:
+        return None, None
 
     if not count or count is None or count > 10000:
         return None, None
 
-    #logger.debug("Making SUBPC SwitchCase (count=%d):" % count)
-    # wire up the switch-cases, name each one, etc...
+    # Two common table layouts:
+    #   absolute-pointer tables (adrp/add + ldr xN, [xN, xM, LSL #3] + br)
+    #   offset tables        (adrp      + ldrh ..., ldrb ...   + br via add)
+    # We default to absolute 8-byte entries; the caller's CMP bound bounds it.
+    entsize = 8
+    base = table_base
     tbl = []
-
-    base = op.opers[-2].getOperValue(op, emu)
-    base_reg = op.opers[1].reg
-
     for x in range(count):
-        emu.setRegister(base_reg, x)
-        idx = op.opers[-1].getOperValue(op, emu)
-        nexttgt = base - idx
-        #logger.debug("x=%x, base=%x, idx=%x (%x)  %r %r  %d" % (x,base,idx, nexttgt, op, op.opers, emu.getRegister(op.opers[-1].reg)))
-        tbl.append((base+idx, x))
-        emu.vw.makeCode(nexttgt)
-        emu.vw.addXref(starteip, nexttgt, REF_CODE)
+        nexttgt = base + x * entsize
+        tbl.append((nexttgt, x))
+        try:
+            entry = emu.readMemValue(nexttgt, entsize)
+            # absolute-pointer tables store the full target addr per slot
+            tgt = entry & 0xffffffffffffffff
+            if emu.vw.isValidPointer(tgt):
+                emu.vw.makeCode(tgt, arch=envi.ARCH_A64)
+                emu.vw.addXref(starteip, tgt, REF_CODE)
+                curname = emu.vw.getName(tgt)
+                if curname is None:
+                    emu.vw.makeName(tgt, "case_%x_%x_%x" % (x, starteip, tgt))
+                else:
+                    emu.vw.vprint("case_%x_%x_%x conflicts with existing name: %r" % (x, starteip, tgt, curname))
+        except Exception as e:
+            logger.debug("analyzeADRP: unreadable table entry 0x%x: %r", nexttgt, e)
 
-        curname = emu.vw.getName(nexttgt)
-        if curname is None:
-            emu.vw.makeName(nexttgt, "case_%x_%x_%x" % (x, starteip, nexttgt))
-        else:
-            emu.vw.vprint("case_%x_%x_%x conflicts with existing name: %r" % (x, starteip, nexttgt, curname))
+        # mark the table slot as data
+        emu.vw.makeNumber(nexttgt, 8)
+
+    emu.vw.addXref(op.va, base, REF_DATA)
+    emu.vw.makeName(op.va, 'br_tbl_%x' % op.va)
 
     return base, tbl

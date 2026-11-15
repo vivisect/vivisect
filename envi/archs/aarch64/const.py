@@ -826,9 +826,12 @@ REG_SPSR_hyp = REG_OFFSET_HYP + 17
 REG_SPSR_und = REG_OFFSET_UND + 17
 REG_SPSR_sys = REG_OFFSET_SYS + 17
 
-REG_PC = 0xf
-REG_SP = 0xd
-REG_BP = None
+# NOTE: REG_PC/REG_SP/REG_BP are intentionally NOT defined here.
+# These are Aarch32 leftovers (ARM32 const.py uses REG_PC=0xf, REG_SP=0xd).
+# AArch64 defines the correct values (REG_PC=32, REG_SP=31, REG_BP=None)
+# in regs.py.  Defining them here again would shadow the regs.py values for
+# modules which import const.py *after* regs.py (e.g. emulation.py), causing
+# e.g. `add x15, x15, #imm` to be misdetected as a PC-relative instruction.
 REG_CPSR = REG_OFFSET_CPSR
 REG_FLAGS = REG_OFFSET_CPSR    #same location, backward-compat name
 

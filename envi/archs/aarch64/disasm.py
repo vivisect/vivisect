@@ -8621,6 +8621,13 @@ class A64NameOper(A64Operand):
     def render(self, mcanv, op, idx):
         mcanv.addText(self.mnem)
 
+    def getOperValue(self, op, emu=None):
+        # A64NameOper carries a system-register/alias index in ``self.val``
+        # (e.g. for AT, DC, IC, TLBI, DSB, ISB, DBG operations).  Resolve it
+        # without an emulator so it never raises NotImplementedError during
+        # emulation or extended analysis.
+        return self.val
+
 
 prfm_types = (
         'PLD',

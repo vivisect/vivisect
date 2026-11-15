@@ -4416,6 +4416,167 @@ class A64InstructionSet(unittest.TestCase):
         op = am.archParseOpcode(unhexlify('d3f021e3'))
         self.assertEqual('msr CPSR_c, #0xd3', repr(op))
 
+    def test_a64nameoper_getopervalue(self):
+        # A64NameOper should resolve its value without an emulator instead
+        # of raising NotImplementedError (upstream #732).
+        import envi.archs.aarch64.disasm as a64_disasm
+        for instype, val in ((a64_disasm.INS_IC, 1),
+                             (a64_disasm.INS_DSB, 4),
+                             (a64_disasm.INS_SYS, 7)):
+            oper = a64_disasm.A64NameOper(instype, val)
+            # must not raise
+            self.assertEqual(oper.getOperValue(None), val)
+
+    def test_aarch64_reg_pc_is_not_x15(self):
+        # REG_PC must be the AArch64 program counter, not the Aarch32
+        # leftover value 0xf (which aliases x15).  The shadowing of
+        # const.py REG_PC over regs.py REG_PC caused `add x15, x15, #imm`
+        # (upstream #731) to be misdetected as a PC-relative instruction.
+        import envi.archs.aarch64.const as a64_const
+        import envi.archs.aarch64.regs as a64_regs
+        import vivisect.analysis.aarch64.emulation as a64_emu
+        # the analysis module must see the regs.py value (32 == pc)
+        self.assertEqual(a64_emu.REG_PC, a64_regs.REG_PC)
+        self.assertEqual(a64_emu.REG_PC, 32)
+        # and const.py must no longer shadow it with the Aarch32 value
+        self.assertFalse(hasattr(a64_const, 'REG_PC'))
+
+    def test_aarch64_add_x15_no_switchcase(self):
+        # upsteam #731: `add x15, x15, #2992` crashed the analysis module
+        # because x15's reg index (15) collided with the Aarch32 REG_PC
+        # constant (0xf).  With the dead ADDPC/SUBPC hook removed, this
+        # instruction must be analyzed without any SwitchCases row or crash.
+        import envi.archs.aarch64.disasm as a64_disasm
+        import vivisect.analysis.aarch64.emulation as a64_emu
+        from vivisect.impemu.emulator import WorkspaceEmulator
+
+        vw = vivisect.VivWorkspace()
+        vw.setMeta('Architecture', 'a64')
+        vw.setMeta("DefaultCall", "a64call")
+        # 1MB of code space + a small stack
+        vw.addMemoryMap(0x10000000, 7, 'code', b'\x00' * 0x10000)
+        vw.addMemoryMap(0xb0000000, 7, 'stack', b'\x00' * 0x10000)
+
+        # add x15, x15, #2992  (bytes: little-endian opval 0x912ec1ef)
+        op = a64_disasm.A64Disasm().disasm(b'\xef\xc1\x2e\x91', 0, 0x10000000)
+        self.assertEqual(op.opcode, a64_disasm.INS_ADD)
+
+        emu = vw.getEmulator(va=0x10000000)
+        mon = a64_emu.AnalysisMonitor(vw, 0x10000000)
+        emu.setEmulationMonitor(mon)
+        # directly drive the prehook as the analysis pipeline would
+        mon.prehook(emu, op, 0x10000000)
+        # a normal add must not create switchcase data
+        self.assertEqual(vw.getVaSetRow('SwitchCases', op.va), None)
+        self.assertEqual(mon.switchcases, 0)
+
+    def test_aarch64_adrp_jumptable(self):
+        # The canonical AArch64 jump-table idiom (ADRP + ADD offset +
+        # LDR index + BR) must be recognized as a switch-case and wired
+        # into the workspace (replaces the removed Aarch32 ADDPC path).
+        import struct
+        import envi.archs.aarch64.disasm as a64_disasm
+        import vivisect.analysis.aarch64.emulation as a64_emu
+
+        code_va = 0x10000000
+        table_va2 = 0x679a2000
+        targets = (0x30000100, 0x30000200, 0x30000300)
+
+        # adrp x0, 0x679a2000  (rd=0, derived from known-good d0abcd03)
+        adrp_opv = 0xd0abcd03 & ~0x1f
+        op1 = a64_disasm.A64Disasm().disasm(adrp_opv.to_bytes(4, 'little'), 0, code_va)
+        self.assertEqual(op1.opcode, a64_disasm.INS_ADRP)
+
+        # add x0, x0, #0
+        op2 = a64_disasm.A64Disasm().disasm(b'\x00\x00\x00\x91', 0, code_va + 4)
+        self.assertEqual(op2.opcode, a64_disasm.INS_ADD)
+
+        # cmp x1, #3  (bound for the 3-entry table)
+        cmpbase = int.from_bytes(bytes.fromhex('1f0300f1'), 'little')
+        cmpopv = (cmpbase & ~((0x1f << 5) | (0xfff << 10))) | (1 << 5) | (3 << 10)
+        op3 = a64_disasm.A64Disasm().disasm(cmpopv.to_bytes(4, 'little'), 0, code_va + 8)
+        self.assertEqual(op3.opcode, a64_disasm.INS_CMP)
+
+        # ldr x1, [x0, x1, lsl #3]  (base reg x23 -> x0)
+        ldr_opv = int.from_bytes(bytes.fromhex('e17a61f8'), 'little')
+        ldr_opv = (ldr_opv & ~(0x1f << 5)) | (0 << 5)
+        op4 = a64_disasm.A64Disasm().disasm(ldr_opv.to_bytes(4, 'little'), 0, code_va + 12)
+        self.assertEqual(op4.opcode, a64_disasm.INS_LDR)
+
+        # br x1
+        br_opv = 0xd61f0000 | (1 << 5)
+        op5 = a64_disasm.A64Disasm().disasm(br_opv.to_bytes(4, 'little'), 0, code_va + 16)
+        self.assertEqual(op5.opcode, a64_disasm.INS_BR)
+
+        vw = vivisect.VivWorkspace()
+        vw.setMeta('Architecture', 'a64')
+        vw.setMeta('DefaultCall', 'a64call')
+        vw.addMemoryMap(code_va, 7, 'code', b'\x00' * 0x1000)
+        tblmem = struct.pack('<QQQ', *targets) + b'\x00' * (0x1000 - 24)
+        vw.addMemoryMap(table_va2, 7, 'tbl', tblmem)
+        vw.addMemoryMap(0x30000000, 7, 'targets', b'\x00' * 0x1000)
+
+        for i, bz in enumerate([
+            adrp_opv.to_bytes(4, 'little'),
+            b'\x00\x00\x00\x91',
+            cmpopv.to_bytes(4, 'little'),
+            ldr_opv.to_bytes(4, 'little'),
+            br_opv.to_bytes(4, 'little'),
+        ]):
+            vw.writeMemory(code_va + i * 4, bz)
+
+        vw.makeFunction(code_va)
+        for i in range(5):
+            vw.makeCode(code_va + i * 4, arch=envi.ARCH_A64)
+        vw.addCodeBlock(code_va, 20, code_va)
+
+        emu = vw.getEmulator(logread=True, logwrite=True)
+        emu.setStackCounter(0xb0000000)
+        mon = a64_emu.AnalysisMonitor(vw, code_va)
+
+        base, tbl = a64_emu.analyzeADRP(emu, op1, code_va, mon)
+        self.assertEqual(base, table_va2)
+        self.assertEqual(len(tbl), 3)
+        # each entry resolves to one of the table targets
+        self.assertEqual(tbl[0][0], table_va2)
+        self.assertEqual(tbl[1][0], table_va2 + 8)
+        self.assertEqual(tbl[2][0], table_va2 + 16)
+
+    def test_aarch64_adrp_bare_load(self):
+        # A bare ADRP used to materialize a data address (no LDR-index/BR
+        # table idiom following) must NOT be treated as a switch-case.
+        import envi.archs.aarch64.disasm as a64_disasm
+        import vivisect.analysis.aarch64.emulation as a64_emu
+
+        code_va = 0x10000000
+        adrp_opv = 0xd0abcd03 & ~0x1f
+        op1 = a64_disasm.A64Disasm().disasm(adrp_opv.to_bytes(4, 'little'), 0, code_va)
+        self.assertEqual(op1.opcode, a64_disasm.INS_ADRP)
+
+        vw = vivisect.VivWorkspace()
+        vw.setMeta('Architecture', 'a64')
+        vw.setMeta('DefaultCall', 'a64call')
+        vw.addMemoryMap(code_va, 7, 'code', b'\x00' * 0x1000)
+        vw.addMemoryMap(0x679a2000, 7, 'tbl', b'\x00' * 0x1000)
+        for i, bz in enumerate([
+            adrp_opv.to_bytes(4, 'little'),
+            b'\x00\x00\x00\x91',
+            b'\xc0\x03\x5f\xd6',   # ret
+        ]):
+            vw.writeMemory(code_va + i * 4, bz)
+        vw.makeFunction(code_va)
+        for i in range(3):
+            vw.makeCode(code_va + i * 4, arch=envi.ARCH_A64)
+        vw.addCodeBlock(code_va, 12, code_va)
+
+        emu = vw.getEmulator(logread=True, logwrite=True)
+        emu.setStackCounter(0xb0000000)
+        mon = a64_emu.AnalysisMonitor(vw, code_va)
+
+        base, tbl = a64_emu.analyzeADRP(emu, op1, code_va, mon)
+        self.assertIsNone(base)
+        self.assertIsNone(tbl)
+
     def test_BigEndian(self):       #FIXME: revamp for Aarch64
         return
         am = aarch64.A64Module()
