@@ -74,7 +74,9 @@ VWE_AUTOANALFIN     = 42 # (starttime, endtime)
 VWE_WRITEMEM        = 43 # (va, bytes, oldbytes)
 VWE_ENDIAN          = 44 # endian
 
-VWE_MAX             = 45
+VWE_MODLOCATION     = 45 # (va, L_VA/L_SIZE/L_LTYPE/L_TINFO, new values)
+
+VWE_MAX             = 46
 
 # Constants for vivisect "transient" events which flow through
 # the event subsystem but are not recorded to the workspace.

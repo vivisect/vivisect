@@ -2499,6 +2499,11 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(v_const.VWE_ADDLOCATION, ltup)
         return ltup
 
+    def modLocation(self, va, ltyp, lval):
+        loc = self.getLocation(va)
+
+        return loc
+
     def getLocations(self, ltype=None, linfo=None):
         """
         Return a list of location objects from the workspace

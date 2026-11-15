@@ -120,6 +120,12 @@ class WorkspaceEmulator:
             - Desc: By default, WorkspaceEmulators share the opcode cache storing parsed opcodes for locations
                     in the Vivisect Workspace.
                     This setting disables use of the VivWorkspace's opcode cache.
+        * flushhooks
+            - Type: Boolean
+            - Default: False
+            - Desc: By default, WorkspaceEmulators will cache the __imphook__ references a PlatArch Mixin
+                    declares, to save many, many repeated dir(self) scans looking for those hooks. Set this
+                    opt to True in order to *always* scan for those hooks instead of using the cached refs.
         '''
         self.vw = vw
         # Set down below in runFunction
@@ -167,7 +173,7 @@ class WorkspaceEmulator:
 
         clsname = self.__class__.__name__
         hooks = clshooks.get(clsname)
-        if hooks is None:
+        if hooks is None or kwargs.get('flushhooks', False):
             for name in dir(self):
                 val = getattr(self, name, None)
                 if val is None:

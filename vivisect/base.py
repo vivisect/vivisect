@@ -207,6 +207,9 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
             if self.getMeta('NoReturnApis', {}).get(linfo.lower()):
                 self.cfctx.addNoReturnAddr(lva)
 
+    def _handleMODLOCATION(self, einfo):
+        lva, ltyp, lval = einfo
+
     def _handleDELLOCATION(self, loc):
         # FIXME delete xrefs
         lva, lsize, ltype, linfo = loc
@@ -581,6 +584,8 @@ class VivWorkspaceCore(viv_impapi.ImportApi):
         self.ehand[v_const.VWE_WRITEMEM] = self._handleWRITEMEM
         self.ehand[v_const.VWE_ENDIAN] = self._handleENDIAN
 
+        self.ehand[v_const.VWE_MODLOCATION] = self._handleMODLOCATION
+
         self.thand = [None for x in range(v_const.VTE_MAX)]
         self.thand[v_const.VTE_IAMLEADER] = self._handleIAMLEADER
         self.thand[v_const.VTE_FOLLOWME] = self._handleTransFOLLOWME
@@ -795,6 +800,7 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
         # Update the location def for NOFALL bit
         # but save the xrefs off first because delLocation nukes those
         xrefs = vw.getXrefsFrom(lva)
+        # TODO: Maybe a modLocInfo API?
         vw.delLocation(lva)
 
         vw.addLocation(lva, lsize, ltype, linfo | envi.IF_NOFALL)
