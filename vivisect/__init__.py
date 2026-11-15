@@ -2763,7 +2763,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             logger.debug('makeName: %r already lives at 0x%x', name, oldva)
 
             # tack a number on the end
-            index = self.names_hits.get(name, 1)
+            index = self.names_hits.get(name, 0)
             newname = f"{name}_{index}"
             newoldva = self.vaByName(newname)
             while self.vaByName(newname) is not None:
