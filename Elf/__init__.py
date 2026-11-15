@@ -92,7 +92,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
         self.secnames = {}
         self.symbols  = []
         self.relocs   = []
-        self.relocvas = set([])
+        self.relocvas = set()
         self.symbols_by_name = {}
         self.symbols_by_addr = {}
         self.dynamics = []      # deprecated - 2019-10-21

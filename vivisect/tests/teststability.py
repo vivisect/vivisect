@@ -10,7 +10,6 @@ import json
 import logging
 import unittest
 
-import vivisect
 import vivisect.tests.helpers as helpers
 
 from vivisect.const import *
@@ -100,7 +99,6 @@ class StabilityTests(unittest.TestCase):
     def _compare(self, filename, base, vw):
         testhooks = {
             'entrypoints': (self._cmp_loc, vw.getEntryPoints()),
-
             'pointers': (self._cmp_loc, vw.getLocations(LOC_POINTER)),
             'strings': (self._cmp_loc, self._get_strtype(vw.getLocations(LOC_STRING))),
             'unicode': (self._cmp_loc, self._get_strtype(vw.getLocations(LOC_UNI))),

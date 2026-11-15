@@ -208,10 +208,10 @@ class ELFTests(unittest.TestCase):
         results = {}
         results['imports'] = self.check_vw_data('imports', test_data['imports'], vw.getImports(), 0)
         results['exports'] = self.check_vw_data('exports', test_data['exports'], vw.getExports(), 0)
-        results['relocs']  = self.check_vw_data('relocs', test_data['relocs'], vw.getRelocations(), 1)
+        results['relocs'] = self.check_vw_data('relocs', test_data['relocs'], vw.getRelocations(), 1)
 
-        testnames = [ntup for ntup in genNames(vw.getNames(), vw.getFiles())]
-        results['names']   = self.check_vw_data('names', test_data['names'], testnames, 0)
+        testnames = list(genNames(vw.getNames(), vw.getFiles()))
+        results['names'] = self.check_vw_data('names', test_data['names'], testnames, 0)
         # pltgot needs actual assertions
         # results['pltgot'] = self.pltgot(vw, test_data)
         return results
@@ -219,6 +219,7 @@ class ELFTests(unittest.TestCase):
     def pltgot(self, vw, test_data):
         for pltva, gotva in test_data['pltgot']:
             match = False
+
             for xfr, xto, xtype, xinfo in vw.getXrefsFrom(pltva):
                 if xfr == pltva and xto == gotva:
                     match = True
@@ -229,21 +230,22 @@ class ELFTests(unittest.TestCase):
         '''
         Until we've got some decent tests for this, all this does is prolong the test time
         '''
-        for path in (('linux','amd64','static64.llvm.elf'), ('linux','i386','static32.llvm.elf')):
+        for path in (('linux', 'amd64', 'static64.llvm.elf'), ('linux', 'i386', 'static32.llvm.elf')):
             logger.warning("======== %r ========", path)
             fn = helpers.getTestPath(*path)
             e = Elf.Elf(open(fn, 'rb'))
             vw = viv_cli.VivCli()
             vw.loadFromFile(fn)
 
-name_prefix_skips = [   # (prefix, MustHavePtrPrefix),
-        ('str_', False),
-        ('switch_', False),
-        ('case_', False),
-        ('sub_', False),
-        ('ptr_', False),
-        ('plt_', True),
-        ]
+name_prefix_skips = [
+    # (prefix, MustHavePtrPrefix),
+    ('str_', False),
+    ('switch_', False),
+    ('case_', False),
+    ('sub_', False),
+    ('ptr_', False),
+    ('plt_', True),
+]
 
 def genNames(names, fnames):
     '''
@@ -258,7 +260,7 @@ def genNames(names, fnames):
         testname = name
 
         for fname in fnames:
-            if testname.startswith('%s.'%fname):
+            if testname.startswith('%s.' % fname):
                 testname = testname[len(fname)+1:]
 
         # some names can get crazy pointy like "ptr_ptr_ptr_plt_..."

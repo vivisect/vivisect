@@ -14,6 +14,12 @@ class RegisterContext:
         """
         Hand in a register definition which consists of
         a list of (<name>, <width>) tuples.
+
+        NOTE: the `id` parameter strictly is for caching purposes. Most register definitions are static, which
+        most parts such as the PC register and general purpose registers never resizing or changing. If you
+        have architectures (such as PPC) that have a wide array of potential chips that can change their
+        definitions for things like meta registers, you can pass `None` into `id` and skip the caching
+        entirely.
         """
         cached = None
         if id is not None:
