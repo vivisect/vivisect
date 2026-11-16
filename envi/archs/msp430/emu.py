@@ -25,7 +25,7 @@ class Msp430Emulator(Msp430RegisterContext, envi.Emulator):
     def __init__(self, regarray=None):
         self.archmod = Msp430Module()
 
-        envi.Emulator.__init__(self, self.archmod)
+        envi.Emulator.__init__(self, 'msp430')
         Msp430RegisterContext.__init__(self)
 
         self._emu_segments = [(0, 0xffff)]

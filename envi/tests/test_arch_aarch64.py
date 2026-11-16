@@ -1,8 +1,8 @@
 #this probably needs to be looked over once more to make sure all
 #assembler symbols are correctly represented
 
-GOOD_TESTS = 2154
-GOOD_EMU_TESTS = 239 #984
+GOOD_TESTS = 2161
+GOOD_EMU_TESTS = 251 #984
 
 import sys
 import envi
@@ -4457,7 +4457,6 @@ class A64InstructionSet(unittest.TestCase):
         self.assertEqual(hex(0x98efcdab), hex(op.getOperValue(1, emu)))
 
 
-
         # ldr r3, [r11, #0x8]!
         emu.writeMemory(0xbfb00018, unhexlify("FFEEDDCC"))
         emu.setRegister(11, 0xbfb00010)
@@ -4473,7 +4472,6 @@ class A64InstructionSet(unittest.TestCase):
         self.assertEqual(hex(0xccddeeff), hex(value))
 
 
-        
         # ldr r3, [r11], #0x8
         emu.writeMemory(0xbfb00010, unhexlify("ABCDEF10"))
         emu.setRegister(11, 0xbfb00010)

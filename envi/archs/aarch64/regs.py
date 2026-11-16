@@ -1,3 +1,5 @@
+import envi
+
 from envi.archs.aarch64.const import *
 from envi.archs.aarch64 import sysregs
 
@@ -17,26 +19,27 @@ META_W_BASE = 0x200000
 META_D_BASE = 0x400000  # only for SIMD registers
 META_Q_BASE = 0
 
-meta_reg_bases = (0,
-        META_B_BASE,
-        META_H_BASE,
-        0,
-        META_W_BASE,
-        0,
-        0,
-        0,
-        META_D_BASE,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        META_Q_BASE,
+meta_reg_bases = (
+    0,
+    META_B_BASE,
+    META_H_BASE,
+    0,
+    META_W_BASE,
+    0,
+    0,
+    0,
+    META_D_BASE,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    META_Q_BASE,
 )
 
-aarch64_regs_tups = [('x%d'%x, 64) for x in range(31)]  # x31 is zero register
+aarch64_regs_tups = [('x%d' % x, 64) for x in range(31)]  # x31 is zero register
 
 REG_SP = len(aarch64_regs_tups)
 aarch64_regs_tups.append(('sp', 64))
@@ -57,7 +60,7 @@ reg_data = aarch64_regs_tups
 aarch64_regs = [r for r,sz in aarch64_regs_tups]
 
 # Defining general registers 0 - 30
-aarch64_metas = [("w%d" % x, x, 0, 32) for x in range(31)]          
+aarch64_metas = [("w%d" % x, x, 0, 32) for x in range(31)]
 aarch64_metas.extend([("h%d" % x, x, 0, 16) for x in range(31)])
 aarch64_metas.extend([("b%d" % x, x, 0, 8) for x in range(31)])
 
@@ -197,10 +200,14 @@ e_reg.addLocalMetas(l, aarch64_metas)
 
 class A64RegisterContext(e_reg.RegisterContext):
     def __init__(self):
-        e_reg.RegisterContext.__init__(self)
-        self.loadRegDef(reg_data)
-        self.loadRegMetas(aarch64_metas, statmetas=aarch64_status_metas)
-        self.setRegisterIndexes(REG_PC, REG_SP)
+        e_reg.RegisterContext.__init__(self,
+                                       regdef=reg_data,
+                                       metas=aarch64_metas,
+                                       statmetas=aarch64_status_metas,
+                                       pcindex=REG_PC,
+                                       spindex=REG_SP,
+                                       id=envi.ARCH_A64)
 
+# TODO: We really need a better way to smuggle register contexts to operands/disassembling
+# and maybe we move this into disasm?
 rctx = A64RegisterContext()
-

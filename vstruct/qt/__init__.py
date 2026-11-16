@@ -7,12 +7,6 @@ from PyQt6.QtWidgets import *
 
 from vqt.main import idlethreadsync
 
-class VQStructNamespacesView(vq_tree.VQTreeView):
-
-    def __init__(self, parent=None):
-        vq_tree.VQTreeView.__init__(self, parent=parent)
-        #model = vq_tree.VTreeView(parent=self, columns=('Namespace', 'Structure'))
-
 class VQStructSelectView(vq_tree.VQTreeView):
 
     def __init__(self, vsbuilder, parent=None):

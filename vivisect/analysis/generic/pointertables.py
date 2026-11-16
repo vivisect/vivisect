@@ -1,23 +1,16 @@
 """
 A quick and dirty analysis pass looking for pointer arrays.  Pointers
 in code regions are trixy because they might be immediate operands on
-instructions.  However, if they are pointer-length aligned *and* back-to-back
+instructions. However, if they are pointer-length aligned *and* back-to-back
 they are probably really pointers...
 """
 
 import vivisect.const as v_const
 
 def handleArray(vw, plist):
-    tlist = []
-
     for va, targ in plist:
         if vw.getLocation(va) is None:
             vw.makePointer(va)
-        loctup = vw.getLocation(targ)
-        if loctup is not None:
-            ltype = loctup[v_const.L_LTYPE]
-            if ltype not in tlist:
-                tlist.append(ltype)
 
 def analyze(vw):
 
@@ -28,8 +21,9 @@ def analyze(vw):
     plist = []
     for va, pval in vw.findPointers():
 
-        if len(plist):
+        if plist:
 
+            # TODO: What is the point of lastptr?
             lastva, lastptr = plist[-1]
 
             # If we maybe hit a pointer in the middle

@@ -352,7 +352,7 @@ def analyzeTB(emu, op, starteip, amon):
         loc = emu.vw.getLocation(va)
         if loc is not None:
             logger.debug("Terminating TB at Location/Reference")
-            logger.debug("%x, %d, %x, %r", loc)
+            logger.debug("%x, %d, %x, %r", *loc)
             break
 
         tbl.append((va, nextoff))
