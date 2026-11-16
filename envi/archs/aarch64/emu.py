@@ -356,19 +356,27 @@ class A64Emulator(A64RegisterContext, envi.Emulator):
             self.undefFlags()
             return None
 
-        return self.intSubBase(src1, src2, Sflag)
+        return self.intSubBase(src1, src2, Sflag, size=op.opers[0].tsize)
 
-    def intSubBase(self, src1, src2, Sflag=0, rd=0):
+    def intSubBase(self, src1, src2, Sflag=0, rd=0, size=0):
         # So we can either do a BUNCH of crazyness with xor and shifting to
         # get the necessary flags here, *or* we can just do both a signed and
         # unsigned sub and use the results.
+        #
+        # NOTE: the width (in *bytes*) is passed explicitly. AArch64 data
+        # processing is 64-bit (X registers -> size 8) or 32-bit (W regs ->
+        # size 4).  Historically this hardcoded 4 bytes, silently truncating
+        # every 64-bit subtraction to 32 bits.  We now derive size from the
+        # destination operand.
 
+        if size == 0:
+            size = 4  # default for ARM/32-bit compat
 
-        udst = e_bits.unsigned(src1, 4)
-        usrc = e_bits.unsigned(src2, 4)
+        udst = e_bits.unsigned(src1, size)
+        usrc = e_bits.unsigned(src2, size)
 
-        sdst = e_bits.signed(src1, 4)
-        ssrc = e_bits.signed(src2, 4)
+        sdst = e_bits.signed(src1, size)
+        ssrc = e_bits.signed(src2, size)
 
         ures = udst - usrc
         sres = sdst - ssrc
@@ -381,10 +389,10 @@ class A64Emulator(A64RegisterContext, envi.Emulator):
                     self.setCPSR(self.getSPSR(curmode))
                 else:
                     raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, 4))
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, size))
             self.setFlag(PSR_Z_bit, not ures)
-            self.setFlag(PSR_C_bit, not e_bits.is_unsigned_carry(ures, 4))
-            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, 4))
+            self.setFlag(PSR_C_bit, not e_bits.is_unsigned_carry(ures, size))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, size))
 
         return ures
 
@@ -523,55 +531,40 @@ class A64Emulator(A64RegisterContext, envi.Emulator):
         self.setFlag(PSR_Z_bit, (0,1)[ures==0])
         self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
         
-    def i_rsb(self, op):
+    def i_neg(self, op):
+        # neg Rd, Rn  ==  sub Rd, WZR/XZR, Rn
+        # NOTE: aarch64 has no `rsb` (reverse subtract); the subtract-family
+        # reverse/subtract aliases map onto neg here.
         src1 = self.getOperValue(op, 1)
-        src2 = self.getOperValue(op, 2)
-        
-        if src1 is None or src2 is None:
+        Sflag = op.iflags & IF_PSR_S
+        if src1 is None:
             self.undefFlags()
-            self.setOperValue(op, 0, None)
-            return
+            return None
+        res = self.intSubBase(0, src1, Sflag, op.opers[0].reg, size=op.opers[0].tsize)
+        self.setOperValue(op, 0, res)
 
-        dsize = op.opers[0].tsize
-        ssize = op.opers[1].tsize
-        s2size = op.opers[2].tsize
-
-        usrc1 = e_bits.unsigned(src1, 4)
-        usrc2 = e_bits.unsigned(src2, 4)
-        ssrc1 = e_bits.signed(src1, 4)
-        ssrc2 = e_bits.signed(src2, 4)
-
-        ures = usrc2 - usrc1
-        sres = ssrc2 - ssrc1
-
-
-        self.setOperValue(op, 0, ures)
-
-        curmode = self.getProcMode()
-        if op.iflags & IF_S:
-            if op.opers[0].reg == 15:
-                if (curmode != PM_sys and curmode != PM_usr):
-                    self.setCPSR(self.getSPSR(curmode))
-                else:
-                    raise Exception("Messed up opcode...  adding to r15 from PM_usr or PM_sys")
-            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, dsize))
-            self.setFlag(PSR_Z_bit, not ures)
-            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, dsize))
-            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, dsize))
-
-    # this is also defined literally right above this. Which one is correct?
-    def i_rsb(self, op):
-        # Src op gets sign extended to dst
+    def i_cmn(self, op):
+        # cmn Rd, Rn  ==  adds Rd, Rd, Rn (compare-negative: add and set flags)
+        # Note: operand 0 is the dest/result, operands 1/2 are the addends.
         src1 = self.getOperValue(op, 1)
         src2 = self.getOperValue(op, 2)
         Sflag = op.iflags & IF_PSR_S
-
         if src1 is None or src2 is None:
             self.undefFlags()
             return None
-
-        res = self.intSubBase(src2, src1, Sflag, op.opers[0].reg)
-        self.setOperValue(op, 0, res)
+        size = op.opers[0].tsize
+        udst = e_bits.unsigned(src1, size)
+        usrc = e_bits.unsigned(src2, size)
+        sdst = e_bits.signed(src1, size)
+        ssrc = e_bits.signed(src2, size)
+        ures = udst + usrc
+        sres = sdst + ssrc
+        if Sflag:
+            self.setFlag(PSR_N_bit, e_bits.is_signed(ures, size))
+            self.setFlag(PSR_Z_bit, not ures)
+            self.setFlag(PSR_C_bit, e_bits.is_unsigned_carry(ures, size))
+            self.setFlag(PSR_V_bit, e_bits.is_signed_overflow(sres, size))
+        self.setOperValue(op, 0, ures)
 
     def i_sub(self, op):
         # Src op gets sign extended to dst
@@ -583,7 +576,7 @@ class A64Emulator(A64RegisterContext, envi.Emulator):
             self.undefFlags()
             return None
 
-        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg, size=op.opers[0].tsize)
         self.setOperValue(op, 0, res)
 
     i_subs = i_sub
@@ -622,7 +615,7 @@ class A64Emulator(A64RegisterContext, envi.Emulator):
         src2 = self.getOperValue(op, 1)
         Sflag = op.iflags & IF_PSR_S
 
-        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg)
+        res = self.intSubBase(src1, src2, Sflag, op.opers[0].reg, size=op.opers[0].tsize)
 
     i_cmps = i_cmp
 
