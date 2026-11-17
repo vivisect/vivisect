@@ -1064,7 +1064,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         ltypes = [(count, ltype) for ltype, count in data.items()]
         ltypes.sort()
         topdog = ltypes[-1]
-        if topdog[1] == LOC_POINTER and topdog[0] > 1:
+        if topdog[1] == v_const.LOC_POINTER and topdog[0] > 1:
             heur += 1
 
         logger.debug("isLikelyPointer(0x%x, 0x%x): %f", va, ptrva, heur)
