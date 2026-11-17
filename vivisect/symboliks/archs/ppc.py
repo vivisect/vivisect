@@ -1955,7 +1955,23 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
             addrsym = startaddr + Const(offset, self._psize)
             self.effWriteMemory(addrsym, Const(4, self._psize), word)
             offset += 4
-    
+
+    def i_li(self, op):
+        src = self.getOperObj(op, 1)
+        self.setOperObj(op, 0, src)
+
+    def i_lmw(self, op):
+        op.opers[1].tsize = 4
+        startreg = op.opers[0].reg
+        startaddr = self.getOperAddrObj(op, 1)
+
+        offset = 0
+        for regidx in range(startreg, 32):
+            addrsym = startaddr + Const(offset, self._psize)
+            word = self.effReadMemory(addrsym, Const(4, self._psize))
+            self.setRegObj(regidx, word)
+            offset += 4
+
     def i_stb(self, op, size=1):
         op.opers[1].tsize = size
         src = self.getOperObj(op, 0)
@@ -2510,7 +2526,6 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
     i_e_or2is = i_oris
     i_se_blr = i_blr
     i_se_bctr = i_bctrl
-    i_se_neg = i_neg
     i_se_not = i_not
     i_se_extsb = i_extsb
     i_se_extsh = i_extsh
@@ -2552,6 +2567,8 @@ class PpcSymbolikTranslator(vsym_trans.SymbolikTranslator):
 
     def i_nego(self, op):
         return self.i_neg(op, oe=True)
+
+    i_se_neg = i_neg
 
 flagvars = []
 for cr in range(8):
