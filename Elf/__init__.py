@@ -358,7 +358,7 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
                 self.dyns[dyn.d_tag] = dyn.d_value
             logger.debug('dynamic: %r: 0x%x', dt_names.get(dyn.d_tag), dyn.d_value)
 
-            # DEPRECATED: storing info in both dyns{} and dynamics[].  
+            # DEPRECATED: storing info in both dyns{} and dynamics[].
             # 2019-10-21:  dynamics will go away sometime in the future
             self.dynamics.append(dyn)
             if dyn.d_tag == DT_NULL: # Represents the end
@@ -743,6 +743,8 @@ class Elf(vs_elf.Elf32, vs_elf.Elf64):
             if note.name == b'GNU\x00' and note.ntype == 1:
                 desc0 = int(note.desc[0])
                 return osnotes.get(desc0, 'unknown')
+            elif note.name == b'OpenBSD\x00' and note.ntype == 1:
+                return 'openbsd'
 
         if self.getSection('.comment'):
             sec = self.getSection('.comment')

@@ -64,6 +64,9 @@ def guessFormat(bytez):
     if bytez.startswith(b'\x7fCGC'):
         return 'cgc'
 
+    if bytez.startswith(b"vbf_version"):
+        return 'vbf'
+
     bytemagic = struct.unpack('<I', bytez[:4])[0]
     if bytemagic in macho_magics:
         return 'macho'

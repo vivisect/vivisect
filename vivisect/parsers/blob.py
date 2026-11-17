@@ -2,15 +2,7 @@ import os
 import envi
 import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
-
-
-archcalls = {
-    'i386': 'cdecl',
-    'amd64': 'sysvamd64call',
-    'arm': 'armcall',
-    'thumb': 'armcall',
-    'thumb16': 'armcall',
-}
+from vivisect.const import archcalls
 
 
 def parseFd(vw, fd, filename=None, baseaddr=None):

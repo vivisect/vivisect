@@ -130,6 +130,9 @@ class IHexFile(vstruct.VArray):
             if ctype == IHEX_REC_STARTSEG:
                 continue
 
+            if ctype == IHEX_REC_STARTLINADDR:
+                continue
+
             if ctype == IHEX_REC_EOF:
                 break
 
