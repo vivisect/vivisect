@@ -2,6 +2,7 @@ import os
 import envi
 import vivisect.exc as v_exc
 import vivisect.parsers as v_parsers
+from vivisect.const import archcalls
 
 
 def parseFd(vw, fd, filename=None, baseaddr=None):
