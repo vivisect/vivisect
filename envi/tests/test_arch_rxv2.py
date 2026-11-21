@@ -18,7 +18,7 @@ from envi import IF_RET, IF_NOFALL, IF_BRANCH, IF_CALL, IF_COND
 logger = logging.getLogger(__name__)
 
 
-GOOD_TESTS = 231
+GOOD_TESTS = 246
 GOOD_EMU_TESTS = 0
 
 
@@ -257,6 +257,29 @@ instrs = [
         ('f91601ff', 0x4560, 'mov.l #0xffffffff,0x4[r1]', 0, ()),
         ('f91e020000ff', 0x4560, 'mov.l #0xffff0000, 0x8[r1]', 0, ()),
 
+        # Conditional branch coverage (2-byte .b form)
+        ('2010', 0x1000, 'bz.b 0x1010', 0, ()),
+        ('2310', 0x1000, 'bltu.b 0x1010', 0, ()),
+        ('2510', 0x1000, 'bleu.b 0x1010', 0, ()),
+        ('2610', 0x1000, 'bpz.b 0x1010', 0, ()),
+        ('2710', 0x1000, 'bn.b 0x1010', 0, ()),
+        ('2810', 0x1000, 'bge.b 0x1010', 0, ()),
+        ('2910', 0x1000, 'blt.b 0x1010', 0, ()),
+        ('2a10', 0x1000, 'bgt.b 0x1010', 0, ()),
+        ('2b10', 0x1000, 'ble.b 0x1010', 0, ()),
+        ('2c10', 0x1000, 'bo.b 0x1010', 0, ()),
+        ('2d10', 0x1000, 'bno.b 0x1010', 0, ()),
+
+        # Short branch coverage (1-byte .s form)
+        ('15', 0x1000, 'bz.s 0x1005', 0, ()),
+        ('10', 0x1000, 'bz.s 0x1008', 0, ()),
+
+        # 3-byte word branch coverage
+        ('3a1547', 0x4560, 'bz.w 0x8c75', 0, ()),
+
+        # 4-byte 24-bit branch coverage
+        ('04006845', 0x4560, 'bra.a 0x45ad60', 0, ()),
+
 ]
 
 class RXv2InstructionSet(unittest.TestCase):
@@ -337,4 +360,170 @@ class RXv2InstructionSet(unittest.TestCase):
         logger.info("Total of %d tests completed." % (goodcount + badcount))
         self.assertEqual(goodcount, GOOD_TESTS)
         #self.assertEqual(goodemu, GOOD_EMU_TESTS)
+
+    def test_envi_rxv2_iflags(self):
+        """
+        Verify that instruction flags (IF_BRANCH, IF_COND, IF_NOFALL,
+        IF_CALL, IF_RET, IF_PRIV, IF_REPEAT) are correctly set on
+        control-flow and special instructions.
+        """
+        vw = vivisect.VivWorkspace()
+        vw.setMeta("Architecture", "rxv2")
+        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
+        vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
+
+        # (hex_bytes, va, expected_iflags_mask)
+        # expected_iflags is the set of IF_* flags that MUST be set
+        iflag_tests = [
+            # Unconditional branches — BRANCH | NOFALL
+            ('08', 0x1000, envi.IF_BRANCH | envi.IF_NOFALL),        # bra.s
+            ('2e05', 0x1000, envi.IF_BRANCH | envi.IF_NOFALL),       # bra.b
+            ('381547', 0x4560, envi.IF_BRANCH | envi.IF_NOFALL),     # bra.w
+            ('04006845', 0x4560, envi.IF_BRANCH | envi.IF_NOFALL),   # bra.a
+            ('7f45', 0x1000, envi.IF_BRANCH | envi.IF_NOFALL),       # bra.l (reg)
+
+            # Conditional branches — BRANCH | COND (not NOFALL, they have fallthrough)
+            ('15', 0x1000, envi.IF_BRANCH | envi.IF_COND),           # bz.s
+            ('1f', 0x4560, envi.IF_BRANCH | envi.IF_COND),           # bnz.s
+            ('2010', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bz.b
+            ('2c10', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bo.b
+            ('2d10', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bno.b
+            ('3a1547', 0x4560, envi.IF_BRANCH | envi.IF_COND),       # bz.w
+            ('3b1547', 0x4560, envi.IF_BRANCH | envi.IF_COND),       # bnz.w
+
+            # All 14 conditional branch types (2-byte form)
+            ('2010', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bz
+            ('2110', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bnz
+            ('2210', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bgeu
+            ('2310', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bltu
+            ('2410', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bgtu
+            ('2510', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bleu
+            ('2610', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bpz
+            ('2710', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bn
+            ('2810', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bge
+            ('2910', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # blt
+            ('2a10', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bgt
+            ('2b10', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # ble
+            ('2c10', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bo
+            ('2d10', 0x1000, envi.IF_BRANCH | envi.IF_COND),         # bno
+
+            # Calls — CALL (with fallthrough)
+            ('396845', 0x4560, envi.IF_CALL),                        # bsr.w
+            ('05006845', 0x4560, envi.IF_CALL),                      # bsr.a
+            ('7f53', 0x1000, envi.IF_CALL),                          # bsr.l (reg)
+            ('7f14', 0x1000, envi.IF_CALL),                          # jsr (reg)
+
+            # Returns — RET | NOFALL
+            ('02', 0x1000, envi.IF_RET | envi.IF_NOFALL),            # rts
+            ('6740', 0x1000, envi.IF_RET | envi.IF_NOFALL),          # rtsd
+            ('3f3440', 0x1000, envi.IF_RET | envi.IF_NOFALL),        # rtsd (with regs)
+            ('7f95', 0x1000, envi.IF_RET | envi.IF_NOFALL),          # rte
+            ('7f94', 0x1000, envi.IF_RET | envi.IF_NOFALL),          # rtfi
+
+            # Privileged
+            ('7f96', 0x1000, envi.IF_PRIV),                          # wait
+
+            # Repeat (string instructions)
+            ('7f8b', 0x1000, envi.IF_REPEAT),                        # smovb
+            ('7f8f', 0x1000, envi.IF_REPEAT),                        # smovf
+            ('7f87', 0x1000, envi.IF_REPEAT),                        # smovu
+            ('7f8a', 0x1000, envi.IF_REPEAT),                        # sstr
+            ('7f82', 0x1000, envi.IF_REPEAT),                        # suntil
+            ('7f86', 0x1000, envi.IF_REPEAT),                        # swhile
+
+            # Conditional store — COND
+            ('fc4b34', 0x1000, envi.IF_COND),                        # stz
+            ('fc4f34', 0x1000, envi.IF_COND),                        # stnz
+
+            # BMCND — COND
+            ('fde734', 0x1000, envi.IF_COND),                        # bmcnd (bmltu)
+
+            # SCCND — COND
+            ('fcda308017', 0x1000, envi.IF_COND),                   # scz
+
+            # Non-control-flow instructions should have NO control iflags
+            ('03', 0x1000, 0),                                       # nop
+            ('623b', 0x1000, 0),                                     # add
+            ('6034', 0x1000, 0),                                     # sub
+            ('ef34', 0x1000, 0),                                     # mov
+        ]
+
+        # Mask for control-flow flags only
+        CTRL_MASK = (envi.IF_BRANCH | envi.IF_NOFALL | envi.IF_COND |
+                     envi.IF_CALL | envi.IF_RET | envi.IF_PRIV | envi.IF_REPEAT)
+
+        good = 0
+        for hexbytes, va, expected_flags in iflag_tests:
+            bytez = binascii.unhexlify(hexbytes)
+            op = vw.arch.archParseOpcode(bytez, 0, va)
+            actual = op.iflags & CTRL_MASK
+            self.assertEqual(
+                actual, expected_flags,
+                msg="IFLAGS mismatch: %s (va=0x%x) %s — expected 0x%x, got 0x%x" % (
+                    hexbytes, va, repr(op), expected_flags, actual))
+            good += 1
+
+        logger.info("IFLAGS test: %d assertions passed" % good)
+
+    def test_envi_rxv2_getBranches(self):
+        """
+        Verify getBranches() returns correct branch targets for
+        branch, call, and return instructions.
+        """
+        vw = vivisect.VivWorkspace()
+        vw.setMeta("Architecture", "rxv2")
+        vw.addMemoryMap(0, 7, 'firmware', '\xff' * 16384*1024)
+        vw.addMemoryMap(0x400000, 7, 'firmware', '\xff' * 16384*1024)
+
+        # (hex_bytes, va, expected_branches)
+        # Each branch is (target_va, flags)
+        # Flags: BR_FALL=0x10, BR_COND=0x2, BR_PROC=0x1, BR_DEREF=0x4
+        branch_tests = [
+            # bra.s 0x1008 (from va 0x1000, 1-byte, pcdsp=0, +8=8)
+            # NOFALL → no fallthrough, just the branch target
+            ('08', 0x1000, [(0x1008, 0)]),
+
+            # bra.b 0x1005 (from va 0x1000, 2-byte, disp=5)
+            ('2e05', 0x1000, [(0x1005, 0)]),
+
+            # bz.b 0x1010 (from va 0x1000, 2-byte, disp=0x10)
+            # Conditional: fallthrough first, then conditional branch target
+            ('2010', 0x1000, [(0x1002, envi.BR_FALL | envi.BR_COND), (0x1010, envi.BR_COND)]),
+
+            # rts — no branches, no fallthrough
+            ('02', 0x1000, []),
+
+            # nop — only fallthrough
+            ('03', 0x1000, [(0x1001, envi.BR_FALL)]),
+        ]
+
+        good = 0
+        for hexbytes, va, expected in branch_tests:
+            bytez = binascii.unhexlify(hexbytes)
+            op = vw.arch.archParseOpcode(bytez, 0, va)
+            branches = op.getBranches()
+
+            # Check branch count
+            self.assertEqual(
+                len(branches), len(expected),
+                msg="Branch count mismatch: %s (va=0x%x) %s — expected %d branches, got %d: %r" % (
+                    hexbytes, va, repr(op), len(expected), len(branches), branches))
+
+            # Check each branch target and key flags
+            for i, (exp_target, exp_flags) in enumerate(expected):
+                act_target, act_flags = branches[i]
+                self.assertEqual(
+                    act_target, exp_target,
+                    msg="Branch target mismatch: %s (va=0x%x) branch %d — expected 0x%x, got 0x%x" % (
+                        hexbytes, va, i, exp_target, act_target))
+                # Check key flags (BR_FALL, BR_PROC, BR_COND, BR_DEREF, BR_BRANCH)
+                KEY_FLAGS = envi.BR_FALL | envi.BR_PROC | envi.BR_COND | envi.BR_DEREF
+                self.assertEqual(
+                    act_flags & KEY_FLAGS, exp_flags & KEY_FLAGS,
+                    msg="Branch flags mismatch: %s (va=0x%x) branch %d — expected flags 0x%x, got 0x%x" % (
+                        hexbytes, va, i, exp_flags & KEY_FLAGS, act_flags & KEY_FLAGS))
+
+            good += 1
+
+        logger.info("getBranches test: %d assertions passed" % good)
 

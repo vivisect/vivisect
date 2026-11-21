@@ -66,8 +66,8 @@ class RxOpcode(envi.Opcode):
         imax = len(self.opers)
         lasti = imax - 1
         for idx, oper in enumerate(self.opers):
-            oper.render(mcanv, self, i)
-            if i != lasti:
+            oper.render(mcanv, self, idx)
+            if idx != lasti:
                 mcanv.addText(", ")
 
     def getBranches(self, emu=None):
@@ -156,15 +156,6 @@ class RxRegDirectOper(envi.RegisterOper):
         if emu is None:
             return None
         emu.setRegister(self.reg, val)
-
-    def __eq__(self, oper):
-        if not isinstance(oper, self.__class__):
-            return False
-        if not self.reg == oper.reg:
-            return False
-        if not self.oflags == oper.oflags:
-            return False
-        return True
 
 
 
@@ -834,7 +825,7 @@ class RxDisasm:
         iflags |= niflags
 
         if lds > 2 or ldd > 2:
-            raise InvalidInstruction()
+            raise e_exc.InvalidInstruction(bytez[off:off+opsz], va=va)
 
         dsps = e_bits.parsebytes(bytez, off, lds, sign=False)
         off += lds
@@ -986,12 +977,12 @@ class RxCBRegOper(RxRegOper):
         return regs.rctx.getRegisterName(self.reg)
 
     def render(self, mcanv, op, idx):
+        name = regs.rctx.getRegisterName(self.reg)
+        rname = regs.rctx.getRegisterName(self.reg&RMETA_NMASK)
         hint = mcanv.syms.getSymHint(op.va, idx)
         if hint is not None:
-            mcanv.addNameText(name, typename="registers")
+            mcanv.addNameText(name, name=rname, typename="registers")
         else:
-            name = regs.rctx.getRegisterName(self.reg)
-            rname = regs.rctx.getRegisterName(self.reg&RMETA_NMASK)
             mcanv.addNameText(name, name=rname, typename="registers")
 
     def __eq__(self, oper):
@@ -1121,7 +1112,7 @@ class RxDspOper(envi.RegisterOper):
         return emu.readMemValue(taddr, self.tsize)
 
     def setOperValue(self, op, emu, val):
-        if emu is not None:
+        if emu is None:
             return None
 
         taddr = self.getOperAddr(op, emu)
@@ -1133,7 +1124,7 @@ class RxDspOper(envi.RegisterOper):
 
         # dsp is multiplied by the tsize (per spec)
         dsp = self.dsp * self.tsize
-        return emu.getRegister(reg) + dsp
+        return emu.getRegister(self.reg) + dsp
 
     def getWidth(self):
         return self.tsize
@@ -1196,7 +1187,7 @@ class RxRegIdxOper(envi.RegisterOper):
         return emu.readMemValue(taddr, self.tsize)
 
     def setOperValue(self, op, emu, val):
-        if emu is not None:
+        if emu is None:
             return None
 
         taddr = self.getOperAddr(op, emu)
@@ -1205,7 +1196,7 @@ class RxRegIdxOper(envi.RegisterOper):
     def getOperAddr(self, op, emu=None):
         if emu is None:
             return None
-        return emu.getRegister(reg) + emu.getRegister(self.idx)
+        return emu.getRegister(self.reg) + emu.getRegister(self.idx)
 
     def getWidth(self):
         return self.tsize
@@ -1267,7 +1258,7 @@ class RxRegIncOper(envi.RegisterOper):
         return emu.readMemValue(taddr, self.tsize)
 
     def setOperValue(self, op, emu, val):
-        if emu is not None:
+        if emu is None:
             return None
 
         taddr = self.getOperAddr(op, emu)
@@ -1277,12 +1268,12 @@ class RxRegIncOper(envi.RegisterOper):
         if emu is None:
             return None
 
-        addr = emu.getRegister(reg)
+        addr = emu.getRegister(self.reg)
         if self.ad == 1: # 0== post-inc, 1== pre-dec
-            newreg = addr - 1
+            newreg = addr - self.tsize
             addr = newreg
         else:
-            newreg = addr + 1
+            newreg = addr + self.tsize
 
         if emu.getMeta("forrealz"):
             emu.setRegister(self.reg, newreg)

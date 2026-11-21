@@ -264,7 +264,7 @@ arch_defs = {
         'disabled': False,
         'version':  (0,5,0),
         'has_disasm':   True,
-        'has_emu':      False,
+        'has_emu':      True,
         'has_symboliks':False,
         'has_unittests':True,
         },
